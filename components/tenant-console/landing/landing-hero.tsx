@@ -1,21 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import {
-  ArrowRight,
-  Banknote,
-  ScanBarcode,
-  Smartphone,
-  WifiOff,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { HeroPosCart } from "./hero-pos-cart";
-import {
-  goldCtaClass,
-  ghostCtaClass,
-  landingBentoCardClass,
-  landingIconWrapClass,
-} from "./landing-styles";
+import { goldCtaClass, ghostCtaClass } from "./landing-styles";
 
 type LandingHeroProps = {
   onCreateShop: () => void;
@@ -33,29 +22,17 @@ const SCREENSHOT = {
   height: 375,
 } as const;
 
-const BENTO_TILES = [
-  {
-    icon: ScanBarcode,
-    label: "Scan to sell",
-    sub: "Use your product barcodes",
-  },
-  {
-    icon: Smartphone,
-    label: "M-Pesa payments",
-    sub: "Customer pays on their phone",
-  },
-  {
-    icon: Banknote,
-    label: "Cash or split pay",
-    sub: "Print a receipt when done",
-  },
+const CAPABILITIES = [
+  { code: "01", label: "Scan to sell", detail: "Product barcodes" },
+  { code: "02", label: "M-Pesa", detail: "STK on their phone" },
+  { code: "03", label: "Cash / split", detail: "Print the receipt" },
 ] as const;
 
 const heroPrimaryCtaClass = `${goldCtaClass} shadow-[0_1px_2px_rgba(20,20,18,0.06),0_4px_14px_-2px_var(--kiosk-success-shadow)]`;
 
 export function LandingHero({ onCreateShop }: LandingHeroProps) {
   return (
-    <section className="relative isolate overflow-x-hidden bg-[var(--kiosk-bg)] px-4 pb-12 pt-[4.5rem] sm:px-10 sm:pb-24 sm:pt-[128px] md:min-h-[min(100vh,920px)] md:pb-28 md:pt-[136px] lg:px-14 lg:pb-32">
+    <section className="relative isolate overflow-x-hidden bg-[var(--kiosk-bg)] px-4 pb-12 pt-8 sm:px-10 sm:pb-24 sm:pt-16 md:min-h-[min(100vh,920px)] md:pb-28 md:pt-20 lg:px-14 lg:pb-32">
       <HeroAtmosphere />
 
       <div
@@ -78,18 +55,32 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
 
       <div className="relative z-10 mx-auto w-full max-w-[1280px]">
         <div className="flex flex-col gap-8 sm:gap-24 lg:grid lg:grid-cols-12 lg:items-end lg:gap-x-16 lg:gap-y-0 xl:gap-x-24">
-          <div className="relative z-20 flex min-w-0 flex-col max-lg:rounded-2xl max-lg:bg-[color-mix(in_srgb,var(--kiosk-bg)_92%,transparent)] max-lg:pb-1 lg:col-span-5 lg:rounded-none lg:bg-transparent lg:pb-16 lg:pl-2 xl:col-span-5">
+          <div className="relative z-20 flex min-w-0 flex-col max-lg:bg-[color-mix(in_srgb,var(--kiosk-bg)_92%,transparent)] max-lg:pb-1 lg:col-span-5 lg:bg-transparent lg:pb-16 lg:pl-2 xl:col-span-5">
             <div
               aria-hidden
               className="absolute -left-1 top-0 hidden h-full w-px bg-gradient-to-b from-transparent via-[var(--kiosk-gold)]/35 to-transparent lg:-left-4 lg:block"
             />
 
-            <p className="landing-reveal landing-hero-eyebrow mb-5 max-w-full sm:mb-10">
-              <span className="landing-hero-eyebrow-dot shrink-0" aria-hidden />
-              <span className="min-w-0 leading-snug">
-                <span className="sm:hidden">Built for shop owners in Kenya</span>
-                <span className="hidden sm:inline">
-                  Built at the counter · for shop owners in Kenya
+            <p className="landing-reveal landing-hero-eyebrow mb-6 max-w-full sm:mb-11">
+              <span className="landing-hero-eyebrow-stub" aria-hidden>
+                <span className="landing-hero-eyebrow-scan">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span className="landing-hero-eyebrow-code">Till</span>
+              </span>
+              <span className="landing-hero-eyebrow-perf" aria-hidden />
+              <span className="landing-hero-eyebrow-copy min-w-0">
+                <span className="landing-hero-eyebrow-line">
+                  Built at the counter
+                </span>
+                <span className="landing-hero-eyebrow-sub">
+                  for shop owners in Kenya
                 </span>
               </span>
             </p>
@@ -110,8 +101,8 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
 
             <p className="landing-reveal landing-reveal-delay-2 mb-8 max-w-[26rem] text-[15px] leading-[1.7] text-[var(--kiosk-text-muted)] sm:mb-14 sm:text-[17px] md:mb-16 lg:max-w-[28rem]">
               Kiosk is the point of sale, inventory, and online storefront for
-              Kenyan shops — scan barcodes, take M-Pesa at the counter, and
-              keep selling when the network drops.
+              Kenyan shops — scan barcodes, take M-Pesa at the counter, and keep
+              selling when the network drops.
             </p>
 
             <div className="landing-reveal landing-reveal-delay-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
@@ -161,17 +152,11 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
                   <span className="landing-hero-stat-label">built in</span>
                 </div>
               </div>
-              <ul className="flex flex-col gap-4">
+              <ul className="landing-hero-trust">
                 {TRUST_SIGNALS.map((text) => (
-                  <li
-                    key={text}
-                    className="flex items-center gap-4 text-[13px] font-medium tracking-[-0.01em] text-[var(--kiosk-text-soft)]"
-                  >
-                    <span
-                      className="h-px w-8 shrink-0 bg-[var(--kiosk-gold)]/45"
-                      aria-hidden
-                    />
-                    {text}
+                  <li key={text} className="landing-hero-trust-item">
+                    <span className="landing-hero-trust-rule" aria-hidden />
+                    <span>{text}</span>
                   </li>
                 ))}
               </ul>
@@ -189,7 +174,10 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
 
 function HeroAtmosphere() {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+    >
       <div className="absolute -right-[14%] top-[6%] hidden h-[min(70vh,640px)] w-[min(92%,920px)] md:block md:-right-[10%] md:top-[10%] md:h-[min(72vh,720px)]">
         <div className="hero-backdrop-drift relative h-full w-full opacity-[0.58] sm:opacity-[0.62] md:opacity-[0.68]">
           <Image
@@ -252,42 +240,33 @@ function HeroAtmosphere() {
 
 function HeroCreativeStage() {
   return (
-    <div className="flex flex-col gap-8 sm:gap-12 lg:gap-14">
-      <div className="hidden gap-5 lg:grid lg:grid-cols-3 lg:gap-6">
-        {BENTO_TILES.map(({ icon: Icon, label, sub }, index) => (
-          <div
-            key={label}
-            className={`${landingBentoCardClass} flex flex-col gap-4 p-5 backdrop-blur-sm`}
-            style={{ marginTop: index === 1 ? "1rem" : 0 }}
-          >
-            <span className={landingIconWrapClass}>
-              <Icon
-                className="h-[18px] w-[18px]"
-                strokeWidth={1.75}
-                aria-hidden
-              />
-            </span>
-            <div className="space-y-1">
-              <p className="text-[14px] font-medium leading-snug text-[var(--kiosk-text)]">
-                {label}
-              </p>
-              <p className="text-[12px] leading-relaxed text-[var(--kiosk-text-dim)]">
-                {sub}
-              </p>
+    <div className="flex flex-col gap-6 sm:gap-8 lg:gap-10">
+      <ul className="landing-hero-caps hidden lg:grid lg:grid-cols-3">
+        {CAPABILITIES.map((cap) => (
+          <li key={cap.code} className="landing-hero-cap">
+            <span className="landing-hero-cap-code">{cap.code}</span>
+            <div className="min-w-0">
+              <p className="landing-hero-cap-label">{cap.label}</p>
+              <p className="landing-hero-cap-detail">{cap.detail}</p>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
 
-      <div className="relative px-0 sm:px-2 lg:px-4">
-        <p className="mb-3 hidden text-[13px] text-[var(--kiosk-text-dim)] lg:mb-4 lg:block">
-          The screen we use behind the counter every day
-        </p>
+      <div className="relative px-0 sm:px-2 lg:px-0">
+        <div className="mb-3 flex items-baseline justify-between gap-4 lg:mb-4">
+          <p className="hidden text-[13px] text-[var(--kiosk-text-dim)] lg:block">
+            The screen we use behind the counter every day
+          </p>
+          <p className="hidden font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--kiosk-text-faint)] lg:block">
+            Live till · offline ready
+          </p>
+        </div>
 
         <div className="hero-stage-tilt relative z-10 mx-auto w-full max-w-[min(100%,400px)] sm:max-w-[520px] lg:mr-0 lg:max-w-none">
           <div
             aria-hidden
-            className="absolute inset-0 hidden translate-x-[5%] translate-y-[6%] overflow-hidden rounded-2xl border border-[var(--kiosk-border-soft)] opacity-30 sm:block"
+            className="absolute inset-0 hidden translate-x-[5%] translate-y-[6%] overflow-hidden border border-[var(--kiosk-border-soft)] opacity-30 sm:block"
             style={{ transform: "rotate(2deg)" }}
           >
             <Image
@@ -299,8 +278,8 @@ function HeroCreativeStage() {
             />
           </div>
 
-          <div className="hero-border-glow rounded-2xl p-px sm:rounded-[20px] sm:p-[1.5px]">
-            <div className="hero-premium-frame relative overflow-hidden rounded-2xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)]">
+          <div className="hero-border-glow p-px">
+            <div className="hero-premium-frame relative overflow-hidden border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)]">
               <Image
                 src={SCREENSHOT.src}
                 alt="Kiosk point of sale built by shop owners — scan, M-Pesa STK, and in-store checkout"
@@ -315,23 +294,19 @@ function HeroCreativeStage() {
             </div>
           </div>
         </div>
-
-        <div
-          aria-hidden
-          className="absolute -bottom-8 left-[12%] right-[12%] h-16 rounded-full bg-[var(--kiosk-text)]/[0.06] blur-3xl lg:-bottom-10"
-        />
       </div>
 
-      <div className="hidden flex-wrap items-center justify-center gap-3 pt-2 sm:flex lg:justify-end lg:gap-4 lg:pr-2">
-        <span className="inline-flex items-center gap-2 rounded-full border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] px-4 py-2 text-[11px] font-medium text-[var(--kiosk-text-soft)]">
-          <ScanBarcode className="h-3.5 w-3.5 text-[var(--kiosk-gold)]" aria-hidden />
-          Scan products
-        </span>
-        <span className="inline-flex items-center gap-2 rounded-full border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] px-4 py-2 text-[11px] font-medium text-[var(--kiosk-text-soft)]">
-          <WifiOff className="h-3.5 w-3.5 text-[var(--kiosk-text-dim)]" aria-hidden />
-          Works offline
-        </span>
-      </div>
+      <ul className="landing-hero-caps grid grid-cols-1 sm:grid-cols-3 lg:hidden">
+        {CAPABILITIES.map((cap) => (
+          <li key={cap.code} className="landing-hero-cap">
+            <span className="landing-hero-cap-code">{cap.code}</span>
+            <div className="min-w-0">
+              <p className="landing-hero-cap-label">{cap.label}</p>
+              <p className="landing-hero-cap-detail">{cap.detail}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

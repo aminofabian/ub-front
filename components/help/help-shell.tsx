@@ -21,7 +21,7 @@ export function HelpShell({ children }: HelpShellProps) {
 
   return (
     <div
-      className="landing-page relative min-h-screen overflow-x-hidden antialiased selection:bg-[var(--kiosk-gold-soft)] selection:text-[var(--kiosk-text)]"
+      className="landing-page relative m-2.5 min-h-[calc(100dvh-1.25rem)] overflow-x-clip rounded-[1.35rem] antialiased shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_18px_48px_-20px_rgba(0,0,0,0.45)] selection:bg-[var(--kiosk-gold-soft)] selection:text-[var(--kiosk-text)] sm:m-[0.85rem] sm:min-h-[calc(100dvh-1.7rem)] sm:rounded-[1.75rem]"
       style={landingRootStyle()}
     >
       <div className="landing-page-canvas" aria-hidden />

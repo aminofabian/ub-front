@@ -843,15 +843,10 @@
 }
 
 .landing-page .kiosk-logo-rule {
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        var(--kiosk-gold) 35%,
-        #b8e8c6 50%,
-        var(--kiosk-gold) 65%,
-        transparent 100%
-    );
-    animation: kiosk-logo-rule-shimmer 5s ease-in-out infinite;
+    background: var(--kiosk-gold);
+    opacity: 0.85;
+    animation: none;
+    transform: none;
 }
 
 .landing-page .kiosk-logo-wordmark {
@@ -966,28 +961,17 @@
     .landing-page .hero-stage-tilt,
     .landing-page .kiosk-logo-badge-ring,
     .landing-page .kiosk-logo-rule,
-    .landing-page .landing-footer-ticker,
-    .landing-page .landing-footer-panel-ring,
-    .landing-page .landing-footer-stamp,
-    .landing-page .landing-hero-eyebrow-dot {
+    .landing-page .landing-footer-till-track,
+    .landing-page .landing-footer-barcode,
+    .landing-page .landing-hero-eyebrow,
+    .landing-page .landing-hero-eyebrow-stub {
         animation: none;
+        transform: none;
     }
 }
 
-/* ── Landing footer — receipt / counter foundation ── */
-@property --footer-panel-shine-angle {
-    syntax: "<angle>";
-    inherits: false;
-    initial-value: 0deg;
-}
-
-@keyframes footer-panel-shine {
-    to {
-        --footer-panel-shine-angle: 360deg;
-    }
-}
-
-@keyframes footer-ticker-scroll {
+/* ── Landing footer — thermal receipt on the counter ── */
+@keyframes footer-till-scroll {
     from {
         transform: translateX(0);
     }
@@ -996,147 +980,414 @@
     }
 }
 
-@keyframes footer-stamp-glow {
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 color-mix(in srgb, var(--kiosk-gold) 0%, transparent);
+@keyframes footer-barcode-print {
+    from {
+        clip-path: inset(0 100% 0 0);
+        opacity: 0.35;
     }
-    50% {
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--kiosk-gold) 12%, transparent);
+    to {
+        clip-path: inset(0 0 0 0);
+        opacity: 1;
     }
 }
 
-.landing-page .landing-footer-glow {
-    background: radial-gradient(
-        ellipse 90% 55% at 50% 0%,
-        color-mix(in srgb, var(--kiosk-gold) 14%, transparent) 0%,
-        transparent 72%
-    );
-}
-
-.landing-page .landing-footer-grid {
-    background-image:
-        linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px);
-    background-size: 52px 52px;
-    mask-image: linear-gradient(to bottom, black 0%, transparent 88%);
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 88%);
-}
-
-.landing-page .landing-footer-watermark {
-    opacity: 0.035;
-    mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
-    -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+.landing-page .landing-footer-surface {
+    background:
+        radial-gradient(
+            ellipse 80% 45% at 50% 0%,
+            color-mix(in srgb, var(--kiosk-gold) 10%, transparent) 0%,
+            transparent 70%
+        ),
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--kiosk-surface) 70%, var(--kiosk-bg)) 0%,
+            var(--kiosk-surface) 40%,
+            color-mix(in srgb, var(--kiosk-panel) 80%, #d8d4cc) 100%
+        );
 }
 
 .landing-page .landing-footer-perf {
-    background-color: var(--kiosk-surface);
+    background-color: var(--kiosk-bg);
     background-image: radial-gradient(
         circle at 50% 100%,
-        var(--kiosk-bg) 5px,
-        transparent 5.5px
+        var(--kiosk-surface) 5.5px,
+        transparent 6px
     );
-    background-size: 14px 14px;
-    background-position: 7px 0;
+    background-size: 16px 16px;
+    background-position: 8px 0;
+    border-bottom: 1px dashed color-mix(in srgb, var(--kiosk-text) 10%, transparent);
 }
 
-.landing-page .landing-footer-ticker-wrap {
+.landing-page .landing-footer-till {
+    border-block: 1px solid var(--kiosk-border);
+    background:
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 11px,
+            color-mix(in srgb, var(--kiosk-grid-line) 70%, transparent) 11px,
+            color-mix(in srgb, var(--kiosk-grid-line) 70%, transparent) 12px
+        ),
+        color-mix(in srgb, var(--kiosk-panel) 70%, var(--kiosk-elevated));
     mask-image: linear-gradient(
         90deg,
         transparent,
-        black 6%,
-        black 94%,
+        black 4%,
+        black 96%,
         transparent
     );
     -webkit-mask-image: linear-gradient(
         90deg,
         transparent,
-        black 6%,
-        black 94%,
+        black 4%,
+        black 96%,
         transparent
     );
 }
 
-.landing-page .landing-footer-ticker {
-    animation: footer-ticker-scroll 42s linear infinite;
+.landing-page .landing-footer-till-track {
+    animation: footer-till-scroll 42s linear infinite;
 }
 
-.landing-page .landing-footer-panel-ring {
-    background: conic-gradient(
-        from var(--footer-panel-shine-angle, 0deg) at 50% 50%,
-        rgba(40, 167, 69, 0.45),
-        rgba(40, 167, 69, 0.06),
-        transparent 30%,
-        rgba(32, 134, 59, 0.28),
-        rgba(184, 232, 198, 0.35),
-        rgba(40, 167, 69, 0.45)
-    );
-    animation: footer-panel-shine 18s linear infinite;
-    opacity: 0.75;
+.landing-page .landing-footer-till-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    margin: 0.55rem 0.4rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--kiosk-border);
+    background: color-mix(in srgb, var(--kiosk-elevated) 94%, #f3efe6);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+    white-space: nowrap;
 }
 
-.landing-page .landing-footer-panel-inner {
+.landing-page .landing-footer-till-code {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-footer-till-label {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-muted);
+}
+
+.landing-page .landing-footer-receipt {
+    background: color-mix(in srgb, var(--kiosk-elevated) 94%, #f3efe6);
     box-shadow:
-        0 0 0 1px rgba(20, 20, 18, 0.04),
-        0 20px 50px -20px rgba(20, 20, 18, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        0 1px 0 rgba(255, 255, 255, 0.85) inset,
+        0 18px 48px -28px rgba(20, 20, 18, 0.28),
+        0 2px 8px -2px rgba(20, 20, 18, 0.08);
 }
 
-.landing-page .landing-footer-corner {
+.landing-page .landing-footer-receipt::before,
+.landing-page .landing-footer-receipt::after {
+    content: "";
     position: absolute;
-    width: 32px;
-    height: 32px;
+    left: 0;
+    right: 0;
+    height: 10px;
+    pointer-events: none;
+    background-image: radial-gradient(
+        circle at 50% 0%,
+        transparent 5.5px,
+        color-mix(in srgb, var(--kiosk-elevated) 94%, #f3efe6) 6px
+    );
+    background-size: 14px 10px;
+    background-repeat: repeat-x;
+    z-index: 2;
+}
+
+.landing-page .landing-footer-receipt::before {
+    top: -1px;
+    transform: rotate(180deg);
+}
+
+.landing-page .landing-footer-receipt::after {
+    bottom: -1px;
+    background-image: radial-gradient(
+        circle at 50% 100%,
+        transparent 5.5px,
+        color-mix(in srgb, var(--kiosk-elevated) 94%, #f3efe6) 6px
+    );
+}
+
+.landing-page .landing-footer-receipt-grain {
+    opacity: 0.45;
+    background-image:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(20, 20, 18, 0.015) 2px,
+            rgba(20, 20, 18, 0.015) 3px
+        ),
+        radial-gradient(
+            ellipse 70% 40% at 50% 0%,
+            rgba(40, 167, 69, 0.04),
+            transparent 70%
+        );
+}
+
+.landing-page .landing-footer-dash {
+    height: 1px;
+    background-image: linear-gradient(
+        90deg,
+        var(--kiosk-text-faint) 33%,
+        transparent 0%
+    );
+    background-position: 0 0;
+    background-size: 8px 1px;
+    background-repeat: repeat-x;
     opacity: 0.55;
+}
+
+.landing-page .landing-footer-rule {
+    height: 2px;
+    background: repeating-linear-gradient(
+        90deg,
+        var(--kiosk-text) 0 6px,
+        transparent 6px 10px
+    );
+    opacity: 0.18;
+}
+
+.landing-page .landing-footer-dots {
+    height: 1px;
+    align-self: center;
+    background-image: radial-gradient(
+        circle,
+        var(--kiosk-text-faint) 0.7px,
+        transparent 0.8px
+    );
+    background-size: 5px 1px;
+    background-repeat: repeat-x;
+    background-position: center;
+    opacity: 0.45;
+    transition: opacity 0.2s ease;
+}
+
+.landing-page .landing-footer-line:hover .landing-footer-dots {
+    opacity: 0.85;
+    background-image: radial-gradient(
+        circle,
+        var(--kiosk-gold) 0.7px,
+        transparent 0.8px
+    );
+}
+
+.landing-page .landing-footer-barcode {
+    animation: footer-barcode-print 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-page .landing-footer-bar {
+    display: block;
+    min-width: 1px;
+}
+
+.landing-page .landing-footer-thanks {
+    text-wrap: balance;
+}
+
+/* ── Landing pricing — till rate cards ── */
+.landing-page .landing-plan {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 1.35rem 1.25rem 1.25rem;
+    background: color-mix(in srgb, var(--kiosk-elevated) 94%, #f3efe6);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.85) inset,
+        0 14px 36px -24px rgba(20, 20, 18, 0.22);
+    border: 1px solid var(--kiosk-border);
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-plan {
+        padding: 1.65rem 1.5rem 1.4rem;
+    }
+}
+
+.landing-page .landing-plan--featured {
+    border-color: color-mix(in srgb, var(--kiosk-gold) 35%, var(--kiosk-border));
+    background:
+        linear-gradient(
+            165deg,
+            color-mix(in srgb, var(--kiosk-gold) 7%, transparent),
+            transparent 42%
+        ),
+        color-mix(in srgb, var(--kiosk-elevated) 92%, #eef6ef);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 18px 44px -22px var(--kiosk-success-shadow);
+}
+
+.landing-page .landing-plan-stamp {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.35rem 0.55rem;
+    border: 1.5px dashed color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
+    color: var(--kiosk-gold);
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    transform: rotate(8deg);
+    background: color-mix(in srgb, var(--kiosk-elevated) 70%, transparent);
     pointer-events: none;
 }
 
-.landing-page .landing-footer-corner-tl {
-    top: 1.25rem;
-    left: 1.25rem;
-    border-top: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 50%, transparent);
-    border-left: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 50%, transparent);
+.landing-page .landing-plan-code {
+    margin-bottom: 0.35rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-faint);
 }
 
-.landing-page .landing-footer-corner-br {
-    right: 1.25rem;
-    bottom: 1.25rem;
-    border-right: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 50%, transparent);
-    border-bottom: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 50%, transparent);
+.landing-page .landing-plan-name {
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.75rem, 4vw, 2.15rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--kiosk-text);
 }
 
-.landing-page .landing-footer-col-title::after {
-    content: "";
-    display: block;
-    width: 1.25rem;
-    height: 2px;
-    margin-top: 0.5rem;
-    border-radius: 1px;
-    background: linear-gradient(
+.landing-page .landing-plan--featured .landing-plan-name {
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-plan-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.5rem;
+    padding: 0 0.4rem;
+    border: 1px solid var(--kiosk-gold-border);
+    background: var(--kiosk-gold-soft);
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-plan-blurb {
+    margin-top: 0.75rem;
+    max-width: 18rem;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--kiosk-text-dim);
+}
+
+.landing-page .landing-plan-dash {
+    margin: 1.15rem 0;
+    height: 1px;
+    background-image: linear-gradient(
         90deg,
-        var(--kiosk-gold),
-        color-mix(in srgb, var(--kiosk-gold) 20%, transparent)
+        var(--kiosk-text-faint) 33%,
+        transparent 0%
     );
+    background-size: 7px 1px;
+    background-repeat: repeat-x;
+    opacity: 0.55;
 }
 
-.landing-page .landing-footer-chip {
-    transition:
-        transform 0.25s ease,
-        border-color 0.25s ease,
-        box-shadow 0.25s ease;
+.landing-page .landing-plan-price-label {
+    margin-bottom: 0.2rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-faint);
 }
 
-.landing-page .landing-footer-chip:hover {
-    transform: translateY(-1px);
-    border-color: var(--kiosk-gold-border);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--kiosk-gold) 10%, transparent);
+.landing-page .landing-plan-price {
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(2.4rem, 6vw, 3.1rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--kiosk-text);
 }
 
-.landing-page .landing-footer-stamp {
-    animation: footer-stamp-glow 4s ease-in-out infinite;
+.landing-page .landing-plan-unit {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-faint);
+    text-align: right;
 }
 
-.landing-page .landing-footer-receipt span:nth-child(2) {
-    letter-spacing: 0.28em;
+.landing-page .landing-plan-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-bottom: 0.25rem;
+}
+
+.landing-page .landing-plan-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 13px;
+    color: var(--kiosk-text-muted);
+}
+
+.landing-page .landing-plan-qty {
+    flex-shrink: 0;
+    min-width: 1.25rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--kiosk-gold);
+    font-variant-numeric: tabular-nums;
+}
+
+.landing-page .landing-plan-dots {
+    flex: 1;
+    min-width: 0.75rem;
+    height: 1px;
+    align-self: center;
+    background-image: radial-gradient(
+        circle,
+        var(--kiosk-text-faint) 0.65px,
+        transparent 0.75px
+    );
+    background-size: 4px 1px;
+    background-repeat: repeat-x;
+    background-position: center;
+    opacity: 0.5;
+}
+
+.landing-page .landing-plan-feature {
+    flex-shrink: 0;
+    max-width: 70%;
+    text-align: right;
+}
+
+.landing-page .landing-plan-rule {
+    margin: 1.15rem 0 1.1rem;
+    height: 2px;
+    background: repeating-linear-gradient(
+        90deg,
+        var(--kiosk-text) 0 5px,
+        transparent 5px 9px
+    );
+    opacity: 0.16;
 }
 
 /* ── Tenant dynamic logo ── */
@@ -1275,11 +1526,235 @@ button:hover .tenant-monogram-shell {
 }
 
 /* ── Landing page canvas & section system ── */
+/* ── Landing nav — till register strip ── */
+.landing-page .landing-nav {
+    isolation: isolate;
+}
+
+.landing-page .landing-nav--clear {
+    background: transparent;
+    border-bottom: 1px solid transparent;
+}
+
+.landing-page .landing-nav--solid {
+    background: color-mix(in srgb, var(--kiosk-nav-blur-bg) 92%, transparent);
+    border-bottom: 1px solid var(--kiosk-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.landing-page .landing-nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    height: 4rem;
+    padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-nav-inner {
+        height: 4.5rem;
+        padding-inline: 2.5rem;
+    }
+}
+
+.landing-page .kiosk-logo-tld {
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--kiosk-gold);
+}
+
+.landing-page .landing-nav-links {
+    align-items: stretch;
+    gap: 0;
+    border: 1px solid var(--kiosk-border);
+    background: color-mix(in srgb, var(--kiosk-elevated) 88%, transparent);
+}
+
+.landing-page .landing-nav-link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0.55rem 0.9rem;
+    border-right: 1px solid var(--kiosk-border-soft);
+    color: var(--kiosk-text-muted);
+    text-decoration: none;
+    transition:
+        color 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.landing-page .landing-nav-link:last-child {
+    border-right: none;
+}
+
+.landing-page .landing-nav-link:hover {
+    color: var(--kiosk-text);
+    background: color-mix(in srgb, var(--kiosk-gold) 6%, transparent);
+}
+
+.landing-page .landing-nav-link-code {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-nav-link-label {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+.landing-page .landing-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.landing-page .landing-nav-ticket {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--kiosk-border-strong);
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    line-height: 1;
+    text-decoration: none;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.landing-page .landing-nav-ticket:hover {
+    transform: translateY(-1px);
+}
+
+.landing-page .landing-nav-ticket:active {
+    transform: translateY(0);
+}
+
+.landing-page .landing-nav-ticket-code {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.landing-page .landing-nav-ticket-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.landing-page .landing-nav-ticket--ghost {
+    background: color-mix(in srgb, var(--kiosk-elevated) 92%, transparent);
+    color: var(--kiosk-text-muted);
+}
+
+.landing-page .landing-nav-ticket--ghost .landing-nav-ticket-code {
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-nav-ticket--ghost:hover {
+    border-color: var(--kiosk-gold-border);
+    color: var(--kiosk-text);
+    background: var(--kiosk-gold-soft);
+}
+
+.landing-page .landing-nav-ticket--primary {
+    border-color: var(--kiosk-gold);
+    background: var(--kiosk-gold);
+    color: var(--kiosk-cta-text);
+}
+
+.landing-page .landing-nav-ticket--primary .landing-nav-ticket-code {
+    color: color-mix(in srgb, white 72%, transparent);
+}
+
+.landing-page .landing-nav-ticket--primary:hover {
+    background: var(--kiosk-gold-hover);
+    border-color: var(--kiosk-gold-hover);
+}
+
+.landing-page .landing-find-shop-perf {
+    background-color: var(--kiosk-bg);
+    background-image: radial-gradient(
+        circle at 50% 100%,
+        color-mix(in srgb, var(--kiosk-elevated) 96%, #f3efe6) 5.5px,
+        transparent 6px
+    );
+    background-size: 14px 14px;
+    background-position: 7px 0;
+    border-bottom: 1px dashed color-mix(in srgb, var(--kiosk-text) 12%, transparent);
+}
+
+.landing-page .landing-find-shop-input {
+    border-radius: 0;
+}
+
+.landing-page .landing-nav-menu-btn {
+    display: inline-flex;
+    height: 2.5rem;
+    width: 2.5rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--kiosk-border-strong);
+    background: transparent;
+    color: var(--kiosk-text);
+    transition: background-color 0.2s ease;
+}
+
+.landing-page .landing-nav-menu-btn:hover {
+    background: var(--kiosk-ghost-hover-bg);
+}
+
+@media (min-width: 768px) {
+    .landing-page .landing-nav-menu-btn {
+        display: none;
+    }
+}
+
+.landing-page .landing-nav-drawer {
+    border: 1px solid var(--kiosk-border);
+    background: color-mix(in srgb, var(--kiosk-elevated) 96%, #f3efe6);
+    box-shadow: 0 18px 48px -24px rgba(20, 20, 18, 0.35);
+    transition: opacity 0.25s ease;
+}
+
+.landing-page .landing-nav-drawer-link {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 1rem 0.25rem;
+    border-bottom: 1px dashed color-mix(in srgb, var(--kiosk-text) 12%, transparent);
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--kiosk-text);
+    text-decoration: none;
+}
+
+/* Rounded page shell gutters — page radius/margin live on the component classes */
+html:has(.landing-page),
+body:has(.landing-page) {
+    background: #12110f !important;
+}
+
+.landing-page {
+    overflow: clip;
+}
+
 .landing-page .landing-page-canvas {
     pointer-events: none;
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 0;
+    border-radius: inherit;
     background-image:
         radial-gradient(
             ellipse 80% 50% at 12% -8%,
@@ -1312,7 +1787,7 @@ button:hover .tenant-monogram-shell {
     min-width: 2.75rem;
     align-items: center;
     justify-content: center;
-    border-radius: 0.5rem;
+    border-radius: 0;
     border: 1px solid var(--kiosk-border);
     background: var(--kiosk-elevated);
     padding: 0.35rem 0.55rem;
@@ -1385,29 +1860,124 @@ button:hover .tenant-monogram-shell {
 }
 
 .landing-page .landing-hero-eyebrow {
+    position: relative;
     display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-radius: 9999px;
-    border: 1px solid var(--kiosk-gold-border);
-    background: color-mix(in srgb, var(--kiosk-gold-soft) 80%, var(--kiosk-elevated));
-    padding: 0.4rem 0.85rem 0.4rem 0.55rem;
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    color: var(--kiosk-gold);
+    align-items: stretch;
+    max-width: 100%;
+    background: color-mix(in srgb, var(--kiosk-elevated) 88%, #f0ebe3);
     box-shadow:
-        0 1px 2px rgba(20, 20, 18, 0.04),
-        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 10px 28px -18px rgba(20, 20, 18, 0.28),
+        0 0 0 1px color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+    clip-path: polygon(
+        0 0,
+        calc(100% - 12px) 0,
+        100% 12px,
+        100% 100%,
+        0 100%
+    );
+    transform: rotate(-0.8deg);
+    transform-origin: left center;
+    animation: hero-eyebrow-settle 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.landing-page .landing-hero-eyebrow-dot {
-    height: 6px;
-    width: 6px;
-    border-radius: 9999px;
-    background: var(--kiosk-gold);
-    box-shadow: 0 0 0 3px var(--kiosk-success-shadow);
-    animation: hero-pos-status-pulse 2s ease-in-out infinite;
+.landing-page .landing-hero-eyebrow-stub {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.7rem;
+    background: color-mix(in srgb, var(--kiosk-gold) 10%, transparent);
+    border-right: none;
+}
+
+.landing-page .landing-hero-eyebrow-scan {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 1.5px;
+    height: 0.95rem;
+}
+
+.landing-page .landing-hero-eyebrow-scan span {
+    display: block;
+    width: 1.5px;
+    background: var(--kiosk-text);
+    opacity: 0.78;
+}
+
+.landing-page .landing-hero-eyebrow-scan span:nth-child(1) { height: 55%; width: 1px; }
+.landing-page .landing-hero-eyebrow-scan span:nth-child(2) { height: 100%; width: 2.5px; }
+.landing-page .landing-hero-eyebrow-scan span:nth-child(3) { height: 70%; }
+.landing-page .landing-hero-eyebrow-scan span:nth-child(4) { height: 100%; width: 1px; }
+.landing-page .landing-hero-eyebrow-scan span:nth-child(5) { height: 85%; width: 2px; }
+.landing-page .landing-hero-eyebrow-scan span:nth-child(6) { height: 45%; }
+.landing-page .landing-hero-eyebrow-scan span:nth-child(7) { height: 100%; width: 2.5px; }
+
+.landing-page .landing-hero-eyebrow-code {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-hero-eyebrow-perf {
+    width: 10px;
+    flex-shrink: 0;
+    background-color: transparent;
+    background-image: radial-gradient(
+        circle at 0 50%,
+        transparent 3.5px,
+        color-mix(in srgb, var(--kiosk-text) 14%, transparent) 3.6px,
+        color-mix(in srgb, var(--kiosk-text) 14%, transparent) 4px,
+        transparent 4.1px
+    );
+    background-size: 10px 11px;
+    background-repeat: repeat-y;
+    background-position: left center;
+    border-left: 1px dashed color-mix(in srgb, var(--kiosk-text) 16%, transparent);
+    border-right: 1px dashed color-mix(in srgb, var(--kiosk-text) 16%, transparent);
+}
+
+.landing-page .landing-hero-eyebrow-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.55rem 1.15rem 0.55rem 0.85rem;
+}
+
+.landing-page .landing-hero-eyebrow-line {
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(0.95rem, 2.4vw, 1.15rem);
+    font-weight: 600;
+    font-style: italic;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    color: var(--kiosk-text);
+    text-wrap: balance;
+}
+
+.landing-page .landing-hero-eyebrow-sub {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-faint);
+}
+
+@keyframes hero-eyebrow-settle {
+    from {
+        opacity: 0;
+        transform: rotate(-2.4deg) translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: rotate(-0.8deg) translateY(0);
+    }
 }
 
 .landing-page .landing-hero-stat {
@@ -1438,65 +2008,148 @@ button:hover .tenant-monogram-shell {
     color: var(--kiosk-text-faint);
 }
 
-.landing-page .landing-step-card {
-    position: relative;
-    border-radius: 1rem;
+.landing-page .landing-hero-caps {
     border: 1px solid var(--kiosk-border);
-    background: var(--kiosk-elevated);
-    padding: 1.5rem 1.35rem;
-    transition:
-        border-color 0.25s ease,
-        box-shadow 0.25s ease,
-        transform 0.25s ease;
+    background: color-mix(in srgb, var(--kiosk-elevated) 94%, #f3efe6);
 }
 
-.landing-page .landing-step-card:hover {
-    border-color: var(--kiosk-gold-border);
-    box-shadow: 0 16px 40px -24px var(--kiosk-success-shadow);
-    transform: translateY(-2px);
+.landing-page .landing-hero-cap {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    padding: 0.85rem 0.95rem;
+    border-bottom: 1px solid var(--kiosk-border-soft);
 }
 
-.landing-page .landing-step-number {
+.landing-page .landing-hero-cap:last-child {
+    border-bottom: none;
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-hero-cap {
+        border-bottom: none;
+        border-right: 1px solid var(--kiosk-border-soft);
+        padding: 0.95rem 1rem;
+    }
+
+    .landing-page .landing-hero-cap:last-child {
+        border-right: none;
+    }
+}
+
+.landing-page .landing-hero-cap-code {
+    flex-shrink: 0;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--kiosk-gold);
+    padding-top: 0.15rem;
+}
+
+.landing-page .landing-hero-cap-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-hero-cap-detail {
+    margin-top: 0.15rem;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--kiosk-text-dim);
+}
+
+.landing-page .landing-hero-trust {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.landing-page .landing-hero-trust-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--kiosk-text-soft);
+}
+
+.landing-page .landing-hero-trust-rule {
+    height: 1px;
+    width: 1.75rem;
+    flex-shrink: 0;
+    background: linear-gradient(
+        90deg,
+        var(--kiosk-gold),
+        color-mix(in srgb, var(--kiosk-gold) 20%, transparent)
+    );
+}
+
+.landing-page .landing-setup {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--kiosk-border);
+    background: color-mix(in srgb, var(--kiosk-elevated) 94%, #f3efe6);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.85) inset,
+        0 14px 36px -24px rgba(20, 20, 18, 0.18);
+}
+
+.landing-page .landing-setup-row {
+    display: grid;
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    gap: 0.85rem;
+    padding: 1.35rem 1.15rem;
+    border-bottom: 1px dashed color-mix(in srgb, var(--kiosk-text) 12%, transparent);
+}
+
+.landing-page .landing-setup-row:last-child {
+    border-bottom: none;
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-setup-row {
+        grid-template-columns: 4.25rem minmax(0, 1fr);
+        gap: 1.25rem;
+        padding: 1.6rem 1.6rem;
+    }
+}
+
+.landing-page .landing-setup-index {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.landing-page .landing-setup-num {
     display: inline-flex;
-    height: 2.25rem;
-    width: 2.25rem;
+    height: 2rem;
+    min-width: 2rem;
     align-items: center;
     justify-content: center;
-    border-radius: 0.65rem;
-    background: linear-gradient(
-        145deg,
-        color-mix(in srgb, var(--kiosk-gold) 18%, var(--kiosk-elevated)),
-        var(--kiosk-elevated)
-    );
     border: 1px solid var(--kiosk-gold-border);
+    background: var(--kiosk-gold-soft);
     font-family: var(--font-geist-mono), ui-monospace, monospace;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
+    letter-spacing: 0.06em;
     color: var(--kiosk-gold);
 }
 
-@media (min-width: 768px) {
-    .landing-page .landing-steps-rail {
-        position: relative;
-    }
-
-    .landing-page .landing-steps-rail::before {
-        content: "";
-        position: absolute;
-        top: 2.2rem;
-        left: 8%;
-        right: 8%;
-        height: 1px;
-        background: linear-gradient(
-            90deg,
-            transparent,
-            var(--kiosk-border) 12%,
-            var(--kiosk-gold-border) 50%,
-            var(--kiosk-border) 88%,
-            transparent
-        );
-        pointer-events: none;
-    }
+.landing-page .landing-setup-rail {
+    flex: 1;
+    width: 1px;
+    min-height: 1.5rem;
+    background: linear-gradient(
+        180deg,
+        var(--kiosk-gold-border),
+        transparent
+    );
 }
 
 .landing-page .landing-marquee-mask {
@@ -1504,37 +2157,112 @@ button:hover .tenant-monogram-shell {
     -webkit-mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
 }
 
-.landing-page .landing-trust-pill {
+.landing-page .landing-trust-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    max-width: 36rem;
+}
+
+.landing-page .landing-trust-kicker {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-trust-title {
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.35rem, 3.2vw, 1.85rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--kiosk-text);
+    text-wrap: balance;
+}
+
+.landing-page .landing-trust-aisle {
+    position: relative;
+    border-block: 1px solid var(--kiosk-border);
+    background:
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 11px,
+            color-mix(in srgb, var(--kiosk-grid-line) 80%, transparent) 11px,
+            color-mix(in srgb, var(--kiosk-grid-line) 80%, transparent) 12px
+        ),
+        color-mix(in srgb, var(--kiosk-panel) 55%, var(--kiosk-bg));
+}
+
+.landing-page .landing-trust-aisle-edge {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2.5rem;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.landing-page .landing-trust-aisle-edge:first-child {
+    left: 0;
+    background: linear-gradient(90deg, var(--kiosk-bg), transparent);
+}
+
+.landing-page .landing-trust-aisle-edge:last-child {
+    right: 0;
+    background: linear-gradient(270deg, var(--kiosk-bg), transparent);
+}
+
+.landing-page .landing-trust-aisle-rule {
+    height: 1px;
+    margin-inline: 1rem;
+    background-image: linear-gradient(
+        90deg,
+        var(--kiosk-text-faint) 33%,
+        transparent 0%
+    );
+    background-size: 7px 1px;
+    background-repeat: repeat-x;
+    opacity: 0.45;
+}
+
+.landing-page .landing-trust-sku {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    border-radius: 9999px;
+    align-items: baseline;
+    gap: 0.55rem;
+    padding: 0.45rem 0.7rem;
     border: 1px solid var(--kiosk-border);
-    background: var(--kiosk-elevated);
-    padding: 0.45rem 0.85rem;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    color: var(--kiosk-text-soft);
+    background: color-mix(in srgb, var(--kiosk-elevated) 94%, #f3efe6);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+    color: var(--kiosk-text-muted);
     transition:
         border-color 0.2s ease,
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
+        color 0.2s ease,
+        transform 0.2s ease;
 }
 
-.landing-page .landing-trust-pill:hover {
+.landing-page .landing-trust-sku:hover {
     border-color: var(--kiosk-gold-border);
+    color: var(--kiosk-text);
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px -8px var(--kiosk-success-shadow);
 }
 
-.landing-page .landing-trust-pill-dot {
-    height: 5px;
-    width: 5px;
-    border-radius: 9999px;
-    background: var(--kiosk-gold);
-    flex-shrink: 0;
+.landing-page .landing-trust-sku-code {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-trust-sku-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
 }
 
 .landing-page .landing-pillars {
@@ -1566,46 +2294,273 @@ button:hover .tenant-monogram-shell {
         44px 44px;
 }
 
-.landing-page .landing-pillar-tile {
-    position: relative;
+.landing-page .landing-pillar-board {
+    display: grid;
+    gap: 0;
+    border: 1px solid var(--kiosk-border);
+    background: color-mix(in srgb, var(--kiosk-elevated) 92%, transparent);
+}
+
+@media (min-width: 768px) {
+    .landing-page .landing-pillar-board {
+        grid-template-columns: minmax(11rem, 0.38fr) minmax(0, 1fr);
+    }
+}
+
+.landing-page .landing-pillar-rail {
     display: flex;
     flex-direction: column;
-    background: color-mix(in srgb, var(--kiosk-elevated) 96%, transparent);
-    padding: 1.75rem 1.5rem 1.85rem;
-    transition: background-color 0.3s ease;
+    border-bottom: 1px solid var(--kiosk-border);
+    background: color-mix(in srgb, var(--kiosk-panel) 70%, transparent);
 }
 
-.landing-page .landing-pillar-tile:hover {
-    background: var(--kiosk-panel);
+@media (min-width: 768px) {
+    .landing-page .landing-pillar-rail {
+        border-bottom: none;
+        border-right: 1px solid var(--kiosk-border);
+    }
 }
 
-.landing-page .landing-pillar-rule {
-    margin-top: 1.1rem;
-    height: 1px;
-    width: 2.25rem;
-    background: color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
-    transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.landing-page .landing-pillar-tile:hover .landing-pillar-rule {
+.landing-page .landing-pillar-tab {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.65rem;
     width: 100%;
+    padding: 0.95rem 1rem;
+    border: 0;
+    border-bottom: 1px solid var(--kiosk-border-soft);
+    background: transparent;
+    text-align: left;
+    color: var(--kiosk-text-muted);
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
 }
 
-.landing-page .landing-quote-card {
-    position: relative;
-    overflow: hidden;
+.landing-page .landing-pillar-tab:last-child {
+    border-bottom: none;
 }
 
-.landing-page .landing-quote-card::before {
-    content: "\201C";
-    position: absolute;
-    top: 0.65rem;
-    right: 1rem;
-    font-family: var(--font-cormorant), Georgia, serif;
-    font-size: 4.5rem;
+.landing-page .landing-pillar-tab:hover {
+    background: color-mix(in srgb, var(--kiosk-card-bg-hover) 80%, transparent);
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-pillar-tab.is-active {
+    background: color-mix(in srgb, var(--kiosk-gold) 10%, transparent);
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-pillar-tab-index {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: inherit;
+    opacity: 0.7;
+}
+
+.landing-page .landing-pillar-tab-name {
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
     line-height: 1;
-    color: color-mix(in srgb, var(--kiosk-gold) 14%, transparent);
-    pointer-events: none;
+}
+
+.landing-page .landing-pillar-tab-chevron {
+    font-size: 1.1rem;
+    line-height: 1;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.landing-page .landing-pillar-tab.is-active .landing-pillar-tab-chevron,
+.landing-page .landing-pillar-tab:hover .landing-pillar-tab-chevron {
+    opacity: 0.85;
+    transform: translateX(0);
+}
+
+.landing-page .landing-pillar-panel {
+    padding: 1.35rem 1.15rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-pillar-panel {
+        padding: 1.75rem 1.75rem 1.85rem;
+    }
+}
+
+.landing-page .landing-pillar-panel-kicker {
+    margin-bottom: 0.55rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-pillar-panel-title {
+    max-width: 28rem;
+    margin-bottom: 1.35rem;
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.35rem, 3.2vw, 1.85rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--kiosk-text);
+    text-wrap: balance;
+}
+
+.landing-page .landing-pillar-details {
+    display: grid;
+    gap: 0;
+    border-top: 1px solid var(--kiosk-border-soft);
+}
+
+.landing-page .landing-pillar-detail {
+    display: grid;
+    grid-template-columns: 0.75rem minmax(0, 1fr);
+    gap: 0.85rem;
+    padding: 0.95rem 0;
+    border-bottom: 1px solid var(--kiosk-border-soft);
+}
+
+.landing-page .landing-pillar-detail:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.landing-page .landing-pillar-detail-mark {
+    margin-top: 0.45rem;
+    height: 0.45rem;
+    width: 0.45rem;
+    border: 1px solid var(--kiosk-gold);
+    background: color-mix(in srgb, var(--kiosk-gold) 35%, transparent);
+}
+
+.landing-page .landing-pillar-detail-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-pillar-detail-body {
+    margin-top: 0.2rem;
+    max-width: 28rem;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--kiosk-text-muted);
+}
+
+.landing-page .landing-stories {
+    display: grid;
+    gap: 0.85rem;
+    border: 1px solid var(--kiosk-border);
+    background: color-mix(in srgb, var(--kiosk-elevated) 94%, #f3efe6);
+}
+
+@media (min-width: 768px) {
+    .landing-page .landing-stories {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+    }
+}
+
+.landing-page .landing-story {
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem 1.15rem 1.2rem;
+    border-bottom: 1px dashed color-mix(in srgb, var(--kiosk-text) 12%, transparent);
+}
+
+.landing-page .landing-story:last-child {
+    border-bottom: none;
+}
+
+@media (min-width: 768px) {
+    .landing-page .landing-story {
+        border-bottom: none;
+        border-right: 1px dashed color-mix(in srgb, var(--kiosk-text) 12%, transparent);
+        padding: 1.5rem 1.35rem 1.4rem;
+    }
+
+    .landing-page .landing-story:last-child {
+        border-right: none;
+    }
+}
+
+.landing-page .landing-story-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.landing-page .landing-story-code {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-story-mark {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-faint);
+}
+
+.landing-page .landing-story-quote {
+    flex: 1;
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    line-height: 1.45;
+    color: var(--kiosk-text);
+    text-wrap: pretty;
+}
+
+.landing-page .landing-story-dash {
+    margin: 1.15rem 0 0.95rem;
+    height: 1px;
+    background-image: linear-gradient(
+        90deg,
+        var(--kiosk-text-faint) 33%,
+        transparent 0%
+    );
+    background-size: 7px 1px;
+    background-repeat: repeat-x;
+    opacity: 0.55;
+}
+
+.landing-page .landing-story-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-story-detail {
+    margin-top: 0.2rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-faint);
 }
 
 .landing-page .landing-cta-panel {
@@ -1667,10 +2622,16 @@ button:hover .tenant-monogram-shell {
     .landing-page .landing-hero-eyebrow {
         display: flex;
         width: fit-content;
-        max-width: 100%;
-        font-size: 11px;
-        line-height: 1.35;
-        padding: 0.35rem 0.7rem 0.35rem 0.5rem;
+        max-width: min(100%, 22rem);
+        transform: rotate(-0.5deg);
+    }
+
+    .landing-page .landing-hero-eyebrow-copy {
+        padding-right: 0.95rem;
+    }
+
+    .landing-page .landing-hero-eyebrow-line {
+        font-size: 0.95rem;
     }
 
     .landing-page .landing-hero-stat {
@@ -1678,7 +2639,6 @@ button:hover .tenant-monogram-shell {
         text-align: center;
         padding: 0.65rem 0.35rem;
         border-right: none;
-        border-radius: 0.65rem;
         background: color-mix(in srgb, var(--kiosk-elevated) 90%, transparent);
         border: 1px solid var(--kiosk-border-soft);
     }
@@ -1705,15 +2665,13 @@ button:hover .tenant-monogram-shell {
         padding: 0.3rem 0.45rem;
     }
 
-    .landing-page .landing-trust-pill {
-        font-size: 10px;
-        padding: 0.4rem 0.65rem;
+    .landing-page .landing-trust-sku {
+        padding: 0.4rem 0.55rem;
+        gap: 0.4rem;
     }
 
-    .landing-page .landing-quote-card::before {
-        font-size: 3rem;
-        top: 0.25rem;
-        right: 0.5rem;
+    .landing-page .landing-trust-sku-label {
+        font-size: 11px;
     }
 
     .landing-page .landing-bento-card:hover {
@@ -1725,16 +2683,12 @@ button:hover .tenant-monogram-shell {
         display: none;
     }
 
-    .landing-page .landing-step-card:hover {
-        transform: none;
-    }
-
     .landing-page .hero-border-glow {
         animation: none;
     }
 
-    .landing-page .landing-footer-watermark {
-        font-size: clamp(4rem, 18vw, 7rem);
+    .landing-page .landing-footer-receipt {
+        margin-inline: 0;
     }
 }
 

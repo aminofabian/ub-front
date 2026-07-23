@@ -128,10 +128,10 @@ export function landingDarkSectionStyle(): CSSProperties {
 export { LIGHT as LANDING_LIGHT, DARK as LANDING_DARK };
 
 export const goldCtaClass =
-  "inline-flex items-center justify-center gap-2 rounded-md bg-[var(--kiosk-gold)] px-6 py-3 text-sm font-medium text-[var(--kiosk-cta-text)] transition-all duration-200 hover:bg-[var(--kiosk-gold-hover)] hover:-translate-y-px active:translate-y-0 disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-none bg-[var(--kiosk-gold)] px-6 py-3 text-sm font-medium text-[var(--kiosk-cta-text)] transition-all duration-200 hover:bg-[var(--kiosk-gold-hover)] hover:-translate-y-px active:translate-y-0 disabled:pointer-events-none disabled:opacity-50";
 
 export const ghostCtaClass =
-  "inline-flex items-center justify-center gap-2 rounded-md border border-[var(--kiosk-border-strong)] bg-transparent px-6 py-3 text-sm font-normal text-[var(--kiosk-text)] transition-all duration-200 hover:border-[var(--kiosk-ghost-hover-border)] hover:bg-[var(--kiosk-ghost-hover-bg)] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-none border border-[var(--kiosk-border-strong)] bg-transparent px-6 py-3 text-sm font-normal text-[var(--kiosk-text)] transition-all duration-200 hover:border-[var(--kiosk-ghost-hover-border)] hover:bg-[var(--kiosk-ghost-hover-bg)] disabled:pointer-events-none disabled:opacity-50";
 
 /** Bordered card with subtle hover effect — used across landing sections. */
 export const landingCardClass =
@@ -141,9 +141,9 @@ export const landingCardClass =
 export const sectionLabelClass =
   "text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--kiosk-gold)]";
 
-/** Pill-wrapped section label with subtle fill. */
+/** Sharp section label with subtle fill — not a pill. */
 export const sectionLabelPillClass =
-  "inline-flex items-center rounded-full border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-gold)]";
+  "inline-flex items-center border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-gold)]";
 
 /** Icon container used in bento cards and steps. */
 export const landingIconWrapClass =

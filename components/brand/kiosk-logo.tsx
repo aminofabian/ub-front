@@ -74,14 +74,16 @@ function LogoWordmark({
   );
 
   const tldClass = cn(
-    "kiosk-logo-tld inline-flex items-center rounded-md font-sans font-bold uppercase leading-none tracking-[0.12em] text-white",
+    "kiosk-logo-tld inline-flex items-center font-sans font-bold uppercase leading-none tracking-[0.12em] text-white",
     LOCKUP[size].pill,
-    plain
-      ? "shadow-[0_1px_4px_color-mix(in_srgb,var(--kiosk-gold)_28%,transparent)]"
-      : "shadow-[0_2px_8px_color-mix(in_srgb,var(--kiosk-gold)_45%,transparent)]",
     isLanding
-      ? "bg-gradient-to-r from-[#20863B] via-[var(--kiosk-gold)] to-[#32B85A]"
-      : "bg-gradient-to-r from-[#20863B] via-primary to-[#32B85A]",
+      ? "rounded-none bg-[var(--kiosk-gold)] shadow-none"
+      : cn(
+          "rounded-md bg-gradient-to-r from-[#20863B] via-primary to-[#32B85A]",
+          plain
+            ? "shadow-[0_1px_4px_color-mix(in_srgb,var(--kiosk-gold)_28%,transparent)]"
+            : "shadow-[0_2px_8px_color-mix(in_srgb,var(--kiosk-gold)_45%,transparent)]",
+        ),
   );
 
   if (plain) {
@@ -119,23 +121,23 @@ function PremiumBadge({
 }) {
   const isLanding = variant === "landing";
 
+  if (isLanding) {
+    return (
+      <span className="kiosk-logo-badge group/badge relative inline-flex">
+        <span className="relative inline-flex border border-[var(--kiosk-border)] bg-[color-mix(in_srgb,var(--kiosk-elevated)_96%,#f3efe6)] px-3.5 py-2.5 sm:px-4 sm:py-3">
+          {children}
+        </span>
+      </span>
+    );
+  }
+
   return (
     <span className="kiosk-logo-badge group/badge relative inline-flex rounded-2xl p-[1.5px]">
       <span
         aria-hidden
-        className={cn(
-          "kiosk-logo-badge-ring absolute inset-0 rounded-2xl",
-          isLanding ? "opacity-90" : "opacity-75",
-        )}
+        className="kiosk-logo-badge-ring absolute inset-0 rounded-2xl opacity-75"
       />
-      <span
-        className={cn(
-          "relative inline-flex rounded-[14px] px-4 py-2.5 sm:px-5 sm:py-3",
-          isLanding
-            ? "border border-[color-mix(in_srgb,var(--kiosk-gold)_12%,transparent)] bg-[color-mix(in_srgb,var(--kiosk-elevated)_88%,transparent)] shadow-[0_8px_32px_color-mix(in_srgb,var(--kiosk-gold)_10%,transparent),0_2px_8px_rgba(20,20,18,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-xl"
-            : "border border-border/60 bg-card/85 shadow-lg backdrop-blur-xl",
-        )}
-      >
+      <span className="relative inline-flex rounded-[14px] border border-border/60 bg-card/85 px-4 py-2.5 shadow-lg backdrop-blur-xl sm:px-5 sm:py-3">
         {children}
       </span>
     </span>

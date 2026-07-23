@@ -280,6 +280,8 @@ const PUBLIC_HOST_SELFSERVE_COUNTRIES_PATH =
   "/api/v1/public/host/selfserve-countries";
 const PUBLIC_HOST_RESOLVE_BY_EMAIL_PATH =
   "/api/v1/public/host/resolve-by-email";
+const PUBLIC_HOST_RESOLVE_BY_SHOP_PATH =
+  "/api/v1/public/host/resolve-by-shop";
 
 /**
  * Maps a storefront hostname (or full shop URL) to the tenant UUID via the public host resolve API.
@@ -471,6 +473,42 @@ export async function resolveBusinessByEmail(
       tenantName:
         typeof payload.tenantName === "string" ? payload.tenantName.trim() : "",
       slug: typeof payload.slug === "string" ? payload.slug.trim() : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Looks up a shop by business name, slug, or host so the landing page can
+ * send owners to their subdomain till login.
+ */
+export async function resolveBusinessByShopQuery(
+  query: string,
+): Promise<{ tenantId: string; tenantName: string; slug: string } | null> {
+  const q = query.trim();
+  if (!q) return null;
+  const url = `${apiUrl(PUBLIC_HOST_RESOLVE_BY_SHOP_PATH)}?q=${encodeURIComponent(q)}`;
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as {
+      tenantId?: unknown;
+      tenantName?: unknown;
+      slug?: unknown;
+    };
+    const tenantId =
+      typeof payload.tenantId === "string" ? payload.tenantId.trim() : "";
+    const slug = typeof payload.slug === "string" ? payload.slug.trim() : "";
+    if (!tenantId || !slug) return null;
+    return {
+      tenantId,
+      tenantName:
+        typeof payload.tenantName === "string" ? payload.tenantName.trim() : "",
+      slug,
     };
   } catch {
     return null;

@@ -84,7 +84,7 @@ export function LandingFeatures() {
                   </div>
                 ))}
                 <div
-                  className="mt-4 rounded-md py-3 text-center text-xs font-medium text-[var(--kiosk-cta-text)]"
+                  className="mt-4 rounded-none py-3 text-center text-xs font-medium text-[var(--kiosk-cta-text)]"
                   style={{ backgroundColor: "var(--kiosk-gold)" }}
                 >
                   Charge KES 185

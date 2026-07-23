@@ -1,28 +1,22 @@
 import Link from "next/link";
-import { MapPin, ScanBarcode, Smartphone, WifiOff } from "lucide-react";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { PLATFORM_DOMAIN } from "@/lib/config";
 
 import { goldCtaClass } from "./landing-styles";
 
-const TICKER = [
-  "Barcode scan",
-  "M-Pesa STK",
-  "Offline sales",
-  "One stock count",
-  "Multi-branch",
-  "Built at the counter",
-] as const;
-
-const TRUST_CHIPS = [
-  { icon: ScanBarcode, label: "Scan & sell" },
-  { icon: Smartphone, label: "M-Pesa ready" },
-  { icon: WifiOff, label: "Works offline" },
+const TILL_STRIP = [
+  { code: "01", label: "Barcode scan" },
+  { code: "02", label: "M-Pesa STK" },
+  { code: "03", label: "Offline sales" },
+  { code: "04", label: "One stock count" },
+  { code: "05", label: "Multi-branch" },
+  { code: "06", label: "Receipt print" },
 ] as const;
 
 const FOOTER_COLS = [
   {
+    code: "01",
     label: "Product",
     links: [
       { label: "Features", href: "/#features" },
@@ -32,6 +26,7 @@ const FOOTER_COLS = [
     ],
   },
   {
+    code: "02",
     label: "Company",
     links: [
       { label: "About", href: "#" },
@@ -41,6 +36,7 @@ const FOOTER_COLS = [
     ],
   },
   {
+    code: "03",
     label: "Support",
     links: [
       { label: "Help", href: "/help" },
@@ -51,194 +47,212 @@ const FOOTER_COLS = [
   },
 ] as const;
 
-const LEGAL = ["Privacy", "Terms", "Cookies"] as const;
+const LEGAL = [
+  { label: "Privacy", href: "#" },
+  { label: "Terms", href: "#" },
+  { label: "Cookies", href: "#" },
+] as const;
+
+const BARCODE_BARS = [
+  2, 1, 1, 2, 3, 1, 2, 1, 3, 2, 1, 1, 2, 3, 1, 2, 1, 1, 3, 2, 1, 2, 1, 3, 1, 2,
+  2, 1, 1, 3, 2, 1, 2, 1, 1, 2, 3, 1, 1, 2,
+] as const;
 
 export function LandingFooter() {
   const year = new Date().getFullYear();
-  const tickerDoubled = [...TICKER, ...TICKER];
+  const tillDoubled = [...TILL_STRIP, ...TILL_STRIP];
 
   return (
-    <footer className="landing-footer relative mt-8 overflow-hidden">
-      {/* Ambient */}
+    <footer className="landing-footer relative mt-10 overflow-hidden">
+      {/* Counter surface */}
       <div
         aria-hidden
-        className="landing-footer-glow pointer-events-none absolute inset-x-0 top-0 h-[420px]"
+        className="landing-footer-surface pointer-events-none absolute inset-0"
       />
-      <div
-        aria-hidden
-        className="landing-footer-grid pointer-events-none absolute inset-0 opacity-[0.55]"
-      />
-      <div
-        aria-hidden
-        className="landing-footer-watermark pointer-events-none absolute bottom-[18%] left-1/2 -translate-x-1/2 select-none font-heading text-[clamp(7rem,22vw,16rem)] font-semibold uppercase leading-none tracking-[-0.06em] text-[var(--kiosk-text)]"
-      >
-        KIOSK
-      </div>
 
-      {/* Perforated tear-off edge */}
-      <div aria-hidden className="landing-footer-perf relative z-10 h-3 w-full" />
+      {/* Perforated tear — page becomes receipt */}
+      <div aria-hidden className="landing-footer-perf relative z-10 h-4 w-full" />
 
-      {/* Capability ticker */}
+      {/* Register status rail */}
       <div
         aria-hidden
-        className="landing-footer-ticker-wrap relative z-10 overflow-hidden border-y border-[var(--kiosk-border-soft)] bg-[color-mix(in_srgb,var(--kiosk-panel)_70%,transparent)] py-3 backdrop-blur-sm"
+        className="landing-footer-till relative z-10 overflow-hidden"
       >
-        <div className="landing-footer-ticker flex w-max gap-0">
-          {tickerDoubled.map((item, i) => (
+        <div className="landing-footer-till-track flex w-max items-center">
+          {tillDoubled.map((item, i) => (
             <span
-              key={`${item}-${i}`}
-              className="inline-flex shrink-0 items-center gap-3 px-6 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]"
+              key={`${item.code}-${i}`}
+              className="landing-footer-till-item"
             >
-              <span
-                className="h-1 w-1 rounded-full bg-[var(--kiosk-gold)] opacity-70"
-                aria-hidden
-              />
-              {item}
+              <span className="landing-footer-till-code">{item.code}</span>
+              <span className="landing-footer-till-label">{item.label}</span>
             </span>
           ))}
         </div>
       </div>
 
-      <div className="relative z-10 px-4 pb-6 pt-10 sm:px-10 sm:pt-16">
-        <div className="mx-auto max-w-[1100px]">
-          {/* Main panel */}
-          <div className="landing-footer-panel relative overflow-hidden rounded-[1.75rem] p-[1px]">
-            <div
-              aria-hidden
-              className="landing-footer-panel-ring absolute inset-0 rounded-[1.75rem]"
-            />
-            <div className="landing-footer-panel-inner relative rounded-[calc(1.75rem-1px)] bg-[color-mix(in_srgb,var(--kiosk-elevated)_92%,transparent)] px-5 py-8 backdrop-blur-xl sm:px-10 sm:py-12">
-              {/* POS corner brackets */}
-              <div
-                aria-hidden
-                className="landing-footer-corner landing-footer-corner-tl"
-              />
-              <div
-                aria-hidden
-                className="landing-footer-corner landing-footer-corner-br"
-              />
+      <div className="relative z-10 px-4 pb-10 pt-8 sm:px-10 sm:pb-14 sm:pt-12">
+        <div className="landing-footer-receipt relative mx-auto max-w-[920px] overflow-hidden">
+          {/* Paper grain + soft edges */}
+          <div
+            aria-hidden
+            className="landing-footer-receipt-grain pointer-events-none absolute inset-0"
+          />
 
-              <div className="mb-10 grid gap-10 sm:mb-12 sm:gap-12 lg:grid-cols-[minmax(0,1.35fr)_repeat(3,minmax(0,1fr))] lg:gap-10">
-                {/* Brand */}
-                <div className="relative">
-                  <KioskLogo
-                    href="/"
-                    size="md"
-                    variant="landing"
-                    layout="badge"
-                  />
-                  <p className="mt-6 max-w-[300px] text-[15px] leading-[1.65] text-[var(--kiosk-text-dim)]">
-                    Point of sale built by people who sell at the counter — scan,
-                    take M-Pesa, and keep selling when the network drops.
-                  </p>
+          <div className="relative px-5 py-8 sm:px-12 sm:py-12">
+            {/* Header — merchant lockup */}
+            <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+              <div>
+                <KioskLogo
+                  href="/"
+                  size="md"
+                  variant="landing"
+                  plain
+                />
+                <p className="mt-5 max-w-[28rem] text-[15px] leading-[1.65] text-[var(--kiosk-text-muted)]">
+                  Point of sale built by people who sell at the counter — scan,
+                  take M-Pesa, and keep selling when the network drops.
+                </p>
+              </div>
 
-                  <ul className="mt-6 flex flex-wrap gap-2">
-                    {TRUST_CHIPS.map(({ icon: Icon, label }) => (
-                      <li key={label}>
-                        <span className="landing-footer-chip inline-flex items-center gap-2 rounded-full border border-[var(--kiosk-border)] bg-[var(--kiosk-gold-surface)] px-3 py-1.5 text-[11px] font-medium tracking-[0.02em] text-[var(--kiosk-text-muted)]">
-                          <Icon
-                            className="h-3.5 w-3.5 shrink-0 text-[var(--kiosk-gold)]"
-                            strokeWidth={2}
-                            aria-hidden
-                          />
-                          {label}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+              <div className="landing-footer-meta shrink-0 text-left font-mono text-[10px] uppercase leading-relaxed tracking-[0.12em] text-[var(--kiosk-text-faint)] sm:text-right">
+                <p>Kiosk Technologies Ltd</p>
+                <p>Nairobi · Kenya</p>
+                <p className="mt-1 text-[var(--kiosk-gold)]">{PLATFORM_DOMAIN}</p>
+                <p className="mt-3 tabular-nums">Rcpt #{year}-KE</p>
+              </div>
+            </div>
 
-                  <div className="mt-8 flex flex-wrap items-center gap-4">
-                    <Link href="/#pricing" className={`${goldCtaClass} !text-[13px]`}>
-                      Start selling
-                    </Link>
-                    <span className="landing-footer-stamp inline-flex items-center gap-2 rounded-full border border-dashed border-[var(--kiosk-gold-border)] px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--kiosk-gold)]">
-                      <MapPin className="h-3 w-3" strokeWidth={2.5} aria-hidden />
-                      Nairobi · KE
-                    </span>
-                  </div>
-                </div>
+            <div aria-hidden className="landing-footer-dash my-8 sm:my-10" />
 
-                {/* Columns */}
-                {FOOTER_COLS.map((col, colIndex) => (
-                  <div key={col.label} className="relative">
-                    <p className="landing-footer-col-index mb-3 font-mono text-[10px] tabular-nums text-[var(--kiosk-text-faint)]">
-                      {String(colIndex + 1).padStart(2, "0")}
-                    </p>
-                    <h4 className="landing-footer-col-title mb-5 font-heading text-lg font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
+            {/* Departments */}
+            <div className="grid gap-8 sm:grid-cols-3 sm:gap-6 lg:gap-10">
+              {FOOTER_COLS.map((col) => (
+                <div key={col.label}>
+                  <div className="mb-4 flex items-baseline justify-between gap-3 border-b border-dashed border-[var(--kiosk-border)] pb-2">
+                    <h4 className="font-heading text-xl font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
                       {col.label}
                     </h4>
-                    <ul className="flex flex-col gap-1">
-                      {col.links.map((link) => {
-                        const external =
-                          link.href.startsWith("mailto:") ||
-                          link.href.startsWith("http");
-                        const className =
-                          "landing-footer-link group/link inline-flex items-center gap-2 rounded-lg py-2 pr-2 text-sm text-[var(--kiosk-text-dim)] transition-colors duration-200";
-                        const inner = (
-                          <>
-                            <span
-                              className="h-px w-0 bg-[var(--kiosk-gold)] transition-all duration-300 group-hover/link:w-3"
-                              aria-hidden
-                            />
-                            <span className="transition-colors group-hover/link:text-[var(--kiosk-text)]">
-                              {link.label}
-                            </span>
-                          </>
-                        );
-                        return (
-                          <li key={link.label}>
-                            {external ? (
-                              <a href={link.href} className={className}>
-                                {inner}
-                              </a>
-                            ) : (
-                              <Link href={link.href} className={className}>
-                                {inner}
-                              </Link>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    <span className="font-mono text-[10px] tabular-nums tracking-[0.14em] text-[var(--kiosk-text-faint)]">
+                      {col.code}
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <ul className="flex flex-col">
+                    {col.links.map((link) => {
+                      const external =
+                        link.href.startsWith("mailto:") ||
+                        link.href.startsWith("http");
+                      const className =
+                        "landing-footer-line group/line flex items-baseline gap-2 py-2 text-sm text-[var(--kiosk-text-dim)] transition-colors duration-200 hover:text-[var(--kiosk-text)]";
+                      const inner = (
+                        <>
+                          <span className="shrink-0">{link.label}</span>
+                          <span
+                            aria-hidden
+                            className="landing-footer-dots min-w-[1.5rem] flex-1"
+                          />
+                          <span
+                            aria-hidden
+                            className="font-mono text-[10px] tracking-wider text-[var(--kiosk-text-faint)] opacity-50 transition-opacity duration-200 group-hover/line:opacity-100 group-hover/line:text-[var(--kiosk-gold)]"
+                          >
+                            →
+                          </span>
+                        </>
+                      );
+                      return (
+                        <li key={link.label}>
+                          {external ? (
+                            <a href={link.href} className={className}>
+                              {inner}
+                            </a>
+                          ) : (
+                            <Link href={link.href} className={className}>
+                              {inner}
+                            </Link>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
 
-              {/* Receipt divider */}
+            <div aria-hidden className="landing-footer-rule my-8 sm:my-10" />
+
+            {/* TOTAL row */}
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--kiosk-text-faint)]">
+                  Amount due
+                </p>
+                <p className="mt-1 font-heading text-[clamp(1.75rem,4vw,2.35rem)] font-semibold leading-none tracking-[-0.03em] text-[var(--kiosk-text)]">
+                  Start free
+                </p>
+              </div>
+              <Link
+                href="/#pricing"
+                className={`${goldCtaClass} !px-7 !text-[13px] shadow-[0_8px_22px_-8px_var(--kiosk-success-shadow)]`}
+              >
+                Start selling
+              </Link>
+            </div>
+
+            <div aria-hidden className="landing-footer-dash my-8 sm:my-10" />
+
+            {/* Barcode + thank you */}
+            <div className="flex flex-col items-center text-center">
               <div
                 aria-hidden
-                className="landing-footer-receipt my-10 flex items-center gap-3"
+                className="landing-footer-barcode flex h-12 items-end justify-center gap-px sm:h-14"
               >
-                <span className="h-px flex-1 bg-[var(--kiosk-border)]" />
-                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--kiosk-text-faint)]">
-                  · · · end of page · · ·
-                </span>
-                <span className="h-px flex-1 bg-[var(--kiosk-border)]" />
+                {BARCODE_BARS.map((w, i) => (
+                  <span
+                    key={i}
+                    className="landing-footer-bar bg-[var(--kiosk-text)]"
+                    style={{ width: w, height: `${58 + ((i * 17) % 42)}%` }}
+                  />
+                ))}
               </div>
+              <p className="mt-3 font-mono text-[10px] tracking-[0.35em] text-[var(--kiosk-text-faint)]">
+                {PLATFORM_DOMAIN.toUpperCase()}
+              </p>
+              <p className="landing-footer-thanks mt-6 font-heading text-[clamp(1.5rem,5vw,2.5rem)] font-semibold italic leading-none tracking-[-0.02em] text-[var(--kiosk-text)]">
+                Thank you — come again
+              </p>
+              <p className="mt-3 max-w-sm text-[12px] leading-relaxed text-[var(--kiosk-text-faint)]">
+                Built for shops across Kenya. Open tonight. Sell in the morning.
+              </p>
+            </div>
 
-              {/* Bottom bar */}
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-[13px] leading-relaxed text-[var(--kiosk-text-faint)]">
-                    &copy; {year} Kiosk Technologies Ltd.
-                  </p>
-                  <p className="mt-1 text-[12px] text-[var(--kiosk-text-faint)]">
-                    {PLATFORM_DOMAIN} · Built for shops across Kenya
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                  {LEGAL.map((label) => (
+            {/* Legal strip */}
+            <div className="mt-10 flex flex-col gap-4 border-t border-dashed border-[var(--kiosk-border)] pt-6 sm:mt-12 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[12px] text-[var(--kiosk-text-faint)]">
+                &copy; {year} Kiosk Technologies Ltd.
+              </p>
+              <nav
+                aria-label="Legal"
+                className="flex flex-wrap items-center gap-x-1 gap-y-1"
+              >
+                {LEGAL.map((item, i) => (
+                  <span key={item.label} className="inline-flex items-center">
+                    {i > 0 ? (
+                      <span
+                        aria-hidden
+                        className="mx-2 text-[10px] text-[var(--kiosk-text-faint)]"
+                      >
+                        ·
+                      </span>
+                    ) : null}
                     <Link
-                      key={label}
-                      href="#"
-                      className="landing-footer-legal rounded-full border border-transparent px-3.5 py-1.5 text-[12px] text-[var(--kiosk-text-faint)] transition-all duration-200 hover:border-[var(--kiosk-border)] hover:bg-[var(--kiosk-card-bg)] hover:text-[var(--kiosk-text-dim)]"
+                      href={item.href}
+                      className="text-[12px] text-[var(--kiosk-text-faint)] transition-colors hover:text-[var(--kiosk-text-muted)]"
                     >
-                      {label}
+                      {item.label}
                     </Link>
-                  ))}
-                </div>
-              </div>
+                  </span>
+                ))}
+              </nav>
             </div>
           </div>
         </div>

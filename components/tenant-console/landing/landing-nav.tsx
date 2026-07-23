@@ -1,27 +1,24 @@
 "use client";
 
-import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
-import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
-import { goldCtaClass } from "./landing-styles";
-
 const NAV_LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#how", label: "How it works" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#stories", label: "Stories" },
+  { href: "#features", label: "Features", code: "01" },
+  { href: "#how", label: "How it works", code: "02" },
+  { href: "#pricing", label: "Pricing", code: "03" },
+  { href: "#stories", label: "Stories", code: "04" },
 ] as const;
 
 type LandingNavProps = {
   onCreateShop: () => void;
+  onFindShop: () => void;
 };
 
-export function LandingNav({ onCreateShop }: LandingNavProps) {
+export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -46,99 +43,109 @@ export function LandingNav({ onCreateShop }: LandingNavProps) {
     onCreateShop();
   };
 
+  const handleFindShop = () => {
+    closeMenu();
+    onFindShop();
+  };
+
   return (
     <>
       <nav
         className={cn(
-          "fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between px-4 transition-all duration-300 sm:h-[4.5rem] sm:px-10",
-          scrolled || menuOpen
-            ? "border-b border-[var(--kiosk-border-soft)] bg-[var(--kiosk-nav-blur-bg)] backdrop-blur-xl"
-            : "border-b border-transparent bg-transparent",
+          "landing-nav sticky top-0 z-50 transition-colors duration-300",
+          scrolled || menuOpen ? "landing-nav--solid" : "landing-nav--clear",
         )}
       >
-        <KioskLogo href="/" size="lg" variant="landing" plain />
+        <div className="landing-nav-inner">
+          <KioskLogo href="/" size="lg" variant="landing" plain />
 
-        <div className="hidden items-center gap-9 md:flex">
-          {NAV_LINKS.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm font-normal tracking-[0.01em] text-[var(--kiosk-text-muted)] transition-colors duration-200 hover:text-[var(--kiosk-text)]"
+          <div className="landing-nav-links hidden md:flex" aria-label="Primary">
+            {NAV_LINKS.map((link) => (
+              <a key={link.href} href={link.href} className="landing-nav-link">
+                <span className="landing-nav-link-code" aria-hidden>
+                  {link.code}
+                </span>
+                <span className="landing-nav-link-label">{link.label}</span>
+              </a>
+            ))}
+          </div>
+
+          <div className="landing-nav-actions">
+            <button
+              type="button"
+              className="landing-nav-ticket landing-nav-ticket--ghost hidden sm:inline-flex"
+              onClick={onFindShop}
             >
-              {link.label}
-            </a>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            href={APP_ROUTES.staffLogin}
-            className="hidden text-sm font-normal tracking-[0.01em] text-[var(--kiosk-text-muted)] transition-colors duration-200 hover:text-[var(--kiosk-text)] sm:inline"
-          >
-            Sign in
-          </Link>
-          <button
-            type="button"
-            className={`${goldCtaClass} hidden !px-3.5 !py-2 !text-[13px] md:inline-flex sm:!px-4`}
-            onClick={onCreateShop}
-          >
-            Get started
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--kiosk-border-strong)] text-[var(--kiosk-text)] transition-colors hover:bg-[var(--kiosk-ghost-hover-bg)] md:hidden"
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-expanded={menuOpen}
-            aria-controls="landing-mobile-menu"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-          >
-            {menuOpen ? (
-              <X className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-            ) : (
-              <Menu className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-            )}
-          </button>
+              <span className="landing-nav-ticket-code">FIND</span>
+              <span className="landing-nav-ticket-label">My shop</span>
+            </button>
+            <button
+              type="button"
+              className="landing-nav-ticket landing-nav-ticket--primary hidden md:inline-flex"
+              onClick={onCreateShop}
+            >
+              <span className="landing-nav-ticket-code">NEW</span>
+              <span className="landing-nav-ticket-label">Open till</span>
+            </button>
+            <button
+              type="button"
+              className="landing-nav-menu-btn md:hidden"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-expanded={menuOpen}
+              aria-controls="landing-mobile-menu"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+            >
+              {menuOpen ? (
+                <X className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+              ) : (
+                <Menu className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+              )}
+            </button>
+          </div>
         </div>
       </nav>
 
       <div
         id="landing-mobile-menu"
         className={cn(
-          "fixed inset-0 z-40 flex flex-col bg-[var(--kiosk-bg)] pt-16 transition-opacity duration-300 md:hidden",
+          "landing-nav-drawer fixed inset-x-[0.625rem] bottom-[0.625rem] top-[calc(0.625rem+4rem)] z-40 flex flex-col sm:inset-x-[0.85rem] sm:bottom-[0.85rem] sm:top-[calc(0.85rem+4.5rem)] md:hidden",
           menuOpen
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0",
         )}
         aria-hidden={!menuOpen}
       >
-        <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-8 pt-4">
-          <nav className="flex flex-col gap-1">
+        <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-8 pt-2">
+          <nav className="flex flex-col" aria-label="Mobile">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                className="rounded-lg px-3 py-3.5 text-base font-medium text-[var(--kiosk-text)] transition-colors hover:bg-[var(--kiosk-card-bg)]"
+                className="landing-nav-drawer-link"
                 onClick={closeMenu}
               >
-                {link.label}
+                <span className="landing-nav-link-code">{link.code}</span>
+                <span>{link.label}</span>
               </a>
             ))}
           </nav>
 
-          <div className="mt-6 flex flex-col gap-3 border-t border-[var(--kiosk-border-soft)] pt-6">
-            <Link
-              href={APP_ROUTES.staffLogin}
-              className="rounded-lg px-3 py-3.5 text-center text-base font-medium text-[var(--kiosk-text-muted)] transition-colors hover:bg-[var(--kiosk-card-bg)] hover:text-[var(--kiosk-text)]"
-              onClick={closeMenu}
-            >
-              Sign in
-            </Link>
+          <div className="mt-auto flex flex-col gap-3 border-t border-dashed border-[var(--kiosk-border)] pt-6">
             <button
               type="button"
-              className={`${goldCtaClass} w-full justify-center`}
+              className="landing-nav-ticket landing-nav-ticket--ghost w-full justify-center"
+              onClick={handleFindShop}
+            >
+              <span className="landing-nav-ticket-code">FIND</span>
+              <span className="landing-nav-ticket-label">My shop</span>
+            </button>
+            <button
+              type="button"
+              className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center"
               onClick={handleCreateShop}
             >
-              Get started
+              <span className="landing-nav-ticket-code">NEW</span>
+              <span className="landing-nav-ticket-label">Open till</span>
             </button>
           </div>
         </div>

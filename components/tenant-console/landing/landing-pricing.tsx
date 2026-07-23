@@ -4,48 +4,115 @@ import { LandingSectionHeader } from "./landing-section-header";
 import {
   goldCtaClass,
   ghostCtaClass,
-  landingBentoCardClass,
-  landingCardPadding,
   landingSectionAltClass,
   landingSectionBorderClass,
   landingSectionHeaderMb,
 } from "./landing-styles";
 
 const STARTER_FEATURES = [
-  "1 register",
-  "1 branch",
-  "Barcode scanner",
-  "Basic inventory",
-  "Online storefront",
-  "M-Pesa payments",
+  { qty: "01", label: "Register" },
+  { qty: "01", label: "Branch" },
+  { qty: "·", label: "Barcode scanner" },
+  { qty: "·", label: "Basic inventory" },
+  { qty: "·", label: "Online storefront" },
+  { qty: "·", label: "M-Pesa payments" },
 ] as const;
 
 const PRO_FEATURES = [
-  "Unlimited registers",
-  "Up to 10 branches",
-  "Advanced inventory & stock-takes",
-  "Custom online storefront",
-  "Staff roles & permissions",
-  "Supplier & purchase orders",
-  "Sales analytics & reports",
-  "Priority support",
+  { qty: "∞", label: "Registers" },
+  { qty: "10", label: "Branches" },
+  { qty: "·", label: "Advanced inventory & stock-takes" },
+  { qty: "·", label: "Custom online storefront" },
+  { qty: "·", label: "Staff roles & permissions" },
+  { qty: "·", label: "Supplier & purchase orders" },
+  { qty: "·", label: "Sales analytics & reports" },
+  { qty: "·", label: "Priority support" },
 ] as const;
 
 type LandingPricingProps = {
   onCreateShop: () => void;
 };
 
-function CheckIcon() {
+type PlanCardProps = {
+  code: string;
+  name: string;
+  price: string;
+  unit?: string;
+  blurb: string;
+  features: readonly { qty: string; label: string }[];
+  featured?: boolean;
+  cta: string;
+  onCreateShop: () => void;
+};
+
+function PlanCard({
+  code,
+  name,
+  price,
+  unit,
+  blurb,
+  features,
+  featured = false,
+  cta,
+  onCreateShop,
+}: PlanCardProps) {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-      <path
-        d="M2 7l3.5 3.5L12 3"
-        stroke="var(--kiosk-gold)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <article
+      className={`landing-plan ${featured ? "landing-plan--featured" : ""}`}
+    >
+      {featured ? (
+        <span className="landing-plan-stamp" aria-hidden>
+          Most popular
+        </span>
+      ) : null}
+
+      <header className="landing-plan-head">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="landing-plan-code">{code}</p>
+            <h3 className="landing-plan-name">{name}</h3>
+          </div>
+          {featured ? (
+            <span className="landing-plan-mark" aria-hidden>
+              PRO
+            </span>
+          ) : null}
+        </div>
+        <p className="landing-plan-blurb">{blurb}</p>
+      </header>
+
+      <div className="landing-plan-dash" aria-hidden />
+
+      <div className="landing-plan-price-block">
+        <p className="landing-plan-price-label">Amount</p>
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="landing-plan-price">{price}</p>
+          {unit ? <p className="landing-plan-unit">{unit}</p> : null}
+        </div>
+      </div>
+
+      <div className="landing-plan-dash" aria-hidden />
+
+      <ul className="landing-plan-lines">
+        {features.map((f) => (
+          <li key={f.label} className="landing-plan-line">
+            <span className="landing-plan-qty">{f.qty}</span>
+            <span className="landing-plan-dots" aria-hidden />
+            <span className="landing-plan-feature">{f.label}</span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="landing-plan-rule" aria-hidden />
+
+      <button
+        type="button"
+        className={`${featured ? goldCtaClass : ghostCtaClass} w-full justify-center`}
+        onClick={onCreateShop}
+      >
+        {cta}
+      </button>
+    </article>
   );
 }
 
@@ -65,90 +132,27 @@ export function LandingPricing({ onCreateShop }: LandingPricingProps) {
           titleClassName="max-w-[480px]"
         />
 
-        <div className="mx-auto grid max-w-[800px] gap-6 md:grid-cols-2">
-          {/* Starter */}
-          <div className={`${landingBentoCardClass} ${landingCardPadding}`}>
-            <p className="mb-5 text-[13px] font-medium text-[var(--kiosk-text-soft)]">
-              Starter
-            </p>
-            <div className="mb-2 flex items-baseline gap-1.5">
-              <span
-                className="font-heading text-5xl text-[var(--kiosk-text)]"
-              >
-                Free
-              </span>
-            </div>
-            <p className="mb-8 text-[13px] text-[var(--kiosk-text-dim)]">
-              For single-location shops getting started. No credit card
-              required.
-            </p>
-            <hr className="mb-7 border-t border-[var(--kiosk-border)]" />
-            <div className="mb-9 flex flex-col gap-3.5">
-              {STARTER_FEATURES.map((f) => (
-                <div key={f} className="flex items-center gap-2.5">
-                  <CheckIcon />
-                  <span className="text-sm text-[var(--kiosk-text-muted)]">
-                    {f}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              className={`${ghostCtaClass} w-full justify-center`}
-              onClick={onCreateShop}
-            >
-              Start your shop
-            </button>
-          </div>
-
-          {/* Pro */}
-          <div
-            className={`landing-bento-card relative overflow-hidden rounded-2xl border ${landingCardPadding}`}
-            style={{
-              borderColor: "var(--kiosk-gold-border-strong)",
-              backgroundColor: "var(--kiosk-gold-surface)",
-              boxShadow: "0 20px 50px -24px var(--kiosk-success-shadow)",
-            }}
-          >
-            <span className="absolute -top-3 left-5 rounded-full bg-[var(--kiosk-gold)] px-3 py-1 text-[11px] font-medium tracking-[0.04em] text-[var(--kiosk-cta-text)] sm:left-8">
-              Most popular
-            </span>
-            <p className="mb-5 text-[13px] font-medium text-[var(--kiosk-gold)]">
-              Pro
-            </p>
-            <div className="mb-2 flex items-baseline gap-1.5">
-              <span
-                className="font-heading text-5xl text-[var(--kiosk-text)]"
-              >
-                KES 2,900
-              </span>
-            </div>
-            <p className="mb-8 text-[13px] text-[var(--kiosk-text-dim)]">
-              Per month, per branch. Cancel anytime.
-            </p>
-            <hr
-              className="mb-7 border-t"
-              style={{ borderColor: "var(--kiosk-gold-border)" }}
-            />
-            <div className="mb-9 flex flex-col gap-3.5">
-              {PRO_FEATURES.map((f) => (
-                <div key={f} className="flex items-center gap-2.5">
-                  <CheckIcon />
-                  <span className="text-sm text-[var(--kiosk-text-muted)]">
-                    {f}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              className={`${goldCtaClass} w-full justify-center`}
-              onClick={onCreateShop}
-            >
-              Start your shop
-            </button>
-          </div>
+        <div className="mx-auto grid max-w-[820px] gap-5 md:grid-cols-2 md:gap-6">
+          <PlanCard
+            code="Plan 01"
+            name="Starter"
+            price="Free"
+            blurb="For single-location shops getting started. No credit card required."
+            features={STARTER_FEATURES}
+            cta="Start your shop"
+            onCreateShop={onCreateShop}
+          />
+          <PlanCard
+            code="Plan 02"
+            name="Pro"
+            price="KES 2,900"
+            unit="/ mo · branch"
+            blurb="Per month, per branch. Cancel anytime."
+            features={PRO_FEATURES}
+            featured
+            cta="Start your shop"
+            onCreateShop={onCreateShop}
+          />
         </div>
 
         <p className="mt-9 text-center text-[13px] text-[var(--kiosk-text-faint)]">
