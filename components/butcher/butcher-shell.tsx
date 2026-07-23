@@ -107,7 +107,7 @@ function ButcherShellFrame({ children }: ButcherShellProps) {
       <header className="shrink-0 border-b border-[rgb(var(--bp-border)/0.9)] bg-[rgb(var(--bp-bg)/0.95)] backdrop-blur-md">
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-4">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-surface))]">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-surface))]">
               <TenantLogo
                 brand={tenantTitle}
                 logoUrl={business?.branding?.logoUrl}

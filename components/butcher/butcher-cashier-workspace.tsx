@@ -197,6 +197,11 @@ export function ButcherCashierWorkspace() {
     [lines],
   );
 
+  const orderQty = useMemo(
+    () => round2(lines.reduce((sum, l) => sum + l.quantity, 0)),
+    [lines],
+  );
+
   const cartScopeBranchIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (lines.length === 0) {
@@ -802,21 +807,24 @@ export function ButcherCashierWorkspace() {
   const weightThumb = weightItem ? itemListThumbnailUrl(weightItem) : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 sm:p-4 lg:flex-row lg:gap-4">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
       {/* Catalog */}
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-        <div className="relative">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col border-[rgb(var(--bp-border))] lg:border-r">
+        <div className="relative shrink-0 border-b border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-surface))]">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[rgb(var(--bp-fg-muted))]" />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search cuts or scan barcode…"
-            className={cn(butcherInputClass, "pl-10 pr-12")}
+            className={cn(
+              butcherInputClass,
+              "h-12 border-0 bg-transparent pl-10 pr-12 focus:ring-0",
+            )}
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-none text-[rgb(var(--bp-fg-faint))] transition hover:bg-[rgb(var(--bp-hover))] hover:text-[var(--pos-primary)]"
+            className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-none text-[rgb(var(--bp-fg-faint))] transition hover:bg-[rgb(var(--bp-hover))] hover:text-[var(--pos-primary)]"
             aria-label="Scan barcode"
             onClick={() => setShowScanner(true)}
           >
@@ -824,23 +832,28 @@ export function ButcherCashierWorkspace() {
           </button>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none lg:hidden">
+        <div className="flex gap-1 overflow-x-auto border-b border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] p-1.5 scrollbar-none lg:hidden">
           {categories.map((cat) => (
             <button
               key={cat.id ?? "all"}
               type="button"
               onClick={() => setCategoryId(cat.id)}
-              className={cn(butcherCategoryRailClass(categoryId === cat.id), "size-16 shrink-0")}
+              className={cn(
+                butcherCategoryRailClass(categoryId === cat.id),
+                "size-[4.25rem] shrink-0",
+              )}
             >
               {cat.label}
             </button>
           ))}
           {itemTypesLoading ? (
-            <span className="self-center text-xs text-[rgb(var(--bp-fg-muted))]">Loading…</span>
+            <span className="self-center px-2 text-xs text-[rgb(var(--bp-fg-muted))]">
+              Loading…
+            </span>
           ) : null}
         </div>
 
-        <div className="min-h-[14rem] flex-1 overflow-y-auto rounded-none border border-[rgb(var(--bp-border))]/80 bg-[rgb(var(--bp-panel)/0.3)] p-2 sm:p-3">
+        <div className="min-h-[14rem] flex-1 overflow-y-auto bg-[rgb(var(--bp-bg))] p-2 sm:p-3">
           {catalogLoading ? (
             <div className="flex items-center justify-center py-20 text-[rgb(var(--bp-fg-muted))]">
               <Loader2 className="size-7 animate-spin text-[var(--pos-primary)]" />
@@ -867,42 +880,42 @@ export function ButcherCashierWorkspace() {
       </section>
 
       {/* Category rail — desktop */}
-      <aside className="hidden min-h-0 w-[7.5rem] shrink-0 flex-col xl:w-[8.5rem] lg:flex">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.5)]">
-          <div className={butcherCategoryHeaderClass}>Category</div>
-          <nav
-            aria-label="Product categories"
-            className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1"
-          >
-            {categories.map((cat) => (
-              <button
-                key={cat.id ?? "all"}
-                type="button"
-                onClick={() => setCategoryId(cat.id)}
-                className={butcherCategoryRailClass(categoryId === cat.id)}
-              >
-                {cat.label}
-              </button>
-            ))}
-            {itemTypesLoading ? (
-              <span className="px-1 py-2 text-xs text-[rgb(var(--bp-fg-muted))]">Loading…</span>
-            ) : null}
-          </nav>
-        </div>
+      <aside className="hidden min-h-0 w-[7rem] shrink-0 flex-col border-r border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] xl:w-[8rem] lg:flex">
+        <div className={butcherCategoryHeaderClass}>Category</div>
+        <nav
+          aria-label="Product categories"
+          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1"
+        >
+          {categories.map((cat) => (
+            <button
+              key={cat.id ?? "all"}
+              type="button"
+              onClick={() => setCategoryId(cat.id)}
+              className={butcherCategoryRailClass(categoryId === cat.id)}
+            >
+              {cat.label}
+            </button>
+          ))}
+          {itemTypesLoading ? (
+            <span className="px-1 py-2 text-xs text-[rgb(var(--bp-fg-muted))]">
+              Loading…
+            </span>
+          ) : null}
+        </nav>
       </aside>
 
-      {/* Order panel — mockup-style card */}
-      <aside className="flex min-h-0 w-full shrink-0 flex-col max-h-[min(42dvh,26rem)] lg:max-h-none lg:h-full lg:w-[min(100%,20rem)] xl:w-[22rem]">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.5)] shadow-xl shadow-black/20">
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[rgb(var(--bp-border))] px-4 py-3">
-            <h2 className="text-sm font-semibold text-[rgb(var(--bp-fg-soft))]">
+      {/* Order panel */}
+      <aside className="flex min-h-0 w-full shrink-0 flex-col border-t border-[rgb(var(--bp-border))] max-h-[min(44dvh,28rem)] bg-[rgb(var(--bp-surface))] lg:max-h-none lg:h-full lg:w-[min(100%,21rem)] lg:border-t-0 xl:w-[23rem]">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] px-3 py-2.5">
+            <h2 className="text-sm font-bold text-[rgb(var(--bp-fg))]">
               Current order
             </h2>
             <button
               type="button"
               disabled={lines.length === 0 || activePosDraft != null}
               onClick={onHoldOrder}
-              className="inline-flex items-center gap-1 rounded-none border border-[rgb(var(--bp-border))] px-2 py-1 text-[11px] font-medium text-[rgb(var(--bp-fg-faint))] transition hover:border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] hover:text-[var(--pos-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-surface))] px-2 py-1 text-[11px] font-medium text-[rgb(var(--bp-fg-faint))] transition hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Pause className="size-3" />
               Hold
@@ -912,7 +925,7 @@ export function ButcherCashierWorkspace() {
           {showPosDraftPanel ? (
             posDraftSummaries.filter((d) => d.id !== activePosDraft?.draftId)
               .length > 0 ? (
-              <div className="flex shrink-0 flex-wrap gap-1.5 border-b border-[rgb(var(--bp-border))]/80 px-3 py-2">
+              <div className="flex shrink-0 flex-wrap gap-1 border-b border-[rgb(var(--bp-border))] px-2 py-2">
                 {posDraftSummaries
                   .filter((d) => d.id !== activePosDraft?.draftId)
                   .map((d) => (
@@ -920,7 +933,7 @@ export function ButcherCashierWorkspace() {
                       key={d.id}
                       type="button"
                       onClick={() => void onRecallPosDraft(d.id)}
-                      className="inline-flex items-center gap-1 rounded-full border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel-strong)/0.6)] px-2.5 py-0.5 text-[11px] text-[rgb(var(--bp-fg-soft))] transition hover:border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] hover:text-[var(--pos-primary)]"
+                      className="inline-flex items-center gap-1 rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] px-2 py-0.5 text-[11px] text-[rgb(var(--bp-fg-soft))] transition hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)]"
                     >
                       <RotateCcw className="size-3" />
                       #{d.ticketNumber} ({d.lineCount})
@@ -929,13 +942,13 @@ export function ButcherCashierWorkspace() {
               </div>
             ) : null
           ) : heldOrders.length > 0 ? (
-            <div className="flex shrink-0 flex-wrap gap-1.5 border-b border-[rgb(var(--bp-border))]/80 px-3 py-2">
+            <div className="flex shrink-0 flex-wrap gap-1 border-b border-[rgb(var(--bp-border))] px-2 py-2">
               {heldOrders.map((held) => (
                 <button
                   key={held.id}
                   type="button"
                   onClick={() => onRecallHeld(held.id)}
-                  className="inline-flex items-center gap-1 rounded-full border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel-strong)/0.6)] px-2.5 py-0.5 text-[11px] text-[rgb(var(--bp-fg-soft))] transition hover:border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] hover:text-[var(--pos-primary)]"
+                  className="inline-flex items-center gap-1 rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] px-2 py-0.5 text-[11px] text-[rgb(var(--bp-fg-soft))] transition hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)]"
                 >
                   <RotateCcw className="size-3" />
                   {held.label}
@@ -944,50 +957,50 @@ export function ButcherCashierWorkspace() {
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {lines.length === 0 ? (
-              <p className="px-2 py-10 text-center text-sm leading-relaxed text-[rgb(var(--bp-fg-muted))]">
+              <p className="px-4 py-12 text-center text-sm leading-relaxed text-[rgb(var(--bp-fg-muted))]">
                 No items yet. Tap a cut to add it.
               </p>
             ) : (
               lines.map((line) => (
                 <div
                   key={line.key}
-                  className="rounded-xl border border-[rgb(var(--bp-border))]/90 bg-[rgb(var(--bp-panel-strong)/0.5)] p-3"
+                  className="border-b border-[rgb(var(--bp-border))] px-3 py-2.5"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-[rgb(var(--bp-fg))]">
+                      <p className="truncate text-sm font-semibold text-[rgb(var(--bp-fg))]">
                         {line.label}
                       </p>
-                      <p className="text-xs text-[rgb(var(--bp-fg-muted))]">
+                      <p className="mt-0.5 text-[11px] text-[rgb(var(--bp-fg-muted))]">
                         {line.sellBy === "kg"
-                          ? `${line.quantity} kg × ${line.unitPrice}`
-                          : `${line.quantity} × ${line.unitPrice}`}
+                          ? `${line.quantity} kg × ${currency} ${line.unitPrice.toFixed(2)}`
+                          : `${line.quantity} × ${currency} ${line.unitPrice.toFixed(2)}`}
                       </p>
                     </div>
-                    <p className="shrink-0 text-sm font-semibold tabular-nums text-[rgb(var(--bp-fg-soft))]">
+                    <p className="shrink-0 text-sm font-bold tabular-nums text-[var(--pos-primary)]">
                       {currency} {lineTotal(line).toFixed(2)}
                     </p>
                   </div>
-                  <div className="mt-2.5 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1">
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-0">
                       <button
                         type="button"
-                        className="flex size-7 items-center justify-center rounded-lg border border-[rgb(var(--bp-border))] text-[rgb(var(--bp-fg-faint))] hover:border-[color-mix(in_srgb,var(--pos-primary)_30%,transparent)] hover:text-[var(--pos-primary)]"
+                        className="flex size-8 items-center justify-center rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] text-[rgb(var(--bp-fg))] hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)]"
                         aria-label="Decrease"
                         onClick={() => updateLineQty(line.key, -1)}
                       >
                         <Minus className="size-3.5" />
                       </button>
-                      <span className="min-w-[3.25rem] text-center text-xs tabular-nums text-[rgb(var(--bp-fg-soft))]">
+                      <span className="flex h-8 min-w-[3.5rem] items-center justify-center border-y border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-surface))] px-2 text-xs font-semibold tabular-nums text-[rgb(var(--bp-fg))]">
                         {line.sellBy === "kg"
                           ? `${line.quantity} kg`
                           : line.quantity}
                       </span>
                       <button
                         type="button"
-                        className="flex size-7 items-center justify-center rounded-lg border border-[rgb(var(--bp-border))] text-[rgb(var(--bp-fg-faint))] hover:border-[color-mix(in_srgb,var(--pos-primary)_30%,transparent)] hover:text-[var(--pos-primary)]"
+                        className="flex size-8 items-center justify-center rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] text-[rgb(var(--bp-fg))] hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)]"
                         aria-label="Increase"
                         onClick={() => updateLineQty(line.key, 1)}
                       >
@@ -996,7 +1009,7 @@ export function ButcherCashierWorkspace() {
                     </div>
                     <button
                       type="button"
-                      className="text-xs text-[rgb(var(--bp-fg-muted))] hover:text-red-400"
+                      className="text-xs font-medium text-[rgb(var(--bp-fg-muted))] hover:text-red-500"
                       onClick={() => removeLine(line.key)}
                     >
                       Remove
@@ -1007,138 +1020,144 @@ export function ButcherCashierWorkspace() {
             )}
           </div>
 
-          <div className="shrink-0 space-y-2.5 border-t border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.8)] p-3">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-sm text-[rgb(var(--bp-fg-muted))]">Total</span>
-              <span className="text-xl font-bold tabular-nums tracking-tight text-[rgb(var(--bp-fg))]">
-                {currency} {grandTotal.toFixed(2)}
+          <div className="shrink-0 border-t border-[rgb(var(--bp-border))]">
+            <div className="flex items-center justify-between gap-3 border-b border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] px-3 py-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--bp-fg-muted))]">
+                Qty
+              </span>
+              <span className="text-sm font-bold tabular-nums text-[rgb(var(--bp-fg))]">
+                {orderQty.toFixed(3)}
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              {(
-                [
-                  ["cash", "Cash"],
-                  ["mpesa", "M-Pesa"],
-                  ["card", "Card"],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  disabled={splitPay}
-                  onClick={() => setPayMethod(id)}
-                  className={cn(
-                    butcherPayChipClass(payMethod === id && !splitPay),
-                    splitPay && "cursor-not-allowed opacity-50",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <div className="space-y-2.5 p-3">
+              <div className="grid grid-cols-3 gap-1.5">
+                {(
+                  [
+                    ["cash", "Cash"],
+                    ["mpesa", "M-Pesa"],
+                    ["card", "Card"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    disabled={splitPay}
+                    onClick={() => setPayMethod(id)}
+                    className={cn(
+                      butcherPayChipClass(payMethod === id && !splitPay),
+                      splitPay && "cursor-not-allowed opacity-50",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setSplitPay((v) => !v)}
-              className={butcherPillClass(splitPay)}
-            >
-              Split pay (cash + M-Pesa)
-            </button>
+              <button
+                type="button"
+                onClick={() => setSplitPay((v) => !v)}
+                className={cn(butcherPillClass(splitPay), "w-full")}
+              >
+                Split pay (cash + M-Pesa)
+              </button>
 
-            {splitPay ? (
-              <div className="space-y-2 rounded-xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel-strong)/0.4)] p-2.5">
-                <label className="block space-y-1">
-                  <span className="text-[11px] font-medium text-[rgb(var(--bp-fg-muted))]">
-                    Cash amount ({currency})
-                  </span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={cashSplitStr}
-                    onChange={(e) => setCashSplitStr(e.target.value)}
-                    className={butcherInputClass}
-                    placeholder="0.00"
-                  />
-                </label>
-                <label className="block space-y-1">
-                  <span className="text-[11px] font-medium text-[rgb(var(--bp-fg-muted))]">
-                    M-Pesa amount ({currency})
-                  </span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={mpesaSplitStr}
-                    onChange={(e) => setMpesaSplitStr(e.target.value)}
-                    className={butcherInputClass}
-                    placeholder="0.00"
-                  />
-                </label>
-                <label className="block space-y-1">
+              {splitPay ? (
+                <div className="space-y-2 border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] p-2.5">
+                  <label className="block space-y-1">
+                    <span className="text-[11px] font-medium text-[rgb(var(--bp-fg-muted))]">
+                      Cash amount ({currency})
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={cashSplitStr}
+                      onChange={(e) => setCashSplitStr(e.target.value)}
+                      className={butcherInputClass}
+                      placeholder="0.00"
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-[11px] font-medium text-[rgb(var(--bp-fg-muted))]">
+                      M-Pesa amount ({currency})
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={mpesaSplitStr}
+                      onChange={(e) => setMpesaSplitStr(e.target.value)}
+                      className={butcherInputClass}
+                      placeholder="0.00"
+                    />
+                  </label>
+                  <label className="block space-y-1">
+                    <span className="text-[11px] font-medium text-[rgb(var(--bp-fg-muted))]">
+                      M-Pesa reference (optional)
+                    </span>
+                    <input
+                      type="text"
+                      value={splitMpesaRef}
+                      onChange={(e) => setSplitMpesaRef(e.target.value)}
+                      className={butcherInputClass}
+                      placeholder="e.g. QHK7X2"
+                    />
+                  </label>
+                </div>
+              ) : payMethod === "cash" ? (
+                <div className="space-y-2 border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] p-2.5">
+                  <label className="block space-y-1">
+                    <span className="text-[11px] font-medium text-[rgb(var(--bp-fg-muted))]">
+                      Amount received ({currency})
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={cashTenderStr}
+                      onChange={(e) => setCashTenderStr(e.target.value)}
+                      className={butcherInputClass}
+                      placeholder={
+                        grandTotal > 0 ? grandTotal.toFixed(2) : "0.00"
+                      }
+                    />
+                  </label>
+                  {cashChange != null ? (
+                    <p className="text-sm text-[rgb(var(--bp-fg-faint))]">
+                      Change due:{" "}
+                      <span className="font-semibold text-[var(--pos-primary)]">
+                        {currency} {cashChange.toFixed(2)}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+              ) : payMethod === "mpesa" ? (
+                <label className="block space-y-1 border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] p-2.5">
                   <span className="text-[11px] font-medium text-[rgb(var(--bp-fg-muted))]">
                     M-Pesa reference (optional)
                   </span>
                   <input
                     type="text"
-                    value={splitMpesaRef}
-                    onChange={(e) => setSplitMpesaRef(e.target.value)}
+                    value={mpesaRef}
+                    onChange={(e) => setMpesaRef(e.target.value)}
                     className={butcherInputClass}
                     placeholder="e.g. QHK7X2"
                   />
                 </label>
-              </div>
-            ) : payMethod === "cash" ? (
-              <div className="space-y-2 rounded-xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel-strong)/0.4)] p-2.5">
-                <label className="block space-y-1">
-                  <span className="text-[11px] font-medium text-[rgb(var(--bp-fg-muted))]">
-                    Amount received ({currency})
+              ) : (
+                <p className="border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] px-2.5 py-2 text-[11px] leading-relaxed text-[rgb(var(--bp-fg-muted))]">
+                  Charge the card terminal for{" "}
+                  <span className="font-semibold text-[rgb(var(--bp-fg-soft))]">
+                    {currency} {grandTotal.toFixed(2)}
                   </span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={cashTenderStr}
-                    onChange={(e) => setCashTenderStr(e.target.value)}
-                    className={butcherInputClass}
-                    placeholder={grandTotal > 0 ? grandTotal.toFixed(2) : "0.00"}
-                  />
-                </label>
-                {cashChange != null ? (
-                  <p className="text-sm text-[rgb(var(--bp-fg-faint))]">
-                    Change due:{" "}
-                    <span className="font-semibold text-[var(--pos-primary)]">
-                      {currency} {cashChange.toFixed(2)}
-                    </span>
-                  </p>
-                ) : null}
-              </div>
-            ) : payMethod === "mpesa" ? (
-              <label className="block space-y-1 rounded-xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel-strong)/0.4)] p-2.5">
-                <span className="text-[11px] font-medium text-[rgb(var(--bp-fg-muted))]">
-                  M-Pesa reference (optional)
-                </span>
-                <input
-                  type="text"
-                  value={mpesaRef}
-                  onChange={(e) => setMpesaRef(e.target.value)}
-                  className={butcherInputClass}
-                  placeholder="e.g. QHK7X2"
-                />
-              </label>
-            ) : (
-              <p className="rounded-xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel-strong)/0.4)] px-2.5 py-2 text-[11px] leading-relaxed text-[rgb(var(--bp-fg-muted))]">
-                Charge the card terminal for{" "}
-                <span className="font-semibold text-[rgb(var(--bp-fg-soft))]">
-                  {currency} {grandTotal.toFixed(2)}
-                </span>
-                . No change due.
-              </p>
-            )}
+                  . No change due.
+                </p>
+              )}
 
-            {error ? (
-              <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                {error}
-              </p>
-            ) : null}
+              {error ? (
+                <p className="rounded-none border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-600 dark:text-red-300">
+                  {error}
+                </p>
+              ) : null}
+            </div>
 
             <Button
               type="button"
@@ -1156,7 +1175,12 @@ export function ButcherCashierWorkspace() {
                   Charging…
                 </>
               ) : (
-                "Charge order"
+                <span className="flex w-full items-center justify-between px-1">
+                  <span>
+                    {currency} {grandTotal.toFixed(2)}
+                  </span>
+                  <span>Pay</span>
+                </span>
               )}
             </Button>
           </div>
@@ -1175,7 +1199,7 @@ export function ButcherCashierWorkspace() {
           </DialogHeader>
 
           {weightItem && weightThumb ? (
-            <div className="relative -mt-1 aspect-[2/1] overflow-hidden rounded-xl border border-[rgb(var(--bp-border))]">
+            <div className="relative -mt-1 aspect-[2/1] overflow-hidden rounded-none border border-[rgb(var(--bp-border))]">
               <Image
                 src={weightThumb}
                 alt=""
@@ -1189,7 +1213,7 @@ export function ButcherCashierWorkspace() {
 
           <div className="space-y-4">
             {scale.supported ? (
-              <div className="space-y-2 rounded-xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.5)] p-3">
+              <div className="space-y-2 rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.5)] p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   {scaleConnected ? (
                     <Button
