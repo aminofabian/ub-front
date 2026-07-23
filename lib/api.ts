@@ -3605,6 +3605,7 @@ export type GlobalProductRecord = {
   sellable: boolean;
   stocked: boolean;
   packageVariant?: boolean;
+  variantOfGlobalProductId?: string | null;
   packagingUnitName?: string | null;
   packagingUnitQty?: number | null;
   recommendedBuyingPrice?: number | null;

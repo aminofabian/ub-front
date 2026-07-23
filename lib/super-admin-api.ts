@@ -529,6 +529,7 @@ export type SaGlobalProduct = {
   sellable: boolean;
   stocked: boolean;
   packageVariant?: boolean;
+  variantOfGlobalProductId?: string | null;
   packagingUnitName?: string | null;
   packagingUnitQty?: number | null;
   recommendedBuyingPrice: number | null;
