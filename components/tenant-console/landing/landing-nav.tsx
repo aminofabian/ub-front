@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { href: "#how", label: "How it works", code: "02" },
   { href: "#pricing", label: "Pricing", code: "03" },
   { href: "#stories", label: "Stories", code: "04" },
+  { href: "/blog", label: "Blog", code: "05" },
 ] as const;
 
 type LandingNavProps = {

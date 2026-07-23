@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { allBlogPaths } from "@/lib/blog";
 import { APP_BASE_URL } from "@/lib/config";
 import { allHelpPaths } from "@/lib/help";
 
@@ -55,5 +56,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     };
   });
 
-  return [...staticEntries, ...helpEntries];
+  const blogEntries: MetadataRoute.Sitemap = allBlogPaths().map((path) => {
+    if (path.type === "hub") {
+      return {
+        url: `${base}${path.href}`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.85,
+      };
+    }
+    return {
+      url: `${base}${path.href}`,
+      lastModified: new Date(path.updatedAt),
+      changeFrequency: "monthly" as const,
+      priority: 0.75,
+    };
+  });
+
+  return [...staticEntries, ...helpEntries, ...blogEntries];
 }
