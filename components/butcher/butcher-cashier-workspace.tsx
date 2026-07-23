@@ -45,6 +45,7 @@ import {
 } from "@/lib/butcher-pos";
 import { formatKg } from "@/lib/butcher-scale";
 import {
+  butcherCategoryHeaderClass,
   butcherCategoryRailClass,
   butcherChargeButtonClass,
   butcherInputClass,
@@ -815,7 +816,7 @@ export function ButcherCashierWorkspace() {
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-[rgb(var(--bp-fg-faint))] transition hover:bg-[rgb(var(--bp-hover))] hover:text-[var(--pos-primary)]"
+            className="absolute right-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-none text-[rgb(var(--bp-fg-faint))] transition hover:bg-[rgb(var(--bp-hover))] hover:text-[var(--pos-primary)]"
             aria-label="Scan barcode"
             onClick={() => setShowScanner(true)}
           >
@@ -829,7 +830,7 @@ export function ButcherCashierWorkspace() {
               key={cat.id ?? "all"}
               type="button"
               onClick={() => setCategoryId(cat.id)}
-              className={butcherPillClass(categoryId === cat.id)}
+              className={cn(butcherCategoryRailClass(categoryId === cat.id), "size-16 shrink-0")}
             >
               {cat.label}
             </button>
@@ -839,7 +840,7 @@ export function ButcherCashierWorkspace() {
           ) : null}
         </div>
 
-        <div className="min-h-[14rem] flex-1 overflow-y-auto rounded-2xl border border-[rgb(var(--bp-border))]/80 bg-[rgb(var(--bp-panel)/0.3)] p-2 sm:p-3">
+        <div className="min-h-[14rem] flex-1 overflow-y-auto rounded-none border border-[rgb(var(--bp-border))]/80 bg-[rgb(var(--bp-panel)/0.3)] p-2 sm:p-3">
           {catalogLoading ? (
             <div className="flex items-center justify-center py-20 text-[rgb(var(--bp-fg-muted))]">
               <Loader2 className="size-7 animate-spin text-[var(--pos-primary)]" />
@@ -849,7 +850,7 @@ export function ButcherCashierWorkspace() {
               {bid ? "No cuts found." : "Select a branch to load the catalog."}
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {items.map((item) => (
                 <ButcherProductTile
                   key={item.id}
@@ -866,16 +867,12 @@ export function ButcherCashierWorkspace() {
       </section>
 
       {/* Category rail — desktop */}
-      <aside className="hidden min-h-0 w-[9.5rem] shrink-0 flex-col xl:w-[10.5rem] lg:flex">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.5)]">
-          <div className="shrink-0 border-b border-[rgb(var(--bp-border))] px-3 py-2.5">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--bp-fg-soft))]">
-              Category
-            </h2>
-          </div>
+      <aside className="hidden min-h-0 w-[7.5rem] shrink-0 flex-col xl:w-[8.5rem] lg:flex">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.5)]">
+          <div className={butcherCategoryHeaderClass}>Category</div>
           <nav
             aria-label="Product categories"
-            className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-2"
+            className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1"
           >
             {categories.map((cat) => (
               <button
@@ -896,7 +893,7 @@ export function ButcherCashierWorkspace() {
 
       {/* Order panel — mockup-style card */}
       <aside className="flex min-h-0 w-full shrink-0 flex-col max-h-[min(42dvh,26rem)] lg:max-h-none lg:h-full lg:w-[min(100%,20rem)] xl:w-[22rem]">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.5)] shadow-xl shadow-black/20">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.5)] shadow-xl shadow-black/20">
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[rgb(var(--bp-border))] px-4 py-3">
             <h2 className="text-sm font-semibold text-[rgb(var(--bp-fg-soft))]">
               Current order
@@ -905,7 +902,7 @@ export function ButcherCashierWorkspace() {
               type="button"
               disabled={lines.length === 0 || activePosDraft != null}
               onClick={onHoldOrder}
-              className="inline-flex items-center gap-1 rounded-lg border border-[rgb(var(--bp-border))] px-2 py-1 text-[11px] font-medium text-[rgb(var(--bp-fg-faint))] transition hover:border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] hover:text-[var(--pos-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-none border border-[rgb(var(--bp-border))] px-2 py-1 text-[11px] font-medium text-[rgb(var(--bp-fg-faint))] transition hover:border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] hover:text-[var(--pos-primary)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Pause className="size-3" />
               Hold

@@ -42,14 +42,14 @@ export function ButcherProductTile({
       onClick={onPick}
       aria-label={inCart ? `${title} — ${cartQty} in order` : `Add ${title}`}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl border text-left transition active:scale-[0.99] touch-manipulation",
+        "group relative flex flex-col overflow-hidden rounded-none border text-left transition active:scale-[0.99] touch-manipulation",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_25%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bp-ring-offset))]",
         inCart
           ? "border-[color-mix(in_srgb,var(--pos-primary)_45%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_8%,rgb(var(--bp-panel-strong)))]"
           : "border-[rgb(var(--bp-border)/0.9)] bg-[rgb(var(--bp-surface)/0.7)] hover:border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] hover:bg-[rgb(var(--bp-surface))]",
       )}
     >
-      <div className="relative aspect-[5/4] w-full overflow-hidden bg-[rgb(var(--bp-image)/0.8)]">
+      <div className="relative aspect-square w-full overflow-hidden bg-[rgb(var(--bp-image)/0.8)]">
         {thumb ? (
           <Image
             src={thumb}
