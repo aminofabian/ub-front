@@ -1,6 +1,5 @@
-import {
-  KIOSK_VS_ODOO_PILLAR_SLUG,
-} from "./cluster-kiosk-vs-odoo";
+import { GROW_MINI_MART_PILLAR_SLUG } from "./cluster-grow-mini-mart";
+import { KIOSK_VS_ODOO_PILLAR_SLUG } from "./cluster-kiosk-vs-odoo";
 import { TOP_10_POS_KENYA_PILLAR_SLUG } from "./cluster-top-10-pos-kenya";
 import type { BlogArticleRef } from "./types";
 
@@ -24,8 +23,18 @@ export type BlogCluster = BlogClusterDef & {
 
 export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
   {
-    id: "top-10-pos-kenya",
+    id: "grow-mini-mart",
     code: "01",
+    title: "Grow a Mini-Mart in Kenya",
+    shortTitle: "Grow a Mini-Mart",
+    description:
+      "From one shop to a real business — stock, systems, hires, and routines that scale.",
+    pillarSlug: GROW_MINI_MART_PILLAR_SLUG,
+    spokeSlugs: ["building-systems-for-your-mini-mart"],
+  },
+  {
+    id: "top-10-pos-kenya",
+    code: "02",
     title: "Top 10 POS Systems in Kenya",
     shortTitle: "Top 10 Kenya",
     description:
@@ -35,7 +44,7 @@ export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
   },
   {
     id: "kiosk-vs-odoo",
-    code: "02",
+    code: "03",
     title: "Kiosk.ke vs Odoo",
     shortTitle: "Kiosk vs Odoo",
     description:

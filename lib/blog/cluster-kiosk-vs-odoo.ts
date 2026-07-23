@@ -23,7 +23,8 @@ const PILLAR_ARTICLE: BlogArticle = {
   tags: ["POS", "Kiosk.ke", "Odoo", "Retail", "Comparison"],
   author: "Kiosk",
   relatedSlugs: [
-    TOP_10_SLUG,
+    "top-10-pos-systems-kenya-2026",
+    "how-to-grow-a-mini-mart-in-kenya",
     "5-signs-youve-outgrown-your-pos",
     "why-m-pesa-integration-matters",
     "erp-vs-pos-do-you-need-the-full-suite",
@@ -275,6 +276,7 @@ const SPOKE_ARTICLES: BlogArticle[] = [
     tags: ["Stories", "Retail", "Growth"],
     relatedSlugs: [
       KIOSK_VS_ODOO_PILLAR_SLUG,
+      "how-to-grow-a-mini-mart-in-kenya",
       "set-up-a-pos-in-30-minutes",
       "online-physical-one-inventory",
     ],

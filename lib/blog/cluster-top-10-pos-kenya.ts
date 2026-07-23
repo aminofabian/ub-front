@@ -45,6 +45,7 @@ export const TOP_10_POS_KENYA_ARTICLES: BlogArticle[] = [
     ],
     author: "Kiosk",
     relatedSlugs: [
+      "how-to-grow-a-mini-mart-in-kenya",
       KIOSK_VS_ODOO_SLUG,
       "why-m-pesa-integration-matters",
       "erp-vs-pos-do-you-need-the-full-suite",
