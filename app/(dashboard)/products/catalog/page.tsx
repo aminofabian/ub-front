@@ -23,6 +23,10 @@ import {
   GlobalCatalogProductTableSkeleton,
 } from "@/components/products/global-catalog-product-skeleton";
 import { GlobalCatalogBuildPaths } from "@/components/products/global-catalog-build-paths";
+import {
+  GlobalCatalogActionProgressBar,
+  type CatalogActionPhase,
+} from "@/components/products/global-catalog-action-progress-bar";
 import { GlobalCatalogReviewImportDialog } from "@/components/products/global-catalog-review-import-dialog";
 import { useGlobalCatalogTenantSync } from "@/hooks/use-global-catalog-tenant-sync";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -136,6 +140,7 @@ export default function GlobalCatalogPage() {
     () => searchParams.get("from") === "onboarding",
   );
   const [replacing, setReplacing] = useState(false);
+  const [actionPhase, setActionPhase] = useState<CatalogActionPhase>("ready");
 
   const fromOnboarding = searchParams.get("from") === "onboarding";
   const packIdFromUrl = searchParams.get("packId");
@@ -152,6 +157,8 @@ export default function GlobalCatalogPage() {
   const productsSourcePackIdRef = useRef<string | null>(null);
   /** Last pack we auto-selected rows for (onboarding only). */
   const autoSelectedForPackIdRef = useRef<string | null>(null);
+  /** Bumped to cancel an in-flight progressive auto-select. */
+  const selectGenerationRef = useRef(0);
 
   const defaultBranchId = branchId || branches[0]?.id;
 
@@ -274,15 +281,76 @@ export default function GlobalCatalogPage() {
   // Auto-select every importable product in the starter pack once it has loaded.
   // Wait until `products` belongs to `selectedPackId` — otherwise we latch onto
   // the previous browse page (often 50 rows) and leave pack checkboxes empty.
+  // Select in batches so the progress bar can show items being marked to sell.
   useEffect(() => {
     if (!fromOnboarding || !selectedPackId || initialLoading) return;
     if (productsSourcePackIdRef.current !== selectedPackId) return;
     if (autoSelectedForPackIdRef.current === selectedPackId) return;
     const importable = products.filter((p) => !p.alreadyImported);
     if (importable.length === 0) return;
+
     autoSelectedForPackIdRef.current = selectedPackId;
-    setSelected(new Map(importable.map((p) => [p.id, p])));
+    const generation = ++selectGenerationRef.current;
+    setActionPhase("selecting");
+    setSelected(new Map());
+
+    let index = 0;
+    const batchSize = Math.max(1, Math.ceil(importable.length / 24));
+    const selectedSoFar = new Map<string, GlobalProductRecord>();
+    let cancelled = false;
+
+    const tick = () => {
+      if (cancelled || generation !== selectGenerationRef.current) return;
+      const end = Math.min(index + batchSize, importable.length);
+      for (; index < end; index += 1) {
+        const product = importable[index];
+        selectedSoFar.set(product.id, product);
+      }
+      setSelected(new Map(selectedSoFar));
+      if (index >= importable.length) {
+        setActionPhase("ready");
+        return;
+      }
+      window.setTimeout(tick, 28);
+    };
+
+    tick();
+    return () => {
+      cancelled = true;
+    };
   }, [fromOnboarding, selectedPackId, initialLoading, products]);
+
+  useEffect(() => {
+    if (adopting) {
+      setActionPhase("importing");
+      return;
+    }
+    if (reviewOpen) {
+      setActionPhase("reviewing");
+      return;
+    }
+    setActionPhase((prev) => {
+      if (prev === "reviewing" || prev === "importing") {
+        return "ready";
+      }
+      return prev;
+    });
+    if (!fromOnboarding || !selectedPackId) return;
+    if (autoSelectedForPackIdRef.current === selectedPackId) return;
+    if (
+      initialLoading ||
+      productsSourcePackIdRef.current !== selectedPackId
+    ) {
+      setActionPhase("loading");
+    }
+  }, [
+    adopting,
+    reviewOpen,
+    fromOnboarding,
+    selectedPackId,
+    initialLoading,
+    products,
+  ]);
 
   const fetchProducts = useCallback(
     async ({
@@ -516,8 +584,10 @@ export default function GlobalCatalogPage() {
   );
 
   const clearSelection = () => {
+    selectGenerationRef.current += 1;
     setSelected(new Map());
     setSkippedProductIds(new Set());
+    setActionPhase("ready");
   };
 
   const updateOverride = (productId: string, patch: Partial<GlobalCatalogAdoptLine>) => {
@@ -990,6 +1060,7 @@ export default function GlobalCatalogPage() {
         percent: 100,
         message: "Import complete",
       });
+      setActionPhase("done");
       await new Promise((resolve) => window.setTimeout(resolve, 650));
       toast.success(
         mergedCount > 0
@@ -1725,34 +1796,38 @@ export default function GlobalCatalogPage() {
             ) : null}
           </div>
 
-          {!showEmptyState && !initialLoading ? (
+          {(!showEmptyState && !initialLoading) ||
+          actionPhase === "loading" ||
+          actionPhase === "selecting" ||
+          actionPhase === "importing" ||
+          actionPhase === "done" ? (
             <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
-              {selected.size > 0 ? (
-                <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-full border border-primary/40 bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-md motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
-                  <span className="pl-2 text-xs font-medium tabular-nums">
-                    {selected.size} selected
-                  </span>
-                  <Button
-                    size="sm"
-                    className="h-8 gap-1.5 rounded-full"
-                    disabled={selectedImportable.length === 0 || !canAdopt}
-                    onClick={handlePreview}
-                  >
-                    <ShoppingCart className="size-3.5" />
-                    Review &amp; import
-                    {selectedImportable.length > 0
-                      ? ` (${selectedImportable.length})`
-                      : ""}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 rounded-full text-xs"
-                    onClick={clearSelection}
-                  >
-                    Clear
-                  </Button>
-                </div>
+              {selected.size > 0 ||
+              actionPhase === "loading" ||
+              actionPhase === "selecting" ||
+              actionPhase === "reviewing" ||
+              actionPhase === "importing" ||
+              actionPhase === "done" ? (
+                <GlobalCatalogActionProgressBar
+                  phase={actionPhase}
+                  selectedCount={selectedImportable.length}
+                  totalCount={
+                    selectedPack && !selectedPackEmpty
+                      ? Math.max(
+                          selectedPack.productCount,
+                          products.filter((p) => !p.alreadyImported).length,
+                        )
+                      : Math.max(
+                          products.filter((p) => !p.alreadyImported).length,
+                          selectedImportable.length,
+                        )
+                  }
+                  importProgress={importProgress}
+                  canImport={selectedImportable.length > 0 && canAdopt}
+                  onReview={handlePreview}
+                  onClear={clearSelection}
+                  className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400"
+                />
               ) : (
                 <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-full border border-border/80 bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-md motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
                   <span className="hidden pl-2 text-[11px] text-muted-foreground sm:inline">

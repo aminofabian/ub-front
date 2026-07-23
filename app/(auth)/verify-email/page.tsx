@@ -1,13 +1,17 @@
 "use client";
 
+import { CheckCircle2, Loader2, Mail, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
-import { AuthBranding } from "@/components/auth/auth-branding";
-import { AuthCard } from "@/components/auth/auth-card";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
+import {
+  authInputClassName,
+  AuthSplitShell,
+} from "@/components/auth/auth-split-shell";
+import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
@@ -20,25 +24,35 @@ import {
 import { resendVerificationEmail, verifyEmailAddress } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { markOnboardingTourPending } from "@/lib/onboarding-tour";
+import { cn } from "@/lib/utils";
 
 const REDIRECT_SECONDS = 10;
 /** Shop owners verify then sign in with email/password (Office), not till PIN. */
 const POST_VERIFY_LOGIN_HREF = `${APP_ROUTES.staffLogin}?mode=office`;
 
+const primaryCtaClass =
+  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
+
+const fieldLabelClass =
+  "mb-1.5 block text-[13px] font-medium text-foreground";
+
 type VerifyPhase = "idle" | "verifying" | "success" | "failed";
 
 function VerifyEmailContent() {
+  const tenant = useOptionalTenant();
   const searchParams = useSearchParams();
   const router = useRouter();
   const tokenFromQuery = searchParams.get("token") ?? "";
+  const emailFromQuery = searchParams.get("email")?.trim() ?? "";
 
-  const [, ensureTenantResolved] = useTenantIdPrefill();
+  const [, ensureTenantResolved] = useTenantIdPrefill(tenant?.tenantId);
   const [manualToken, setManualToken] = useState("");
-  const [resendEmail, setResendEmail] = useState("");
+  const [resendEmail, setResendEmail] = useState(emailFromQuery);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [resendLink, setResendLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showTokenEntry, setShowTokenEntry] = useState(false);
   const autoVerifyStarted = useRef(false);
 
   const hasAutoToken = tokenFromQuery.trim().length >= 16;
@@ -48,6 +62,11 @@ function VerifyEmailContent() {
     hasAutoToken ? "verifying" : "idle",
   );
   const [redirectSeconds, setRedirectSeconds] = useState(REDIRECT_SECONDS);
+
+  const shopName =
+    tenant?.branding?.displayName?.trim() ||
+    tenant?.tenantName?.trim() ||
+    "your shop";
 
   const showResend =
     verifyPhase === "failed" ||
@@ -117,10 +136,11 @@ function VerifyEmailContent() {
     })();
   }, [tokenFromQuery, ensureTenantResolved]);
 
-  const onVerifyManual = async () => {
+  const onVerifyManual = async (event: React.FormEvent) => {
+    event.preventDefault();
     const token = manualToken.trim();
     if (token.length < 16) {
-      setErrorMessage("Token is too short or missing.");
+      setErrorMessage("That code looks too short. Paste the full token from your email.");
       return;
     }
     setBusy(true);
@@ -161,13 +181,13 @@ function VerifyEmailContent() {
       const out = await resendVerificationEmail(resendEmail.trim());
       if (out.verificationUrl?.trim()) {
         setMessage(
-          "A new verification link was issued. Open it below (shown because the API is configured to return it when mail is unavailable).",
+          "A new verification link is ready. Open it below (shown when mail delivery is unavailable).",
         );
         setResendLink(out.verificationUrl.trim());
       } else {
         setResendLink(null);
         setMessage(
-          "If that email has a pending registration for this tenant, we sent a new link.",
+          "If that email has a pending signup for this shop, we sent a fresh link. Check your inbox and spam folder.",
         );
       }
     } catch (error) {
@@ -177,116 +197,209 @@ function VerifyEmailContent() {
     }
   };
 
+  const headerTitle = (() => {
+    if (verifyPhase === "success") return "Email verified";
+    if (hasAutoToken && verifyPhase === "verifying") return "Verifying…";
+    if (hasAutoToken && verifyPhase === "failed") return "Link expired";
+    return "Check your email";
+  })();
+
   const headerDescription = (() => {
     if (verifyPhase === "success") {
-      return "Your email is verified.";
+      return "You're in. Next up: sign in to your office dashboard.";
     }
     if (hasAutoToken && verifyPhase === "verifying") {
-      return "Verifying your email link…";
+      return "Confirming your verification link…";
     }
     if (hasAutoToken && verifyPhase === "failed") {
-      return "This verification link is invalid or has expired. Request a new message below, or sign in if you already verified.";
+      return "This link is invalid or has expired. Request a new one below.";
     }
-    return "Open the link from your email, paste the token, or resend the message for this shop.";
+    if (emailFromQuery) {
+      return `We sent a verification link to ${emailFromQuery}. Open it to activate ${shopName}.`;
+    }
+    return `We sent a verification link to your inbox. Open it to activate ${shopName}.`;
   })();
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
-      <AuthBranding />
-      <AuthCard>
-        <AuthPageHeader title="Verify email" description={headerDescription} />
+    <AuthSplitShell tenant={tenant}>
+      <AuthPageHeader title={headerTitle} description={headerDescription} />
 
-        {showManualForm ? (
-          <>
-            <label className="mt-5 block text-sm font-medium" htmlFor="verify-token">
-              Token from email
-            </label>
-            <textarea
-              id="verify-token"
-              className="mt-1 min-h-[88px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-              value={manualToken}
-              onChange={(event) => setManualToken(event.target.value)}
-              placeholder="Paste the long token from the verification link"
-            />
-            <Button
-              className="mt-3 w-full"
-              type="button"
-              disabled={busy || verifyPhase === "success"}
-              onClick={() => void onVerifyManual()}
-            >
-              {busy ? "Verifying…" : "Verify"}
-            </Button>
-          </>
-        ) : verifyPhase === "verifying" ? (
-          <p className="mt-5 text-sm text-muted-foreground">Verifying link…</p>
-        ) : null}
-
-        {verifyPhase === "success" ? (
-          <div className="mt-5">
-            <AuthAlert variant="success">
-              You&apos;ll be redirected to the sign-in page in{" "}
-              <span className="font-semibold tabular-nums">{redirectSeconds}</span>
-              {redirectSeconds === 1 ? " second" : " seconds"}.
-            </AuthAlert>
+      {showManualForm && verifyPhase !== "success" ? (
+        <div className="mt-5 rounded-2xl border border-[var(--auth-accent)]/25 bg-[color-mix(in_srgb,var(--auth-accent)_8%,white)] p-4 dark:bg-[color-mix(in_srgb,var(--auth-accent)_12%,#18181b)]">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] shadow-sm">
+              <Mail className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                Link on the way
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Open the message from{" "}
+                <span className="font-medium text-foreground">UB</span>
+                {emailFromQuery ? (
+                  <>
+                    {" "}
+                    to{" "}
+                    <span className="font-medium text-foreground break-all">
+                      {emailFromQuery}
+                    </span>
+                  </>
+                ) : null}
+                , then tap{" "}
+                <span className="font-medium text-foreground">
+                  Confirm your email
+                </span>
+                . The link expires in 48 hours.
+              </p>
+              <ul className="mt-3 space-y-1.5 text-[11px] text-muted-foreground">
+                <li className="flex items-center gap-1.5">
+                  <Sparkles className="size-3 text-[var(--auth-accent)]" aria-hidden />
+                  Check spam / promotions if you don&apos;t see it
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <CheckCircle2 className="size-3 text-[var(--auth-accent)]" aria-hidden />
+                  After verifying, sign in under Office
+                </li>
+              </ul>
+            </div>
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
-        {message && verifyPhase !== "success" ? (
-          <div className="mt-4 space-y-3">
-            <AuthAlert variant="success">{message}</AuthAlert>
-            {resendLink ? (
-              <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
-                <p className="font-medium text-foreground">Verification link</p>
-                <a
-                  href={resendLink}
-                  className="mt-2 block break-all text-primary underline underline-offset-2"
-                >
-                  Open in this browser
-                </a>
-                <p className="mt-2 break-all font-mono text-xs text-muted-foreground">
-                  {resendLink}
-                </p>
+      {hasAutoToken && verifyPhase === "verifying" ? (
+        <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+          Verifying link…
+        </p>
+      ) : null}
+
+      {verifyPhase === "success" ? (
+        <div className="mt-5">
+          <AuthAlert variant="success">
+            Redirecting to staff sign-in in{" "}
+            <span className="font-semibold tabular-nums">{redirectSeconds}</span>
+            {redirectSeconds === 1 ? " second" : " seconds"}.
+          </AuthAlert>
+          <Link
+            href={POST_VERIFY_LOGIN_HREF}
+            className={cn(primaryCtaClass, "mt-4")}
+          >
+            Continue to sign in
+          </Link>
+        </div>
+      ) : null}
+
+      {message && verifyPhase !== "success" ? (
+        <div className="mt-4 space-y-3">
+          <AuthAlert variant="success">{message}</AuthAlert>
+          {resendLink ? (
+            <div className="rounded-2xl border border-border bg-muted/40 p-3 text-sm">
+              <p className="font-medium text-foreground">Verification link</p>
+              <a
+                href={resendLink}
+                className="mt-2 block break-all text-primary underline underline-offset-2"
+              >
+                Open in this browser
+              </a>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {errorMessage && verifyPhase !== "success" ? (
+        <div className="mt-4">
+          <AuthAlert variant="error">{errorMessage}</AuthAlert>
+        </div>
+      ) : null}
+
+      {showManualForm && verifyPhase !== "success" ? (
+        <div className="mt-6">
+          <button
+            type="button"
+            className="text-sm font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
+            onClick={() => setShowTokenEntry((open) => !open)}
+          >
+            {showTokenEntry
+              ? "Hide verification code"
+              : "Have a verification code instead?"}
+          </button>
+          {showTokenEntry ? (
+            <form className="mt-3 space-y-3" onSubmit={onVerifyManual}>
+              <div>
+                <label className={fieldLabelClass} htmlFor="verify-token">
+                  Verification code
+                </label>
+                <input
+                  id="verify-token"
+                  type="text"
+                  inputMode="text"
+                  autoComplete="one-time-code"
+                  spellCheck={false}
+                  className={cn(authInputClassName, "font-mono text-sm")}
+                  value={manualToken}
+                  onChange={(event) => setManualToken(event.target.value)}
+                  placeholder="Paste the code from your email"
+                />
               </div>
-            ) : null}
-          </div>
-        ) : null}
+              <button
+                type="submit"
+                className={primaryCtaClass}
+                disabled={busy || verifyPhase === "verifying"}
+              >
+                {busy ? "Verifying…" : "Verify email"}
+              </button>
+            </form>
+          ) : null}
+        </div>
+      ) : null}
 
-        {errorMessage && verifyPhase !== "success" ? (
-          <div className="mt-4">
-            <AuthAlert variant="error">{errorMessage}</AuthAlert>
-          </div>
-        ) : null}
-
-        {showResend ? (
-          <form className="mt-8 space-y-2 border-t border-border/60 pt-6" onSubmit={onResend}>
-            <p className="text-sm font-medium text-foreground">Resend verification</p>
-            <label className="text-sm font-medium" htmlFor="resend-email">
+      {showResend ? (
+        <form
+          className="mt-8 space-y-3 border-t border-border/60 pt-6"
+          onSubmit={onResend}
+        >
+          <p className="text-sm font-semibold text-foreground">
+            Didn&apos;t get the email?
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Enter the address you used to sign up and we&apos;ll send another link.
+          </p>
+          <div>
+            <label className={fieldLabelClass} htmlFor="resend-email">
               Email
             </label>
             <input
               id="resend-email"
               type="email"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+              className={authInputClassName}
               value={resendEmail}
               onChange={(event) => setResendEmail(event.target.value)}
+              placeholder="you@example.com"
               required
             />
-            <Button className="w-full" type="submit" variant="outline" disabled={busy}>
-              Send again
-            </Button>
-          </form>
-        ) : null}
-
-        <p className="mt-6 text-center text-sm">
-          <Link
-            href={POST_VERIFY_LOGIN_HREF}
-            className="font-medium text-primary underline underline-offset-2"
+          </div>
+          <Button
+            className="h-11 w-full rounded-2xl"
+            type="submit"
+            variant="outline"
+            disabled={busy}
           >
-            Back to staff sign in
-          </Link>
-        </p>
-      </AuthCard>
-    </div>
+            {busy ? "Sending…" : "Resend verification link"}
+          </Button>
+        </form>
+      ) : null}
+
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        Already verified?{" "}
+        <Link
+          href={POST_VERIFY_LOGIN_HREF}
+          className="font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
+        >
+          Staff sign in
+        </Link>
+      </p>
+    </AuthSplitShell>
   );
 }
 

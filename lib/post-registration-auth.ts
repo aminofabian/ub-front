@@ -38,16 +38,22 @@ export async function finalizeActiveRegistration(params: {
 export function redirectToEmailVerification(params: {
   shopUrl: string;
   verificationUrl?: string | null;
+  email?: string | null;
 }): void {
   const token = extractVerificationToken(params.verificationUrl);
   const base = params.shopUrl.replace(/\/+$/, "");
+  const query = new URLSearchParams();
   if (token) {
-    window.location.assign(
-      `${base}/verify-email?token=${encodeURIComponent(token)}`,
-    );
-    return;
+    query.set("token", token);
   }
-  window.location.assign(`${base}/verify-email`);
+  const email = params.email?.trim();
+  if (email) {
+    query.set("email", email);
+  }
+  const suffix = query.toString();
+  window.location.assign(
+    suffix ? `${base}/verify-email?${suffix}` : `${base}/verify-email`,
+  );
 }
 
 export type RegistrationFlowResult = "signed_in" | "verify_redirect" | "verify_local";
@@ -77,6 +83,7 @@ export async function handleRegistrationResult(params: {
     redirectToEmailVerification({
       shopUrl,
       verificationUrl: params.result.verificationUrl,
+      email: params.email,
     });
     return "verify_redirect";
   }
