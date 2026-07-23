@@ -10,6 +10,8 @@ export type ThemedConfirmToastOptions = {
   title: string;
   description: string;
   confirmLabel?: string;
+  /** Defaults to destructive (delete/archive). Use default for non-destructive confirms. */
+  confirmVariant?: "destructive" | "default";
   onConfirm: () => void | Promise<void>;
 };
 
@@ -27,12 +29,14 @@ function ConfirmToastCard({
   title,
   description,
   confirmLabel,
+  confirmVariant,
   onCancel,
   onConfirm,
 }: {
   title: string;
   description: string;
   confirmLabel: string;
+  confirmVariant: "destructive" | "default";
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -51,12 +55,13 @@ function ConfirmToastCard({
       </p>
       <p
         id="confirm-toast-desc"
-        className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground"
+        className="mt-2 whitespace-pre-line font-sans text-sm leading-relaxed text-muted-foreground"
       >
         {description}
       </p>
       <ConfirmToastCardActions
         confirmLabel={confirmLabel}
+        confirmVariant={confirmVariant}
         onCancel={onCancel}
         onConfirm={onConfirm}
       />
@@ -66,10 +71,12 @@ function ConfirmToastCard({
 
 function ConfirmToastCardActions({
   confirmLabel,
+  confirmVariant,
   onCancel,
   onConfirm,
 }: {
   confirmLabel: string;
+  confirmVariant: "destructive" | "default";
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -78,19 +85,20 @@ function ConfirmToastCardActions({
       <Button type="button" variant="outline" size="sm" onClick={onCancel}>
         Cancel
       </Button>
-      <Button type="button" variant="destructive" size="sm" onClick={onConfirm}>
+      <Button type="button" variant={confirmVariant} size="sm" onClick={onConfirm}>
         {confirmLabel}
       </Button>
     </div>
   );
 }
 
-/** Centered delete/archive confirmation styled with brand fonts and primary accent. */
+/** Centered confirmation styled with brand fonts and primary accent. */
 export function showThemedConfirmToast({
   id,
   title,
   description,
   confirmLabel = "Delete",
+  confirmVariant = "destructive",
   onConfirm,
 }: ThemedConfirmToastOptions) {
   toast.custom(
@@ -99,6 +107,7 @@ export function showThemedConfirmToast({
         title={title}
         description={description}
         confirmLabel={confirmLabel}
+        confirmVariant={confirmVariant}
         onCancel={() => toast.dismiss(toastId)}
         onConfirm={() => {
           toast.dismiss(toastId);

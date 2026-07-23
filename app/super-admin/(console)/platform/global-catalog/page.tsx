@@ -6,6 +6,7 @@ import { Download, ImageOff, PackageSearch, RefreshCw, Upload } from "lucide-rea
 import { toast } from "sonner";
 
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { GlobalCatalogCategoriesPanel } from "@/components/super-admin/global-catalog-categories-panel";
 import { GlobalCatalogPacksPanel } from "@/components/super-admin/global-catalog-packs-panel";
 import { GlobalCatalogSuppliersPanel } from "@/components/super-admin/global-catalog-suppliers-panel";
@@ -660,24 +661,9 @@ export default function SuperAdminGlobalCatalogPage() {
     }
   };
 
-  const onCommitPromote = async () => {
+  const runCommitPromote = async () => {
     if (!sourceBusinessId || selectedSourceIds.size === 0) return;
     const n = selectedSourceIds.size;
-    const statusLabel = promoteAsPublished ? "published" : "drafts";
-    const replaceWarning = replaceCatalog
-      ? `\n\nCLEAR OLD CATALOG: every product and category currently in "${meta?.catalogName ?? "this catalog"}" will be archived first, so the result matches the source shop exactly.`
-      : "";
-    if (
-      !window.confirm(
-        `Promote ${n.toLocaleString()} product${n === 1 ? "" : "s"} as ${statusLabel} into the global catalog?` +
-          replaceWarning +
-          (n > PROMOTE_PREVIEW_MAX_ITEMS
-            ? "\n\nLarge batches run as background jobs and may take a few minutes."
-            : ""),
-      )
-    ) {
-      return;
-    }
     setBusy(true);
     setPromoteProgress({
       phase: "queued",
@@ -720,6 +706,31 @@ export default function SuperAdminGlobalCatalogPage() {
       setBusy(false);
       setPromoteProgress(null);
     }
+  };
+
+  const onCommitPromote = () => {
+    if (!sourceBusinessId || selectedSourceIds.size === 0) return;
+    const n = selectedSourceIds.size;
+    const statusLabel = promoteAsPublished ? "published" : "drafts";
+    const catalogLabel = meta?.catalogName ?? "the global catalog";
+    const descriptionParts = [
+      `Promote into “${catalogLabel}” as ${statusLabel}.`,
+      replaceCatalog
+        ? `CLEAR OLD CATALOG: every product and category currently in “${catalogLabel}” will be archived first, so the result matches the source shop exactly.`
+        : null,
+      n > PROMOTE_PREVIEW_MAX_ITEMS
+        ? "Large batches run as background jobs and may take a few minutes."
+        : null,
+    ].filter((part): part is string => part != null);
+
+    showThemedConfirmToast({
+      id: "sa-promote-confirm",
+      title: `Promote ${n.toLocaleString()} product${n === 1 ? "" : "s"}?`,
+      description: descriptionParts.join("\n\n"),
+      confirmLabel: replaceCatalog ? "Clear & promote" : "Promote",
+      confirmVariant: replaceCatalog ? "destructive" : "default",
+      onConfirm: () => runCommitPromote(),
+    });
   };
 
   const onPublishPromotedDrafts = async () => {
