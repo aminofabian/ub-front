@@ -695,10 +695,47 @@ export default function SuperAdminGlobalCatalogPage() {
       setPreview(result);
       setLastPromoteResult(result);
       setSelectedSourceIds(new Set());
-      toast.success(
-        `Promoted: ${result.createdCount} created, ${result.updatedCount} updated, ${result.imageRehostCount} images`,
-      );
-      await reload();
+      const committed = result.createdCount + result.updatedCount;
+      if (committed === 0) {
+        toast.error(
+          `Nothing was written (${result.skippedCount.toLocaleString()} skipped). Check skip reasons in the preview panel.`,
+        );
+      } else if (result.skippedCount > 0) {
+        toast.message(
+          `Promoted ${committed.toLocaleString()} (${result.createdCount} created, ${result.updatedCount} updated, ${result.imageRehostCount} images). Skipped ${result.skippedCount.toLocaleString()}.`,
+        );
+      } else {
+        toast.success(
+          `Promoted: ${result.createdCount} created, ${result.updatedCount} updated, ${result.imageRehostCount} images`,
+        );
+      }
+      // Land on Curate with the status that matches what we just wrote — draft promote
+      // previously looked like "nothing published" when the filter stayed on published.
+      const nextStatus = promoteAsPublished ? "published" : "draft";
+      setMode("curate");
+      setStatus(nextStatus);
+      setPage(0);
+      setLoadError("");
+      try {
+        const [nextMeta, nextProducts] = await Promise.all([
+          fetchSaGlobalCatalogMeta(catalogId),
+          fetchSaGlobalProducts({
+            catalogId,
+            q,
+            status: nextStatus,
+            missingImage,
+            page: 0,
+            size: 40,
+          }),
+        ]);
+        setMeta(nextMeta);
+        setProducts(nextProducts.content ?? []);
+        setTotal(nextProducts.totalElements ?? 0);
+      } catch (reloadErr) {
+        setLoadError(
+          reloadErr instanceof Error ? reloadErr.message : "Could not reload global catalog.",
+        );
+      }
       await reloadSourceItems();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Promote failed.");

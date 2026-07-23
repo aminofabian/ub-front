@@ -73,7 +73,7 @@ function VerifyEmailContent() {
       return;
     }
     if (redirectSeconds <= 0) {
-      router.replace(APP_ROUTES.login);
+      router.replace(APP_ROUTES.staffLogin);
       return;
     }
     const timer = window.setTimeout(() => {
@@ -277,10 +277,10 @@ function VerifyEmailContent() {
 
         <p className="mt-6 text-center text-sm">
           <Link
-            href={APP_ROUTES.login}
+            href={APP_ROUTES.staffLogin}
             className="font-medium text-primary underline underline-offset-2"
           >
-            Back to sign in
+            Back to staff sign in
           </Link>
         </p>
       </AuthCard>
