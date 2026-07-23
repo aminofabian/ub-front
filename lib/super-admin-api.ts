@@ -955,8 +955,14 @@ export async function fetchAllSaSourceItemIds(params: {
   q?: string;
   /** When true (default), skip items already matched in the global catalog. */
   excludeAlreadyInGlobal?: boolean;
+  /** When true, only include items with a portable HTTPS image URL. */
+  requireImage?: boolean;
+  /** When true, only include items that have a barcode. */
+  requireBarcode?: boolean;
 }): Promise<string[]> {
   const excludeAlready = params.excludeAlreadyInGlobal !== false;
+  const requireImage = params.requireImage === true;
+  const requireBarcode = params.requireBarcode === true;
   const ids: string[] = [];
   let page = 0;
   let totalPages = 1;
@@ -972,6 +978,8 @@ export async function fetchAllSaSourceItemIds(params: {
     for (const row of result.content ?? []) {
       if (!row.id) continue;
       if (excludeAlready && row.alreadyInGlobal) continue;
+      if (requireImage && !row.imageUrl?.trim()) continue;
+      if (requireBarcode && !row.barcode?.trim()) continue;
       ids.push(row.id);
       if (ids.length >= SOURCE_ID_FETCH_MAX) break;
     }

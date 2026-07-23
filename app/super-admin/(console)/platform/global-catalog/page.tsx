@@ -52,6 +52,20 @@ const STATUS_OPTIONS = [
 const SOURCE_PAGE_SIZE = 40;
 const PROMOTE_PREVIEW_MAX_ITEMS = 100;
 
+function keepPromoteSourceRow(
+  row: SaSourceItem,
+  opts: {
+    hideAlreadyInGlobal: boolean;
+    onlyWithImages: boolean;
+    onlyWithBarcode: boolean;
+  },
+): boolean {
+  if (opts.hideAlreadyInGlobal && row.alreadyInGlobal) return false;
+  if (opts.onlyWithImages && !row.imageUrl?.trim()) return false;
+  if (opts.onlyWithBarcode && !row.barcode?.trim()) return false;
+  return true;
+}
+
 function statusBadgeClass(status: string): string {
   if (status === "published") return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200";
   if (status === "draft") return "bg-amber-500/15 text-amber-900 dark:text-amber-100";
@@ -130,6 +144,10 @@ export default function SuperAdminGlobalCatalogPage() {
   const [promoteProgress, setPromoteProgress] = useState<SaPromoteProgress | null>(null);
   /** Default on: only show / select items not yet in the global catalog. */
   const [hideAlreadyInGlobal, setHideAlreadyInGlobal] = useState(true);
+  /** Promote only source items that already have a portable HTTPS image. */
+  const [onlyWithImages, setOnlyWithImages] = useState(false);
+  /** Promote only source items that have a barcode. */
+  const [onlyWithBarcode, setOnlyWithBarcode] = useState(false);
   const csvImportRef = useRef<HTMLInputElement>(null);
   const sourceFetchGen = useRef(0);
 
@@ -213,13 +231,19 @@ export default function SuperAdminGlobalCatalogPage() {
           if (gen !== sourceFetchGen.current) return;
           const rows = result.content ?? [];
           total = result.totalElements ?? 0;
-          const kept = hideAlreadyInGlobal
-            ? rows.filter((row) => !row.alreadyInGlobal)
-            : rows;
+          const clientFiltered =
+            hideAlreadyInGlobal || onlyWithImages || onlyWithBarcode;
+          const kept = rows.filter((row) =>
+            keepPromoteSourceRow(row, {
+              hideAlreadyInGlobal,
+              onlyWithImages,
+              onlyWithBarcode,
+            }),
+          );
           accumulated = [...accumulated, ...kept];
           hasMore = (nextPage + 1) * SOURCE_PAGE_SIZE < total;
           nextPage += 1;
-          if (!hideAlreadyInGlobal || accumulated.length >= SOURCE_PAGE_SIZE || !hasMore) {
+          if (!clientFiltered || accumulated.length >= SOURCE_PAGE_SIZE || !hasMore) {
             break;
           }
         }
@@ -241,7 +265,14 @@ export default function SuperAdminGlobalCatalogPage() {
         }
       }
     },
-    [catalogId, hideAlreadyInGlobal, sourceBusinessId, sourceQ],
+    [
+      catalogId,
+      hideAlreadyInGlobal,
+      onlyWithBarcode,
+      onlyWithImages,
+      sourceBusinessId,
+      sourceQ,
+    ],
   );
 
   const reloadSourceItems = useCallback(async () => {
@@ -575,17 +606,22 @@ export default function SuperAdminGlobalCatalogPage() {
         catalogId,
         q: sourceQ,
         excludeAlreadyInGlobal: hideAlreadyInGlobal,
+        requireImage: onlyWithImages,
+        requireBarcode: onlyWithBarcode,
       });
       setSelectedSourceIds(new Set(ids));
       setPreview(null);
+      const filterBits = [
+        hideAlreadyInGlobal ? "not yet in global" : null,
+        onlyWithImages ? "with images" : null,
+        onlyWithBarcode ? "with barcode" : null,
+      ].filter(Boolean);
+      const filterNote =
+        filterBits.length > 0 ? ` (${filterBits.join(", ")})` : "";
       toast.success(
         ids.length === 0
-          ? hideAlreadyInGlobal
-            ? "Nothing left to promote — all matches are already in global."
-            : "No matching source items."
-          : `Selected ${ids.toLocaleString()} matching item${ids.length === 1 ? "" : "s"}${
-              hideAlreadyInGlobal ? " (not yet in global)" : ""
-            }.`,
+          ? "No matching source items for the current filters."
+          : `Selected ${ids.toLocaleString()} matching item${ids.length === 1 ? "" : "s"}${filterNote}.`,
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not select all matching items.");
@@ -853,7 +889,13 @@ export default function SuperAdminGlobalCatalogPage() {
             setSelectedSourceIds(
               new Set(
                 sourceItems
-                  .filter((i) => !hideAlreadyInGlobal || !i.alreadyInGlobal)
+                  .filter((i) =>
+                    keepPromoteSourceRow(i, {
+                      hideAlreadyInGlobal,
+                      onlyWithImages,
+                      onlyWithBarcode,
+                    }),
+                  )
                   .map((i) => i.id),
               ),
             );
@@ -879,6 +921,36 @@ export default function SuperAdminGlobalCatalogPage() {
                 );
                 if (knownInGlobal.size === 0) return prev;
                 const next = new Set([...prev].filter((id) => !knownInGlobal.has(id)));
+                return next.size === prev.size ? prev : next;
+              });
+            }
+            setPreview(null);
+          }}
+          onlyWithImages={onlyWithImages}
+          onOnlyWithImagesChange={(value) => {
+            setOnlyWithImages(value);
+            if (value) {
+              setSelectedSourceIds((prev) => {
+                const withoutImage = new Set(
+                  sourceItems.filter((i) => !i.imageUrl?.trim()).map((i) => i.id),
+                );
+                if (withoutImage.size === 0) return prev;
+                const next = new Set([...prev].filter((id) => !withoutImage.has(id)));
+                return next.size === prev.size ? prev : next;
+              });
+            }
+            setPreview(null);
+          }}
+          onlyWithBarcode={onlyWithBarcode}
+          onOnlyWithBarcodeChange={(value) => {
+            setOnlyWithBarcode(value);
+            if (value) {
+              setSelectedSourceIds((prev) => {
+                const withoutBarcode = new Set(
+                  sourceItems.filter((i) => !i.barcode?.trim()).map((i) => i.id),
+                );
+                if (withoutBarcode.size === 0) return prev;
+                const next = new Set([...prev].filter((id) => !withoutBarcode.has(id)));
                 return next.size === prev.size ? prev : next;
               });
             }
@@ -1265,6 +1337,10 @@ function PromotePanel({
   onReplaceCatalogChange,
   hideAlreadyInGlobal,
   onHideAlreadyInGlobalChange,
+  onlyWithImages,
+  onOnlyWithImagesChange,
+  onlyWithBarcode,
+  onOnlyWithBarcodeChange,
   publishableIds,
   busy,
   progress,
@@ -1294,6 +1370,10 @@ function PromotePanel({
   onReplaceCatalogChange: (value: boolean) => void;
   hideAlreadyInGlobal: boolean;
   onHideAlreadyInGlobalChange: (value: boolean) => void;
+  onlyWithImages: boolean;
+  onOnlyWithImagesChange: (value: boolean) => void;
+  onlyWithBarcode: boolean;
+  onOnlyWithBarcodeChange: (value: boolean) => void;
   publishableIds: string[];
   busy: boolean;
   progress: SaPromoteProgress | null;
@@ -1303,8 +1383,10 @@ function PromotePanel({
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const clientFiltered =
+    hideAlreadyInGlobal || onlyWithImages || onlyWithBarcode;
   const allMatchingSelected =
-    !hideAlreadyInGlobal &&
+    !clientFiltered &&
     sourceTotal > 0 &&
     selectedSourceIds.size >= sourceTotal &&
     selectedSourceIds.size > 0;
@@ -1365,7 +1447,11 @@ function PromotePanel({
             onClick={onSelectAllMatching}
           >
             Select all matching
-            {hideAlreadyInGlobal ? " (new only)" : sourceTotal > 0 ? ` (${sourceTotal.toLocaleString()})` : ""}
+            {clientFiltered
+              ? " (filtered)"
+              : sourceTotal > 0
+                ? ` (${sourceTotal.toLocaleString()})`
+                : ""}
           </Button>
           <Button variant="ghost" size="sm" disabled={selectedSourceIds.size === 0} onClick={onClearSelection}>
             Clear
@@ -1382,19 +1468,32 @@ function PromotePanel({
           />
           Hide items already in global
         </label>
-        {hideAlreadyInGlobal ? (
-          <span className="text-xs text-muted-foreground">
-            Showing only products not yet promoted · turn off to update existing matches
-          </span>
-        ) : null}
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={onlyWithImages}
+            onChange={(e) => onOnlyWithImagesChange(e.target.checked)}
+          />
+          Only with images
+        </label>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={onlyWithBarcode}
+            onChange={(e) => onOnlyWithBarcodeChange(e.target.checked)}
+          />
+          Only with barcode
+        </label>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border/70">
         <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
           <span>
             {hideAlreadyInGlobal ? "Not yet in global · " : ""}
+            {onlyWithImages ? "With images · " : ""}
+            {onlyWithBarcode ? "With barcode · " : ""}
             {sourceItems.length.toLocaleString()} shown
-            {!hideAlreadyInGlobal ? ` of ${sourceTotal.toLocaleString()} source` : ""}
+            {!clientFiltered ? ` of ${sourceTotal.toLocaleString()} source` : ""}
             {" · "}
             {selectedSourceIds.size.toLocaleString()} selected
           </span>
@@ -1406,8 +1505,8 @@ function PromotePanel({
           <ul className="divide-y divide-border/60">
             {sourceItems.length === 0 && !sourceLoading ? (
               <li className="px-4 py-10 text-center text-sm text-muted-foreground">
-                {hideAlreadyInGlobal
-                  ? "Nothing left to promote — matching items are already in global."
+                {clientFiltered
+                  ? "No source items match the current filters."
                   : "No source items match."}
               </li>
             ) : (
