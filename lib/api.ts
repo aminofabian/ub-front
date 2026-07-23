@@ -4392,15 +4392,118 @@ export async function fetchRecentSales(
   to?: string,
   branchId?: string,
   itemTypeId?: string,
+  itemId?: string,
 ): Promise<RecentSaleRow[]> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
   if (to?.trim()) params.set("to", to.trim());
   if (branchId?.trim()) params.set("branchId", branchId.trim());
   if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
+  if (itemId?.trim()) params.set("itemId", itemId.trim());
   const qs = params.toString();
   return request<RecentSaleRow[]>(
     `/api/v1/sales/intelligence/recent-sales${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type ItemVelocityRow = {
+  itemId: string;
+  itemName: string;
+  sku: string | null;
+  currentStock: number | string;
+  todayQty: number | string;
+  todayRevenue: number | string;
+  yesterdayQty: number | string;
+  yesterdayRevenue: number | string;
+  last3Qty: number | string;
+  last3Revenue: number | string;
+  last7Qty: number | string;
+  last7Revenue: number | string;
+  last30Qty: number | string;
+  last30Revenue: number | string;
+};
+
+export async function fetchItemVelocity(
+  branchId?: string,
+  itemTypeId?: string,
+  limit?: number,
+): Promise<ItemVelocityRow[]> {
+  const params = new URLSearchParams();
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
+  if (limit != null) params.set("limit", String(limit));
+  const qs = params.toString();
+  return request<ItemVelocityRow[]>(
+    `/api/v1/sales/intelligence/item-velocity${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type ItemPeriodBuckets = {
+  todayQty: number | string;
+  todayRevenue: number | string;
+  yesterdayQty: number | string;
+  yesterdayRevenue: number | string;
+  last3Qty: number | string;
+  last3Revenue: number | string;
+  last7Qty: number | string;
+  last7Revenue: number | string;
+  last30Qty: number | string;
+  last30Revenue: number | string;
+};
+
+export type ItemDailySalesRow = {
+  day: string;
+  qty: number | string;
+  revenue: number | string;
+  cost: number | string;
+  profit: number | string;
+};
+
+export type ItemStockInRow = {
+  id: string;
+  movementType: string;
+  quantityDelta: number | string;
+  branchId: string;
+  reason: string | null;
+  notes: string | null;
+  createdAt: string;
+};
+
+export type ItemActivitySummary = {
+  itemId: string;
+  itemName: string;
+  sku: string | null;
+  currentStock: number | string;
+  lastReceiptAt: string | null;
+  lastReceiptQty: number | string | null;
+  soldSinceLastReceipt: number | string;
+  sellThroughPct: number | string | null;
+  avgUnitsPerDay7d: number | string;
+};
+
+export type ItemActivityResponse = {
+  summary: ItemActivitySummary;
+  periods: ItemPeriodBuckets;
+  daily: ItemDailySalesRow[];
+  stockIns: ItemStockInRow[];
+  recentSales: RecentSaleRow[];
+};
+
+export async function fetchItemActivity(
+  itemId: string,
+  opts?: {
+    branchId?: string;
+    from?: string;
+    to?: string;
+  },
+): Promise<ItemActivityResponse> {
+  const params = new URLSearchParams();
+  if (opts?.branchId?.trim()) params.set("branchId", opts.branchId.trim());
+  if (opts?.from?.trim()) params.set("from", opts.from.trim());
+  if (opts?.to?.trim()) params.set("to", opts.to.trim());
+  const qs = params.toString();
+  return request<ItemActivityResponse>(
+    `/api/v1/sales/intelligence/items/${encodeURIComponent(itemId)}/activity${qs ? `?${qs}` : ""}`,
   );
 }
 

@@ -9,10 +9,12 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ClipboardList,
+  Gauge,
+  PackageSearch,
   RefreshCw,
   Search,
   ShoppingCart,
@@ -38,12 +40,23 @@ import {
 } from "@/lib/analytics-date-range";
 import {
   fetchBranches,
+  fetchItemActivity,
+  fetchItemVelocity,
   fetchRecentSales,
   postStockTakeStart,
   type BranchRecord,
+  type ItemActivityResponse,
+  type ItemVelocityRow,
   type RecentSaleRow,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import {
+  ActivityVelocityBoard,
+  type VelocitySortKey,
+} from "@/components/analytics/activity-velocity-board";
+import { ActivityItemStory } from "@/components/analytics/activity-item-story";
+
+type ActivityView = "velocity" | "story" | "lines";
 
 function formatMoney(
   n: number | string | null | undefined,
@@ -94,12 +107,28 @@ function SectionCard({
   );
 }
 
+const VIEW_TABS: {
+  id: ActivityView;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+}[] = [
+  { id: "velocity", label: "Sold by period", icon: Gauge },
+  { id: "story", label: "Item story", icon: PackageSearch },
+  { id: "lines", label: "Sale lines", icon: ShoppingCart },
+];
+
 export default function AnalyticsActivityPage() {
   const { setBranchId: setHeaderBranchId } = useDashboard();
   const { itemTypeId: headerItemTypeId } = useSessionItemType();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const itemFromUrl = searchParams.get("item")?.trim() || "";
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<ActivityView>(
+    itemFromUrl ? "story" : "velocity",
+  );
   const [preset, setPreset] = useState<DatePreset>("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -121,10 +150,21 @@ export default function AnalyticsActivityPage() {
   );
   const [refreshing, setRefreshing] = useState(false);
   const [recentSales, setRecentSales] = useState<RecentSaleRow[]>([]);
+  const [velocityRows, setVelocityRows] = useState<ItemVelocityRow[]>([]);
   const [saleSearch, setSaleSearch] = useState("");
+  const [velocitySearch, setVelocitySearch] = useState("");
+  const [sortKey, setSortKey] = useState<VelocitySortKey>("todayQty");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  // ── Stock-take from sales
-  const router = useRouter();
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(
+    itemFromUrl || null,
+  );
+  const [itemActivity, setItemActivity] = useState<ItemActivityResponse | null>(
+    null,
+  );
+  const [itemLoading, setItemLoading] = useState(false);
+  const [itemError, setItemError] = useState<string | null>(null);
+
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(
     new Set(),
   );
@@ -151,6 +191,39 @@ export default function AnalyticsActivityPage() {
     return formatDateRangeLabel(dateRange.from, dateRange.to);
   }, [dateRange, preset]);
 
+  const syncItemInUrl = useCallback(
+    (itemId: string | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (itemId) params.set("item", itemId);
+      else params.delete("item");
+      const qs = params.toString();
+      router.replace(qs ? `/analytics/activity?${qs}` : "/analytics/activity", {
+        scroll: false,
+      });
+    },
+    [router, searchParams],
+  );
+
+  const openItemStory = useCallback(
+    (itemId: string) => {
+      setSelectedItemId(itemId);
+      setView("story");
+      syncItemInUrl(itemId);
+    },
+    [syncItemInUrl],
+  );
+
+  const onSort = useCallback((key: VelocitySortKey) => {
+    setSortKey((prev) => {
+      if (prev === key) {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        return prev;
+      }
+      setSortDir(key === "itemName" ? "asc" : "desc");
+      return key;
+    });
+  }, []);
+
   const load = useCallback(async () => {
     setError(null);
     setLoading(true);
@@ -158,46 +231,101 @@ export default function AnalyticsActivityPage() {
       const [branchList] = await Promise.all([fetchBranches()]);
       setBranches(branchList);
 
-      if (dateRange) {
-        const branchFilter = branchId || undefined;
-        const typeFilter = headerItemTypeId?.trim() || undefined;
-        const salesRes = await fetchRecentSales(
-          dateRange.from,
-          dateRange.to,
-          branchFilter,
-          typeFilter,
-        ).catch(() => []);
-        setRecentSales(Array.isArray(salesRes) ? salesRes : []);
-      } else {
-        setRecentSales([]);
-      }
+      const branchFilter = branchId || undefined;
+      const typeFilter = headerItemTypeId?.trim() || undefined;
+
+      const velocityPromise = fetchItemVelocity(
+        branchFilter,
+        typeFilter,
+        200,
+      ).catch(() => [] as ItemVelocityRow[]);
+
+      const salesPromise =
+        dateRange != null
+          ? fetchRecentSales(
+              dateRange.from,
+              dateRange.to,
+              branchFilter,
+              typeFilter,
+              view === "lines" && selectedItemId
+                ? selectedItemId
+                : undefined,
+            ).catch(() => [] as RecentSaleRow[])
+          : Promise.resolve([] as RecentSaleRow[]);
+
+      const [velocityRes, salesRes] = await Promise.all([
+        velocityPromise,
+        salesPromise,
+      ]);
+      setVelocityRows(Array.isArray(velocityRes) ? velocityRes : []);
+      setRecentSales(Array.isArray(salesRes) ? salesRes : []);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load sale lines.",
+        err instanceof Error ? err.message : "Failed to load activity data.",
       );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dateRange, branchId, headerItemTypeId]);
+  }, [dateRange, branchId, headerItemTypeId, view, selectedItemId]);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!selectedItemId) {
+      setItemActivity(null);
+      setItemError(null);
+      return;
+    }
+    let cancelled = false;
+    setItemLoading(true);
+    setItemError(null);
+    const branchFilter = branchId || undefined;
+    fetchItemActivity(selectedItemId, { branchId: branchFilter })
+      .then((res) => {
+        if (!cancelled) setItemActivity(res);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setItemActivity(null);
+          setItemError(
+            err instanceof Error ? err.message : "Failed to load item activity.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setItemLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedItemId, branchId]);
+
+  useEffect(() => {
+    if (itemFromUrl && itemFromUrl !== selectedItemId) {
+      setSelectedItemId(itemFromUrl);
+      setView("story");
+    }
+  }, [itemFromUrl, selectedItemId]);
+
   const filteredSales = useMemo(() => {
+    let rows = recentSales;
+    if (view === "lines" && selectedItemId) {
+      rows = rows.filter((s) => s.itemId === selectedItemId);
+    }
     const q = saleSearch.trim().toLowerCase();
-    if (!q) return recentSales;
-    return recentSales.filter(
+    if (!q) return rows;
+    return rows.filter(
       (s) =>
         s.itemName.toLowerCase().includes(q) ||
         s.cashierName.toLowerCase().includes(q) ||
         s.paymentMethod.toLowerCase().includes(q) ||
         s.saleId.toLowerCase().includes(q),
     );
-  }, [recentSales, saleSearch]);
+  }, [recentSales, saleSearch, view, selectedItemId]);
 
-  // Deduplicate sales by item ID for stock-take selection (keep the first name)
   const uniqueSaleItems = useMemo(() => {
     const seen = new Map<string, { itemId: string; itemName: string }>();
     for (const s of recentSales) {
@@ -250,11 +378,13 @@ export default function AnalyticsActivityPage() {
     }
   }, [selectedItemIds, stockTakeBranchId, stockTakeNotes, router]);
 
+  const showDatePresets = view === "lines" || view === "story";
+
   if (loading && !refreshing) {
     return (
       <div className="h-full overflow-y-auto overscroll-contain">
         <div className={DASHBOARD_MAX_WIDE}>
-          <DashboardLoading label="Loading sale lines…" />
+          <DashboardLoading label="Loading activity…" />
         </div>
       </div>
     );
@@ -273,10 +403,8 @@ export default function AnalyticsActivityPage() {
       <div
         className={cn(DASHBOARD_MAX_WIDE, "!space-y-3 !pb-12 sm:!space-y-4")}
       >
-        {/* ── Unified header bar ── */}
         <div className="sticky top-0 z-30 overflow-hidden border border-border/40 bg-linear-to-b from-card/95 via-card/90 to-card/85 shadow-lg shadow-foreground/[0.02] backdrop-blur-xl">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
-            {/* Back link + icon + label + date */}
             <div className="flex min-w-0 items-center gap-2.5">
               <Link
                 href="/analytics"
@@ -290,44 +418,47 @@ export default function AnalyticsActivityPage() {
                   <span className="text-[13px] font-bold leading-none tracking-tight text-foreground">
                     Activity
                   </span>
-                  {activeRangeSummary ? (
+                  {showDatePresets && activeRangeSummary ? (
                     <span className="truncate text-[11px] leading-none text-muted-foreground/70">
                       {activeRangeSummary}
                     </span>
-                  ) : null}
+                  ) : (
+                    <span className="truncate text-[11px] leading-none text-muted-foreground/70">
+                      Today · Yesterday · 3–30 days
+                    </span>
+                  )}
                 </div>
                 <ActiveScopeSubtitle className="text-[10px]" />
               </div>
             </div>
 
-            {/* Divider */}
             <span
               className="hidden h-5 w-px bg-border/60 sm:block"
               aria-hidden
             />
 
-            {/* Time presets */}
             <div className="flex flex-wrap items-center gap-1">
-              {ANALYTICS_PRESET_LABELS.map(({ key, label, hint }) => (
-                <button
-                  key={key}
-                  type="button"
-                  title={hint}
-                  onClick={() => setPreset(key)}
-                  className={cn(
-                    "h-6.5 rounded-lg border px-2.5 text-[10.5px] font-semibold tracking-tight transition-all duration-200",
-                    "hover:-translate-y-px",
-                    preset === key
-                      ? "border-primary/20 bg-linear-to-b from-primary to-primary/90 text-primary-foreground shadow-sm shadow-primary/20"
-                      : "border-transparent bg-muted/50 text-muted-foreground hover:border-border/60 hover:bg-muted/80 hover:text-foreground hover:shadow-sm",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
+              {VIEW_TABS.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setView(tab.id)}
+                    className={cn(
+                      "inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[10.5px] font-semibold tracking-tight transition-all duration-200",
+                      view === tab.id
+                        ? "border-primary/20 bg-linear-to-b from-primary to-primary/90 text-primary-foreground shadow-sm shadow-primary/20"
+                        : "border-transparent bg-muted/50 text-muted-foreground hover:border-border/60 hover:bg-muted/80 hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="size-3" aria-hidden />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Branch + Refresh */}
             <div className="ml-auto flex items-center gap-2">
               <div className="relative">
                 <select
@@ -360,6 +491,15 @@ export default function AnalyticsActivityPage() {
                 onClick={() => {
                   setRefreshing(true);
                   load();
+                  if (selectedItemId) {
+                    setItemLoading(true);
+                    fetchItemActivity(selectedItemId, {
+                      branchId: branchId || undefined,
+                    })
+                      .then(setItemActivity)
+                      .catch(() => null)
+                      .finally(() => setItemLoading(false));
+                  }
                 }}
                 disabled={refreshing}
                 aria-label="Refresh"
@@ -375,8 +515,29 @@ export default function AnalyticsActivityPage() {
             </div>
           </div>
 
-          {/* Custom date row */}
-          {preset === "custom" ? (
+          {showDatePresets ? (
+            <div className="flex flex-wrap items-center gap-1 border-t border-border/30 px-4 py-2">
+              {ANALYTICS_PRESET_LABELS.map(({ key, label, hint }) => (
+                <button
+                  key={key}
+                  type="button"
+                  title={hint}
+                  onClick={() => setPreset(key)}
+                  className={cn(
+                    "h-6.5 rounded-lg border px-2.5 text-[10.5px] font-semibold tracking-tight transition-all duration-200",
+                    "hover:-translate-y-px",
+                    preset === key
+                      ? "border-primary/20 bg-primary/10 text-primary"
+                      : "border-transparent bg-muted/40 text-muted-foreground hover:border-border/60 hover:bg-muted/70 hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {showDatePresets && preset === "custom" ? (
             <div className="flex items-center gap-2 border-t border-border/30 bg-muted/[0.15] px-4 pb-2.5 pt-2">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 From
@@ -400,255 +561,296 @@ export default function AnalyticsActivityPage() {
 
         {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-        <SectionCard
-          title={`Sale lines (${filteredSales.length})`}
-          icon={ShoppingCart}
-          action={
-            <div className="flex items-center gap-2">
-              {selectedItemIds.size > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Default to the filtered branch or first branch
-                    setStockTakeBranchId(branchId || (branches[0]?.id ?? ""));
-                    setShowStockTakeDialog(true);
-                  }}
-                  className="flex items-center gap-1.5 h-7 rounded-lg border border-primary/30 bg-primary/10 px-2.5 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors"
-                >
-                  <ClipboardList className="size-3" />
-                  Stock Take ({selectedItemIds.size})
-                </button>
-              ) : null}
+        {view === "velocity" ? (
+          <SectionCard
+            title={`Sold by period (${velocityRows.length})`}
+            icon={Gauge}
+            action={
               <div className="relative">
                 <Search
                   className="absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground"
                   aria-hidden
                 />
                 <input
-                  placeholder="Search…"
-                  value={saleSearch}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setSaleSearch(e.target.value)
-                  }
+                  placeholder="Filter products…"
+                  value={velocitySearch}
+                  onChange={(e) => setVelocitySearch(e.target.value)}
                   className="h-7 rounded-lg border border-border/50 bg-muted/30 pl-7 pr-2.5 text-[11px] outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/50"
                 />
               </div>
-            </div>
-          }
-        >
-          {filteredSales.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b-2 border-border/50 text-left">
-                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 w-8 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
-                      <input
-                        type="checkbox"
-                        checked={
-                          uniqueSaleItems.length > 0 &&
-                          selectedItemIds.size === uniqueSaleItems.length
-                        }
-                        onChange={() => {
-                          if (selectedItemIds.size === uniqueSaleItems.length)
-                            clearSelection();
-                          else selectAll();
-                        }}
-                        className="size-3.5 accent-primary"
-                      />
-                    </th>
-                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
-                      <span className="inline-flex items-center gap-1">
+            }
+          >
+            <ActivityVelocityBoard
+              rows={velocityRows}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={onSort}
+              onSelectItem={openItemStory}
+              search={velocitySearch}
+            />
+          </SectionCard>
+        ) : null}
+
+        {view === "story" ? (
+          <SectionCard title="Item story" icon={PackageSearch}>
+            <ActivityItemStory
+              itemId={selectedItemId}
+              activity={itemActivity}
+              loading={itemLoading}
+              error={itemError}
+              itemTypeId={headerItemTypeId || undefined}
+              onPickItem={openItemStory}
+            />
+          </SectionCard>
+        ) : null}
+
+        {view === "lines" ? (
+          <SectionCard
+            title={`Sale lines (${filteredSales.length})`}
+            icon={ShoppingCart}
+            action={
+              <div className="flex items-center gap-2">
+                {selectedItemId ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedItemId(null);
+                      syncItemInUrl(null);
+                    }}
+                    className="h-7 rounded-lg border border-border/50 bg-muted/30 px-2 text-[10px] font-semibold text-muted-foreground hover:bg-muted/50"
+                  >
+                    Clear item filter
+                  </button>
+                ) : null}
+                {selectedItemIds.size > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStockTakeBranchId(branchId || (branches[0]?.id ?? ""));
+                      setShowStockTakeDialog(true);
+                    }}
+                    className="flex h-7 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20"
+                  >
+                    <ClipboardList className="size-3" />
+                    Stock Take ({selectedItemIds.size})
+                  </button>
+                ) : null}
+                <div className="relative">
+                  <Search
+                    className="absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden
+                  />
+                  <input
+                    placeholder="Search…"
+                    value={saleSearch}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setSaleSearch(e.target.value)
+                    }
+                    className="h-7 rounded-lg border border-border/50 bg-muted/30 pl-7 pr-2.5 text-[11px] outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/50"
+                  />
+                </div>
+              </div>
+            }
+          >
+            {filteredSales.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b-2 border-border/50 text-left">
+                      <th className="sticky top-0 z-10 w-8 bg-muted/20 pb-2.5 pt-1 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        <input
+                          type="checkbox"
+                          checked={
+                            uniqueSaleItems.length > 0 &&
+                            selectedItemIds.size === uniqueSaleItems.length
+                          }
+                          onChange={() => {
+                            if (
+                              selectedItemIds.size === uniqueSaleItems.length
+                            )
+                              clearSelection();
+                            else selectAll();
+                          }}
+                          className="size-3.5 accent-primary"
+                        />
+                      </th>
+                      <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
                         Date
-                        <svg
-                          className="size-2.5 text-muted-foreground/40"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                          viewBox="0 0 24 24"
-                          aria-hidden
+                      </th>
+                      <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        Product
+                      </th>
+                      <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        Qty
+                      </th>
+                      <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        Price
+                      </th>
+                      <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        Total
+                      </th>
+                      <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        Profit
+                      </th>
+                      <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        Cashier
+                      </th>
+                      <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        Payment
+                      </th>
+                      <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredSales.slice(0, 100).map((s, idx) => {
+                      const isEven = idx % 2 === 0;
+                      const profitVal = toNum(s.profit);
+                      const profitPct =
+                        toNum(s.lineTotal) > 0
+                          ? (profitVal / toNum(s.lineTotal)) * 100
+                          : 0;
+                      const date = new Date(s.soldAt);
+                      const timeStr = date.toLocaleTimeString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+
+                      return (
+                        <tr
+                          key={`${s.saleId}-${s.itemId}-${idx}`}
+                          className={cn(
+                            "group relative border-l-2 border-transparent transition-all duration-150",
+                            "hover:border-l-primary/30 hover:bg-primary/[0.03] hover:shadow-sm",
+                            isEven ? "bg-transparent" : "bg-muted/[0.15]",
+                          )}
                         >
-                          <path d="m6 9 6 6 6-6" />
-                        </svg>
-                      </span>
-                    </th>
-                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
-                      Product
-                    </th>
-                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
-                      Qty
-                    </th>
-                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
-                      Price
-                    </th>
-                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
-                      Total
-                    </th>
-                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
-                      Profit
-                    </th>
-                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
-                      Cashier
-                    </th>
-                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
-                      Payment
-                    </th>
-                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSales.slice(0, 100).map((s, idx) => {
-                    const isEven = idx % 2 === 0;
-                    const profitVal = toNum(s.profit);
-                    const profitPct =
-                      toNum(s.lineTotal) > 0
-                        ? (profitVal / toNum(s.lineTotal)) * 100
-                        : 0;
-                    const date = new Date(s.soldAt);
-                    const timeStr = date.toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    });
-
-                    return (
-                      <tr
-                        key={`${s.saleId}-${s.itemId}-${idx}`}
-                        className={cn(
-                          "group relative border-l-2 border-transparent transition-all duration-150",
-                          "hover:border-l-primary/30 hover:bg-primary/[0.03] hover:shadow-sm",
-                          isEven ? "bg-transparent" : "bg-muted/[0.15]",
-                        )}
-                      >
-                        <td className="py-2.5 pl-2.5 w-8 text-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedItemIds.has(s.itemId)}
-                            onChange={() => toggleSelectItem(s.itemId)}
-                            className="size-3.5 accent-primary"
-                          />
-                        </td>
-                        <td className="py-2.5 pl-2.5 text-xs whitespace-nowrap">
-                          <span className="block text-[11px] font-medium text-foreground/90 leading-tight">
-                            {date.toLocaleDateString(undefined, {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </span>
-                          <span className="block text-[10px] text-muted-foreground/60 font-mono leading-tight">
-                            {timeStr}
-                          </span>
-                        </td>
-
-                        <td className="py-2.5 pl-3">
-                          <p className="max-w-[180px] truncate text-[11px] font-medium text-foreground/85">
-                            {s.itemName}
-                          </p>
-                        </td>
-
-                        <td className="py-2.5 px-3 text-right font-mono text-[11px] tabular-nums text-foreground/80">
-                          {Number(s.quantity).toFixed(2)}
-                        </td>
-
-                        <td className="py-2.5 px-3 text-right font-mono text-[11px] tabular-nums text-foreground/70">
-                          {formatMoney(s.unitPrice)}
-                        </td>
-
-                        <td className="py-2.5 px-3 text-right font-mono text-[11px] font-semibold tabular-nums text-foreground">
-                          {formatMoney(s.lineTotal)}
-                        </td>
-
-                        <td className="py-2.5 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span
-                              className={cn(
-                                "size-1.5 shrink-0 rounded-full",
-                                profitVal >= 0
-                                  ? "bg-emerald-500"
-                                  : "bg-destructive",
-                              )}
-                              aria-hidden
+                          <td className="w-8 py-2.5 pl-2.5 text-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedItemIds.has(s.itemId)}
+                              onChange={() => toggleSelectItem(s.itemId)}
+                              className="size-3.5 accent-primary"
                             />
+                          </td>
+                          <td className="whitespace-nowrap py-2.5 pl-2.5 text-xs">
+                            <span className="block text-[11px] font-medium leading-tight text-foreground/90">
+                              {date.toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </span>
+                            <span className="block font-mono text-[10px] leading-tight text-muted-foreground/60">
+                              {timeStr}
+                            </span>
+                          </td>
+                          <td className="py-2.5 pl-3">
+                            <button
+                              type="button"
+                              className="max-w-[180px] truncate text-left text-[11px] font-medium text-foreground/85 hover:text-primary hover:underline"
+                              onClick={() => openItemStory(s.itemId)}
+                            >
+                              {s.itemName}
+                            </button>
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-[11px] tabular-nums text-foreground/80">
+                            {Number(s.quantity).toFixed(2)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-[11px] tabular-nums text-foreground/70">
+                            {formatMoney(s.unitPrice)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-[11px] font-semibold tabular-nums text-foreground">
+                            {formatMoney(s.lineTotal)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <span
+                                className={cn(
+                                  "size-1.5 shrink-0 rounded-full",
+                                  profitVal >= 0
+                                    ? "bg-emerald-500"
+                                    : "bg-destructive",
+                                )}
+                                aria-hidden
+                              />
+                              <span
+                                className={cn(
+                                  "font-mono text-[11px] font-medium tabular-nums",
+                                  profitVal >= 0
+                                    ? "text-emerald-600"
+                                    : "text-destructive",
+                                )}
+                              >
+                                {formatMoney(s.profit)}
+                              </span>
+                              <span className="w-9 text-right font-mono text-[10px] tabular-nums text-muted-foreground/50">
+                                {profitPct.toFixed(0)}%
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className="text-[11px] font-medium text-foreground/70">
+                              {s.cashierName}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5">
                             <span
                               className={cn(
-                                "font-mono text-[11px] tabular-nums font-medium",
-                                profitVal >= 0
-                                  ? "text-emerald-600"
-                                  : "text-destructive",
+                                "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                s.paymentMethod.toLowerCase() === "cash"
+                                  ? "border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-600"
+                                  : s.paymentMethod.toLowerCase() === "mpesa"
+                                    ? "border-sky-500/20 bg-sky-500/[0.06] text-sky-600"
+                                    : "border-border/50 bg-muted/30 text-muted-foreground",
                               )}
                             >
-                              {formatMoney(s.profit)}
+                              {s.paymentMethod}
                             </span>
-                            <span className="w-9 text-right font-mono text-[10px] tabular-nums text-muted-foreground/50">
-                              {profitPct.toFixed(0)}%
-                            </span>
-                          </div>
-                        </td>
-
-                        <td className="py-2.5 px-3">
-                          <span className="text-[11px] text-foreground/70 font-medium">
-                            {s.cashierName}
-                          </span>
-                        </td>
-
-                        <td className="py-2.5 px-3">
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                              s.paymentMethod.toLowerCase() === "cash"
-                                ? "border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-600"
-                                : s.paymentMethod.toLowerCase() === "mpesa"
-                                  ? "border-sky-500/20 bg-sky-500/[0.06] text-sky-600"
-                                  : "border-border/50 bg-muted/30 text-muted-foreground",
-                            )}
-                          >
-                            {s.paymentMethod}
-                          </span>
-                        </td>
-
-                        <td className="py-2.5 pr-3">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
-                              s.status === "completed"
-                                ? "border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-600"
-                                : "border-border/40 bg-muted/30 text-muted-foreground/70",
-                            )}
-                          >
+                          </td>
+                          <td className="py-2.5 pr-3">
                             <span
                               className={cn(
-                                "size-1.5 rounded-full",
+                                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
                                 s.status === "completed"
-                                  ? "bg-emerald-500"
-                                  : "bg-muted-foreground/50",
+                                  ? "border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-600"
+                                  : "border-border/40 bg-muted/30 text-muted-foreground/70",
                               )}
-                              aria-hidden
-                            />
-                            {s.status}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {filteredSales.length > 100 && (
-                <div className="mt-3 border-t border-border/30 pt-2 text-center text-[11px] font-medium text-muted-foreground">
-                  Showing 100 of {filteredSales.length.toLocaleString()}{" "}
-                  transactions
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="py-5 text-center text-xs text-muted-foreground">
-              {saleSearch
-                ? "No lines match your search."
-                : "No sale lines for this period."}
-            </div>
-          )}
-        </SectionCard>
+                            >
+                              <span
+                                className={cn(
+                                  "size-1.5 rounded-full",
+                                  s.status === "completed"
+                                    ? "bg-emerald-500"
+                                    : "bg-muted-foreground/50",
+                                )}
+                                aria-hidden
+                              />
+                              {s.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {filteredSales.length > 100 && (
+                  <div className="mt-3 border-t border-border/30 pt-2 text-center text-[11px] font-medium text-muted-foreground">
+                    Showing 100 of {filteredSales.length.toLocaleString()}{" "}
+                    transactions
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="py-5 text-center text-xs text-muted-foreground">
+                {saleSearch
+                  ? "No lines match your search."
+                  : "No sale lines for this period."}
+              </div>
+            )}
+          </SectionCard>
+        ) : null}
 
-        {/* Stock Take Dialog */}
         {showStockTakeDialog ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-sm rounded-xl bg-background shadow-2xl">

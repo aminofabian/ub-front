@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Loader2, Mail, Sparkles } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -52,7 +52,6 @@ function VerifyEmailContent() {
   const [errorMessage, setErrorMessage] = useState("");
   const [resendLink, setResendLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [showTokenEntry, setShowTokenEntry] = useState(false);
   const autoVerifyStarted = useRef(false);
 
   const hasAutoToken = tokenFromQuery.trim().length >= 16;
@@ -140,7 +139,9 @@ function VerifyEmailContent() {
     event.preventDefault();
     const token = manualToken.trim();
     if (token.length < 16) {
-      setErrorMessage("That code looks too short. Paste the full token from your email.");
+      setErrorMessage(
+        "That code looks too short. Paste the full token from your email.",
+      );
       return;
     }
     setBusy(true);
@@ -159,7 +160,9 @@ function VerifyEmailContent() {
       onVerifySuccess();
     } catch (error) {
       setVerifyPhase("failed");
-      setErrorMessage(error instanceof Error ? error.message : "Verification failed.");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Verification failed.",
+      );
     } finally {
       setBusy(false);
     }
@@ -191,7 +194,9 @@ function VerifyEmailContent() {
         );
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Could not resend.");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not resend.",
+      );
     } finally {
       setBusy(false);
     }
@@ -214,10 +219,7 @@ function VerifyEmailContent() {
     if (hasAutoToken && verifyPhase === "failed") {
       return "This link is invalid or has expired. Request a new one below.";
     }
-    if (emailFromQuery) {
-      return `We sent a verification link to ${emailFromQuery}. Open it to activate ${shopName}.`;
-    }
-    return `We sent a verification link to your inbox. Open it to activate ${shopName}.`;
+    return `A verification link is on its way${emailFromQuery ? "" : " to your inbox"}. Open it to activate ${shopName}.`;
   })();
 
   return (
@@ -225,46 +227,68 @@ function VerifyEmailContent() {
       <AuthPageHeader title={headerTitle} description={headerDescription} />
 
       {showManualForm && verifyPhase !== "success" ? (
-        <div className="mt-5 rounded-2xl border border-[var(--auth-accent)]/25 bg-[color-mix(in_srgb,var(--auth-accent)_8%,white)] p-4 dark:bg-[color-mix(in_srgb,var(--auth-accent)_12%,#18181b)]">
-          <div className="flex items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] shadow-sm">
-              <Mail className="size-5" aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">
-                Link on the way
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Open the message from{" "}
-                <span className="font-medium text-foreground">UB</span>
+        <>
+          <div className="mt-5 rounded-2xl border border-[var(--auth-accent)]/25 bg-[color-mix(in_srgb,var(--auth-accent)_8%,white)] p-4 dark:bg-[color-mix(in_srgb,var(--auth-accent)_12%,#18181b)]">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] shadow-sm">
+                <Mail className="size-5" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  We sent you a link
+                </p>
                 {emailFromQuery ? (
-                  <>
-                    {" "}
-                    to{" "}
-                    <span className="font-medium text-foreground break-all">
-                      {emailFromQuery}
-                    </span>
-                  </>
-                ) : null}
-                , then tap{" "}
-                <span className="font-medium text-foreground">
-                  Confirm your email
-                </span>
-                . The link expires in 48 hours.
-              </p>
-              <ul className="mt-3 space-y-1.5 text-[11px] text-muted-foreground">
-                <li className="flex items-center gap-1.5">
-                  <Sparkles className="size-3 text-[var(--auth-accent)]" aria-hidden />
-                  Check spam / promotions if you don&apos;t see it
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3 text-[var(--auth-accent)]" aria-hidden />
-                  After verifying, sign in under Office
-                </li>
-              </ul>
+                  <p className="mt-1 break-all text-sm font-medium text-foreground">
+                    {emailFromQuery}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Check the inbox you used to sign up.
+                  </p>
+                )}
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  Open the message from{" "}
+                  <span className="font-medium text-foreground">UB</span>, then
+                  tap{" "}
+                  <span className="font-medium text-foreground">
+                    Confirm your email
+                  </span>
+                  . Prefer not to leave this page? Paste the code below instead.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+
+          <form className="mt-6 space-y-3" onSubmit={onVerifyManual}>
+            <div>
+              <label className={fieldLabelClass} htmlFor="verify-token">
+                Verification code
+              </label>
+              <input
+                id="verify-token"
+                type="text"
+                inputMode="text"
+                autoComplete="one-time-code"
+                spellCheck={false}
+                className={cn(authInputClassName, "font-mono text-sm")}
+                value={manualToken}
+                onChange={(event) => setManualToken(event.target.value)}
+                placeholder="Paste the code from your email"
+              />
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                From the verification email — or open the link there to finish
+                automatically.
+              </p>
+            </div>
+            <button
+              type="submit"
+              className={primaryCtaClass}
+              disabled={busy || verifyPhase === "verifying"}
+            >
+              {busy && verifyPhase === "verifying" ? "Verifying…" : "Verify email"}
+            </button>
+          </form>
+        </>
       ) : null}
 
       {hasAutoToken && verifyPhase === "verifying" ? (
@@ -313,47 +337,6 @@ function VerifyEmailContent() {
         </div>
       ) : null}
 
-      {showManualForm && verifyPhase !== "success" ? (
-        <div className="mt-6">
-          <button
-            type="button"
-            className="text-sm font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
-            onClick={() => setShowTokenEntry((open) => !open)}
-          >
-            {showTokenEntry
-              ? "Hide verification code"
-              : "Have a verification code instead?"}
-          </button>
-          {showTokenEntry ? (
-            <form className="mt-3 space-y-3" onSubmit={onVerifyManual}>
-              <div>
-                <label className={fieldLabelClass} htmlFor="verify-token">
-                  Verification code
-                </label>
-                <input
-                  id="verify-token"
-                  type="text"
-                  inputMode="text"
-                  autoComplete="one-time-code"
-                  spellCheck={false}
-                  className={cn(authInputClassName, "font-mono text-sm")}
-                  value={manualToken}
-                  onChange={(event) => setManualToken(event.target.value)}
-                  placeholder="Paste the code from your email"
-                />
-              </div>
-              <button
-                type="submit"
-                className={primaryCtaClass}
-                disabled={busy || verifyPhase === "verifying"}
-              >
-                {busy ? "Verifying…" : "Verify email"}
-              </button>
-            </form>
-          ) : null}
-        </div>
-      ) : null}
-
       {showResend ? (
         <form
           className="mt-8 space-y-3 border-t border-border/60 pt-6"
@@ -363,7 +346,7 @@ function VerifyEmailContent() {
             Didn&apos;t get the email?
           </p>
           <p className="text-xs text-muted-foreground">
-            Enter the address you used to sign up and we&apos;ll send another link.
+            Check spam, or resend to the address you used when signing up.
           </p>
           <div>
             <label className={fieldLabelClass} htmlFor="resend-email">
@@ -385,7 +368,9 @@ function VerifyEmailContent() {
             variant="outline"
             disabled={busy}
           >
-            {busy ? "Sending…" : "Resend verification link"}
+            {busy && verifyPhase !== "verifying"
+              ? "Sending…"
+              : "Resend verification link"}
           </Button>
         </form>
       ) : null}
