@@ -87,9 +87,13 @@ export function GlobalCatalogImportProgress({
           <p className="mt-1 truncate text-sm text-foreground">
             {done
               ? `${progress.total} products ready in your catalog`
-              : spotlightName
-                ? `Adding ${spotlightName}`
-                : progress.message || "Working through your selection…"}
+              : progress.phase === "queued"
+                ? progress.message || "Waiting for the import worker…"
+                : progress.message
+                  ? progress.message
+                  : spotlightName && progress.processed > 0
+                    ? `Adding ${spotlightName}`
+                    : "Working through your selection…"}
           </p>
         </div>
         <div className="shrink-0 text-right">
