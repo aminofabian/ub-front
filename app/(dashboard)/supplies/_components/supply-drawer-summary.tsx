@@ -45,6 +45,7 @@ export function SupplyDrawerSummaryPanel({
   extrasTotal,
   canPost,
   currency = "KES",
+  onEditExtras,
   className,
 }: {
   supplierName: string | null;
@@ -54,6 +55,7 @@ export function SupplyDrawerSummaryPanel({
   extrasTotal: number;
   canPost: boolean;
   currency?: string;
+  onEditExtras?: () => void;
   className?: string;
 }) {
   const netProfit = estimatedProfit.profit - extrasTotal;
@@ -122,7 +124,7 @@ export function SupplyDrawerSummaryPanel({
           </div>
         </div>
 
-        {(extrasTotal > 0 || estimatedProfit.revenue > 0) && (
+        {(extrasTotal > 0 || estimatedProfit.revenue > 0 || onEditExtras) && (
           <div className="grid grid-cols-2 gap-0 divide-x divide-border border-t border-border">
             <div className="p-2">
               <SummaryMetric
@@ -136,7 +138,20 @@ export function SupplyDrawerSummaryPanel({
               />
             </div>
             <div className="p-2">
-              <SummaryMetric label="Extras" value={money(extrasTotal)} />
+              {onEditExtras ? (
+                <button
+                  type="button"
+                  className="w-full rounded-sm text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                  onClick={onEditExtras}
+                >
+                  <SummaryMetric label="Extras" value={money(extrasTotal)} />
+                  <p className="mt-0.5 text-[9px] font-medium text-primary">
+                    {extrasTotal > 0 ? "Edit costs" : "Add costs"}
+                  </p>
+                </button>
+              ) : (
+                <SummaryMetric label="Extras" value={money(extrasTotal)} />
+              )}
             </div>
           </div>
         )}

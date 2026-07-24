@@ -115,7 +115,7 @@ export function showThemedConfirmToast({
         }}
       />
     ),
-    { id, duration: Infinity },
+    { id, duration: Infinity, position: "top-center" },
   );
 }
 

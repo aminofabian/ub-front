@@ -42,6 +42,8 @@ type CashierCreateProductModalProps = {
   itemTypes: ItemTypeRecord[];
   preferredItemTypeId?: string | null;
   onCreated: (item: ItemSummaryRecord, unitPrice: string) => void;
+  /** Defaults to cart copy. Use receive for supply/receive-stock flows. */
+  purpose?: "cart" | "receive";
 };
 
 function relatedLinkHint(related: ItemSummaryRecord): string {
@@ -77,11 +79,13 @@ function parseNonNegMoney(raw: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-function parsePosQty(raw: string): number | null {
+function parsePosQty(raw: string, allowZero = false): number | null {
   const t = raw.trim();
   if (!t) return null;
   const n = Number(t);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  if (!Number.isFinite(n)) return null;
+  if (allowZero) return n >= 0 ? n : null;
+  return n > 0 ? n : null;
 }
 
 export function CashierCreateProductModal({
@@ -93,9 +97,11 @@ export function CashierCreateProductModal({
   itemTypes,
   preferredItemTypeId,
   onCreated,
+  purpose = "cart",
 }: CashierCreateProductModalProps) {
   const modeId = useId();
   const [mode, setMode] = useState<CreateMode>("single");
+  const forReceive = purpose === "receive";
 
   const [name, setName] = useState("");
   const [barcode, setBarcode] = useState("");
@@ -124,20 +130,23 @@ export function CashierCreateProductModal({
     setBarcode("");
     setBuyingPrice("");
     setUnitPrice("");
-    setInitialStockQty("1");
+    setInitialStockQty(purpose === "receive" ? "0" : "1");
     setLinkAsVariant(false);
     setRelatedQuery("");
     setRelatedHits([]);
     setRelatedItem(null);
     setVariantName("");
-    setGroupVariants([newVariantRow(), newVariantRow()]);
+    setGroupVariants([
+      newVariantRow({ stock: purpose === "receive" ? "0" : "1" }),
+      newVariantRow({ stock: purpose === "receive" ? "0" : "1" }),
+    ]);
     const preferred = preferredItemTypeId?.trim();
     const fallback =
       preferred && itemTypes.some((t) => t.id === preferred)
         ? preferred
         : itemTypes.find((t) => t.isDefault)?.id || itemTypes[0]?.id || "";
     setItemTypeId(fallback);
-  }, [open, preferredItemTypeId, itemTypes]);
+  }, [open, preferredItemTypeId, itemTypes, purpose]);
 
   useEffect(() => {
     if (!open || mode !== "single" || !linkAsVariant || relatedItem) {
@@ -176,7 +185,7 @@ export function CashierCreateProductModal({
   const stockNum = Number(initialStockQty);
   const buyingOk =
     buyingNum == null || (Number.isFinite(buyingNum) && buyingNum >= 0);
-  const stockOk = Number.isFinite(stockNum) && stockNum > 0;
+  const stockOk = Number.isFinite(stockNum) && (forReceive ? stockNum >= 0 : stockNum > 0);
   const variantLinkOk = !linkAsVariant || relatedItem != null;
 
   const readyGroupVariants = groupVariants
@@ -184,7 +193,7 @@ export function CashierCreateProductModal({
       const label = row.label.trim();
       const sell = parsePosMoney(row.unitPrice);
       const buy = parseNonNegMoney(row.buyingPrice);
-      const stock = parsePosQty(row.stock);
+      const stock = parsePosQty(row.stock, forReceive);
       if (!label || sell == null || stock == null) return null;
       if (row.buyingPrice.trim() && buy == null) return null;
       return {
@@ -334,8 +343,12 @@ export function CashierCreateProductModal({
             </DialogTitle>
             <DialogDescription className="text-xs">
               {mode === "group"
-                ? "Name the group, then add each sellable option with its own price and stock."
-                : "Create a sellable item and add it to the cart. Optionally link it as a variant."}
+                ? forReceive
+                  ? "Name the group, then add each sellable option. Opening stock can be 0 — receive qty on the supply grid."
+                  : "Name the group, then add each sellable option with its own price and stock."
+                : forReceive
+                  ? "Create a catalog product, then link it to this supplier and receive it on the grid."
+                  : "Create a sellable item and add it to the cart. Optionally link it as a variant."}
             </DialogDescription>
           </DialogHeader>
 

@@ -119,35 +119,77 @@ export function DeliverySetupSection({
 
   if (collapsed && supplier) {
     return (
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border border-primary/25 bg-primary/[0.04] px-2.5 py-2">
-        <span className="flex size-6 shrink-0 items-center justify-center border border-primary/25 bg-background text-primary">
-          <Truck className="size-3" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold leading-tight text-foreground">
-            {supplier.name}
-          </p>
-          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-            {[
-              selectedBranchName || null,
-              formatReceivedShort(receivedAtLocal),
-              docRef.trim() || null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border border-primary/25 bg-primary/[0.04] px-2.5 py-2">
+          <span className="flex size-6 shrink-0 items-center justify-center border border-primary/25 bg-background text-primary">
+            <Truck className="size-3" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold leading-tight text-foreground">
+              {supplier.name}
+            </p>
+            <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+              {[
+                selectedBranchName || null,
+                formatReceivedShort(receivedAtLocal),
+                docRef.trim() || null,
+                extras.length > 0
+                  ? `${extras.length} extra${extras.length === 1 ? "" : "s"}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 shrink-0 gap-1 rounded-none px-2 text-[11px] touch-manipulation"
+            disabled={busy}
+            onClick={onToggleCollapsed}
+          >
+            Edit
+            <ChevronDown className="size-3" aria-hidden />
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 shrink-0 gap-1 rounded-none px-2 text-[11px] touch-manipulation"
-          disabled={busy}
-          onClick={onToggleCollapsed}
-        >
-          Edit
-          <ChevronDown className="size-3" aria-hidden />
-        </Button>
+        {showExtras ? (
+          <details
+            id="supply-extra-costs"
+            className={cn(nsdSetupBlock, "group p-0")}
+            open={extrasOpen}
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 sm:px-3 [&::-webkit-details-marker]:hidden">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                  Extra costs
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  Transport, handling — added after post
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium",
+                  extras.length > 0
+                    ? "border-primary/35 bg-primary/10 text-primary"
+                    : "border-border bg-background text-muted-foreground",
+                )}
+              >
+                {extras.length > 0
+                  ? `${extras.length} line${extras.length === 1 ? "" : "s"}`
+                  : "Optional"}
+              </span>
+            </summary>
+            <div className="border-t border-border/50 px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
+              <ExtraCostsBody
+                extras={extras}
+                onChange={onExtrasChange}
+                busy={busy}
+              />
+            </div>
+          </details>
+        ) : null}
       </div>
     );
   }
@@ -360,7 +402,11 @@ export function DeliverySetupSection({
       </div>
 
       {showExtras ? (
-        <details className={cn(nsdSetupBlock, "group p-0")} open={extrasOpen}>
+        <details
+          id="supply-extra-costs"
+          className={cn(nsdSetupBlock, "group p-0")}
+          open={extrasOpen}
+        >
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 sm:px-3 [&::-webkit-details-marker]:hidden">
             <div className="flex items-center gap-2">
               <span
@@ -374,7 +420,7 @@ export function DeliverySetupSection({
                   Extra costs
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  Transport, handling — added to payable
+                  Transport, handling — added after post
                 </p>
               </div>
             </div>

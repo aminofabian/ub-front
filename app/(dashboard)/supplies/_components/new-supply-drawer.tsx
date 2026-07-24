@@ -10,8 +10,10 @@ import {
 } from "lucide-react";
 
 import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
+import { CashierCreateProductModal } from "@/components/cashier/cashier-create-product-modal";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
   addItemSupplierLink,
   addSupplyBatchExpense,
@@ -25,12 +27,14 @@ import {
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { canAdminEditOnHandStock } from "@/lib/set-on-hand-stock";
 import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import { getSessionTenantId } from "@/lib/auth";
@@ -404,19 +408,27 @@ export function NewSupplyDrawer({
   onPosted,
   initialSupplier = null,
 }: NewSupplyDrawerProps) {
-  const { branches, branchId, setBranchId, branchesLoading, me, business } =
+  const { branches, branchId, setBranchId, branchesLoading, me, business, itemTypes, itemTypeId } =
     useDashboard();
   const currency = business?.currency?.trim() || "KES";
   const draftBusinessId =
     business?.id?.trim() || getSessionTenantId()?.trim() || "";
   const draftUserId = me?.id?.trim() || "";
+  const featureFlags = useFeatureFlags();
   const canSetSellPrice = hasPermission(
     me?.permissions,
     Permission.PricingSellPriceSet,
   );
   const canLinkProducts = canLinkSupplierProducts(me, business);
+  const canCreateProduct =
+    hasPermission(me?.permissions, Permission.CatalogItemsWrite) ||
+    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true;
   const canEditOnHandStock = canAdminEditOnHandStock(me);
   const branchLocked = isBranchLockedRole(me?.role?.key);
+  const brandTheme = useMemo(
+    () => posBrandThemeStyle(business?.branding ?? null),
+    [business?.branding],
+  );
 
   const [supplierQuery, setSupplierQuery] = useState("");
   const [supplierHits, setSupplierHits] = useState<SupplierRecord[]>([]);
@@ -446,6 +458,7 @@ export function NewSupplyDrawer({
     { key: string; category: string; amount: string; desc: string }[]
   >([]);
   const [addLineOpen, setAddLineOpen] = useState(false);
+  const [createProductOpen, setCreateProductOpen] = useState(false);
   const [linkModalSupplierId, setLinkModalSupplierId] = useState<string | null>(
     null,
   );
@@ -1372,6 +1385,21 @@ export function NewSupplyDrawer({
     window.setTimeout(() => setAddLineOpen(true), 0);
   };
 
+  const openCreateProductModal = () => {
+    if (!supplier?.id?.trim() || !branchId.trim()) {
+      return;
+    }
+    window.setTimeout(() => setCreateProductOpen(true), 0);
+  };
+
+  const focusExtraCosts = () => {
+    const el = document.getElementById("supply-extra-costs");
+    if (el instanceof HTMLDetailsElement) {
+      el.open = true;
+    }
+    el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+
   const linkProductFromModal = async (draft: LinkSupplierProductDraft) => {
     const supplierId = draft.supplierId.trim();
     if (!supplierId) {
@@ -1443,6 +1471,42 @@ export function NewSupplyDrawer({
         block: "nearest",
       });
     });
+  };
+
+  const onProductCreatedForSupply = async (
+    item: ItemSummaryRecord,
+    unitPrice: string,
+  ) => {
+    const supplierId = supplier?.id?.trim();
+    if (!supplierId) {
+      return;
+    }
+    try {
+      await linkProductFromModal({
+        item,
+        supplierId,
+      });
+      const sell = unitPrice.trim();
+      if (sell) {
+        setRows((prev) =>
+          prev.map((row) =>
+            rowItemId(row) === item.id
+              ? {
+                  ...row,
+                  sellPriceStr: row.sellPriceStr.trim() || sell,
+                  sellPriceTouched: row.sellPriceTouched || !row.sellPriceStr.trim(),
+                }
+              : row,
+          ),
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Product created but could not add it to this delivery.",
+      );
+    }
   };
 
   const removeRow = (key: string) => {
@@ -1794,7 +1858,7 @@ export function NewSupplyDrawer({
                 onNotesChange={setNotes}
                 extras={extras}
                 onExtrasChange={setExtras}
-                showExtras={supplier != null && deliveryExpanded}
+                showExtras={supplier != null}
                 collapsed={!deliveryExpanded && supplier != null}
                 onToggleCollapsed={() =>
                   setDeliveryExpanded((open) => !open)
@@ -1815,17 +1879,32 @@ export function NewSupplyDrawer({
               className="overflow-visible"
               action={
                 canLinkProducts && supplier ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
-                  onClick={openLinkModal}
-                  disabled={busy}
-                >
-                  <Plus className="size-3.5" aria-hidden />
-                  Add product
-                </Button>
+                  <div className="flex flex-wrap items-center justify-end gap-1.5">
+                    {canCreateProduct ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
+                        onClick={openCreateProductModal}
+                        disabled={busy || !branchId.trim()}
+                      >
+                        <PackagePlus className="size-3.5" aria-hidden />
+                        Create product
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
+                      onClick={openLinkModal}
+                      disabled={busy}
+                    >
+                      <Plus className="size-3.5" aria-hidden />
+                      Add product
+                    </Button>
+                  </div>
                 ) : null
               }
               bodyClassName="p-0"
@@ -1848,16 +1927,31 @@ export function NewSupplyDrawer({
                   description="Add a catalog product to this supplier, then receive it here."
                   action={
                     canLinkProducts ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="gap-1 rounded-none"
-                      onClick={openLinkModal}
-                      disabled={busy || !supplier}
-                    >
-                      <Plus className="size-3.5" aria-hidden />
-                      Add product
-                    </Button>
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        {canCreateProduct ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 rounded-none"
+                            onClick={openCreateProductModal}
+                            disabled={busy || !supplier || !branchId.trim()}
+                          >
+                            <PackagePlus className="size-3.5" aria-hidden />
+                            Create product
+                          </Button>
+                        ) : null}
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="gap-1 rounded-none"
+                          onClick={openLinkModal}
+                          disabled={busy || !supplier}
+                        >
+                          <Plus className="size-3.5" aria-hidden />
+                          Add product
+                        </Button>
+                      </div>
                     ) : null
                   }
                 />
@@ -2368,6 +2462,7 @@ export function NewSupplyDrawer({
             extrasTotal={extrasTotal}
             canPost={canPost}
             currency={currency}
+            onEditExtras={supplier ? focusExtraCosts : undefined}
           />
         </div>
       </form>
@@ -2387,6 +2482,20 @@ export function NewSupplyDrawer({
       busy={busy}
       onLink={linkProductFromModal}
     />
-    </>
+
+    <CashierCreateProductModal
+      open={createProductOpen}
+      onOpenChange={setCreateProductOpen}
+      brandTheme={brandTheme}
+      currency={currency}
+      branchId={branchId}
+      itemTypes={itemTypes}
+      preferredItemTypeId={itemTypeId || null}
+      purpose="receive"
+      onCreated={(item, unitPrice) => {
+        void onProductCreatedForSupply(item, unitPrice);
+      }}
+    />
+  </>
   );
 }
