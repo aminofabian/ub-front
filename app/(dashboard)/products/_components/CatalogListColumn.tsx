@@ -114,56 +114,23 @@ export function CatalogListColumn({
     [jumpToLetter, scrollToPending],
   );
 
+  const onToggleSelectAllLoaded = useCallback(() => {
+    const loadedIds = catalog.displayRows.map((row) => row.id);
+    if (loadedIds.length === 0) return;
+    const allSelected = loadedIds.every((id) => catalog.rowSelection.has(id));
+    if (allSelected) {
+      catalog.setRowSelection(new Set());
+      return;
+    }
+    catalog.setRowSelection(new Set(loadedIds));
+  }, [catalog]);
+
   return (
     <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-0 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
-      <div className={catalogListToolbarClass}>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <p className={catalogListToolbarMetaClass}>
-            <span className="tabular-nums font-medium text-foreground">
-              {catalog.listTotalElements.toLocaleString()}
-            </span>{" "}
-            products
-            {loadedHint ? (
-              <span className="text-muted-foreground"> · {loadedHint}</span>
-            ) : null}
-            {filtersActive ? (
-              <span className="text-muted-foreground"> · filtered</span>
-            ) : null}
-            {catalog.debouncedSearch.trim() ? (
-              <span className="text-muted-foreground">
-                {" "}
-                · searching all departments
-              </span>
-            ) : null}
-          </p>
-          <p
-            className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 border-l border-border/40 pl-2 text-[10px] text-muted-foreground"
-            aria-label="Row type counts"
-          >
-            {ROW_TYPE_LEGEND.map(({ id, label }, index) => {
-              const count = catalog.rowTypeCounts[id];
-              return (
-                <span key={id} className="inline-flex items-center gap-1">
-                  {index > 0 ? (
-                    <span className="text-border" aria-hidden>
-                      ·
-                    </span>
-                  ) : null}
-                  <span className="tabular-nums font-semibold text-foreground">
-                    {count.toLocaleString()}
-                  </span>
-                  <span>{label}</span>
-                </span>
-              );
-            })}
-          </p>
-        </div>
-      </div>
-
       {hasSelection ? (
         <div
           className={cn(
-            "flex flex-wrap items-center justify-between gap-2 border-y border-r border-border px-2.5 py-1.5",
+            catalogListToolbarClass,
             "border-primary/25 bg-primary/[0.07]",
           )}
         >
@@ -185,7 +152,8 @@ export function CatalogListColumn({
                 ) : (
                   <Layers className="size-3.5" aria-hidden />
                 )}
-                Change department
+                <span className="sm:hidden">Department</span>
+                <span className="hidden sm:inline">Change department</span>
               </Button>
             ) : null}
             {canCatalogWrite ? (
@@ -218,7 +186,82 @@ export function CatalogListColumn({
             </Button>
           </div>
         </div>
-      ) : null}
+      ) : (
+        <div className={catalogListToolbarClass}>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <p className={catalogListToolbarMetaClass}>
+              <span className="tabular-nums font-medium text-foreground">
+                {catalog.listTotalElements.toLocaleString()}
+              </span>{" "}
+              products
+              {loadedHint ? (
+                <span className="text-muted-foreground"> · {loadedHint}</span>
+              ) : null}
+              {filtersActive ? (
+                <span className="text-muted-foreground"> · filtered</span>
+              ) : null}
+              {catalog.debouncedSearch.trim() ? (
+                <span className="text-muted-foreground">
+                  {" "}
+                  · searching all departments
+                </span>
+              ) : null}
+            </p>
+            <p
+              className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 border-l border-border/40 pl-2 text-[10px] text-muted-foreground"
+              aria-label="Row type counts"
+            >
+              {ROW_TYPE_LEGEND.map(({ id, label }, index) => {
+                const count = catalog.rowTypeCounts[id];
+                return (
+                  <span key={id} className="inline-flex items-center gap-1">
+                    {index > 0 ? (
+                      <span className="text-border" aria-hidden>
+                        ·
+                      </span>
+                    ) : null}
+                    <span className="tabular-nums font-semibold text-foreground">
+                      {count.toLocaleString()}
+                    </span>
+                    <span>{label}</span>
+                  </span>
+                );
+              })}
+            </p>
+          </div>
+          <div
+            className="flex shrink-0 items-center gap-0.5 border border-border bg-background p-0.5"
+            role="group"
+            aria-label="List density"
+          >
+            {(
+              [
+                ["dense", "Dense"],
+                ["comfortable", "Comfortable"],
+              ] as const
+            ).map(([value, label]) => {
+              const active = catalog.listDensity === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => catalog.setListDensity(value)}
+                  className={cn(
+                    "h-6 px-1.5 text-[10px] font-medium transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    active
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="relative min-h-0 flex-1 overflow-hidden pr-4">
         <VirtualizedCatalogBody
@@ -231,6 +274,7 @@ export function CatalogListColumn({
           density={catalog.listDensity}
           onRowClick={onRowClick}
           onToggleRowSelect={catalog.onToggleRowSelect}
+          onToggleSelectAllLoaded={onToggleSelectAllLoaded}
           isRowActive={isRowActive}
           loadingMore={catalog.listLoadingMore || catalog.letterJumpBusy}
           hasMore={!catalog.listLast}

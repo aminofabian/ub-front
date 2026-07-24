@@ -12,7 +12,6 @@ import {
   catalogFilterInputClass,
   catalogFilterLabelClass,
   catalogFilterOptionClass,
-  catalogFilterOptionCountClass,
   catalogFilterSectionClass,
   catalogFilterSelectClass,
   catalogFilterToolbarClass,
@@ -35,17 +34,11 @@ type Props = {
     | "includeCategoryDescendants"
     | "setIncludeCategoryDescendants"
     | "filterNoBarcode"
-    | "setFilterNoBarcode"
     | "filterInactiveOnly"
-    | "setFilterInactiveOnly"
     | "filterNoPrice"
-    | "setFilterNoPrice"
     | "filterZeroStock"
-    | "setFilterZeroStock"
     | "filterLowStock"
-    | "setFilterLowStock"
     | "stockFiltersNeedBranch"
-    | "catalogStats"
     | "resetFilters"
   >;
 };
@@ -184,75 +177,8 @@ export function ProductFilterSidebar({ catalog }: Props) {
           </select>
         </label>
 
-        <div className="flex flex-col gap-1.5 border-t border-border/60 pt-2">
-          <span className={catalogFilterLabelClass}>Needs attention</span>
-          <p className={catalogFilterHintClass}>
-            Same filters as the chips in the header — combine any.
-          </p>
-          <label className={catalogFilterOptionClass}>
-            <input
-              type="checkbox"
-              className={catalogFilterCheckboxClass}
-              checked={catalog.filterNoBarcode}
-              onChange={(e) => catalog.setFilterNoBarcode(e.target.checked)}
-            />
-            <span className="min-w-0 flex-1">Missing barcode</span>
-            <span className={catalogFilterOptionCountClass}>
-              {catalog.catalogStats.missingBarcode.toLocaleString()}
-            </span>
-          </label>
-          <label className={catalogFilterOptionClass}>
-            <input
-              type="checkbox"
-              className={catalogFilterCheckboxClass}
-              checked={catalog.filterNoPrice}
-              onChange={(e) => catalog.setFilterNoPrice(e.target.checked)}
-            />
-            <span className="min-w-0 flex-1">No price</span>
-            <span className={catalogFilterOptionCountClass}>
-              {catalog.catalogStats.missingPrice.toLocaleString()}
-            </span>
-          </label>
-          <label className={catalogFilterOptionClass}>
-            <input
-              type="checkbox"
-              className={catalogFilterCheckboxClass}
-              checked={catalog.filterZeroStock}
-              onChange={(e) => catalog.setFilterZeroStock(e.target.checked)}
-            />
-            <span className="min-w-0 flex-1">Zero stock</span>
-            <span className={catalogFilterOptionCountClass}>
-              {catalog.catalogStats.zeroStock.toLocaleString()}
-            </span>
-          </label>
-          <label className={catalogFilterOptionClass}>
-            <input
-              type="checkbox"
-              className={catalogFilterCheckboxClass}
-              checked={catalog.filterLowStock}
-              onChange={(e) => catalog.setFilterLowStock(e.target.checked)}
-            />
-            <span className="min-w-0 flex-1">Low stock (&lt;10)</span>
-            <span className={catalogFilterOptionCountClass}>
-              {catalog.catalogStats.lowStock.toLocaleString()}
-            </span>
-          </label>
-          <label className={catalogFilterOptionClass}>
-            <input
-              type="checkbox"
-              className={catalogFilterCheckboxClass}
-              checked={catalog.filterInactiveOnly}
-              onChange={(e) =>
-                catalog.setFilterInactiveOnly(e.target.checked)
-              }
-            />
-            <span className="min-w-0 flex-1">Inactive products</span>
-            <span className={catalogFilterOptionCountClass}>
-              {catalog.catalogStats.inactive.toLocaleString()}
-            </span>
-          </label>
-        </div>
-        {catalog.stockFiltersNeedBranch ? (
+        {catalog.stockFiltersNeedBranch &&
+        (catalog.filterZeroStock || catalog.filterLowStock) ? (
           <p className={catalogFilterHintClass}>
             Pick a branch in the header to filter by stock.
           </p>

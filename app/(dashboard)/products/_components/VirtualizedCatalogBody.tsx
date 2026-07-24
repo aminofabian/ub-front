@@ -65,6 +65,7 @@ export type VirtualizedCatalogBodyProps = {
   density: CatalogDensity;
   onRowClick: (id: string) => void;
   onToggleRowSelect: (id: string) => void | Promise<void>;
+  onToggleSelectAllLoaded?: () => void;
   isRowActive: (row: ItemSummaryRecord) => boolean;
   loadingMore: boolean;
   hasMore: boolean;
@@ -152,6 +153,7 @@ export const VirtualizedCatalogBody = forwardRef<
     density,
     onRowClick,
     onToggleRowSelect,
+    onToggleSelectAllLoaded,
     isRowActive,
     loadingMore,
     hasMore,
@@ -167,6 +169,10 @@ export const VirtualizedCatalogBody = forwardRef<
   const rowMetaById = useMemo(() => buildCatalogRowMeta(rows), [rows]);
   const duplicateRowIds = useMemo(() => findDuplicateCatalogRowIds(rows), [rows]);
   const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
+  const allLoadedSelected =
+    rows.length > 0 && rows.every((row) => selectedIds.has(row.id));
+  const someLoadedSelected =
+    !allLoadedSelected && rows.some((row) => selectedIds.has(row.id));
 
   const checkLoadMore = useCallback(
     (el: HTMLDivElement) => {
@@ -219,7 +225,29 @@ export const VirtualizedCatalogBody = forwardRef<
         role="row"
         aria-label="Catalog columns"
       >
-        <span className={catalogGridCol.check} aria-hidden />
+        <span className={catalogGridCol.check}>
+          {onToggleSelectAllLoaded && rows.length > 0 ? (
+            <input
+              type="checkbox"
+              className={catalogListCheckboxClass("standalone", 0)}
+              ref={(el) => {
+                if (el) el.indeterminate = someLoadedSelected;
+              }}
+              checked={allLoadedSelected}
+              onChange={onToggleSelectAllLoaded}
+              aria-label={
+                allLoadedSelected
+                  ? "Clear selection of loaded products"
+                  : "Select all loaded products"
+              }
+              title={
+                allLoadedSelected
+                  ? "Clear selection"
+                  : "Select all loaded"
+              }
+            />
+          ) : null}
+        </span>
         <span className={cn(catalogGridCol.product, "border-b-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground")}>
           Product
         </span>
@@ -399,7 +427,7 @@ export const VirtualizedCatalogBody = forwardRef<
                       catalogRowAccentClass(tone, active),
                       catalogRowInteractionClasses(tone, rowInteraction),
                       row.active === false && "opacity-50",
-                      isVariant && catalogVariantRowIndentClass,
+                      isVariant && catalogVariantRowIndentClass(density),
                     )}
                     onClick={() => onRowClick(row.id)}
                     onKeyDown={(event) => {

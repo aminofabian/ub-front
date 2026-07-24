@@ -6,7 +6,6 @@ import { Loader2, MousePointerClick, PackagePlus } from "lucide-react";
 
 import { DashboardNotice } from "@/components/dashboard-page-ui";
 import { FormDrawerMessageBanner } from "@/components/form-drawer";
-import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
@@ -364,11 +363,10 @@ export function ProductsWorkspace() {
 
   return (
     <>
-      <div className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col gap-2 overflow-x-hidden px-3 pb-6 sm:px-4 2xl:gap-4 2xl:px-4">
-        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-2 2xl:gap-4">
+      <div className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col gap-1.5 overflow-x-hidden px-2 pb-3 sm:px-3 sm:pb-4">
+        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-1.5">
           <ProductHeroHeader
             itemTypeCount={catalog.itemTypes.length}
-            totalProducts={catalog.listTotalElements}
             attentionStats={[
               {
                 id: "missingBarcode",
@@ -435,7 +433,7 @@ export function ProductsWorkspace() {
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
             )}
           >
-            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-2 overflow-x-hidden p-2 sm:p-3 lg:grid-cols-[minmax(0,1fr)_minmax(19.5rem,min(27rem,33vw))] lg:items-stretch lg:gap-4 lg:p-4 2xl:grid-cols-[minmax(0,1fr)_minmax(21rem,min(31.5rem,34.5vw))] 2xl:gap-4 2xl:p-4">
+            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-0 overflow-x-hidden p-0 lg:grid-cols-[minmax(0,1fr)_minmax(19.5rem,min(27rem,33vw))] lg:items-stretch 2xl:grid-cols-[minmax(0,1fr)_minmax(21rem,min(31.5rem,34.5vw))]">
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex-row lg:items-stretch">
                 <ProductFilterSidebar catalog={catalog} />
                 <CatalogListColumn
@@ -466,32 +464,21 @@ export function ProductsWorkspace() {
                 canAddFromCatalog={canGlobalCatalog}
                 />
               </div>
-              <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border/50 lg:pl-3">
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-border bg-card">
-                  {D ? (
-                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:px-3.5 sm:py-3">
-                      <ProductDetailPanel {...p} />
+              <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border/50">
+                {D ? (
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 sm:p-3">
+                    <ProductDetailPanel {...p} />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+                    <div className="flex size-9 items-center justify-center border border-dashed border-border bg-muted/50">
+                      <MousePointerClick className="size-4 text-muted-foreground" />
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
-                      <div className="flex size-12 items-center justify-center border border-dashed border-border bg-muted/50">
-                        <MousePointerClick className="size-6 text-muted-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Select a product from the list
-                      </p>
-                      <Button
-                        type="button"
-                        variant="default"
-                        disabled={catalog.itemTypes.length === 0}
-                        onClick={() => setActiveDrawer("create-parent")}
-                        className="gap-2"
-                      >
-                        <PackagePlus className="size-4" /> New product
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                    <p className="text-xs text-muted-foreground">
+                      Select a product from the list
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </section>

@@ -108,7 +108,11 @@ const catalogCellPad = "px-3 py-1";
 const catalogMetricPad = "px-1.5 py-1";
 
 /** Whole-row inset for variant SKUs (checkbox through metrics). */
-export const catalogVariantRowIndentClass = "pl-14";
+export function catalogVariantRowIndentClass(
+  density: "comfortable" | "dense" = "dense",
+): string {
+  return density === "dense" ? "pl-8" : "pl-14";
+}
 
 export const catalogGridCol = {
   check: cn(

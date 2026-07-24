@@ -64,7 +64,7 @@ import {
   detailPackageCardClass,
   detailPanelKind,
   detailPanelTone,
-  detailQuickActionGridClass,
+  detailActionBtnPrimaryClass,
   detailSectionClass,
   detailSectionHeadClass,
   detailSectionLabelClass,
@@ -678,30 +678,27 @@ export function ProductDetailPanel(props: Props) {
       </div>
 
       {/* Quick actions */}
-      <div className={detailQuickActionGridClass}>
-        <Button
+      <div className={cn(detailSellingStripClass, "gap-1.5")}>
+        <button
           type="button"
-          variant="outline"
-          className="h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm"
+          className={detailActionBtnPrimaryClass}
           onClick={() => setActiveDrawer("edit-product")}
         >
-          <PencilLine className="size-3.5" aria-hidden />
-          Edit product
-        </Button>
-        <Button
+          <PencilLine className="size-3" aria-hidden />
+          Edit
+        </button>
+        <button
           type="button"
-          variant="outline"
-          className="h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm"
+          className={detailActionBtnPrimaryClass}
           onClick={() => setActiveDrawer("photos")}
         >
-          <Camera className="size-3.5" aria-hidden />
+          <Camera className="size-3" aria-hidden />
           Photos
-        </Button>
+        </button>
         {canCatalogWrite && onOpenChangeItemType ? (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            className="h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm"
+            className={detailActionBtnPrimaryClass}
             onClick={onOpenChangeItemType}
             title={
               itemTypeLabel
@@ -709,17 +706,20 @@ export function ProductDetailPanel(props: Props) {
                 : "Change department"
             }
           >
-            <Layers className="size-3.5" aria-hidden />
-            <span className="truncate">
-              {itemTypeLabel ? `Dept: ${itemTypeLabel}` : "Department"}
+            <Layers className="size-3" aria-hidden />
+            <span className="max-w-[7rem] truncate">
+              {itemTypeLabel ? itemTypeLabel : "Department"}
             </span>
-          </Button>
+          </button>
         ) : null}
         {canToggleFeatured ? (
-          <Button
+          <button
             type="button"
-            variant={isStorefrontFeatured ? "secondary" : "outline"}
-            className="h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm"
+            className={cn(
+              detailActionBtnPrimaryClass,
+              isStorefrontFeatured &&
+                "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100",
+            )}
             disabled={
               featuredBusy || (!isStorefrontFeatured && featuredAtCapacity)
             }
@@ -733,24 +733,23 @@ export function ProductDetailPanel(props: Props) {
             }
           >
             {featuredBusy ? (
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              <Loader2 className="size-3 animate-spin" aria-hidden />
             ) : (
               <Star
                 className={cn(
-                  "size-3.5",
+                  "size-3",
                   isStorefrontFeatured && "fill-current text-amber-600",
                 )}
                 aria-hidden
               />
             )}
-            {isStorefrontFeatured ? "Remove featured" : "Add to featured"}
-          </Button>
+            {isStorefrontFeatured ? "Featured" : "Feature"}
+          </button>
         ) : null}
         {canCatalogWrite ? (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            className="col-span-2 h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm sm:col-span-1"
+            className={detailActionBtnPrimaryClass}
             onClick={openAddVariant}
             title={
               isChildVariant && variantParentDisplayName
@@ -759,12 +758,12 @@ export function ProductDetailPanel(props: Props) {
             }
           >
             {isChildVariant ? (
-              <GitBranchPlus className="size-3.5" aria-hidden />
+              <GitBranchPlus className="size-3" aria-hidden />
             ) : (
-              <Layers className="size-3.5" aria-hidden />
+              <Layers className="size-3" aria-hidden />
             )}
-            {isChildVariant ? "Add sibling" : "Add variant"}
-          </Button>
+            {isChildVariant ? "Sibling" : "Variant"}
+          </button>
         ) : null}
       </div>
 
