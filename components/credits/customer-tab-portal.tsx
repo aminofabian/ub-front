@@ -615,12 +615,14 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         {/* Header */}
         <header className="flex items-center gap-3">
           {branding.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={branding.logoUrl}
-              alt=""
-              className="size-11 shrink-0 rounded-full object-cover ring-1 ring-[var(--tab-border)]"
-            />
+            <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--tab-card)] ring-1 ring-[var(--tab-border)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={branding.logoUrl}
+                alt=""
+                className="size-full object-contain p-1.5"
+              />
+            </div>
           ) : (
             <div
               className="flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
