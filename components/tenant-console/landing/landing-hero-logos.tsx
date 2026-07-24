@@ -6,7 +6,13 @@ import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 const SHOPS = [
-  { src: "/logos/cleanshelf.png", name: "Cleanshelf", width: 200, height: 80 },
+  {
+    src: "/logos/cleanshelf.png",
+    name: "Cleanshelf",
+    width: 265,
+    height: 78,
+    scale: 1.15,
+  },
   { src: "/logos/maisha.png", name: "Maisha", width: 220, height: 80 },
   { src: "/logos/all-mart.png", name: "All-Mart", width: 220, height: 80 },
   { src: "/logos/sanjor.jpeg", name: "Sanjor", width: 220, height: 80 },
@@ -21,10 +27,17 @@ const SHOPS = [
     width: 160,
     height: 100,
   },
+  {
+    src: "/logos/plamart.png",
+    name: "Palmart",
+    width: 180,
+    height: 160,
+    scale: 1.45,
+  },
 ] as const;
 
-const ROW_ONE = SHOPS.slice(0, 5);
-const ROW_TWO = SHOPS.slice(5);
+const ROW_ONE = SHOPS.slice(0, 6);
+const ROW_TWO = SHOPS.slice(6);
 
 type Shop = (typeof SHOPS)[number];
 
@@ -35,7 +48,11 @@ type ShopMarkProps = {
 
 function ShopMark({ shop, index }: ShopMarkProps) {
   const sku = `S-${String(index + 1).padStart(2, "0")}`;
-  const style = { "--mark-i": index } as CSSProperties;
+  const scale = "scale" in shop ? shop.scale : 1;
+  const style = {
+    "--mark-i": index,
+    "--logo-scale": scale,
+  } as CSSProperties;
 
   return (
     <li className="hero-floor-mark" style={style}>

@@ -2679,7 +2679,8 @@ body:has(.landing-page) {
     justify-content: center;
     width: 100%;
     height: 4.25rem;
-    padding: 0.55rem 0.75rem;
+    padding: 0.4rem 0.55rem;
+    overflow: hidden;
     border: 1px solid var(--kiosk-border);
     background: var(--kiosk-elevated);
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
@@ -2698,9 +2699,10 @@ body:has(.landing-page) {
 }
 
 .landing-page .hero-floor-mark-img {
-    height: 2.85rem !important;
+    height: calc(2.85rem * var(--logo-scale, 1)) !important;
     width: auto !important;
-    max-width: 7.25rem;
+    max-width: calc(7.25rem * var(--logo-scale, 1));
+    max-height: 100%;
     object-fit: contain;
 }
 
@@ -2729,12 +2731,12 @@ body:has(.landing-page) {
 
     .landing-page .hero-floor-mark-frame {
         height: 4.75rem;
-        padding: 0.65rem 0.85rem;
+        padding: 0.45rem 0.65rem;
     }
 
     .landing-page .hero-floor-mark-img {
-        height: 3.25rem !important;
-        max-width: 8.25rem;
+        height: calc(3.25rem * var(--logo-scale, 1)) !important;
+        max-width: calc(8.25rem * var(--logo-scale, 1));
     }
 }
 
@@ -2753,8 +2755,8 @@ body:has(.landing-page) {
     }
 
     .landing-page .hero-floor-mark-img {
-        height: 3.6rem !important;
-        max-width: 9rem;
+        height: calc(3.6rem * var(--logo-scale, 1)) !important;
+        max-width: calc(9rem * var(--logo-scale, 1));
     }
 }
 
