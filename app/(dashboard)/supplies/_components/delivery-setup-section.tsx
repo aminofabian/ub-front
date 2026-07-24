@@ -165,7 +165,7 @@ export function DeliverySetupSection({
                   Extra costs
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  Transport, handling — added after post
+                  Transport, handling — added to payable
                 </p>
               </div>
               <span
@@ -420,7 +420,7 @@ export function DeliverySetupSection({
                   Extra costs
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  Transport, handling — added after post
+                  Transport, handling — added to payable
                 </p>
               </div>
             </div>

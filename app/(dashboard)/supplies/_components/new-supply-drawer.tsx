@@ -1247,6 +1247,11 @@ export function NewSupplyDrawer({
     return roundMoney2(sum);
   }, [extras]);
 
+  const payableTotal = useMemo(
+    () => roundMoney2(estimatedProfit.cost + extrasTotal),
+    [estimatedProfit.cost, extrasTotal],
+  );
+
   const selectedBranchName =
     branches.find((b) => b.id === branchId)?.name ?? "";
 
@@ -1709,7 +1714,7 @@ export function NewSupplyDrawer({
                 Payable
               </span>
               <p className="font-mono text-xl font-bold tabular-nums text-foreground sm:text-base">
-                {formatSupplyMoneyCompact(estimatedProfit.cost, currency)}
+                {formatSupplyMoneyCompact(payableTotal, currency)}
               </p>
             </div>
             <p className="truncate text-[11px] text-muted-foreground sm:text-[10px]">

@@ -58,6 +58,7 @@ export function SupplyDrawerSummaryPanel({
   onEditExtras?: () => void;
   className?: string;
 }) {
+  const payableTotal = estimatedProfit.cost + extrasTotal;
   const netProfit = estimatedProfit.profit - extrasTotal;
   const marginPct =
     estimatedProfit.revenue > 0
@@ -113,7 +114,7 @@ export function SupplyDrawerSummaryPanel({
 
         <div className="grid grid-cols-2 gap-0 divide-x divide-border border-t border-border">
           <div className="p-2">
-            <SummaryMetric label="Payable" value={money(estimatedProfit.cost)} />
+            <SummaryMetric label="Payable" value={money(payableTotal)} />
           </div>
           <div className="p-2">
             <SummaryMetric
