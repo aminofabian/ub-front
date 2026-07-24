@@ -1211,7 +1211,7 @@ export function QuickSaleWorkspace({
       setPhoneVerificationChannel(sent.channel);
       setPhoneVerificationCooldownUntil(Date.now() + 60_000);
       setNotice(
-        `Code sent via ${sent.channel} to ${sent.maskedHint}. Ask the customer to read it aloud.`,
+        `4-digit code sent via ${sent.channel} to ${sent.maskedHint}. Ask the customer to read it aloud.`,
       );
     } catch (e) {
       setError(
@@ -1253,8 +1253,8 @@ export function QuickSaleWorkspace({
       setNotice("");
       return;
     }
-    if (!/^\d{6}$/.test(code)) {
-      setError("Enter the 6-digit verification code.");
+    if (!/^\d{4}$/.test(code)) {
+      setError("Enter the 4-digit verification code.");
       setNotice("");
       return;
     }

@@ -833,25 +833,37 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       customerNoPhoneMatch &&
                       !selectedCustomer &&
                       isValidCustomerPhone(customerPhoneQuery) ? (
-                        <div className="space-y-2 rounded-xl border border-dashed border-border/60 p-3">
-                          <p className="text-[11px] text-muted-foreground">
-                            No match for that phone.
-                          </p>
+                        <div className="space-y-3 rounded-xl border border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_7%,transparent)] p-3.5">
+                          <div className="space-y-1">
+                            <p className="text-[13px] font-semibold tracking-tight text-foreground">
+                              New number — verify before credit
+                            </p>
+                            <p className="text-[12px] leading-snug text-muted-foreground">
+                              A 4-digit code will be sent to this phone by SMS
+                              or WhatsApp. The customer must read it aloud so
+                              you can confirm the number before opening a tab.
+                            </p>
+                          </div>
                           {canManageCustomers ? (
                             <>
-                              <input
-                                className={fieldClass("h-11 w-full")}
-                                value={customerRegisterName}
-                                onChange={(e) =>
-                                  setCustomerRegisterName(e.target.value)
-                                }
-                                placeholder="Customer name"
-                                disabled={
-                                  !online ||
-                                  customerRegisterBusy ||
-                                  phoneVerificationSent
-                                }
-                              />
+                              <label className="block space-y-1.5">
+                                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  Customer name
+                                </span>
+                                <input
+                                  className={fieldClass("h-11 w-full")}
+                                  value={customerRegisterName}
+                                  onChange={(e) =>
+                                    setCustomerRegisterName(e.target.value)
+                                  }
+                                  placeholder="Full name"
+                                  disabled={
+                                    !online ||
+                                    customerRegisterBusy ||
+                                    phoneVerificationSent
+                                  }
+                                />
+                              </label>
                               {!phoneVerificationSent ? (
                                 <Button
                                   type="button"
@@ -865,26 +877,34 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   onClick={onSendPhoneVerification}
                                 >
                                   {customerRegisterBusy
-                                    ? "Sending…"
-                                    : "Send verification code"}
+                                    ? "Sending code…"
+                                    : "Send code to phone"}
                                 </Button>
                               ) : (
-                                <>
-                                  <p className="text-[11px] text-muted-foreground">
-                                    Code sent
-                                    {phoneVerificationChannel
-                                      ? ` via ${phoneVerificationChannel}`
-                                      : ""}
-                                    . Enter the 6-digit code from the customer.
-                                  </p>
+                                <div className="space-y-2.5 rounded-lg bg-background/70 px-3 py-3 ring-1 ring-border/70">
+                                  <div className="space-y-0.5">
+                                    <p className="text-[13px] font-semibold text-foreground">
+                                      Ask the customer for their code
+                                    </p>
+                                    <p className="text-[12px] leading-snug text-muted-foreground">
+                                      Sent
+                                      {phoneVerificationChannel
+                                        ? ` via ${phoneVerificationChannel}`
+                                        : " to their phone"}
+                                      . Type the 4 digits they show or read to
+                                      you.
+                                    </p>
+                                  </div>
                                   <input
-                                    className={fieldClass("h-11 w-full")}
+                                    className={fieldClass(
+                                      "h-14 w-full text-center text-2xl font-semibold tracking-[0.35em]",
+                                    )}
                                     value={phoneVerificationCode}
                                     onChange={(e) =>
                                       setPhoneVerificationCode(
                                         e.target.value
                                           .replace(/\D/g, "")
-                                          .slice(0, 6),
+                                          .slice(0, 4),
                                       )
                                     }
                                     onKeyDown={(e) => {
@@ -895,7 +915,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                     }}
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
-                                    placeholder="6-digit code"
+                                    placeholder="••••"
+                                    aria-label="4-digit verification code"
                                     disabled={!online || customerRegisterBusy}
                                   />
                                   <Button
@@ -905,22 +926,23 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                       !online ||
                                       customerRegisterBusy ||
                                       !customerRegisterName.trim() ||
-                                      phoneVerificationCode.length !== 6
+                                      phoneVerificationCode.length !== 4
                                     }
                                     onClick={onRegisterCustomer}
                                   >
                                     {customerRegisterBusy
                                       ? "Verifying…"
-                                      : "Verify & register"}
+                                      : "Verify & open tab"}
                                   </Button>
                                   <Button
                                     type="button"
                                     variant="ghost"
-                                    className="h-9 w-full rounded-xl text-xs"
+                                    className="h-9 w-full rounded-xl text-xs text-muted-foreground"
                                     disabled={
                                       !online ||
                                       customerRegisterBusy ||
-                                      Date.now() < phoneVerificationCooldownUntil
+                                      Date.now() <
+                                        phoneVerificationCooldownUntil
                                     }
                                     onClick={onSendPhoneVerification}
                                   >
@@ -928,10 +950,14 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                       ? "Resend available soon"
                                       : "Resend code"}
                                   </Button>
-                                </>
+                                </div>
                               )}
                             </>
-                          ) : null}
+                          ) : (
+                            <p className="text-[12px] text-muted-foreground">
+                              You need permission to register customers.
+                            </p>
+                          )}
                         </div>
                       ) : null}
                       {selectedCustomer ? (
