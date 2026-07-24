@@ -50,8 +50,19 @@ const heroPrimaryCtaClass = `${goldCtaClass} shadow-[0_1px_2px_rgba(20,20,18,0.0
 
 export function LandingHero({ onCreateShop }: LandingHeroProps) {
   return (
-    <section className="landing-hero relative isolate flex min-h-[calc(100svh-5.25rem)] flex-col overflow-x-hidden bg-[var(--kiosk-bg)] px-4 pb-10 pt-6 sm:min-h-[calc(100svh-5.7rem)] sm:px-10 sm:pb-16 sm:pt-12 lg:px-14 lg:pb-20 lg:pt-14">
+    <section className="landing-hero relative isolate flex min-h-[calc(100svh-5.25rem)] flex-col overflow-x-hidden bg-[var(--kiosk-bg)] px-4 pb-10 pt-6 max-sm:pb-24 sm:min-h-[calc(100svh-5.7rem)] sm:px-10 sm:pb-16 sm:pt-12 lg:px-14 lg:pb-20 lg:pt-14">
       <HeroAtmosphere />
+
+      <div className="landing-mobile-cta sm:hidden">
+        <button
+          type="button"
+          className={`${heroPrimaryCtaClass} w-full justify-center px-5 py-3.5 font-medium`}
+          onClick={onCreateShop}
+        >
+          Get Kiosk free
+          <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden />
+        </button>
+      </div>
 
       <div
         aria-hidden
@@ -104,7 +115,7 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
             </p>
 
             <h1 className="landing-reveal landing-reveal-delay-1 mb-3 font-heading text-[clamp(1.9rem,8.4vw,4rem)] leading-[1.05] tracking-[-0.04em] text-[var(--kiosk-text)] sm:mb-7">
-              Your counter deserves a till
+              The POS
               <br />
               <span className="relative mt-0.5 inline-block sm:mt-1">
                 <span className="bg-gradient-to-r from-[#20863B] via-[var(--kiosk-gold)] to-[#32B85A] bg-clip-text text-transparent">
@@ -132,7 +143,7 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
             <div className="landing-reveal landing-reveal-delay-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4">
               <button
                 type="button"
-                className={`${heroPrimaryCtaClass} w-full justify-center px-5 py-3.5 font-medium sm:w-auto sm:px-6 sm:py-3`}
+                className={`${heroPrimaryCtaClass} landing-hero-cta-desktop justify-center px-5 py-3.5 font-medium sm:w-auto sm:px-6 sm:py-3`}
                 onClick={onCreateShop}
               >
                 Get Kiosk free
