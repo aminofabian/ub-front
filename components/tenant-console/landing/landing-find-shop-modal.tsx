@@ -204,7 +204,7 @@ export function LandingFindShopModal({
                       className="mt-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
                       onClick={startCreate}
                     >
-                      Open a new till instead →
+                      Start free instead →
                     </button>
                   </div>
                 ) : null}
@@ -214,12 +214,7 @@ export function LandingFindShopModal({
                   disabled={state.status === "loading" || !query.trim()}
                   className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center disabled:opacity-50"
                 >
-                  <span className="landing-nav-ticket-code">
-                    {state.status === "loading" ? "…" : "GO"}
-                  </span>
-                  <span className="landing-nav-ticket-label">
-                    {state.status === "loading" ? "Looking up" : "Find my shop"}
-                  </span>
+                  {state.status === "loading" ? "Looking up…" : "Find shop"}
                 </button>
               </form>
             )}

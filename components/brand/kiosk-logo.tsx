@@ -88,7 +88,7 @@ function LogoWordmark({
 
   if (plain) {
     return (
-      <span className="inline-flex items-baseline gap-2 leading-none">
+      <span className="inline-flex items-center gap-1.5 leading-none">
         <span className={wordmarkClass}>{name}</span>
         {showDomain ? <span className={tldClass}>.KE</span> : null}
       </span>
@@ -182,7 +182,7 @@ function LogoContent({
     <span
       className={cn(
         "inline-flex items-center",
-        plain ? "gap-3 sm:gap-3.5" : gap,
+        plain ? "gap-2.5 sm:gap-3" : gap,
       )}
     >
       <KioskLogoMark

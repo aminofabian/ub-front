@@ -158,7 +158,7 @@ export const logoPillClass =
   "inline-flex items-center gap-1.5 rounded-full border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-3.5 py-1.5 text-xs font-medium tracking-[0.02em] text-[var(--kiosk-gold)]";
 
 /** Standard landing section padding — tighter on phones. */
-export const landingSectionClass = "px-4 py-14 sm:px-10 sm:py-28";
+export const landingSectionClass = "px-4 py-12 sm:px-10 sm:py-28";
 
 export const landingSectionBorderClass = `${landingSectionClass} border-t border-[var(--kiosk-border-soft)]`;
 

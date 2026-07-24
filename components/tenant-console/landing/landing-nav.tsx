@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
@@ -24,7 +24,7 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
+    const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -44,21 +44,31 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
     onCreateShop();
   };
 
-  const handleFindShop = () => {
-    closeMenu();
-    onFindShop();
-  };
-
   return (
     <>
       <nav
         className={cn(
-          "landing-nav sticky top-0 z-50 transition-colors duration-300",
+          "landing-nav landing-nav--app sticky top-0 z-50 transition-colors duration-300",
           scrolled || menuOpen ? "landing-nav--solid" : "landing-nav--clear",
         )}
       >
         <div className="landing-nav-inner">
-          <KioskLogo href="/" size="lg" variant="landing" plain />
+          <div className="landing-nav-brand">
+            <KioskLogo
+              href="/"
+              size="sm"
+              variant="landing"
+              plain
+              className="landing-nav-logo landing-nav-logo--mobile md:hidden"
+            />
+            <KioskLogo
+              href="/"
+              size="lg"
+              variant="landing"
+              plain
+              className="landing-nav-logo landing-nav-logo--desktop hidden md:inline-flex"
+            />
+          </div>
 
           <div className="landing-nav-links hidden md:flex" aria-label="Primary">
             {NAV_LINKS.map((link) => (
@@ -72,35 +82,45 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
           </div>
 
           <div className="landing-nav-actions">
+            <div className="landing-nav-capsule md:hidden" role="group">
+              <button
+                type="button"
+                className="landing-nav-capsule-btn"
+                onClick={onFindShop}
+                aria-label="Find shop"
+              >
+                <Search className="h-4 w-4" strokeWidth={2} aria-hidden />
+              </button>
+              <span className="landing-nav-capsule-rule" aria-hidden />
+              <button
+                type="button"
+                className="landing-nav-capsule-btn landing-nav-capsule-btn--menu"
+                onClick={() => setMenuOpen((open) => !open)}
+                aria-expanded={menuOpen}
+                aria-controls="landing-mobile-menu"
+                aria-label={menuOpen ? "Close menu" : "Open menu"}
+              >
+                {menuOpen ? (
+                  <X className="h-4 w-4" strokeWidth={2} aria-hidden />
+                ) : (
+                  <Menu className="h-4 w-4" strokeWidth={2} aria-hidden />
+                )}
+              </button>
+            </div>
+
             <button
               type="button"
-              className="landing-nav-ticket landing-nav-ticket--ghost hidden sm:inline-flex"
+              className="landing-nav-ticket landing-nav-ticket--ghost landing-nav-ticket--desktop"
               onClick={onFindShop}
             >
-              <span className="landing-nav-ticket-code">FIND</span>
-              <span className="landing-nav-ticket-label">My shop</span>
+              Find shop
             </button>
             <button
               type="button"
-              className="landing-nav-ticket landing-nav-ticket--primary hidden md:inline-flex"
+              className="landing-nav-ticket landing-nav-ticket--primary landing-nav-ticket--desktop"
               onClick={onCreateShop}
             >
-              <span className="landing-nav-ticket-code">NEW</span>
-              <span className="landing-nav-ticket-label">Open till</span>
-            </button>
-            <button
-              type="button"
-              className="landing-nav-menu-btn md:hidden"
-              onClick={() => setMenuOpen((open) => !open)}
-              aria-expanded={menuOpen}
-              aria-controls="landing-mobile-menu"
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
-            >
-              {menuOpen ? (
-                <X className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-              ) : (
-                <Menu className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-              )}
+              Start free
             </button>
           </div>
         </div>
@@ -109,14 +129,14 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
       <div
         id="landing-mobile-menu"
         className={cn(
-          "landing-nav-drawer fixed inset-x-[0.625rem] bottom-[0.625rem] top-[calc(0.625rem+4rem)] z-40 flex flex-col sm:inset-x-[0.85rem] sm:bottom-[0.85rem] sm:top-[calc(0.85rem+4.5rem)] md:hidden",
+          "landing-nav-drawer md:hidden",
           menuOpen
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0",
         )}
         aria-hidden={!menuOpen}
       >
-        <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-8 pt-2">
+        <div className="landing-nav-drawer-inner">
           <nav className="flex flex-col" aria-label="Mobile">
             {NAV_LINKS.map((link) => (
               <a
@@ -131,22 +151,13 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
             ))}
           </nav>
 
-          <div className="mt-auto flex flex-col gap-3 border-t border-dashed border-[var(--kiosk-border)] pt-6">
+          <div className="mt-auto flex flex-col gap-3 border-t border-[var(--kiosk-border-soft)] pt-6">
             <button
               type="button"
-              className="landing-nav-ticket landing-nav-ticket--ghost w-full justify-center"
-              onClick={handleFindShop}
-            >
-              <span className="landing-nav-ticket-code">FIND</span>
-              <span className="landing-nav-ticket-label">My shop</span>
-            </button>
-            <button
-              type="button"
-              className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center"
+              className="landing-nav-sheet-btn landing-nav-sheet-btn--primary"
               onClick={handleCreateShop}
             >
-              <span className="landing-nav-ticket-code">NEW</span>
-              <span className="landing-nav-ticket-label">Open till</span>
+              Start free
             </button>
           </div>
         </div>

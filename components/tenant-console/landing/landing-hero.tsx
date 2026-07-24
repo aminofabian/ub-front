@@ -50,13 +50,13 @@ const heroPrimaryCtaClass = `${goldCtaClass} shadow-[0_1px_2px_rgba(20,20,18,0.0
 
 export function LandingHero({ onCreateShop }: LandingHeroProps) {
   return (
-    <section className="landing-hero relative isolate flex min-h-[calc(100svh-5.25rem)] flex-col overflow-x-hidden bg-[var(--kiosk-bg)] px-4 pb-10 pt-6 max-sm:pb-24 sm:min-h-[calc(100svh-5.7rem)] sm:px-10 sm:pb-16 sm:pt-12 lg:px-14 lg:pb-20 lg:pt-14">
+    <section className="landing-hero relative isolate flex min-h-[calc(100svh-3.75rem)] flex-col overflow-x-hidden bg-[var(--kiosk-bg)] px-4 pb-10 pt-5 max-sm:pb-[5.5rem] sm:min-h-[calc(100svh-5.7rem)] sm:px-10 sm:pb-16 sm:pt-12 lg:px-14 lg:pb-20 lg:pt-14">
       <HeroAtmosphere />
 
       <div className="landing-mobile-cta sm:hidden">
         <button
           type="button"
-          className={`${heroPrimaryCtaClass} w-full justify-center px-5 py-3.5 font-medium`}
+          className={`${heroPrimaryCtaClass} landing-mobile-cta-btn w-full justify-center font-medium`}
           onClick={onCreateShop}
         >
           Get Kiosk free
@@ -151,7 +151,7 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
               </button>
               <a
                 href="#how"
-                className={`${ghostCtaClass} w-full justify-center px-5 py-3.5 sm:w-auto sm:px-6 sm:py-3`}
+                className={`${ghostCtaClass} w-full justify-center px-5 py-3.5 max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:py-2 max-sm:justify-start max-sm:text-[var(--kiosk-gold)] max-sm:hover:bg-transparent sm:w-auto sm:px-6 sm:py-3`}
               >
                 See how it works
               </a>

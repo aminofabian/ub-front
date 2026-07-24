@@ -34,7 +34,7 @@ export function TenantConsolePage() {
 
   return (
     <div
-      className="landing-page relative m-2.5 min-h-[calc(100dvh-1.25rem)] overflow-x-clip rounded-[1.35rem] pb-[4.75rem] antialiased shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_18px_48px_-20px_rgba(0,0,0,0.45)] selection:bg-[var(--kiosk-gold-soft)] selection:text-[var(--kiosk-text)] sm:m-[0.85rem] sm:min-h-[calc(100dvh-1.7rem)] sm:rounded-[1.75rem] sm:pb-0"
+      className="landing-page relative min-h-dvh overflow-x-clip antialiased selection:bg-[var(--kiosk-gold-soft)] selection:text-[var(--kiosk-text)] max-sm:pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:m-[0.85rem] sm:min-h-[calc(100dvh-1.7rem)] sm:rounded-[1.75rem] sm:pb-0 sm:shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_18px_48px_-20px_rgba(0,0,0,0.45)]"
       style={landingRootStyle()}
     >
       <div className="landing-page-canvas" aria-hidden />
