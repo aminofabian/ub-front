@@ -163,6 +163,7 @@ export function ShopStorefrontChrome({
         slug={slug}
         storeName={headerTitle}
         deliveryAreas={deliveryAreas}
+        primaryHex={primaryHex}
         accentHex={accentHex}
       />
       <FloatingCartButton accentHex={accentHex} />

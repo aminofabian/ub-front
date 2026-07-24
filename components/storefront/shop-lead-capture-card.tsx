@@ -93,19 +93,27 @@ function accentButtonStyle(hex: string | null | undefined): CSSProperties | unde
   if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex.trim())) return undefined;
   const c = hex.trim();
   return {
-    background: `linear-gradient(135deg, ${c} 0%, color-mix(in srgb, ${c} 70%, #0f172a) 100%)`,
+    backgroundColor: c,
+    color: "#0f172a",
   };
+}
+
+function parseThemeHex(hex: string | null | undefined): string | null {
+  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex.trim())) return null;
+  return hex.trim();
 }
 
 export function ShopLeadCaptureCard({
   slug,
   storeName,
   deliveryAreas,
+  primaryHex,
   accentHex,
 }: {
   slug: string;
   storeName: string;
   deliveryAreas: PublicDeliveryArea[];
+  primaryHex?: string | null;
   accentHex?: string | null;
 }) {
   const pathname = usePathname();
@@ -133,7 +141,22 @@ export function ShopLeadCaptureCard({
   );
   const selectedArea = activeAreas.find((a) => a.id === areaId) ?? null;
   const waLink = whatsAppGeneralLink();
-  const ctaStyle = accentButtonStyle(accentHex);
+  const primary = parseThemeHex(primaryHex);
+  const accent = parseThemeHex(accentHex);
+  const brand = accent ?? primary;
+  const ctaStyle = accentButtonStyle(brand);
+  const ctaTextClass = accent
+    ? "text-slate-900 hover:brightness-105"
+    : "text-white hover:brightness-105";
+  const headerBg = primary
+    ? `linear-gradient(160deg, color-mix(in srgb, ${primary} 88%, #020617) 0%, color-mix(in srgb, ${primary} 55%, #020617) 100%)`
+    : "linear-gradient(160deg, color-mix(in srgb, var(--primary) 88%, #020617) 0%, color-mix(in srgb, var(--primary) 55%, #020617) 100%)";
+  const iconBg = brand ?? "var(--primary)";
+  const focusVars = brand
+    ? ({
+        ["--lead-focus" as string]: brand,
+      } as CSSProperties)
+    : undefined;
 
   useEffect(() => {
     if (!slug) {
@@ -308,18 +331,28 @@ export function ShopLeadCaptureCard({
                 type="button"
                 onClick={() => setPhoneExpanded(true)}
                 className={cn(
-                  "group flex items-center gap-2 rounded-full border border-[#25D366]/35 bg-background/95 py-2 pl-2.5 pr-3.5 shadow-lg shadow-black/10 ring-1 ring-black/[0.04] backdrop-blur-xl transition-transform hover:scale-[1.02] active:scale-[0.98]",
+                  "group flex items-center gap-2.5 rounded-xl border border-white/15 py-2 pl-2 pr-3.5 text-left shadow-lg shadow-black/20 ring-1 ring-black/5 transition-transform hover:scale-[1.02] active:scale-[0.98]",
                 )}
+                style={{ background: headerBg }}
               >
-                <span className="relative flex size-8 items-center justify-center rounded-full bg-[#25D366] text-white shadow-sm">
+                <span
+                  className="relative flex size-8 items-center justify-center rounded-lg shadow-sm"
+                  style={{
+                    backgroundColor: iconBg,
+                    color: accent ? "#0f172a" : "#fff",
+                  }}
+                >
                   <MessageCircle className="size-4" aria-hidden />
-                  <span className="absolute inset-0 animate-ping rounded-full bg-[#25D366]/35 [animation-duration:2.4s]" />
+                  <span
+                    className="absolute inset-0 animate-ping rounded-lg opacity-35 [animation-duration:2.4s]"
+                    style={{ backgroundColor: iconBg }}
+                  />
                 </span>
                 <span className="flex flex-col items-start leading-tight">
-                  <span className="text-[11px] font-semibold text-foreground">
+                  <span className="text-[11px] font-semibold text-white">
                     Deals on WhatsApp?
                   </span>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[10px] text-white/70">
                     Tap to leave your number
                   </span>
                 </span>
@@ -327,7 +360,8 @@ export function ShopLeadCaptureCard({
               <button
                 type="button"
                 onClick={dismissPhone}
-                className="flex size-8 items-center justify-center rounded-full border border-border/70 bg-background/90 text-muted-foreground shadow-sm backdrop-blur-md transition-colors hover:bg-muted hover:text-foreground"
+                className="flex size-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white/85 shadow-sm backdrop-blur-md transition-colors hover:bg-white/18 hover:text-white"
+                style={{ background: headerBg }}
                 aria-label="Dismiss"
               >
                 <X className="size-3.5" />
@@ -336,52 +370,73 @@ export function ShopLeadCaptureCard({
           ) : (
             <div
               className={cn(
-                "w-[min(calc(100vw-1.5rem),18rem)] overflow-hidden rounded-2xl border border-[#25D366]/25 bg-background/98 shadow-[0_18px_44px_-14px_rgba(0,0,0,0.32)] ring-1 ring-black/[0.04] backdrop-blur-xl",
+                "w-[min(calc(100vw-1.5rem),18.5rem)] overflow-hidden rounded-xl border border-border/50 bg-card shadow-[0_18px_44px_-14px_rgba(0,0,0,0.32)] ring-1 ring-black/[0.04]",
                 "animate-in fade-in-0 zoom-in-95 duration-300",
               )}
             >
               <div
-                className="h-1 w-full bg-gradient-to-r from-[#25D366] via-[#25D366]/70 to-transparent"
-                aria-hidden
-              />
-              <div className="flex items-start justify-between gap-2 px-3.5 pb-0.5 pt-3">
-                <span className="inline-flex items-center gap-1 rounded-md bg-[#25D366]/12 px-1.5 py-0.5 text-[10px] font-semibold text-[#128C7E]">
-                  <Sparkles className="size-3" aria-hidden />
-                  Optional
-                </span>
-                <button
-                  type="button"
-                  onClick={dismissPhone}
-                  className="rounded-md p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label="Close"
-                >
-                  <X className="size-3.5" />
-                </button>
+                className="relative overflow-hidden px-3.5 pb-3 pt-3.5"
+                style={{ background: headerBg }}
+              >
+                <div
+                  className="pointer-events-none absolute -right-4 -top-6 size-24 rounded-full opacity-35 blur-2xl"
+                  style={{ background: iconBg }}
+                  aria-hidden
+                />
+                <div className="relative flex items-start justify-between gap-2">
+                  <div className="min-w-0 space-y-1.5 text-white">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-white/12 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white/90 ring-1 ring-white/15">
+                      <Sparkles className="size-3" aria-hidden />
+                      Optional
+                    </span>
+                    <p className="text-[13px] font-semibold leading-snug">
+                      {phoneSuccess
+                        ? "You’re on the list"
+                        : "Catch deals before they sell out"}
+                    </p>
+                    {!phoneSuccess ? (
+                      <p className="text-[11px] leading-relaxed text-white/70">
+                        One quiet message a week from {storeName}.
+                      </p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={dismissPhone}
+                    className="rounded-md p-0.5 text-white/70 transition-colors hover:bg-white/12 hover:text-white"
+                    aria-label="Close"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
               </div>
 
               {phoneSuccess ? (
-                <div className="flex flex-col items-center gap-2 px-4 pb-5 pt-3 text-center">
-                  <span className="flex size-11 items-center justify-center rounded-full bg-[#25D366]/15 text-[#128C7E] animate-in zoom-in-50 duration-300">
+                <div className="flex flex-col items-center gap-2 px-4 py-5 text-center">
+                  <span
+                    className="flex size-11 items-center justify-center rounded-full text-white shadow-md animate-in zoom-in-50 duration-300"
+                    style={
+                      ctaStyle ?? {
+                        background:
+                          "linear-gradient(135deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 70%, #0f172a) 100%)",
+                      }
+                    }
+                  >
                     <Check className="size-5" strokeWidth={2.5} />
                   </span>
-                  <p className="text-sm font-semibold text-foreground">
-                    You&apos;re on the list
-                  </p>
                   <p className="text-[11px] text-muted-foreground">
                     Restocks & weekly deals — reply STOP anytime.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2.5 px-3.5 pb-3.5 pt-1">
-                  <div className="space-y-0.5">
-                    <p className="text-[13px] font-semibold leading-snug text-foreground">
-                      Catch deals before they sell out
-                    </p>
-                    <p className="text-[11px] leading-relaxed text-muted-foreground">
-                      One quiet message a week from {storeName}.
-                    </p>
-                  </div>
-                  <div className="flex overflow-hidden rounded-xl border border-border bg-muted/20 transition-shadow focus-within:border-[#25D366]/50 focus-within:ring-2 focus-within:ring-[#25D366]/20">
+                <div className="space-y-2.5 px-3.5 py-3.5" style={focusVars}>
+                  <div
+                    className={cn(
+                      "flex overflow-hidden rounded-lg border border-border bg-muted/20 transition-[border-color,box-shadow]",
+                      "focus-within:border-[color-mix(in_srgb,var(--lead-focus,var(--primary))_50%,transparent)]",
+                      "focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--lead-focus,var(--primary))_22%,transparent)]",
+                    )}
+                  >
                     <span className="flex shrink-0 items-center border-r border-border/80 px-2.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
                       +254
                     </span>
@@ -407,7 +462,12 @@ export function ShopLeadCaptureCard({
                   <Button
                     type="button"
                     size="sm"
-                    className="h-9 w-full rounded-xl bg-[#25D366] text-xs font-semibold text-white hover:bg-[#1ebe5d]"
+                    className={cn(
+                      "h-9 w-full rounded-lg text-xs font-semibold shadow-sm",
+                      !brand && "bg-primary text-primary-foreground hover:brightness-105",
+                      brand && ctaTextClass,
+                    )}
+                    style={ctaStyle}
                     disabled={saving}
                     onClick={() => void savePhone()}
                   >
@@ -469,16 +529,12 @@ export function ShopLeadCaptureCard({
             <>
               <div
                 className="relative overflow-hidden px-5 pb-4 pt-5"
-                style={{
-                  background: accentHex
-                    ? `linear-gradient(160deg, color-mix(in srgb, ${accentHex} 22%, #0f172a) 0%, #0f172a 70%)`
-                    : "linear-gradient(160deg, color-mix(in srgb, var(--primary) 28%, #0f172a) 0%, #0f172a 72%)",
-                }}
+                style={{ background: headerBg }}
               >
                 <div
                   className="pointer-events-none absolute -right-6 -top-8 size-32 rounded-full opacity-30 blur-2xl"
                   style={{
-                    background: accentHex ?? "var(--primary)",
+                    background: iconBg,
                   }}
                   aria-hidden
                 />
