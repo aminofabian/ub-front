@@ -10,7 +10,6 @@ import {
 } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   CheckCircle2,
   ChevronDown,
   FileCheck2,
@@ -50,7 +49,6 @@ type Props = {
 };
 
 type PayMode = "stk" | "manual";
-type AppScreen = "purchases" | "pay";
 type PortalTheme = "light" | "dark";
 
 const THEME_STORAGE_KEY = "palmart-customer-tab-theme";
@@ -250,16 +248,16 @@ function PurchaseRow({
         : `${lines[0].itemName?.trim() || "Item"} +${lines.length - 1}`;
 
   return (
-    <li className="overflow-hidden rounded-2xl border border-[var(--tab-border)] bg-[var(--tab-card)]">
+    <li className="overflow-hidden rounded-xl bg-[var(--tab-bg)]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start gap-3 px-4 py-3.5 text-left active:opacity-90"
+        className="flex w-full items-start gap-3 px-3.5 py-3 text-left active:opacity-90"
         aria-expanded={open}
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <p className="truncate text-[15px] font-semibold">{headline}</p>
+            <p className="truncate text-[14px] font-semibold">{headline}</p>
             <ChevronDown
               className={cn(
                 "size-3.5 shrink-0 text-[var(--tab-muted)] transition-transform duration-200",
@@ -272,7 +270,7 @@ function PurchaseRow({
             {row.receiptNo != null ? <span> · #{row.receiptNo}</span> : null}
           </p>
         </div>
-        <p className="shrink-0 text-[15px] font-semibold tabular-nums">
+        <p className="shrink-0 text-[14px] font-semibold tabular-nums">
           {fmtMoney(row.creditAmount, currency)}
         </p>
       </button>
@@ -285,7 +283,7 @@ function PurchaseRow({
       >
         <div className="overflow-hidden">
           {lines.length > 0 ? (
-            <ul className="space-y-2 border-t border-[var(--tab-border)] px-4 py-3.5">
+            <ul className="space-y-2 border-t border-[var(--tab-border)] px-3.5 py-3">
               {lines.map((line, i) => (
                 <li
                   key={`${row.saleId}-${i}`}
@@ -370,7 +368,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [payPhone, setPayPhone] = useState(phone);
   const [editingPhone, setEditingPhone] = useState(false);
   const [payMode, setPayMode] = useState<PayMode>("stk");
-  const [appScreen, setAppScreen] = useState<AppScreen>("pay");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [reference, setReference] = useState("");
   const [manualSubmitted, setManualSubmitted] = useState(false);
   const [manualBalanceAtSubmit, setManualBalanceAtSubmit] = useState<
@@ -463,7 +461,6 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           setPaid(true);
           setStatusMsg("Payment received — asante!");
           setPromptSent(false);
-          setAppScreen("pay");
           void reload();
           return;
         }
@@ -700,16 +697,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 {fmtMoney(owed, currency)}
               </p>
               {tabStats.purchaseCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setAppScreen("purchases")}
-                  className="mt-2.5 text-left text-[13px] text-[var(--tab-muted)] underline-offset-2 transition hover:underline"
-                >
+                <p className="mt-2.5 text-[13px] text-[var(--tab-muted)]">
                   {tabStats.purchaseCount} purchase
                   {tabStats.purchaseCount === 1 ? "" : "s"}
                   {" · "}
                   {fmtMoney(tabStats.totalCredit, currency)} total spent to date
-                </button>
+                </p>
               ) : (
                 <p className="mt-2.5 text-[13px] text-[var(--tab-muted)]">
                   No purchases on this tab yet
@@ -756,42 +749,8 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               </div>
             ) : null}
 
-            {/* Purchases screen */}
-            {appScreen === "purchases" ? (
-              <section className="mt-1 space-y-3 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-250">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAppScreen("pay")}
-                    className="flex size-9 items-center justify-center rounded-full border border-[var(--tab-border)] bg-[var(--tab-card)]"
-                    aria-label="Back to pay"
-                  >
-                    <ArrowLeft className="size-4" />
-                  </button>
-                  <h2 className="text-lg font-bold tracking-tight">
-                    Purchases
-                  </h2>
-                </div>
-                {purchaseCount === 0 ? (
-                  <p className="rounded-2xl border border-dashed border-[var(--tab-border)] py-12 text-center text-sm text-[var(--tab-muted)]">
-                    No credit purchases yet
-                  </p>
-                ) : (
-                  <ul className="space-y-2.5">
-                    {tab!.purchases.map((row) => (
-                      <PurchaseRow
-                        key={row.saleId}
-                        row={row}
-                        currency={currency}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            ) : null}
-
-            {/* Pay screen */}
-            {appScreen === "pay" && showPay ? (
+            {/* Pay section */}
+            {showPay ? (
               <section className="mt-2 space-y-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300">
                 <h2 className="text-lg font-bold tracking-tight">
                   Pay to {payToName}
@@ -1061,10 +1020,56 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               </section>
             ) : null}
 
-            {appScreen === "pay" && !showPay && owed <= 0 ? (
-              <p className="py-6 text-center text-sm text-[var(--tab-muted)]">
-                Tap purchases above to review your history.
-              </p>
+            {/* Purchase history — expandable at bottom */}
+            {purchaseCount > 0 ? (
+              <section className="mt-2 overflow-hidden rounded-2xl border border-[var(--tab-border)] bg-[var(--tab-card)]">
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen((open) => !open)}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left active:opacity-90"
+                  aria-expanded={historyOpen}
+                >
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-bold tracking-tight">
+                      Purchase history
+                    </p>
+                    <p className="mt-0.5 text-[12px] text-[var(--tab-muted)]">
+                      {purchaseCount} purchase
+                      {purchaseCount === 1 ? "" : "s"}
+                      {tabStats.lastPurchaseAt
+                        ? ` · last ${fmtRelativeVisit(tabStats.lastPurchaseAt).toLowerCase()}`
+                        : null}
+                    </p>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      "size-5 shrink-0 text-[var(--tab-muted)] transition-transform duration-200",
+                      historyOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                <div
+                  className={cn(
+                    "grid transition-[grid-template-rows,opacity] duration-250 ease-out",
+                    historyOpen
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0",
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <ul className="space-y-2 border-t border-[var(--tab-border)] px-3 py-3">
+                      {tab!.purchases.map((row) => (
+                        <PurchaseRow
+                          key={row.saleId}
+                          row={row}
+                          currency={currency}
+                        />
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </section>
             ) : null}
           </main>
         )}
