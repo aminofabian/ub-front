@@ -16,7 +16,7 @@ export type ThemedConfirmToastOptions = {
 };
 
 const toastCardClass =
-  "pointer-events-auto w-full max-w-md rounded-2xl border border-border/80 bg-card px-6 py-5 text-center shadow-lg ring-1 ring-black/[0.04] dark:ring-white/[0.06]";
+  "pointer-events-auto w-full max-w-md rounded-none border border-border/60 bg-card px-6 py-5 text-center shadow-lg";
 
 const themedToastClassNames = {
   toast:
@@ -41,30 +41,38 @@ function ConfirmToastCard({
   onConfirm: () => void;
 }) {
   return (
-    <div
-      className={cn(toastCardClass, "border-t-[3px] border-t-primary")}
-      role="alertdialog"
-      aria-labelledby="confirm-toast-title"
-      aria-describedby="confirm-toast-desc"
-    >
-      <p
-        id="confirm-toast-title"
-        className="font-heading text-xl font-semibold tracking-tight text-foreground"
-      >
-        {title}
-      </p>
-      <p
-        id="confirm-toast-desc"
-        className="mt-2 whitespace-pre-line font-sans text-sm leading-relaxed text-muted-foreground"
-      >
-        {description}
-      </p>
-      <ConfirmToastCardActions
-        confirmLabel={confirmLabel}
-        confirmVariant={confirmVariant}
-        onCancel={onCancel}
-        onConfirm={onConfirm}
+    <div className="pointer-events-auto fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/30"
+        aria-label="Dismiss"
+        onClick={onCancel}
       />
+      <div
+        className={cn(toastCardClass, "relative z-10")}
+        role="alertdialog"
+        aria-labelledby="confirm-toast-title"
+        aria-describedby="confirm-toast-desc"
+      >
+        <p
+          id="confirm-toast-title"
+          className="font-heading text-xl font-semibold tracking-tight text-foreground"
+        >
+          {title}
+        </p>
+        <p
+          id="confirm-toast-desc"
+          className="mt-2 whitespace-pre-line font-sans text-sm leading-relaxed text-muted-foreground"
+        >
+          {description}
+        </p>
+        <ConfirmToastCardActions
+          confirmLabel={confirmLabel}
+          confirmVariant={confirmVariant}
+          onCancel={onCancel}
+          onConfirm={onConfirm}
+        />
+      </div>
     </div>
   );
 }
@@ -115,7 +123,13 @@ export function showThemedConfirmToast({
         }}
       />
     ),
-    { id, duration: Infinity, position: "top-center" },
+    {
+      id,
+      duration: Infinity,
+      position: "top-center",
+      unstyled: true,
+      className: "!m-0 !w-full !max-w-none !transform-none",
+    },
   );
 }
 

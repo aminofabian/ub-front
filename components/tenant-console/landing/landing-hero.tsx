@@ -23,21 +23,39 @@ const SCREENSHOT = {
 } as const;
 
 const CAPABILITIES = [
-  { code: "01", label: "Scan to sell", detail: "Product barcodes" },
-  { code: "02", label: "M-Pesa", detail: "STK on their phone" },
-  { code: "03", label: "Cash / split", detail: "Print the receipt" },
+  {
+    code: "01",
+    label: "Scan to sell",
+    shortLabel: "Scan",
+    detail: "Product barcodes",
+    shortDetail: "Barcodes",
+  },
+  {
+    code: "02",
+    label: "M-Pesa",
+    shortLabel: "M-Pesa",
+    detail: "STK on their phone",
+    shortDetail: "STK push",
+  },
+  {
+    code: "03",
+    label: "Cash / split",
+    shortLabel: "Cash",
+    detail: "Print the receipt",
+    shortDetail: "Receipts",
+  },
 ] as const;
 
 const heroPrimaryCtaClass = `${goldCtaClass} shadow-[0_1px_2px_rgba(20,20,18,0.06),0_4px_14px_-2px_var(--kiosk-success-shadow)]`;
 
 export function LandingHero({ onCreateShop }: LandingHeroProps) {
   return (
-    <section className="relative isolate overflow-x-hidden bg-[var(--kiosk-bg)] px-4 pb-12 pt-8 sm:px-10 sm:pb-24 sm:pt-16 md:min-h-[min(100vh,920px)] md:pb-28 md:pt-20 lg:px-14 lg:pb-32">
+    <section className="landing-hero relative isolate flex min-h-[calc(100svh-5.25rem)] flex-col overflow-x-hidden bg-[var(--kiosk-bg)] px-4 pb-10 pt-6 sm:min-h-[calc(100svh-5.7rem)] sm:px-10 sm:pb-16 sm:pt-12 lg:px-14 lg:pb-20 lg:pt-14">
       <HeroAtmosphere />
 
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-[1] opacity-40"
+        className="pointer-events-none absolute inset-0 z-[1] opacity-40 max-md:opacity-25"
         style={{
           backgroundImage: `repeating-linear-gradient(
             0deg,
@@ -53,15 +71,15 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
         }}
       />
 
-      <div className="relative z-10 mx-auto w-full max-w-[1280px]">
-        <div className="flex flex-col gap-8 sm:gap-24 lg:grid lg:grid-cols-12 lg:items-end lg:gap-x-16 lg:gap-y-0 xl:gap-x-24">
-          <div className="relative z-20 flex min-w-0 flex-col max-lg:bg-[color-mix(in_srgb,var(--kiosk-bg)_92%,transparent)] max-lg:pb-1 lg:col-span-5 lg:bg-transparent lg:pb-16 lg:pl-2 xl:col-span-5">
+      <div className="relative z-10 mx-auto flex w-full max-w-[1280px] flex-1 flex-col justify-center">
+        <div className="flex flex-col gap-6 sm:gap-14 lg:grid lg:grid-cols-12 lg:items-center lg:gap-x-14 xl:gap-x-20">
+          <div className="relative z-20 order-1 flex min-w-0 flex-col max-lg:bg-[color-mix(in_srgb,var(--kiosk-bg)_88%,transparent)] lg:col-span-5 lg:bg-transparent lg:pl-2 xl:col-span-5">
             <div
               aria-hidden
               className="absolute -left-1 top-0 hidden h-full w-px bg-gradient-to-b from-transparent via-[var(--kiosk-gold)]/35 to-transparent lg:-left-4 lg:block"
             />
 
-            <p className="landing-reveal landing-hero-eyebrow mb-6 max-w-full sm:mb-11">
+            <p className="landing-reveal landing-hero-eyebrow mb-4 max-w-full sm:mb-8">
               <span className="landing-hero-eyebrow-stub" aria-hidden>
                 <span className="landing-hero-eyebrow-scan">
                   <span />
@@ -85,30 +103,36 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
               </span>
             </p>
 
-            <h1 className="landing-reveal landing-reveal-delay-1 mb-5 font-heading text-[clamp(1.75rem,8.2vw,4.5rem)] leading-[1.08] tracking-[-0.04em] text-[var(--kiosk-text)] sm:mb-10 md:mb-12">
+            <h1 className="landing-reveal landing-reveal-delay-1 mb-3 font-heading text-[clamp(1.9rem,8.4vw,4rem)] leading-[1.05] tracking-[-0.04em] text-[var(--kiosk-text)] sm:mb-7">
               Your counter deserves a till
               <br />
-              <span className="relative mt-1 inline-block">
+              <span className="relative mt-0.5 inline-block sm:mt-1">
                 <span className="bg-gradient-to-r from-[#20863B] via-[var(--kiosk-gold)] to-[#32B85A] bg-clip-text text-transparent">
                   that works as hard as you do.
                 </span>
                 <span
                   aria-hidden
-                  className="absolute -bottom-2 left-0 h-px w-full max-w-[14rem] bg-gradient-to-r from-[var(--kiosk-gold)]/70 to-transparent"
+                  className="absolute -bottom-1.5 left-0 h-px w-full max-w-[12rem] bg-gradient-to-r from-[var(--kiosk-gold)]/70 to-transparent sm:-bottom-2 sm:max-w-[14rem]"
                 />
               </span>
             </h1>
 
-            <p className="landing-reveal landing-reveal-delay-2 mb-8 max-w-[26rem] text-[15px] leading-[1.7] text-[var(--kiosk-text-muted)] sm:mb-14 sm:text-[17px] md:mb-16 lg:max-w-[28rem]">
-              Kiosk is the point of sale, inventory, and online storefront for
-              Kenyan shops — scan barcodes, take M-Pesa at the counter, and keep
-              selling when the network drops.
+            <p className="landing-reveal landing-reveal-delay-2 mb-5 max-w-[26rem] text-[14px] leading-[1.55] text-[var(--kiosk-text-muted)] sm:mb-10 sm:text-[17px] sm:leading-[1.7] lg:max-w-[28rem]">
+              <span className="md:hidden">
+                Scan barcodes, take M-Pesa at the counter, and keep selling when
+                the network drops.
+              </span>
+              <span className="hidden md:inline">
+                Kiosk is the point of sale, inventory, and online storefront for
+                Kenyan shops — scan barcodes, take M-Pesa at the counter, and
+                keep selling when the network drops.
+              </span>
             </p>
 
-            <div className="landing-reveal landing-reveal-delay-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+            <div className="landing-reveal landing-reveal-delay-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4">
               <button
                 type="button"
-                className={`${heroPrimaryCtaClass} w-full justify-center font-medium sm:w-auto`}
+                className={`${heroPrimaryCtaClass} w-full justify-center px-5 py-3.5 font-medium sm:w-auto sm:px-6 sm:py-3`}
                 onClick={onCreateShop}
               >
                 Get Kiosk free
@@ -116,59 +140,55 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
               </button>
               <a
                 href="#how"
-                className={`${ghostCtaClass} w-full justify-center sm:w-auto`}
+                className={`${ghostCtaClass} w-full justify-center px-5 py-3.5 sm:w-auto sm:px-6 sm:py-3`}
               >
                 See how it works
               </a>
             </div>
 
-            <div className="landing-hero-stats-row landing-reveal landing-reveal-delay-4 mt-8 border-t border-[var(--kiosk-border-soft)] pt-6 lg:hidden">
-              <div className="landing-hero-stat">
-                <span className="landing-hero-stat-value">Free</span>
-                <span className="landing-hero-stat-label">to start</span>
-              </div>
-              <div className="landing-hero-stat">
-                <span className="landing-hero-stat-value">10 min</span>
-                <span className="landing-hero-stat-label">setup</span>
-              </div>
-              <div className="landing-hero-stat">
-                <span className="landing-hero-stat-value">M-Pesa</span>
-                <span className="landing-hero-stat-label">built in</span>
-              </div>
+            <div className="landing-hero-stats-row landing-reveal landing-reveal-delay-4 mt-8 hidden border-t border-[var(--kiosk-border-soft)] pt-8 lg:mt-10 lg:grid lg:pt-8">
+              <HeroStats />
             </div>
 
-            <div className="landing-reveal landing-reveal-delay-4 mt-16 hidden border-t border-[var(--kiosk-border-soft)] pt-12 lg:block">
-              <div className="mb-10 flex gap-8">
-                <div className="landing-hero-stat">
-                  <span className="landing-hero-stat-value">Free</span>
-                  <span className="landing-hero-stat-label">to start</span>
-                </div>
-                <div className="landing-hero-stat">
-                  <span className="landing-hero-stat-value">&lt; 10 min</span>
-                  <span className="landing-hero-stat-label">setup</span>
-                </div>
-                <div className="landing-hero-stat">
-                  <span className="landing-hero-stat-value">M-Pesa</span>
-                  <span className="landing-hero-stat-label">built in</span>
-                </div>
-              </div>
-              <ul className="landing-hero-trust">
-                {TRUST_SIGNALS.map((text) => (
-                  <li key={text} className="landing-hero-trust-item">
-                    <span className="landing-hero-trust-rule" aria-hidden />
-                    <span>{text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <ul className="landing-hero-trust landing-reveal landing-reveal-delay-4 mt-6 hidden flex-col lg:flex">
+              {TRUST_SIGNALS.map((text) => (
+                <li key={text} className="landing-hero-trust-item">
+                  <span className="landing-hero-trust-rule" aria-hidden />
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <div className="landing-reveal landing-reveal-delay-2 relative z-10 -mx-1 min-w-0 max-lg:mt-1 lg:col-span-7 lg:mx-0 lg:pb-8 lg:pt-10 xl:col-span-7">
+          <div className="landing-reveal landing-reveal-delay-2 relative z-10 order-2 -mx-4 min-w-0 sm:-mx-1 lg:order-none lg:col-span-7 lg:mx-0 xl:col-span-7">
             <HeroCreativeStage />
+          </div>
+
+          <div className="landing-hero-stats-row landing-reveal landing-reveal-delay-4 order-3 mt-1 grid border-t border-[var(--kiosk-border-soft)] pt-5 lg:hidden">
+            <HeroStats />
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function HeroStats() {
+  return (
+    <>
+      <div className="landing-hero-stat">
+        <span className="landing-hero-stat-value">Free</span>
+        <span className="landing-hero-stat-label">to start</span>
+      </div>
+      <div className="landing-hero-stat">
+        <span className="landing-hero-stat-value">&lt; 10 min</span>
+        <span className="landing-hero-stat-label">setup</span>
+      </div>
+      <div className="landing-hero-stat">
+        <span className="landing-hero-stat-value">M-Pesa</span>
+        <span className="landing-hero-stat-label">built in</span>
+      </div>
+    </>
   );
 }
 
@@ -178,6 +198,30 @@ function HeroAtmosphere() {
       aria-hidden
       className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
     >
+      <div className="absolute inset-x-0 top-0 h-[42%] opacity-[0.42] md:hidden">
+        <div className="hero-backdrop-drift relative h-full w-full">
+          <Image
+            src={SCREENSHOT.src}
+            alt=""
+            fill
+            className="object-cover object-left-top blur-2xl saturate-[1.12] contrast-[1.03]"
+            sizes="100vw"
+            priority
+          />
+        </div>
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(
+              180deg,
+              color-mix(in srgb, var(--kiosk-bg) 35%, transparent) 0%,
+              color-mix(in srgb, var(--kiosk-bg) 78%, transparent) 55%,
+              var(--kiosk-bg) 100%
+            )`,
+          }}
+        />
+      </div>
+
       <div className="absolute -right-[14%] top-[6%] hidden h-[min(70vh,640px)] w-[min(92%,920px)] md:block md:-right-[10%] md:top-[10%] md:h-[min(72vh,720px)]">
         <div className="hero-backdrop-drift relative h-full w-full opacity-[0.58] sm:opacity-[0.62] md:opacity-[0.68]">
           <Image
@@ -222,26 +266,14 @@ function HeroAtmosphere() {
           )`,
         }}
       />
-
-      <div
-        className="absolute inset-0 md:hidden"
-        style={{
-          background: `linear-gradient(
-            180deg,
-            var(--kiosk-bg) 0%,
-            var(--kiosk-bg) 50%,
-            color-mix(in srgb, var(--kiosk-bg) 88%, transparent) 100%
-          )`,
-        }}
-      />
     </div>
   );
 }
 
 function HeroCreativeStage() {
   return (
-    <div className="flex flex-col gap-6 sm:gap-8 lg:gap-10">
-      <ul className="landing-hero-caps hidden lg:grid lg:grid-cols-3">
+    <div className="flex flex-col gap-4 sm:gap-6 lg:gap-7">
+      <ul className="landing-hero-caps hidden xl:grid xl:grid-cols-3">
         {CAPABILITIES.map((cap) => (
           <li key={cap.code} className="landing-hero-cap">
             <span className="landing-hero-cap-code">{cap.code}</span>
@@ -254,16 +286,21 @@ function HeroCreativeStage() {
       </ul>
 
       <div className="relative px-0 sm:px-2 lg:px-0">
-        <div className="mb-3 flex items-baseline justify-between gap-4 lg:mb-4">
-          <p className="hidden text-[13px] text-[var(--kiosk-text-dim)] lg:block">
+        <div className="mb-3 hidden items-baseline justify-between gap-4 xl:mb-4 xl:flex">
+          <p className="text-[13px] text-[var(--kiosk-text-dim)]">
             The screen we use behind the counter every day
           </p>
-          <p className="hidden font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--kiosk-text-faint)] lg:block">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--kiosk-text-faint)]">
             Live till · offline ready
           </p>
         </div>
 
-        <div className="hero-stage-tilt relative z-10 mx-auto w-full max-w-[min(100%,400px)] sm:max-w-[520px] lg:mr-0 lg:max-w-none">
+        <p className="mb-2.5 flex items-baseline justify-between gap-3 px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)] sm:px-0 xl:hidden">
+          <span>Live till</span>
+          <span>Offline ready</span>
+        </p>
+
+        <div className="hero-stage-tilt relative z-10 mx-auto w-full max-w-none sm:max-w-[520px] lg:mr-0 lg:max-w-none">
           <div
             aria-hidden
             className="absolute inset-0 hidden translate-x-[5%] translate-y-[6%] overflow-hidden border border-[var(--kiosk-border-soft)] opacity-30 sm:block"
@@ -278,8 +315,8 @@ function HeroCreativeStage() {
             />
           </div>
 
-          <div className="hero-border-glow p-px">
-            <div className="hero-premium-frame relative overflow-hidden border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)]">
+          <div className="hero-border-glow p-px max-md:rounded-none">
+            <div className="hero-premium-frame relative overflow-hidden border border-[var(--kiosk-border)] border-x-0 bg-[var(--kiosk-elevated)] sm:border-x">
               <Image
                 src={SCREENSHOT.src}
                 alt="Kiosk point of sale built by shop owners — scan, M-Pesa STK, and in-store checkout"
@@ -296,13 +333,19 @@ function HeroCreativeStage() {
         </div>
       </div>
 
-      <ul className="landing-hero-caps grid grid-cols-1 sm:grid-cols-3 lg:hidden">
+      <ul className="landing-hero-caps landing-hero-caps--mobile mx-4 grid grid-cols-3 sm:mx-0 xl:hidden">
         {CAPABILITIES.map((cap) => (
           <li key={cap.code} className="landing-hero-cap">
             <span className="landing-hero-cap-code">{cap.code}</span>
             <div className="min-w-0">
-              <p className="landing-hero-cap-label">{cap.label}</p>
-              <p className="landing-hero-cap-detail">{cap.detail}</p>
+              <p className="landing-hero-cap-label">
+                <span className="sm:hidden">{cap.shortLabel}</span>
+                <span className="hidden sm:inline">{cap.label}</span>
+              </p>
+              <p className="landing-hero-cap-detail">
+                <span className="sm:hidden">{cap.shortDetail}</span>
+                <span className="hidden sm:inline">{cap.detail}</span>
+              </p>
             </div>
           </li>
         ))}

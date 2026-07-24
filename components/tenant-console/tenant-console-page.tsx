@@ -7,6 +7,7 @@ import { LandingFeatures } from "./landing/landing-features";
 import { LandingFindShopModal } from "./landing/landing-find-shop-modal";
 import { LandingFooter } from "./landing/landing-footer";
 import { LandingHero } from "./landing/landing-hero";
+import { LandingHeroLogos } from "./landing/landing-hero-logos";
 import { LandingHowItWorks } from "./landing/landing-how-it-works";
 import { LandingNav } from "./landing/landing-nav";
 import { LandingPricing } from "./landing/landing-pricing";
@@ -41,7 +42,7 @@ export function TenantConsolePage() {
 
       <main>
         <LandingHero onCreateShop={openSignup} />
-
+        <LandingHeroLogos />
         <LandingTrustBar />
         <LandingFeatures />
         <LandingHowItWorks />
