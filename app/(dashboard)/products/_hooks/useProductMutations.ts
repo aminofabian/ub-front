@@ -1290,6 +1290,73 @@ export function useProductMutations(d: Dependencies) {
     ],
   );
 
+  const onBulkChangeItemType = useCallback(
+    async (nextItemTypeId: string): Promise<boolean> => {
+      if (rowSelection.size === 0) {
+        setMessage("Select products first.");
+        return false;
+      }
+      if (!canCatalogWrite) {
+        setMessage("You do not have permission to edit products.");
+        return false;
+      }
+      const tid = nextItemTypeId.trim();
+      if (!tid) {
+        setMessage("Pick a department.");
+        return false;
+      }
+      const known = itemTypes.find((t) => t.id === tid);
+      if (!known) {
+        setMessage("Selected department no longer exists.");
+        return false;
+      }
+
+      const ids = [...rowSelection];
+      const byId = new Map(listRows.map((r) => [r.id, r]));
+      setChangeItemTypeBusy(true);
+      setMessage("");
+      const failed: string[] = [];
+      try {
+        for (const id of ids) {
+          try {
+            await patchItem(id, { itemTypeId: tid });
+          } catch {
+            failed.push(byId.get(id)?.name ?? id);
+          }
+        }
+        // List is department-scoped; moved rows may leave the current filter.
+        await refreshFullCatalog();
+        if (selectedId && rowSelection.has(selectedId)) {
+          await refreshSelectedDetail();
+        }
+        setRowSelection(new Set());
+        if (failed.length === 0) {
+          setMessage(
+            `Moved ${ids.length} item${ids.length === 1 ? "" : "s"} to ${known.label}.`,
+          );
+          return true;
+        }
+        setMessage(
+          `Partial success. Failed: ${failed.join(", ")}`,
+        );
+        return failed.length < ids.length;
+      } finally {
+        setChangeItemTypeBusy(false);
+      }
+    },
+    [
+      rowSelection,
+      canCatalogWrite,
+      itemTypes,
+      listRows,
+      refreshFullCatalog,
+      selectedId,
+      refreshSelectedDetail,
+      setRowSelection,
+      setMessage,
+    ],
+  );
+
   return {
     suppliersForLink,
     suppliersLoading,
@@ -1333,6 +1400,7 @@ export function useProductMutations(d: Dependencies) {
     packageCreateBusy,
     onCreatePackages,
     onChangeItemType,
+    onBulkChangeItemType,
     changeItemTypeBusy,
     onToggleWeighed,
     weighedBusy,

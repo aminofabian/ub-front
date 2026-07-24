@@ -22,6 +22,11 @@ type Props = {
   itemTypes: ItemTypeRecord[];
   currentItemTypeId: string | null;
   busy?: boolean;
+  /**
+   * When set, copy switches to bulk wording (e.g. "12 selected items").
+   * Omit for single-product moves from the detail panel.
+   */
+  selectionCount?: number;
   /** Persists the new department. Resolve to true to close the modal. */
   onSave: (nextItemTypeId: string) => Promise<boolean>;
 };
@@ -33,15 +38,17 @@ export function ChangeItemTypeModal({
   itemTypes,
   currentItemTypeId,
   busy = false,
+  selectionCount,
   onSave,
 }: Props) {
   const [selected, setSelected] = useState<string>(currentItemTypeId ?? "");
+  const isBulk = selectionCount != null && selectionCount > 0;
 
-  // Reset selection whenever the dialog reopens for a different product.
+  // Reset selection whenever the dialog reopens for a different product/selection.
   useEffect(() => {
     if (!open) return;
     setSelected(currentItemTypeId ?? "");
-  }, [open, currentItemTypeId]);
+  }, [open, currentItemTypeId, selectionCount]);
 
   const sorted = useMemo(
     () =>
@@ -57,10 +64,11 @@ export function ChangeItemTypeModal({
   );
 
   const currentLabel =
-    itemTypes.find((t) => t.id === currentItemTypeId)?.label?.trim() ||
-    "Unassigned";
+    itemTypes.find((t) => t.id === currentItemTypeId)?.label?.trim() || null;
 
-  const changed = selected.trim() && selected !== currentItemTypeId;
+  const hasPick = Boolean(selected.trim());
+  const changed =
+    hasPick && (currentItemTypeId == null || selected !== currentItemTypeId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +76,10 @@ export function ChangeItemTypeModal({
     const ok = await onSave(selected);
     if (ok) onOpenChange(false);
   };
+
+  const subjectLabel = isBulk
+    ? `${selectionCount.toLocaleString()} selected item${selectionCount === 1 ? "" : "s"}`
+    : productName;
 
   return (
     <Dialog open={open} onOpenChange={(o) => (busy ? null : onOpenChange(o))}>
@@ -83,11 +95,16 @@ export function ChangeItemTypeModal({
             </DialogTitle>
             <DialogDescription>
               Move{" "}
-              <span className="font-medium text-foreground">{productName}</span>{" "}
-              to a different department. Currently{" "}
-              <span className="font-medium text-foreground">
-                {currentLabel}
-              </span>
+              <span className="font-medium text-foreground">{subjectLabel}</span>{" "}
+              to a different department
+              {currentLabel ? (
+                <>
+                  . Currently{" "}
+                  <span className="font-medium text-foreground">
+                    {currentLabel}
+                  </span>
+                </>
+              ) : null}
               .
             </DialogDescription>
           </DialogHeader>
@@ -96,7 +113,7 @@ export function ChangeItemTypeModal({
             {sorted.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border/50 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
                 No departments exist yet. Create one from the catalog settings
-                before changing this product.
+                before moving products.
               </div>
             ) : (
               <ul className="space-y-2">

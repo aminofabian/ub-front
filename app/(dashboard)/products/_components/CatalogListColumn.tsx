@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Trash2, X } from "lucide-react";
+import { Layers, Loader2, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,9 @@ type Props = {
   isRowActive: (row: ItemSummaryRecord) => boolean;
   canCatalogWrite: boolean;
   bulkDeleteBusy: boolean;
+  bulkChangeDepartmentBusy?: boolean;
   onBulkDelete: () => void | Promise<void>;
+  onBulkChangeDepartment?: () => void;
   onAddFromCatalog?: () => void;
   canAddFromCatalog?: boolean;
 };
@@ -48,12 +50,15 @@ export function CatalogListColumn({
   isRowActive,
   canCatalogWrite,
   bulkDeleteBusy,
+  bulkChangeDepartmentBusy = false,
   onBulkDelete,
+  onBulkChangeDepartment,
   onAddFromCatalog,
   canAddFromCatalog = false,
 }: Props) {
   const selectionCount = catalog.rowSelection.size;
   const hasSelection = selectionCount > 0;
+  const selectionBusy = bulkDeleteBusy || bulkChangeDepartmentBusy;
   const listBodyRef = useRef<VirtualizedCatalogBodyHandle>(null);
   const pendingScrollIndexRef = useRef<number | null>(null);
   const [activeLetter, setActiveLetter] = useState<CatalogLetterKey | null>(
@@ -166,13 +171,30 @@ export function CatalogListColumn({
             {selectionCount} selected
           </span>
           <div className="flex items-center gap-1">
+            {canCatalogWrite && onBulkChangeDepartment ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1 border px-2 text-xs"
+                disabled={selectionBusy}
+                onClick={onBulkChangeDepartment}
+              >
+                {bulkChangeDepartmentBusy ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Layers className="size-3.5" aria-hidden />
+                )}
+                Change department
+              </Button>
+            ) : null}
             {canCatalogWrite ? (
               <Button
                 type="button"
                 size="sm"
                 variant="destructive"
                 className="h-7 gap-1 border px-2 text-xs"
-                disabled={bulkDeleteBusy}
+                disabled={selectionBusy}
                 onClick={() => void onBulkDelete()}
               >
                 {bulkDeleteBusy ? (
@@ -188,7 +210,7 @@ export function CatalogListColumn({
               size="sm"
               variant="ghost"
               className="h-7 gap-1 rounded-md px-2 text-xs"
-              disabled={bulkDeleteBusy}
+              disabled={selectionBusy}
               onClick={() => catalog.setRowSelection(new Set())}
             >
               <X className="size-3.5" aria-hidden />

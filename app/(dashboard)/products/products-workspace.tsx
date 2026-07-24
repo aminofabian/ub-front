@@ -95,6 +95,9 @@ export function ProductsWorkspace() {
   );
   const [packageModalOpen, setPackageModalOpen] = useState(false);
   const [changeItemTypeOpen, setChangeItemTypeOpen] = useState(false);
+  const [changeItemTypeMode, setChangeItemTypeMode] = useState<
+    "single" | "bulk"
+  >("single");
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [variantParentPickBusy, setVariantParentPickBusy] = useState(false);
 
@@ -335,7 +338,10 @@ export function ProductsWorkspace() {
       ? () => void openBaseStock()
       : undefined,
     onOpenChangeItemType: canCatalogWrite
-      ? () => setChangeItemTypeOpen(true)
+      ? () => {
+          setChangeItemTypeMode("single");
+          setChangeItemTypeOpen(true);
+        }
       : undefined,
     onOpenAddVariant: canCatalogWrite ? handleOpenAddVariant : undefined,
     itemTypeLabel:
@@ -442,7 +448,16 @@ export function ProductsWorkspace() {
                 isRowActive={isListRowActive}
                 canCatalogWrite={canCatalogWrite}
                 bulkDeleteBusy={m.bulkDeleteBusy}
+                bulkChangeDepartmentBusy={m.changeItemTypeBusy}
                 onBulkDelete={m.onBulkDeleteSelected}
+                onBulkChangeDepartment={
+                  canCatalogWrite
+                    ? () => {
+                        setChangeItemTypeMode("bulk");
+                        setChangeItemTypeOpen(true);
+                      }
+                    : undefined
+                }
                 onAddFromCatalog={
                   canGlobalCatalog
                     ? () => router.push(APP_ROUTES.productsCatalog)
@@ -595,15 +610,29 @@ export function ProductsWorkspace() {
         />
       ) : null}
 
-      {D ? (
+      {changeItemTypeOpen &&
+      (changeItemTypeMode === "bulk" || D) ? (
         <ChangeItemTypeModal
           open={changeItemTypeOpen}
           onOpenChange={setChangeItemTypeOpen}
-          productName={D.name?.trim() || "Product"}
+          productName={D?.name?.trim() || "Product"}
           itemTypes={catalog.itemTypes}
-          currentItemTypeId={D.itemTypeId ?? null}
+          currentItemTypeId={
+            changeItemTypeMode === "bulk"
+              ? dashboardItemTypeId?.trim() || null
+              : (D?.itemTypeId ?? null)
+          }
+          selectionCount={
+            changeItemTypeMode === "bulk"
+              ? catalog.rowSelection.size
+              : undefined
+          }
           busy={m.changeItemTypeBusy}
-          onSave={(nextId) => m.onChangeItemType(nextId)}
+          onSave={(nextId) =>
+            changeItemTypeMode === "bulk"
+              ? m.onBulkChangeItemType(nextId)
+              : m.onChangeItemType(nextId)
+          }
         />
       ) : null}
 
