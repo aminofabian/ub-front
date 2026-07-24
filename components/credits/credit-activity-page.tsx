@@ -26,8 +26,10 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { useFormatMoney } from "@/hooks/use-format-money";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import {
+  fetchCreditsActivitySummary,
   fetchOutstandingTabs,
   fetchPaymentLedger,
+  type CreditsActivitySummaryRecord,
   type OutstandingTabRowRecord,
   type PaymentLedgerRow,
 } from "@/lib/api";
@@ -141,8 +143,12 @@ export function CreditActivityPage() {
   const [period, setPeriod] = useState<CreditPeriod>("today");
   const [rows, setRows] = useState<PaymentLedgerRow[]>([]);
   const [openTabs, setOpenTabs] = useState<OutstandingTabRowRecord[]>([]);
+  const [summary, setSummary] = useState<CreditsActivitySummaryRecord | null>(
+    null,
+  );
   const [listLoading, setListLoading] = useState(false);
   const [tabsLoading, setTabsLoading] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
@@ -209,6 +215,28 @@ export function CreditActivityPage() {
     }
   }, [canViewCustomers]);
 
+  const loadSummary = useCallback(async () => {
+    if (!canViewSalesIntelligence && !canViewCustomers) {
+      setSummary(null);
+      return;
+    }
+    setSummaryLoading(true);
+    try {
+      setSummary(
+        await fetchCreditsActivitySummary(dateRange.from, dateRange.to),
+      );
+    } catch {
+      setSummary(null);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [
+    canViewCustomers,
+    canViewSalesIntelligence,
+    dateRange.from,
+    dateRange.to,
+  ]);
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -217,14 +245,26 @@ export function CreditActivityPage() {
     void loadOpenTabs();
   }, [loadOpenTabs]);
 
-  const refreshAll = useCallback(async () => {
-    await Promise.all([load({ silent: true }), loadOpenTabs()]);
-  }, [load, loadOpenTabs]);
+  useEffect(() => {
+    void loadSummary();
+  }, [loadSummary]);
 
-  const openTabsTotal = useMemo(
-    () => openTabs.reduce((sum, row) => sum + toNum(row.balanceOwed), 0),
-    [openTabs],
-  );
+  const refreshAll = useCallback(async () => {
+    await Promise.all([
+      load({ silent: true }),
+      loadOpenTabs(),
+      loadSummary(),
+    ]);
+  }, [load, loadOpenTabs, loadSummary]);
+
+  const totalPaid = toNum(summary?.totalPaid);
+  const paymentCount = summary?.paymentCount ?? 0;
+  const totalOwed = useMemo(() => {
+    if (summary != null) return toNum(summary.totalOwed);
+    return openTabs.reduce((sum, row) => sum + toNum(row.balanceOwed), 0);
+  }, [summary, openTabs]);
+  const openTabCount =
+    summary?.openTabCount ?? openTabs.length;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -292,7 +332,7 @@ export function CreditActivityPage() {
           icon={CreditCard}
           eyebrow="Credit & tabs"
           title="On tab"
-          description="Credit sales for the period — and clear open tabs."
+          description="Charged this period, collected payments, and what’s still owed."
         />
         <div className="flex flex-wrap items-center gap-2">
           {canViewCustomers ? (
@@ -307,10 +347,12 @@ export function CreditActivityPage() {
             type="button"
             size="sm"
             variant="outline"
-            disabled={listLoading || refreshing || tabsLoading}
+            disabled={
+              listLoading || refreshing || tabsLoading || summaryLoading
+            }
             onClick={() => void refreshAll()}
           >
-            {refreshing || tabsLoading ? (
+            {refreshing || tabsLoading || summaryLoading ? (
               <Loader2 className="size-3.5 animate-spin" aria-hidden />
             ) : (
               <RefreshCw className="size-3.5" aria-hidden />
@@ -371,23 +413,72 @@ export function CreditActivityPage() {
           }}
           aria-hidden
         />
-        <div className="relative">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
-            Put on tab
-          </p>
-          <p className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">
-            {listLoading ? "…" : fmtKes(totalCredit)}
-          </p>
-          <p className="mt-2 max-w-xl text-sm text-stone-300">
-            {listLoading
-              ? "Loading credit tenders…"
-              : tabCount === 0
-                ? "Nothing put on credit in this period."
-                : `${tabCount} tab${tabCount === 1 ? "" : "s"} · ${peopleCount} ${peopleCount === 1 ? "person" : "people"} · avg ${fmtKes(avgTab)}`}
-          </p>
+        <div className="relative space-y-6">
+          <div className="grid gap-5 sm:grid-cols-3 sm:gap-6">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
+                Put on tab
+              </p>
+              <p className="mt-2 font-serif text-3xl tracking-tight sm:text-4xl">
+                {listLoading ? "…" : fmtKes(totalCredit)}
+              </p>
+              <p className="mt-1.5 text-xs text-stone-400">
+                {listLoading
+                  ? "Loading…"
+                  : tabCount === 0
+                    ? "Nothing charged this period"
+                    : `${tabCount} tab${tabCount === 1 ? "" : "s"} · ${peopleCount} ${peopleCount === 1 ? "person" : "people"}`}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400/80">
+                Paid
+              </p>
+              <p className="mt-2 font-serif text-3xl tracking-tight text-emerald-200 sm:text-4xl">
+                {summaryLoading && summary == null ? "…" : fmtKes(totalPaid)}
+              </p>
+              <p className="mt-1.5 text-xs text-stone-400">
+                {summaryLoading && summary == null
+                  ? "Loading…"
+                  : paymentCount === 0
+                    ? "No collections this period"
+                    : `${paymentCount} payment${paymentCount === 1 ? "" : "s"} collected`}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-400/80">
+                Total owed
+              </p>
+              <p className="mt-2 font-serif text-3xl tracking-tight text-amber-200 sm:text-4xl">
+                {summaryLoading && summary == null && tabsLoading
+                  ? "…"
+                  : fmtKes(totalOwed)}
+              </p>
+              <p className="mt-1.5 text-xs text-stone-400">
+                {summaryLoading && summary == null && tabsLoading
+                  ? "Loading…"
+                  : openTabCount === 0
+                    ? "All tabs settled"
+                    : `${openTabCount} open tab${openTabCount === 1 ? "" : "s"} right now`}
+              </p>
+            </div>
+          </div>
+
+          {listLoading ? null : tabCount === 0 ? (
+            <p className="text-sm text-stone-300">
+              Nothing put on credit in this period.
+            </p>
+          ) : (
+            <p className="text-sm text-stone-300">
+              Avg tab {fmtKes(avgTab)}
+              {peakHour && singleDay
+                ? ` · peak around ${peakHour.label}`
+                : null}
+            </p>
+          )}
 
           {singleDay && tabCount > 0 ? (
-            <div className="mt-5">
+            <div>
               <div
                 className="flex h-10 items-end gap-0.5"
                 role="img"
@@ -412,11 +503,6 @@ export function CreditActivityPage() {
                 <span>6p</span>
                 <span>11p</span>
               </div>
-              {peakHour ? (
-                <p className="mt-2 text-xs text-amber-200/90">
-                  Peak around {peakHour.label} · {fmtKes(peakHour.amount)}
-                </p>
-              ) : null}
             </div>
           ) : null}
         </div>
@@ -434,7 +520,7 @@ export function CreditActivityPage() {
                   ? "Loading balances…"
                   : openTabs.length === 0
                     ? "No outstanding balances"
-                    : `${openTabs.length} open · ${fmtKes(openTabsTotal)} owed`}
+                    : `${openTabs.length} open · ${fmtKes(totalOwed)} owed`}
               </p>
             </div>
             {!canReviewPaymentClaims && !canRemind ? (
@@ -677,6 +763,7 @@ export function CreditActivityPage() {
                 : row,
             );
           });
+          void loadSummary();
           setFeedback({
             kind: "success",
             text:

@@ -8243,6 +8243,24 @@ export async function fetchOutstandingTabs(
   );
 }
 
+/** Paid collections in range + live open-tab total for the credits board. */
+export type CreditsActivitySummaryRecord = {
+  totalPaid: number | string;
+  paymentCount: number;
+  totalOwed: number | string;
+  openTabCount: number;
+};
+
+export async function fetchCreditsActivitySummary(
+  from: string,
+  to: string,
+): Promise<CreditsActivitySummaryRecord> {
+  const params = new URLSearchParams({ from, to });
+  return request<CreditsActivitySummaryRecord>(
+    `/api/v1/credits/activity-summary?${params}`,
+  );
+}
+
 export async function fetchCustomerTabPurchases(
   customerId: string,
 ): Promise<TabPurchaseRowRecord[]> {
