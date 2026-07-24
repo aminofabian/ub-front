@@ -26,8 +26,10 @@ import {
   fetchSaleReceiptPdf,
   postVoidSale,
   refreshAccessToken,
+  sendCustomerPhoneVerification,
   setPosItemWeighed,
   tryPostSaleWithRetries,
+  verifyCustomerPhoneVerification,
   type CategoryTreeNodeRecord,
   type CustomerRecord,
   type ItemSummaryRecord,
@@ -702,8 +704,20 @@ export function QuickSaleWorkspace({
 
   const [customerSearchBusy, setCustomerSearchBusy] = useState(false);
   const [customerRegisterBusy, setCustomerRegisterBusy] = useState(false);
+  const [phoneVerificationSent, setPhoneVerificationSent] = useState(false);
+  const [phoneVerificationCode, setPhoneVerificationCode] = useState("");
+  const [phoneVerificationChannel, setPhoneVerificationChannel] = useState("");
+  const [phoneVerificationCooldownUntil, setPhoneVerificationCooldownUntil] =
+    useState(0);
   const stkConfirmedToastKey = useRef<string | null>(null);
   const lastStkLinkedPhoneRef = useRef<string | null>(null);
+
+  const resetPhoneVerification = useCallback(() => {
+    setPhoneVerificationSent(false);
+    setPhoneVerificationCode("");
+    setPhoneVerificationChannel("");
+    setPhoneVerificationCooldownUntil(0);
+  }, []);
 
   const notifyStkPaymentConfirmed = useCallback((checkoutId: string) => {
     const key = checkoutId.trim();
@@ -726,15 +740,17 @@ export function QuickSaleWorkspace({
     [updateActiveCart],
   );
   const setCustomerPhoneQuery = useCallback(
-    (s: string) =>
+    (s: string) => {
+      resetPhoneVerification();
       updateActiveCart({
         customerPhoneQuery: s,
         customerNoPhoneMatch: false,
         customerRegisterName: "",
         customerHits: [],
         selectedCustomer: null,
-      }),
-    [updateActiveCart],
+      });
+    },
+    [resetPhoneVerification, updateActiveCart],
   );
   const setCustomerRegisterName = useCallback(
     (s: string) => updateActiveCart({ customerRegisterName: s }),
@@ -1123,6 +1139,7 @@ export function QuickSaleWorkspace({
     }
     setCustomerSearchBusy(true);
     setError("");
+    resetPhoneVerification();
     try {
       const rows = await fetchCustomers(q);
       setCustomerHits(rows);
@@ -1146,13 +1163,75 @@ export function QuickSaleWorkspace({
     customerPhoneQuery,
     online,
     payMethod,
+    resetPhoneVerification,
     setCustomerHits,
     updateActiveCart,
+  ]);
+
+  const onSendPhoneVerification = useCallback(async () => {
+    const phone = customerPhoneQuery.trim();
+    const name = customerRegisterName.trim();
+    if (!phone) {
+      setError("Enter a phone number first.");
+      setNotice("");
+      return;
+    }
+    const phoneErr = customerPhoneValidationMessage(phone);
+    if (phoneErr) {
+      setError(phoneErr);
+      setNotice("");
+      return;
+    }
+    if (!name) {
+      setError("Enter the customer's name before sending a code.");
+      setNotice("");
+      return;
+    }
+    if (!online) {
+      setError("Go online to send a verification code.");
+      setNotice("");
+      return;
+    }
+    if (!canManageCustomers) {
+      setError("You do not have permission to register customers.");
+      setNotice("");
+      return;
+    }
+    if (Date.now() < phoneVerificationCooldownUntil) {
+      setError("Wait a moment before requesting another code.");
+      setNotice("");
+      return;
+    }
+    setCustomerRegisterBusy(true);
+    setError("");
+    try {
+      const sent = await sendCustomerPhoneVerification(phone);
+      setPhoneVerificationSent(true);
+      setPhoneVerificationCode("");
+      setPhoneVerificationChannel(sent.channel);
+      setPhoneVerificationCooldownUntil(Date.now() + 60_000);
+      setNotice(
+        `Code sent via ${sent.channel} to ${sent.maskedHint}. Ask the customer to read it aloud.`,
+      );
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not send verification code.",
+      );
+    } finally {
+      setCustomerRegisterBusy(false);
+    }
+  }, [
+    canManageCustomers,
+    customerPhoneQuery,
+    customerRegisterName,
+    online,
+    phoneVerificationCooldownUntil,
   ]);
 
   const onRegisterCustomer = useCallback(async () => {
     const phone = customerPhoneQuery.trim();
     const name = customerRegisterName.trim();
+    const code = phoneVerificationCode.trim();
     if (!phone) {
       setError("Enter a phone number first.");
       setNotice("");
@@ -1169,6 +1248,16 @@ export function QuickSaleWorkspace({
       setNotice("");
       return;
     }
+    if (!phoneVerificationSent) {
+      setError("Send a verification code first.");
+      setNotice("");
+      return;
+    }
+    if (!/^\d{6}$/.test(code)) {
+      setError("Enter the 6-digit verification code.");
+      setNotice("");
+      return;
+    }
     if (!online) {
       setError("Go online to register a customer.");
       setNotice("");
@@ -1182,9 +1271,11 @@ export function QuickSaleWorkspace({
     setCustomerRegisterBusy(true);
     setError("");
     try {
+      const verified = await verifyCustomerPhoneVerification(phone, code);
       const created = await createCustomer({
         name,
         phones: [{ phone, primary: true }],
+        phoneVerificationToken: verified.phoneVerificationToken,
       });
       setCustomerHits([created]);
       setSelectedCustomer(created);
@@ -1192,6 +1283,7 @@ export function QuickSaleWorkspace({
         customerNoPhoneMatch: false,
         customerRegisterName: "",
       });
+      resetPhoneVerification();
       setNotice(`${created.name} registered — tab ready for credit.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not register customer.");
@@ -1203,6 +1295,9 @@ export function QuickSaleWorkspace({
     customerPhoneQuery,
     customerRegisterName,
     online,
+    phoneVerificationCode,
+    phoneVerificationSent,
+    resetPhoneVerification,
     setCustomerHits,
     setSelectedCustomer,
     updateActiveCart,
@@ -3048,7 +3143,13 @@ export function QuickSaleWorkspace({
           setCustomerRegisterName,
           customerSearchBusy,
           customerRegisterBusy,
+          phoneVerificationSent,
+          phoneVerificationCode,
+          setPhoneVerificationCode,
+          phoneVerificationChannel,
+          phoneVerificationCooldownUntil,
           onSearchCustomers: () => void onSearchCustomers(),
+          onSendPhoneVerification: () => void onSendPhoneVerification(),
           onRegisterCustomer: () => void onRegisterCustomer(),
           selectedCustomer,
           setSelectedCustomer,

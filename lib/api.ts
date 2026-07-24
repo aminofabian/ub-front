@@ -8002,6 +8002,7 @@ export type CustomerPhoneRecord = {
   id: string;
   phone: string;
   primary: boolean;
+  verifiedAt?: string | null;
   createdAt: string;
 };
 
@@ -8031,7 +8032,45 @@ export type CreateCustomerPayload = {
   notes?: string | null;
   creditLimit?: number | string | null;
   phones: { phone: string; primary?: boolean | null }[];
+  phoneVerificationToken?: string | null;
 };
+
+export type SendCustomerPhoneVerificationResult = {
+  phone: string;
+  expiresAt: string;
+  channel: string;
+  maskedHint: string;
+};
+
+export type VerifyCustomerPhoneVerificationResult = {
+  phoneVerificationToken: string;
+  expiresAt: string;
+};
+
+export async function sendCustomerPhoneVerification(
+  phone: string,
+): Promise<SendCustomerPhoneVerificationResult> {
+  return request<SendCustomerPhoneVerificationResult>(
+    "/api/v1/customers/phone-verifications",
+    {
+      method: "POST",
+      body: { phone },
+    },
+  );
+}
+
+export async function verifyCustomerPhoneVerification(
+  phone: string,
+  code: string,
+): Promise<VerifyCustomerPhoneVerificationResult> {
+  return request<VerifyCustomerPhoneVerificationResult>(
+    "/api/v1/customers/phone-verifications/verify",
+    {
+      method: "POST",
+      body: { phone, code },
+    },
+  );
+}
 
 export async function fetchCustomers(
   phone?: string,

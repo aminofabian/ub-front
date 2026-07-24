@@ -127,7 +127,13 @@ export type CashierCartDrawerProps = {
   setCustomerRegisterName: (s: string) => void;
   customerSearchBusy: boolean;
   customerRegisterBusy: boolean;
+  phoneVerificationSent: boolean;
+  phoneVerificationCode: string;
+  setPhoneVerificationCode: (s: string) => void;
+  phoneVerificationChannel: string;
+  phoneVerificationCooldownUntil: number;
   onSearchCustomers: () => void;
+  onSendPhoneVerification: () => void;
   onRegisterCustomer: () => void;
   selectedCustomer: CustomerRecord | null;
   setSelectedCustomer: (c: CustomerRecord | null) => void;
@@ -270,7 +276,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     setCustomerRegisterName,
     customerSearchBusy,
     customerRegisterBusy,
+    phoneVerificationSent,
+    phoneVerificationCode,
+    setPhoneVerificationCode,
+    phoneVerificationChannel,
+    phoneVerificationCooldownUntil,
     onSearchCustomers,
+    onSendPhoneVerification,
     onRegisterCustomer,
     selectedCustomer,
     setSelectedCustomer,
@@ -833,29 +845,91 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 onChange={(e) =>
                                   setCustomerRegisterName(e.target.value)
                                 }
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    onRegisterCustomer();
-                                  }
-                                }}
                                 placeholder="Customer name"
-                                disabled={!online || customerRegisterBusy}
-                              />
-                              <Button
-                                type="button"
-                                className="h-11 w-full rounded-xl text-sm font-semibold"
                                 disabled={
                                   !online ||
                                   customerRegisterBusy ||
-                                  !customerRegisterName.trim()
+                                  phoneVerificationSent
                                 }
-                                onClick={onRegisterCustomer}
-                              >
-                                {customerRegisterBusy
-                                  ? "Saving…"
-                                  : "Register & use tab"}
-                              </Button>
+                              />
+                              {!phoneVerificationSent ? (
+                                <Button
+                                  type="button"
+                                  className="h-11 w-full rounded-xl text-sm font-semibold"
+                                  disabled={
+                                    !online ||
+                                    customerRegisterBusy ||
+                                    !customerRegisterName.trim() ||
+                                    Date.now() < phoneVerificationCooldownUntil
+                                  }
+                                  onClick={onSendPhoneVerification}
+                                >
+                                  {customerRegisterBusy
+                                    ? "Sending…"
+                                    : "Send verification code"}
+                                </Button>
+                              ) : (
+                                <>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    Code sent
+                                    {phoneVerificationChannel
+                                      ? ` via ${phoneVerificationChannel}`
+                                      : ""}
+                                    . Enter the 6-digit code from the customer.
+                                  </p>
+                                  <input
+                                    className={fieldClass("h-11 w-full")}
+                                    value={phoneVerificationCode}
+                                    onChange={(e) =>
+                                      setPhoneVerificationCode(
+                                        e.target.value
+                                          .replace(/\D/g, "")
+                                          .slice(0, 6),
+                                      )
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        onRegisterCustomer();
+                                      }
+                                    }}
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    placeholder="6-digit code"
+                                    disabled={!online || customerRegisterBusy}
+                                  />
+                                  <Button
+                                    type="button"
+                                    className="h-11 w-full rounded-xl text-sm font-semibold"
+                                    disabled={
+                                      !online ||
+                                      customerRegisterBusy ||
+                                      !customerRegisterName.trim() ||
+                                      phoneVerificationCode.length !== 6
+                                    }
+                                    onClick={onRegisterCustomer}
+                                  >
+                                    {customerRegisterBusy
+                                      ? "Verifying…"
+                                      : "Verify & register"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="h-9 w-full rounded-xl text-xs"
+                                    disabled={
+                                      !online ||
+                                      customerRegisterBusy ||
+                                      Date.now() < phoneVerificationCooldownUntil
+                                    }
+                                    onClick={onSendPhoneVerification}
+                                  >
+                                    {Date.now() < phoneVerificationCooldownUntil
+                                      ? "Resend available soon"
+                                      : "Resend code"}
+                                  </Button>
+                                </>
+                              )}
                             </>
                           ) : null}
                         </div>
