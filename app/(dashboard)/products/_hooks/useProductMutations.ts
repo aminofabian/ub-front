@@ -45,6 +45,7 @@ import {
   resolveCatalogParentId,
 } from "../_utils";
 import { emptyVariantDraft } from "../_types";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 
 type Dependencies = {
   selectedId: string | null;
@@ -709,23 +710,27 @@ export function useProductMutations(d: Dependencies) {
   // ══════════════════════════════════════════════════════════════════════════
   // DELETE
   // ══════════════════════════════════════════════════════════════════════════
-  const onDeleteItem = useCallback(async () => {
-    if (
-      !selectedId ||
-      !window.confirm("Delete this product? Cannot be undone.")
-    )
-      return;
-    setMessage("");
-    try {
-      await deleteItem(selectedId);
-      await refreshFullCatalog();
-      selectProduct(null);
-      setActiveDrawer(null);
-      setMessage("Deleted.");
-    } catch (err) {
-      if (!(err instanceof ApiRequestError))
-        setMessage(err instanceof Error ? err.message : "Delete failed.");
-    }
+  const onDeleteItem = useCallback(() => {
+    if (!selectedId) return;
+    showThemedConfirmToast({
+      id: "products-delete-item",
+      title: "Delete this product?",
+      description: "Cannot be undone.",
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        setMessage("");
+        try {
+          await deleteItem(selectedId);
+          await refreshFullCatalog();
+          selectProduct(null);
+          setActiveDrawer(null);
+          setMessage("Deleted.");
+        } catch (err) {
+          if (!(err instanceof ApiRequestError))
+            setMessage(err instanceof Error ? err.message : "Delete failed.");
+        }
+      },
+    });
   }, [
     selectedId,
     refreshFullCatalog,
@@ -737,45 +742,48 @@ export function useProductMutations(d: Dependencies) {
   // ══════════════════════════════════════════════════════════════════════════
   // BULK DELETE
   // ══════════════════════════════════════════════════════════════════════════
-  const onBulkDeleteSelected = useCallback(async () => {
+  const onBulkDeleteSelected = useCallback(() => {
     if (rowSelection.size === 0 || !canCatalogWrite) return;
     const ids = [...rowSelection];
-    if (!window.confirm(`Delete ${ids.length} item(s)? Cannot be undone.`))
-      return;
-    setBulkDeleteBusy(true);
-    setMessage("");
     const byId = new Map(listRows.map((r) => [r.id, r]));
     const parentIds = ids.filter((id) => !byId.get(id)?.variantOfItemId);
     const variantIds = ids.filter((id) => byId.get(id)?.variantOfItemId);
-    const orphanCheck = parentIds.filter((pid) =>
+    const hasUnselectedOptions = parentIds.some((pid) =>
       listRows.some(
         (r) => r.variantOfItemId === pid && !rowSelection.has(r.id),
       ),
     );
-    if (
-      orphanCheck.length > 0 &&
-      !window.confirm(`Some groups have unselected options. Continue?`)
-    ) {
-      setBulkDeleteBusy(false);
-      return;
-    }
-    const failed: string[] = [];
-    for (const id of [...variantIds, ...parentIds]) {
-      try {
-        await deleteItem(id);
-      } catch {
-        failed.push(byId.get(id)?.name ?? id);
-      }
-    }
-    await refreshFullCatalog();
-    if (rowSelection.has(selectedId ?? "")) selectProduct(null);
-    setRowSelection(new Set());
-    setBulkDeleteBusy(false);
-    setMessage(
-      failed.length === 0
-        ? `Deleted ${ids.length} item(s).`
-        : `Partial success. Failed: ${failed.join(", ")}`,
-    );
+    const description = hasUnselectedOptions
+      ? "Cannot be undone.\n\nSome groups have unselected options."
+      : "Cannot be undone.";
+
+    showThemedConfirmToast({
+      id: "products-bulk-delete",
+      title: `Delete ${ids.length} item(s)?`,
+      description,
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        setBulkDeleteBusy(true);
+        setMessage("");
+        const failed: string[] = [];
+        for (const id of [...variantIds, ...parentIds]) {
+          try {
+            await deleteItem(id);
+          } catch {
+            failed.push(byId.get(id)?.name ?? id);
+          }
+        }
+        await refreshFullCatalog();
+        if (rowSelection.has(selectedId ?? "")) selectProduct(null);
+        setRowSelection(new Set());
+        setBulkDeleteBusy(false);
+        setMessage(
+          failed.length === 0
+            ? `Deleted ${ids.length} item(s).`
+            : `Partial success. Failed: ${failed.join(", ")}`,
+        );
+      },
+    });
   }, [
     rowSelection,
     canCatalogWrite,

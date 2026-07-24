@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   BarChart3,
@@ -91,6 +91,7 @@ export function BusinessHubWorkspace() {
     business,
     branchId,
     itemTypeId,
+    headerScopeReady,
     canManageBusinessSettings,
     canListUsers,
     canQuickSale,
@@ -142,8 +143,15 @@ export function BusinessHubWorkspace() {
   const [chartPoints, setChartPoints] = useState<DailyRevenuePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const loadGen = useRef(0);
 
   const load = useCallback(async () => {
+    // Wait until header branch/department seed finishes. An early fetch with
+    // empty scope is treated as "all" and raced with the scoped fetch — which
+    // made Stock value flip between totals like ~2.6m and ~4.6m.
+    if (!headerScopeReady) return;
+
+    const gen = ++loadGen.current;
     setRefreshing(true);
     try {
       const todayRange = presetRange("today")!;
@@ -226,6 +234,8 @@ export function BusinessHubWorkspace() {
           : Promise.resolve(null),
       ]);
 
+      if (gen !== loadGen.current) return;
+
       setPulse(pulseRes ?? owner?.pulseToday ?? null);
       setPrevPulse(prevPulseRes);
       setWeekPl(plRes);
@@ -243,10 +253,13 @@ export function BusinessHubWorkspace() {
     } catch {
       /* gracefully degrade */
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (gen === loadGen.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [
+    headerScopeReady,
     branchId,
     itemTypeId,
     canViewOwnerSummary,

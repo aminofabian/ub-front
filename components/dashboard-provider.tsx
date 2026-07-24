@@ -109,6 +109,8 @@ type DashboardContextValue = {
   setItemTypeId: (id: string) => void;
   itemTypesLoading: boolean;
   refreshItemTypes: () => Promise<void>;
+  /** True once branch + department have finished their first load/seed for this business. */
+  headerScopeReady: boolean;
   canListUsers: boolean;
   canViewCategories: boolean;
   canManageCategories: boolean;
@@ -157,10 +159,14 @@ export function DashboardProvider({
   const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [branchId, setBranchIdState] = useState("");
-  const [branchesLoading, setBranchesLoading] = useState(false);
+  // Start true so consumers don't treat empty branch/type as "all scope"
+  // before the first fetch + seed finishes (caused Stock value to flip).
+  const [branchesLoading, setBranchesLoading] = useState(true);
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
   const [itemTypeId, setItemTypeIdState] = useState("");
-  const [itemTypesLoading, setItemTypesLoading] = useState(false);
+  const [itemTypesLoading, setItemTypesLoading] = useState(true);
+  const [branchSeeded, setBranchSeeded] = useState(false);
+  const [itemTypeSeeded, setItemTypeSeeded] = useState(false);
   const userTouchedBranchRef = useRef(false);
   const userTouchedItemTypeRef = useRef(false);
   const staleBranchNoticeShownRef = useRef(false);
@@ -187,6 +193,7 @@ export function DashboardProvider({
 
   const refreshBranches = useCallback(async () => {
     setBranchesLoading(true);
+    setBranchSeeded(false);
     try {
       const list = await fetchBranches();
       setBranches(list.filter((b) => b.active));
@@ -210,6 +217,7 @@ export function DashboardProvider({
 
   const refreshItemTypes = useCallback(async () => {
     setItemTypesLoading(true);
+    setItemTypeSeeded(false);
     try {
       const list = await fetchItemTypes();
       let visible = list.filter((t) => t.active);
@@ -309,6 +317,8 @@ export function DashboardProvider({
 
   // ── seed branchId ─────────────────────────────────────────────────────────
   useEffect(() => {
+    if (branchesLoading) return;
+
     if (branchLockedRole) {
       const assigned = effectiveMe?.branchId?.trim();
       if (assigned && assigned !== effectiveBranchId) {
@@ -317,16 +327,19 @@ export function DashboardProvider({
           effectiveBranches.some((b) => b.id === assigned)
         ) {
           setBranchIdState(assigned);
+          setBranchSeeded(true);
           return;
         }
       }
       if (!effectiveBranchId && effectiveBranches[0]?.id) {
         setBranchIdState(effectiveBranches[0].id);
       }
+      setBranchSeeded(true);
       return;
     }
 
     if (effectiveBranches.length === 0) {
+      setBranchSeeded(true);
       return;
     }
 
@@ -335,6 +348,7 @@ export function DashboardProvider({
         effectiveBranchId &&
         effectiveBranches.some((b) => b.id === effectiveBranchId)
       ) {
+        setBranchSeeded(true);
         return;
       }
     }
@@ -368,10 +382,13 @@ export function DashboardProvider({
           }
           setBranchIdState(id);
         }
+        setBranchSeeded(true);
         return;
       }
     }
+    setBranchSeeded(true);
   }, [
+    branchesLoading,
     effectiveBranches,
     effectiveBusiness?.id,
     effectiveMe?.branchId,
@@ -381,14 +398,26 @@ export function DashboardProvider({
 
   // ── seed itemTypeId ───────────────────────────────────────────────────────
   useEffect(() => {
-    if (itemTypes.length === 0) return;
+    if (itemTypesLoading) return;
+
+    if (itemTypes.length === 0) {
+      setItemTypeSeeded(true);
+      return;
+    }
     if (defaultAllDepartments && !userTouchedItemTypeRef.current) {
       if (itemTypeId !== "") setItemTypeIdState("");
+      setItemTypeSeeded(true);
       return;
     }
     if (userTouchedItemTypeRef.current) {
-      if (!itemTypeId) return;
-      if (itemTypes.some((t) => t.id === itemTypeId)) return;
+      if (!itemTypeId) {
+        setItemTypeSeeded(true);
+        return;
+      }
+      if (itemTypes.some((t) => t.id === itemTypeId)) {
+        setItemTypeSeeded(true);
+        return;
+      }
     }
     const persisted = readPersistedItemType(effectiveBusiness?.id ?? null);
     const currentTypeInvalid =
@@ -401,10 +430,12 @@ export function DashboardProvider({
     if (persisted !== null) {
       if (persisted === "") {
         if (itemTypeId !== "") setItemTypeIdState("");
+        setItemTypeSeeded(true);
         return;
       }
       if (itemTypes.some((t) => t.id === persisted)) {
         if (persisted !== itemTypeId) setItemTypeIdState(persisted);
+        setItemTypeSeeded(true);
         return;
       }
     }
@@ -425,7 +456,20 @@ export function DashboardProvider({
       }
       setItemTypeIdState(fallback);
     }
-  }, [itemTypes, effectiveBusiness?.id, itemTypeId, defaultAllDepartments]);
+    setItemTypeSeeded(true);
+  }, [
+    itemTypesLoading,
+    itemTypes,
+    effectiveBusiness?.id,
+    itemTypeId,
+    defaultAllDepartments,
+  ]);
+
+  const headerScopeReady =
+    branchSeeded &&
+    itemTypeSeeded &&
+    !branchesLoading &&
+    !itemTypesLoading;
 
   const value = useMemo<DashboardContextValue>(
     () => ({
@@ -443,6 +487,7 @@ export function DashboardProvider({
       setItemTypeId,
       itemTypesLoading,
       refreshItemTypes,
+      headerScopeReady,
       canListUsers: hasPermission(
         effectiveMe?.permissions,
         Permission.UsersList,
@@ -573,6 +618,7 @@ export function DashboardProvider({
       setItemTypeId,
       itemTypesLoading,
       refreshItemTypes,
+      headerScopeReady,
       canQuickSale,
       canAccessGrocery,
     ],
