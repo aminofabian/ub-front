@@ -1007,6 +1007,35 @@ export async function saArchiveCatalogProducts(
   );
 }
 
+export type SaPurgeCatalogResult = {
+  catalogId: string;
+  catalogCode: string;
+  deletedProductCount: number;
+  deletedCategoryCount: number;
+  deletedPackCount: number;
+  deletedPackItemCount: number;
+  deletedImageCount: number;
+  deletedSupplierLinkCount: number;
+  deletedSupplierTemplateCount: number;
+};
+
+/**
+ * Hard-deletes all content in the catalog (keeps the catalog shell).
+ * `confirmCode` must equal the catalog code (e.g. ug-retail). Refuses if shops adopted.
+ */
+export async function saPurgeCatalog(
+  catalogId: string,
+  confirmCode: string,
+): Promise<SaPurgeCatalogResult> {
+  return saRequest<SaPurgeCatalogResult>(
+    `${API_ROUTES.superAdminGlobalCatalog}/catalogs/${encodeURIComponent(catalogId)}/purge`,
+    {
+      method: "POST",
+      body: JSON.stringify({ confirmCode }),
+    },
+  );
+}
+
 export async function previewSaPromote(body: {
   sourceBusinessId: string;
   itemIds: string[];

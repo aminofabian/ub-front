@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Download, ImageOff, PackageSearch, RefreshCw, Upload } from "lucide-react";
+import { Download, ImageOff, PackageSearch, RefreshCw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
@@ -32,6 +32,7 @@ import {
   previewSaPromote,
   publishSaGlobalProducts,
   saArchiveCatalogProducts,
+  saPurgeCatalog,
   uploadSaGlobalProductImage,
   type SaCatalogSummary,
   type SaGlobalCatalogMeta,
@@ -789,6 +790,54 @@ export default function SuperAdminGlobalCatalogPage() {
     }
   };
 
+  const selectedCatalog = catalogs.find((c) => c.id === catalogId) ?? null;
+
+  const runPurgeCatalog = async (confirmCode: string) => {
+    if (!catalogId) return;
+    setBusy(true);
+    try {
+      const result = await saPurgeCatalog(catalogId, confirmCode);
+      setSelectedId(null);
+      setSelected(null);
+      setPreview(null);
+      setLastPromoteResult(null);
+      toast.success(
+        `Cleared ${result.catalogCode}: ${result.deletedProductCount.toLocaleString()} products, ${result.deletedCategoryCount.toLocaleString()} categories, ${result.deletedPackCount.toLocaleString()} packs.`,
+      );
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not clear catalog.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onClearCatalog = () => {
+    if (!catalogId || !selectedCatalog) return;
+    const code = selectedCatalog.code;
+    const label = selectedCatalog.name;
+    showThemedConfirmToast({
+      id: "sa-purge-catalog-confirm",
+      title: `Clear “${label}” completely?`,
+      description: [
+        "This permanently deletes all products, categories, packs, images, and supplier templates in this catalog.",
+        "The catalog shell stays. Shop inventory is never deleted — purge is refused if any shop still references these templates.",
+        `Next you will type the catalog code (${code}) to confirm.`,
+      ].join("\n\n"),
+      confirmLabel: "Continue",
+      confirmVariant: "destructive",
+      onConfirm: () => {
+        const typed = window.prompt(`Type ${code} to permanently clear this catalog:`);
+        if (typed == null) return;
+        if (typed.trim() !== code) {
+          toast.error(`Confirmation did not match “${code}”. Catalog was not cleared.`);
+          return;
+        }
+        void runPurgeCatalog(code);
+      },
+    });
+  };
+
   return (
     <div className="space-y-8">
       <SuperAdminPageHeader
@@ -868,6 +917,15 @@ export default function SuperAdminGlobalCatalogPage() {
             <Button variant="outline" size="sm" onClick={() => void reload()} disabled={busy}>
               <RefreshCw className="size-4" aria-hidden />
               Refresh
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={onClearCatalog}
+              disabled={busy || !catalogId || !selectedCatalog}
+            >
+              <Trash2 className="size-4" aria-hidden />
+              Clear catalog
             </Button>
           </div>
         }
