@@ -3,6 +3,8 @@
  * changes (D6). Components register via {@link useScopeChangeGuard}.
  */
 
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
+
 export type ScopeChangeKind = "branch" | "department";
 
 type ScopeGuard = {
@@ -20,15 +22,27 @@ export function registerScopeGuard(guard: ScopeGuard): () => void {
   };
 }
 
-/** Returns true when the scope change may proceed. */
+/**
+ * Runs `onConfirm` immediately when no guards are active; otherwise shows a
+ * themed confirm toast and runs `onConfirm` only if the user proceeds.
+ */
 export function confirmScopeChange(
   kind: ScopeChangeKind,
+  onConfirm: () => void,
   activeGuards = [...guards.values()].filter((g) => g.isActive()),
-): boolean {
-  if (activeGuards.length === 0) return true;
+): void {
+  if (activeGuards.length === 0) {
+    onConfirm();
+    return;
+  }
   const label = kind === "branch" ? "branch" : "department";
   const detail = activeGuards.map((g) => `• ${g.message}`).join("\n");
-  return window.confirm(
-    `You have work in progress:\n\n${detail}\n\nChange ${label} anyway? Unsaved changes may not apply to the new scope.`,
-  );
+  showThemedConfirmToast({
+    id: `scope-change-${kind}`,
+    title: `Change ${label}?`,
+    description: `You have work in progress:\n\n${detail}\n\nUnsaved changes may not apply to the new scope.`,
+    confirmLabel: "Change anyway",
+    confirmVariant: "default",
+    onConfirm,
+  });
 }

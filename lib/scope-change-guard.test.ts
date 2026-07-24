@@ -1,74 +1,102 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 
-import {
-  confirmScopeChange,
-  registerScopeGuard,
-} from "@/lib/scope-change-guard";
+type ConfirmOpts = {
+  id: string;
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  onConfirm: () => void;
+};
+
+const toastCalls: ConfirmOpts[] = [];
+
+mock.module("@/components/super-admin/themed-confirm-toast", () => ({
+  showThemedConfirmToast: (opts: ConfirmOpts) => {
+    toastCalls.push(opts);
+  },
+}));
+
+const { confirmScopeChange, registerScopeGuard } = await import(
+  "@/lib/scope-change-guard"
+);
 
 describe("scope-change-guard", () => {
-  let windowDescriptor: PropertyDescriptor | undefined;
-
   beforeEach(() => {
-    windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, "window");
-    Object.defineProperty(globalThis, "window", {
-      value: { confirm: vi.fn(() => true) },
-      configurable: true,
-      writable: true,
-    });
+    toastCalls.length = 0;
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
-    if (windowDescriptor) {
-      Object.defineProperty(globalThis, "window", windowDescriptor);
-    }
+    mock.restore();
   });
 
-  it("allows scope change when no guards are active", () => {
-    expect(confirmScopeChange("branch", [])).toBe(true);
+  it("runs onConfirm immediately when no guards are active", () => {
+    let ran = false;
+    confirmScopeChange("branch", () => {
+      ran = true;
+    }, []);
+    expect(ran).toBe(true);
+    expect(toastCalls).toHaveLength(0);
   });
 
-  it("prompts when an active guard is registered", () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-    const activeGuards = [
-      {
-        id: "test",
-        message: "Cart has items",
-        isActive: () => true,
+  it("shows a themed toast when an active guard is registered", () => {
+    let ran = false;
+    confirmScopeChange(
+      "branch",
+      () => {
+        ran = true;
       },
-    ];
-
-    expect(confirmScopeChange("branch", activeGuards)).toBe(true);
-    expect(confirm).toHaveBeenCalledWith(
-      expect.stringContaining("Cart has items"),
+      [
+        {
+          id: "test",
+          message: "Cart has items",
+          isActive: () => true,
+        },
+      ],
     );
-    expect(confirm.mock.calls[0]?.[0]).toContain("Change branch anyway?");
+    expect(ran).toBe(false);
+    expect(toastCalls).toHaveLength(1);
+    expect(toastCalls[0]?.title).toBe("Change branch?");
+    expect(toastCalls[0]?.confirmLabel).toBe("Change anyway");
+    expect(toastCalls[0]?.description).toContain("Cart has items");
   });
 
-  it("blocks scope change when the user declines", () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-    const activeGuards = [
-      {
-        id: "test",
-        message: "Draft open",
-        isActive: () => true,
+  it("does not run onConfirm until the toast confirms", () => {
+    let ran = false;
+    confirmScopeChange(
+      "department",
+      () => {
+        ran = true;
       },
-    ];
-
-    expect(confirmScopeChange("department", activeGuards)).toBe(false);
+      [
+        {
+          id: "test",
+          message: "Draft open",
+          isActive: () => true,
+        },
+      ],
+    );
+    expect(ran).toBe(false);
+    toastCalls[0]?.onConfirm();
+    expect(ran).toBe(true);
   });
 
   it("unregisters guards on cleanup", () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    let ran = 0;
     const cleanup = registerScopeGuard({
       id: "transfer-draft",
       message: "Transfer draft open",
       isActive: () => true,
     });
-    expect(confirmScopeChange("branch")).toBe(false);
-    expect(confirm).toHaveBeenCalledTimes(1);
+    confirmScopeChange("branch", () => {
+      ran += 1;
+    });
+    expect(toastCalls).toHaveLength(1);
+    expect(ran).toBe(0);
     cleanup();
-    expect(confirmScopeChange("branch")).toBe(true);
-    expect(confirm).toHaveBeenCalledTimes(1);
+    confirmScopeChange("branch", () => {
+      ran += 1;
+    });
+    expect(ran).toBe(1);
+    expect(toastCalls).toHaveLength(1);
   });
 });

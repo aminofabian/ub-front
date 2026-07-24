@@ -9,6 +9,7 @@ import {
   DASHBOARD_SECTION_SURFACE,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
@@ -2156,7 +2157,7 @@ export function QuickSaleWorkspace({
     }
   }, [online, refreshOutbox]);
 
-  const onComplete = useCallback(async () => {
+  const onComplete = useCallback(async (opts?: { skipBranchConfirm?: boolean }) => {
     const bid = branchId.trim();
     if (!bid) {
       setError("Choose a branch.");
@@ -2164,18 +2165,22 @@ export function QuickSaleWorkspace({
       return;
     }
     const scopeBranch = cartScopeBranchIdRef.current;
-    if (scopeBranch && scopeBranch !== bid) {
+    if (scopeBranch && scopeBranch !== bid && !opts?.skipBranchConfirm) {
       const scopeName =
         branches.find((b) => b.id === scopeBranch)?.name?.trim() ?? scopeBranch;
       const currentName =
         branches.find((b) => b.id === bid)?.name?.trim() ?? bid;
-      if (
-        !window.confirm(
-          `This cart was started at ${scopeName} but the current branch is ${currentName}. Complete the sale at ${currentName} anyway?`,
-        )
-      ) {
-        return;
-      }
+      showThemedConfirmToast({
+        id: "cashier-complete-branch-mismatch",
+        title: "Complete at current branch?",
+        description: `This cart was started at ${scopeName} but the current branch is ${currentName}. Complete the sale at ${currentName} anyway?`,
+        confirmLabel: "Complete anyway",
+        confirmVariant: "default",
+        onConfirm: () => {
+          void onComplete({ skipBranchConfirm: true });
+        },
+      });
+      return;
     }
     if (lines.length === 0) {
       setError("Add at least one line.");

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { useDesktopLicense } from "@/components/desktop/desktop-license-provider";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import {
   DASHBOARD_MAX,
   DASHBOARD_SECTION_SURFACE,
@@ -157,20 +158,25 @@ export default function DesktopSettingsPage() {
     }
   }
 
-  async function onRestore(filename: string) {
-    const ok = window.confirm(
-      `Restore from "${filename}"?\n\nThis overwrites the current database. Kiosk will need a restart afterward.`,
-    );
-    if (!ok) return;
-    setRestoring(filename);
-    try {
-      await restoreDesktopBackup(filename);
-      toast.success("Restore finished. Restart Kiosk Desktop.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Restore failed.");
-    } finally {
-      setRestoring(null);
-    }
+  function onRestore(filename: string) {
+    showThemedConfirmToast({
+      id: `desktop-restore-${filename}`,
+      title: `Restore from “${filename}”?`,
+      description:
+        "This overwrites the current database. Kiosk will need a restart afterward.",
+      confirmLabel: "Restore",
+      onConfirm: async () => {
+        setRestoring(filename);
+        try {
+          await restoreDesktopBackup(filename);
+          toast.success("Restore finished. Restart Kiosk Desktop.");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Restore failed.");
+        } finally {
+          setRestoring(null);
+        }
+      },
+    });
   }
 
   async function onSavePrinter() {

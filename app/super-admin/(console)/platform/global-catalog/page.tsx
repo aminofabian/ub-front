@@ -435,7 +435,7 @@ export default function SuperAdminGlobalCatalogPage() {
     }
   };
 
-  const onApplyMarginToVisible = async () => {
+  const onApplyMarginToVisible = () => {
     const pct = Number(bulkMarginPct);
     if (!Number.isFinite(pct) || pct < 0) {
       toast.error("Enter a valid margin %.");
@@ -445,36 +445,39 @@ export default function SuperAdminGlobalCatalogPage() {
       toast.error("No products on this page.");
       return;
     }
-    if (
-      !window.confirm(
-        `Apply ${pct}% margin (${bulkMarginMode === "fromBuying" ? "buy → sell" : "sell → buy"}) to ${products.length} product(s) on this page?`,
-      )
-    ) {
-      return;
-    }
-    setBusy(true);
-    try {
-      const result = await applySaGlobalProductMargins({
-        ids: products.map((p) => p.id),
-        marginPct: pct,
-        mode: bulkMarginMode,
-      }, catalogId);
-      toast.success(
-        `Margin applied: ${result.updatedCount} updated, ${result.skippedCount} skipped`,
-      );
-      await reload();
-      if (selectedId) {
-        const row = await fetchSaGlobalProduct(selectedId, catalogId);
-        setSelected(row);
-        setBuyDraft(moneyDraft(row.recommendedBuyingPrice));
-        setSellDraft(moneyDraft(row.recommendedSellingPrice));
-        setMarginDraft(moneyDraft(row.suggestedMarginPct));
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Margin apply failed.");
-    } finally {
-      setBusy(false);
-    }
+    const modeLabel = bulkMarginMode === "fromBuying" ? "buy → sell" : "sell → buy";
+    showThemedConfirmToast({
+      id: "sa-apply-margin-visible",
+      title: `Apply ${pct}% margin?`,
+      description: `${modeLabel} on ${products.length} product(s) on this page.`,
+      confirmLabel: "Apply",
+      confirmVariant: "default",
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const result = await applySaGlobalProductMargins({
+            ids: products.map((p) => p.id),
+            marginPct: pct,
+            mode: bulkMarginMode,
+          }, catalogId);
+          toast.success(
+            `Margin applied: ${result.updatedCount} updated, ${result.skippedCount} skipped`,
+          );
+          await reload();
+          if (selectedId) {
+            const row = await fetchSaGlobalProduct(selectedId, catalogId);
+            setSelected(row);
+            setBuyDraft(moneyDraft(row.recommendedBuyingPrice));
+            setSellDraft(moneyDraft(row.recommendedSellingPrice));
+            setMarginDraft(moneyDraft(row.suggestedMarginPct));
+          }
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Margin apply failed.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
   const onPublishSelected = async () => {
@@ -524,29 +527,32 @@ export default function SuperAdminGlobalCatalogPage() {
     }
   };
 
-  const onBackfillAdopted = async () => {
+  const onBackfillAdopted = () => {
     if (!selected?.imageUrl) return;
-    if (
-      !window.confirm(
-        "Push this image to tenant products that already adopted it but still have no cover?",
-      )
-    ) {
-      return;
-    }
-    setBusy(true);
-    try {
-      const result = await backfillSaGlobalProductImages(selected.id, { catalogId });
-      toast.success(
-        `Backfill: ${result.itemsUpdated} updated, ${result.itemsSkipped} skipped, ${result.itemsFailed} failed`,
-      );
-      if (result.warnings?.length) {
-        console.info("Backfill warnings", result.warnings.slice(0, 20));
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Backfill failed.");
-    } finally {
-      setBusy(false);
-    }
+    showThemedConfirmToast({
+      id: `sa-backfill-image-${selected.id}`,
+      title: "Push image to adopted products?",
+      description:
+        "Tenant products that already adopted this item but still have no cover will receive this image.",
+      confirmLabel: "Push image",
+      confirmVariant: "default",
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const result = await backfillSaGlobalProductImages(selected.id, { catalogId });
+          toast.success(
+            `Backfill: ${result.itemsUpdated} updated, ${result.itemsSkipped} skipped, ${result.itemsFailed} failed`,
+          );
+          if (result.warnings?.length) {
+            console.info("Backfill warnings", result.warnings.slice(0, 20));
+          }
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Backfill failed.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
   const onExportCsv = async () => {
@@ -771,23 +777,29 @@ export default function SuperAdminGlobalCatalogPage() {
     });
   };
 
-  const onPublishPromotedDrafts = async () => {
+  const onPublishPromotedDrafts = () => {
     const ids = promotedGlobalIds(lastPromoteResult);
     if (ids.length === 0) return;
-    if (!window.confirm(`Publish ${ids.length} promoted product${ids.length === 1 ? "" : "s"} now?`)) {
-      return;
-    }
-    setBusy(true);
-    try {
-      const result = await publishSaGlobalProducts(ids);
-      toast.success(`Published ${result.publishedCount}; skipped ${result.skippedIds.length}.`);
-      setLastPromoteResult(null);
-      await reload();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Publish failed.");
-    } finally {
-      setBusy(false);
-    }
+    showThemedConfirmToast({
+      id: "sa-publish-promoted",
+      title: `Publish ${ids.length} promoted product${ids.length === 1 ? "" : "s"}?`,
+      description: "Draft promotions will be published now.",
+      confirmLabel: "Publish",
+      confirmVariant: "default",
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const result = await publishSaGlobalProducts(ids);
+          toast.success(`Published ${result.publishedCount}; skipped ${result.skippedIds.length}.`);
+          setLastPromoteResult(null);
+          await reload();
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Publish failed.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
   const selectedCatalog = catalogs.find((c) => c.id === catalogId) ?? null;

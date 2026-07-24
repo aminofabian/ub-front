@@ -5,6 +5,7 @@ import { KeyRound, MessageSquare, Sparkles } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -130,80 +131,100 @@ export default function SuperAdminPlatformIntegrationsPage() {
     }
   };
 
-  const onClearDeepseekKey = async () => {
-    if (!window.confirm("Remove the stored DeepSeek API key?")) {
-      return;
-    }
-    setBusy(true);
-    setError("");
-    setSuccess("");
-    try {
-      const updated = await updatePlatformIntegrations({ deepseekApiKey: "" });
-      setSettings(updated);
-      setDeepseekApiKey("");
-      setSuccess("DeepSeek API key cleared.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not clear key.");
-    } finally {
-      setBusy(false);
-    }
+  const onClearDeepseekKey = () => {
+    showThemedConfirmToast({
+      id: "clear-deepseek-key",
+      title: "Remove DeepSeek API key?",
+      description: "The stored DeepSeek API key will be cleared.",
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setBusy(true);
+        setError("");
+        setSuccess("");
+        try {
+          const updated = await updatePlatformIntegrations({ deepseekApiKey: "" });
+          setSettings(updated);
+          setDeepseekApiKey("");
+          setSuccess("DeepSeek API key cleared.");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not clear key.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
-  const onClearWhatsappKey = async () => {
-    if (!window.confirm("Remove the stored RapidAPI WhatsApp key? Tenant overrides still apply.")) {
-      return;
-    }
-    setBusy(true);
-    setError("");
-    setSuccess("");
-    try {
-      const updated = await updatePlatformIntegrations({ rapidApiWhatsappKey: "" });
-      setSettings(updated);
-      setRapidApiWhatsappKey("");
-      setSuccess("RapidAPI WhatsApp key cleared.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not clear key.");
-    } finally {
-      setBusy(false);
-    }
+  const onClearWhatsappKey = () => {
+    showThemedConfirmToast({
+      id: "clear-whatsapp-key",
+      title: "Remove RapidAPI WhatsApp key?",
+      description: "Tenant overrides still apply.",
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setBusy(true);
+        setError("");
+        setSuccess("");
+        try {
+          const updated = await updatePlatformIntegrations({ rapidApiWhatsappKey: "" });
+          setSettings(updated);
+          setRapidApiWhatsappKey("");
+          setSuccess("RapidAPI WhatsApp key cleared.");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not clear key.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
-  const onClearSozuriKey = async () => {
-    if (!window.confirm("Remove the stored Sozuri API key? Tenant overrides still apply.")) {
-      return;
-    }
-    setBusy(true);
-    setError("");
-    setSuccess("");
-    try {
-      const updated = await updatePlatformIntegrations({ sozuriApiKey: "" });
-      setSettings(updated);
-      setSozuriApiKey("");
-      setSuccess("Sozuri API key cleared.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not clear key.");
-    } finally {
-      setBusy(false);
-    }
+  const onClearSozuriKey = () => {
+    showThemedConfirmToast({
+      id: "clear-sozuri-key",
+      title: "Remove Sozuri API key?",
+      description: "Tenant overrides still apply.",
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setBusy(true);
+        setError("");
+        setSuccess("");
+        try {
+          const updated = await updatePlatformIntegrations({ sozuriApiKey: "" });
+          setSettings(updated);
+          setSozuriApiKey("");
+          setSuccess("Sozuri API key cleared.");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not clear key.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
-  const onClearTextsmsKey = async () => {
-    if (!window.confirm("Remove the stored TextSMS API key? Tenant overrides still apply.")) {
-      return;
-    }
-    setBusy(true);
-    setError("");
-    setSuccess("");
-    try {
-      const updated = await updatePlatformIntegrations({ textsmsApiKey: "" });
-      setSettings(updated);
-      setTextsmsApiKey("");
-      setSuccess("TextSMS API key cleared.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not clear key.");
-    } finally {
-      setBusy(false);
-    }
+  const onClearTextsmsKey = () => {
+    showThemedConfirmToast({
+      id: "clear-textsms-key",
+      title: "Remove TextSMS API key?",
+      description: "Tenant overrides still apply.",
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setBusy(true);
+        setError("");
+        setSuccess("");
+        try {
+          const updated = await updatePlatformIntegrations({ textsmsApiKey: "" });
+          setSettings(updated);
+          setTextsmsApiKey("");
+          setSuccess("TextSMS API key cleared.");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not clear key.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
   return (

@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { Button } from "@/components/ui/button";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
 import {
   APP_ROUTES,
@@ -156,7 +157,6 @@ function BusinessDetailInner() {
     if (!businessId) {
       return;
     }
-    setBusy(true);
     setError("");
     try {
       const nextCountry = bizCountry.trim().toUpperCase();
@@ -166,35 +166,46 @@ function BusinessDetailInner() {
       const regionChanged =
         nextCountry !== (loaded.countryCode || "").toUpperCase() ||
         nextCurrency !== (loaded.currency || "").toUpperCase();
-      let acknowledgeRegionRisk: boolean | undefined;
-      if (regionChanged) {
-        const confirmed = window.confirm(
-          "Changing country or currency re-labels existing amounts without converting them " +
-            "(e.g. 1,200 KES becomes 1,200 UGX).\n\n" +
-            "If this shop already has products or sales, the API will require this confirmation. Continue?",
-        );
-        if (!confirmed) {
-          return;
+
+      const applySave = async (acknowledgeRegionRisk?: boolean) => {
+        setBusy(true);
+        setError("");
+        try {
+          await patchSaBusiness(businessId, {
+            name: bizName.trim() || undefined,
+            subscriptionTier: bizTier.trim() || undefined,
+            active: bizActive,
+            globalCatalogCode: globalCatalogCode.trim(),
+            countryCode: nextCountry || undefined,
+            currency: nextCurrency || undefined,
+            timezone: nextTimezone || undefined,
+            acknowledgeRegionRisk,
+          });
+          router.replace(
+            `/super-admin/businesses/${encodeURIComponent(businessId)}?name=${encodeURIComponent(bizName.trim())}`,
+          );
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Update failed.");
+        } finally {
+          setBusy(false);
         }
-        acknowledgeRegionRisk = true;
+      };
+
+      if (regionChanged) {
+        showThemedConfirmToast({
+          id: `sa-business-region-${businessId}`,
+          title: "Change country or currency?",
+          description:
+            "Existing amounts are re-labeled without converting them (e.g. 1,200 KES becomes 1,200 UGX).\n\nIf this shop already has products or sales, the API will require this confirmation.",
+          confirmLabel: "Continue",
+          confirmVariant: "default",
+          onConfirm: () => void applySave(true),
+        });
+        return;
       }
-      await patchSaBusiness(businessId, {
-        name: bizName.trim() || undefined,
-        subscriptionTier: bizTier.trim() || undefined,
-        active: bizActive,
-        globalCatalogCode: globalCatalogCode.trim(),
-        countryCode: nextCountry || undefined,
-        currency: nextCurrency || undefined,
-        timezone: nextTimezone || undefined,
-        acknowledgeRegionRisk,
-      });
-      router.replace(
-        `/super-admin/businesses/${encodeURIComponent(businessId)}?name=${encodeURIComponent(bizName.trim())}`,
-      );
+      await applySave();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed.");
-    } finally {
-      setBusy(false);
     }
   };
 

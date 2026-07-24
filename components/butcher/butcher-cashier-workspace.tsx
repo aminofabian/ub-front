@@ -28,6 +28,7 @@ import {
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { useButcherSerialScale } from "@/hooks/use-butcher-serial-scale";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import {
   fetchCurrentShift,
   fetchItems,
@@ -621,25 +622,29 @@ export function ButcherCashierWorkspace() {
     [resetTenderFields],
   );
 
-  const onCharge = useCallback(async () => {
+  const onCharge = useCallback(async (opts?: { skipBranchConfirm?: boolean }) => {
     setError("");
     if (!bid) {
       setError("Choose a branch.");
       return;
     }
     const scopeBranch = cartScopeBranchIdRef.current;
-    if (scopeBranch && scopeBranch !== bid) {
+    if (scopeBranch && scopeBranch !== bid && !opts?.skipBranchConfirm) {
       const scopeName =
         branches.find((b) => b.id === scopeBranch)?.name?.trim() ?? scopeBranch;
       const currentName =
         branches.find((b) => b.id === bid)?.name?.trim() ?? bid;
-      if (
-        !window.confirm(
-          `This order was started at ${scopeName} but the current branch is ${currentName}. Complete the sale at ${currentName} anyway?`,
-        )
-      ) {
-        return;
-      }
+      showThemedConfirmToast({
+        id: "butcher-charge-branch-mismatch",
+        title: "Complete at current branch?",
+        description: `This order was started at ${scopeName} but the current branch is ${currentName}. Complete the sale at ${currentName} anyway?`,
+        confirmLabel: "Complete anyway",
+        confirmVariant: "default",
+        onConfirm: () => {
+          void onCharge({ skipBranchConfirm: true });
+        },
+      });
+      return;
     }
     if (!canQuickSale) {
       setError("You do not have permission to complete sales.");

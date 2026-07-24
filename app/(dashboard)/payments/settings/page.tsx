@@ -26,6 +26,7 @@ import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
 import { GatewayStatusBadge } from "@/components/payments/gateway-status-badge";
 import { ManualMethodForm } from "@/components/payments/manual-method-form";
 import { SupplierPayoutSettingsSection } from "@/components/payments/supplier-payout-settings-section";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
 import {
   activateGateway,
@@ -447,18 +448,19 @@ export default function PaymentGatewaySettingsPage() {
                             : undefined
                         }
                         onClick={() => {
-                          if (
-                            !window.confirm(
-                              `Delete “${config.label}”? This cannot be undone.`,
-                            )
-                          ) {
-                            return;
-                          }
-                          void runRowAction(
-                            config.id,
-                            () => deleteGatewayConfig(config.id),
-                            "Gateway removed.",
-                          );
+                          showThemedConfirmToast({
+                            id: `delete-gateway-${config.id}`,
+                            title: `Delete “${config.label}”?`,
+                            description: "This cannot be undone.",
+                            confirmLabel: "Delete",
+                            onConfirm: () => {
+                              void runRowAction(
+                                config.id,
+                                () => deleteGatewayConfig(config.id),
+                                "Gateway removed.",
+                              );
+                            },
+                          });
                         }}
                       >
                         <Trash2 className="size-3.5" aria-hidden />

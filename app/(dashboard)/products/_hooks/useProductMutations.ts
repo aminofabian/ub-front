@@ -1039,20 +1039,28 @@ export function useProductMutations(d: Dependencies) {
   );
 
   const onRemoveGalleryImage = useCallback(
-    async (imageId: string) => {
-      if (!selectedId || !window.confirm("Remove this photo?")) return;
-      setMessage("");
-      try {
-        await deleteItemImage(selectedId, imageId);
-        const updated = await refreshSelectedDetail();
-        if (updated) syncListRowFromDetail(updated);
-        setMessage("Image removed.");
-      } catch (err) {
-        if (!(err instanceof ApiRequestError))
-          setMessage(
-            err instanceof Error ? err.message : "Could not remove image.",
-          );
-      }
+    (imageId: string) => {
+      if (!selectedId) return;
+      showThemedConfirmToast({
+        id: `products-remove-photo-${imageId}`,
+        title: "Remove this photo?",
+        description: "The image will be deleted from this product.",
+        confirmLabel: "Remove",
+        onConfirm: async () => {
+          setMessage("");
+          try {
+            await deleteItemImage(selectedId, imageId);
+            const updated = await refreshSelectedDetail();
+            if (updated) syncListRowFromDetail(updated);
+            setMessage("Image removed.");
+          } catch (err) {
+            if (!(err instanceof ApiRequestError))
+              setMessage(
+                err instanceof Error ? err.message : "Could not remove image.",
+              );
+          }
+        },
+      });
     },
     [selectedId, refreshSelectedDetail, syncListRowFromDetail, setMessage],
   );

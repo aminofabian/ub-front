@@ -249,10 +249,11 @@ export function DashboardProvider({
       const next = id.trim();
       const current = branchId.trim();
       if (next === current) return;
-      if (!confirmScopeChange("branch")) return;
-      userTouchedBranchRef.current = true;
-      setBranchIdState(next);
-      writePersistedBranch(effectiveBusiness?.id ?? null, next);
+      confirmScopeChange("branch", () => {
+        userTouchedBranchRef.current = true;
+        setBranchIdState(next);
+        writePersistedBranch(effectiveBusiness?.id ?? null, next);
+      });
     },
     [effectiveBusiness?.id, branchLockedRole, branchId],
   );
@@ -262,10 +263,11 @@ export function DashboardProvider({
       const next = id.trim();
       const current = itemTypeId.trim();
       if (next === current) return;
-      if (!confirmScopeChange("department")) return;
-      userTouchedItemTypeRef.current = true;
-      setItemTypeIdState(next);
-      writePersistedItemType(effectiveBusiness?.id ?? null, next);
+      confirmScopeChange("department", () => {
+        userTouchedItemTypeRef.current = true;
+        setItemTypeIdState(next);
+        writePersistedItemType(effectiveBusiness?.id ?? null, next);
+      });
     },
     [effectiveBusiness?.id, itemTypeId],
   );

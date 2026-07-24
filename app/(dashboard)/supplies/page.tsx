@@ -13,6 +13,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import {
   deletePathBSupplyInvoice,
@@ -104,28 +105,29 @@ export default function SuppliesPage() {
   }, [refresh]);
 
   const onDeleteSupply = useCallback(
-    async (row: PathBSupplyListRowRecord) => {
+    (row: PathBSupplyListRowRecord) => {
       if (supplyN(row.amountPaid) >= 0.005) {
         toast.error("Remove payments from this invoice before deleting it.");
         return;
       }
-      if (
-        !window.confirm(
-          `Delete supply ${row.invoiceNumber} from ${row.supplierName || "supplier"}? This reverses stock and cannot be undone.`,
-        )
-      ) {
-        return;
-      }
-      setDeletingId(row.supplierInvoiceId);
-      try {
-        await deletePathBSupplyInvoice(row.supplierInvoiceId);
-        toast.success(`Deleted ${row.invoiceNumber}.`);
-        await refresh();
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Could not delete supply.");
-      } finally {
-        setDeletingId(null);
-      }
+      showThemedConfirmToast({
+        id: `delete-supply-${row.supplierInvoiceId}`,
+        title: `Delete supply ${row.invoiceNumber}?`,
+        description: `From ${row.supplierName || "supplier"}. This reverses stock and cannot be undone.`,
+        confirmLabel: "Delete",
+        onConfirm: async () => {
+          setDeletingId(row.supplierInvoiceId);
+          try {
+            await deletePathBSupplyInvoice(row.supplierInvoiceId);
+            toast.success(`Deleted ${row.invoiceNumber}.`);
+            await refresh();
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Could not delete supply.");
+          } finally {
+            setDeletingId(null);
+          }
+        },
+      });
     },
     [refresh],
   );

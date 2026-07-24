@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import {
   fetchSaGlobalPack,
   fetchSaGlobalProduct,
@@ -188,8 +189,18 @@ export function GlobalCatalogPacksPanel({
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={selectedPackId}
             onChange={(e) => {
-              if (dirty && !window.confirm("Discard unsaved changes?")) return;
-              setSelectedPackId(e.target.value);
+              const next = e.target.value;
+              if (!dirty) {
+                setSelectedPackId(next);
+                return;
+              }
+              showThemedConfirmToast({
+                id: "discard-pack-changes",
+                title: "Discard unsaved changes?",
+                description: "Switching packs will lose edits you have not saved.",
+                confirmLabel: "Discard",
+                onConfirm: () => setSelectedPackId(next),
+              });
             }}
           >
             {packs.map((pack) => {

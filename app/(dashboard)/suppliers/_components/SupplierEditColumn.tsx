@@ -10,6 +10,7 @@ import type {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { TelLink } from "@/components/tel-link";
 
 import {
   SupEmptyState,
@@ -216,12 +217,10 @@ export function SupplierEditColumn({
                         Phone
                       </th>
                       <td className={supKvValue}>
-                        <a
-                          href={`tel:${primaryContact.phone.trim().replace(/\s+/g, "")}`}
-                          className="text-primary underline-offset-2 hover:underline"
-                        >
-                          {primaryContact.phone.trim()}
-                        </a>
+                        <TelLink
+                          phone={primaryContact.phone.trim()}
+                          className="underline-offset-2"
+                        />
                       </td>
                     </tr>
                   ) : null}
@@ -362,12 +361,7 @@ export function SupplierEditColumn({
                   </td>
                   <td className="border border-border/70 px-2 py-1">
                     {c.phone?.trim() ? (
-                      <a
-                        href={`tel:${c.phone.trim().replace(/\s+/g, "")}`}
-                        className="text-primary hover:underline"
-                      >
-                        {c.phone.trim()}
-                      </a>
+                      <TelLink phone={c.phone.trim()} />
                     ) : (
                       "—"
                     )}
@@ -478,12 +472,7 @@ function SupplierSidebarContactsDock({
                     </td>
                     <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
                       {phone ? (
-                        <a
-                          href={`tel:${phone.replace(/\s+/g, "")}`}
-                          className="block truncate text-primary hover:underline"
-                        >
-                          {phone}
-                        </a>
+                        <TelLink phone={phone} className="block truncate" />
                       ) : (
                         "—"
                       )}
@@ -539,12 +528,7 @@ function SupplierSidebarPaymentSection({ detail }: { detail: SupplierRecord }) {
       ? {
           label: detail.payoutType?.trim() || "Payout",
           value: (
-            <a
-              href={`tel:${payoutPhone.replace(/\s+/g, "")}`}
-              className="font-mono text-primary hover:underline"
-            >
-              {payoutPhone}
-            </a>
+            <TelLink phone={payoutPhone} className="font-mono" />
           ),
         }
       : null,

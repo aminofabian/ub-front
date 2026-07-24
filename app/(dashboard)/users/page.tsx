@@ -32,6 +32,7 @@ import {
 import { useDashboard } from "@/components/dashboard-provider";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import {
@@ -651,29 +652,30 @@ export default function UsersPage() {
     }
   };
 
-  const onDeactivate = async (userId: string) => {
-    if (
-      !window.confirm(
-        "Deactivate this user? They will lose access until re-invited.",
-      )
-    ) {
-      return;
-    }
-    setDeactivatingId(userId);
-    setFeedback(null);
-    try {
-      await deactivateUser(userId);
-      await loadData();
-      await refreshSession();
-      setFeedback({ kind: "success", text: "User deactivated." });
-    } catch (error) {
-      setFeedback({
-        kind: "error",
-        text: error instanceof Error ? error.message : "Deactivate failed.",
-      });
-    } finally {
-      setDeactivatingId(null);
-    }
+  const onDeactivate = (userId: string) => {
+    showThemedConfirmToast({
+      id: `deactivate-user-${userId}`,
+      title: "Deactivate this user?",
+      description: "They will lose access until re-invited.",
+      confirmLabel: "Deactivate",
+      onConfirm: async () => {
+        setDeactivatingId(userId);
+        setFeedback(null);
+        try {
+          await deactivateUser(userId);
+          await loadData();
+          await refreshSession();
+          setFeedback({ kind: "success", text: "User deactivated." });
+        } catch (error) {
+          setFeedback({
+            kind: "error",
+            text: error instanceof Error ? error.message : "Deactivate failed.",
+          });
+        } finally {
+          setDeactivatingId(null);
+        }
+      },
+    });
   };
 
   const clearPasswordEdit = (userId: string) => {

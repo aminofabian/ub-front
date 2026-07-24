@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import {
   deletePathBSupplyInvoice,
   fetchPathBSupplyInvoiceDetail,
@@ -95,30 +96,31 @@ export function SupplierSupplyInvoicePanel({
   const balance = detail ? supplyN(detail.balanceOpen) : 0;
   const statusBadge = detail ? supplyPaymentStatusBadge(detail.paymentStatus) : null;
 
-  const onDelete = useCallback(async () => {
+  const onDelete = useCallback(() => {
     if (!detail) return;
     if (supplyN(detail.amountPaid) >= 0.005) {
       toast.error("Remove payments from this invoice before deleting it.");
       return;
     }
-    if (
-      !window.confirm(
-        `Delete supply ${detail.invoiceNumber}? This reverses stock and cannot be undone.`,
-      )
-    ) {
-      return;
-    }
-    setDeleting(true);
-    try {
-      await deletePathBSupplyInvoice(detail.supplierInvoiceId);
-      toast.success(`Deleted ${detail.invoiceNumber}.`);
-      setDetail(null);
-      onUpdated?.();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not delete supply.");
-    } finally {
-      setDeleting(false);
-    }
+    showThemedConfirmToast({
+      id: `delete-supply-invoice-${detail.supplierInvoiceId}`,
+      title: `Delete supply ${detail.invoiceNumber}?`,
+      description: "This reverses stock and cannot be undone.",
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        setDeleting(true);
+        try {
+          await deletePathBSupplyInvoice(detail.supplierInvoiceId);
+          toast.success(`Deleted ${detail.invoiceNumber}.`);
+          setDetail(null);
+          onUpdated?.();
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not delete supply.");
+        } finally {
+          setDeleting(false);
+        }
+      },
+    });
   }, [detail, onUpdated]);
 
   if (!invoiceId) {

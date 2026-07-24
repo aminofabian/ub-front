@@ -33,6 +33,7 @@ import {
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { APP_ROUTES } from "@/lib/config";
 import {
   createItemVariant,
@@ -388,27 +389,29 @@ export default function StockTakePage() {
   }, [selBranchId, selSessionType, startNotes]);
 
   // ── Delete session (admin only)
-  const onDeleteSession = useCallback(async (s: StockTakeSessionRecord) => {
-    if (
-      !window.confirm(
-        `Delete session "${s.name}"?\n\nThis will permanently remove the session and all its count data. This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      await deleteStockTakeSession(s.id);
-      setPendingSessions((prev) => prev.filter((p) => p.id !== s.id));
-      // If the deleted session is the active one, clear it too
-      setSession((prev) => (prev?.id === s.id ? null : prev));
-      setMessage("Session deleted.");
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Failed to delete session.");
-    } finally {
-      setLoading(false);
-    }
+  const onDeleteSession = useCallback((s: StockTakeSessionRecord) => {
+    showThemedConfirmToast({
+      id: `delete-stock-take-${s.id}`,
+      title: `Delete session “${s.name}”?`,
+      description:
+        "This will permanently remove the session and all its count data. This cannot be undone.",
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        setLoading(true);
+        setMessage("");
+        try {
+          await deleteStockTakeSession(s.id);
+          setPendingSessions((prev) => prev.filter((p) => p.id !== s.id));
+          // If the deleted session is the active one, clear it too
+          setSession((prev) => (prev?.id === s.id ? null : prev));
+          setMessage("Session deleted.");
+        } catch (e) {
+          setMessage(e instanceof Error ? e.message : "Failed to delete session.");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   }, []);
 
   // ── Submit count

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { Input } from "@/components/ui/input";
 import { useDashboard } from "@/components/dashboard-provider";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import {
   GlobalCatalogLoadMoreSkeleton,
   GlobalCatalogProductTableSkeleton,
@@ -969,17 +970,28 @@ export default function GlobalCatalogPage() {
         setRefreshOpen(false);
         return;
       }
-      const confirmed = window.confirm(
-        `Apply catalog template updates to ${preview.updatedCount} product${preview.updatedCount === 1 ? "" : "s"}?\n\n` +
-          `${preview.skippedCount} will be skipped.`,
-      );
-      if (!confirmed) return;
-      const result = await refreshGlobalCatalog(body);
-      toast.success(
-        `Updated ${result.updatedCount} · skipped ${result.skippedCount}`,
-      );
-      setRefreshOpen(false);
-      clearSelection();
+      showThemedConfirmToast({
+        id: "catalog-refresh-template",
+        title: `Update ${preview.updatedCount} product${preview.updatedCount === 1 ? "" : "s"}?`,
+        description: `${preview.skippedCount} will be skipped.`,
+        confirmLabel: "Apply updates",
+        confirmVariant: "default",
+        onConfirm: async () => {
+          setRefreshing(true);
+          try {
+            const result = await refreshGlobalCatalog(body);
+            toast.success(
+              `Updated ${result.updatedCount} · skipped ${result.skippedCount}`,
+            );
+            setRefreshOpen(false);
+            clearSelection();
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Refresh failed");
+          } finally {
+            setRefreshing(false);
+          }
+        },
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Refresh failed");
     } finally {
@@ -1116,33 +1128,43 @@ export default function GlobalCatalogPage() {
         toast.error(eligibility.blockReason || "Cannot replace catalogue for this shop.");
         return;
       }
-      const confirmed = window.confirm(
-        `Replace your product catalogue with “${packName}”?\n\n` +
+      showThemedConfirmToast({
+        id: `catalog-replace-pack-${selectedPackId}`,
+        title: `Replace catalogue with “${packName}”?`,
+        description:
           `This soft-deletes ${eligibility.activeItemCount} current product(s) and imports ${eligibility.packProductCount} pack product(s). ` +
           `Only empty shops (no sales, no stock) can do this.`,
-      );
-      if (!confirmed) return;
-      setReplacing(true);
-      const result = await replaceGlobalCatalog(defaultBranchId, selectedPackId);
-      toast.success(
-        `Replaced catalogue: removed ${result.softDeletedCount}, imported ${result.adopt.importedCount}`,
-      );
-      if (result.adopt.skippedCount > 0) {
-        toast.info(`${result.adopt.skippedCount} pack products skipped`);
-      }
-      setSelected(new Map());
-      void fetchProducts({
-        reset: true,
-        page: 0,
-        categoryId: selectedCategoryId,
-        packId: selectedPackId,
+        confirmLabel: "Replace catalogue",
+        onConfirm: async () => {
+          setReplacing(true);
+          try {
+            const result = await replaceGlobalCatalog(defaultBranchId, selectedPackId);
+            toast.success(
+              `Replaced catalogue: removed ${result.softDeletedCount}, imported ${result.adopt.importedCount}`,
+            );
+            if (result.adopt.skippedCount > 0) {
+              toast.info(`${result.adopt.skippedCount} pack products skipped`);
+            }
+            setSelected(new Map());
+            void fetchProducts({
+              reset: true,
+              page: 0,
+              categoryId: selectedCategoryId,
+              packId: selectedPackId,
+            });
+          } catch (e) {
+            if (!(e instanceof ApiRequestError)) {
+              toast.error("Replace catalogue failed");
+            }
+          } finally {
+            setReplacing(false);
+          }
+        },
       });
     } catch (e) {
       if (!(e instanceof ApiRequestError)) {
         toast.error("Replace catalogue failed");
       }
-    } finally {
-      setReplacing(false);
     }
   };
 

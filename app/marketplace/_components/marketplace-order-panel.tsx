@@ -25,6 +25,7 @@ import type {
 } from "@/lib/marketplace-api";
 import { cn, formatMoney } from "@/lib/utils";
 import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
+import { TelLink } from "@/components/tel-link";
 
 import {
   buildMarketplaceOrderPdf,
@@ -603,12 +604,7 @@ function PhoneLink({
   const wa = normalizeWhatsAppPhone(phone);
   return (
     <span className={cn("inline-flex flex-wrap items-center gap-x-2 gap-y-0.5", className)}>
-      <a
-        href={`tel:${phone.replace(/\s/g, "")}`}
-        className="underline underline-offset-2 hover:text-foreground/80"
-      >
-        {phone}
-      </a>
+      <TelLink phone={phone} className="underline underline-offset-2 hover:text-foreground/80" />
       {showWhatsApp && wa ? (
         <a
           href={`https://wa.me/${wa}`}

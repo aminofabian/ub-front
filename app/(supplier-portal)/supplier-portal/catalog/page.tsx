@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { APP_ROUTES } from "@/lib/config";
 import {
   createSupplierPortalProduct,
@@ -82,15 +83,22 @@ export default function SupplierPortalCatalogPage() {
     }
   };
 
-  const onDelete = async (productId: string) => {
-    if (!window.confirm("Remove this product from your catalogue?")) return;
-    try {
-      await deleteSupplierPortalProduct(productId);
-      toast.success("Product removed");
-      await load();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Delete failed");
-    }
+  const onDelete = (productId: string) => {
+    showThemedConfirmToast({
+      id: `supplier-portal-delete-${productId}`,
+      title: "Remove this product?",
+      description: "It will be removed from your catalogue.",
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        try {
+          await deleteSupplierPortalProduct(productId);
+          toast.success("Product removed");
+          await load();
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "Delete failed");
+        }
+      },
+    });
   };
 
   return (

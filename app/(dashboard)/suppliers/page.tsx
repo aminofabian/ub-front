@@ -24,6 +24,7 @@ import {
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { APP_ROUTES } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import {
@@ -359,39 +360,41 @@ export default function SuppliersPage() {
   );
 
   const onDeleteSupplierFromList = useCallback(
-    async (row: SupplierRecord) => {
+    (row: SupplierRecord) => {
       if (!canWrite) return;
       if (row.code?.trim() === "SYS-UNASSIGNED") {
         toast.error("Cannot delete the system unassigned supplier.");
         return;
       }
-      if (
-        !window.confirm(
-          `Delete supplier "${row.name}"? They will be removed from the directory. This cannot be undone from here.`,
-        )
-      ) {
-        return;
-      }
-      setDeletingSupplierId(row.id);
-      try {
-        await deleteSupplier(row.id);
-        toast.success(`Deleted ${row.name}.`);
-        if (selectedId === row.id) {
-          selectionRef.current = null;
-          setSelectedId(null);
-          setDetail(null);
-          setContacts([]);
-          setItemLinks([]);
-          setSelectedInvoice(null);
-          setProfileEditDrawerOpen(false);
-          setEditDrawerOpen(false);
-        }
-        await refreshFullDirectory();
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Could not delete supplier.");
-      } finally {
-        setDeletingSupplierId(null);
-      }
+      showThemedConfirmToast({
+        id: `delete-supplier-${row.id}`,
+        title: `Delete supplier “${row.name}”?`,
+        description:
+          "They will be removed from the directory. This cannot be undone from here.",
+        confirmLabel: "Delete",
+        onConfirm: async () => {
+          setDeletingSupplierId(row.id);
+          try {
+            await deleteSupplier(row.id);
+            toast.success(`Deleted ${row.name}.`);
+            if (selectedId === row.id) {
+              selectionRef.current = null;
+              setSelectedId(null);
+              setDetail(null);
+              setContacts([]);
+              setItemLinks([]);
+              setSelectedInvoice(null);
+              setProfileEditDrawerOpen(false);
+              setEditDrawerOpen(false);
+            }
+            await refreshFullDirectory();
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Could not delete supplier.");
+          } finally {
+            setDeletingSupplierId(null);
+          }
+        },
+      });
     },
     [canWrite, refreshFullDirectory, selectedId],
   );
