@@ -78,10 +78,14 @@ export function ShopUtilityBar({
         <div className="flex min-w-0 items-center gap-1">
           <MapPin className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
           <span className="truncate opacity-85">
-            Delivering to{" "}
-            <span className="font-semibold opacity-100">
-              {hint || "Your area"}
-            </span>
+            {hint ? (
+              <>
+                Delivering to{" "}
+                <span className="font-semibold opacity-100">{hint}</span>
+              </>
+            ) : (
+              <span className="font-semibold opacity-100">Local delivery</span>
+            )}
           </span>
         </div>
 

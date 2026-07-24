@@ -236,3 +236,28 @@ export function resolveStorefrontMetaDescription(
   }
   return defaultStorefrontMetaDescription(displayName, location);
 }
+
+/**
+ * Shopper-facing "Delivering to …" label for the storefront utility bar.
+ * Prefer env override, then onboarding localities, delivery areas, then branch name.
+ */
+export function resolveStorefrontDeliveryHint(input: {
+  envHint?: string | null;
+  branchLocalities?: readonly string[] | null;
+  deliveryAreaNames?: readonly string[] | null;
+  catalogBranchName?: string | null;
+}): string | null {
+  const env = input.envHint?.trim();
+  if (env) {
+    return env;
+  }
+  const fromLocalities = formatAreaPhrase(input.branchLocalities);
+  if (fromLocalities) {
+    return fromLocalities;
+  }
+  const fromDelivery = formatAreaPhrase(input.deliveryAreaNames);
+  if (fromDelivery) {
+    return fromDelivery;
+  }
+  return cleanLocationLabel(input.catalogBranchName);
+}

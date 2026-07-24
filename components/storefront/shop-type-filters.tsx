@@ -24,10 +24,14 @@ const ICON_BY_KEYWORD: Array<{ test: RegExp; icon: LucideIcon }> = [
   { test: /drink|beverage|water|juice|soda|dairy/i, icon: Beer },
   { test: /house|clean|essent|hygiene|home|household/i, icon: Sparkles },
   { test: /station|office|paper|pen|electronic/i, icon: PenTool },
-  { test: /snack|bite|cookie|candy|bakery/i, icon: Cookie },
+  { test: /snack|bite|cookie|candy|bakery|cereal/i, icon: Cookie },
   { test: /liquor|wine|spirit|alcohol/i, icon: Wine },
   { test: /cloth|fashion|wear|appar|beauty|care/i, icon: Shirt },
+  { test: /spice|season/i, icon: Sparkles },
 ];
+
+/** Catch-all store labels that aren't useful as shopper "types". */
+const GENERIC_TYPE_LABEL = /^(retail(\s+shop)?|grocery|general|all(\s+products)?)$/i;
 
 function pickIcon(label: string): LucideIcon {
   for (const m of ICON_BY_KEYWORD) {
@@ -38,6 +42,34 @@ function pickIcon(label: string): LucideIcon {
 
 function itemCountLabel(count: number): string {
   return `${count} ${count === 1 ? "item" : "items"}`;
+}
+
+function titleCaseLabel(label: string): string {
+  return label
+    .trim()
+    .split(/\s+/)
+    .map((word) =>
+      word.length <= 2 && word === word.toUpperCase()
+        ? word
+        : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+    )
+    .join(" ");
+}
+
+function isGenericType(label: string): boolean {
+  return GENERIC_TYPE_LABEL.test(label.trim());
+}
+
+/** Prefer real product families; drop lone Retail/Grocery catch-alls. */
+export function filterShopperTypes(
+  types: PublicCatalogType[],
+): PublicCatalogType[] {
+  const meaningful = types.filter((t) => !isGenericType(t.label));
+  if (meaningful.length > 0) {
+    return meaningful;
+  }
+  // Only generic types exist — hide the section rather than show "Retail".
+  return [];
 }
 
 export function ShopTypeFilters({
@@ -58,7 +90,8 @@ export function ShopTypeFilters({
       ? primaryHex.trim()
       : null;
 
-  if (types.length === 0) return null;
+  const visibleTypes = filterShopperTypes(types);
+  if (visibleTypes.length === 0) return null;
 
   const categoryPathSlug =
     pathname.startsWith("/shop/c/")
@@ -73,16 +106,16 @@ export function ShopTypeFilters({
       <div
         className={cn(
           "grid gap-2 rounded-lg border border-border/50 bg-card p-2.5 shadow-[0_1px_0_rgba(0,0,0,0.03),0_2px_10px_-4px_rgba(0,0,0,0.06)] sm:gap-2.5 sm:p-3",
-          types.length <= 2
+          visibleTypes.length <= 2
             ? "grid-cols-2"
-            : types.length === 3
+            : visibleTypes.length === 3
               ? "grid-cols-3"
               : "grid-cols-2 sm:grid-cols-4",
         )}
         role="group"
         aria-label="Filter by type"
       >
-        {types.map((type) => {
+        {visibleTypes.map((type) => {
           const selected = activeId === type.id;
           const href = shopListPath({
             categoryPathSlug,
@@ -91,6 +124,7 @@ export function ShopTypeFilters({
           });
           const Icon = pickIcon(type.label);
           const customIconSrc = categoryIconImageUrl(type.icon ?? null);
+          const label = titleCaseLabel(type.label);
 
           return (
             <Link
@@ -136,7 +170,7 @@ export function ShopTypeFilters({
               </span>
               <div className="min-w-0">
                 <p className="truncate text-[11px] font-semibold leading-tight text-foreground sm:text-xs">
-                  {type.label}
+                  {label}
                 </p>
                 <p className="text-[10px] leading-snug text-muted-foreground/70 sm:text-[11px]">
                   {itemCountLabel(type.itemCount ?? 0)}

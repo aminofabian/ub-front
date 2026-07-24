@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Flame, LayoutGrid } from "lucide-react";
+import { ChevronDown, ChevronRight, LayoutGrid, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
@@ -13,8 +13,6 @@ import {
   storefrontCategoryPathSlug,
 } from "@/lib/shop-url";
 import { cn } from "@/lib/utils";
-
-const FEATURED_COUNT = 5;
 
 type CategorySection = {
   category: PublicCategory;
@@ -270,45 +268,6 @@ function ShopByAisleMenu({
   );
 }
 
-function FeaturedAisleNav({
-  featured,
-  pathSlug,
-  q,
-}: {
-  featured: PublicCategory[];
-  pathSlug: string;
-  q: string;
-}) {
-  return (
-    <nav
-      className="flex min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto py-1 sm:justify-start sm:gap-1.5"
-      aria-label="Featured aisles"
-    >
-      {featured.map((c) => {
-        const seg = storefrontCategoryPathSlug(c);
-        const active =
-          pathSlug !== "" &&
-          (seg === pathSlug || seg.toLowerCase() === pathSlug.toLowerCase());
-        return (
-          <Link
-            key={c.id}
-            href={shopListPath({ categoryPathSlug: seg, q })}
-            className={cn(
-              "shrink-0 truncate rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] transition sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]",
-              active
-                ? "bg-white/20 text-white"
-                : "text-white/90 hover:bg-white/10 hover:text-white",
-            )}
-            title={c.name}
-          >
-            {c.name}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
 export function ShopCategoryRail({
   categories,
   primaryHex,
@@ -330,7 +289,7 @@ export function ShopCategoryRail({
         .sort((a, b) => a.name.localeCompare(b.name)),
     [categories],
   );
-  const featured = useMemo(() => roots.slice(0, FEATURED_COUNT), [roots]);
+  const quickLinks = useMemo(() => roots.slice(0, 4), [roots]);
   const childrenByParent = useMemo(() => {
     const map = new Map<string, PublicCategory[]>();
     for (const c of categories) {
@@ -378,26 +337,40 @@ export function ShopCategoryRail({
           accentHex={accent}
         />
 
-        <FeaturedAisleNav featured={featured} pathSlug={pathSlug} q={q} />
+        <nav
+          className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1.5 sm:flex"
+          aria-label="Popular aisles"
+        >
+          {quickLinks.map((c) => {
+            const seg = storefrontCategoryPathSlug(c);
+            const active =
+              pathSlug !== "" &&
+              (seg === pathSlug ||
+                seg.toLowerCase() === pathSlug.toLowerCase());
+            return (
+              <Link
+                key={c.id}
+                href={shopListPath({ categoryPathSlug: seg, q })}
+                className={cn(
+                  "shrink-0 truncate rounded-md px-2.5 py-1 text-[12px] font-medium transition",
+                  active
+                    ? "bg-white/18 text-white"
+                    : "text-white/80 hover:bg-white/10 hover:text-white",
+                )}
+                title={c.name}
+              >
+                {c.name}
+              </Link>
+            );
+          })}
+        </nav>
 
         <Link
           href={`${APP_ROUTES.shop}#shop-catalog`}
-          className={cn(
-            "ml-auto inline-flex shrink-0 items-center gap-1 self-center whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold transition hover:bg-white/10",
-          )}
+          className="ml-auto inline-flex shrink-0 items-center gap-1.5 self-center whitespace-nowrap rounded-md bg-white/12 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-white/18"
         >
-          <Flame className="h-3.5 w-3.5" aria-hidden />
-          <span className="hidden sm:inline">Offers</span>
-          <span
-            className="rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase text-white shadow"
-            style={
-              accent
-                ? { backgroundColor: accent }
-                : { backgroundColor: "#dc2626" }
-            }
-          >
-            Hot
-          </span>
+          <Tag className="h-3.5 w-3.5 opacity-90" aria-hidden />
+          <span>Deals</span>
         </Link>
       </div>
     </div>

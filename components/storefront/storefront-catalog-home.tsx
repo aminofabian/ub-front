@@ -19,9 +19,36 @@ import {
   fetchPublicStorefront,
   type PublicCatalogItemCard,
 } from "@/lib/public-storefront";
+import {
+  primaryStorefrontArea,
+  resolveStorefrontDeliveryHint,
+} from "@/lib/storefront-seo-defaults";
 
 function isHexColor(value: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(value.trim());
+}
+
+function catalogLeadScore(item: PublicCatalogItemCard): number {
+  let score = 0;
+  if (item.name?.trim()) score += 4;
+  if (item.imageUrl?.trim()) score += 2;
+  if (item.price != null && item.price > 0) score += 2;
+  return score;
+}
+
+/** Prefer featured + complete cards so "All Products" leads with a strong first item. */
+function orderCatalogLead(
+  items: PublicCatalogItemCard[],
+  featured: PublicCatalogItemCard[],
+): PublicCatalogItemCard[] {
+  if (items.length <= 1) return items;
+  const featuredIds = new Set(featured.map((f) => f.id));
+  return [...items].sort((a, b) => {
+    const aFeat = featuredIds.has(a.id) ? 1 : 0;
+    const bFeat = featuredIds.has(b.id) ? 1 : 0;
+    if (aFeat !== bFeat) return bFeat - aFeat;
+    return catalogLeadScore(b) - catalogLeadScore(a);
+  });
 }
 
 export async function StorefrontCatalogHome({
@@ -99,6 +126,15 @@ export async function StorefrontCatalogHome({
       ? types.find((t) => t.id === resolvedTypeId)?.label?.trim()
       : undefined;
   const branchHint = storefront?.catalogBranchName;
+  const areaLabel = primaryStorefrontArea(tenant?.branchLocalities)
+    ?? resolveStorefrontDeliveryHint({
+      envHint: process.env.NEXT_PUBLIC_STOREFRONT_LOCATION_HINT,
+      branchLocalities: tenant?.branchLocalities,
+      deliveryAreaNames: (storefront?.deliveryAreas ?? [])
+        .filter((area) => area.active && area.name.trim())
+        .map((area) => area.name),
+      catalogBranchName: storefront?.catalogBranchName,
+    });
   const heroTitle =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? "Browse products";
   const announcement = storefront?.announcement?.trim() || null;
@@ -114,6 +150,8 @@ export async function StorefrontCatalogHome({
       ? storefront.featured
       : list.items.slice(0, 4);
 
+  const catalogItems = orderCatalogLead(list.items, featured);
+
   const showcaseImage =
     featured[0]?.imageUrl || storefront?.featured?.[0]?.imageUrl || null;
 
@@ -127,6 +165,7 @@ export async function StorefrontCatalogHome({
               title={heroTitle}
               tagline={announcement}
               branchHint={branchHint}
+              areaLabel={areaLabel}
               primaryHex={primary}
               accentHex={accentHex}
               showcaseImage={showcaseImage}
@@ -149,7 +188,7 @@ export async function StorefrontCatalogHome({
                 key={`${q ?? ""}\0${categoryId ?? ""}\0${resolvedTypeId ?? ""}\0${categoryPathSlug ?? ""}`}
                 slug={slug}
                 currency={list.currency}
-                initialItems={list.items}
+                initialItems={catalogItems}
                 initialNextCursor={list.nextCursor}
                 initialTotalCount={list.totalCount ?? undefined}
                 q={q}

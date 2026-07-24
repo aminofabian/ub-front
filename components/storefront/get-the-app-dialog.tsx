@@ -68,12 +68,13 @@ export function GetTheAppDialog({
       <button
         type="button"
         className={cn(
-          "inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground",
+          "inline-flex h-9 items-center gap-1 rounded-lg px-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground",
           triggerClassName,
         )}
         aria-label="Get the mobile app"
       >
-        <Smartphone className="size-4.5" aria-hidden />
+        <Smartphone className="size-4.5 shrink-0" aria-hidden />
+        <span className="text-[11px] font-semibold tracking-tight">App</span>
       </button>
     ) : (
       <button

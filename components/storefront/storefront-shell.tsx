@@ -8,6 +8,7 @@ import {
   fetchPublicStorefront,
   fetchTenantContext,
 } from "@/lib/public-storefront";
+import { resolveStorefrontDeliveryHint } from "@/lib/storefront-seo-defaults";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
 import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
 import { cn } from "@/lib/utils";
@@ -57,7 +58,14 @@ export async function StorefrontShell({
       }
     : null;
 
-  const locationHint = process.env.NEXT_PUBLIC_STOREFRONT_LOCATION_HINT?.trim() || null;
+  const locationHint = resolveStorefrontDeliveryHint({
+    envHint: process.env.NEXT_PUBLIC_STOREFRONT_LOCATION_HINT,
+    branchLocalities: tenant?.branchLocalities,
+    deliveryAreaNames: (storefront?.deliveryAreas ?? [])
+      .filter((area) => area.active && area.name.trim())
+      .map((area) => area.name),
+    catalogBranchName: storefront?.catalogBranchName,
+  });
   const isComingSoon = Boolean(slug && !storefront);
 
   if (isComingSoon) {

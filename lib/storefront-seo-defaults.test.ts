@@ -4,6 +4,7 @@ import {
   applySeoPlaceholders,
   defaultStorefrontMetaTitle,
   localitiesFromBranches,
+  resolveStorefrontDeliveryHint,
   resolveStorefrontMetaTitle,
 } from "@/lib/storefront-seo-defaults";
 
@@ -54,5 +55,24 @@ describe("storefront-seo-defaults", () => {
         { name: "Kasarani branch", active: true },
       ]),
     ).toEqual(["Westlands", "Kasarani"]);
+  });
+
+  it("resolves delivery hint from branch localities before fallbacks", () => {
+    expect(
+      resolveStorefrontDeliveryHint({
+        branchLocalities: ["Mirema Drive", "Thika"],
+        deliveryAreaNames: ["Kilimani"],
+        catalogBranchName: "HQ branch",
+      }),
+    ).toBe("Mirema Drive & Thika");
+  });
+
+  it("prefers env delivery hint over localities", () => {
+    expect(
+      resolveStorefrontDeliveryHint({
+        envHint: "Westlands",
+        branchLocalities: ["Mirema Drive"],
+      }),
+    ).toBe("Westlands");
   });
 });

@@ -26,7 +26,7 @@ function heroCtaStyle(
   accent: string | null,
 ): CSSProperties | undefined {
   if (accent) {
-    return { backgroundColor: accent, color: "#fff" };
+    return { backgroundColor: accent, color: "#0f172a" };
   }
   if (primary) {
     return {
@@ -37,16 +37,11 @@ function heroCtaStyle(
   return undefined;
 }
 
-function accentLineColor(primary: string | null, accent: string | null): string {
-  if (accent) return accent;
-  if (primary) return `color-mix(in srgb, ${primary} 48%, white)`;
-  return "#7dd3fc";
-}
-
 export function ShopHeroMart({
   title,
   tagline,
   branchHint,
+  areaLabel,
   primaryHex,
   accentHex,
   showcaseImage,
@@ -56,6 +51,8 @@ export function ShopHeroMart({
   title: string;
   tagline?: string | null;
   branchHint?: string | null;
+  /** Shopper-facing locality for body copy (e.g. "Mirema Drive"). */
+  areaLabel?: string | null;
   primaryHex: string | null;
   accentHex: string | null;
   showcaseImage?: string | null;
@@ -75,10 +72,16 @@ export function ShopHeroMart({
   const heroBg = primary
     ? `color-mix(in srgb, ${primary} 82%, #020617)`
     : "#0f172a";
+  const fadeEdge = primary
+    ? `color-mix(in srgb, ${primary} 88%, #020617)`
+    : "#0f172a";
 
   const headline = tagline?.trim() || "Quality essentials, delivered.";
   const subhead = "Right to your door.";
-  const accentLine = accentLineColor(primary, accent);
+  const area = areaLabel?.trim() || null;
+  const body = area
+    ? `Fresh products, fair prices, and fast delivery — from your neighborhood store in ${area}, now online.`
+    : "Fresh products, fair prices, and fast delivery — all from your neighborhood store, now online.";
 
   const banners = heroBannerUrls?.length ? heroBannerUrls : null;
   const [activeIndex, setActiveIndex] = useState(0);
@@ -127,14 +130,13 @@ export function ShopHeroMart({
 
           <h1 className="font-heading text-[1.65rem] font-semibold leading-[1.12] tracking-[-0.02em] sm:text-[1.85rem] lg:text-[2.15rem]">
             <span className="block text-white">{headline}</span>
-            <span className="block" style={{ color: accentLine }}>
+            <span className="block font-heading font-medium italic text-white/75">
               {subhead}
             </span>
           </h1>
 
           <p className="max-w-md text-[12px] leading-relaxed text-white/60 sm:text-[13px]">
-            Fresh products, fair prices, and fast delivery — all from your
-            neighborhood store, now online.
+            {body}
           </p>
 
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
@@ -142,7 +144,7 @@ export function ShopHeroMart({
               href="#shop-catalog"
               className={cn(
                 "inline-flex h-9 items-center gap-1.5 rounded-md px-4 text-[12px] font-semibold shadow-sm transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98] sm:h-10 sm:px-5 sm:text-[13px]",
-                !accent && !primary && "bg-sky-400 text-white",
+                !accent && !primary && "bg-sky-400 text-slate-900",
               )}
               style={heroCtaStyle(primary, accent)}
             >
@@ -259,18 +261,19 @@ export function ShopHeroMart({
           )}
 
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/25 to-transparent sm:hidden"
+            className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-black/30 to-transparent sm:hidden"
+            aria-hidden
+          />
+          {/* Soft seam: primary panel bleeds into the photo instead of a hard cut */}
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[28%] sm:block"
+            style={{
+              background: `linear-gradient(90deg, ${fadeEdge} 0%, color-mix(in srgb, ${fadeEdge} 72%, transparent) 42%, transparent 100%)`,
+            }}
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 hidden w-12 bg-gradient-to-r from-[var(--hero-fade,#0f172a)] to-transparent sm:block"
-            style={
-              primary
-                ? {
-                    ["--hero-fade" as string]: `color-mix(in srgb, ${primary} 88%, #020617)`,
-                  }
-                : undefined
-            }
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[10%] bg-gradient-to-r from-black/20 to-transparent sm:block"
             aria-hidden
           />
         </div>
