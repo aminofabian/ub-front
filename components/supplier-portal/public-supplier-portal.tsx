@@ -98,9 +98,9 @@ function SupplyLinesDetail({
           key={`${line.description}-${i}`}
           className="flex items-baseline justify-between gap-3 text-[12px]"
         >
-          <div className="min-w-0">
-            <p className="truncate font-medium leading-snug">{line.description}</p>
-            <p className="font-mono text-[10px] text-muted-foreground">
+          <div className="min-w-0 flex-1">
+            <p className="font-medium leading-snug">{line.description}</p>
+            <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
               {toNum(line.quantity)} × {toNum(line.unitCost).toFixed(2)}
             </p>
           </div>
@@ -386,32 +386,44 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           ) : data.movements.length === 0 ? (
             <EmptyState label="No line movements yet." />
           ) : (
-            <ul className="overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-white/80">
+            <ul className="-mx-3 overflow-hidden border-y border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-white/90 sm:mx-0 sm:border">
               {data.movements.map((m, i) => (
                 <li
                   key={`${m.invoiceNumber}-${m.description}-${i}`}
-                  className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-3 py-2 last:border-b-0"
+                  className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)] px-3.5 py-3.5 last:border-b-0"
                 >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <p className="min-w-0 truncate text-[12px] font-medium">
-                      {m.description}
-                    </p>
-                    <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums">
+                  <p className="text-[13px] font-medium leading-snug text-[var(--pos-ink,#1c1915)]">
+                    {m.description}
+                  </p>
+                  <div className="mt-2.5 flex items-end justify-between gap-3">
+                    <div className="min-w-0 space-y-0.5 text-[11px] leading-tight text-muted-foreground">
+                      <p>
+                        <span className="tabular-nums">
+                          {fmtDate(m.invoiceDate)}
+                        </span>
+                        <span className="mx-1.5 text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)]">
+                          ·
+                        </span>
+                        <span className="font-mono tabular-nums">
+                          {toNum(m.quantity)} × {toNum(m.unitCost).toFixed(2)}
+                        </span>
+                      </p>
+                      <p className="font-mono tracking-tight">
+                        {m.invoiceNumber}
+                      </p>
+                    </div>
+                    <p className="shrink-0 font-mono text-[14px] font-semibold tabular-nums tracking-tight text-[var(--pos-ink,#1c1915)]">
                       {fmtMoney(m.lineTotal, currency)}
                     </p>
                   </div>
-                  <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                    {fmtDate(m.invoiceDate)} · {toNum(m.quantity)} ×{" "}
-                    {toNum(m.unitCost).toFixed(2)} · {m.invoiceNumber}
-                  </p>
                 </li>
               ))}
               {data.linkedProducts.length > 0 ? (
-                <li className="bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-2.5">
+                <li className="bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3.5 py-3">
                   <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                     Linked catalogue
                   </p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
                     {data.linkedProducts.slice(0, 18).join(" · ")}
                     {data.linkedProducts.length > 18
                       ? ` · +${data.linkedProducts.length - 18} more`
