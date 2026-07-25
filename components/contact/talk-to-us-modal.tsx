@@ -82,6 +82,17 @@ export function TalkToUsModal({
     setChallenge(createContactTillChallenge());
   }, [open]);
 
+  const useDifferentSum = () => {
+    setChallenge(createContactTillChallenge());
+    setChallengeAnswer("");
+    setFieldErrors((prev) => {
+      if (!prev.challengeAnswer) return prev;
+      const next = { ...prev };
+      delete next.challengeAnswer;
+      return next;
+    });
+  };
+
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (website.trim()) {
@@ -263,9 +274,13 @@ export function TalkToUsModal({
                     <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
                       Human check · {challenge.title}
                     </p>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-[var(--kiosk-text-faint)]">
-                      Not for bots
-                    </p>
+                    <button
+                      type="button"
+                      onClick={useDifferentSum}
+                      className="shrink-0 font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)] underline-offset-2 transition-colors hover:text-[var(--kiosk-gold)] hover:underline"
+                    >
+                      Different sum
+                    </button>
                   </div>
                   <p className="mb-2 text-[12px] leading-snug text-[var(--kiosk-text-muted)]">
                     {challenge.blurb} Easy for you — robots usually guess.
