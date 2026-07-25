@@ -7,14 +7,18 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
 import {
   ArrowLeft,
+  Camera,
+  Check,
   Loader2,
   Package,
   PackagePlus,
+  Pencil,
   Search,
   ShoppingCart,
   Trash2,
@@ -37,6 +41,7 @@ import {
   fetchSuppliersPage,
   postPathBSession,
   postSellingPrice,
+  uploadItemImageFile,
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
@@ -45,6 +50,11 @@ import { kioskPlaceholderWashClass } from "@/components/cashier/kiosk-listing-st
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
+import {
+  canAdminEditOnHandStock,
+  resolveStockHolderForEdit,
+  setCatalogOnHandStock,
+} from "@/lib/set-on-hand-stock";
 import {
   isSupplierIdSegment,
   resolveSupplierFromSlug,
@@ -175,18 +185,291 @@ function linkToCartSeed(link: SupplierItemLinkRecord): SupplyCartLine {
   };
 }
 
+function seedUnitCost(link: SupplierItemLinkRecord): number {
+  for (const raw of [
+    link.lastCostPrice,
+    link.defaultCostPrice,
+    link.catalogBuyingPrice,
+  ]) {
+    if (raw == null || String(raw).trim() === "") continue;
+    const n = Number(raw);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  return 0;
+}
+
+function TilePhotoButton({
+  itemId,
+  itemName,
+  onUploaded,
+}: {
+  itemId: string;
+  itemName: string;
+  onUploaded: (imageUrl: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (file: File | null | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose a photo (JPG, PNG, or HEIC).");
+      return;
+    }
+    setUploading(true);
+    try {
+      const saved = await uploadItemImageFile(itemId, file, {
+        altText: itemName,
+        primary: true,
+      });
+      const url = saved.secureUrl?.trim();
+      if (!url) {
+        toast.error("Upload finished but no image URL was returned.");
+        return;
+      }
+      onUploaded(url);
+      toast.success("Photo updated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not upload photo");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={uploading}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          inputRef.current?.click();
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className={cn(
+          "absolute bottom-0.5 right-0.5 z-[3] flex size-6 items-center justify-center",
+          "border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px]",
+          "transition-colors hover:bg-black/70 disabled:opacity-70",
+        )}
+        aria-label={`Edit photo for ${itemName}`}
+        title="Edit photo"
+      >
+        {uploading ? (
+          <Loader2 className="size-3 animate-spin" aria-hidden />
+        ) : (
+          <Camera className="size-3" aria-hidden />
+        )}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          void handleFile(e.target.files?.[0]);
+        }}
+      />
+    </>
+  );
+}
+
+function TileStockEditor({
+  link,
+  branchId,
+  disabled,
+  onUpdated,
+}: {
+  link: SupplierItemLinkRecord;
+  branchId: string;
+  disabled?: boolean;
+  onUpdated: (nextStock: number) => void;
+}) {
+  const displayStock = linkStock(link);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [baseline, setBaseline] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [editing]);
+
+  const startEdit = async (e: React.MouseEvent | React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled || busy) return;
+    const bid = branchId.trim();
+    if (!bid) {
+      toast.error("Select a branch in the top nav first");
+      return;
+    }
+    setBusy(true);
+    try {
+      const resolved = await resolveStockHolderForEdit({
+        itemId: link.itemId,
+        branchId: bid,
+      });
+      const current = resolved.displayCurrent;
+      setBaseline(current);
+      setDraft(Number.isInteger(current) ? String(current) : current.toFixed(2));
+      setEditing(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not load stock");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancel = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setEditing(false);
+    setDraft("");
+    setBaseline(null);
+  };
+
+  const save = async (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (busy) return;
+    const bid = branchId.trim();
+    if (!bid) {
+      toast.error("Select a branch in the top nav first");
+      return;
+    }
+    const target = Number(draft.trim());
+    if (!Number.isFinite(target) || target < 0) {
+      toast.error("Enter zero or a positive quantity");
+      return;
+    }
+    const current = baseline ?? displayStock ?? 0;
+    if (Math.abs(target - current) < 0.0001) {
+      cancel();
+      return;
+    }
+    setBusy(true);
+    try {
+      await setCatalogOnHandStock({
+        itemId: link.itemId,
+        branchId: bid,
+        targetDisplay: target,
+        unitCost: seedUnitCost(link),
+        notes: "Stock set from supplier receive till",
+      });
+      setEditing(false);
+      setDraft("");
+      setBaseline(null);
+      onUpdated(target);
+      toast.success(`Stock set to ${formatStock(target)}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Stock update failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div
+        className="flex items-center gap-0.5"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <input
+          ref={inputRef}
+          className={cn(
+            "h-6 w-[3.25rem] border border-border/60 bg-background px-1 text-right font-mono text-[10px] tabular-nums",
+            "focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] focus-visible:outline-none",
+          )}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          disabled={busy}
+          inputMode="decimal"
+          aria-label={`Set on-hand stock for ${link.itemName || link.sku}`}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void save(e);
+            if (e.key === "Escape") cancel(e);
+          }}
+        />
+        <button
+          type="button"
+          className="flex size-6 items-center justify-center text-[var(--pos-primary)] disabled:opacity-50"
+          disabled={busy}
+          title="Save stock"
+          onClick={(e) => void save(e)}
+        >
+          {busy ? (
+            <Loader2 className="size-3 animate-spin" aria-hidden />
+          ) : (
+            <Check className="size-3" aria-hidden />
+          )}
+        </button>
+        <button
+          type="button"
+          className="flex size-6 items-center justify-center text-muted-foreground disabled:opacity-50"
+          disabled={busy}
+          title="Cancel"
+          onClick={cancel}
+        >
+          <X className="size-3" aria-hidden />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={disabled || busy}
+      onClick={(e) => void startEdit(e)}
+      onPointerDown={(e) => e.stopPropagation()}
+      className={cn(
+        "inline-flex items-center gap-0.5 font-mono text-[10px] tabular-nums",
+        "underline-offset-2 hover:underline disabled:opacity-50",
+        displayStock != null && displayStock <= 0
+          ? "font-semibold text-red-700 dark:text-red-300"
+          : "text-muted-foreground",
+      )}
+      title="Set on-hand stock"
+    >
+      {busy ? (
+        <Loader2 className="size-2.5 animate-spin" aria-hidden />
+      ) : (
+        <Pencil className="size-2.5" aria-hidden />
+      )}
+      Stock {formatStock(displayStock)}
+    </button>
+  );
+}
+
 function ProductTile({
   link,
   cartQty,
   justAdded,
   currency,
+  branchId,
+  canEditStock,
+  canEditPhoto,
   onPick,
+  onPhotoUploaded,
+  onStockUpdated,
 }: {
   link: SupplierItemLinkRecord;
   cartQty: number;
   justAdded: boolean;
   currency: string;
+  branchId: string;
+  canEditStock: boolean;
+  canEditPhoto: boolean;
   onPick: () => void;
+  onPhotoUploaded: (itemId: string, imageUrl: string) => void;
+  onStockUpdated: (itemId: string, nextStock: number) => void;
 }) {
   const title = link.itemName || link.sku || "Product";
   const thumb = posTileThumbUrl(title, link.thumbnailUrl);
@@ -196,64 +479,90 @@ function ProductTile({
   const stock = linkStock(link);
 
   return (
-    <button
-      type="button"
-      onClick={onPick}
+    <div
       className={cn(
         TILE_SHELL,
         cartQty > 0 &&
           "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,var(--card))]",
       )}
-      aria-label={
-        cartQty > 0
-          ? `${title}, ${cartQty} in supply cart. Tap to add another.`
-          : `Add ${title} to supply cart`
-      }
     >
       <div className="relative aspect-square w-full shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] dark:border-border/40">
-        {thumb ? (
-          <Image
-            src={thumb}
-            alt=""
-            fill
-            sizes="(max-width: 640px) 22vw, (max-width: 1024px) 12vw, 90px"
-            className="object-contain p-0.5 transition-transform duration-300 group-hover:scale-[1.04]"
-            unoptimized
-          />
-        ) : (
-          <span
-            className={cn(
-              "flex h-full w-full items-center justify-center bg-gradient-to-br",
-              kioskPlaceholderWashClass(title),
-            )}
-            aria-hidden
-          >
-            <Package className="size-5 opacity-55" strokeWidth={1.5} />
-          </span>
-        )}
+        <button
+          type="button"
+          onClick={onPick}
+          className="absolute inset-0 z-0 text-left"
+          aria-label={
+            cartQty > 0
+              ? `${title}, ${cartQty} in supply cart. Tap to add another.`
+              : `Add ${title} to supply cart`
+          }
+        >
+          {thumb ? (
+            <Image
+              src={thumb}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 22vw, (max-width: 1024px) 12vw, 90px"
+              className="object-contain p-0.5 transition-transform duration-300 group-hover:scale-[1.04]"
+              unoptimized
+            />
+          ) : (
+            <span
+              className={cn(
+                "flex h-full w-full items-center justify-center bg-gradient-to-br",
+                kioskPlaceholderWashClass(title),
+              )}
+              aria-hidden
+            >
+              <Package className="size-5 opacity-55" strokeWidth={1.5} />
+            </span>
+          )}
+        </button>
         {cartQty > 0 ? (
           <span
             className={cn(
-              "absolute left-0 top-0 z-[1] inline-flex h-6 min-w-6 items-center justify-center px-1.5 text-[11px] font-bold tabular-nums text-[var(--pos-primary-ink,#fff)] bg-[var(--pos-primary)]",
+              "pointer-events-none absolute left-0 top-0 z-[1] inline-flex h-6 min-w-6 items-center justify-center px-1.5 text-[11px] font-bold tabular-nums text-[var(--pos-primary-ink,#fff)] bg-[var(--pos-primary)]",
               justAdded && "animate-pulse",
             )}
           >
             {cartQty}
           </span>
         ) : null}
+        {canEditPhoto ? (
+          <TilePhotoButton
+            itemId={link.itemId}
+            itemName={title}
+            onUploaded={(url) => onPhotoUploaded(link.itemId, url)}
+          />
+        ) : null}
       </div>
-      <div className="flex min-h-[3.1rem] flex-1 flex-col justify-center gap-0.5 px-1.5 pb-1.5 pt-1">
-        <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)] dark:text-foreground">
-          {title}
-        </p>
-        <p className="truncate text-[10px] tabular-nums text-muted-foreground">
-          {cost
-            ? `${Number(cost).toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`
-            : "Set cost"}
-          {stock != null ? ` · Stock ${formatStock(stock)}` : ""}
-        </p>
+      <div className="flex min-h-[3.1rem] w-full flex-1 flex-col justify-center gap-0.5 px-1.5 pb-1.5 pt-1">
+        <button
+          type="button"
+          onClick={onPick}
+          className="w-full text-left"
+        >
+          <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+            {title}
+          </p>
+          <p className="truncate text-[10px] tabular-nums text-muted-foreground">
+            {cost
+              ? `${Number(cost).toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`
+              : "Set cost"}
+            {!canEditStock && stock != null
+              ? ` · Stock ${formatStock(stock)}`
+              : ""}
+          </p>
+        </button>
+        {canEditStock ? (
+          <TileStockEditor
+            link={link}
+            branchId={branchId}
+            onUpdated={(next) => onStockUpdated(link.itemId, next)}
+          />
+        ) : null}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -482,6 +791,12 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     me?.permissions,
     Permission.PricingSellPriceSet,
   );
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const isOwnerOrAdmin = roleKey === "owner" || roleKey === "admin";
+  const canEditStock = canAdminEditOnHandStock(me);
+  const canEditPhoto =
+    isOwnerOrAdmin &&
+    hasPermission(me?.permissions, Permission.CatalogItemsWrite);
   const canAccess = canPathBWrite && canViewSuppliers;
   const activeBranchName =
     branches.find((b) => b.id === branchId)?.name?.trim() || "";
@@ -684,6 +999,27 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     },
     [markAdded],
   );
+
+  const onPhotoUploaded = useCallback((itemId: string, imageUrl: string) => {
+    setLinks((prev) =>
+      prev.map((l) =>
+        l.itemId === itemId ? { ...l, thumbnailUrl: imageUrl } : l,
+      ),
+    );
+  }, []);
+
+  const onStockUpdated = useCallback((itemId: string, nextStock: number) => {
+    setLinks((prev) =>
+      prev.map((l) =>
+        l.itemId === itemId ? { ...l, currentStock: nextStock } : l,
+      ),
+    );
+    setCart((prev) =>
+      prev.map((l) =>
+        l.itemId === itemId ? { ...l, stock: nextStock } : l,
+      ),
+    );
+  }, []);
 
   const patchLine = (itemId: string, patch: Partial<SupplyCartLine>) => {
     setCart((prev) =>
@@ -1015,7 +1351,12 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                     cartQty={cartQtyByItem.get(link.itemId) ?? 0}
                     justAdded={justAddedId === link.itemId}
                     currency={currency}
+                    branchId={branchId}
+                    canEditStock={canEditStock}
+                    canEditPhoto={canEditPhoto}
                     onPick={() => addLinkToCart(link)}
+                    onPhotoUploaded={onPhotoUploaded}
+                    onStockUpdated={onStockUpdated}
                   />
                 ))}
               </div>
