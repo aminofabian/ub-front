@@ -7435,7 +7435,7 @@ export async function postPathAPurchaseOrder(body: {
 }): Promise<PathAPurchaseOrderDetailRecord> {
   return request<PathAPurchaseOrderDetailRecord>(PATH_A_PURCHASE_ORDERS, {
     method: "POST",
-    body: JSON.stringify(body),
+    body,
   });
 }
 
@@ -7449,7 +7449,7 @@ export async function postPathAPurchaseOrderLine(
 ): Promise<PathAPurchaseOrderLineRecord> {
   return request<PathAPurchaseOrderLineRecord>(
     `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/lines`,
-    { method: "POST", body: JSON.stringify(body) },
+    { method: "POST", body },
   );
 }
 
