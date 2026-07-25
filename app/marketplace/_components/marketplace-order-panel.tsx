@@ -80,13 +80,38 @@ type ParentOption = {
   thumbnailUrl: string | null;
 };
 
-/** Parent id for filtering: variant parent, else the catalog item itself. */
+function normalizeParentLabel(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/** True when this catalog row is a child/variant, not a parent folder. */
+function isVariantProduct(product: MarketplaceCatalogProductPreview): boolean {
+  if (product.variantOfItemId?.trim()) return true;
+  if (product.parentItemName?.trim()) return true;
+  const name = product.name?.trim() || "";
+  return name.includes(" · ");
+}
+
+/**
+ * Parent folder key for filtering — variants collapse under their parent.
+ * Prefer catalog parent id, then parent name, then "Name · Variant" prefix.
+ */
 function productParentId(product: MarketplaceCatalogProductPreview): string {
-  const variant = product.variantOfItemId?.trim();
-  if (variant) return variant;
-  const itemId = product.itemId?.trim();
-  if (itemId) return itemId;
-  return product.id;
+  const variantOf = product.variantOfItemId?.trim();
+  if (variantOf) return variantOf;
+
+  const parentName = product.parentItemName?.trim();
+  if (parentName) return `name:${normalizeParentLabel(parentName)}`;
+
+  const name = product.name?.trim() || "";
+  const sep = name.indexOf(" · ");
+  if (sep > 0) return `name:${normalizeParentLabel(name.slice(0, sep))}`;
+
+  // Non-variant / parent row: group by display name so children with " · " merge in
+  // even when the parent row uses a different id than variantOfItemId.
+  if (name) return `name:${normalizeParentLabel(name)}`;
+
+  return product.itemId?.trim() || product.id;
 }
 
 function productParentLabel(product: MarketplaceCatalogProductPreview): string {
@@ -337,19 +362,60 @@ export function MarketplaceOrderWorkspace({
   const showAreaInContact = !selected;
 
   const parentOptions = useMemo((): ParentOption[] => {
-    const map = new Map<string, { label: string; thumbnailUrl: string | null }>();
+    const referencedParentIds = new Set(
+      detail.products
+        .map((p) => p.variantOfItemId?.trim())
+        .filter((id): id is string => Boolean(id)),
+    );
+
+    type Group = {
+      label: string;
+      thumbnailUrl: string | null;
+      members: MarketplaceCatalogProductPreview[];
+    };
+    const groups = new Map<string, Group>();
+
     for (const product of detail.products) {
       const id = productParentId(product);
-      if (map.has(id)) continue;
-      map.set(id, {
-        label: productParentLabel(product),
-        thumbnailUrl:
-          product.parentImageUrl?.trim() ||
-          (product.variantOfItemId ? null : product.imageUrl?.trim() || null) ||
-          null,
-      });
+      const existing = groups.get(id);
+      const thumb =
+        product.parentImageUrl?.trim() ||
+        (!isVariantProduct(product) ? product.imageUrl?.trim() || null : null);
+      if (!existing) {
+        groups.set(id, {
+          label: productParentLabel(product),
+          thumbnailUrl: thumb,
+          members: [product],
+        });
+        continue;
+      }
+      existing.members.push(product);
+      if (!existing.thumbnailUrl && thumb) existing.thumbnailUrl = thumb;
+      // Prefer a non-variant label when available
+      if (isVariantProduct(product) === false) {
+        existing.label = productParentLabel(product);
+      }
     }
-    const sorted = [...map.entries()]
+
+    const sorted = [...groups.entries()]
+      .filter(([id, group]) => {
+        // Keep real parent families (has variants / multiple children)
+        if (group.members.length > 1) return true;
+        if (referencedParentIds.has(id)) return true;
+        if (id.startsWith("name:") && group.members.some(isVariantProduct)) {
+          return true;
+        }
+        // Keep standalone non-variant products as their own folder
+        const only = group.members[0];
+        return only != null && !isVariantProduct(only);
+      })
+      // Never keep a folder keyed by a variant's own item id
+      .filter(([id, group]) => {
+        const only = group.members.length === 1 ? group.members[0] : null;
+        if (!only || !isVariantProduct(only)) return true;
+        const ownItemId = only.itemId?.trim() || only.id;
+        return id !== ownItemId;
+      })
       .map(([id, row]) => ({
         id,
         label: row.label,
@@ -358,6 +424,7 @@ export function MarketplaceOrderWorkspace({
       .sort((a, b) =>
         a.label.localeCompare(b.label, "en", { sensitivity: "base" }),
       );
+
     return [{ id: null, label: "All", thumbnailUrl: null }, ...sorted];
   }, [detail.products]);
 
