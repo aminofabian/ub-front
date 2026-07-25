@@ -38,6 +38,8 @@ import {
 } from "./_components/marketplace-ui";
 
 const SEARCH_DEBOUNCE_MS = 320;
+const PRODUCT_PAGE_SIZE = 100;
+const SUPPLIER_PAGE_SIZE = 100;
 
 export default function PublicMarketplacePage() {
   return (
@@ -94,11 +96,19 @@ function PublicMarketplacePageInner() {
   const [searchInput, setSearchInput] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeLocation, setActiveLocation] = useState<string | null>(null);
+  const [activeSupplierId, setActiveSupplierId] = useState<string | null>(null);
   const [locations, setLocations] = useState<string[]>([]);
   const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [suppliers, setSuppliers] = useState<MarketplaceSupplierSearchRow[]>([]);
+  const [supplierColumn, setSupplierColumn] = useState<
+    MarketplaceSupplierSearchRow[]
+  >([]);
   const [products, setProducts] = useState<MarketplaceProductSearchRow[]>([]);
+  const [productPage, setProductPage] = useState(0);
+  const [productTotal, setProductTotal] = useState(0);
+  const [productLast, setProductLast] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
@@ -119,34 +129,82 @@ function PublicMarketplacePageInner() {
     };
   }, []);
 
-  const loadResults = useCallback(async () => {
+  // Supplier column for products tab (area-scoped).
+  useEffect(() => {
+    if (tab !== "products") return;
+    let cancelled = false;
+    void searchMarketplaceSuppliers({
+      location: activeLocation ?? undefined,
+      size: SUPPLIER_PAGE_SIZE,
+    })
+      .then((page) => {
+        if (!cancelled) setSupplierColumn(page.content);
+      })
+      .catch(() => {
+        if (!cancelled) setSupplierColumn([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, activeLocation]);
+
+  const loadProducts = useCallback(
+    async (page: number, append: boolean) => {
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+      try {
+        const result = await searchMarketplaceProducts({
+          q: debouncedSearch,
+          location: activeLocation ?? undefined,
+          supplierId: activeSupplierId ?? undefined,
+          page,
+          size: PRODUCT_PAGE_SIZE,
+        });
+        setProducts((prev) =>
+          append ? [...prev, ...result.content] : result.content,
+        );
+        setProductPage(result.number);
+        setProductTotal(result.totalElements);
+        setProductLast(result.last);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Search failed");
+        if (!append) {
+          setProducts([]);
+          setProductTotal(0);
+          setProductLast(true);
+        }
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [debouncedSearch, activeLocation, activeSupplierId],
+  );
+
+  const loadSuppliers = useCallback(async () => {
     setLoading(true);
     try {
-      if (tab === "suppliers") {
-        const page = await searchMarketplaceSuppliers({
-          q: debouncedSearch,
-          location: activeLocation ?? undefined,
-          size: 60,
-        });
-        setSuppliers(page.content);
-      } else {
-        const page = await searchMarketplaceProducts({
-          q: debouncedSearch,
-          location: activeLocation ?? undefined,
-          size: 60,
-        });
-        setProducts(page.content);
-      }
+      const page = await searchMarketplaceSuppliers({
+        q: debouncedSearch,
+        location: activeLocation ?? undefined,
+        size: SUPPLIER_PAGE_SIZE,
+      });
+      setSuppliers(page.content);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Search failed");
+      setSuppliers([]);
     } finally {
       setLoading(false);
     }
-  }, [tab, debouncedSearch, activeLocation]);
+  }, [debouncedSearch, activeLocation]);
 
   useEffect(() => {
-    void loadResults();
-  }, [loadResults]);
+    if (tab === "suppliers") {
+      void loadSuppliers();
+      return;
+    }
+    void loadProducts(0, false);
+  }, [tab, loadProducts, loadSuppliers]);
 
   const categoryTags = useMemo(() => {
     const counts = new Map<string, number>();
@@ -193,7 +251,14 @@ function PublicMarketplacePageInner() {
   const locationChips = useMemo(() => {
     const fromResults =
       tab === "products"
-        ? products.flatMap((p) => p.locations ?? (p.location ? [p.location] : []))
+        ? [
+            ...products.flatMap(
+              (p) => p.locations ?? (p.location ? [p.location] : []),
+            ),
+            ...supplierColumn.flatMap(
+              (s) => s.locations ?? (s.location ? [s.location] : []),
+            ),
+          ]
         : suppliers.flatMap(
             (s) => s.locations ?? (s.location ? [s.location] : []),
           );
@@ -202,14 +267,27 @@ function PublicMarketplacePageInner() {
       const key = loc?.trim();
       if (key) merged.add(key);
     }
-    return [...merged].sort((a, b) => a.localeCompare(b)).slice(0, 16);
-  }, [locations, products, suppliers, tab]);
+    return [...merged].sort((a, b) => a.localeCompare(b));
+  }, [locations, products, suppliers, supplierColumn, tab]);
+
+  const showSupplierRail =
+    tab === "products" && supplierColumn.length > 0;
+
+  const activeSupplierName =
+    supplierColumn.find((s) => s.id === activeSupplierId)?.name ?? null;
 
   const resultCount =
     tab === "suppliers" ? visibleSuppliers.length : visibleProducts.length;
   const hasQuery = Boolean(
-    debouncedSearch.trim() || activeTag || activeLocation,
+    debouncedSearch.trim() || activeTag || activeLocation || activeSupplierId,
   );
+
+  const clearFilters = () => {
+    setSearchInput("");
+    setActiveTag(null);
+    setActiveLocation(null);
+    setActiveSupplierId(null);
+  };
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,var(--background),color-mix(in_oklch,var(--muted)_40%,var(--background)))]">
@@ -246,7 +324,7 @@ function PublicMarketplacePageInner() {
                     Source products. Order by WhatsApp.
                   </h1>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Search catalogue · filter by area · PDF order to supplier
+                    Filter by area, then supplier · PDF order via WhatsApp
                   </p>
                 </div>
                 <div className="flex shrink-0 border border-border/60 bg-background p-0.5">
@@ -271,6 +349,7 @@ function PublicMarketplacePageInner() {
                         onClick={() => {
                           setTab(item.id);
                           setActiveTag(null);
+                          setActiveSupplierId(null);
                         }}
                       >
                         <Icon className="size-3" />
@@ -328,38 +407,40 @@ function PublicMarketplacePageInner() {
                 </p>
               ) : null}
 
-              {locationChips.length || categoryTags.length ? (
+              {locationChips.length ? (
                 <div className="flex flex-col gap-2 border-t border-border/50 pt-2.5">
-                  {locationChips.length ? (
-                    <FilterRow label="Area" icon={MapPin}>
+                  <FilterRow label="1 · Area" icon={MapPin}>
+                    <button
+                      type="button"
+                      className={cn(mktChip, !activeLocation && mktChipActive)}
+                      onClick={() => {
+                        setActiveLocation(null);
+                        setActiveSupplierId(null);
+                      }}
+                    >
+                      All areas
+                    </button>
+                    {locationChips.map((loc) => (
                       <button
+                        key={loc}
                         type="button"
-                        className={cn(mktChip, !activeLocation && mktChipActive)}
-                        onClick={() => setActiveLocation(null)}
+                        className={cn(
+                          mktChip,
+                          activeLocation === loc && mktChipActive,
+                        )}
+                        onClick={() => {
+                          setActiveLocation((current) =>
+                            current === loc ? null : loc,
+                          );
+                          setActiveSupplierId(null);
+                        }}
                       >
-                        All
+                        {loc}
                       </button>
-                      {locationChips.map((loc) => (
-                        <button
-                          key={loc}
-                          type="button"
-                          className={cn(
-                            mktChip,
-                            activeLocation === loc && mktChipActive,
-                          )}
-                          onClick={() =>
-                            setActiveLocation((current) =>
-                              current === loc ? null : loc,
-                            )
-                          }
-                        >
-                          {loc}
-                        </button>
-                      ))}
-                    </FilterRow>
-                  ) : null}
+                    ))}
+                  </FilterRow>
                   {categoryTags.length ? (
-                    <FilterRow label={tab === "products" ? "Category" : "Tags"}>
+                    <FilterRow label="Category">
                       {activeTag ? (
                         <button
                           type="button"
@@ -384,6 +465,32 @@ function PublicMarketplacePageInner() {
                     </FilterRow>
                   ) : null}
                 </div>
+              ) : categoryTags.length ? (
+                <div className="flex flex-col gap-2 border-t border-border/50 pt-2.5">
+                  <FilterRow label="Category">
+                    {activeTag ? (
+                      <button
+                        type="button"
+                        className={cn(mktChip, mktChipActive)}
+                        onClick={() => setActiveTag(null)}
+                      >
+                        {activeTag} ×
+                      </button>
+                    ) : null}
+                    {categoryTags
+                      .filter((tag) => tag !== activeTag)
+                      .map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={mktChip}
+                          onClick={() => setActiveTag(tag)}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                  </FilterRow>
+                </div>
               ) : null}
             </div>
           </section>
@@ -395,14 +502,20 @@ function PublicMarketplacePageInner() {
               ) : (
                 <>
                   <span className="font-heading text-lg font-semibold tabular-nums">
-                    {resultCount}
+                    {tab === "products" ? productTotal || resultCount : resultCount}
                   </span>
                   <span className="ml-1.5 text-muted-foreground">
                     {tab === "products"
-                      ? `product${resultCount === 1 ? "" : "s"}`
+                      ? `product${(productTotal || resultCount) === 1 ? "" : "s"}`
                       : `supplier${resultCount === 1 ? "" : "s"}`}
                     {activeLocation ? ` · ${activeLocation}` : ""}
+                    {activeSupplierName ? ` · ${activeSupplierName}` : ""}
                     {activeTag ? ` · ${activeTag}` : ""}
+                    {tab === "products" &&
+                    !productLast &&
+                    visibleProducts.length < productTotal
+                      ? ` · showing ${visibleProducts.length}`
+                      : ""}
                   </span>
                 </>
               )}
@@ -411,11 +524,7 @@ function PublicMarketplacePageInner() {
               <button
                 type="button"
                 className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                onClick={() => {
-                  setSearchInput("");
-                  setActiveTag(null);
-                  setActiveLocation(null);
-                }}
+                onClick={clearFilters}
               >
                 Clear filters
               </button>
@@ -426,7 +535,7 @@ function PublicMarketplacePageInner() {
             {loading ? (
               <MarketplaceSkeleton tab={tab} />
             ) : tab === "products" ? (
-              visibleProducts.length === 0 ? (
+              visibleProducts.length === 0 && !showSupplierRail ? (
                 <EmptyState
                   title={hasQuery ? "No products match" : "No linked products yet"}
                   hint={
@@ -434,18 +543,79 @@ function PublicMarketplacePageInner() {
                       ? "Try another name, location, or clear filters."
                       : "When businesses link products to active suppliers, those items appear here."
                   }
-                  onClear={() => {
-                    setSearchInput("");
-                    setActiveTag(null);
-                    setActiveLocation(null);
-                  }}
+                  onClear={clearFilters}
                   showClear={hasQuery}
                 />
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                  {visibleProducts.map((row, index) => (
-                    <ProductTile key={`${row.supplierId}-${row.productId}`} row={row} index={index} />
-                  ))}
+                <div className="flex min-h-[28rem] flex-col gap-3 lg:flex-row lg:items-stretch">
+                  {showSupplierRail ? (
+                    <SupplierFilterColumn
+                      suppliers={supplierColumn}
+                      activeId={activeSupplierId}
+                      areaLabel={activeLocation}
+                      onSelect={setActiveSupplierId}
+                    />
+                  ) : null}
+                  <div className="min-w-0 flex-1 space-y-3">
+                    {visibleProducts.length === 0 ? (
+                      <EmptyState
+                        title={
+                          activeSupplierId
+                            ? "No products from this supplier"
+                            : hasQuery
+                              ? "No products match"
+                              : "No linked products yet"
+                        }
+                        hint={
+                          activeSupplierId
+                            ? "Pick another supplier, or clear the supplier filter."
+                            : hasQuery
+                              ? "Try another name, location, or clear filters."
+                              : "When businesses link products to active suppliers, those items appear here."
+                        }
+                        onClear={clearFilters}
+                        showClear={hasQuery}
+                      />
+                    ) : (
+                      <>
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                          {visibleProducts.map((row, index) => (
+                            <ProductTile
+                              key={`${row.supplierId}-${row.productId}`}
+                              row={row}
+                              index={index}
+                            />
+                          ))}
+                        </div>
+                        {!productLast ? (
+                          <div className="flex justify-center pt-1">
+                            <button
+                              type="button"
+                              disabled={loadingMore}
+                              className="inline-flex h-10 items-center gap-2 border border-border bg-background px-4 text-sm font-semibold hover:bg-muted disabled:opacity-60"
+                              onClick={() =>
+                                void loadProducts(productPage + 1, true)
+                              }
+                            >
+                              {loadingMore ? (
+                                <>
+                                  <Loader2 className="size-4 animate-spin" />
+                                  Loading…
+                                </>
+                              ) : (
+                                <>
+                                  Load more
+                                  <span className="font-mono text-xs text-muted-foreground">
+                                    {visibleProducts.length}/{productTotal}
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
                 </div>
               )
             ) : visibleSuppliers.length === 0 ? (
@@ -456,11 +626,7 @@ function PublicMarketplacePageInner() {
                     ? "Try another name, location, or clear filters."
                     : "Active suppliers with linked products will show up here."
                 }
-                onClear={() => {
-                  setSearchInput("");
-                  setActiveTag(null);
-                  setActiveLocation(null);
-                }}
+                onClear={clearFilters}
                 showClear={hasQuery}
               />
             ) : (
@@ -477,6 +643,134 @@ function PublicMarketplacePageInner() {
   );
 }
 
+function SupplierFilterColumn({
+  suppliers,
+  activeId,
+  areaLabel,
+  onSelect,
+}: {
+  suppliers: MarketplaceSupplierSearchRow[];
+  activeId: string | null;
+  areaLabel: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  return (
+    <>
+      {/* Mobile: horizontal strip */}
+      <div className="min-w-0 border border-border/55 bg-card lg:hidden">
+        <div className="flex items-center justify-between border-b border-border/50 px-2.5 py-1.5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            2 · Supplier
+            {areaLabel ? ` · ${areaLabel}` : ""}
+          </p>
+          <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+            {suppliers.length}
+          </span>
+        </div>
+        <div className="flex gap-1 overflow-x-auto p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <button
+            type="button"
+            onClick={() => onSelect(null)}
+            className={cn(
+              "flex h-14 w-[4.5rem] shrink-0 flex-col items-center justify-center border px-1 text-center text-[10px] font-semibold leading-tight",
+              activeId == null
+                ? "border-foreground bg-foreground text-background"
+                : "border-border/60 text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+            )}
+          >
+            All
+          </button>
+          {suppliers.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              title={s.name}
+              onClick={() => onSelect(activeId === s.id ? null : s.id)}
+              className={cn(
+                "flex h-14 w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 border px-1 text-center",
+                activeId === s.id
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border/60 hover:border-foreground/40",
+              )}
+            >
+              <span className="line-clamp-2 text-[10px] font-semibold leading-tight">
+                {s.name}
+              </span>
+              <span
+                className={cn(
+                  "font-mono text-[9px] tabular-nums",
+                  activeId === s.id ? "opacity-80" : "text-muted-foreground",
+                )}
+              >
+                {s.productCount}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: vertical column */}
+      <aside className="hidden h-[min(70dvh,40rem)] w-[11rem] shrink-0 flex-col overflow-hidden border border-border/55 bg-card lg:flex xl:w-[12.5rem]">
+        <div className="flex shrink-0 items-center justify-between border-b border-border/50 bg-foreground px-2.5 py-2 text-background">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em]">
+            2 · Supplier
+          </p>
+          <span className="font-mono text-[10px] tabular-nums opacity-80">
+            {suppliers.length}
+          </span>
+        </div>
+        {areaLabel ? (
+          <p className="shrink-0 border-b border-border/50 px-2.5 py-1.5 text-[10px] text-muted-foreground">
+            in {areaLabel}
+          </p>
+        ) : null}
+        <nav
+          aria-label="Filter by supplier"
+          className="min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain p-1 [scrollbar-width:thin]"
+        >
+          <button
+            type="button"
+            onClick={() => onSelect(null)}
+            className={cn(
+              "flex w-full items-center justify-between gap-2 px-2 py-2 text-left text-[12px] font-semibold",
+              activeId == null
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+            )}
+          >
+            <span>All suppliers</span>
+          </button>
+          {suppliers.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onSelect(activeId === s.id ? null : s.id)}
+              className={cn(
+                "flex w-full flex-col items-start gap-0.5 px-2 py-2 text-left transition",
+                activeId === s.id
+                  ? "bg-foreground text-background"
+                  : "hover:bg-muted/50",
+              )}
+            >
+              <span className="line-clamp-2 text-[12px] font-semibold leading-snug">
+                {s.name}
+              </span>
+              <span
+                className={cn(
+                  "font-mono text-[10px] tabular-nums",
+                  activeId === s.id ? "opacity-80" : "text-muted-foreground",
+                )}
+              >
+                {s.productCount} product{s.productCount === 1 ? "" : "s"}
+              </span>
+            </button>
+          ))}
+        </nav>
+      </aside>
+    </>
+  );
+}
+
 function FilterRow({
   label,
   icon: Icon,
@@ -488,7 +782,7 @@ function FilterRow({
 }) {
   return (
     <div className="flex min-w-0 items-start gap-2 sm:items-center">
-      <span className="inline-flex w-16 shrink-0 items-center gap-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:pt-0">
+      <span className="inline-flex w-[4.75rem] shrink-0 items-center gap-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:w-20 sm:pt-0">
         {Icon ? <Icon className="size-3" /> : null}
         {label}
       </span>

@@ -356,6 +356,7 @@ export async function listMarketplaceLocations(): Promise<string[]> {
 export async function searchMarketplaceProducts(opts?: {
   q?: string;
   location?: string;
+  supplierId?: string;
   page?: number;
   size?: number;
 }): Promise<ItemsPageResult<MarketplaceProductSearchRow>> {
@@ -367,6 +368,9 @@ export async function searchMarketplaceProducts(opts?: {
   }
   if (opts?.location?.trim()) {
     params.set("location", opts.location.trim());
+  }
+  if (opts?.supplierId?.trim()) {
+    params.set("supplierId", opts.supplierId.trim());
   }
   const raw = await publicFetch<unknown>(
     `${API_ROUTES.publicMarketplace}/products/search?${params}`,
