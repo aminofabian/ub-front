@@ -54,28 +54,31 @@ export function OrderParentFloater({
 
   if (!visible) return null;
 
+  const sealThumb =
+    active && active.id !== "all"
+      ? posTileThumbUrl(active.label, active.thumbnailUrl)
+      : null;
+
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-x-0 z-20 flex justify-start p-2 sm:p-2.5",
+        "pointer-events-none absolute inset-x-0 z-20 flex justify-start p-2",
         "bottom-0",
         className,
       )}
     >
       <div
         className={cn(
-          "pointer-events-auto flex max-w-[min(100%,28rem)] flex-col overflow-hidden",
-          "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)]",
-          "bg-[color-mix(in_srgb,var(--card)_88%,#f4f0e8)] shadow-[0_12px_40px_-18px_rgba(28,25,21,0.55)]",
-          "backdrop-blur-md transition-[width,box-shadow] duration-300",
-          open ? "w-[min(100%,28rem)]" : "w-auto",
-          filtered &&
-            "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_55%,transparent)] shadow-[0_14px_36px_-16px_color-mix(in_srgb,var(--pos-primary,#0f766e)_55%,transparent)]",
+          "pointer-events-auto flex w-auto max-w-[min(100%,22rem)] flex-col overflow-hidden",
+          "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] shadow-sm",
+          open && "w-[min(100%,22rem)]",
+          filtered && "border-[var(--pos-primary,#0f766e)]",
         )}
       >
         <div
           className={cn(
-            "grid transition-[grid-template-rows] duration-300 ease-out",
+            "grid transition-[grid-template-rows] duration-250 ease-out",
             open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
           )}
         >
@@ -86,30 +89,11 @@ export function OrderParentFloater({
               aria-label="Filter by product family"
               className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]"
             >
-              <div className="flex items-center justify-between gap-2 px-2.5 pt-2">
-                <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--pos-primary,#0f766e)]">
-                    Family dial
-                  </p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {families.length} parents on this supplier shelf
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="inline-flex size-7 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]"
-                  aria-label="Collapse family dial"
-                  onClick={() => onOpenChange(false)}
-                >
-                  <ChevronDown className="size-3.5" />
-                </button>
-              </div>
-
               <div
                 ref={trayRef}
-                className="flex gap-1.5 overflow-x-auto px-2 pb-2.5 pt-2 [scrollbar-width:thin]"
+                className="flex gap-1 overflow-x-auto px-1.5 py-1.5 [scrollbar-width:thin]"
               >
-                {options.map((opt, index) => {
+                {options.map((opt) => {
                   const isAll = opt.id === "all";
                   const selected = (activeId ?? "all") === opt.id;
                   const thumb = isAll
@@ -125,54 +109,35 @@ export function OrderParentFloater({
                         onOpenChange(false);
                       }}
                       className={cn(
-                        "group relative flex w-[4.6rem] shrink-0 flex-col overflow-hidden border transition",
-                        "duration-200 ease-out",
+                        "flex w-[4.25rem] shrink-0 flex-col overflow-hidden border",
                         selected
-                          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
-                          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
+                          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)]"
+                          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent",
                       )}
-                      style={{
-                        transform: open
-                          ? `translateY(0) rotate(${selected ? -1.5 : index % 2 === 0 ? 1.2 : -0.8}deg)`
-                          : "translateY(8px)",
-                        transitionDelay: open ? `${index * 28}ms` : "0ms",
-                      }}
                       title={opt.label}
                     >
-                      <span className="relative block aspect-square w-full border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
+                      <span className="relative block aspect-square w-full bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_50%,transparent)]">
                         {isAll ? (
-                          <span className="flex h-full w-full flex-col items-center justify-center gap-0.5 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent),transparent)]">
+                          <span className="flex h-full w-full items-center justify-center">
                             <Layers className="size-4 text-[var(--pos-primary,#0f766e)]" />
-                            <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-[var(--pos-primary,#0f766e)]">
-                              All
-                            </span>
                           </span>
                         ) : thumb ? (
                           <Image
                             src={thumb}
                             alt=""
                             fill
-                            sizes="74px"
+                            sizes="68px"
                             className="object-contain p-1"
                             unoptimized
                           />
                         ) : (
                           <span className="flex h-full w-full items-center justify-center">
-                            <Package className="size-4 opacity-40" />
+                            <Package className="size-3.5 opacity-35" />
                           </span>
                         )}
-                        {opt.lowStockCount > 0 && !isAll ? (
-                          <span className="absolute right-0 top-0 bg-amber-600 px-1 font-mono text-[8px] font-bold text-white">
-                            {opt.lowStockCount}
-                          </span>
-                        ) : null}
                       </span>
-                      <span className="line-clamp-2 px-1 py-1 text-left text-[9px] font-semibold leading-tight text-[var(--pos-ink,#1c1915)]">
-                        {opt.label}
-                      </span>
-                      <span className="px-1 pb-1 font-mono text-[8px] tabular-nums text-muted-foreground">
-                        {opt.itemCount} sku
-                        {opt.itemCount === 1 ? "" : "s"}
+                      <span className="line-clamp-2 px-1 py-1 text-left text-[9px] font-medium leading-tight">
+                        {isAll ? "All" : opt.label}
                       </span>
                     </button>
                   );
@@ -182,56 +147,41 @@ export function OrderParentFloater({
           </div>
         </div>
 
-        <div className="flex items-stretch gap-0">
+        <div className="flex items-stretch">
           <button
             type="button"
             aria-expanded={open}
             aria-controls={panelId}
             onClick={() => onOpenChange(!open)}
-            className={cn(
-              "flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left transition",
-              "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]",
-            )}
+            className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left"
           >
             <span
               className={cn(
-                "relative flex size-9 shrink-0 items-center justify-center overflow-hidden border",
+                "relative flex size-8 shrink-0 items-center justify-center overflow-hidden border",
                 filtered
                   ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                  : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)]",
+                  : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
               )}
             >
-              {(() => {
-                const sealThumb =
-                  active && active.id !== "all"
-                    ? posTileThumbUrl(active.label, active.thumbnailUrl)
-                    : null;
-                if (!sealThumb) {
-                  return <Layers className="size-3.5" />;
-                }
-                return (
-                  <Image
-                    src={sealThumb}
-                    alt=""
-                    fill
-                    sizes="36px"
-                    className="object-contain p-0.5"
-                    unoptimized
-                  />
-                );
-              })()}
+              {sealThumb ? (
+                <Image
+                  src={sealThumb}
+                  alt=""
+                  fill
+                  sizes="32px"
+                  className="object-contain p-0.5"
+                  unoptimized
+                />
+              ) : (
+                <Layers className="size-3.5" />
+              )}
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                {filtered ? "Showing family" : "Browse by family"}
-              </span>
-              <span className="block truncate text-[12px] font-semibold text-[var(--pos-ink,#1c1915)]">
-                {active?.label ?? "All products"}
-              </span>
+            <span className="min-w-0 flex-1 truncate text-[12px] font-semibold">
+              {filtered ? active?.label : "Families"}
             </span>
             <ChevronDown
               className={cn(
-                "size-3.5 shrink-0 text-muted-foreground transition-transform duration-300",
+                "size-3.5 shrink-0 text-muted-foreground transition-transform",
                 open && "rotate-180",
               )}
             />
@@ -239,12 +189,11 @@ export function OrderParentFloater({
           {filtered ? (
             <button
               type="button"
-              className="inline-flex items-center gap-1 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-foreground"
+              className="inline-flex items-center border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2.5 text-muted-foreground"
               onClick={() => onSelect(null)}
               aria-label="Clear family filter"
             >
-              <X className="size-3" />
-              Clear
+              <X className="size-3.5" />
             </button>
           ) : null}
         </div>
