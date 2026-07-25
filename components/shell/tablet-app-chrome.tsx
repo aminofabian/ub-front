@@ -101,16 +101,16 @@ export function HeaderPosLinks({
             key={href}
             href={href}
             className={cn(
-              "inline-flex h-9 max-w-[5.5rem] items-center gap-1 rounded-full border px-2 text-[10px] font-semibold leading-none transition-colors sm:max-w-none sm:gap-1.5 sm:px-2.5 sm:text-[11px]",
+              "inline-flex h-9 items-center gap-1 border px-2 text-[10px] font-semibold leading-none transition-colors sm:gap-1.5 sm:px-2.5 sm:text-[11px]",
               active
-                ? "border-primary/35 bg-primary/12 text-primary shadow-sm"
+                ? "border-primary/35 bg-primary/12 text-primary"
                 : "border-border/55 bg-background/85 text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground",
             )}
             aria-current={active ? "page" : undefined}
             title={label}
           >
             <Icon className="size-3.5 shrink-0" aria-hidden />
-            <span className="truncate">{label}</span>
+            <span className="hidden sm:inline">{label}</span>
           </Link>
         );
       })}
@@ -173,7 +173,7 @@ export function TabletAppHeader({
 
         <div className="relative flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="tablet-app-logo-ring flex size-11 shrink-0 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-black/[0.06] dark:ring-white/[0.08]">
+            <div className="tablet-app-logo-ring flex size-10 shrink-0 items-center justify-center bg-background shadow-sm ring-1 ring-black/[0.06] dark:ring-white/[0.08] sm:size-11">
               <TenantLogo
                 brand={tenantTitle}
                 logoUrl={logoUrl}
@@ -186,7 +186,7 @@ export function TabletAppHeader({
               <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {tenantTitle}
               </p>
-              <h1 className="truncate font-heading text-xl font-semibold leading-tight tracking-tight text-foreground sm:text-[1.35rem]">
+              <h1 className="truncate font-sans text-lg font-semibold leading-tight tracking-tight text-foreground sm:text-xl">
                 {title}
               </h1>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
@@ -226,9 +226,9 @@ export function TabletAppHeader({
               onClick={onOpenMore}
               aria-label="Open menu"
               className={cn(
-                "tablet-app-avatar flex size-10 items-center justify-center rounded-full",
-                "bg-gradient-to-br from-foreground to-foreground/85 text-sm font-bold text-background",
-                "shadow-md ring-2 ring-background transition-transform active:scale-95",
+                "tablet-app-avatar flex size-9 items-center justify-center sm:size-10",
+                "bg-foreground text-sm font-bold text-background",
+                "ring-2 ring-background transition-transform active:scale-95",
               )}
             >
               {userInitial}
@@ -269,13 +269,13 @@ export function TabletBottomNav({
         className={cn(
           "tablet-bottom-nav-dock pointer-events-auto w-full",
           isCompact ? "max-w-[36rem]" : "max-w-[42rem]",
-          "rounded-[1.65rem] border border-white/25 bg-background/75",
-          "shadow-[0_12px_48px_-14px_rgba(0,0,0,0.35),0_0_0_1px_rgba(0,0,0,0.04)_inset]",
-          "backdrop-blur-2xl backdrop-saturate-[1.8]",
-          "dark:border-white/10 dark:bg-background/65",
+          "border border-border/60 bg-background/95",
+          "shadow-[0_8px_28px_-12px_rgba(0,0,0,0.28)]",
+          "backdrop-blur-xl",
+          "dark:border-border/50 dark:bg-background/90",
           isCompact
-            ? "grid gap-0.5 p-1"
-            : "flex items-stretch justify-between gap-0.5 px-1.5 py-1.5",
+            ? "grid gap-0 p-0.5"
+            : "flex items-stretch justify-between gap-0 px-0.5 py-0.5",
         )}
         style={
           isCompact
@@ -295,22 +295,20 @@ export function TabletBottomNav({
               href={tab.href ?? "#"}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "tablet-nav-tab flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1 transition-all duration-200",
-                "active:scale-[0.97]",
-                isActive && "tablet-nav-tab-active bg-primary/12 ring-1 ring-primary/20",
+                "tablet-nav-tab flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 transition-colors duration-150",
+                isActive && "tablet-nav-tab-active bg-primary/12",
                 !isActive && "hover:bg-muted/50",
               )}
             >
               <span
                 className={cn(
-                  "relative flex items-center justify-center rounded-xl transition-all duration-200",
+                  "relative flex items-center justify-center transition-colors duration-150",
                   isCompact ? "size-8 sm:size-9" : "size-9 sm:size-10",
-                  isActive && !isCompact && "scale-105",
                 )}
               >
                 {isActive && !isCompact ? (
                   <span
-                    className="absolute inset-0 rounded-xl bg-primary/15 ring-1 ring-primary/25"
+                    className="absolute inset-0 bg-primary/15"
                     aria-hidden
                   />
                 ) : null}
@@ -372,24 +370,19 @@ function CompactMoreTab({
       aria-label={tab.label}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "tablet-nav-tab flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1 transition-all duration-200",
-        "active:scale-[0.97]",
-        isActive && "tablet-nav-tab-active bg-primary/12 ring-1 ring-primary/20",
+        "tablet-nav-tab flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 transition-colors duration-150",
+        isActive && "tablet-nav-tab-active bg-primary/12",
         !isActive && "hover:bg-muted/50",
       )}
     >
       <span
         className={cn(
-          "relative flex items-center justify-center rounded-xl transition-all duration-200",
+          "relative flex items-center justify-center transition-colors duration-150",
           isCompact ? "size-8 sm:size-9" : "size-9 sm:size-10",
-          isActive && !isCompact && "scale-105",
         )}
       >
         {isActive && !isCompact ? (
-          <span
-            className="absolute inset-0 rounded-xl bg-primary/15 ring-1 ring-primary/25"
-            aria-hidden
-          />
+          <span className="absolute inset-0 bg-primary/15" aria-hidden />
         ) : null}
         <Icon
           className={cn(

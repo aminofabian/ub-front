@@ -236,21 +236,16 @@
 
 @media (max-width: 1535px) {
     .tablet-app-stage {
-        margin: 0.35rem 0.35rem 0;
-        border-radius: 1.35rem 1.35rem 0 0;
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        border-bottom: none;
+        margin: 0;
+        border-radius: 0;
+        border: none;
         background: var(--background);
-        box-shadow:
-            0 -2px 24px -8px rgba(0, 0, 0, 0.08),
-            0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+        box-shadow: none;
     }
 
     .dark .tablet-app-stage {
-        border-color: rgba(255, 255, 255, 0.08);
-        box-shadow:
-            0 -2px 32px -8px rgba(0, 0, 0, 0.45),
-            0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+        border-color: transparent;
+        box-shadow: none;
     }
 }
 
@@ -265,7 +260,7 @@
     height: 2.5rem;
     align-items: center;
     justify-content: center;
-    border-radius: 9999px;
+    border-radius: 0;
     transition: background-color 150ms ease;
 }
 
@@ -280,11 +275,11 @@
 @keyframes tablet-dock-rise {
     from {
         opacity: 0;
-        transform: translateY(1.25rem) scale(0.96);
+        transform: translateY(0.75rem);
     }
     to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
     }
 }
 
