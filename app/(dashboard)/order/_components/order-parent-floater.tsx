@@ -57,7 +57,8 @@ export function OrderParentFloater({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-start p-2 sm:p-2.5",
+        "pointer-events-none absolute inset-x-0 z-20 flex justify-start p-2 sm:p-2.5",
+        "bottom-0",
         className,
       )}
     >

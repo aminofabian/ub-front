@@ -526,7 +526,8 @@ export function TenantOrderWorkspace() {
     <div
       className={cn(
         "relative flex w-full flex-col overflow-hidden",
-        "h-[calc(100dvh-3.75rem)] min-h-[22rem] sm:h-[min(78dvh,56rem)] sm:min-h-[28rem]",
+        /* Leave room for tablet header + floating bottom nav */
+        "h-[calc(100dvh-9.75rem)] min-h-[20rem] sm:h-[min(72dvh,52rem)] sm:min-h-[28rem]",
         "border-y border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] sm:border",
         "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]",
       )}
@@ -553,16 +554,33 @@ export function TenantOrderWorkspace() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
         {/* Mobile supplier strip */}
         <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_78%,transparent)] lg:hidden">
+          <div className="relative border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              className="h-10 w-full bg-transparent pl-8 pr-3 text-[16px] outline-none placeholder:text-muted-foreground/50"
+              placeholder="Search suppliers…"
+              value={supplierQuery}
+              onChange={(e) => {
+                setSupplierQuery(e.target.value);
+                if (e.target.value.trim()) setSuppliersExpanded(true);
+              }}
+              enterKeyHint="search"
+              aria-label="Search suppliers"
+            />
+          </div>
           <button
             type="button"
             className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5"
             onClick={() => setSuppliersExpanded((v) => !v)}
             aria-expanded={suppliersExpanded}
           >
-            <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              Suppliers
+            <span className="min-w-0 truncate text-[11px] font-semibold text-[var(--pos-ink,#1c1915)]">
+              <span className="mr-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                Supplier
+              </span>
+              {activeSupplier?.name ?? "Pick one"}
             </span>
-            <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+            <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
               {filteredSuppliers.length}
               <ChevronUp
                 className={cn(
@@ -575,7 +593,9 @@ export function TenantOrderWorkspace() {
           <div
             className={cn(
               "overflow-hidden transition-[max-height] duration-300",
-              suppliersExpanded ? "max-h-40" : "max-h-[3.25rem]",
+              suppliersExpanded || supplierQuery.trim()
+                ? "max-h-44"
+                : "max-h-0",
             )}
           >
             <div className="flex gap-1.5 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -583,6 +603,10 @@ export function TenantOrderWorkspace() {
                 <p className="px-2 py-2 text-[11px] text-muted-foreground">
                   <Loader2 className="mr-1 inline size-3 animate-spin" />
                   Loading…
+                </p>
+              ) : filteredSuppliers.length === 0 ? (
+                <p className="px-2 py-2 text-[11px] text-muted-foreground">
+                  No suppliers match.
                 </p>
               ) : (
                 filteredSuppliers.map((s) => (
@@ -592,6 +616,7 @@ export function TenantOrderWorkspace() {
                     onClick={() => {
                       selectSupplier(s.id);
                       setSuppliersExpanded(false);
+                      setSupplierQuery("");
                     }}
                     className={cn(
                       "shrink-0 border px-3 py-2 text-left text-[12px] font-semibold transition",
@@ -692,7 +717,8 @@ export function TenantOrderWorkspace() {
             <div
               className={cn(
                 "h-full overflow-y-auto overscroll-contain px-1.5 pt-1.5 sm:px-2.5",
-                "pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] lg:pb-24",
+                /* Family dial (~3.5rem) + order ticket (~4.25rem) + breathing room */
+                "pb-36 lg:pb-28",
               )}
             >
               {!supplierId ? (
@@ -832,7 +858,7 @@ export function TenantOrderWorkspace() {
               open={parentDialOpen}
               onOpenChange={setParentDialOpen}
               onSelect={setParentFilterId}
-              className="bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:bottom-0"
+              className="bottom-[4.75rem] mb-2 lg:bottom-2 lg:mb-0"
             />
           </div>
         </div>
@@ -851,8 +877,8 @@ export function TenantOrderWorkspace() {
         </aside>
       </div>
 
-      {/* Mobile order ticket dock */}
-      <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_78%,transparent)] pb-[env(safe-area-inset-bottom)] lg:hidden">
+      {/* Mobile order ticket dock — sits above tablet bottom nav via workspace height */}
+      <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_78%,transparent)] lg:hidden">
         <button
           type="button"
           onClick={() => setMobileOrderOpen(true)}
