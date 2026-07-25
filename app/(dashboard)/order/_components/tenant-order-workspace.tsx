@@ -405,15 +405,19 @@ export function TenantOrderWorkspace() {
 
 
 
+
   const familyChips = parentOptions.filter((o) => o.id !== "all");
   const showFamilies = familyChips.length >= 2;
 
   const cartLinesPanel = (
     <>
       {cartLines.length === 0 ? (
-        <p className="px-4 py-12 text-center text-[12px] text-muted-foreground">
-          Tap products to build an order.
-        </p>
+        <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
+          <ShoppingCart className="size-5 text-muted-foreground/50" />
+          <p className="text-[13px] text-muted-foreground">
+            Tap products to build your order.
+          </p>
+        </div>
       ) : (
         cartLines.map(({ link, qty }) => {
           const cost = unitCost(link);
@@ -422,49 +426,49 @@ export function TenantOrderWorkspace() {
           return (
             <div
               key={link.itemId}
-              className="flex gap-3 border-b border-border/60 px-3 py-3"
+              className="flex gap-3 border-b border-border/50 px-3.5 py-3 last:border-b-0"
             >
-              <div className="relative size-12 shrink-0 overflow-hidden bg-muted/40">
+              <div className="relative size-12 shrink-0 overflow-hidden rounded-md bg-[#f3efe8]">
                 {thumb ? (
                   <Image
                     src={thumb}
                     alt=""
                     fill
                     sizes="48px"
-                    className="object-contain p-0.5"
+                    className="object-contain p-1"
                     unoptimized
                   />
                 ) : (
                   <span className="flex h-full w-full items-center justify-center">
-                    <Package className="size-4 opacity-35" />
+                    <Package className="size-4 opacity-30" />
                   </span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium leading-snug">
+                <p className="text-[13px] font-medium leading-snug tracking-tight">
                   {link.itemName}
                 </p>
                 <div className="mt-2 flex items-center justify-between gap-2">
-                  <div className="inline-flex items-center border border-border">
+                  <div className="inline-flex items-center overflow-hidden rounded-md border border-border/80 bg-background">
                     <button
                       type="button"
-                      className="flex size-8 items-center justify-center"
+                      className="flex size-8 items-center justify-center text-muted-foreground"
                       onClick={() => setQty(link.itemId, qty - 1)}
                     >
                       −
                     </button>
-                    <span className="min-w-7 text-center font-mono text-[12px]">
+                    <span className="min-w-7 text-center font-mono text-[12px] font-medium">
                       {qty}
                     </span>
                     <button
                       type="button"
-                      className="flex size-8 items-center justify-center"
+                      className="flex size-8 items-center justify-center text-muted-foreground"
                       onClick={() => setQty(link.itemId, qty + 1)}
                     >
                       +
                     </button>
                   </div>
-                  <p className="font-mono text-[13px] font-semibold tabular-nums">
+                  <p className="font-mono text-[13px] font-semibold tabular-nums tracking-tight">
                     {cost > 0 ? formatMoney(amount, ORDER_CURRENCY) : "—"}
                   </p>
                 </div>
@@ -477,12 +481,12 @@ export function TenantOrderWorkspace() {
   );
 
   const placeFooter = (
-    <div className="shrink-0 space-y-2.5 border-t border-border bg-background px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div className="shrink-0 space-y-3 border-t border-border/80 bg-background px-3.5 py-3.5 pb-[max(0.85rem,env(safe-area-inset-bottom))]">
       <div className="flex items-baseline justify-between">
         <p className="text-[12px] text-muted-foreground">
           {cartUnits} item{cartUnits === 1 ? "" : "s"}
         </p>
-        <p className="font-mono text-[18px] font-semibold tabular-nums">
+        <p className="font-mono text-[20px] font-semibold tabular-nums tracking-tight">
           {formatMoney(cartTotal, ORDER_CURRENCY)}
         </p>
       </div>
@@ -490,7 +494,7 @@ export function TenantOrderWorkspace() {
         type="button"
         disabled={placing || cartLines.length === 0}
         onClick={() => void placeOrder()}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[var(--pos-primary,#0f766e)] text-sm font-semibold text-white disabled:opacity-45"
+        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[var(--pos-primary,#0f766e)] text-[15px] font-semibold text-white transition active:scale-[0.99] disabled:opacity-40"
       >
         {placing ? (
           <>
@@ -510,54 +514,55 @@ export function TenantOrderWorkspace() {
   return (
     <div
       className={cn(
-        "relative flex w-full flex-col overflow-hidden bg-background font-sans",
+        "relative flex w-full flex-col overflow-hidden font-sans",
         "h-[calc(100dvh-10.5rem)] min-h-[22rem] sm:h-[min(70dvh,48rem)]",
-        "border border-border/70 sm:rounded-sm",
+        "bg-[#f7f4ef] sm:rounded-xl sm:border sm:border-border/60 sm:shadow-sm",
       )}
       style={{ ["--pos-primary" as string]: "#0f766e" }}
     >
-      {/* 1. Header — supplier switcher + confirm */}
-      <header className="flex shrink-0 items-center gap-2 border-b border-border px-2.5 py-2">
+      <header className="flex shrink-0 items-center gap-2 border-b border-black/[0.06] bg-[#faf8f5]/80 px-3 py-2.5 backdrop-blur-sm">
         <button
           type="button"
           onClick={() => {
             setSupplierPickerOpen(true);
             setSupplierQuery("");
           }}
-          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-1 text-left hover:bg-muted/50 lg:pointer-events-none lg:hover:bg-transparent"
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-0.5 text-left active:bg-black/[0.03] lg:pointer-events-none"
         >
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-              Ordering from
-            </p>
-            <p className="truncate text-[15px] font-semibold leading-tight">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--pos-primary,#0f766e)] text-[11px] font-bold tracking-wide text-white">
+            {(activeSupplier?.name ?? "S").slice(0, 1).toUpperCase()}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Supplier
+            </span>
+            <span className="block truncate text-[15px] font-semibold tracking-tight text-foreground">
               {activeSupplier?.name ?? "Select supplier"}
-            </p>
-          </div>
+            </span>
+          </span>
           <ChevronDown className="size-4 shrink-0 text-muted-foreground lg:hidden" />
         </button>
         <Link
           href={APP_ROUTES.orderReceive}
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 text-[11px] font-medium"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 text-[12px] font-medium text-foreground shadow-sm ring-1 ring-black/[0.06]"
         >
-          <ClipboardList className="size-3.5" />
+          <ClipboardList className="size-3.5 text-[var(--pos-primary,#0f766e)]" />
           Confirm
         </Link>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        {/* Desktop supplier column */}
-        <aside className="hidden w-52 shrink-0 flex-col border-r border-border lg:flex xl:w-56">
-          <div className="relative border-b border-border">
+        <aside className="hidden w-56 shrink-0 flex-col border-r border-black/[0.06] bg-[#faf8f5] lg:flex">
+          <div className="relative m-2.5">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
-              className="h-10 w-full bg-transparent pl-8 pr-2 text-[13px] outline-none placeholder:text-muted-foreground/60"
+              className="h-9 w-full rounded-lg bg-white pl-8 pr-2 text-[13px] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-muted-foreground/55"
               placeholder="Find supplier"
               value={supplierQuery}
               onChange={(e) => setSupplierQuery(e.target.value)}
             />
           </div>
-          <nav className="min-h-0 flex-1 overflow-y-auto p-1.5">
+          <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
             {loadingSuppliers ? (
               <p className="px-2 py-8 text-center text-[12px] text-muted-foreground">
                 <Loader2 className="mr-1 inline size-3.5 animate-spin" />
@@ -570,10 +575,10 @@ export function TenantOrderWorkspace() {
                   type="button"
                   onClick={() => selectSupplier(s.id)}
                   className={cn(
-                    "mb-0.5 w-full rounded-md px-2.5 py-2 text-left text-[13px] font-medium",
+                    "mb-0.5 w-full rounded-lg px-2.5 py-2.5 text-left text-[13px] font-medium transition",
                     supplierId === s.id
-                      ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
-                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "text-muted-foreground hover:bg-white hover:text-foreground",
                   )}
                 >
                   {s.name}
@@ -583,32 +588,31 @@ export function TenantOrderWorkspace() {
           </nav>
         </aside>
 
-        {/* Main shelf */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          {/* 2. Product search only */}
-          <div className="relative shrink-0 border-b border-border">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              className="h-11 w-full bg-transparent pl-10 pr-3 text-[16px] outline-none placeholder:text-muted-foreground/55 sm:h-10 sm:text-[14px]"
-              placeholder="Search products"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              enterKeyHint="search"
-            />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#f7f4ef]">
+          <div className="shrink-0 border-b border-black/[0.05] bg-[#faf8f5]/90 px-2.5 py-2 backdrop-blur-sm">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="h-10 w-full rounded-xl bg-white pl-10 pr-3 text-[16px] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-muted-foreground/50 sm:text-[14px]"
+                placeholder="Search products"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                enterKeyHint="search"
+              />
+            </div>
           </div>
 
-          {/* 3. Family chips — in flow, not floating */}
           {showFamilies ? (
-            <div className="shrink-0 border-b border-border bg-muted/20">
+            <div className="shrink-0 border-b border-black/[0.04] bg-[#faf8f5]/70">
               <div className="flex gap-1.5 overflow-x-auto px-2.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
                   onClick={() => setParentFilterId(null)}
                   className={cn(
-                    "shrink-0 rounded-full px-3 py-1 text-[12px] font-medium",
+                    "shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-medium transition",
                     !parentFilterId
-                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                      : "bg-background text-muted-foreground ring-1 ring-border",
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white shadow-sm"
+                      : "bg-white text-muted-foreground ring-1 ring-black/[0.06]",
                   )}
                 >
                   All
@@ -623,10 +627,10 @@ export function TenantOrderWorkspace() {
                       )
                     }
                     className={cn(
-                      "max-w-[9rem] shrink-0 truncate rounded-full px-3 py-1 text-[12px] font-medium",
+                      "max-w-[10rem] shrink-0 truncate rounded-full px-3.5 py-1.5 text-[12px] font-medium transition",
                       parentFilterId === opt.id
-                        ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                        : "bg-background text-muted-foreground ring-1 ring-border",
+                        ? "bg-[var(--pos-primary,#0f766e)] text-white shadow-sm"
+                        : "bg-white text-muted-foreground ring-1 ring-black/[0.06]",
                     )}
                   >
                     {opt.label}
@@ -636,8 +640,7 @@ export function TenantOrderWorkspace() {
             </div>
           ) : null}
 
-          {/* 4. Product grid */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2 pb-4 sm:px-3">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-2.5 sm:px-3">
             {!supplierId ? (
               <p className="py-16 text-center text-[13px] text-muted-foreground">
                 Choose a supplier to start.
@@ -654,7 +657,7 @@ export function TenantOrderWorkspace() {
                   : "No linked products."}
               </p>
             ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
                 {visibleLinks.map((link) => {
                   const qty = cart[link.itemId] ?? 0;
                   const stock = toNum(link.currentStock);
@@ -669,15 +672,15 @@ export function TenantOrderWorkspace() {
                     <div
                       key={link.id}
                       className={cn(
-                        "flex flex-col overflow-hidden rounded-md border bg-card",
+                        "flex flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 transition",
                         qty > 0
-                          ? "border-[var(--pos-primary,#0f766e)]"
-                          : "border-border/80",
+                          ? "ring-[var(--pos-primary,#0f766e)]"
+                          : "ring-black/[0.06]",
                       )}
                     >
                       <button
                         type="button"
-                        className="relative aspect-square w-full touch-manipulation bg-muted/30"
+                        className="relative aspect-[1/1] w-full touch-manipulation bg-[#f3efe8]"
                         onClick={() => setQty(link.itemId, qty + 1)}
                         aria-label={`Add ${link.itemName}`}
                       >
@@ -687,53 +690,56 @@ export function TenantOrderWorkspace() {
                             alt=""
                             fill
                             sizes="(max-width: 640px) 48vw, 140px"
-                            className="object-contain p-2"
+                            className="object-contain p-2.5"
                             unoptimized
                           />
                         ) : (
                           <span className="flex h-full w-full items-center justify-center">
-                            <Package className="size-5 opacity-30" strokeWidth={1.5} />
+                            <Package
+                              className="size-6 opacity-25"
+                              strokeWidth={1.5}
+                            />
                           </span>
                         )}
                         {qty > 0 ? (
-                          <span className="absolute left-1.5 top-1.5 z-[1] inline-flex h-5 min-w-5 items-center justify-center rounded-sm bg-[var(--pos-primary,#0f766e)] px-1 font-mono text-[10px] font-bold text-white">
+                          <span className="absolute left-2 top-2 z-[1] inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-[var(--pos-primary,#0f766e)] px-1.5 font-mono text-[11px] font-bold text-white shadow-sm">
                             {qty}
                           </span>
                         ) : null}
                         <span
                           className={cn(
-                            "absolute bottom-1.5 right-1.5 z-[1] rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums text-white",
-                            low ? "bg-amber-600" : "bg-foreground/70",
+                            "absolute bottom-2 right-2 z-[1] rounded-md px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-white shadow-sm",
+                            low ? "bg-amber-600" : "bg-foreground/65",
                           )}
                         >
                           {stock}
                         </span>
                       </button>
-                      <div className="flex flex-1 flex-col gap-1.5 p-2">
-                        <p className="line-clamp-2 min-h-[2.25rem] text-[12px] font-medium leading-snug">
+                      <div className="flex flex-1 flex-col gap-2 p-2.5">
+                        <p className="line-clamp-2 min-h-[2.4rem] text-[12px] font-medium leading-snug tracking-tight text-foreground">
                           {link.itemName}
                         </p>
                         <div className="mt-auto flex items-center justify-between gap-1">
-                          <p className="font-mono text-[12px] font-semibold tabular-nums">
+                          <p className="font-mono text-[12px] font-semibold tabular-nums tracking-tight">
                             {cost > 0
                               ? formatMoney(cost, ORDER_CURRENCY)
                               : "—"}
                           </p>
                           {qty > 0 ? (
-                            <div className="inline-flex items-center border border-border">
+                            <div className="inline-flex items-center overflow-hidden rounded-md border border-border/80">
                               <button
                                 type="button"
-                                className="flex size-7 items-center justify-center touch-manipulation"
+                                className="flex size-7 items-center justify-center touch-manipulation text-muted-foreground"
                                 onClick={() => setQty(link.itemId, qty - 1)}
                               >
                                 −
                               </button>
-                              <span className="min-w-5 text-center font-mono text-[11px]">
+                              <span className="min-w-5 text-center font-mono text-[11px] font-medium">
                                 {qty}
                               </span>
                               <button
                                 type="button"
-                                className="flex size-7 items-center justify-center touch-manipulation"
+                                className="flex size-7 items-center justify-center touch-manipulation text-muted-foreground"
                                 onClick={() => setQty(link.itemId, qty + 1)}
                               >
                                 +
@@ -742,7 +748,7 @@ export function TenantOrderWorkspace() {
                           ) : (
                             <button
                               type="button"
-                              className="text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] touch-manipulation"
+                              className="rounded-md px-2 py-1 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] touch-manipulation hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
                               onClick={() => setQty(link.itemId, 1)}
                             >
                               Add
@@ -758,13 +764,12 @@ export function TenantOrderWorkspace() {
           </div>
         </div>
 
-        {/* Desktop cart */}
-        <aside className="hidden w-72 shrink-0 flex-col border-l border-border lg:flex xl:w-80">
-          <div className="flex h-10 shrink-0 items-center justify-between px-3">
+        <aside className="hidden w-80 shrink-0 flex-col border-l border-black/[0.06] bg-white lg:flex">
+          <div className="flex h-11 shrink-0 items-center justify-between px-3.5">
             <p className="text-[12px] font-medium text-muted-foreground">
               Order list
             </p>
-            <span className="font-mono text-[12px] tabular-nums text-muted-foreground">
+            <span className="rounded-full bg-[#f3efe8] px-2 py-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
               {cartUnits}
             </span>
           </div>
@@ -773,25 +778,24 @@ export function TenantOrderWorkspace() {
         </aside>
       </div>
 
-      {/* 5. Order ticket — always last, above bottom nav via height */}
-      <div className="shrink-0 border-t border-border lg:hidden">
+      <div className="shrink-0 p-2.5 pt-0 lg:hidden">
         <button
           type="button"
           onClick={() => setMobileOrderOpen(true)}
-          className="flex w-full items-center justify-between gap-3 bg-[var(--pos-primary,#0f766e)] px-3.5 py-3 text-white active:brightness-95"
+          className="flex w-full items-center justify-between gap-3 rounded-2xl bg-[var(--pos-primary,#0f766e)] px-4 py-3.5 text-white shadow-[0_10px_30px_-12px_rgba(15,118,110,0.65)] transition active:scale-[0.99]"
         >
           <span className="text-left">
-            <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/80">
+            <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-white/75">
               Your order
             </span>
-            <span className="text-[14px] font-semibold">
+            <span className="text-[14px] font-semibold tracking-tight">
               {cartUnits === 0
                 ? "No items yet"
                 : `${cartUnits} item${cartUnits === 1 ? "" : "s"}`}
             </span>
           </span>
           <span className="inline-flex items-center gap-2">
-            <span className="font-mono text-[15px] font-semibold tabular-nums">
+            <span className="font-mono text-[16px] font-semibold tabular-nums tracking-tight">
               {formatMoney(cartTotal, ORDER_CURRENCY)}
             </span>
             <ChevronUp className="size-4 opacity-90" />
@@ -799,38 +803,42 @@ export function TenantOrderWorkspace() {
         </button>
       </div>
 
-      {/* Mobile supplier picker sheet */}
       {supplierPickerOpen ? (
         <div className="absolute inset-0 z-50 flex flex-col lg:hidden">
           <button
             type="button"
-            className="min-h-0 flex-[0.25] bg-black/35"
+            className="min-h-0 flex-[0.2] bg-black/40 backdrop-blur-[1px]"
             aria-label="Close suppliers"
             onClick={() => setSupplierPickerOpen(false)}
           />
-          <div className="flex max-h-[75%] min-h-[45%] flex-col rounded-t-2xl bg-background shadow-xl">
-            <div className="flex items-center justify-between px-3 pt-3">
-              <p className="text-[14px] font-semibold">Suppliers</p>
+          <div className="flex max-h-[78%] min-h-[48%] flex-col rounded-t-3xl bg-[#faf8f5] shadow-2xl">
+            <div className="flex justify-center pt-2.5">
+              <span className="h-1 w-10 rounded-full bg-black/15" />
+            </div>
+            <div className="flex items-center justify-between px-4 pt-2">
+              <p className="text-[16px] font-semibold tracking-tight">
+                Suppliers
+              </p>
               <button
                 type="button"
-                className="flex size-9 items-center justify-center text-muted-foreground"
+                className="flex size-9 items-center justify-center rounded-full bg-white text-muted-foreground ring-1 ring-black/[0.06]"
                 onClick={() => setSupplierPickerOpen(false)}
                 aria-label="Close"
               >
                 <X className="size-4" />
               </button>
             </div>
-            <div className="relative mx-3 mt-2 border border-border">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative mx-3.5 mt-3">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 autoFocus
-                className="h-10 w-full bg-transparent pl-8 pr-2 text-[16px] outline-none"
+                className="h-11 w-full rounded-xl bg-white pl-10 pr-3 text-[16px] shadow-sm outline-none ring-1 ring-black/[0.06]"
                 placeholder="Search suppliers"
                 value={supplierQuery}
                 onChange={(e) => setSupplierQuery(e.target.value)}
               />
             </div>
-            <div className="mt-2 min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+            <div className="mt-2 min-h-0 flex-1 overflow-y-auto px-2.5 pb-5">
               {filteredSuppliers.map((s) => (
                 <button
                   key={s.id}
@@ -841,12 +849,22 @@ export function TenantOrderWorkspace() {
                     setSupplierQuery("");
                   }}
                   className={cn(
-                    "mb-0.5 flex w-full items-center justify-between rounded-md px-3 py-3 text-left text-[14px] font-medium",
+                    "mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left text-[15px] font-medium transition",
                     supplierId === s.id
-                      ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
-                      : "hover:bg-muted/60",
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "bg-transparent hover:bg-white",
                   )}
                 >
+                  <span
+                    className={cn(
+                      "flex size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold",
+                      supplierId === s.id
+                        ? "bg-white/20 text-white"
+                        : "bg-white text-[var(--pos-primary,#0f766e)] ring-1 ring-black/[0.06]",
+                    )}
+                  >
+                    {s.name.slice(0, 1).toUpperCase()}
+                  </span>
                   {s.name}
                 </button>
               ))}
@@ -855,35 +873,37 @@ export function TenantOrderWorkspace() {
         </div>
       ) : null}
 
-      {/* Mobile order sheet */}
       {mobileOrderOpen ? (
         <div className="absolute inset-0 z-50 flex flex-col lg:hidden">
           <button
             type="button"
-            className="min-h-0 flex-1 bg-black/35"
+            className="min-h-0 flex-1 bg-black/40 backdrop-blur-[1px]"
             aria-label="Dismiss order"
             onClick={() => setMobileOrderOpen(false)}
           />
-          <div className="flex max-h-[85%] min-h-[42%] flex-col rounded-t-2xl bg-background shadow-xl">
-            <div className="flex items-center justify-between px-3 py-3">
+          <div className="flex max-h-[88%] min-h-[44%] flex-col rounded-t-3xl bg-[#faf8f5] shadow-2xl">
+            <div className="flex justify-center pt-2.5">
+              <span className="h-1 w-10 rounded-full bg-black/15" />
+            </div>
+            <div className="flex items-center justify-between px-4 py-2.5">
               <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   Order list
                 </p>
-                <p className="truncate text-[15px] font-semibold">
+                <p className="truncate text-[16px] font-semibold tracking-tight">
                   {activeSupplier?.name ?? "Supplier"}
                 </p>
               </div>
               <button
                 type="button"
-                className="flex size-9 items-center justify-center text-muted-foreground"
+                className="flex size-9 items-center justify-center rounded-full bg-white text-muted-foreground ring-1 ring-black/[0.06]"
                 onClick={() => setMobileOrderOpen(false)}
                 aria-label="Close"
               >
                 <X className="size-4" />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className="mx-2.5 min-h-0 flex-1 overflow-hidden overflow-y-auto overscroll-contain rounded-2xl bg-white ring-1 ring-black/[0.05]">
               {cartLinesPanel}
             </div>
             {placeFooter}
