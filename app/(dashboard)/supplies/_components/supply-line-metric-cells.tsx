@@ -695,11 +695,38 @@ export function SupplyCostCell({
   );
 }
 
+/** Derive unit cost from a line total (total ÷ qty). */
+export function unitCostFromLineTotal(qty: number, lineTotal: number): string {
+  if (!(qty > 0) || !Number.isFinite(lineTotal) || lineTotal < 0) {
+    return "";
+  }
+  const unit = lineTotal / qty;
+  if (!Number.isFinite(unit) || unit < 0) {
+    return "";
+  }
+  return String(Math.round(unit * 10000) / 10000);
+}
+
+function formatLineTotalDisplay(total: number | null): string {
+  if (total == null) {
+    return "";
+  }
+  return total.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 type SupplyLineTotalCellProps = CompactProps & {
   total: number | null;
   qty: number | null;
   unitCost: number | null;
   isReady?: boolean;
+  disabled?: boolean;
+  /** When set, TOTAL is editable and commits unit cost = total ÷ qty. */
+  onUnitCostChange?: (unitCostStr: string) => void;
+  onEnterNext?: () => void;
+  quiet?: boolean;
 };
 
 export function SupplyLineTotalCell({
@@ -710,9 +737,64 @@ export function SupplyLineTotalCell({
   compact = false,
   touch = false,
   label,
+  disabled = false,
+  onUnitCostChange,
+  onEnterNext,
+  quiet = false,
 }: SupplyLineTotalCellProps) {
-  const tone: MetricTone =
-    total == null ? "empty" : isReady ? "ready" : "computed";
+  const editable = Boolean(onUnitCostChange) && !disabled;
+  const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState(formatLineTotalDisplay(total));
+
+  useEffect(() => {
+    if (!focused) {
+      setDraft(formatLineTotalDisplay(total));
+    }
+  }, [total, focused]);
+
+  const parsedDraft = parseNonNeg(draft.replace(/,/g, ""));
+  const canDerive = qty != null && qty > 0;
+  const tone: MetricTone = !editable
+    ? total == null
+      ? "empty"
+      : isReady
+        ? "ready"
+        : "computed"
+    : !draft.trim()
+      ? "empty"
+      : parsedDraft == null
+        ? "invalid"
+        : !canDerive
+          ? "invalid"
+          : isReady
+            ? "ready"
+            : "active";
+
+  const commitDraft = () => {
+    if (!onUnitCostChange) {
+      return;
+    }
+    const raw = draft.replace(/,/g, "").trim();
+    if (!raw) {
+      setDraft(formatLineTotalDisplay(total));
+      return;
+    }
+    const lineTotal = parseNonNeg(raw);
+    if (lineTotal == null) {
+      setDraft(formatLineTotalDisplay(total));
+      return;
+    }
+    if (qty == null || qty <= 0) {
+      setDraft(formatLineTotalDisplay(total));
+      return;
+    }
+    const nextUnit = unitCostFromLineTotal(qty, lineTotal);
+    if (!nextUnit) {
+      setDraft(formatLineTotalDisplay(total));
+      return;
+    }
+    onUnitCostChange(nextUnit);
+  };
 
   return (
     <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
@@ -722,37 +804,91 @@ export function SupplyLineTotalCell({
         </span>
       ) : null}
       <div
-        className={metricShellClass(compact, touch, tone, "justify-end")}
+        className={metricShellClass(compact, touch, tone)}
         title={
-          qty != null && unitCost != null && total != null
-            ? `${formatQty(qty)} × ${unitCost.toFixed(2)} = ${total.toFixed(2)}`
-            : undefined
+          editable
+            ? canDerive
+              ? "Enter line total — unit cost = total ÷ qty"
+              : "Enter qty first, then line total"
+            : qty != null && unitCost != null && total != null
+              ? `${formatQty(qty)} × ${unitCost.toFixed(2)} = ${total.toFixed(2)}`
+              : undefined
         }
       >
-        <span
-          className={cn(
-            "font-mono tabular-nums",
-            metricText(compact, touch),
-            total == null
-              ? "text-muted-foreground/60"
-              : "font-semibold text-foreground",
-            isReady && "text-primary",
-          )}
-        >
-          {total != null ? total.toFixed(2) : "—"}
-        </span>
-      </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
-        {qty != null && unitCost != null && total != null ? (
-          <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-            {formatQty(qty)} × {unitCost.toFixed(2)}
+        {editable ? (
+          <input
+            className={cn(
+              compact && !touch ? supFormCellInput : nsdInput,
+              "h-full min-w-0 flex-1 border-0 bg-transparent shadow-none",
+              "text-right font-mono tabular-nums",
+              metricText(compact, touch),
+              "focus-visible:ring-0 focus-visible:ring-offset-0",
+              isReady && "font-semibold text-primary",
+              tone === "invalid" && "text-amber-800 dark:text-amber-200",
+            )}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={(e) => {
+              setFocused(true);
+              selectOnFocus(e);
+            }}
+            onBlur={() => {
+              commitDraft();
+              setFocused(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitDraft();
+                setFocused(false);
+                (e.target as HTMLInputElement).blur();
+                onEnterNext?.();
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setDraft(formatLineTotalDisplay(total));
+                setFocused(false);
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            disabled={disabled}
+            inputMode="decimal"
+            placeholder="—"
+            aria-label="Line total"
+            data-nsd-total=""
+          />
+        ) : (
+          <span
+            className={cn(
+              "flex h-full w-full items-center justify-end px-1.5 font-mono tabular-nums",
+              metricText(compact, touch),
+              total == null
+                ? "text-muted-foreground/60"
+                : "font-semibold text-foreground",
+              isReady && "text-primary",
+            )}
+          >
+            {total != null ? total.toFixed(2) : "—"}
           </span>
-        ) : isReady && total != null ? (
-          <span className="rounded-sm bg-primary/10 px-1 py-px text-[10px] font-medium text-primary">
-            Payable
-          </span>
-        ) : null}
+        )}
       </div>
+      {!quiet && !touch ? (
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
+          {editable && tone === "invalid" && draft.trim() && !canDerive ? (
+            <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
+              Need qty
+            </span>
+          ) : qty != null && unitCost != null && total != null ? (
+            <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+              {formatQty(qty)} × {unitCost.toFixed(2)}
+            </span>
+          ) : isReady && total != null ? (
+            <span className="rounded-sm bg-primary/10 px-1 py-px text-[10px] font-medium text-primary">
+              Payable
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

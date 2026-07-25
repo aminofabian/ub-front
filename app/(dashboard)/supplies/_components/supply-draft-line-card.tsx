@@ -15,6 +15,7 @@ import { ProductPickCell } from "./product-pick-cell";
 import {
   SupplyCostCell,
   SupplyExpiryCell,
+  SupplyLineTotalCell,
   SupplyQtyCell,
   SupplyStockCell,
 } from "./supply-line-metric-cells";
@@ -185,11 +186,6 @@ export function SupplyDraftLineCard({
                 ) : null}
               </span>
             ) : null}
-            {lineTotal != null ? (
-              <span className="font-mono tabular-nums">
-                Σ {lineTotal.toFixed(2)}
-              </span>
-            ) : null}
             {marginLabel ? (
               <span
                 className={cn(
@@ -241,7 +237,7 @@ export function SupplyDraftLineCard({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-3 gap-1.5 border-t border-border/70 px-2 pb-2 pt-1.5">
+      <div className="grid grid-cols-2 gap-1.5 border-t border-border/70 px-2 pb-2 pt-1.5">
         <SupplyQtyCell
           touch
           quiet
@@ -264,6 +260,18 @@ export function SupplyDraftLineCard({
           onChange={onUnitChange}
           disabled={busy}
           referenceCost={referenceCost}
+          onEnterNext={onFocusRetail}
+        />
+        <SupplyLineTotalCell
+          touch
+          quiet
+          label="Total"
+          total={lineTotal}
+          qty={qty}
+          unitCost={unitCost}
+          isReady={isReady}
+          disabled={busy}
+          onUnitCostChange={onUnitChange}
           onEnterNext={onFocusRetail}
         />
         <SupplyShelfPriceCell

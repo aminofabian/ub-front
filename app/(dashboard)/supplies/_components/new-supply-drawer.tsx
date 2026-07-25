@@ -95,6 +95,7 @@ import {
   rowReferenceCost,
   SupplyCostCell,
   SupplyExpiryCell,
+  SupplyLineTotalCell,
   SupplyQtyCell,
 } from "./supply-line-metric-cells";
 import { resolveSupplyPackDefaults } from "./supply-pack-qty-modal";
@@ -114,7 +115,7 @@ function receivedLocalToYmd(receivedAtLocal: string): string {
   return todayYmdLocal();
 }
 
-type NsdField = "qty" | "cost" | "retail" | "expiry";
+type NsdField = "qty" | "cost" | "total" | "retail" | "expiry";
 
 function focusNsdField(rowKey: string, field: NsdField) {
   window.requestAnimationFrame(() => {
@@ -2145,10 +2146,10 @@ export function NewSupplyDrawer({
                 <th
                   className={cn(
                     nsdTableTh,
-                    nsdReadoutCell,
-                    "w-[5.5rem] text-right",
+                    nsdEntryLaneHead,
+                    "w-[5.75rem] text-right",
                   )}
-                  title="Qty × cost"
+                  title="Qty × cost, or type total to set unit cost"
                 >
                   Total
                 </th>
@@ -2319,7 +2320,7 @@ export function NewSupplyDrawer({
                             ),
                           )
                         }
-                        onEnterNext={() => focusNsdField(row.key, "retail")}
+                        onEnterNext={() => focusNsdField(row.key, "total")}
                         disabled={busy}
                         referenceCost={referenceCost}
                       />
@@ -2327,30 +2328,27 @@ export function NewSupplyDrawer({
                     <td
                       className={cn(
                         nsdTableCell,
-                        nsdReadoutCell,
-                        "px-2 py-1.5 text-right align-middle",
+                        nsdEntryLaneCell,
+                        "p-0 align-middle",
                       )}
-                      title={
-                        p != null
-                          ? `Line total: ${formatSupplyMoneyCompact(p.amountMoney, currency)}`
-                          : "Enter qty and cost"
-                      }
                     >
-                      <span
-                        className={cn(
-                          "font-mono text-xs tabular-nums",
-                          p != null
-                            ? "font-semibold text-foreground"
-                            : "text-muted-foreground/45",
-                        )}
-                      >
-                        {p != null
-                          ? p.amountMoney.toLocaleString("en-KE", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })
-                          : "—"}
-                      </span>
+                      <SupplyLineTotalCell
+                        compact
+                        quiet
+                        total={p?.amountMoney ?? null}
+                        qty={qty}
+                        unitCost={unitCost}
+                        isReady={isReady}
+                        disabled={busy}
+                        onUnitCostChange={(value) =>
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.key === row.key ? { ...r, unitStr: value } : r,
+                            ),
+                          )
+                        }
+                        onEnterNext={() => focusNsdField(row.key, "retail")}
+                      />
                     </td>
                     <td className={cn(nsdTableCell, "p-0 align-middle")}>
                       <SupplyShelfPriceCell
