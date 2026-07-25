@@ -26,7 +26,15 @@ import {
 } from "@/lib/marketplace-api";
 import { cn, formatMoney } from "@/lib/utils";
 
-import { mktChip, mktChipActive } from "./_components/marketplace-ui";
+import {
+  mktChip,
+  mktChipActive,
+  mktPosAccentBar,
+  mktPosHeader,
+  mktPosSearch,
+  mktPosShell,
+  mktPosTile,
+} from "./_components/marketplace-ui";
 
 const SEARCH_DEBOUNCE_MS = 320;
 const PRODUCT_PAGE_SIZE = 100;
@@ -296,7 +304,7 @@ function PublicMarketplacePageInner() {
 
   return (
     <div
-      className="min-h-dvh bg-[radial-gradient(120%_80%_at_50%_-10%,color-mix(in_srgb,#0f766e_12%,#f7f4ef),#efeae2_42%,#e7e1d6)] text-[var(--pos-ink,#1c1915)]"
+      className="min-h-dvh bg-[radial-gradient(120%_80%_at_50%_-10%,color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,#f7f4ef),#efeae2_42%,#e7e1d6)] text-[var(--pos-ink,#1c1915)]"
       style={{ ["--pos-primary" as string]: "#0f766e" }}
     >
       <header className="sticky top-0 z-30 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,#faf8f4_88%,transparent)] backdrop-blur-md">
@@ -311,14 +319,14 @@ function PublicMarketplacePageInner() {
             {signedIn ? (
               <Link
                 href={APP_ROUTES.suppliers}
-                className="inline-flex h-8 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
+                className="inline-flex h-7 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
               >
                 My suppliers
               </Link>
             ) : (
               <Link
                 href={APP_ROUTES.login}
-                className="inline-flex h-8 items-center bg-[var(--pos-primary,#0f766e)] px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--pos-primary-ink,#fff)]"
+                className="inline-flex h-7 items-center bg-[var(--pos-primary,#0f766e)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--pos-primary-ink,#fff)]"
               >
                 Sign in
               </Link>
@@ -328,26 +336,61 @@ function PublicMarketplacePageInner() {
       </header>
 
       <main className="mx-auto w-full max-w-[1400px] px-3 pb-10 pt-3 sm:px-5">
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <section className="relative overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]">
-            <span
-              aria-hidden
-              className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
-            />
-            <div className="relative space-y-2.5 px-3 py-3 pl-4 sm:px-4 sm:pl-5">
-              <div className="flex flex-wrap items-end justify-between gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <p className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+            marketplace
+            <span className="font-sans text-muted-foreground/80">
+              {" "}
+              · area → supplier → shelf
+            </span>
+          </p>
+          {hasQuery && !loading ? (
+            <button
+              type="button"
+              className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+              onClick={clearFilters}
+            >
+              Clear filters
+            </button>
+          ) : null}
+        </div>
+
+        <div
+          className={cn(
+            mktPosShell,
+            "relative flex h-[min(82dvh,58rem)] min-h-[32rem] flex-col",
+          )}
+        >
+          {/* Passport-style identity + search strip */}
+          <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 sm:px-3">
+            <span aria-hidden className={mktPosAccentBar} />
+            <div className="space-y-2 pl-2">
+              <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    Catalogue
-                  </p>
-                  <h1 className="mt-0.5 text-[1.15rem] font-semibold leading-none tracking-tight text-[var(--pos-ink,#1c1915)] sm:text-[1.25rem]">
-                    Source products. Order by WhatsApp.
+                  <h1 className="text-[15px] font-semibold leading-tight text-[var(--pos-ink,#1c1915)]">
+                    {activeSupplierName ??
+                      (activeLocation ? activeLocation : "All suppliers")}
                   </h1>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Area → supplier → products
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {loading
+                      ? "Loading…"
+                      : tab === "products"
+                        ? `${displayProductCount} product${displayProductCount === 1 ? "" : "s"}`
+                        : `${resultCount} supplier${resultCount === 1 ? "" : "s"}`}
+                    {activeTag ? ` · ${activeTag}` : ""}
+                    {tab === "products" &&
+                    !supplierFilterIsClientOnly &&
+                    !productLast &&
+                    visibleProducts.length < productTotal
+                      ? ` · showing ${visibleProducts.length}`
+                      : ""}
                   </p>
                 </div>
-                <div className="flex shrink-0 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] p-0.5">
+                <div
+                  role="tablist"
+                  aria-label="Marketplace view"
+                  className="flex shrink-0 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
+                >
                   {(
                     [
                       { id: "products" as const, label: "Products", icon: Package },
@@ -360,11 +403,13 @@ function PublicMarketplacePageInner() {
                       <button
                         key={item.id}
                         type="button"
+                        role="tab"
+                        aria-selected={active}
                         className={cn(
-                          "inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold transition",
+                          "inline-flex h-8 items-center gap-1.5 rounded-none px-3 text-[11px] font-semibold uppercase tracking-[0.08em] transition",
                           active
                             ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
-                            : "text-muted-foreground hover:text-[var(--pos-ink,#1c1915)]",
+                            : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
                         )}
                         onClick={() => {
                           setTab(item.id);
@@ -372,7 +417,7 @@ function PublicMarketplacePageInner() {
                           setActiveSupplierId(null);
                         }}
                       >
-                        <Icon className="size-3" />
+                        <Icon className="size-3" strokeWidth={2} />
                         {item.label}
                       </button>
                     );
@@ -380,14 +425,14 @@ function PublicMarketplacePageInner() {
                 </div>
               </div>
 
-              <div className="relative border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-white/80">
+              <div className="relative rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_82%,transparent)]">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  className="h-9 w-full border-0 bg-transparent pl-8 pr-9 text-[13px] outline-none placeholder:text-muted-foreground/50"
+                  className={mktPosSearch}
                   placeholder={
                     tab === "products"
-                      ? "Find products, barcodes, SKUs…"
-                      : "Find suppliers…"
+                      ? "Find a product…"
+                      : "Find a supplier…"
                   }
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -396,7 +441,7 @@ function PublicMarketplacePageInner() {
                 {searchInput ? (
                   <button
                     type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-[var(--pos-ink,#1c1915)]"
                     onClick={() => setSearchInput("")}
                     aria-label="Clear search"
                   >
@@ -429,38 +474,40 @@ function PublicMarketplacePageInner() {
                 </p>
               ) : null}
 
-              {locationChips.length ? (
-                <div className="flex flex-col gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2.5">
-                  <FilterRow label="1 · Area" icon={MapPin}>
-                    <button
-                      type="button"
-                      className={cn(mktChip, !activeLocation && mktChipActive)}
-                      onClick={() => {
-                        setActiveLocation(null);
-                        setActiveSupplierId(null);
-                      }}
-                    >
-                      All areas
-                    </button>
-                    {locationChips.map((loc) => (
+              {locationChips.length || categoryTags.length ? (
+                <div className="flex flex-col gap-1.5 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2">
+                  {locationChips.length ? (
+                    <FilterRow label="1 · Area" icon={MapPin}>
                       <button
-                        key={loc}
                         type="button"
-                        className={cn(
-                          mktChip,
-                          activeLocation === loc && mktChipActive,
-                        )}
+                        className={cn(mktChip, !activeLocation && mktChipActive)}
                         onClick={() => {
-                          setActiveLocation((current) =>
-                            current === loc ? null : loc,
-                          );
+                          setActiveLocation(null);
                           setActiveSupplierId(null);
                         }}
                       >
-                        {loc}
+                        All
                       </button>
-                    ))}
-                  </FilterRow>
+                      {locationChips.map((loc) => (
+                        <button
+                          key={loc}
+                          type="button"
+                          className={cn(
+                            mktChip,
+                            activeLocation === loc && mktChipActive,
+                          )}
+                          onClick={() => {
+                            setActiveLocation((current) =>
+                              current === loc ? null : loc,
+                            );
+                            setActiveSupplierId(null);
+                          }}
+                        >
+                          {loc}
+                        </button>
+                      ))}
+                    </FilterRow>
+                  ) : null}
                   {categoryTags.length ? (
                     <FilterRow label="Category">
                       {activeTag ? (
@@ -487,199 +534,138 @@ function PublicMarketplacePageInner() {
                     </FilterRow>
                   ) : null}
                 </div>
-              ) : categoryTags.length ? (
-                <div className="flex flex-col gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2.5">
-                  <FilterRow label="Category">
-                    {activeTag ? (
-                      <button
-                        type="button"
-                        className={cn(mktChip, mktChipActive)}
-                        onClick={() => setActiveTag(null)}
-                      >
-                        {activeTag} ×
-                      </button>
-                    ) : null}
-                    {categoryTags
-                      .filter((tag) => tag !== activeTag)
-                      .map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          className={mktChip}
-                          onClick={() => setActiveTag(tag)}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                  </FilterRow>
-                </div>
               ) : null}
             </div>
           </section>
 
-          <div className="flex items-center justify-between gap-2 px-0.5">
-            <p className="text-sm font-medium">
-              {loading ? (
-                <span className="text-muted-foreground">Loading…</span>
-              ) : (
-                <>
-                  <span className="font-heading text-lg font-semibold tabular-nums">
-                    {tab === "products" ? displayProductCount : resultCount}
-                  </span>
-                  <span className="ml-1.5 text-muted-foreground">
-                    {tab === "products"
-                      ? `product${displayProductCount === 1 ? "" : "s"}`
-                      : `supplier${resultCount === 1 ? "" : "s"}`}
-                    {activeLocation ? ` · ${activeLocation}` : ""}
-                    {activeSupplierName ? ` · ${activeSupplierName}` : ""}
-                    {activeTag ? ` · ${activeTag}` : ""}
-                    {tab === "products" &&
-                    !supplierFilterIsClientOnly &&
-                    !productLast &&
-                    visibleProducts.length < productTotal
-                      ? ` · showing ${visibleProducts.length}`
-                      : ""}
-                  </span>
-                </>
-              )}
-            </p>
-            {hasQuery && !loading ? (
-              <button
-                type="button"
-                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                onClick={clearFilters}
-              >
-                Clear filters
-              </button>
-            ) : null}
-          </div>
-
-          <section className="min-h-0">
+          {/* Shelf workspace */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
             {loading ? (
-              <MarketplaceSkeleton tab={tab} />
+              <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                <MarketplaceSkeleton tab={tab} />
+              </div>
             ) : tab === "products" ? (
-              visibleProducts.length === 0 && !showSupplierRail ? (
+              <>
+                {showSupplierRail ? (
+                  <SupplierFilterColumn
+                    suppliers={supplierColumn}
+                    activeId={activeSupplierId}
+                    areaLabel={activeLocation}
+                    onSelect={setActiveSupplierId}
+                  />
+                ) : null}
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                  <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2.5 py-2">
+                    <h2 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+                      Shelf
+                      <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
+                        {visibleProducts.length}
+                      </span>
+                    </h2>
+                    {activeSupplierId && activeSupplierSlug ? (
+                      <Link
+                        href={APP_ROUTES.marketplaceSupplier(activeSupplierSlug)}
+                        className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--pos-primary,#0f766e)] hover:underline"
+                      >
+                        Open passport
+                      </Link>
+                    ) : null}
+                  </div>
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-1.5 py-1.5 sm:px-2.5">
+                    {visibleProducts.length === 0 ? (
+                      <EmptyState
+                        title={
+                          activeSupplierId
+                            ? "No products from this supplier"
+                            : hasQuery
+                              ? "No products match"
+                              : "No linked products yet"
+                        }
+                        hint={
+                          activeSupplierId
+                            ? "Pick another supplier, or clear the supplier filter."
+                            : hasQuery
+                              ? "Try another name, location, or clear filters."
+                              : "When businesses link products to active suppliers, those items appear here."
+                        }
+                        onClear={clearFilters}
+                        showClear={hasQuery}
+                      />
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                          {visibleProducts.map((row, index) => (
+                            <ProductTile
+                              key={`${row.supplierId}-${row.productId}`}
+                              row={row}
+                              index={index}
+                            />
+                          ))}
+                        </div>
+                        {!productLast ? (
+                          <div className="flex justify-center py-2">
+                            <button
+                              type="button"
+                              disabled={loadingMore}
+                              className="inline-flex h-9 items-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 text-[12px] font-semibold hover:bg-card disabled:opacity-60"
+                              onClick={() =>
+                                void loadProducts(productPage + 1, true)
+                              }
+                            >
+                              {loadingMore ? (
+                                <>
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                  Loading…
+                                </>
+                              ) : (
+                                <>
+                                  Load more
+                                  <span className="font-mono text-[10px] text-muted-foreground">
+                                    {supplierFilterIsClientOnly
+                                      ? visibleProducts.length
+                                      : `${visibleProducts.length}/${productTotal}`}
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : visibleSuppliers.length === 0 ? (
+              <div className="flex-1 p-3">
                 <EmptyState
-                  title={hasQuery ? "No products match" : "No linked products yet"}
+                  title={hasQuery ? "No suppliers match" : "No suppliers yet"}
                   hint={
                     hasQuery
                       ? "Try another name, location, or clear filters."
-                      : "When businesses link products to active suppliers, those items appear here."
+                      : "Active suppliers with linked products will show up here."
                   }
                   onClear={clearFilters}
                   showClear={hasQuery}
                 />
-              ) : (
-                <div className="flex h-[min(78dvh,56rem)] min-h-[28rem] flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] lg:flex-row">
-                  {showSupplierRail ? (
-                    <SupplierFilterColumn
-                      suppliers={supplierColumn}
-                      activeId={activeSupplierId}
-                      areaLabel={activeLocation}
-                      onSelect={setActiveSupplierId}
-                    />
-                  ) : null}
-                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2.5 py-2">
-                      <h3 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
-                        {activeSupplierName ?? "Shelf"}
-                        <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
-                          {visibleProducts.length}
-                        </span>
-                      </h3>
-                      {activeSupplierId && activeSupplierSlug ? (
-                        <Link
-                          href={APP_ROUTES.marketplaceSupplier(activeSupplierSlug)}
-                          className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--pos-primary,#0f766e)] hover:underline"
-                        >
-                          Open passport
-                        </Link>
-                      ) : null}
-                    </div>
-                    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-1.5 py-1.5 sm:px-2.5">
-                      {visibleProducts.length === 0 ? (
-                        <EmptyState
-                          title={
-                            activeSupplierId
-                              ? "No products from this supplier"
-                              : hasQuery
-                                ? "No products match"
-                                : "No linked products yet"
-                          }
-                          hint={
-                            activeSupplierId
-                              ? "Pick another supplier, or clear the supplier filter."
-                              : hasQuery
-                                ? "Try another name, location, or clear filters."
-                                : "When businesses link products to active suppliers, those items appear here."
-                          }
-                          onClear={clearFilters}
-                          showClear={hasQuery}
-                        />
-                      ) : (
-                        <>
-                          <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-                            {visibleProducts.map((row, index) => (
-                              <ProductTile
-                                key={`${row.supplierId}-${row.productId}`}
-                                row={row}
-                                index={index}
-                              />
-                            ))}
-                          </div>
-                          {!productLast ? (
-                            <div className="flex justify-center py-2">
-                              <button
-                                type="button"
-                                disabled={loadingMore}
-                                className="inline-flex h-9 items-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 text-[12px] font-semibold hover:bg-card disabled:opacity-60"
-                                onClick={() =>
-                                  void loadProducts(productPage + 1, true)
-                                }
-                              >
-                                {loadingMore ? (
-                                  <>
-                                    <Loader2 className="size-3.5 animate-spin" />
-                                    Loading…
-                                  </>
-                                ) : (
-                                  <>
-                                    Load more
-                                    <span className="font-mono text-[10px] text-muted-foreground">
-                                      {supplierFilterIsClientOnly
-                                        ? visibleProducts.length
-                                        : `${visibleProducts.length}/${productTotal}`}
-                                    </span>
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          ) : null}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            ) : visibleSuppliers.length === 0 ? (
-              <EmptyState
-                title={hasQuery ? "No suppliers match" : "No suppliers yet"}
-                hint={
-                  hasQuery
-                    ? "Try another name, location, or clear filters."
-                    : "Active suppliers with linked products will show up here."
-                }
-                onClear={clearFilters}
-                showClear={hasQuery}
-              />
+              </div>
             ) : (
-              <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                {visibleSuppliers.map((row, index) => (
-                  <SupplierTile key={row.id} row={row} index={index} />
-                ))}
+              <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                <div className="mb-2 flex items-center px-0.5">
+                  <h2 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+                    Suppliers
+                    <span className="font-mono text-[10px] font-medium tabular-nums text-muted-foreground">
+                      {visibleSuppliers.length}
+                    </span>
+                  </h2>
+                </div>
+                <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                  {visibleSuppliers.map((row, index) => (
+                    <SupplierTile key={row.id} row={row} index={index} />
+                  ))}
+                </div>
               </div>
             )}
-          </section>
+          </div>
         </div>
       </main>
     </div>
@@ -714,11 +700,8 @@ function SupplierFilterColumn({
     <>
       {/* Mobile */}
       <div className="min-w-0 shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:hidden">
-        <div className="flex items-center justify-between bg-[var(--pos-primary,#0f766e)] px-2.5 py-1.5 text-[var(--pos-primary-ink,#fff)]">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em]">
-            2 · Supplier
-            {areaLabel ? ` · ${areaLabel}` : ""}
-          </p>
+        <div className={mktPosHeader}>
+          <p>2 · Supplier{areaLabel ? ` · ${areaLabel}` : ""}</p>
           <span className="font-mono text-[10px] tabular-nums opacity-80">
             {filtered.length}
           </span>
@@ -791,10 +774,8 @@ function SupplierFilterColumn({
 
       {/* Desktop column — same language as passport parent rail */}
       <aside className="hidden h-full w-[12rem] shrink-0 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:flex xl:w-[13.5rem]">
-        <div className="flex h-8 shrink-0 items-center justify-between bg-[var(--pos-primary,#0f766e)] px-2.5 text-[var(--pos-primary-ink,#fff)]">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em]">
-            2 · Supplier
-          </p>
+        <div className={mktPosHeader}>
+          <p>2 · Supplier</p>
           <span className="font-mono text-[10px] tabular-nums opacity-80">
             {filtered.length}
           </span>
@@ -954,14 +935,7 @@ function ProductTile({
   return (
     <Link
       href={href}
-      className={cn(
-        "group relative flex h-full flex-col overflow-hidden border",
-        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-        "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] text-left",
-        "transition-[border-color,background-color,box-shadow] duration-150",
-        "hover:z-[1] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)] hover:bg-card",
-        "hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
-      )}
+      className={mktPosTile}
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >
       <ProductImage
@@ -1006,14 +980,7 @@ function SupplierTile({
   return (
     <Link
       href={href}
-      className={cn(
-        "group relative flex h-full flex-col overflow-hidden border",
-        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-        "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] text-left",
-        "transition-[border-color,background-color,box-shadow] duration-150",
-        "hover:z-[1] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)] hover:bg-card",
-        "hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
-      )}
+      className={mktPosTile}
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >
       <div
