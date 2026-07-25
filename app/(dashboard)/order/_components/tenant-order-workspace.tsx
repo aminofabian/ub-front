@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ChevronDown,
   ChevronUp,
   ClipboardList,
   Loader2,
@@ -36,10 +37,7 @@ import {
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
 
-import {
-  OrderParentFloater,
-  type OrderParentOption,
-} from "./order-parent-floater";
+import { type OrderParentOption } from "./order-parent-floater";
 
 const ORDER_CURRENCY = "KES";
 
@@ -111,9 +109,8 @@ export function TenantOrderWorkspace() {
   const [supplierQuery, setSupplierQuery] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [parentFilterId, setParentFilterId] = useState<string | null>(null);
-  const [parentDialOpen, setParentDialOpen] = useState(false);
   const [mobileOrderOpen, setMobileOrderOpen] = useState(false);
-  const [suppliersExpanded, setSuppliersExpanded] = useState(false);
+  const [supplierPickerOpen, setSupplierPickerOpen] = useState(false);
   const cartsBySupplierRef = useRef<Record<string, CartQty>>({});
   const supplierIdRef = useRef<string | null>(null);
   supplierIdRef.current = supplierId;
@@ -217,7 +214,6 @@ export function TenantOrderWorkspace() {
 
   useEffect(() => {
     setParentFilterId(null);
-    setParentDialOpen(false);
   }, [supplierId]);
 
   useEffect(() => {
@@ -408,6 +404,10 @@ export function TenantOrderWorkspace() {
   };
 
 
+
+  const familyChips = parentOptions.filter((o) => o.id !== "all");
+  const showFamilies = familyChips.length >= 2;
+
   const cartLinesPanel = (
     <>
       {cartLines.length === 0 ? (
@@ -422,15 +422,15 @@ export function TenantOrderWorkspace() {
           return (
             <div
               key={link.itemId}
-              className="flex gap-2.5 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3 py-2.5"
+              className="flex gap-3 border-b border-border/60 px-3 py-3"
             >
-              <div className="relative size-11 shrink-0 overflow-hidden bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]">
+              <div className="relative size-12 shrink-0 overflow-hidden bg-muted/40">
                 {thumb ? (
                   <Image
                     src={thumb}
                     alt=""
                     fill
-                    sizes="44px"
+                    sizes="48px"
                     className="object-contain p-0.5"
                     unoptimized
                   />
@@ -444,8 +444,8 @@ export function TenantOrderWorkspace() {
                 <p className="text-[13px] font-medium leading-snug">
                   {link.itemName}
                 </p>
-                <div className="mt-1.5 flex items-center justify-between gap-2">
-                  <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <div className="inline-flex items-center border border-border">
                     <button
                       type="button"
                       className="flex size-8 items-center justify-center"
@@ -464,7 +464,7 @@ export function TenantOrderWorkspace() {
                       +
                     </button>
                   </div>
-                  <p className="font-mono text-[12px] font-semibold tabular-nums">
+                  <p className="font-mono text-[13px] font-semibold tabular-nums">
                     {cost > 0 ? formatMoney(amount, ORDER_CURRENCY) : "—"}
                   </p>
                 </div>
@@ -477,12 +477,12 @@ export function TenantOrderWorkspace() {
   );
 
   const placeFooter = (
-    <div className="shrink-0 space-y-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[11px] text-muted-foreground">
+    <div className="shrink-0 space-y-2.5 border-t border-border bg-background px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="flex items-baseline justify-between">
+        <p className="text-[12px] text-muted-foreground">
           {cartUnits} item{cartUnits === 1 ? "" : "s"}
         </p>
-        <p className="font-mono text-[17px] font-semibold tabular-nums">
+        <p className="font-mono text-[18px] font-semibold tabular-nums">
           {formatMoney(cartTotal, ORDER_CURRENCY)}
         </p>
       </div>
@@ -510,24 +510,35 @@ export function TenantOrderWorkspace() {
   return (
     <div
       className={cn(
-        "relative flex w-full flex-col overflow-hidden bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)]",
-        "h-[calc(100dvh-9.75rem)] min-h-[20rem] sm:h-[min(72dvh,52rem)] sm:min-h-[28rem]",
-        "border-y border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:border",
+        "relative flex w-full flex-col overflow-hidden bg-background font-sans",
+        "h-[calc(100dvh-10.5rem)] min-h-[22rem] sm:h-[min(70dvh,48rem)]",
+        "border border-border/70 sm:rounded-sm",
       )}
       style={{ ["--pos-primary" as string]: "#0f766e" }}
     >
-      <header className="flex shrink-0 items-center gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 py-2.5">
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Order
-          </p>
-          <h1 className="truncate text-[15px] font-semibold leading-tight">
-            {activeSupplier?.name ?? "Choose a supplier"}
-          </h1>
-        </div>
+      {/* 1. Header — supplier switcher + confirm */}
+      <header className="flex shrink-0 items-center gap-2 border-b border-border px-2.5 py-2">
+        <button
+          type="button"
+          onClick={() => {
+            setSupplierPickerOpen(true);
+            setSupplierQuery("");
+          }}
+          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-1 text-left hover:bg-muted/50 lg:pointer-events-none lg:hover:bg-transparent"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Ordering from
+            </p>
+            <p className="truncate text-[15px] font-semibold leading-tight">
+              {activeSupplier?.name ?? "Select supplier"}
+            </p>
+          </div>
+          <ChevronDown className="size-4 shrink-0 text-muted-foreground lg:hidden" />
+        </button>
         <Link
           href={APP_ROUTES.orderReceive}
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-[11px] font-medium text-[var(--pos-primary,#0f766e)]"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 text-[11px] font-medium"
         >
           <ClipboardList className="size-3.5" />
           Confirm
@@ -535,77 +546,22 @@ export function TenantOrderWorkspace() {
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        <section className="shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] lg:hidden">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        {/* Desktop supplier column */}
+        <aside className="hidden w-52 shrink-0 flex-col border-r border-border lg:flex xl:w-56">
+          <div className="relative border-b border-border">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
-              className="h-10 w-full bg-transparent pl-9 pr-3 text-[16px] outline-none placeholder:text-muted-foreground/55"
-              placeholder="Search suppliers"
-              value={supplierQuery}
-              onChange={(e) => {
-                setSupplierQuery(e.target.value);
-                if (e.target.value.trim()) setSuppliersExpanded(true);
-              }}
-              enterKeyHint="search"
-              aria-label="Search suppliers"
-              onFocus={() => setSuppliersExpanded(true)}
-            />
-          </div>
-          {(suppliersExpanded || supplierQuery.trim()) && (
-            <div className="flex gap-1.5 overflow-x-auto border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-2 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {loadingSuppliers ? (
-                <p className="px-2 py-1 text-[11px] text-muted-foreground">
-                  <Loader2 className="mr-1 inline size-3 animate-spin" />
-                  Loading
-                </p>
-              ) : filteredSuppliers.length === 0 ? (
-                <p className="px-2 py-1 text-[11px] text-muted-foreground">
-                  No match
-                </p>
-              ) : (
-                filteredSuppliers.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => {
-                      selectSupplier(s.id);
-                      setSuppliersExpanded(false);
-                      setSupplierQuery("");
-                    }}
-                    className={cn(
-                      "shrink-0 px-3 py-1.5 text-[12px] font-medium",
-                      supplierId === s.id
-                        ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                        : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] text-[var(--pos-ink,#1c1915)]",
-                    )}
-                  >
-                    {s.name}
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-        </section>
-
-        <aside className="hidden w-52 shrink-0 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] lg:flex xl:w-56">
-          <div className="relative border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
-            <input
-              className="h-9 w-full bg-transparent pl-8 pr-2 text-[12px] outline-none placeholder:text-muted-foreground/50"
-              placeholder="Suppliers"
+              className="h-10 w-full bg-transparent pl-8 pr-2 text-[13px] outline-none placeholder:text-muted-foreground/60"
+              placeholder="Find supplier"
               value={supplierQuery}
               onChange={(e) => setSupplierQuery(e.target.value)}
             />
           </div>
           <nav className="min-h-0 flex-1 overflow-y-auto p-1.5">
             {loadingSuppliers ? (
-              <p className="px-2 py-6 text-center text-[11px] text-muted-foreground">
-                <Loader2 className="mr-1 inline size-3 animate-spin" />
+              <p className="px-2 py-8 text-center text-[12px] text-muted-foreground">
+                <Loader2 className="mr-1 inline size-3.5 animate-spin" />
                 Loading
-              </p>
-            ) : filteredSuppliers.length === 0 ? (
-              <p className="px-2 py-6 text-center text-[11px] text-muted-foreground">
-                No suppliers
               </p>
             ) : (
               filteredSuppliers.map((s) => (
@@ -614,10 +570,10 @@ export function TenantOrderWorkspace() {
                   type="button"
                   onClick={() => selectSupplier(s.id)}
                   className={cn(
-                    "mb-0.5 w-full px-2.5 py-2 text-left text-[12px] font-medium",
+                    "mb-0.5 w-full rounded-md px-2.5 py-2 text-left text-[13px] font-medium",
                     supplierId === s.id
-                      ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-ink,#1c1915)]"
-                      : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] hover:text-foreground",
+                      ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                   )}
                 >
                   {s.name}
@@ -627,11 +583,13 @@ export function TenantOrderWorkspace() {
           </nav>
         </aside>
 
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        {/* Main shelf */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {/* 2. Product search only */}
+          <div className="relative shrink-0 border-b border-border">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
-              className="h-10 w-full bg-transparent pl-9 pr-3 text-[16px] outline-none placeholder:text-muted-foreground/55 sm:h-9 sm:text-[13px]"
+              className="h-11 w-full bg-transparent pl-10 pr-3 text-[16px] outline-none placeholder:text-muted-foreground/55 sm:h-10 sm:text-[14px]"
               placeholder="Search products"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -639,165 +597,174 @@ export function TenantOrderWorkspace() {
             />
           </div>
 
-          {activeParentLabel ? (
-            <div className="flex shrink-0 items-center justify-between gap-2 px-3 py-1.5 text-[11px]">
-              <p className="min-w-0 truncate font-medium">
-                <span className="text-muted-foreground">Family · </span>
-                {activeParentLabel}
-              </p>
-              <button
-                type="button"
-                className="shrink-0 text-muted-foreground"
-                onClick={() => setParentFilterId(null)}
-                aria-label="Clear family"
-              >
-                <X className="size-3.5" />
-              </button>
+          {/* 3. Family chips — in flow, not floating */}
+          {showFamilies ? (
+            <div className="shrink-0 border-b border-border bg-muted/20">
+              <div className="flex gap-1.5 overflow-x-auto px-2.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <button
+                  type="button"
+                  onClick={() => setParentFilterId(null)}
+                  className={cn(
+                    "shrink-0 rounded-full px-3 py-1 text-[12px] font-medium",
+                    !parentFilterId
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "bg-background text-muted-foreground ring-1 ring-border",
+                  )}
+                >
+                  All
+                </button>
+                {familyChips.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() =>
+                      setParentFilterId(
+                        parentFilterId === opt.id ? null : opt.id,
+                      )
+                    }
+                    className={cn(
+                      "max-w-[9rem] shrink-0 truncate rounded-full px-3 py-1 text-[12px] font-medium",
+                      parentFilterId === opt.id
+                        ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                        : "bg-background text-muted-foreground ring-1 ring-border",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : null}
 
-          <div className="relative min-h-0 flex-1 overflow-hidden">
-            <div className="h-full overflow-y-auto overscroll-contain px-2 pb-36 pt-2 sm:px-2.5 lg:pb-28">
-              {!supplierId ? (
-                <p className="py-16 text-center text-[12px] text-muted-foreground">
-                  Choose a supplier to start.
-                </p>
-              ) : loadingLinks ? (
-                <p className="flex items-center justify-center gap-2 py-16 text-[12px] text-muted-foreground">
-                  <Loader2 className="size-4 animate-spin" />
-                  Loading…
-                </p>
-              ) : visibleLinks.length === 0 ? (
-                <p className="py-16 text-center text-[12px] text-muted-foreground">
-                  {parentFilterId
-                    ? "Nothing in this family."
-                    : "No linked products."}
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-                  {visibleLinks.map((link) => {
-                    const qty = cart[link.itemId] ?? 0;
-                    const stock = toNum(link.currentStock);
-                    const reorder = toNum(link.reorderLevel);
-                    const low = reorder > 0 && stock <= reorder;
-                    const cost = unitCost(link);
-                    const thumb = posTileThumbUrl(
-                      link.itemName,
-                      link.thumbnailUrl,
-                    );
-                    return (
-                      <div
-                        key={link.id}
-                        className={cn(
-                          "flex flex-col overflow-hidden bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)]",
-                          "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]",
-                          qty > 0 && "border-[var(--pos-primary,#0f766e)]",
-                        )}
+          {/* 4. Product grid */}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2 pb-4 sm:px-3">
+            {!supplierId ? (
+              <p className="py-16 text-center text-[13px] text-muted-foreground">
+                Choose a supplier to start.
+              </p>
+            ) : loadingLinks ? (
+              <p className="flex items-center justify-center gap-2 py-16 text-[13px] text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                Loading…
+              </p>
+            ) : visibleLinks.length === 0 ? (
+              <p className="py-16 text-center text-[13px] text-muted-foreground">
+                {parentFilterId
+                  ? "Nothing in this family."
+                  : "No linked products."}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+                {visibleLinks.map((link) => {
+                  const qty = cart[link.itemId] ?? 0;
+                  const stock = toNum(link.currentStock);
+                  const reorder = toNum(link.reorderLevel);
+                  const low = reorder > 0 && stock <= reorder;
+                  const cost = unitCost(link);
+                  const thumb = posTileThumbUrl(
+                    link.itemName,
+                    link.thumbnailUrl,
+                  );
+                  return (
+                    <div
+                      key={link.id}
+                      className={cn(
+                        "flex flex-col overflow-hidden rounded-md border bg-card",
+                        qty > 0
+                          ? "border-[var(--pos-primary,#0f766e)]"
+                          : "border-border/80",
+                      )}
+                    >
+                      <button
+                        type="button"
+                        className="relative aspect-square w-full touch-manipulation bg-muted/30"
+                        onClick={() => setQty(link.itemId, qty + 1)}
+                        aria-label={`Add ${link.itemName}`}
                       >
-                        <button
-                          type="button"
-                          className="relative aspect-square w-full touch-manipulation bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_40%,transparent)]"
-                          onClick={() => setQty(link.itemId, qty + 1)}
-                          aria-label={`Add ${link.itemName}`}
-                        >
-                          {thumb ? (
-                            <Image
-                              src={thumb}
-                              alt=""
-                              fill
-                              sizes="(max-width: 640px) 48vw, 140px"
-                              className="object-contain p-1.5"
-                              unoptimized
-                            />
-                          ) : (
-                            <span className="flex h-full w-full items-center justify-center">
-                              <Package
-                                className="size-5 opacity-30"
-                                strokeWidth={1.5}
-                              />
-                            </span>
-                          )}
-                          {qty > 0 ? (
-                            <span className="absolute left-1.5 top-1.5 z-[1] inline-flex h-5 min-w-5 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 font-mono text-[10px] font-bold text-white">
-                              {qty}
-                            </span>
-                          ) : null}
-                          <span
-                            className={cn(
-                              "absolute bottom-1.5 right-1.5 z-[1] px-1.5 py-0.5 font-mono text-[9px] font-medium tabular-nums",
-                              low
-                                ? "bg-amber-600 text-white"
-                                : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_72%,transparent)] text-white",
-                            )}
-                          >
-                            {stock}
+                        {thumb ? (
+                          <Image
+                            src={thumb}
+                            alt=""
+                            fill
+                            sizes="(max-width: 640px) 48vw, 140px"
+                            className="object-contain p-2"
+                            unoptimized
+                          />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center">
+                            <Package className="size-5 opacity-30" strokeWidth={1.5} />
                           </span>
-                        </button>
-                        <div className="flex flex-1 flex-col gap-1.5 p-2">
-                          <p className="line-clamp-2 text-[11px] font-medium leading-snug">
-                            {link.itemName}
+                        )}
+                        {qty > 0 ? (
+                          <span className="absolute left-1.5 top-1.5 z-[1] inline-flex h-5 min-w-5 items-center justify-center rounded-sm bg-[var(--pos-primary,#0f766e)] px-1 font-mono text-[10px] font-bold text-white">
+                            {qty}
+                          </span>
+                        ) : null}
+                        <span
+                          className={cn(
+                            "absolute bottom-1.5 right-1.5 z-[1] rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums text-white",
+                            low ? "bg-amber-600" : "bg-foreground/70",
+                          )}
+                        >
+                          {stock}
+                        </span>
+                      </button>
+                      <div className="flex flex-1 flex-col gap-1.5 p-2">
+                        <p className="line-clamp-2 min-h-[2.25rem] text-[12px] font-medium leading-snug">
+                          {link.itemName}
+                        </p>
+                        <div className="mt-auto flex items-center justify-between gap-1">
+                          <p className="font-mono text-[12px] font-semibold tabular-nums">
+                            {cost > 0
+                              ? formatMoney(cost, ORDER_CURRENCY)
+                              : "—"}
                           </p>
-                          <div className="mt-auto flex items-center justify-between gap-1">
-                            <p className="font-mono text-[11px] font-semibold tabular-nums">
-                              {cost > 0
-                                ? formatMoney(cost, ORDER_CURRENCY)
-                                : "—"}
-                            </p>
-                            {qty > 0 ? (
-                              <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
-                                <button
-                                  type="button"
-                                  className="flex size-7 items-center justify-center touch-manipulation"
-                                  onClick={() => setQty(link.itemId, qty - 1)}
-                                >
-                                  −
-                                </button>
-                                <span className="min-w-5 text-center font-mono text-[11px]">
-                                  {qty}
-                                </span>
-                                <button
-                                  type="button"
-                                  className="flex size-7 items-center justify-center touch-manipulation"
-                                  onClick={() => setQty(link.itemId, qty + 1)}
-                                >
-                                  +
-                                </button>
-                              </div>
-                            ) : (
+                          {qty > 0 ? (
+                            <div className="inline-flex items-center border border-border">
                               <button
                                 type="button"
-                                className="px-1.5 py-1 text-[10px] font-medium text-[var(--pos-primary,#0f766e)] touch-manipulation"
-                                onClick={() => setQty(link.itemId, 1)}
+                                className="flex size-7 items-center justify-center touch-manipulation"
+                                onClick={() => setQty(link.itemId, qty - 1)}
                               >
-                                Add
+                                −
                               </button>
-                            )}
-                          </div>
+                              <span className="min-w-5 text-center font-mono text-[11px]">
+                                {qty}
+                              </span>
+                              <button
+                                type="button"
+                                className="flex size-7 items-center justify-center touch-manipulation"
+                                onClick={() => setQty(link.itemId, qty + 1)}
+                              >
+                                +
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] touch-manipulation"
+                              onClick={() => setQty(link.itemId, 1)}
+                            >
+                              Add
+                            </button>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <OrderParentFloater
-              options={parentOptions}
-              activeId={parentFilterId}
-              open={parentDialOpen}
-              onOpenChange={setParentDialOpen}
-              onSelect={setParentFilterId}
-              className="bottom-[4.5rem] mb-1.5 lg:bottom-2 lg:mb-0"
-            />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
-        <aside className="hidden w-72 shrink-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] lg:flex xl:w-80">
-          <div className="flex h-9 shrink-0 items-center justify-between px-3">
-            <p className="text-[11px] font-medium text-muted-foreground">
+        {/* Desktop cart */}
+        <aside className="hidden w-72 shrink-0 flex-col border-l border-border lg:flex xl:w-80">
+          <div className="flex h-10 shrink-0 items-center justify-between px-3">
+            <p className="text-[12px] font-medium text-muted-foreground">
               Order list
             </p>
-            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+            <span className="font-mono text-[12px] tabular-nums text-muted-foreground">
               {cartUnits}
             </span>
           </div>
@@ -806,24 +773,25 @@ export function TenantOrderWorkspace() {
         </aside>
       </div>
 
-      <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] lg:hidden">
+      {/* 5. Order ticket — always last, above bottom nav via height */}
+      <div className="shrink-0 border-t border-border lg:hidden">
         <button
           type="button"
           onClick={() => setMobileOrderOpen(true)}
-          className="flex w-full items-center justify-between gap-3 bg-[var(--pos-primary,#0f766e)] px-3 py-3 text-white active:brightness-95"
+          className="flex w-full items-center justify-between gap-3 bg-[var(--pos-primary,#0f766e)] px-3.5 py-3 text-white active:brightness-95"
         >
-          <span className="min-w-0 text-left">
-            <span className="block text-[10px] font-medium uppercase tracking-[0.12em] opacity-80">
-              Order
+          <span className="text-left">
+            <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/80">
+              Your order
             </span>
-            <span className="block truncate text-[13px] font-semibold">
+            <span className="text-[14px] font-semibold">
               {cartUnits === 0
-                ? "Empty"
+                ? "No items yet"
                 : `${cartUnits} item${cartUnits === 1 ? "" : "s"}`}
             </span>
           </span>
-          <span className="inline-flex shrink-0 items-center gap-2">
-            <span className="font-mono text-[14px] font-semibold tabular-nums">
+          <span className="inline-flex items-center gap-2">
+            <span className="font-mono text-[15px] font-semibold tabular-nums">
               {formatMoney(cartTotal, ORDER_CURRENCY)}
             </span>
             <ChevronUp className="size-4 opacity-90" />
@@ -831,29 +799,86 @@ export function TenantOrderWorkspace() {
         </button>
       </div>
 
-      {mobileOrderOpen ? (
-        <div className="absolute inset-0 z-40 flex flex-col lg:hidden">
+      {/* Mobile supplier picker sheet */}
+      {supplierPickerOpen ? (
+        <div className="absolute inset-0 z-50 flex flex-col lg:hidden">
           <button
             type="button"
-            className="min-h-0 flex-1 bg-black/30"
+            className="min-h-0 flex-[0.25] bg-black/35"
+            aria-label="Close suppliers"
+            onClick={() => setSupplierPickerOpen(false)}
+          />
+          <div className="flex max-h-[75%] min-h-[45%] flex-col rounded-t-2xl bg-background shadow-xl">
+            <div className="flex items-center justify-between px-3 pt-3">
+              <p className="text-[14px] font-semibold">Suppliers</p>
+              <button
+                type="button"
+                className="flex size-9 items-center justify-center text-muted-foreground"
+                onClick={() => setSupplierPickerOpen(false)}
+                aria-label="Close"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="relative mx-3 mt-2 border border-border">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                autoFocus
+                className="h-10 w-full bg-transparent pl-8 pr-2 text-[16px] outline-none"
+                placeholder="Search suppliers"
+                value={supplierQuery}
+                onChange={(e) => setSupplierQuery(e.target.value)}
+              />
+            </div>
+            <div className="mt-2 min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+              {filteredSuppliers.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => {
+                    selectSupplier(s.id);
+                    setSupplierPickerOpen(false);
+                    setSupplierQuery("");
+                  }}
+                  className={cn(
+                    "mb-0.5 flex w-full items-center justify-between rounded-md px-3 py-3 text-left text-[14px] font-medium",
+                    supplierId === s.id
+                      ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
+                      : "hover:bg-muted/60",
+                  )}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Mobile order sheet */}
+      {mobileOrderOpen ? (
+        <div className="absolute inset-0 z-50 flex flex-col lg:hidden">
+          <button
+            type="button"
+            className="min-h-0 flex-1 bg-black/35"
             aria-label="Dismiss order"
             onClick={() => setMobileOrderOpen(false)}
           />
-          <div className="flex max-h-[85%] min-h-[40%] flex-col bg-[color-mix(in_srgb,#faf8f4_98%,transparent)]">
+          <div className="flex max-h-[85%] min-h-[42%] flex-col rounded-t-2xl bg-background shadow-xl">
             <div className="flex items-center justify-between px-3 py-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Order list
                 </p>
-                <p className="truncate text-[14px] font-semibold">
+                <p className="truncate text-[15px] font-semibold">
                   {activeSupplier?.name ?? "Supplier"}
                 </p>
               </div>
               <button
                 type="button"
                 className="flex size-9 items-center justify-center text-muted-foreground"
-                aria-label="Close"
                 onClick={() => setMobileOrderOpen(false)}
+                aria-label="Close"
               >
                 <X className="size-4" />
               </button>
