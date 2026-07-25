@@ -23,7 +23,9 @@ const LOCALHOST_SUFFIX = ".localhost";
 const IS_DESKTOP_BUILD = process.env.NEXT_PUBLIC_RUNTIME === "desktop";
 
 function parseHostname(raw: string): string {
-  return raw.trim().toLowerCase().split(":")[0] ?? "";
+  // Proxies may send "shop.example.com, apex.example.com" — use the leftmost.
+  const first = raw.split(",")[0]?.trim() ?? "";
+  return first.toLowerCase().split(":")[0] ?? "";
 }
 
 async function requestHostname(): Promise<string | null> {

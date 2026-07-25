@@ -9,9 +9,9 @@ import {
   Receipt,
 } from "lucide-react";
 
+import { PublicSupplierComplaintModal } from "@/components/supplier-portal/public-supplier-complaint-modal";
 import {
   fetchPublicSupplierPortal,
-  submitPublicSupplierComplaint,
   type PublicSupplierPortal,
   type PublicSupplierSupplyLine,
   type PublicSupplierSupplyRow,
@@ -33,6 +33,8 @@ type Props = {
   branding: Branding;
 };
 
+type PortalTab = "supplies" | "movements";
+
 function toNum(v: unknown): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
   if (typeof v === "string") {
@@ -51,7 +53,6 @@ function fmtDate(iso: string): string {
     return new Intl.DateTimeFormat("en", {
       day: "numeric",
       month: "short",
-      year: "numeric",
     }).format(new Date(iso));
   } catch {
     return iso;
@@ -60,12 +61,11 @@ function fmtDate(iso: string): string {
 
 function statusTone(status: string): string {
   const s = status.trim().toUpperCase();
-  if (s === "PAID") return "text-emerald-800";
-  if (s === "PARTIAL") return "text-amber-800";
-  return "text-rose-800";
+  if (s === "PAID") return "bg-emerald-500/12 text-emerald-800";
+  if (s === "PARTIAL") return "bg-amber-500/12 text-amber-900";
+  return "bg-rose-500/12 text-rose-800";
 }
 
-/** Prefer API `lines`; fall back to movements when backend omits nested lines. */
 function resolveSupplyLines(
   row: PublicSupplierSupplyRow,
   movementsByInvoice: Map<string, PublicSupplierSupplyLine[]>,
@@ -86,45 +86,31 @@ function SupplyLinesDetail({
 }) {
   if (lines.length === 0) {
     return (
-      <p className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-3 text-center text-[11px] text-muted-foreground">
+      <p className="px-3 py-2.5 text-center text-[11px] text-muted-foreground">
         No line items on this supply.
       </p>
     );
   }
   return (
-    <div className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 pb-3 pt-2">
-      <div
-        className="mb-1.5 grid grid-cols-[1fr_auto_auto_auto] gap-x-2 px-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-muted-foreground"
-        aria-hidden
-      >
-        <span>Item</span>
-        <span className="text-right">Qty</span>
-        <span className="text-right">Cost</span>
-        <span className="text-right">Total</span>
-      </div>
-      <ul className="space-y-1.5">
-        {lines.map((line, i) => (
-          <li
-            key={`${line.description}-${i}`}
-            className="grid grid-cols-[1fr_auto_auto_auto] items-baseline gap-x-2 text-[11px]"
-          >
-            <span className="min-w-0 truncate font-medium leading-snug">
-              {line.description}
-            </span>
-            <span className="min-w-[2rem] text-right font-mono tabular-nums text-muted-foreground">
-              {toNum(line.quantity)}
-            </span>
-            <span className="min-w-[3.25rem] text-right font-mono tabular-nums text-muted-foreground">
-              {toNum(line.unitCost).toFixed(2)}
-            </span>
-            <span className="min-w-[4rem] text-right font-mono font-semibold tabular-nums">
-              {fmtMoney(line.lineTotal, currency)}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-2 flex items-baseline justify-between border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] pt-2 text-[11px]">
-        <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+    <div className="space-y-1.5 bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-3 py-2.5">
+      {lines.map((line, i) => (
+        <div
+          key={`${line.description}-${i}`}
+          className="flex items-baseline justify-between gap-3 text-[12px]"
+        >
+          <div className="min-w-0">
+            <p className="truncate font-medium leading-snug">{line.description}</p>
+            <p className="font-mono text-[10px] text-muted-foreground">
+              {toNum(line.quantity)} × {toNum(line.unitCost).toFixed(2)}
+            </p>
+          </div>
+          <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums">
+            {fmtMoney(line.lineTotal, currency)}
+          </p>
+        </div>
+      ))}
+      <div className="flex items-baseline justify-between border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-1.5 text-[11px]">
+        <span className="text-muted-foreground">
           Paid {fmtMoney(row.amountPaid, currency)}
         </span>
         <span className="font-mono font-semibold tabular-nums">
@@ -139,19 +125,14 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
   const [data, setData] = useState<PublicSupplierPortal | null>(null);
   const [busy, setBusy] = useState(true);
   const [missing, setMissing] = useState(false);
-
-  const [noteName, setNoteName] = useState("");
-  const [notePhone, setNotePhone] = useState("");
-  const [noteBody, setNoteBody] = useState("");
-  const [noteBusy, setNoteBusy] = useState(false);
-  const [noteDone, setNoteDone] = useState(false);
-  const [noteError, setNoteError] = useState<string | null>(null);
+  const [tab, setTab] = useState<PortalTab>("supplies");
   const [openSupplyKey, setOpenSupplyKey] = useState<string | null>(null);
+  const [complaintOpen, setComplaintOpen] = useState(false);
 
   const theme = useMemo(
     () =>
       ({
-        ["--pos-primary" as string]: branding.primaryHex || "#1c1915",
+        ["--pos-primary" as string]: branding.primaryHex || "#0f766e",
       }) as CSSProperties,
     [branding.primaryHex],
   );
@@ -175,28 +156,6 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
     };
   }, [username]);
 
-  const onSubmitNote = async () => {
-    setNoteError(null);
-    if (noteBody.trim().length < 8) {
-      setNoteError("Write a short note (at least a sentence).");
-      return;
-    }
-    setNoteBusy(true);
-    try {
-      await submitPublicSupplierComplaint(username, {
-        name: noteName,
-        phone: notePhone,
-        message: noteBody,
-      });
-      setNoteDone(true);
-      setNoteBody("");
-    } catch (e) {
-      setNoteError(e instanceof Error ? e.message : "Could not send note");
-    } finally {
-      setNoteBusy(false);
-    }
-  };
-
   if (busy) {
     return (
       <div className="flex min-h-[50dvh] items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -208,24 +167,24 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
 
   if (missing || !data) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-16 text-center" style={theme}>
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+      <div className="mx-auto max-w-md px-4 py-16 text-center" style={theme}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {branding.shopName}
         </p>
-        <h1 className="mt-2 font-serif text-2xl text-[var(--pos-ink,#1c1915)]">
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
           Supplier not found
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           No supplier on this shop matches{" "}
           <span className="font-mono text-foreground">/s/{username}</span>.
-          Check the name under Suppliers, or open the link from the SMS / supply
-          slip (it uses the supplier&apos;s full slug).
         </p>
       </div>
     );
   }
 
   const currency = data.currency;
+  const owed = toNum(data.openBalance);
+  const settled = owed <= 0.009;
   const movementsByInvoice = new Map<string, PublicSupplierSupplyLine[]>();
   for (const m of data.movements) {
     const list = movementsByInvoice.get(m.invoiceNumber) ?? [];
@@ -240,251 +199,263 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
 
   return (
     <div
-      className="min-h-dvh bg-[linear-gradient(165deg,#f7f3eb_0%,#f1ece3_45%,#e8e1d4_100%)] text-[var(--pos-ink,#1c1915)]"
+      className="min-h-dvh bg-[radial-gradient(120%_80%_at_50%_-10%,color-mix(in_srgb,var(--pos-primary)_14%,#f7f4ef),#efeae2_42%,#e7e1d6)] text-[var(--pos-ink,#1c1915)]"
       style={theme}
     >
-      <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-3 py-5 sm:px-4 sm:py-8">
-        <header className="relative border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_88%,#faf7f1)] p-4 pl-5">
-          <span
-            aria-hidden
-            className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary)]"
-          />
-          <div className="flex items-start gap-3">
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+        <header className="sticky top-0 z-20 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,#faf8f4_88%,transparent)] px-3 pb-2.5 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md">
+          <div className="flex items-center gap-2.5">
             {branding.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={branding.logoUrl}
                 alt=""
-                className="size-10 object-contain"
+                className="size-9 rounded-xl object-contain ring-1 ring-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]"
               />
-            ) : null}
+            ) : (
+              <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--pos-primary)] text-[11px] font-bold text-[var(--pos-primary-ink,#fff)]">
+                {data.supplierName.slice(0, 2).toUpperCase()}
+              </span>
+            )}
             <div className="min-w-0 flex-1">
-              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-                Supplier portal · {data.shopName}
-              </p>
-              <h1 className="mt-1 font-serif text-[1.55rem] leading-none tracking-tight">
-                {data.supplierName}
-              </h1>
-              <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-                /s/{data.supplierSlug}
+              <div className="flex items-center gap-2">
+                <h1 className="truncate text-[15px] font-semibold tracking-tight">
+                  {data.supplierName}
+                </h1>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                    settled
+                      ? "bg-emerald-500/12 text-emerald-800"
+                      : "bg-amber-500/14 text-amber-900",
+                  )}
+                >
+                  {settled ? "Settled" : "Open"}
+                </span>
+              </div>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {data.shopName}
               </p>
             </div>
           </div>
         </header>
 
-        <section className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-white/90 p-4">
-          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-            Amount owed
-          </p>
-          <p className="mt-1 font-serif text-3xl leading-none tabular-nums">
-            {fmtMoney(data.openBalance, currency)}
-          </p>
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Reference only — {data.invoiceCount} supply
-            {data.invoiceCount === 1 ? "" : "ies"} · paid{" "}
-            {fmtMoney(data.totalPaid, currency)} of{" "}
-            {fmtMoney(data.totalSpent, currency)}
-          </p>
-          <p className="mt-2 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] pt-2 text-[11px] leading-relaxed text-muted-foreground">
-            Supplies are usually settled within 48 hours. If payment is delayed,
-            leave a note below or call the shop.
-          </p>
+        <section className="px-3 pt-3">
+          <div className="overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-white/75 shadow-[0_10px_30px_-18px_rgba(28,25,21,0.35)]">
+            <div className="grid grid-cols-2 divide-x divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
+              <div className="px-3.5 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Amount owed
+                </p>
+                <p className="mt-0.5 text-[1.65rem] font-semibold leading-none tracking-tight tabular-nums">
+                  {fmtMoney(data.openBalance, currency)}
+                </p>
+              </div>
+              <div className="px-3.5 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Paid to date
+                </p>
+                <p className="mt-0.5 text-[1.15rem] font-semibold leading-none tracking-tight tabular-nums">
+                  {fmtMoney(data.totalPaid, currency)}
+                </p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  of {fmtMoney(data.totalSpent, currency)} · {data.invoiceCount}{" "}
+                  {data.invoiceCount === 1 ? "supply" : "supplies"}
+                </p>
+              </div>
+            </div>
+            <p className="border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_5%,transparent)] px-3.5 py-2 text-[11px] leading-snug text-muted-foreground">
+              Usually settled within 48 hours. Delayed? Tap Voice a complaint.
+            </p>
+          </div>
         </section>
 
-        <section className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-white/90">
-          <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 py-2">
-            <Receipt className="size-3.5 text-[var(--pos-primary)]" aria-hidden />
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.14em]">
-              Supply history
-            </h2>
+        <div className="px-3 pt-3">
+          <div
+            role="tablist"
+            aria-label="Portal sections"
+            className="grid grid-cols-2 rounded-xl bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] p-1"
+          >
+            {(
+              [
+                ["supplies", "Supplies", Receipt, data.supplies.length],
+                ["movements", "Items", Package, data.movements.length],
+              ] as const
+            ).map(([id, label, Icon, count]) => {
+              const active = tab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setTab(id)}
+                  className={cn(
+                    "flex h-9 items-center justify-center gap-1.5 rounded-lg text-[12px] font-semibold transition-all",
+                    active
+                      ? "bg-white text-[var(--pos-ink,#1c1915)] shadow-sm"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  <Icon className="size-3.5" aria-hidden />
+                  {label}
+                  <span
+                    className={cn(
+                      "rounded-md px-1.5 py-0.5 font-mono text-[10px] tabular-nums",
+                      active
+                        ? "bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-[var(--pos-primary)]"
+                        : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)]",
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-          {data.supplies.length === 0 ? (
-            <p className="px-3 py-8 text-center text-[11px] text-muted-foreground">
-              No posted supplies yet.
-            </p>
-          ) : (
-            <ul className="divide-y divide-dashed divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
-              {data.supplies.map((row) => {
-                const key = `${row.invoiceNumber}-${row.invoiceDate}`;
-                const open = openSupplyKey === key;
-                const lines = resolveSupplyLines(row, movementsByInvoice);
-                return (
-                  <li key={key}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOpenSupplyKey((prev) => (prev === key ? null : key))
-                      }
-                      className="flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]"
-                      aria-expanded={open}
+        </div>
+
+        <main className="min-h-0 flex-1 overflow-y-auto px-3 pb-28 pt-2.5">
+          {tab === "supplies" ? (
+            data.supplies.length === 0 ? (
+              <EmptyState label="No posted supplies yet." />
+            ) : (
+              <ul className="space-y-2">
+                {data.supplies.map((row) => {
+                  const key = `${row.invoiceNumber}-${row.invoiceDate}`;
+                  const open = openSupplyKey === key;
+                  const lines = resolveSupplyLines(row, movementsByInvoice);
+                  return (
+                    <li
+                      key={key}
+                      className="overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-white/80"
                     >
-                      <div className="min-w-0">
-                        <p className="flex items-center gap-1.5 truncate text-[13px] font-semibold">
-                          <ChevronDown
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenSupplyKey((prev) => (prev === key ? null : key))
+                        }
+                        className="flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left transition-colors active:bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]"
+                        aria-expanded={open}
+                      >
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-1.5 text-[13px] font-semibold">
+                            <ChevronDown
+                              className={cn(
+                                "size-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
+                                open && "rotate-180",
+                              )}
+                              aria-hidden
+                            />
+                            <span className="truncate">{row.invoiceNumber}</span>
+                          </p>
+                          <p className="pl-5 text-[10px] text-muted-foreground">
+                            {fmtDate(row.invoiceDate)} ·{" "}
+                            {row.sourceType.replace(/_/g, " ").toLowerCase()}
+                            {lines.length > 0
+                              ? ` · ${lines.length} item${lines.length === 1 ? "" : "s"}`
+                              : ""}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="font-mono text-[12px] font-semibold tabular-nums">
+                            {fmtMoney(row.grandTotal, currency)}
+                          </p>
+                          <span
                             className={cn(
-                              "size-3.5 shrink-0 text-muted-foreground transition-transform",
-                              open && "rotate-180",
+                              "mt-0.5 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                              statusTone(row.paymentStatus),
                             )}
-                            aria-hidden
-                          />
-                          {row.invoiceNumber}
-                        </p>
-                        <p className="pl-5 font-mono text-[10px] text-muted-foreground">
-                          {fmtDate(row.invoiceDate)} ·{" "}
-                          {row.sourceType.replace(/_/g, " ")}
-                          {lines.length > 0
-                            ? ` · ${lines.length} item${lines.length === 1 ? "" : "s"}`
-                            : ""}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="font-mono text-[12px] font-semibold tabular-nums">
-                          {fmtMoney(row.grandTotal, currency)}
-                        </p>
-                        <p
-                          className={cn(
-                            "text-[9px] font-bold uppercase tracking-wide",
-                            statusTone(row.paymentStatus),
-                          )}
-                        >
-                          {row.paymentStatus}
-                          {toNum(row.balanceOpen) > 0.009
-                            ? ` · ${fmtMoney(row.balanceOpen, currency)} open`
-                            : ""}
-                        </p>
-                      </div>
-                    </button>
-                    {open ? (
-                      <SupplyLinesDetail
-                        row={row}
-                        lines={lines}
-                        currency={currency}
-                      />
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        <section className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-white/90">
-          <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 py-2">
-            <Package className="size-3.5 text-[var(--pos-primary)]" aria-hidden />
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.14em]">
-              Product movements
-            </h2>
-          </div>
-          {data.movements.length === 0 ? (
-            <p className="px-3 py-8 text-center text-[11px] text-muted-foreground">
-              No line movements yet.
-            </p>
+                          >
+                            {row.paymentStatus}
+                          </span>
+                        </div>
+                      </button>
+                      {open ? (
+                        <SupplyLinesDetail
+                          row={row}
+                          lines={lines}
+                          currency={currency}
+                        />
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )
+          ) : data.movements.length === 0 ? (
+            <EmptyState label="No line movements yet." />
           ) : (
-            <ul className="max-h-72 divide-y divide-dashed divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] overflow-y-auto">
+            <ul className="overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-white/80">
               {data.movements.map((m, i) => (
                 <li
                   key={`${m.invoiceNumber}-${m.description}-${i}`}
-                  className="px-3 py-2"
+                  className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-3 py-2 last:border-b-0"
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="min-w-0 truncate text-[12px] font-medium">
                       {m.description}
                     </p>
-                    <p className="shrink-0 font-mono text-[11px] tabular-nums">
+                    <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums">
                       {fmtMoney(m.lineTotal, currency)}
                     </p>
                   </div>
                   <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                    {fmtDate(m.invoiceDate)} · qty {toNum(m.quantity)} ×{" "}
+                    {fmtDate(m.invoiceDate)} · {toNum(m.quantity)} ×{" "}
                     {toNum(m.unitCost).toFixed(2)} · {m.invoiceNumber}
                   </p>
                 </li>
               ))}
+              {data.linkedProducts.length > 0 ? (
+                <li className="bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    Linked catalogue
+                  </p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    {data.linkedProducts.slice(0, 18).join(" · ")}
+                    {data.linkedProducts.length > 18
+                      ? ` · +${data.linkedProducts.length - 18} more`
+                      : ""}
+                  </p>
+                </li>
+              ) : null}
             </ul>
           )}
-          {data.linkedProducts.length > 0 ? (
-            <div className="border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 py-2">
-              <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                Linked catalogue
-              </p>
-              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                {data.linkedProducts.slice(0, 24).join(" · ")}
-                {data.linkedProducts.length > 24
-                  ? ` · +${data.linkedProducts.length - 24} more`
-                  : ""}
-              </p>
-            </div>
-          ) : null}
-        </section>
 
-        <section className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-white/90 p-3">
-          <div className="mb-2 flex items-center gap-2">
-            <MessageSquareWarning
-              className="size-3.5 text-[var(--pos-primary)]"
-              aria-hidden
-            />
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.14em]">
-              Voice a complaint
-            </h2>
-          </div>
-          <p className="mb-3 text-[11px] text-muted-foreground">
-            Short note to the shop — delays, shortages, pricing, or anything else.
+          <p className="mt-4 pb-2 text-center text-[10px] text-muted-foreground">
+            Reference only for {data.shopName} — not a formal statement.
           </p>
-          {noteDone ? (
-            <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] px-3 py-4 text-center text-[12px]">
-              Thanks — the shop has your note.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              <input
-                className="h-9 w-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent px-2 text-[13px] outline-none focus:border-[var(--pos-primary)]"
-                placeholder="Your name (optional)"
-                value={noteName}
-                onChange={(e) => setNoteName(e.target.value)}
-                disabled={noteBusy}
-              />
-              <input
-                className="h-9 w-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent px-2 text-[13px] outline-none focus:border-[var(--pos-primary)]"
-                placeholder="Phone (optional)"
-                value={notePhone}
-                onChange={(e) => setNotePhone(e.target.value)}
-                disabled={noteBusy}
-              />
-              <textarea
-                className="min-h-[5.5rem] w-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent px-2 py-2 text-[13px] outline-none focus:border-[var(--pos-primary)]"
-                placeholder="What should the shop know?"
-                value={noteBody}
-                onChange={(e) => setNoteBody(e.target.value)}
-                disabled={noteBusy}
-              />
-              {/* honeypot */}
-              <input
-                type="text"
-                name="website"
-                tabIndex={-1}
-                autoComplete="off"
-                className="hidden"
-                aria-hidden
-              />
-              {noteError ? (
-                <p className="text-[11px] text-rose-700">{noteError}</p>
-              ) : null}
-              <button
-                type="button"
-                disabled={noteBusy}
-                onClick={() => void onSubmitNote()}
-                className="h-9 w-full bg-[var(--pos-primary)] text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--pos-primary-ink,#fff)] disabled:opacity-60"
-              >
-                {noteBusy ? "Sending…" : "Send note"}
-              </button>
-            </div>
-          )}
-        </section>
+        </main>
 
-        <p className="pb-6 text-center text-[10px] text-muted-foreground">
-          Reference portal for {data.shopName}. Not a formal statement of account.
-        </p>
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8">
+          <div className="pointer-events-auto rounded-2xl bg-gradient-to-t from-[#e7e1d6] via-[#e7e1d6]/90% to-transparent pb-1 pt-6">
+            <button
+              type="button"
+              onClick={() => setComplaintOpen(true)}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--pos-primary)] text-[13px] font-semibold text-[var(--pos-primary-ink,#fff)] shadow-[0_12px_28px_-10px_color-mix(in_srgb,var(--pos-primary)_70%,transparent)] transition-transform active:scale-[0.98]"
+            >
+              <MessageSquareWarning className="size-4" aria-hidden />
+              Voice a complaint
+            </button>
+          </div>
+        </div>
       </div>
+
+      <PublicSupplierComplaintModal
+        open={complaintOpen}
+        onOpenChange={setComplaintOpen}
+        username={username}
+        shopName={data.shopName}
+        theme={theme}
+      />
+    </div>
+  );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-white/50 px-4 py-10 text-center text-[12px] text-muted-foreground">
+      {label}
     </div>
   );
 }
