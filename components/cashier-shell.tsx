@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Lock, LockKeyhole, MapPin, Settings2 } from "lucide-react";
 
@@ -33,6 +33,7 @@ type CashierShellProps = {
 
 export function CashierShell({ children }: CashierShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const online = useOnlineStatus();
   const {
     me,
@@ -53,6 +54,9 @@ export function CashierShell({ children }: CashierShellProps) {
   const [capsOpen, setCapsOpen] = useState(false);
   const [tillLabel, setTillLabel] = useState("");
   const cashierName = me?.name?.trim() || me?.email?.trim() || "";
+  const onSupplierReceiveTill =
+    pathname === APP_ROUTES.supplierDirectory ||
+    pathname.startsWith(`${APP_ROUTES.supplierDirectory}/`);
 
   useEffect(() => {
     getOrCreateTillDeviceId();
@@ -85,12 +89,13 @@ export function CashierShell({ children }: CashierShellProps) {
     }
   }, [roleKey, router]);
 
-  // Butcher cashiers use /butcher, not the generic cashier.
+  // Butcher cashiers use /butcher, not the generic cashier — except supplier
+  // receive tills, which reuse this shell.
   useEffect(() => {
-    if (roleKey === "butcher_cashier") {
+    if (roleKey === "butcher_cashier" && !onSupplierReceiveTill) {
       router.replace(APP_ROUTES.butcher);
     }
-  }, [roleKey, router]);
+  }, [roleKey, router, onSupplierReceiveTill]);
 
   // Lock document scroll for the life of the till — nested panes scroll instead.
   useEffect(() => {

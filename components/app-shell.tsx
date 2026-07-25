@@ -471,6 +471,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     ];
     if (gate.canAddSupplies) {
       allowed.push(APP_ROUTES.purchasingAddSupplies);
+      allowed.push(APP_ROUTES.supplierDirectory);
     }
     if (
       gate.canViewSuppliers &&
@@ -490,6 +491,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     ];
     if (gate.canAddSupplies) {
       allowed.push(APP_ROUTES.purchasingAddSupplies);
+      allowed.push(APP_ROUTES.supplierDirectory);
     }
     return allowed.includes(item.href);
   }
@@ -1088,6 +1090,7 @@ export function AppShell({ children }: AppShellProps) {
       ];
       if (canAddSupplies) {
         allowed.push(APP_ROUTES.purchasingAddSupplies);
+        allowed.push(APP_ROUTES.supplierDirectory);
       }
       if (supplierToolsEnabled) {
         allowed.push(APP_ROUTES.suppliers);
@@ -1105,7 +1108,9 @@ export function AppShell({ children }: AppShellProps) {
       const allowed: string[] = [
         APP_ROUTES.cashier,
         APP_ROUTES.shifts,
-        ...(canAddSupplies ? [APP_ROUTES.purchasingAddSupplies] : []),
+        ...(canAddSupplies
+          ? [APP_ROUTES.purchasingAddSupplies, APP_ROUTES.supplierDirectory]
+          : []),
         ...(canViewSuppliers ? [APP_ROUTES.suppliers] : []),
       ];
       const isAllowed = allowed.some(
@@ -1122,7 +1127,9 @@ export function AppShell({ children }: AppShellProps) {
         APP_ROUTES.butcher,
         APP_ROUTES.butcherSuppliers,
         APP_ROUTES.shifts,
-        ...(canAddSupplies ? [APP_ROUTES.purchasingAddSupplies] : []),
+        ...(canAddSupplies
+          ? [APP_ROUTES.purchasingAddSupplies, APP_ROUTES.supplierDirectory]
+          : []),
       ];
       const isAllowed = allowed.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),

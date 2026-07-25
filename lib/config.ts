@@ -35,6 +35,9 @@ export const APP_ROUTES = {
   itemTypes: "/item-types",
   categories: "/categories",
   suppliers: "/suppliers",
+  /** Cashier-style receive-stock till for one tenant supplier (name slug). */
+  supplier: (slug: string) => `/supplier/${encodeURIComponent(slug)}`,
+  supplierDirectory: "/supplier",
   marketplace: "/marketplace",
   marketplaceSupplier: (slug: string) =>
     `/marketplace/s/${encodeURIComponent(slug)}`,

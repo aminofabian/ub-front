@@ -7,6 +7,7 @@ describe("isAuthProtectedPath", () => {
     expect(isAuthProtectedPath("/products")).toBe(true);
     expect(isAuthProtectedPath("/products/abc")).toBe(true);
     expect(isAuthProtectedPath("/cashier")).toBe(true);
+    expect(isAuthProtectedPath("/supplier/jamro")).toBe(true);
     expect(isAuthProtectedPath("/inventory/stock")).toBe(true);
   });
 
@@ -17,5 +18,6 @@ describe("isAuthProtectedPath", () => {
     expect(isAuthProtectedPath("/shop/account")).toBe(false);
     expect(isAuthProtectedPath("/verify-email")).toBe(false);
     expect(isAuthProtectedPath("/some-sku")).toBe(false);
+    expect(isAuthProtectedPath("/supplier-portal/login")).toBe(false);
   });
 });

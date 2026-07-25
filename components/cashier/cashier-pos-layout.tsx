@@ -9,6 +9,7 @@ import {
   type CSSProperties,
 } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Camera,
   ChevronLeft,
@@ -35,7 +36,6 @@ import {
   type CategoryTreeNodeRecord,
   type ItemSummaryRecord,
   type ItemTypeRecord,
-  type SupplierRecord,
 } from "@/lib/api";
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
@@ -52,11 +52,13 @@ import {
   shelfPriceToInputString,
   splitShelfPriceDisplay,
 } from "@/lib/cashier-shelf-price";
+import { APP_ROUTES } from "@/lib/config";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { CART_STALE_MS, CART_VERY_STALE_MS } from "@/lib/cart-session";
 import { useMediaLg } from "@/hooks/use-media-lg";
 import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
 import { usePosEvents } from "@/hooks/use-pos-events";
+import { supplierReceivePath } from "@/lib/supplier-slug";
 import { type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
 import {
@@ -79,7 +81,6 @@ import { BarcodeScanner } from "@/components/barcode-scanner";
 import { CashierCreateProductModal } from "./cashier-create-product-modal";
 import { CashierEditPriceModal } from "./cashier-edit-price-modal";
 import { CashierCreditTabsModal } from "./cashier-credit-tabs-modal";
-import { CashierReceiveStockModal } from "./cashier-receive-stock-modal";
 import { CashierSuppliersModal } from "./cashier-suppliers-modal";
 
 const POS_SHIFT_CHIP_CLASS = cn(
@@ -898,6 +899,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     cart,
   } = props;
 
+  const router = useRouter();
   const [pickedItem, setPickedItem] = useState<ItemSummaryRecord | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -906,9 +908,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [createProductOpen, setCreateProductOpen] = useState(false);
   const [suppliersOpen, setSuppliersOpen] = useState(false);
-  const [receiveStockOpen, setReceiveStockOpen] = useState(false);
-  const [receiveStockSupplier, setReceiveStockSupplier] =
-    useState<SupplierRecord | null>(null);
   const [creditTabsOpen, setCreditTabsOpen] = useState(false);
   const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
   const allowManageSuppliers =
@@ -952,7 +951,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       !showScanner &&
       !createProductOpen &&
       !suppliersOpen &&
-      !receiveStockOpen &&
       !creditTabsOpen &&
       editPriceKey == null,
     onScan: applyBarcodeSearch,
@@ -2071,29 +2069,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         canReceive={allowReceiveSupply}
         onReceiveSupply={(supplier) => {
           setSuppliersOpen(false);
-          setReceiveStockSupplier(supplier ?? null);
-          setReceiveStockOpen(true);
-        }}
-      />
-
-      <CashierReceiveStockModal
-        open={receiveStockOpen}
-        onOpenChange={(o) => {
-          setReceiveStockOpen(o);
-          if (!o) {
-            setReceiveStockSupplier(null);
-            window.requestAnimationFrame(() => focusSearch());
+          if (supplier) {
+            router.push(supplierReceivePath(supplier));
+            return;
           }
-        }}
-        brandTheme={dialogBrandTheme}
-        branchId={branchId}
-        currency={currency}
-        canSetSellPrice={canPersistShelfPrice}
-        initialSupplier={receiveStockSupplier}
-        onPosted={() => {
-          setReceiveStockOpen(false);
-          setReceiveStockSupplier(null);
-          window.requestAnimationFrame(() => focusSearch());
+          router.push(APP_ROUTES.supplierDirectory);
         }}
       />
 

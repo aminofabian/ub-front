@@ -46,6 +46,7 @@ export function SupplierPageHeader({
   totalCount,
   onNewSupplier,
   onNewSupply,
+  receiveTillHref,
 }: {
   canWrite: boolean;
   canOpenNewSupply: boolean;
@@ -53,6 +54,8 @@ export function SupplierPageHeader({
   totalCount?: number;
   onNewSupplier: () => void;
   onNewSupply: () => void;
+  /** Cashier-style receive till for the selected supplier. */
+  receiveTillHref?: string | null;
 }) {
   return (
     <header
@@ -109,6 +112,20 @@ export function SupplierPageHeader({
 
       {(canWrite || canOpenNewSupply) && (
         <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
+          {canOpenNewSupply && receiveTillHref ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 rounded-none px-3 text-sm font-medium"
+              asChild
+            >
+              <Link href={receiveTillHref}>
+                <PackagePlus className="size-4" aria-hidden />
+                Open till
+              </Link>
+            </Button>
+          ) : null}
           {canOpenNewSupply ? (
             <Button
               type="button"

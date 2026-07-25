@@ -27,6 +27,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { APP_ROUTES } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
+import { supplierReceivePath } from "@/lib/supplier-slug";
 import {
   addItemSupplierLink,
   createSupplier,
@@ -724,6 +725,7 @@ export default function SuppliersPage() {
         canOpenNewSupply={canOpenNewSupply}
         listLoadingInitial={listLoadingInitial}
         totalCount={listTotalElements}
+        receiveTillHref={detail ? supplierReceivePath(detail) : null}
         onNewSupplier={() => {
           skipCreateDrawerResetAfterCreate.current = false;
           setCreateDrawerOpen(true);
@@ -877,6 +879,18 @@ export default function SuppliersPage() {
                     >
                       <Link2 className="size-3.5" aria-hidden />
                       Catalog
+                    </Button>
+                  ) : null}
+                  {canOpenNewSupply && detail ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-10 min-h-10 flex-1 gap-1.5 rounded-lg"
+                      onClick={() => router.push(supplierReceivePath(detail))}
+                    >
+                      <PackagePlus className="size-3.5" aria-hidden />
+                      Till
                     </Button>
                   ) : null}
                   {canOpenNewSupply ? (
