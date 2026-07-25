@@ -15,7 +15,6 @@ import { LandingSignupModal } from "./landing/landing-signup-modal";
 import { LandingStats } from "./landing/landing-stats";
 import { landingRootStyle } from "./landing/landing-styles";
 import { LandingTestimonials } from "./landing/landing-testimonials";
-import { LandingTrustBar } from "./landing/landing-trust-bar";
 
 export function TenantConsolePage() {
   const [signupOpen, setSignupOpen] = useState(false);
@@ -43,8 +42,7 @@ export function TenantConsolePage() {
       <main>
         <LandingHero onCreateShop={openSignup} />
         <LandingHeroLogos />
-        <LandingTrustBar />
-        <LandingFeatures />
+        <LandingFeatures onCreateShop={openSignup} />
         <LandingHowItWorks />
         <LandingStats />
         <LandingTestimonials />
