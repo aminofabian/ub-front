@@ -86,18 +86,76 @@ type SupplierReceiveWorkspaceProps = {
   slug: string;
 };
 
+const CHIP = cn(
+  "inline-flex h-7 shrink-0 items-center gap-1.5 border px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
+  "transition-colors touch-manipulation",
+);
+
+const CHIP_IDLE = cn(
+  CHIP,
+  "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-muted-foreground",
+  "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] hover:text-foreground",
+);
+
+const CHIP_ACCENT = cn(
+  CHIP,
+  "border-[color-mix(in_srgb,var(--pos-primary)_45%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)] text-[var(--pos-ink,#1c1915)]",
+  "hover:bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)]",
+);
+
 const TILE_SHELL = cn(
-  "group relative flex h-full flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] text-left transition-[border-color,background-color] duration-150",
-  "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] hover:bg-card",
-  "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
-  "active:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_40%,var(--card))]",
-  "dark:border-border/40 dark:bg-card",
+  "group relative flex h-full flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] text-left",
+  "transition-[border-color,background-color,box-shadow] duration-150",
+  "hover:z-[1] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)] hover:bg-card",
+  "hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+  "focus-within:border-[color-mix(in_srgb,var(--pos-primary)_50%,transparent)]",
+  "active:shadow-none dark:border-border/50 dark:bg-card dark:hover:shadow-none",
 );
 
 const fieldClass = cn(
-  "w-full rounded-lg border border-border/60 bg-background px-2.5 py-2 text-sm shadow-sm",
-  "placeholder:text-muted-foreground/50",
-  "focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
+  "w-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,transparent)]",
+  "px-2 py-1.5 text-sm tabular-nums shadow-none",
+  "placeholder:text-muted-foreground/45",
+  "focus-visible:border-[var(--pos-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
+  "disabled:opacity-50 dark:border-border/50 dark:bg-background",
+);
+
+const fieldCompact = cn(fieldClass, "h-7 px-1.5 py-0.5 text-[11px]");
+
+const PARENT_RAIL_BASE = cn(
+  "relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden border",
+  "text-center text-[10px] font-semibold leading-tight transition touch-manipulation",
+);
+
+function parentRailClass(active: boolean, hasImage: boolean): string {
+  if (hasImage) {
+    return cn(
+      PARENT_RAIL_BASE,
+      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_60%,transparent)]",
+      "dark:border-border/40",
+      active &&
+        "border-[var(--pos-primary)] shadow-[inset_0_0_0_2px_var(--pos-primary)]",
+    );
+  }
+  return active
+    ? cn(
+        PARENT_RAIL_BASE,
+        "border-[var(--pos-primary)] bg-[var(--pos-primary)] px-1 text-[var(--pos-primary-ink,#fff)]",
+      )
+    : cn(
+        PARENT_RAIL_BASE,
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-1",
+        "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] text-[var(--pos-ink,#1c1915)]",
+        "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,var(--card))]",
+        "dark:border-border/40 dark:bg-card dark:text-foreground",
+      );
+}
+
+const PARENT_RAIL_HEADER = cn(
+  "flex h-8 shrink-0 items-center justify-center",
+  "bg-[var(--pos-primary)] px-1.5 text-center text-[10px] font-bold uppercase tracking-[0.14em]",
+  "text-[var(--pos-primary-ink,#fff)]",
 );
 
 function moneySeed(raw: number | string | null | undefined): string {
@@ -143,7 +201,6 @@ function linkParentId(link: SupplierItemLinkRecord): string {
 function linkParentLabel(link: SupplierItemLinkRecord): string {
   const parent = link.parentItemName?.trim();
   if (parent) return parent;
-  // Standalone / parent row — strip variant suffix when present.
   const name = link.itemName?.trim() || link.sku?.trim() || "Product";
   const sep = name.indexOf(" · ");
   return sep > 0 ? name.slice(0, sep) : name;
@@ -154,40 +211,6 @@ type ParentOption = {
   label: string;
   thumbnailUrl: string | null;
 };
-
-const PARENT_RAIL_BASE = cn(
-  "relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden rounded-none border",
-  "text-center text-[11px] font-semibold leading-tight transition touch-manipulation",
-);
-
-function parentRailClass(active: boolean, hasImage: boolean): string {
-  if (hasImage) {
-    return cn(
-      PARENT_RAIL_BASE,
-      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]",
-      "dark:border-border/40",
-      active && "border-[var(--pos-primary)] ring-2 ring-inset ring-[var(--pos-primary)]",
-    );
-  }
-  return active
-    ? cn(
-        PARENT_RAIL_BASE,
-        "border-[var(--pos-primary)] bg-[var(--pos-primary)] px-1 text-[var(--pos-primary-ink,#fff)]",
-      )
-    : cn(
-        PARENT_RAIL_BASE,
-        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-1",
-        "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] text-[var(--pos-ink,#1c1915)]",
-        "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,var(--card))]",
-        "dark:border-border/40 dark:bg-card dark:text-foreground",
-      );
-}
-
-const PARENT_RAIL_HEADER = cn(
-  "flex h-10 shrink-0 items-center justify-center rounded-none",
-  "bg-[var(--pos-primary)] px-2 text-center text-xs font-bold uppercase tracking-wide",
-  "text-[var(--pos-primary-ink,#fff)]",
-);
 
 function ParentFolderButton({
   parent,
@@ -935,7 +958,7 @@ function ProductTile({
         {cartQty > 0 ? (
           <span
             className={cn(
-              "pointer-events-none absolute left-0 top-0 z-[1] inline-flex h-6 min-w-6 items-center justify-center px-1.5 text-[11px] font-bold tabular-nums text-[var(--pos-primary-ink,#fff)] bg-[var(--pos-primary)]",
+              "pointer-events-none absolute left-0 top-0 z-[1] inline-flex h-5 min-w-5 items-center justify-center px-1 font-mono text-[10px] font-bold tabular-nums text-[var(--pos-primary-ink,#fff)] bg-[var(--pos-primary)]",
               justAdded && "animate-pulse",
             )}
           >
@@ -950,7 +973,7 @@ function ProductTile({
           />
         ) : null}
       </div>
-      <div className="flex min-h-[3.1rem] w-full flex-1 flex-col justify-center gap-0.5 px-1.5 pb-1.5 pt-1">
+      <div className="flex min-h-[2.75rem] w-full flex-1 flex-col justify-center gap-0.5 px-1 pb-1 pt-0.5">
         {canEditCatalog ? (
           <TileNameEditor
             link={link}
@@ -1023,86 +1046,89 @@ function SupplyCartPanel({
   return (
     <aside
       className={cn(
-        "flex h-full max-h-full min-h-0 w-full shrink-0 flex-col self-stretch overflow-hidden lg:w-[min(100%,22rem)] xl:w-[24rem]",
+        "flex h-full max-h-full min-h-0 w-full shrink-0 flex-col self-stretch overflow-hidden lg:w-[min(100%,20rem)] xl:w-[22rem]",
       )}
     >
       <div
         className={cn(
-          "pos-market-receipt flex h-full min-h-0 flex-1 flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] dark:border-border/40",
+          "pos-market-receipt flex h-full min-h-0 flex-1 flex-col overflow-hidden",
+          "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--card)_92%,#faf7f1)] dark:border-border/40 dark:bg-card",
           pulse &&
-            "outline outline-1 outline-[color-mix(in_srgb,var(--pos-primary)_45%,transparent)]",
+            "shadow-[inset_0_0_0_2px_color-mix(in_srgb,var(--pos-primary)_55%,transparent)]",
         )}
       >
-        <div className="flex shrink-0 items-start justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3 py-2 dark:border-border/40">
+        <div className="flex shrink-0 items-start justify-between gap-2 border-b-2 border-[var(--pos-ink,#1c1915)] px-2.5 py-2 dark:border-foreground/80">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Supply cart
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+              Manifest
             </p>
-            <h2 className="pos-market-section-label mt-0.5 truncate text-lg leading-none text-foreground">
+            <h2 className="pos-market-section-label mt-0.5 truncate text-base leading-none text-foreground">
               {supplierName}
             </h2>
           </div>
           {onCloseMobile ? (
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 shrink-0 p-0 lg:hidden"
+              className="flex size-7 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] text-muted-foreground hover:text-foreground lg:hidden"
               onClick={onCloseMobile}
               aria-label="Close cart"
             >
-              <X className="size-4" />
-            </Button>
+              <X className="size-3.5" />
+            </button>
           ) : null}
         </div>
 
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2">
+        <div className="min-h-0 flex-1 space-y-0 overflow-y-auto">
           {lines.length === 0 ? (
-            <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-3 py-8 text-center text-xs text-muted-foreground">
-              Tap products to build this delivery.
+            <p className="mx-2.5 my-3 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-3 py-10 text-center text-[11px] leading-relaxed text-muted-foreground">
+              Tap shelf products to build this delivery.
             </p>
           ) : (
-            lines.map((line) => {
+            lines.map((line, index) => {
               const qty = parsePos(line.qtyStr) ?? 0;
               const cost = parseNonNeg(line.costStr) ?? 0;
               const lineTotal = Math.round(qty * cost * 100) / 100;
               return (
                 <div
                   key={line.itemId}
-                  className="space-y-1.5 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pb-2 last:border-b-0"
+                  className="space-y-1.5 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 last:border-b-0"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold leading-tight">
+                      <p className="flex items-baseline gap-1.5 truncate text-[12px] font-semibold leading-tight">
+                        <span className="font-mono text-[9px] font-normal tabular-nums text-muted-foreground">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
                         {line.name}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="mt-0.5 pl-5 text-[9px] uppercase tracking-wide text-muted-foreground">
                         {line.sku ? `${line.sku} · ` : ""}
                         Stock {formatStock(line.stock)}
                       </p>
                     </div>
                     <button
                       type="button"
-                      className="shrink-0 p-1 text-destructive/80 hover:text-destructive"
+                      className="shrink-0 p-0.5 text-destructive/70 hover:text-destructive"
                       onClick={() => onRemove(line.itemId)}
                       aria-label={`Remove ${line.name}`}
                       disabled={saving}
                     >
-                      <Trash2 className="size-3.5" />
+                      <Trash2 className="size-3" />
                     </button>
                   </div>
                   <div
                     className={cn(
-                      "grid gap-1.5",
+                      "grid gap-1",
                       canSetSellPrice ? "grid-cols-3" : "grid-cols-2",
                     )}
                   >
                     <label className="space-y-0.5">
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                         Qty
                       </span>
                       <input
-                        className={fieldClass}
+                        className={fieldCompact}
                         inputMode="decimal"
                         value={line.qtyStr}
                         disabled={saving}
@@ -1112,11 +1138,14 @@ function SupplyCartPanel({
                       />
                     </label>
                     <label className="space-y-0.5">
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                         Cost
                       </span>
                       <input
-                        className={cn(fieldClass, "bg-amber-50/80 dark:bg-background")}
+                        className={cn(
+                          fieldCompact,
+                          "bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]",
+                        )}
                         inputMode="decimal"
                         value={line.costStr}
                         disabled={saving}
@@ -1127,11 +1156,11 @@ function SupplyCartPanel({
                     </label>
                     {canSetSellPrice ? (
                       <label className="space-y-0.5">
-                        <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                           Sell
                         </span>
                         <input
-                          className={fieldClass}
+                          className={fieldCompact}
                           inputMode="decimal"
                           value={line.sellStr}
                           disabled={saving}
@@ -1142,11 +1171,13 @@ function SupplyCartPanel({
                       </label>
                     ) : null}
                   </div>
-                  <p className="text-right text-[11px] font-semibold tabular-nums text-foreground">
+                  <p className="text-right font-mono text-[11px] font-semibold tabular-nums text-foreground">
                     {lineTotal.toLocaleString("en-KE", {
                       minimumFractionDigits: 2,
                     })}{" "}
-                    {currency}
+                    <span className="text-[9px] font-normal text-muted-foreground">
+                      {currency}
+                    </span>
                   </p>
                 </div>
               );
@@ -1154,37 +1185,37 @@ function SupplyCartPanel({
           )}
         </div>
 
-        <div className="shrink-0 space-y-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3 py-3 dark:border-border/40">
+        <div className="shrink-0 space-y-2 border-t-2 border-[var(--pos-ink,#1c1915)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-2.5 py-2.5 dark:border-foreground/80 dark:bg-muted/20">
           <div className="flex items-end justify-between gap-2">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 Payable
               </p>
               <p className="pos-market-section-label text-xl leading-none text-foreground">
                 {payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })}{" "}
-                <span className="text-sm font-semibold text-muted-foreground">
+                <span className="text-xs font-semibold text-muted-foreground">
                   {currency}
                 </span>
               </p>
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              {lines.length} line{lines.length === 1 ? "" : "s"}
+            <p className="font-mono text-[10px] tabular-nums text-muted-foreground">
+              {lines.length} ln
             </p>
           </div>
           <Button
             type="button"
-            className="h-11 w-full rounded-none text-sm font-semibold"
+            className="h-10 w-full rounded-none text-xs font-bold uppercase tracking-[0.12em]"
             disabled={!canPost || saving}
             onClick={onPost}
           >
             {saving ? (
               <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
                 Posting…
               </>
             ) : (
               <>
-                <PackagePlus className="size-4" aria-hidden />
+                <PackagePlus className="size-3.5" aria-hidden />
                 Post supply
               </>
             )}
@@ -1796,81 +1827,79 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
 
   return (
     <div
-      className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden pb-28 lg:pb-0"
+      className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden pb-24 lg:pb-0"
       style={brandTheme as CSSProperties}
     >
       <div className="flex h-full min-h-0 flex-1 items-stretch overflow-hidden">
-        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40">
-          <section className="shrink-0 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2 pb-1.5 pt-1 dark:border-border/40 sm:px-3">
-            <div className="flex flex-wrap items-center justify-between gap-1.5">
+        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] dark:border-border/40">
+          <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2 pb-1.5 pt-1.5 dark:border-border/40 sm:px-3">
+            <span
+              aria-hidden
+              className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary)]"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-1.5 pl-1.5">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
-                    {supplier.name}
-                  </h2>
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    Receive
+                  </p>
                   {branchesLoading ? (
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground">
                       Loading branches…
                     </span>
                   ) : activeBranchName ? (
-                    <span className="truncate text-[11px] text-muted-foreground">
-                      Receiving at {activeBranchName}
+                    <span className="truncate font-mono text-[10px] text-muted-foreground">
+                      @ {activeBranchName}
                     </span>
                   ) : (
-                    <span className="text-[11px] text-amber-800 dark:text-amber-200">
-                      Pick a branch in the top nav
+                    <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
+                      Pick a branch ↑
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Tap products into the cart · set qty &amp; cost · post supply
-                </p>
+                <h2 className="pos-market-section-label mt-0.5 text-[1.05rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                  {supplier.name}
+                </h2>
               </div>
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1">
                 {canCreateProduct ? (
                   <button
                     type="button"
                     onClick={() => setCreateProductOpen(true)}
-                    className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] px-2 text-[11px] font-medium text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                    className={CHIP_ACCENT}
                   >
-                    <PackagePlus className="size-3.5 text-muted-foreground" aria-hidden />
-                    Create product
+                    <PackagePlus className="size-3" aria-hidden />
+                    Create
                   </button>
                 ) : null}
                 {canLinkProducts ? (
                   <button
                     type="button"
                     onClick={() => setLinkProductsOpen(true)}
-                    className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] px-2 text-[11px] font-medium text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                    className={CHIP_ACCENT}
                   >
-                    <Link2 className="size-3.5 text-muted-foreground" aria-hidden />
-                    Link product
+                    <Link2 className="size-3" aria-hidden />
+                    Link
                   </button>
                 ) : null}
-                <Link
-                  href={APP_ROUTES.cashier}
-                  className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground"
-                >
-                  <ArrowLeft className="size-3.5" aria-hidden />
+                <Link href={APP_ROUTES.cashier} className={CHIP_IDLE}>
+                  <ArrowLeft className="size-3" aria-hidden />
                   Cashier
                 </Link>
-                <Link
-                  href={APP_ROUTES.suppliers}
-                  className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground"
-                >
-                  <Truck className="size-3.5" aria-hidden />
-                  Suppliers
+                <Link href={APP_ROUTES.suppliers} className={CHIP_IDLE}>
+                  <Truck className="size-3" aria-hidden />
+                  List
                 </Link>
               </div>
             </div>
           </section>
 
           <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               className={cn(
                 fieldClass,
-                "h-11 rounded-none border-0 bg-transparent pl-9 shadow-none focus-visible:ring-0",
+                "h-9 border-0 bg-transparent pl-8 text-[13px] shadow-none focus-visible:ring-0",
               )}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -1880,14 +1909,14 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
           </div>
 
           {showParentRail ? (
-            <div className="flex gap-1 overflow-x-auto border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] p-1.5 scrollbar-none dark:border-border/40 dark:bg-muted/20 lg:hidden">
+            <div className="flex gap-1 overflow-x-auto border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] p-1 scrollbar-none dark:border-border/40 dark:bg-muted/20 lg:hidden">
               {parentOptions.map((parent) => (
                 <ParentFolderButton
                   key={parent.id ?? "all"}
                   parent={parent}
                   active={parentFilterId === parent.id}
                   canEditPhoto={canEditCatalog}
-                  className="size-[4.25rem] shrink-0"
+                  className="size-[3.75rem] shrink-0"
                   onSelect={() => setParentFilterId(parent.id)}
                   onPhotoUploaded={onParentPhotoUploaded}
                 />
@@ -1895,53 +1924,48 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-y-contain px-2 py-2 sm:px-3">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-y-contain px-1.5 py-1.5 sm:px-2.5">
+            <div className="flex items-center justify-between gap-2 px-0.5">
+              <h3 className="flex items-baseline gap-2 pos-market-section-label text-[0.9rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
                 {parentFilterId
                   ? parentOptions.find((p) => p.id === parentFilterId)?.label ??
-                    "Linked products"
-                  : "Linked products"}
-                <span className="ml-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                  Shelf
-                </span>
-              </h3>
-              <div className="flex items-center gap-2">
-                {canCreateProduct || canLinkProducts ? (
-                  <div className="hidden items-center gap-1.5 sm:flex">
-                    {canCreateProduct ? (
-                      <button
-                        type="button"
-                        onClick={() => setCreateProductOpen(true)}
-                        className="text-[11px] font-medium text-[var(--pos-primary)] underline-offset-2 hover:underline"
-                      >
-                        Create product
-                      </button>
-                    ) : null}
-                    {canLinkProducts ? (
-                      <button
-                        type="button"
-                        onClick={() => setLinkProductsOpen(true)}
-                        className="text-[11px] font-medium text-[var(--pos-primary)] underline-offset-2 hover:underline"
-                      >
-                        Link product
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-                <span className="text-xs tabular-nums text-muted-foreground">
+                    "Shelf"
+                  : "Shelf"}
+                <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
                   {visibleLinks.length}
                 </span>
-              </div>
+              </h3>
+              {canCreateProduct || canLinkProducts ? (
+                <div className="hidden items-center gap-2 sm:flex">
+                  {canCreateProduct ? (
+                    <button
+                      type="button"
+                      onClick={() => setCreateProductOpen(true)}
+                      className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--pos-primary)] underline-offset-2 hover:underline"
+                    >
+                      Create
+                    </button>
+                  ) : null}
+                  {canLinkProducts ? (
+                    <button
+                      type="button"
+                      onClick={() => setLinkProductsOpen(true)}
+                      className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--pos-primary)] underline-offset-2 hover:underline"
+                    >
+                      Link
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             {linksBusy ? (
-              <div className="flex items-center justify-center gap-2 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-xs text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" aria-hidden />
+              <div className="flex items-center justify-center gap-2 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-[11px] text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
                 Loading products…
               </div>
             ) : visibleLinks.length === 0 ? (
-              <div className="space-y-3 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-xs text-muted-foreground">
+              <div className="space-y-3 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-[11px] text-muted-foreground">
                 <p>
                   {links.length === 0
                     ? "No linked products yet."
@@ -1950,14 +1974,14 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                       : "No products match your search."}
                 </p>
                 {links.length === 0 && (canCreateProduct || canLinkProducts) ? (
-                  <div className="flex flex-wrap items-center justify-center gap-2">
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
                     {canCreateProduct ? (
                       <button
                         type="button"
                         onClick={() => setCreateProductOpen(true)}
-                        className="inline-flex h-8 items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] px-3 text-[11px] font-semibold text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                        className={CHIP_ACCENT}
                       >
-                        <PackagePlus className="size-3.5" aria-hidden />
+                        <PackagePlus className="size-3" aria-hidden />
                         Create product
                       </button>
                     ) : null}
@@ -1965,9 +1989,9 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                       <button
                         type="button"
                         onClick={() => setLinkProductsOpen(true)}
-                        className="inline-flex h-8 items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] px-3 text-[11px] font-semibold text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                        className={CHIP_ACCENT}
                       >
-                        <Link2 className="size-3.5" aria-hidden />
+                        <Link2 className="size-3" aria-hidden />
                         Link product
                       </button>
                     ) : null}
@@ -1975,7 +1999,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                 ) : null}
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+              <div className="grid grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1 md:grid-cols-6 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
                 {visibleLinks.map((link) => (
                   <ProductTile
                     key={link.id}
@@ -1999,11 +2023,11 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
         </div>
 
         {showParentRail ? (
-          <aside className="hidden min-h-0 w-[7rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] dark:border-border/40 dark:bg-muted/20 xl:w-[8rem] lg:flex">
+          <aside className="hidden min-h-0 w-[6.5rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] dark:border-border/40 dark:bg-muted/20 lg:flex xl:w-[7.25rem]">
             <div className={PARENT_RAIL_HEADER}>Parent</div>
             <nav
               aria-label="Filter by parent product"
-              className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1"
+              className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-0.5"
             >
               {parentOptions.map((parent) => (
                 <ParentFolderButton
@@ -2027,22 +2051,24 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
       <button
         type="button"
         className={cn(
-          "fixed bottom-4 right-4 z-30 flex h-14 items-center gap-2 px-4 shadow-lg lg:hidden",
+          "fixed bottom-3 right-3 z-30 flex h-12 items-center gap-2 px-3.5 lg:hidden",
           "bg-[var(--pos-primary)] text-[var(--pos-primary-ink,#fff)]",
-          pulseCart && "ring-2 ring-[var(--pos-primary)] ring-offset-2",
+          "shadow-[3px_3px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_35%,transparent)]",
+          pulseCart && "translate-x-px translate-y-px shadow-none",
         )}
         onClick={() => setMobileCartOpen(true)}
       >
-        <ShoppingCart className="size-5" aria-hidden />
-        <span className="text-sm font-semibold">
-          {cart.length} ·{" "}
+        <ShoppingCart className="size-4" aria-hidden />
+        <span className="font-mono text-[12px] font-bold tabular-nums">
+          {cart.length}
+          <span className="mx-1.5 opacity-50">·</span>
           {payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })}{" "}
           {currency}
         </span>
       </button>
 
       {mobileCartOpen ? (
-        <div className="fixed inset-0 z-40 flex flex-col bg-background/80 p-3 backdrop-blur-sm lg:hidden">
+        <div className="fixed inset-0 z-40 flex flex-col bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_45%,transparent)] p-2 backdrop-blur-[2px] lg:hidden">
           <SupplyCartPanel
             {...cartPanelProps}
             onCloseMobile={() => setMobileCartOpen(false)}

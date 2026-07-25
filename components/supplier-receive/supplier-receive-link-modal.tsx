@@ -33,9 +33,11 @@ type SupplierReceiveLinkModalProps = {
 };
 
 const fieldClass = cn(
-  "w-full border border-border/60 bg-background px-3 py-2.5 text-sm shadow-sm",
-  "placeholder:text-muted-foreground/50",
-  "focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
+  "w-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,transparent)]",
+  "px-2 py-1.5 text-sm shadow-none",
+  "placeholder:text-muted-foreground/45",
+  "focus-visible:border-[var(--pos-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
+  "disabled:opacity-50 dark:border-border/50 dark:bg-background",
 );
 
 export function SupplierReceiveLinkModal({
@@ -163,27 +165,38 @@ export function SupplierReceiveLinkModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side="center"
-        className="flex max-h-[min(92dvh,40rem)] max-w-md flex-col gap-0 overflow-hidden p-0"
+        className={cn(
+          "flex max-h-[min(92dvh,40rem)] max-w-md flex-col gap-0 overflow-hidden rounded-none p-0",
+          "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+          "[&>button]:right-2 [&>button]:top-2 [&>button]:size-7 [&>button]:rounded-none",
+          "[&>button]:border [&>button]:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+        )}
         style={brandTheme}
       >
-        <div className="border-b border-border/40 px-4 py-3">
-          <DialogHeader className="space-y-1 text-left">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Link2 className="size-4 text-[var(--pos-primary)]" />
+        <div className="relative border-b-2 border-[var(--pos-ink,#1c1915)] px-3 py-2.5 dark:border-foreground/80">
+          <span
+            aria-hidden
+            className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary)]"
+          />
+          <DialogHeader className="space-y-0.5 pl-2 text-left">
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Catalog
+            </p>
+            <DialogTitle className="pos-market-section-label flex items-center gap-2 text-base leading-none">
+              <Link2 className="size-3.5 text-[var(--pos-primary)]" />
               Link products
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              Attach catalog items to {supplier.name} so they appear on this
-              till.
+            <DialogDescription className="text-[11px]">
+              Attach catalog items to {supplier.name}.
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2.5">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
-              className={cn(fieldClass, "pl-9")}
+              className={cn(fieldClass, "h-9 pl-8 text-[13px]")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search catalog…"
@@ -191,16 +204,16 @@ export function SupplierReceiveLinkModal({
               disabled={linking}
             />
             {busy ? (
-              <Loader2 className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+              <Loader2 className="absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
             ) : null}
           </div>
 
-          <label className="block space-y-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <label className="block space-y-0.5">
+            <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
               Default cost (optional)
             </span>
             <input
-              className={fieldClass}
+              className={cn(fieldClass, "h-8 text-[12px] tabular-nums")}
               inputMode="decimal"
               value={costStr}
               onChange={(e) => setCostStr(e.target.value)}
@@ -209,9 +222,9 @@ export function SupplierReceiveLinkModal({
             />
           </label>
 
-          <ul className="max-h-64 divide-y overflow-auto border border-border/60">
+          <ul className="max-h-64 divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] overflow-auto border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
             {hits.length === 0 && !busy ? (
-              <li className="px-3 py-6 text-center text-xs text-muted-foreground">
+              <li className="px-3 py-6 text-center text-[11px] text-muted-foreground">
                 {query.trim() ? "No match" : "Type to search the catalog"}
               </li>
             ) : (
@@ -225,30 +238,31 @@ export function SupplierReceiveLinkModal({
                       disabled={already || linking}
                       onClick={() => toggle(item)}
                       className={cn(
-                        "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors",
+                        "flex w-full items-center gap-2 px-2.5 py-2 text-left text-sm transition-colors",
                         already
                           ? "cursor-not-allowed opacity-50"
-                          : "hover:bg-muted/50",
-                        picked && "bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)]",
+                          : "hover:bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]",
+                        picked &&
+                          "bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)]",
                       )}
                     >
                       <span
                         className={cn(
-                          "flex size-5 shrink-0 items-center justify-center border text-[10px]",
+                          "flex size-4 shrink-0 items-center justify-center border text-[10px]",
                           picked || already
                             ? "border-[var(--pos-primary)] bg-[var(--pos-primary)] text-[var(--pos-primary-ink,#fff)]"
-                            : "border-border",
+                            : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_20%,transparent)]",
                         )}
                       >
                         {already || picked ? (
-                          <Check className="size-3" aria-hidden />
+                          <Check className="size-2.5" aria-hidden />
                         ) : null}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">
+                        <span className="block truncate text-[13px] font-medium leading-tight">
                           {cashierItemPrimaryLabel(item)}
                         </span>
-                        <span className="block truncate text-[11px] text-muted-foreground">
+                        <span className="block truncate font-mono text-[10px] text-muted-foreground">
                           {item.sku}
                           {item.barcode ? ` · ${item.barcode}` : ""}
                           {already ? " · Already linked" : ""}
@@ -262,11 +276,12 @@ export function SupplierReceiveLinkModal({
           </ul>
         </div>
 
-        <DialogFooter className="border-t border-border/40 px-4 py-3 sm:justify-between">
+        <DialogFooter className="gap-2 border-t-2 border-[var(--pos-ink,#1c1915)] px-3 py-2.5 sm:justify-between dark:border-foreground/80">
           <Button
             type="button"
             variant="ghost"
             size="sm"
+            className="h-8 rounded-none px-2 text-[11px] uppercase tracking-wide"
             disabled={linking}
             onClick={() => onOpenChange(false)}
           >
@@ -276,6 +291,7 @@ export function SupplierReceiveLinkModal({
           <Button
             type="button"
             size="sm"
+            className="h-8 rounded-none px-3 text-[11px] font-bold uppercase tracking-[0.1em]"
             disabled={linking || selected.length === 0}
             onClick={() => void onLink()}
           >
