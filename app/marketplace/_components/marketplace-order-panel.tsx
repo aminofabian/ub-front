@@ -2,10 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
   Copy,
   FileDown,
   Loader2,
@@ -537,17 +548,13 @@ export function MarketplaceOrderWorkspace({
             />
 
             {showParentRail ? (
-              <div className="flex gap-1 overflow-x-auto border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] p-1 scrollbar-none lg:hidden">
-                {parentOptions.map((parent) => (
-                  <ParentFolderButton
-                    key={parent.id ?? "all"}
-                    parent={parent}
-                    active={parentFilterId === parent.id}
-                    className="size-[3.75rem] shrink-0"
-                    onSelect={() => setParentFilterId(parent.id)}
-                  />
-                ))}
-              </div>
+              <ParentRail
+                options={parentOptions}
+                activeId={parentFilterId}
+                onSelect={setParentFilterId}
+                orientation="horizontal"
+                className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:hidden"
+              />
             ) : null}
 
             <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-y-contain px-1.5 py-2 pb-24 sm:px-2.5 lg:pb-2">
@@ -590,19 +597,13 @@ export function MarketplaceOrderWorkspace({
           {showParentRail ? (
             <aside className="hidden min-h-0 w-[6.5rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:flex xl:w-[7.25rem]">
               <div className={PARENT_RAIL_HEADER}>Parent</div>
-              <nav
-                aria-label="Filter by parent product"
-                className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-0.5"
-              >
-                {parentOptions.map((parent) => (
-                  <ParentFolderButton
-                    key={parent.id ?? "all"}
-                    parent={parent}
-                    active={parentFilterId === parent.id}
-                    onSelect={() => setParentFilterId(parent.id)}
-                  />
-                ))}
-              </nav>
+              <ParentRail
+                options={parentOptions}
+                activeId={parentFilterId}
+                onSelect={setParentFilterId}
+                orientation="vertical"
+                className="min-h-0 flex-1"
+              />
             </aside>
           ) : null}
 
@@ -956,6 +957,215 @@ function PhoneLink({
   );
 }
 
+function ParentRail({
+  options,
+  activeId,
+  onSelect,
+  orientation,
+  className,
+}: {
+  options: ParentOption[];
+  activeId: string | null;
+  onSelect: (id: string | null) => void;
+  orientation: "horizontal" | "vertical";
+  className?: string;
+}) {
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [canStart, setCanStart] = useState(false);
+  const [canEnd, setCanEnd] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const vertical = orientation === "vertical";
+
+  const syncScrollState = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const max = vertical
+      ? el.scrollHeight - el.clientHeight
+      : el.scrollWidth - el.clientWidth;
+    const pos = vertical ? el.scrollTop : el.scrollLeft;
+    setCanStart(pos > 4);
+    setCanEnd(max - pos > 4);
+    setProgress(max > 0 ? Math.min(1, Math.max(0, pos / max)) : 0);
+  }, [vertical]);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    syncScrollState();
+    el.addEventListener("scroll", syncScrollState, { passive: true });
+    const ro = new ResizeObserver(() => syncScrollState());
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", syncScrollState);
+      ro.disconnect();
+    };
+  }, [syncScrollState, options.length]);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const active = el.querySelector<HTMLElement>("[data-parent-active='true']");
+    if (!active) return;
+    active.scrollIntoView({
+      block: vertical ? "nearest" : "nearest",
+      inline: vertical ? "nearest" : "center",
+      behavior: "smooth",
+    });
+  }, [activeId, vertical]);
+
+  const nudge = (dir: 1 | -1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const step = vertical
+      ? Math.max(96, el.clientHeight * 0.65)
+      : Math.max(112, el.clientWidth * 0.55);
+    el.scrollBy({
+      top: vertical ? dir * step : 0,
+      left: vertical ? 0 : dir * step,
+      behavior: "smooth",
+    });
+  };
+
+  const maskStyle: CSSProperties | undefined =
+    canStart || canEnd
+      ? vertical
+        ? {
+            maskImage: `linear-gradient(to bottom, ${canStart ? "transparent 0%, black 12%" : "black 0%"}, ${canEnd ? "black 88%, transparent 100%" : "black 100%"})`,
+            WebkitMaskImage: `linear-gradient(to bottom, ${canStart ? "transparent 0%, black 12%" : "black 0%"}, ${canEnd ? "black 88%, transparent 100%" : "black 100%"})`,
+          }
+        : {
+            maskImage: `linear-gradient(to right, ${canStart ? "transparent 0%, black 10%" : "black 0%"}, ${canEnd ? "black 90%, transparent 100%" : "black 100%"})`,
+            WebkitMaskImage: `linear-gradient(to right, ${canStart ? "transparent 0%, black 10%" : "black 0%"}, ${canEnd ? "black 90%, transparent 100%" : "black 100%"})`,
+          }
+      : undefined;
+
+  const StartIcon = vertical ? ChevronUp : ChevronLeft;
+  const EndIcon = vertical ? ChevronDown : ChevronRight;
+  const indexLabel = Math.max(
+    1,
+    options.findIndex((o) => o.id === activeId) + 1,
+  );
+
+  return (
+    <div
+      className={cn(
+        "relative flex min-h-0",
+        vertical ? "h-full flex-col" : "w-full flex-col",
+        className,
+      )}
+    >
+      <div className={cn("relative min-h-0 flex-1", vertical && "flex")}>
+        {canStart ? (
+          <button
+            type="button"
+            aria-label={vertical ? "Scroll parents up" : "Scroll parents left"}
+            onClick={() => nudge(-1)}
+            className={cn(
+              "absolute z-[2] flex items-center justify-center",
+              "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+              "bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] text-[var(--pos-ink,#1c1915)] shadow-sm backdrop-blur-sm",
+              "transition hover:bg-white active:scale-95",
+              vertical
+                ? "inset-x-1 top-1 h-6"
+                : "inset-y-1 left-1 w-6",
+            )}
+          >
+            <StartIcon className="size-3.5" />
+          </button>
+        ) : null}
+
+        {canEnd ? (
+          <button
+            type="button"
+            aria-label={vertical ? "Scroll parents down" : "Scroll parents right"}
+            onClick={() => nudge(1)}
+            className={cn(
+              "absolute z-[2] flex items-center justify-center",
+              "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+              "bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] text-[var(--pos-ink,#1c1915)] shadow-sm backdrop-blur-sm",
+              "transition hover:bg-white active:scale-95",
+              vertical
+                ? "inset-x-1 bottom-1 h-6"
+                : "inset-y-1 right-1 w-6",
+            )}
+          >
+            <EndIcon className={cn("size-3.5", canEnd && "opacity-90")} />
+          </button>
+        ) : null}
+
+        <div
+          ref={scrollerRef}
+          role="navigation"
+          aria-label="Filter by parent product"
+          style={maskStyle}
+          className={cn(
+            "min-h-0 flex-1 overscroll-contain p-0.5",
+            "scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            vertical
+              ? "flex max-h-full flex-col gap-0.5 overflow-y-auto overflow-x-hidden scroll-smooth snap-y snap-mandatory"
+              : "flex gap-1 overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory",
+          )}
+          onKeyDown={(e) => {
+            if (vertical && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+              e.preventDefault();
+              nudge(e.key === "ArrowDown" ? 1 : -1);
+            }
+            if (!vertical && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+              e.preventDefault();
+              nudge(e.key === "ArrowRight" ? 1 : -1);
+            }
+          }}
+        >
+          {options.map((parent) => (
+            <ParentFolderButton
+              key={parent.id ?? "all"}
+              parent={parent}
+              active={activeId === parent.id}
+              className={cn(
+                "snap-start",
+                vertical ? "shrink-0" : "size-[3.75rem] shrink-0",
+              )}
+              onSelect={() => onSelect(parent.id)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {(canStart || canEnd) && vertical ? (
+        <div className="flex shrink-0 flex-col items-center gap-1 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-1 py-1.5">
+          <div className="relative h-10 w-1 overflow-hidden bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+            <span
+              className="absolute inset-x-0 h-3 bg-[var(--pos-primary,#0f766e)] transition-[top] duration-150"
+              style={{
+                top: `calc((100% - 0.75rem) * ${progress})`,
+              }}
+            />
+          </div>
+          <p className="font-mono text-[8px] tabular-nums text-muted-foreground">
+            {indexLabel}/{options.length}
+          </p>
+        </div>
+      ) : null}
+
+      {(canStart || canEnd) && !vertical ? (
+        <div className="flex items-center justify-between gap-2 px-2 pb-1 pt-0.5">
+          <div className="h-0.5 flex-1 overflow-hidden bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+            <span
+              className="block h-full w-1/3 bg-[var(--pos-primary,#0f766e)] transition-transform duration-150"
+              style={{
+                transform: `translateX(${progress * 200}%)`,
+              }}
+            />
+          </div>
+          <p className="shrink-0 font-mono text-[8px] tabular-nums text-muted-foreground">
+            {indexLabel}/{options.length}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ParentFolderButton({
   parent,
   active,
@@ -974,6 +1184,7 @@ function ParentFolderButton({
     <button
       type="button"
       onClick={onSelect}
+      data-parent-active={active ? "true" : "false"}
       className={cn(parentRailClass(active, hasImage), className)}
       title={parent.label}
     >
