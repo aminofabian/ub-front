@@ -180,6 +180,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     entryHref: APP_ROUTES.suppliers,
     items: [
       { href: APP_ROUTES.suppliers, label: "Suppliers", group: "Vendors" },
+      { href: APP_ROUTES.order, label: "Order", group: "Vendors" },
       { href: APP_ROUTES.marketplace, label: "Marketplace", group: "Vendors" },
       {
         href: APP_ROUTES.purchasingIntelligence,
@@ -189,6 +190,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
       {
         href: APP_ROUTES.purchasingAddSupplies,
         label: "Receive supplies",
+        group: "Receiving",
+      },
+      {
+        href: APP_ROUTES.orderReceive,
+        label: "Confirm orders",
         group: "Receiving",
       },
       {
@@ -539,6 +545,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewPurchasingIntelligence;
   if (item.href === APP_ROUTES.purchasingAddSupplies)
     return gate.canAddSupplies;
+  if (item.href === APP_ROUTES.order || item.href === APP_ROUTES.orderReceive)
+    return gate.canViewSuppliers && gate.canAddSupplies;
   if (item.href === APP_ROUTES.purchasingApAging) return gate.canViewApAging;
   if (item.href === APP_ROUTES.suppliers) return gate.canViewSuppliers;
   // Public marketplace directory — visible to anyone who can manage suppliers.

@@ -39,6 +39,9 @@ export const APP_ROUTES = {
   supplier: (slug: string) => `/supplier/${encodeURIComponent(slug)}`,
   supplierDirectory: "/supplier",
   marketplace: "/marketplace",
+  /** Protected tenant order marketplace (stock-aware → PO → confirm as supply). */
+  order: "/order",
+  orderReceive: "/order/receive",
   marketplaceSupplier: (slug: string) =>
     `/marketplace/s/${encodeURIComponent(slug)}`,
   marketplaceProduct: (supplierSlug: string, productSlug: string) =>

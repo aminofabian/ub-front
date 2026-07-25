@@ -18,6 +18,7 @@ export const AUTH_PROTECTED_PREFIXES = [
   "/categories",
   "/suppliers",
   "/supplier",
+  "/order",
   "/customers",
   "/supplies",
   "/purchasing",

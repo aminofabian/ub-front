@@ -7351,6 +7351,29 @@ export type PathBSessionListRowRecord = {
   totalAmount: number | string;
 };
 
+export type PathAPurchaseOrderLineRecord = {
+  id: string;
+  sortOrder: number;
+  itemId: string;
+  qtyOrdered: number | string;
+  qtyReceived: number | string;
+  unitEstimatedCost: number | string;
+  supplierLineStatus?: string | null;
+  qtyAccepted?: number | string | null;
+  supplierNote?: string | null;
+};
+
+export type PathAPurchaseOrderDetailRecord = {
+  id: string;
+  supplierId: string;
+  branchId: string;
+  poNumber: string;
+  expectedDate: string;
+  status: string;
+  notes: string | null;
+  lines: PathAPurchaseOrderLineRecord[];
+};
+
 export type PathAPurchaseOrderListRowRecord = {
   id: string;
   supplierId: string;
@@ -7395,26 +7418,6 @@ export async function fetchPathAPurchaseOrders(opts?: {
   );
 }
 
-export type PathAPurchaseOrderLineRecord = {
-  id: string;
-  sortOrder: number;
-  itemId: string;
-  qtyOrdered: number | string;
-  qtyReceived: number | string;
-  unitEstimatedCost: number | string;
-};
-
-export type PathAPurchaseOrderDetailRecord = {
-  id: string;
-  supplierId: string;
-  branchId: string;
-  poNumber: string;
-  expectedDate: string;
-  status: string;
-  notes: string | null;
-  lines: PathAPurchaseOrderLineRecord[];
-};
-
 export async function fetchPathAPurchaseOrder(
   purchaseOrderId: string,
 ): Promise<PathAPurchaseOrderDetailRecord> {
@@ -7455,6 +7458,15 @@ export async function postPathAPurchaseOrderSend(
 ): Promise<PathAPurchaseOrderDetailRecord> {
   return request<PathAPurchaseOrderDetailRecord>(
     `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/send`,
+    { method: "POST" },
+  );
+}
+
+export async function postPathAPurchaseOrderSendToSupplier(
+  purchaseOrderId: string,
+): Promise<PathAPurchaseOrderDetailRecord> {
+  return request<PathAPurchaseOrderDetailRecord>(
+    `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/send-to-supplier`,
     { method: "POST" },
   );
 }

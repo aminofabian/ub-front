@@ -1,0 +1,491 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ClipboardList,
+  Loader2,
+  Package,
+  Search,
+  ShoppingCart,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
+import {
+  fetchSupplierItemLinks,
+  fetchSuppliers,
+  postPathAPurchaseOrder,
+  postPathAPurchaseOrderLine,
+  postPathAPurchaseOrderSend,
+  postPathAPurchaseOrderSendToSupplier,
+  type SupplierItemLinkRecord,
+  type SupplierRecord,
+} from "@/lib/api";
+import { cn, formatMoney } from "@/lib/utils";
+
+type CartQty = Record<string, number>;
+
+function toNum(v: unknown): number {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const n = Number.parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
+function unitCost(link: SupplierItemLinkRecord): number {
+  const candidates = [
+    link.lastCostPrice,
+    link.defaultCostPrice,
+    link.catalogBuyingPrice,
+  ];
+  for (const c of candidates) {
+    const n = toNum(c);
+    if (n > 0) return n;
+  }
+  return 0;
+}
+
+export function TenantOrderWorkspace() {
+  const { branchId } = useDashboard();
+  const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
+  const [supplierId, setSupplierId] = useState<string | null>(null);
+  const [links, setLinks] = useState<SupplierItemLinkRecord[]>([]);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(true);
+  const [loadingLinks, setLoadingLinks] = useState(false);
+  const [filter, setFilter] = useState("");
+  const [cart, setCart] = useState<CartQty>({});
+  const [placing, setPlacing] = useState(false);
+  const [supplierQuery, setSupplierQuery] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingSuppliers(true);
+    void fetchSuppliers()
+      .then((rows) => {
+        if (cancelled) return;
+        const active = rows.filter(
+          (s) => s.status?.toLowerCase() === "active" && !s.deletedAt,
+        );
+        setSuppliers(active);
+        if (!supplierId && active[0]) setSupplierId(active[0].id);
+      })
+      .catch((error) => {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to load suppliers",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSuppliers(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once
+  }, []);
+
+  useEffect(() => {
+    if (!supplierId) {
+      setLinks([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingLinks(true);
+    setCart({});
+    void fetchSupplierItemLinks(supplierId, {
+      branchId: branchId || undefined,
+    })
+      .then((rows) => {
+        if (!cancelled) setLinks(rows.filter((r) => r.active));
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setLinks([]);
+          toast.error(
+            error instanceof Error ? error.message : "Failed to load products",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingLinks(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [supplierId, branchId]);
+
+  const activeSupplier = suppliers.find((s) => s.id === supplierId) ?? null;
+
+  const filteredSuppliers = useMemo(() => {
+    const q = supplierQuery.trim().toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter((s) => s.name.toLowerCase().includes(q));
+  }, [suppliers, supplierQuery]);
+
+  const visibleLinks = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    let rows = links;
+    if (q) {
+      rows = rows.filter((r) => {
+        const hay = [r.itemName, r.sku, r.barcode, r.supplierSku, r.variantName]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    return [...rows].sort((a, b) => {
+      const stockA = toNum(a.currentStock);
+      const stockB = toNum(b.currentStock);
+      const lowA = stockA <= toNum(a.reorderLevel || 0) ? 0 : 1;
+      const lowB = stockB <= toNum(b.reorderLevel || 0) ? 0 : 1;
+      if (lowA !== lowB) return lowA - lowB;
+      return a.itemName.localeCompare(b.itemName);
+    });
+  }, [links, filter]);
+
+  const cartLines = useMemo(
+    () =>
+      links
+        .filter((l) => (cart[l.itemId] ?? 0) > 0)
+        .map((l) => ({ link: l, qty: cart[l.itemId] ?? 0 })),
+    [links, cart],
+  );
+
+  const cartUnits = cartLines.reduce((sum, line) => sum + line.qty, 0);
+
+  const setQty = (itemId: string, qty: number) => {
+    setCart((prev) => {
+      const next = { ...prev };
+      if (qty <= 0) delete next[itemId];
+      else next[itemId] = qty;
+      return next;
+    });
+  };
+
+  const placeOrder = async () => {
+    if (!supplierId || !activeSupplier) {
+      toast.error("Pick a supplier first");
+      return;
+    }
+    if (!branchId.trim()) {
+      toast.error("Select a branch before ordering");
+      return;
+    }
+    if (cartLines.length === 0) {
+      toast.error("Add products to the order");
+      return;
+    }
+    setPlacing(true);
+    try {
+      const po = await postPathAPurchaseOrder({
+        supplierId,
+        branchId: branchId.trim(),
+        notes: "Created from Order marketplace",
+      });
+      for (const line of cartLines) {
+        await postPathAPurchaseOrderLine(po.id, {
+          itemId: line.link.itemId,
+          qtyOrdered: line.qty,
+          unitEstimatedCost: unitCost(line.link),
+        });
+      }
+      try {
+        await postPathAPurchaseOrderSendToSupplier(po.id);
+      } catch {
+        await postPathAPurchaseOrderSend(po.id);
+      }
+      setCart({});
+      toast.success(`Order ${po.poNumber} placed — confirm when goods arrive`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not place order");
+    } finally {
+      setPlacing(false);
+    }
+  };
+
+  return (
+    <div
+      className="relative flex h-[min(78dvh,56rem)] min-h-[28rem] w-full flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]"
+      style={{ ["--pos-primary" as string]: "#0f766e" }}
+    >
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-3 py-2">
+        <div className="min-w-0">
+          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            Tenant order
+          </p>
+          <h1 className="truncate text-[15px] font-semibold text-[var(--pos-ink,#1c1915)]">
+            {activeSupplier?.name ?? "Pick a supplier"}
+          </h1>
+        </div>
+        <Link
+          href={APP_ROUTES.orderReceive}
+          className="inline-flex h-8 items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
+        >
+          <ClipboardList className="size-3" />
+          Confirm
+        </Link>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+        <aside className="flex max-h-[40%] shrink-0 flex-col overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:max-h-none lg:w-[13rem] lg:border-b-0 lg:border-r xl:w-[14.5rem]">
+          <div className="flex h-8 shrink-0 items-center justify-between bg-[var(--pos-primary,#0f766e)] px-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--pos-primary-ink,#fff)]">
+            <span>Supplier</span>
+            <span className="font-mono tabular-nums opacity-80">
+              {filteredSuppliers.length}
+            </span>
+          </div>
+          <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+            <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+            <input
+              className="h-8 w-full bg-transparent pl-7 pr-2 text-[12px] outline-none placeholder:text-muted-foreground/50"
+              placeholder="Search suppliers…"
+              value={supplierQuery}
+              onChange={(e) => setSupplierQuery(e.target.value)}
+            />
+          </div>
+          <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-1">
+            {loadingSuppliers ? (
+              <p className="px-2 py-4 text-center text-[11px] text-muted-foreground">
+                <Loader2 className="mr-1 inline size-3 animate-spin" />
+                Loading…
+              </p>
+            ) : filteredSuppliers.length === 0 ? (
+              <p className="px-2 py-4 text-center text-[11px] text-muted-foreground">
+                No active suppliers.
+              </p>
+            ) : (
+              filteredSuppliers.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSupplierId(s.id)}
+                  className={cn(
+                    "flex w-full flex-col items-start gap-0.5 border px-2 py-2 text-left transition",
+                    supplierId === s.id
+                      ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
+                      : "border-transparent hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]",
+                  )}
+                >
+                  <span className="text-[12px] font-semibold leading-snug">
+                    {s.name}
+                  </span>
+                </button>
+              ))
+            )}
+          </nav>
+        </aside>
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              className="h-9 w-full bg-transparent pl-8 pr-3 text-[13px] outline-none placeholder:text-muted-foreground/50"
+              placeholder="Find a linked product…"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-1.5 sm:px-2.5">
+            {!supplierId ? (
+              <p className="py-12 text-center text-[12px] text-muted-foreground">
+                Select a supplier to see linked products and stock.
+              </p>
+            ) : loadingLinks ? (
+              <p className="flex items-center justify-center gap-2 py-12 text-[12px] text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                Loading catalogue…
+              </p>
+            ) : visibleLinks.length === 0 ? (
+              <p className="py-12 text-center text-[12px] text-muted-foreground">
+                No linked products for this supplier.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+                {visibleLinks.map((link) => {
+                  const qty = cart[link.itemId] ?? 0;
+                  const stock = toNum(link.currentStock);
+                  const reorder = toNum(link.reorderLevel);
+                  const low = reorder > 0 && stock <= reorder;
+                  return (
+                    <div
+                      key={link.id}
+                      className={cn(
+                        "flex flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]",
+                        qty > 0 &&
+                          "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)]",
+                      )}
+                    >
+                      <button
+                        type="button"
+                        className="relative flex aspect-square w-full items-center justify-center border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
+                        onClick={() => setQty(link.itemId, qty + 1)}
+                        aria-label={`Add ${link.itemName}`}
+                      >
+                        <Package className="size-6 opacity-40" strokeWidth={1.5} />
+                        {qty > 0 ? (
+                          <span className="absolute left-0 top-0 inline-flex h-5 min-w-5 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 font-mono text-[10px] font-bold text-white">
+                            {qty}
+                          </span>
+                        ) : null}
+                        <span
+                          className={cn(
+                            "absolute bottom-0 right-0 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums",
+                            low
+                              ? "bg-amber-600 text-white"
+                              : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_78%,transparent)] text-white",
+                          )}
+                        >
+                          {stock} in stock
+                        </span>
+                      </button>
+                      <div className="flex flex-1 flex-col gap-1 px-1.5 py-1.5">
+                        <p className="text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
+                          {link.itemName}
+                        </p>
+                        <div className="mt-auto flex items-center justify-between gap-1">
+                          <p className="font-mono text-[10px] font-semibold tabular-nums">
+                            {unitCost(link) > 0
+                              ? formatMoney(unitCost(link), "KES")
+                              : "Ask"}
+                          </p>
+                          {qty > 0 ? (
+                            <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
+                              <button
+                                type="button"
+                                className="flex size-6 items-center justify-center text-[12px]"
+                                onClick={() => setQty(link.itemId, qty - 1)}
+                              >
+                                −
+                              </button>
+                              <span className="min-w-5 text-center font-mono text-[11px]">
+                                {qty}
+                              </span>
+                              <button
+                                type="button"
+                                className="flex size-6 items-center justify-center text-[12px]"
+                                onClick={() => setQty(link.itemId, qty + 1)}
+                              >
+                                +
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]"
+                              onClick={() => setQty(link.itemId, 1)}
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <aside className="hidden h-full w-[min(100%,20rem)] shrink-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] lg:flex xl:w-[22rem]">
+          <div className="flex h-8 shrink-0 items-center justify-between border-b-2 border-[var(--pos-ink,#1c1915)] px-2.5">
+            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              Order list
+            </p>
+            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+              {cartUnits}
+            </span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {cartLines.length === 0 ? (
+              <p className="m-2.5 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-3 py-10 text-center text-[11px] text-muted-foreground">
+                Tap products to build an order. Stock is shown on each tile.
+              </p>
+            ) : (
+              cartLines.map(({ link, qty }) => (
+                <div
+                  key={link.itemId}
+                  className="space-y-1 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2"
+                >
+                  <p className="text-[12px] font-semibold leading-snug">
+                    {link.itemName}
+                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
+                      <button
+                        type="button"
+                        className="flex size-7 items-center justify-center"
+                        onClick={() => setQty(link.itemId, qty - 1)}
+                      >
+                        −
+                      </button>
+                      <span className="min-w-7 text-center font-mono text-[12px]">
+                        {qty}
+                      </span>
+                      <button
+                        type="button"
+                        className="flex size-7 items-center justify-center"
+                        onClick={() => setQty(link.itemId, qty + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <p className="font-mono text-[11px] text-muted-foreground">
+                      {toNum(link.currentStock)} on hand
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="shrink-0 space-y-2 border-t-2 border-[var(--pos-ink,#1c1915)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-2.5 py-2.5">
+            <button
+              type="button"
+              disabled={placing || cartLines.length === 0}
+              onClick={() => void placeOrder()}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[var(--pos-primary,#0f766e)] px-4 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {placing ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Placing…
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="size-4" />
+                  Place order
+                </>
+              )}
+            </button>
+            <p className="text-center text-[10px] text-muted-foreground">
+              Creates a purchase order. Confirm on arrival to post as a supply.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <button
+        type="button"
+        disabled={placing || cartLines.length === 0}
+        onClick={() => void placeOrder()}
+        className="flex h-12 items-center justify-between bg-[var(--pos-primary,#0f766e)] px-3 text-white lg:hidden disabled:opacity-50"
+      >
+        <span className="inline-flex items-center gap-2 text-[13px] font-semibold">
+          <ShoppingCart className="size-4" />
+          Place order
+          {cartUnits > 0 ? (
+            <span className="font-mono tabular-nums">· {cartUnits}</span>
+          ) : null}
+        </span>
+        <span className="text-[10px] uppercase tracking-[0.12em] opacity-90">
+          Send
+        </span>
+      </button>
+    </div>
+  );
+}

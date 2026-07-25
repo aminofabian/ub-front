@@ -30,6 +30,8 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.inventorySupplyBatches]: "Supply batches",
     [APP_ROUTES.inventoryCostIssues]: "Cost issues",
     [APP_ROUTES.purchasingAddSupplies]: "Receive supplies",
+    [APP_ROUTES.order]: "Order",
+    [APP_ROUTES.orderReceive]: "Confirm orders",
     [APP_ROUTES.purchasingIntelligence]: "Supplier intel",
     [APP_ROUTES.purchasingApAging]: "AP aging",
     [APP_ROUTES.purchasingRecordPayment]: "Pay open balances",
