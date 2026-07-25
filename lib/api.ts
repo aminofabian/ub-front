@@ -6537,6 +6537,37 @@ export async function postCloseShift(
   );
 }
 
+/** Owner/admin: correct opening float (+ denominations) on an open shift. */
+export async function patchShiftOpening(
+  shiftId: string,
+  body: {
+    openingCash?: number | string;
+    notes?: string | null;
+    denominations?: DenominationEntry[];
+    reason: string;
+  },
+): Promise<ShiftRecord> {
+  const payload: Record<string, unknown> = {
+    reason: body.reason.trim(),
+  };
+  if (body.openingCash != null) {
+    payload.openingCash = body.openingCash;
+  }
+  if (body.notes !== undefined) {
+    payload.notes = body.notes?.trim() || null;
+  }
+  if (body.denominations) {
+    payload.denominations = body.denominations;
+  }
+  return request<ShiftRecord>(
+    `/api/v1/shifts/${encodeURIComponent(shiftId)}/opening`,
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
 export type ShiftListItem = {
   id: string;
   branchId: string;

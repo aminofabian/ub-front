@@ -25,6 +25,7 @@ import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
   fetchLastClosedShiftFloat,
   initiateDrawout,
+  patchShiftOpening,
   postCloseShift,
   postOpenShift,
   type BranchRecord,
@@ -537,6 +538,212 @@ export function OpenShiftModal({
     </Dialog>
   );
 }
+
+/** Owner/admin correction of opening float on an open shift. */
+export function EditOpeningCountModal({
+  open,
+  onClose,
+  shift,
+  onUpdated,
+}: {
+  open: boolean;
+  onClose: () => void;
+  shift: ShiftRecord | null;
+  onUpdated: (shift: ShiftRecord) => void;
+}) {
+  const dashboard = useOptionalDashboard();
+  const currency = resolveCurrencyCode(dashboard?.business?.currency);
+  const useDenomBreakdown = supportsCashDenominationBreakdown(currency);
+
+  const [quantities, setQuantities] = useState<Record<number, number>>(
+    createEmptyDenominationQuantities(),
+  );
+  const [cashTotalStr, setCashTotalStr] = useState("");
+  const [notes, setNotes] = useState("");
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !shift) return;
+    setQuantities(denomsToQuantities(shift.openingDenominations));
+    const openingTotal =
+      typeof shift.openingCash === "number"
+        ? shift.openingCash
+        : Number(shift.openingCash ?? 0);
+    setCashTotalStr(
+      useDenomBreakdown
+        ? ""
+        : Number.isFinite(openingTotal) && openingTotal >= 0
+          ? String(openingTotal)
+          : "",
+    );
+    setNotes(shift.openingNotes ?? "");
+    setReason("");
+    setError("");
+    setLoading(false);
+  }, [open, shift, useDenomBreakdown]);
+
+  const totalCash = useMemo(() => {
+    if (!useDenomBreakdown) {
+      const n = Number(cashTotalStr);
+      return Number.isFinite(n) ? n : 0;
+    }
+    return KES_DENOMINATIONS.reduce(
+      (sum, d) => sum + d.value * (quantities[d.value] || 0),
+      0,
+    );
+  }, [useDenomBreakdown, cashTotalStr, quantities]);
+
+  const handleSave = useCallback(async () => {
+    if (!shift) return;
+    if (totalCash < 0) {
+      setError("Opening cash cannot be negative.");
+      return;
+    }
+    if (reason.trim().length < 3) {
+      setError("Please enter a short reason for this correction.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const updated = await patchShiftOpening(shift.id, {
+        openingCash: totalCash,
+        notes: notes.trim() || null,
+        denominations: useDenomBreakdown
+          ? quantitiesToEntries(quantities)
+          : undefined,
+        reason: reason.trim(),
+      });
+      onUpdated(updated);
+      onClose();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to update opening count.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    shift,
+    totalCash,
+    reason,
+    notes,
+    quantities,
+    useDenomBreakdown,
+    onUpdated,
+    onClose,
+  ]);
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onClose();
+      }}
+    >
+      <DialogContent side="center" className={cn("max-w-xl", SHIFT_MODAL_CONTENT)}>
+        <div className={SHIFT_MODAL_HEADER}>
+          <DialogHeader className="flex flex-row items-start gap-2.5 space-y-0 text-left sm:gap-3">
+            <span className={SHIFT_MODAL_ICON} aria-hidden>
+              <Banknote className="size-4 sm:size-[1.125rem]" />
+            </span>
+            <div className="min-w-0 flex-1 space-y-0.5 pr-2">
+              <DialogTitle className="font-heading text-base font-semibold tracking-tight sm:text-lg">
+                Edit Opening Count
+              </DialogTitle>
+              <DialogDescription className="text-xs leading-snug sm:text-[13px] sm:leading-relaxed">
+                Correct the opening float. Expected closing cash updates by the
+                same amount so sales and drawouts stay accurate.
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+        </div>
+
+        <div className={SHIFT_MODAL_BODY}>
+          <div className="space-y-3">
+            <div className={SHIFT_MODAL_SECTION}>
+              {useDenomBreakdown ? (
+                <DenominationTable
+                  title="Opening Count"
+                  quantities={quantities}
+                  onChange={setQuantities}
+                />
+              ) : (
+                <div className="space-y-1.5">
+                  <h4 className={cn(SHIFT_MODAL_SECTION_TITLE, "mb-1.5")}>
+                    Opening cash ({currency})
+                  </h4>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    inputMode="decimal"
+                    className={dashboardInputClass(false)}
+                    value={cashTotalStr}
+                    onChange={(e) => setCashTotalStr(e.target.value)}
+                    placeholder="0"
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Total: {moneyStr(totalCash, currency)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className={dashboardFilterFieldLabelClass()}>
+                Notes{" "}
+                <span className="font-normal normal-case tracking-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </label>
+              <input
+                className={dashboardInputClass(loading)}
+                placeholder="Opening notes..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className={dashboardFilterFieldLabelClass()}>
+                Reason for correction
+              </label>
+              <textarea
+                className={dashboardTextareaClass(loading)}
+                placeholder="e.g. Miscounted KES 500 notes at open"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={500}
+                rows={2}
+              />
+            </div>
+
+            {error ? <DashboardFeedback kind="error" text={error} /> : null}
+          </div>
+        </div>
+
+        <DialogFooter className={SHIFT_MODAL_FOOTER}>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button type="button" disabled={loading} onClick={handleSave}>
+            {loading
+              ? "Saving..."
+              : `Save (${moneyStr(totalCash, currency)})`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function CloseShiftModal({
   open,
   onClose,

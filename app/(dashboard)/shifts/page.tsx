@@ -18,6 +18,7 @@ import {
   Layers,
   ListChecks,
   MapPin,
+  Pencil,
   Receipt,
   Scale,
   Search,
@@ -64,6 +65,7 @@ import {
   denomsToQuantities,
   DenominationTable,
   OpenShiftModal,
+  EditOpeningCountModal,
   CloseShiftModal,
   DrawoutModal,
   DRAWOUT_CATEGORIES,
@@ -991,18 +993,29 @@ function DenomStackList({
 
 // ─── Shift Detail Panel (Column 3) ────────────────────────────────────────
 
-function DetailTabs({ shiftId }: { shiftId: string | null }) {
+function DetailTabs({
+  shiftId,
+  canUpdateOpening,
+  onOpeningUpdated,
+}: {
+  shiftId: string | null;
+  canUpdateOpening?: boolean;
+  onOpeningUpdated?: () => void;
+}) {
   const [detail, setDetail] = useState<ShiftRecord | null>(null);
   const [activeTab, setActiveTab] = useState("denominations");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [drawouts, setDrawouts] = useState<DrawoutRecord[]>([]);
   const [drawoutsLoading, setDrawoutsLoading] = useState(false);
+  const [editOpeningOpen, setEditOpeningOpen] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     if (!shiftId) {
       setDetail(null);
       setDrawouts([]);
+      setEditOpeningOpen(false);
       return;
     }
     let cancelled = false;
@@ -1033,7 +1046,7 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
     return () => {
       cancelled = true;
     };
-  }, [shiftId]);
+  }, [shiftId, reloadToken]);
 
   if (!shiftId) {
     return (
@@ -1052,6 +1065,8 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
   const openingDenoms = detail.openingDenominations || [];
   const closingDenoms = detail.closingDenominations || [];
   const summaryVariance = toNum(detail.closingVariance);
+  const isOpenShift = detail.status === "open";
+  const showEditOpening = Boolean(canUpdateOpening && isOpenShift);
 
   const tabs = [
     { id: "denominations", label: "Denominations", icon: Layers },
@@ -1097,6 +1112,20 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
       <div className="flex-1 overflow-y-auto p-2.5">
         {activeTab === "denominations" && (
           <div className="space-y-3">
+            {showEditOpening ? (
+              <div className="flex items-center justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 rounded-none px-2 text-xs"
+                  onClick={() => setEditOpeningOpen(true)}
+                >
+                  <Pencil className="size-3" aria-hidden />
+                  Edit opening
+                </Button>
+              </div>
+            ) : null}
             {openingDenoms.length > 0 && closingDenoms.length > 0 ? (
               <DenominationComparison
                 openingDenoms={openingDenoms}
@@ -1114,6 +1143,9 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
             ) : (
               <p className="text-sm text-muted-foreground">
                 No denomination data recorded for this shift.
+                {showEditOpening
+                  ? " Use Edit opening to add a count."
+                  : null}
               </p>
             )}
           </div>
@@ -1228,16 +1260,45 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
                 )}
               </div>
             )}
+
+            {showEditOpening ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 w-full gap-1.5 rounded-none text-xs"
+                onClick={() => setEditOpeningOpen(true)}
+              >
+                <Pencil className="size-3" aria-hidden />
+                Edit opening float
+              </Button>
+            ) : null}
           </div>
         )}
       </div>
+
+      <EditOpeningCountModal
+        open={editOpeningOpen}
+        onClose={() => setEditOpeningOpen(false)}
+        shift={detail}
+        onUpdated={() => {
+          setReloadToken((n) => n + 1);
+          onOpeningUpdated?.();
+        }}
+      />
     </div>
   );
 }
 
 // ─── Analytics Panel (Column 2) ───────────────────────────────────────────
 
-function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
+function AnalyticsPanel({
+  shiftId,
+  refreshKey = 0,
+}: {
+  shiftId: string | null;
+  refreshKey?: number;
+}) {
   const [detail, setDetail] = useState<ShiftRecord | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -1259,7 +1320,7 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
     return () => {
       cancelled = true;
     };
-  }, [shiftId]);
+  }, [shiftId, refreshKey]);
 
   if (!shiftId) {
     return (
@@ -1383,6 +1444,10 @@ export default function ShiftsPage() {
   const canOpen = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canClose = hasPermission(me?.permissions, Permission.ShiftsClose);
   const canRead = hasPermission(me?.permissions, Permission.ShiftsRead);
+  const canUpdateOpening = hasPermission(
+    me?.permissions,
+    Permission.ShiftsUpdate,
+  );
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const allowed = canOpen || canClose || canRead;
 
@@ -1395,6 +1460,7 @@ export default function ShiftsPage() {
 
   // Selection
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
+  const [detailRefreshKey, setDetailRefreshKey] = useState(0);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -1873,7 +1939,10 @@ export default function ShiftsPage() {
         <div className="hidden w-[35%] min-w-[300px] flex-shrink-0 border-r border-border/50 lg:flex lg:flex-col">
           <PanelHeader index="02" icon={Calculator} title="Analytics" />
           <div className="flex-1 overflow-y-auto">
-            <AnalyticsPanel shiftId={selectedShiftId} />
+            <AnalyticsPanel
+              shiftId={selectedShiftId}
+              refreshKey={detailRefreshKey}
+            />
           </div>
         </div>
 
@@ -1905,7 +1974,15 @@ export default function ShiftsPage() {
             <PanelHeader index="03" icon={ClipboardList} title="Shift Details" />
           )}
           <div className="flex-1 overflow-y-auto">
-            <DetailTabs shiftId={selectedShiftId} />
+            <DetailTabs
+              shiftId={selectedShiftId}
+              canUpdateOpening={canUpdateOpening}
+              onOpeningUpdated={() => {
+                setNotice("Opening count updated.");
+                setDetailRefreshKey((n) => n + 1);
+                void loadShifts(page, false);
+              }}
+            />
           </div>
         </div>
         </div>
@@ -1963,7 +2040,15 @@ export default function ShiftsPage() {
                 <X className="size-4" />
               </button>
             </div>
-            <DetailTabs shiftId={selectedShiftId} />
+            <DetailTabs
+              shiftId={selectedShiftId}
+              canUpdateOpening={canUpdateOpening}
+              onOpeningUpdated={() => {
+                setNotice("Opening count updated.");
+                setDetailRefreshKey((n) => n + 1);
+                void loadShifts(page, false);
+              }}
+            />
           </div>
         ) : null}
       </div>
