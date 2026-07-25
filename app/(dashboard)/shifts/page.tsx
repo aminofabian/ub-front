@@ -1065,6 +1065,12 @@ function DetailTabs({
   const openingDenoms = detail.openingDenominations || [];
   const closingDenoms = detail.closingDenominations || [];
   const summaryVariance = toNum(detail.closingVariance);
+  const summaryOpening = toNum(detail.openingCash);
+  const summaryExpected = toNum(detail.expectedClosingCash);
+  const summaryCashMovement =
+    summaryOpening != null && summaryExpected != null
+      ? summaryExpected - summaryOpening
+      : null;
   const isOpenShift = detail.status === "open";
   const showEditOpening = Boolean(canUpdateOpening && isOpenShift);
 
@@ -1197,6 +1203,29 @@ function DetailTabs({
                   label="Expected"
                   value={moneyStr(detail.expectedClosingCash)}
                 />
+                {summaryCashMovement != null ? (
+                  <div className="flex items-baseline gap-2">
+                    <dt
+                      className="shrink-0 text-muted-foreground"
+                      title="Expected − Opening float (sales, drawouts, paid-ins)"
+                    >
+                      Cash movement
+                    </dt>
+                    <span
+                      className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-border/60"
+                      aria-hidden
+                    />
+                    <dd
+                      className={cn(
+                        "shrink-0 font-medium",
+                        NUM,
+                        changeColor(summaryCashMovement),
+                      )}
+                    >
+                      {signedMoney(summaryCashMovement)}
+                    </dd>
+                  </div>
+                ) : null}
                 <LeaderRow
                   label="Counted"
                   value={moneyStr(detail.countedClosingCash)}
@@ -1339,22 +1368,12 @@ function AnalyticsPanel({
   const closingDenoms = detail.closingDenominations || [];
   const openTotal = denomTotal(openingDenoms);
   const closeTotal = denomTotal(closingDenoms);
-  const expected =
-    typeof detail.expectedClosingCash === "number"
-      ? detail.expectedClosingCash
-      : Number(detail.expectedClosingCash);
-  const counted =
-    detail.countedClosingCash != null
-      ? typeof detail.countedClosingCash === "number"
-        ? detail.countedClosingCash
-        : Number(detail.countedClosingCash)
-      : null;
-  const variance =
-    detail.closingVariance != null
-      ? typeof detail.closingVariance === "number"
-        ? detail.closingVariance
-        : Number(detail.closingVariance)
-      : null;
+  const opening = toNum(detail.openingCash);
+  const expected = toNum(detail.expectedClosingCash);
+  const counted = toNum(detail.countedClosingCash);
+  const variance = toNum(detail.closingVariance);
+  const cashMovement =
+    opening != null && expected != null ? expected - opening : null;
 
   return (
     <div className="space-y-3 p-2.5">
@@ -1367,9 +1386,26 @@ function AnalyticsPanel({
         />
         <KpiCard
           label="Expected Cash"
-          value={moneyStr(expected)}
+          value={expected != null ? moneyStr(expected) : "—"}
           icon={Calculator}
         />
+      </div>
+      {cashMovement != null ? (
+        <div className="flex items-center justify-between gap-2 border border-border/70 bg-muted/20 px-2.5 py-2">
+          <div className="min-w-0">
+            <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
+              Cash movement
+            </p>
+            <p className="truncate text-[10px] text-muted-foreground">
+              Expected − Opening
+            </p>
+          </div>
+          <p className={cn("shrink-0 text-sm font-semibold", NUM, changeColor(cashMovement))}>
+            {signedMoney(cashMovement)}
+          </p>
+        </div>
+      ) : null}
+      <div className="grid grid-cols-2 gap-1.5">
         <KpiCard
           label="Counted Cash"
           value={counted != null ? moneyStr(counted) : "—"}
@@ -1380,11 +1416,7 @@ function AnalyticsPanel({
         />
         <KpiCard
           label="Variance"
-          value={
-            variance != null
-              ? `${variance >= 0 ? "+" : ""}${moneyStr(variance)}`
-              : "—"
-          }
+          value={variance != null ? signedMoney(variance) : "—"}
           icon={Scale}
           dotClassName={varianceDot(variance)}
           valueClassName={varianceColor(variance)}
