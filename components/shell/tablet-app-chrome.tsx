@@ -497,15 +497,10 @@ function MoreWorkspaceConsole({
   departmentLocked?: boolean;
 }) {
   const selectClass =
-    "w-full appearance-none rounded-xl border border-white/20 bg-background/90 px-3 py-2 pr-8 text-sm font-medium shadow-sm backdrop-blur-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:opacity-50 dark:border-white/10";
+    "w-full appearance-none border border-border bg-background px-3 py-2 pr-8 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:opacity-50";
 
   return (
-    <div
-      className="relative overflow-hidden rounded-2xl border border-white/30 bg-background/55 p-3 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-background/40"
-      style={{
-        boxShadow: `0 8px 32px -12px color-mix(in srgb, ${accent} 28%, transparent)`,
-      }}
-    >
+    <div className="relative overflow-hidden border border-border bg-muted/30 p-3">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.07]"
         style={{
@@ -551,7 +546,7 @@ function MoreWorkspaceConsole({
               </select>
             </div>
           ) : branchName ? (
-            <p className="flex items-center gap-2 rounded-xl border border-border/50 bg-muted/30 px-3 py-2 text-sm font-medium">
+            <p className="flex items-center gap-2 border border-border/50 bg-muted/30 px-3 py-2 text-sm font-medium">
               {branchLocked ? (
                 <Lock className="size-3.5 shrink-0 text-muted-foreground" />
               ) : (
@@ -566,7 +561,7 @@ function MoreWorkspaceConsole({
             Department
           </label>
           {departmentLocked ? (
-            <p className="flex items-center gap-2 rounded-xl border border-border/50 bg-muted/30 px-3 py-2 text-sm font-medium">
+            <p className="flex items-center gap-2 border border-border/50 bg-muted/30 px-3 py-2 text-sm font-medium">
               <Lock className="size-3.5 shrink-0 text-muted-foreground" />
               <span className="truncate">
                 {itemTypes.find((t) => t.id === itemTypeId)?.label ??
@@ -714,11 +709,11 @@ export function TabletMoreSheet({
       {/* Aurora backdrop */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <div
-          className="tablet-more-aurora absolute -left-[20%] -top-[30%] h-[70%] w-[70%] rounded-full opacity-30 blur-3xl"
+          className="tablet-more-aurora absolute -left-[20%] -top-[30%] h-[70%] w-[70%] opacity-30 blur-3xl"
           style={{ background: `radial-gradient(circle, ${accent}, transparent 70%)` }}
         />
         <div
-          className="tablet-more-aurora absolute -bottom-[25%] -right-[15%] h-[60%] w-[55%] rounded-full opacity-20 blur-3xl [animation-delay:2s]"
+          className="tablet-more-aurora absolute -bottom-[25%] -right-[15%] h-[60%] w-[55%] opacity-20 blur-3xl [animation-delay:2s]"
           style={{
             background: `radial-gradient(circle, color-mix(in srgb, ${accent} 70%, #6366f1), transparent 70%)`,
           }}
@@ -731,11 +726,11 @@ export function TabletMoreSheet({
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <div
-              className="tablet-more-avatar-ring relative flex size-[3.35rem] shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-foreground to-foreground/80 text-lg font-bold text-background"
+              className="tablet-more-avatar-ring relative flex size-[3.35rem] shrink-0 items-center justify-center bg-foreground text-lg font-bold text-background"
             >
               {userInitial}
               <span
-                className="pointer-events-none absolute -bottom-1 -right-1 flex size-6 items-center justify-center overflow-hidden rounded-lg bg-background shadow-md ring-2 ring-background"
+                className="pointer-events-none absolute -bottom-1 -right-1 flex size-6 items-center justify-center overflow-hidden bg-background ring-2 ring-background"
               >
                 <TenantLogo
                   brand={tenantTitle}
@@ -751,7 +746,7 @@ export function TabletMoreSheet({
                 <Sparkles className="size-3.5 shrink-0 text-primary" aria-hidden />
                 {greeting}
               </p>
-              <p className="truncate font-heading text-lg font-semibold leading-tight tracking-tight sm:text-xl">
+              <p className="truncate font-sans text-lg font-semibold leading-tight tracking-tight sm:text-xl">
                 {userDisplayName}
               </p>
               <p className="truncate text-[11px] text-muted-foreground">
@@ -764,7 +759,7 @@ export function TabletMoreSheet({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-9 items-center justify-center rounded-full border border-border/60 bg-background/80 text-muted-foreground shadow-sm backdrop-blur-sm transition-all hover:bg-muted hover:text-foreground active:scale-95"
+            className="flex size-9 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Close menu"
           >
             <X className="size-4" />
@@ -773,14 +768,14 @@ export function TabletMoreSheet({
 
         {currentItem ? (
           <div
-            className="mt-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs backdrop-blur-md"
+            className="mt-3 flex items-center gap-2 border px-3 py-2 text-xs"
             style={{
               borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
               background: `color-mix(in srgb, ${accent} 10%, transparent)`,
             }}
           >
             <span
-              className="size-1.5 shrink-0 animate-pulse rounded-full bg-primary"
+              className="size-1.5 shrink-0 animate-pulse bg-primary"
               aria-hidden
             />
             <span className="font-medium text-foreground">You&apos;re on</span>
@@ -818,14 +813,14 @@ export function TabletMoreSheet({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Jump to any screen…"
-            className="h-10 w-full rounded-xl border border-border/60 bg-background/80 pl-9 pr-9 text-sm shadow-sm backdrop-blur-sm placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="h-10 w-full border border-border bg-background pl-9 pr-9 text-sm placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
             aria-label="Search navigation"
           />
           {search ? (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               aria-label="Clear search"
             >
               <X className="size-3.5" />
@@ -846,7 +841,7 @@ export function TabletMoreSheet({
                     <div className="mb-1.5 flex items-center gap-2 px-0.5">
                       <span
                         className={cn(
-                          "flex size-6 items-center justify-center rounded-lg",
+                          "flex size-6 items-center justify-center",
                           sectionHasActive
                             ? "bg-primary/15 text-primary"
                             : "bg-muted text-muted-foreground",
@@ -858,7 +853,7 @@ export function TabletMoreSheet({
                         {section.title}
                       </p>
                     </div>
-                    <ul className="space-y-1 rounded-2xl border border-border/50 bg-card/80 p-1.5 shadow-sm backdrop-blur-sm">
+                    <ul className="space-y-1 border border-border/50 bg-card/80 p-1.5 shadow-sm backdrop-blur-sm">
                       {section.items.map((item, index) => {
                         const active = itemIsActive(pathname, item.href);
                         const hue = TILE_HUES[index % TILE_HUES.length];
@@ -868,15 +863,15 @@ export function TabletMoreSheet({
                               href={item.href}
                               onClick={onClose}
                               className={cn(
-                                "tablet-more-link-tile group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors",
+                                "tablet-more-link-tile group flex items-center gap-3 px-3 py-3 transition-colors",
                                 active
-                                  ? "bg-primary/12 font-semibold text-primary ring-1 ring-primary/20"
+                                  ? "bg-primary/12 font-semibold text-primary"
                                   : "hover:bg-muted/60",
                               )}
                               style={{ animationDelay: `${index * 0.03}s` }}
                             >
                               <span
-                                className="flex size-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-white shadow-sm"
+                                className="flex size-9 shrink-0 items-center justify-center text-xs font-bold text-white shadow-sm"
                                 style={{
                                   background: `linear-gradient(135deg, hsl(${hue} 62% 48%), hsl(${(hue + 24) % 360} 58% 38%))`,
                                 }}
@@ -920,15 +915,15 @@ export function TabletMoreSheet({
                           href={hit.href}
                           onClick={onClose}
                           className={cn(
-                            "tablet-more-link-tile flex h-full flex-col gap-2 rounded-2xl border p-3 transition-all active:scale-[0.98]",
+                            "tablet-more-link-tile flex h-full flex-col gap-2 border p-3 transition-colors",
                             active
-                              ? "border-primary/30 bg-primary/10 shadow-md ring-1 ring-primary/20"
-                              : "border-border/50 bg-card/90 hover:border-border hover:shadow-md",
+                              ? "border-primary/30 bg-primary/10"
+                              : "border-border/50 bg-card hover:border-border hover:bg-muted/40",
                           )}
                           style={{ animationDelay: `${index * 0.03}s` }}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                            <span className="flex size-8 items-center justify-center bg-muted text-muted-foreground">
                               <SectionIcon className="size-4" aria-hidden />
                             </span>
                             <span className="truncate text-[10px] font-medium text-muted-foreground">
@@ -944,7 +939,7 @@ export function TabletMoreSheet({
                   })}
                 </ul>
               ) : (
-                <p className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+                <p className="border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
                   Try a different keyword — products, stock, settings…
                 </p>
               )}
@@ -964,15 +959,15 @@ export function TabletMoreSheet({
                       type="button"
                       onClick={() => setSectionId(section.id)}
                       className={cn(
-                        "tablet-more-section-pill flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-left transition-colors",
+                        "tablet-more-section-pill flex shrink-0 items-center gap-2 border px-3 py-2 text-left transition-colors",
                         selected
-                          ? "tablet-more-section-pill-active border-primary/25 bg-primary text-primary-foreground shadow-md"
-                          : "border-border/60 bg-background/80 text-foreground hover:bg-muted/70",
+                          ? "tablet-more-section-pill-active border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-foreground hover:bg-muted/70",
                       )}
                     >
                       <span
                         className={cn(
-                          "flex size-7 items-center justify-center rounded-full",
+                          "flex size-7 items-center justify-center",
                           selected
                             ? "bg-primary-foreground/15"
                             : hasActive
@@ -1005,21 +1000,21 @@ export function TabletMoreSheet({
                             href={item.href}
                             onClick={onClose}
                             className={cn(
-                              "tablet-more-link-tile group relative flex min-h-[4.5rem] flex-col justify-between overflow-hidden rounded-2xl border p-3 transition-all active:scale-[0.98]",
+                              "tablet-more-link-tile group relative flex min-h-[4.5rem] flex-col justify-between overflow-hidden border p-3 transition-colors",
                               active
-                                ? "border-primary/35 bg-primary/10 shadow-lg ring-1 ring-primary/25"
-                                : "border-border/50 bg-card/90 hover:-translate-y-0.5 hover:border-border hover:shadow-md",
+                                ? "border-primary/35 bg-primary/10"
+                                : "border-border/50 bg-card hover:border-border hover:bg-muted/40",
                             )}
                             style={{ animationDelay: `${index * 0.04}s` }}
                           >
                             <div
-                              className="pointer-events-none absolute -right-4 -top-4 size-16 rounded-full opacity-[0.12] blur-xl"
+                              className="pointer-events-none absolute -right-4 -top-4 size-16 opacity-[0.12] blur-xl"
                               style={{ background: `hsl(${hue} 70% 55%)` }}
                               aria-hidden
                             />
                             <div className="relative flex items-start justify-between gap-2">
                               <span
-                                className="flex size-9 items-center justify-center rounded-xl text-xs font-bold text-white shadow-sm"
+                                className="flex size-9 items-center justify-center text-xs font-bold text-white shadow-sm"
                                 style={{
                                   background: `linear-gradient(145deg, hsl(${hue} 65% 50%), hsl(${(hue + 30) % 360} 60% 40%))`,
                                 }}
@@ -1055,7 +1050,7 @@ export function TabletMoreSheet({
           <div className="mt-5 flex flex-col items-center gap-2 border-t border-border/40 pt-4">
             <Button
               variant="ghost"
-              className="w-full max-w-xs gap-2 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="w-full max-w-xs gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={onLogout}
             >
               <LogOut className="size-4" aria-hidden />
