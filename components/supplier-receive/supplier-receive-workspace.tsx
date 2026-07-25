@@ -584,6 +584,143 @@ function TileStockEditor({
   );
 }
 
+function TileNameEditor({
+  link,
+  onPick,
+  onUpdated,
+}: {
+  link: SupplierItemLinkRecord;
+  onPick: () => void;
+  onUpdated: (name: string) => void;
+}) {
+  const current = link.itemName?.trim() || link.sku?.trim() || "";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [editing]);
+
+  const startEdit = (e: React.MouseEvent | React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (busy) return;
+    setDraft(link.itemName?.trim() || "");
+    setEditing(true);
+  };
+
+  const cancel = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setEditing(false);
+    setDraft("");
+  };
+
+  const save = async (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (busy) return;
+    const next = draft.trim();
+    if (!next) {
+      toast.error("Name can’t be empty");
+      return;
+    }
+    if (next === (link.itemName?.trim() || "")) {
+      cancel();
+      return;
+    }
+    setBusy(true);
+    try {
+      await patchItem(link.itemId, { name: next });
+      setEditing(false);
+      setDraft("");
+      onUpdated(next);
+      toast.success("Name updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update name");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div
+        className="flex items-start gap-0.5"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <input
+          ref={inputRef}
+          className={cn(
+            "min-h-[1.5rem] min-w-0 flex-1 border border-border/60 bg-background px-1 text-[11px] font-semibold leading-snug",
+            "focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] focus-visible:outline-none",
+          )}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          disabled={busy}
+          aria-label="Product name"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void save(e);
+            if (e.key === "Escape") cancel(e);
+          }}
+        />
+        <button
+          type="button"
+          className="flex size-6 shrink-0 items-center justify-center text-[var(--pos-primary)] disabled:opacity-50"
+          disabled={busy}
+          title="Save name"
+          onClick={(e) => void save(e)}
+        >
+          {busy ? (
+            <Loader2 className="size-3 animate-spin" aria-hidden />
+          ) : (
+            <Check className="size-3" aria-hidden />
+          )}
+        </button>
+        <button
+          type="button"
+          className="flex size-6 shrink-0 items-center justify-center text-muted-foreground disabled:opacity-50"
+          disabled={busy}
+          title="Cancel"
+          onClick={cancel}
+        >
+          <X className="size-3" aria-hidden />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-0.5">
+      <button
+        type="button"
+        onClick={onPick}
+        className="min-w-0 flex-1 text-left"
+      >
+        <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+          {current || "Product"}
+        </p>
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={startEdit}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="mt-0.5 flex size-5 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-50"
+        title="Edit name"
+        aria-label={`Edit name for ${current || "product"}`}
+      >
+        <Pencil className="size-2.5" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
 function TileBarcodeEditor({
   link,
   canEdit,
@@ -733,6 +870,7 @@ function ProductTile({
   onPhotoUploaded,
   onStockUpdated,
   onBarcodeUpdated,
+  onNameUpdated,
 }: {
   link: SupplierItemLinkRecord;
   cartQty: number;
@@ -745,6 +883,7 @@ function ProductTile({
   onPhotoUploaded: (itemId: string, imageUrl: string) => void;
   onStockUpdated: (itemId: string, nextStock: number) => void;
   onBarcodeUpdated: (itemId: string, barcode: string | null) => void;
+  onNameUpdated: (itemId: string, name: string) => void;
 }) {
   const title = link.itemName || link.sku || "Product";
   const thumb = posTileThumbUrl(title, link.thumbnailUrl);
@@ -812,14 +951,20 @@ function ProductTile({
         ) : null}
       </div>
       <div className="flex min-h-[3.1rem] w-full flex-1 flex-col justify-center gap-0.5 px-1.5 pb-1.5 pt-1">
-        <button
-          type="button"
-          onClick={onPick}
-          className="w-full text-left"
-        >
-          <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)] dark:text-foreground">
-            {title}
-          </p>
+        {canEditCatalog ? (
+          <TileNameEditor
+            link={link}
+            onPick={onPick}
+            onUpdated={(name) => onNameUpdated(link.itemId, name)}
+          />
+        ) : (
+          <button type="button" onClick={onPick} className="w-full text-left">
+            <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+              {title}
+            </p>
+          </button>
+        )}
+        <button type="button" onClick={onPick} className="w-full text-left">
           <p className="truncate text-[10px] tabular-nums text-muted-foreground">
             {cost
               ? `${Number(cost).toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`
@@ -829,7 +974,7 @@ function ProductTile({
               : ""}
           </p>
         </button>
-        {(canEditCatalog || link.barcode?.trim()) ? (
+        {canEditCatalog || link.barcode?.trim() ? (
           <TileBarcodeEditor
             link={link}
             canEdit={canEditCatalog}
@@ -1422,6 +1567,24 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     [],
   );
 
+  const onNameUpdated = useCallback((itemId: string, name: string) => {
+    setLinks((prev) =>
+      prev.map((l) => {
+        if (l.itemId === itemId) {
+          return { ...l, itemName: name };
+        }
+        // Keep parent rail labels in sync when renaming a parent product.
+        if (l.variantOfItemId === itemId) {
+          return { ...l, parentItemName: name };
+        }
+        return l;
+      }),
+    );
+    setCart((prev) =>
+      prev.map((l) => (l.itemId === itemId ? { ...l, name } : l)),
+    );
+  }, []);
+
   const patchLine = (itemId: string, patch: Partial<SupplyCartLine>) => {
     setCart((prev) =>
       prev.map((l) => (l.itemId === itemId ? { ...l, ...patch } : l)),
@@ -1827,6 +1990,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                     onPhotoUploaded={onPhotoUploaded}
                     onStockUpdated={onStockUpdated}
                     onBarcodeUpdated={onBarcodeUpdated}
+                    onNameUpdated={onNameUpdated}
                   />
                 ))}
               </div>
