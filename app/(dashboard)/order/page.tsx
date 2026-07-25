@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 
 export default function TenantOrderPage() {
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-3 px-3 py-4 sm:px-5">
-      <div>
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-2 px-0 pb-[env(safe-area-inset-bottom,0px)] pt-0 sm:gap-3 sm:px-4 sm:py-4 lg:px-5">
+      <div className="hidden px-1 sm:block">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
           Procurement
         </p>

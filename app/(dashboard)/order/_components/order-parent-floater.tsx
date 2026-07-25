@@ -21,6 +21,7 @@ type OrderParentFloaterProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (parentId: string | null) => void;
+  className?: string;
 };
 
 export function OrderParentFloater({
@@ -29,6 +30,7 @@ export function OrderParentFloater({
   open,
   onOpenChange,
   onSelect,
+  className,
 }: OrderParentFloaterProps) {
   const panelId = useId();
   const trayRef = useRef<HTMLDivElement>(null);
@@ -53,7 +55,12 @@ export function OrderParentFloater({
   if (!visible) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-start p-2 sm:p-2.5">
+    <div
+      className={cn(
+        "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-start p-2 sm:p-2.5",
+        className,
+      )}
+    >
       <div
         className={cn(
           "pointer-events-auto flex max-w-[min(100%,28rem)] flex-col overflow-hidden",
