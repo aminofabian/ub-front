@@ -317,6 +317,60 @@ export async function changeSuperAdminPassword(
   });
 }
 
+export async function fetchSaContactMessages(opts?: {
+  status?: "UNREAD" | "READ";
+  page?: number;
+  size?: number;
+}): Promise<{
+  content: import("@/lib/contact-messages").ContactMessageListItem[];
+  totalElements: number;
+}> {
+  const params = new URLSearchParams({
+    page: String(opts?.page ?? 0),
+    size: String(opts?.size ?? 50),
+  });
+  if (opts?.status) params.set("status", opts.status);
+  const payload = await saRequest<unknown>(
+    `/api/v1/super-admin/contact-messages?${params}`,
+  );
+  const { extractPageContent, extractSpringPageMeta } = await import(
+    "@/lib/page-content"
+  );
+  const content =
+    extractPageContent<import("@/lib/contact-messages").ContactMessageListItem>(
+      payload,
+    );
+  const meta = extractSpringPageMeta(payload);
+  return {
+    content,
+    totalElements: meta?.totalElements ?? content.length,
+  };
+}
+
+export async function fetchSaContactMessage(
+  id: string,
+): Promise<import("@/lib/contact-messages").ContactMessageDetail> {
+  return saRequest(
+    `/api/v1/super-admin/contact-messages/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function replySaContactMessage(
+  id: string,
+  body: {
+    channel: import("@/lib/contact-messages").ContactReplyChannel;
+    body: string;
+  },
+): Promise<import("@/lib/contact-messages").ContactMessageReply> {
+  return saRequest(
+    `/api/v1/super-admin/contact-messages/${encodeURIComponent(id)}/replies`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
 export type PlatformIntegrationsRecord = {
   hasDeepseekApiKey: boolean;
   deepseekHost: string;

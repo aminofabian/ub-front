@@ -61,6 +61,9 @@ export const Permission = {
   PaymentsPlatformManage: "payments.platform.manage",
   ReportsNotificationsRead: "reports.notifications.read",
   ReportsNotificationsWrite: "reports.notifications.write",
+  /** Talk to Us inbox */
+  MessagesRead: "messages.read",
+  MessagesReply: "messages.reply",
   /** Grocery Checkout */
   GroceryInvoicesCreate: "grocery.invoices.create",
   GroceryInvoicesRead: "grocery.invoices.read",

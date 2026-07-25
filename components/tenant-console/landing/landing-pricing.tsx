@@ -9,53 +9,134 @@ import {
   landingSectionHeaderMb,
 } from "./landing-styles";
 
-const STARTER_FEATURES = [
-  { qty: "01", label: "Register" },
-  { qty: "01", label: "Branch" },
-  { qty: "·", label: "Barcode scanner" },
-  { qty: "·", label: "Basic inventory" },
-  { qty: "·", label: "Online storefront" },
-  { qty: "·", label: "M-Pesa payments" },
-] as const;
+type PlanFeature = { qty: string; label: string };
 
-const PRO_FEATURES = [
-  { qty: "∞", label: "Registers" },
-  { qty: "10", label: "Branches" },
-  { qty: "·", label: "Advanced inventory & stock-takes" },
-  { qty: "·", label: "Custom online storefront" },
-  { qty: "·", label: "Staff roles & permissions" },
-  { qty: "·", label: "Supplier & purchase orders" },
-  { qty: "·", label: "Sales analytics & reports" },
-  { qty: "·", label: "Priority support" },
-] as const;
-
-type LandingPricingProps = {
-  onCreateShop: () => void;
-};
-
-type PlanCardProps = {
+type Plan = {
   code: string;
   name: string;
   price: string;
   unit?: string;
   blurb: string;
-  features: readonly { qty: string; label: string }[];
+  features: readonly PlanFeature[];
   featured?: boolean;
+  mark?: string;
   cta: string;
-  onCreateShop: () => void;
+  href?: string;
+  talkToUs?: boolean;
 };
 
-function PlanCard({
-  code,
-  name,
-  price,
-  unit,
-  blurb,
-  features,
-  featured = false,
-  cta,
-  onCreateShop,
-}: PlanCardProps) {
+const PLANS: readonly Plan[] = [
+  {
+    code: "Plan 01",
+    name: "Free",
+    price: "Free",
+    blurb: "Try the till with a small catalog. No credit card required.",
+    features: [
+      { qty: "300", label: "Products" },
+      { qty: "1", label: "Cashier" },
+      { qty: "·", label: "Barcode scanner" },
+      { qty: "·", label: "Basic inventory" },
+      { qty: "·", label: "Online storefront" },
+      { qty: "·", label: "M-Pesa payments" },
+    ],
+    cta: "Start free",
+  },
+  {
+    code: "Plan 02",
+    name: "Starter",
+    price: "KES 300",
+    unit: "/ mo",
+    blurb: "For shops ready to grow past the free catalog limit.",
+    features: [
+      { qty: "1,000", label: "Products" },
+      { qty: "3", label: "Cashiers" },
+      { qty: "·", label: "Barcode scanner" },
+      { qty: "·", label: "Inventory & stock alerts" },
+      { qty: "·", label: "Online storefront" },
+      { qty: "·", label: "M-Pesa payments" },
+    ],
+    cta: "Start your shop",
+  },
+  {
+    code: "Plan 03",
+    name: "Business",
+    price: "KES 800",
+    unit: "/ mo",
+    blurb: "The everyday plan for busy counters and small teams.",
+    features: [
+      { qty: "2,500", label: "Products" },
+      { qty: "5", label: "Cashiers" },
+      { qty: "·", label: "Staff roles & permissions" },
+      { qty: "·", label: "Stock-takes & transfers" },
+      { qty: "·", label: "Sales analytics" },
+      { qty: "·", label: "M-Pesa payments" },
+    ],
+    featured: true,
+    mark: "BIZ",
+    cta: "Start your shop",
+  },
+  {
+    code: "Plan 04",
+    name: "Growth",
+    price: "KES 1,500",
+    unit: "/ mo",
+    blurb: "For larger catalogs and more tills under one roof.",
+    features: [
+      { qty: "5,000", label: "Products" },
+      { qty: "10", label: "Cashiers" },
+      { qty: "·", label: "Advanced inventory" },
+      { qty: "·", label: "Supplier & purchase orders" },
+      { qty: "·", label: "Sales analytics & reports" },
+      { qty: "·", label: "Priority support" },
+    ],
+    cta: "Start your shop",
+  },
+  {
+    code: "Plan 05",
+    name: "Enterprise",
+    price: "KES 3,000+",
+    unit: "/ mo · custom",
+    blurb: "Unlimited scale. Typically KES 3,000–5,000+ depending on needs.",
+    features: [
+      { qty: "∞", label: "Products" },
+      { qty: "∞", label: "Cashiers" },
+      { qty: "·", label: "Custom setup & onboarding" },
+      { qty: "·", label: "Multi-location support" },
+      { qty: "·", label: "Dedicated assistance" },
+      { qty: "·", label: "Priority support" },
+    ],
+    cta: "Talk to us",
+    talkToUs: true,
+  },
+] as const;
+
+type LandingPricingProps = {
+  onCreateShop: () => void;
+  onTalkToUs: () => void;
+};
+
+type PlanCardProps = {
+  plan: Plan;
+  onCreateShop: () => void;
+  onTalkToUs: () => void;
+};
+
+function PlanCard({ plan, onCreateShop, onTalkToUs }: PlanCardProps) {
+  const {
+    code,
+    name,
+    price,
+    unit,
+    blurb,
+    features,
+    featured = false,
+    mark,
+    cta,
+    href,
+    talkToUs,
+  } = plan;
+  const ctaClass = `${featured ? goldCtaClass : ghostCtaClass} w-full justify-center`;
+
   return (
     <article
       className={`landing-plan ${featured ? "landing-plan--featured" : ""}`}
@@ -72,9 +153,9 @@ function PlanCard({
             <p className="landing-plan-code">{code}</p>
             <h3 className="landing-plan-name">{name}</h3>
           </div>
-          {featured ? (
+          {mark ? (
             <span className="landing-plan-mark" aria-hidden>
-              PRO
+              {mark}
             </span>
           ) : null}
         </div>
@@ -84,7 +165,7 @@ function PlanCard({
       <div className="landing-plan-dash" aria-hidden />
 
       <div className="landing-plan-price-block">
-        <p className="landing-plan-price-label">Amount</p>
+        <p className="landing-plan-price-label">Monthly</p>
         <div className="flex items-baseline justify-between gap-3">
           <p className="landing-plan-price">{price}</p>
           {unit ? <p className="landing-plan-unit">{unit}</p> : null}
@@ -105,64 +186,59 @@ function PlanCard({
 
       <div className="landing-plan-rule" aria-hidden />
 
-      <button
-        type="button"
-        className={`${featured ? goldCtaClass : ghostCtaClass} w-full justify-center`}
-        onClick={onCreateShop}
-      >
-        {cta}
-      </button>
+      {talkToUs ? (
+        <button type="button" className={ctaClass} onClick={onTalkToUs}>
+          {cta}
+        </button>
+      ) : href ? (
+        <a href={href} className={ctaClass}>
+          {cta}
+        </a>
+      ) : (
+        <button type="button" className={ctaClass} onClick={onCreateShop}>
+          {cta}
+        </button>
+      )}
     </article>
   );
 }
 
-export function LandingPricing({ onCreateShop }: LandingPricingProps) {
+export function LandingPricing({ onCreateShop, onTalkToUs }: LandingPricingProps) {
   return (
     <section
       id="pricing"
       className={`section-reveal ${landingSectionBorderClass} ${landingSectionAltClass}`}
     >
-      <div className="relative mx-auto max-w-[1100px]">
+      <div className="relative mx-auto max-w-[1200px]">
         <LandingSectionHeader
           index="04"
           label="Pricing"
           title="Simple pricing. No surprises."
-          description="Start free at one branch. Scale when you open the next door."
+          description="Start free with 300 products and one cashier. Upgrade when your catalog or team grows."
           className={landingSectionHeaderMb}
           titleClassName="max-w-[480px]"
         />
 
-        <div className="mx-auto grid max-w-[820px] gap-5 md:grid-cols-2 md:gap-6">
-          <PlanCard
-            code="Plan 01"
-            name="Starter"
-            price="Free"
-            blurb="For single-location shops getting started. No credit card required."
-            features={STARTER_FEATURES}
-            cta="Start your shop"
-            onCreateShop={onCreateShop}
-          />
-          <PlanCard
-            code="Plan 02"
-            name="Pro"
-            price="KES 2,900"
-            unit="/ mo · branch"
-            blurb="Per month, per branch. Cancel anytime."
-            features={PRO_FEATURES}
-            featured
-            cta="Start your shop"
-            onCreateShop={onCreateShop}
-          />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 xl:gap-3">
+          {PLANS.map((plan) => (
+            <PlanCard
+              key={plan.code}
+              plan={plan}
+              onCreateShop={onCreateShop}
+              onTalkToUs={onTalkToUs}
+            />
+          ))}
         </div>
 
         <p className="mt-9 text-center text-[13px] text-[var(--kiosk-text-faint)]">
-          Need more than 10 branches or a custom setup?{" "}
-          <a
-            href="mailto:support@kiosk.ke"
+          Need a custom Enterprise setup?{" "}
+          <button
+            type="button"
+            onClick={onTalkToUs}
             className="text-[var(--kiosk-gold)] no-underline hover:underline"
           >
             Talk to us &rarr;
-          </a>
+          </button>
         </p>
       </div>
     </section>

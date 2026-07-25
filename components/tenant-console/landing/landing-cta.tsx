@@ -4,9 +4,10 @@ import { goldCtaClass, ghostCtaClass, landingSectionClass } from "./landing-styl
 
 type LandingCtaProps = {
   onCreateShop: () => void;
+  onTalkToUs: () => void;
 };
 
-export function LandingCta({ onCreateShop }: LandingCtaProps) {
+export function LandingCta({ onCreateShop, onTalkToUs }: LandingCtaProps) {
   return (
     <section className={`section-reveal ${landingSectionClass}`}>
       <div className="mx-auto max-w-[720px] px-1">
@@ -31,12 +32,13 @@ export function LandingCta({ onCreateShop }: LandingCtaProps) {
             >
               Start your shop
             </button>
-            <a
-              href="mailto:support@kiosk.ke?subject=Kiosk%20demo"
+            <button
+              type="button"
+              onClick={onTalkToUs}
               className={`${ghostCtaClass} w-full justify-center border-[var(--kiosk-border-strong)] bg-[var(--kiosk-elevated)] !px-8 !py-3.5 !text-[15px] sm:w-auto`}
             >
               Book a demo
-            </a>
+            </button>
           </div>
         </div>
       </div>

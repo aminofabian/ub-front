@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
+
 import { LandingCta } from "./landing/landing-cta";
 import { LandingFeatures } from "./landing/landing-features";
 import { LandingFindShopModal } from "./landing/landing-find-shop-modal";
@@ -19,6 +21,7 @@ import { LandingTestimonials } from "./landing/landing-testimonials";
 export function TenantConsolePage() {
   const [signupOpen, setSignupOpen] = useState(false);
   const [findShopOpen, setFindShopOpen] = useState(false);
+  const [talkOpen, setTalkOpen] = useState(false);
 
   const host =
     typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
@@ -29,6 +32,10 @@ export function TenantConsolePage() {
 
   const openFindShop = () => {
     setFindShopOpen(true);
+  };
+
+  const openTalk = () => {
+    setTalkOpen(true);
   };
 
   return (
@@ -46,11 +53,11 @@ export function TenantConsolePage() {
         <LandingHowItWorks />
         <LandingStats />
         <LandingTestimonials />
-        <LandingPricing onCreateShop={openSignup} />
-        <LandingCta onCreateShop={openSignup} />
+        <LandingPricing onCreateShop={openSignup} onTalkToUs={openTalk} />
+        <LandingCta onCreateShop={openSignup} onTalkToUs={openTalk} />
       </main>
 
-      <LandingFooter />
+      <LandingFooter onTalkToUs={openTalk} />
 
       <LandingSignupModal
         open={signupOpen}
@@ -61,6 +68,13 @@ export function TenantConsolePage() {
         open={findShopOpen}
         onOpenChange={setFindShopOpen}
         onCreateShop={openSignup}
+      />
+      <TalkToUsModal
+        open={talkOpen}
+        onOpenChange={setTalkOpen}
+        destination="platform"
+        title="Talk to us"
+        description="Questions about Kiosk, pricing, or demos — send a message."
       />
     </div>
   );

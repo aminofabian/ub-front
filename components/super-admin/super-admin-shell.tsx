@@ -74,6 +74,14 @@ function crumbLabel(pathname: string): { items: { label: string; href?: string }
       ],
     };
   }
+  if (pathname === APP_ROUTES.superAdminMessages) {
+    return {
+      items: [
+        { label: "Overview", href: APP_ROUTES.superAdminDashboard },
+        { label: "Messages" },
+      ],
+    };
+  }
   if (
     pathname === APP_ROUTES.superAdminPlatformGlobalCatalog ||
     pathname.startsWith(`${APP_ROUTES.superAdminPlatformGlobalCatalog}/`)
@@ -188,6 +196,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
           Navigate
         </div>
         <NavLeaf href={APP_ROUTES.superAdminDashboard} label="Overview" />
+        <NavLeaf href={APP_ROUTES.superAdminMessages} label="Messages" />
 
         <Collapsible.Root open={openTenants} onOpenChange={setOpenTenants} className="space-y-0.5">
           <Collapsible.Trigger

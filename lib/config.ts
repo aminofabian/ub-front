@@ -47,6 +47,8 @@ export const APP_ROUTES = {
   supplierPortalOrders: "/supplier-portal/orders",
   customers: "/customers",
   customerPhones: "/customers/phones",
+  messages: "/messages",
+  superAdminMessages: "/super-admin/messages",
   /** Credit sales put on tab — period pulse + feed. */
   creditsOnTab: "/credits",
   creditsPaymentClaims: "/credits/payment-claims",

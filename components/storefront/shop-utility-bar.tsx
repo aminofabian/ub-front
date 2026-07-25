@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
+import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
 import { GetTheAppDialog } from "@/components/storefront/get-the-app-dialog";
 import { logoutRemote } from "@/lib/api";
 import { clearSessionTokens, getSessionTokens } from "@/lib/auth";
@@ -29,6 +30,7 @@ export function ShopUtilityBar({
 }) {
   const [signedIn, setSignedIn] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [talkOpen, setTalkOpen] = useState(false);
 
   const sync = useCallback(() => {
     setSignedIn(readSignedIn());
@@ -99,12 +101,13 @@ export function ShopUtilityBar({
           <span className="text-white/25 select-none" aria-hidden>
             ·
           </span>
-          <Link
-            href="#shop-catalog"
+          <button
+            type="button"
+            onClick={() => setTalkOpen(true)}
             className="rounded-md px-2 py-0.5 transition hover:bg-white/10"
           >
             Help
-          </Link>
+          </button>
           <span className="text-white/25 select-none" aria-hidden>
             ·
           </span>
@@ -147,6 +150,18 @@ export function ShopUtilityBar({
           )}
         </nav>
       </div>
+      <TalkToUsModal
+        open={talkOpen}
+        onOpenChange={setTalkOpen}
+        destination="tenant"
+        slug={slug}
+        title="Talk to us"
+        description={
+          storeName?.trim()
+            ? `Send a message to ${storeName.trim()}.`
+            : "Send a message to this shop."
+        }
+      />
     </div>
   );
 }

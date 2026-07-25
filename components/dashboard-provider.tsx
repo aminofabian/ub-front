@@ -122,6 +122,8 @@ type DashboardContextValue = {
   canPathAWrite: boolean;
   canViewApAging: boolean;
   canViewCustomers: boolean;
+  canViewMessages: boolean;
+  canReplyMessages: boolean;
   canManageCustomers: boolean;
   canManageCreditSettings: boolean;
   canReviewPaymentClaims: boolean;
@@ -542,6 +544,14 @@ export function DashboardProvider({
       canViewCustomers: hasPermission(
         effectiveMe?.permissions,
         Permission.CreditsCustomersRead,
+      ),
+      canViewMessages: hasPermission(
+        effectiveMe?.permissions,
+        Permission.MessagesRead,
+      ),
+      canReplyMessages: hasPermission(
+        effectiveMe?.permissions,
+        Permission.MessagesReply,
       ),
       canManageCustomers: hasPermission(
         effectiveMe?.permissions,

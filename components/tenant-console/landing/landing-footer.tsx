@@ -1,6 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
+import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
 import { PLATFORM_DOMAIN } from "@/lib/config";
 
 import { goldCtaClass } from "./landing-styles";
@@ -42,7 +46,7 @@ const FOOTER_COLS = [
       { label: "Help", href: "/help" },
       { label: "Merchants", href: "/help/merchants" },
       { label: "Shoppers", href: "/help/shoppers" },
-      { label: "Contact", href: "mailto:support@kiosk.ke" },
+      { label: "Contact", href: "#contact", action: "talk" as const },
     ],
   },
 ] as const;
@@ -58,11 +62,24 @@ const BARCODE_BARS = [
   2, 1, 1, 3, 2, 1, 2, 1, 1, 2, 3, 1, 1, 2,
 ] as const;
 
-export function LandingFooter() {
+type LandingFooterProps = {
+  onTalkToUs?: () => void;
+};
+
+export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
+  const [talkOpen, setTalkOpen] = useState(false);
   const year = new Date().getFullYear();
   const tillDoubled = [...TILL_STRIP, ...TILL_STRIP];
+  const openTalk = () => {
+    if (onTalkToUs) {
+      onTalkToUs();
+      return;
+    }
+    setTalkOpen(true);
+  };
 
   return (
+    <>
     <footer className="landing-footer relative mt-10 overflow-hidden">
       {/* Counter surface */}
       <div
@@ -139,6 +156,8 @@ export function LandingFooter() {
                   </div>
                   <ul className="flex flex-col">
                     {col.links.map((link) => {
+                      const talkAction =
+                        "action" in link && link.action === "talk";
                       const external =
                         link.href.startsWith("mailto:") ||
                         link.href.startsWith("http");
@@ -161,7 +180,15 @@ export function LandingFooter() {
                       );
                       return (
                         <li key={link.label}>
-                          {external ? (
+                          {talkAction ? (
+                            <button
+                              type="button"
+                              onClick={openTalk}
+                              className={`${className} w-full text-left`}
+                            >
+                              {inner}
+                            </button>
+                          ) : external ? (
                             <a href={link.href} className={className}>
                               {inner}
                             </a>
@@ -258,5 +285,15 @@ export function LandingFooter() {
         </div>
       </div>
     </footer>
+    {onTalkToUs ? null : (
+      <TalkToUsModal
+        open={talkOpen}
+        onOpenChange={setTalkOpen}
+        destination="platform"
+        title="Talk to us"
+        description="Questions about Kiosk — send a message and we’ll reply."
+      />
+    )}
+    </>
   );
 }

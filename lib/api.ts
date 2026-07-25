@@ -8870,3 +8870,54 @@ export async function fetchDisplayInstructions(): Promise<
     API_ROUTES.paymentDisplayInstructions,
   );
 }
+
+export type {
+  ContactMessageDetail,
+  ContactMessageListItem,
+  ContactMessageReply,
+  ContactReplyChannel,
+} from "@/lib/contact-messages";
+
+export async function fetchContactMessages(opts?: {
+  status?: "UNREAD" | "READ";
+  page?: number;
+  size?: number;
+}): Promise<{
+  content: import("@/lib/contact-messages").ContactMessageListItem[];
+  totalElements: number;
+}> {
+  const params = new URLSearchParams({
+    page: String(opts?.page ?? 0),
+    size: String(opts?.size ?? 50),
+  });
+  if (opts?.status) params.set("status", opts.status);
+  const payload = await request<unknown>(`/api/v1/contact-messages?${params}`);
+  const content =
+    extractPageContent<import("@/lib/contact-messages").ContactMessageListItem>(
+      payload,
+    );
+  const meta = extractSpringPageMeta(payload);
+  return {
+    content,
+    totalElements: meta?.totalElements ?? content.length,
+  };
+}
+
+export async function fetchContactMessage(
+  id: string,
+): Promise<import("@/lib/contact-messages").ContactMessageDetail> {
+  return request(`/api/v1/contact-messages/${encodeURIComponent(id)}`);
+}
+
+export async function replyToContactMessage(
+  id: string,
+  body: {
+    channel: import("@/lib/contact-messages").ContactReplyChannel;
+    body: string;
+  },
+): Promise<import("@/lib/contact-messages").ContactMessageReply> {
+  return request(`/api/v1/contact-messages/${encodeURIComponent(id)}/replies`, {
+    method: "POST",
+    body,
+  });
+}

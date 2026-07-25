@@ -1,31 +1,34 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
+import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
 import {
   ghostCtaClass,
   goldCtaClass,
 } from "@/components/tenant-console/landing/landing-styles";
-
-const SUPPORT_EMAIL = "support@kiosk.ke";
 
 type HelpContactCtaProps = {
   variant?: "merchant" | "shopper" | "general";
 };
 
 export function HelpContactCta({ variant = "general" }: HelpContactCtaProps) {
+  const [talkOpen, setTalkOpen] = useState(false);
   const copy =
     variant === "shopper"
       ? {
           title: "Still need help with an order?",
-          body: "For delivery, refunds, or missing items, contact the shop you ordered from first. For platform account issues, email Kiosk support.",
+          body: "For delivery, refunds, or missing items, contact the shop you ordered from first. For platform account issues, message Kiosk support.",
         }
       : variant === "merchant"
         ? {
             title: "Still stuck setting up?",
-            body: "Email support with your business name and subdomain — we will help you get the till selling.",
+            body: "Send a message with your business name and subdomain — we will help you get the till selling.",
           }
         : {
             title: "Still need help?",
-            body: "Shoppers: contact the merchant for order issues. Merchants: email us about account or till setup.",
+            body: "Shoppers: contact the merchant for order issues. Merchants: message us about account or till setup.",
           };
 
   return (
@@ -37,16 +40,24 @@ export function HelpContactCta({ variant = "general" }: HelpContactCtaProps) {
         {copy.body}
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
-        <a
-          href={`mailto:${SUPPORT_EMAIL}?subject=Kiosk%20Help`}
+        <button
+          type="button"
+          onClick={() => setTalkOpen(true)}
           className={goldCtaClass}
         >
-          Email {SUPPORT_EMAIL}
-        </a>
+          Talk to us
+        </button>
         <Link href="/#pricing" className={ghostCtaClass}>
           Start selling on Kiosk
         </Link>
       </div>
+      <TalkToUsModal
+        open={talkOpen}
+        onOpenChange={setTalkOpen}
+        destination="platform"
+        title="Talk to us"
+        description="Send a message to Kiosk support."
+      />
     </section>
   );
 }

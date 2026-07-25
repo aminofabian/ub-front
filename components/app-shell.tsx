@@ -348,6 +348,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         featureFlag: "shop",
         group: "Intelligence",
       },
+      {
+        href: APP_ROUTES.messages,
+        label: "Messages",
+        group: "Intelligence",
+      },
       { href: APP_ROUTES.salesQuick, label: "Quick sale", group: "Tills" },
       { href: APP_ROUTES.cashier, label: "Cashier (PWA)", group: "Tills" },
       {
@@ -387,6 +392,7 @@ type NavGate = {
   canViewSuppliers: boolean;
   canViewMarketplace: boolean;
   canViewCustomers: boolean;
+  canViewMessages: boolean;
   canReviewPaymentClaims: boolean;
   canRecordSupplierPayment: boolean;
   canViewInventoryValuation: boolean;
@@ -534,6 +540,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSalesIntelligence || gate.canViewCustomers;
   if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.customerPhones) return gate.canViewCustomers;
+  if (item.href === APP_ROUTES.messages) return gate.canViewMessages;
   if (item.href === APP_ROUTES.creditsPaymentClaims)
     return gate.canReviewPaymentClaims;
   if (item.href === APP_ROUTES.purchasingRecordPayment)
@@ -727,6 +734,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewSuppliers,
     canViewMarketplace,
     canViewCustomers,
+    canViewMessages,
     canReviewPaymentClaims,
     canRecordSupplierPayment,
     canViewInventoryValuation,
@@ -816,6 +824,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewSuppliers,
       canViewMarketplace,
       canViewCustomers,
+      canViewMessages,
       canReviewPaymentClaims,
       canRecordSupplierPayment,
       canViewInventoryValuation,
@@ -857,6 +866,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewSuppliers,
     canViewMarketplace,
     canViewCustomers,
+    canViewMessages,
     canReviewPaymentClaims,
     canRecordSupplierPayment,
     canViewInventoryValuation,

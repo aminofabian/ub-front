@@ -60,7 +60,7 @@ export function LandingFeatures({ onCreateShop }: LandingFeaturesProps) {
             </a>
           </div>
           <p className="convert-assurance">
-            Free forever on one branch · Setup under 10 minutes · M-Pesa built in
+            Free for 300 products · Setup under 10 minutes · M-Pesa built in
           </p>
         </header>
 
