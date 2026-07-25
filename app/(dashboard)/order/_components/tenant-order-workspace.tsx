@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -23,7 +24,10 @@ import {
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
+
+const ORDER_CURRENCY = "KES";
 
 type CartQty = Record<string, number>;
 
@@ -47,6 +51,10 @@ function unitCost(link: SupplierItemLinkRecord): number {
     if (n > 0) return n;
   }
   return 0;
+}
+
+function lineTotal(link: SupplierItemLinkRecord, qty: number): number {
+  return unitCost(link) * qty;
 }
 
 export function TenantOrderWorkspace() {
@@ -156,6 +164,10 @@ export function TenantOrderWorkspace() {
   );
 
   const cartUnits = cartLines.reduce((sum, line) => sum + line.qty, 0);
+  const cartTotal = cartLines.reduce(
+    (sum, line) => sum + lineTotal(line.link, line.qty),
+    0,
+  );
 
   const setQty = (itemId: string, qty: number) => {
     setCart((prev) => {
@@ -311,6 +323,9 @@ export function TenantOrderWorkspace() {
                   const stock = toNum(link.currentStock);
                   const reorder = toNum(link.reorderLevel);
                   const low = reorder > 0 && stock <= reorder;
+                  const cost = unitCost(link);
+                  const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
+                  const amount = lineTotal(link, qty);
                   return (
                     <div
                       key={link.id}
@@ -322,19 +337,35 @@ export function TenantOrderWorkspace() {
                     >
                       <button
                         type="button"
-                        className="relative flex aspect-square w-full items-center justify-center border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
+                        className="relative aspect-square w-full border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
                         onClick={() => setQty(link.itemId, qty + 1)}
                         aria-label={`Add ${link.itemName}`}
                       >
-                        <Package className="size-6 opacity-40" strokeWidth={1.5} />
+                        {thumb ? (
+                          <Image
+                            src={thumb}
+                            alt=""
+                            fill
+                            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 140px"
+                            className="object-contain p-1"
+                            unoptimized
+                          />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center">
+                            <Package
+                              className="size-6 opacity-40"
+                              strokeWidth={1.5}
+                            />
+                          </span>
+                        )}
                         {qty > 0 ? (
-                          <span className="absolute left-0 top-0 inline-flex h-5 min-w-5 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 font-mono text-[10px] font-bold text-white">
+                          <span className="absolute left-0 top-0 z-[1] inline-flex h-5 min-w-5 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 font-mono text-[10px] font-bold text-white">
                             {qty}
                           </span>
                         ) : null}
                         <span
                           className={cn(
-                            "absolute bottom-0 right-0 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums",
+                            "absolute bottom-0 right-0 z-[1] px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums",
                             low
                               ? "bg-amber-600 text-white"
                               : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_78%,transparent)] text-white",
@@ -348,11 +379,18 @@ export function TenantOrderWorkspace() {
                           {link.itemName}
                         </p>
                         <div className="mt-auto flex items-center justify-between gap-1">
-                          <p className="font-mono text-[10px] font-semibold tabular-nums">
-                            {unitCost(link) > 0
-                              ? formatMoney(unitCost(link), "KES")
-                              : "Ask"}
-                          </p>
+                          <div className="min-w-0">
+                            <p className="font-mono text-[10px] font-semibold tabular-nums">
+                              {cost > 0
+                                ? formatMoney(cost, ORDER_CURRENCY)
+                                : "Ask"}
+                            </p>
+                            {qty > 0 && cost > 0 ? (
+                              <p className="font-mono text-[9px] tabular-nums text-muted-foreground">
+                                = {formatMoney(amount, ORDER_CURRENCY)}
+                              </p>
+                            ) : null}
+                          </div>
                           {qty > 0 ? (
                             <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
                               <button
@@ -407,43 +445,89 @@ export function TenantOrderWorkspace() {
                 Tap products to build an order. Stock is shown on each tile.
               </p>
             ) : (
-              cartLines.map(({ link, qty }) => (
-                <div
-                  key={link.itemId}
-                  className="space-y-1 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2"
-                >
-                  <p className="text-[12px] font-semibold leading-snug">
-                    {link.itemName}
-                  </p>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
-                      <button
-                        type="button"
-                        className="flex size-7 items-center justify-center"
-                        onClick={() => setQty(link.itemId, qty - 1)}
-                      >
-                        −
-                      </button>
-                      <span className="min-w-7 text-center font-mono text-[12px]">
-                        {qty}
-                      </span>
-                      <button
-                        type="button"
-                        className="flex size-7 items-center justify-center"
-                        onClick={() => setQty(link.itemId, qty + 1)}
-                      >
-                        +
-                      </button>
+              cartLines.map(({ link, qty }) => {
+                const cost = unitCost(link);
+                const amount = lineTotal(link, qty);
+                const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
+                return (
+                  <div
+                    key={link.itemId}
+                    className="flex gap-2 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2"
+                  >
+                    <div className="relative size-11 shrink-0 overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]">
+                      {thumb ? (
+                        <Image
+                          src={thumb}
+                          alt=""
+                          fill
+                          sizes="44px"
+                          className="object-contain p-0.5"
+                          unoptimized
+                        />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center">
+                          <Package className="size-4 opacity-40" />
+                        </span>
+                      )}
                     </div>
-                    <p className="font-mono text-[11px] text-muted-foreground">
-                      {toNum(link.currentStock)} on hand
-                    </p>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="text-[12px] font-semibold leading-snug">
+                        {link.itemName}
+                      </p>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
+                          <button
+                            type="button"
+                            className="flex size-7 items-center justify-center"
+                            onClick={() => setQty(link.itemId, qty - 1)}
+                          >
+                            −
+                          </button>
+                          <span className="min-w-7 text-center font-mono text-[12px]">
+                            {qty}
+                          </span>
+                          <button
+                            type="button"
+                            className="flex size-7 items-center justify-center"
+                            onClick={() => setQty(link.itemId, qty + 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-mono text-[12px] font-semibold tabular-nums">
+                            {cost > 0
+                              ? formatMoney(amount, ORDER_CURRENCY)
+                              : "—"}
+                          </p>
+                          <p className="font-mono text-[9px] text-muted-foreground">
+                            {cost > 0
+                              ? `${qty} × ${formatMoney(cost, ORDER_CURRENCY)}`
+                              : `${toNum(link.currentStock)} on hand`}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
           <div className="shrink-0 space-y-2 border-t-2 border-[var(--pos-ink,#1c1915)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-2.5 py-2.5">
+            <div className="flex items-end justify-between gap-2 px-0.5">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                  Total
+                </p>
+                <p className="font-mono text-[10px] text-muted-foreground">
+                  {cartUnits} unit{cartUnits === 1 ? "" : "s"} · {cartLines.length}{" "}
+                  line{cartLines.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <p className="font-mono text-[18px] font-bold tabular-nums text-[var(--pos-ink,#1c1915)]">
+                {formatMoney(cartTotal, ORDER_CURRENCY)}
+              </p>
+            </div>
             <button
               type="button"
               disabled={placing || cartLines.length === 0}
@@ -482,8 +566,8 @@ export function TenantOrderWorkspace() {
             <span className="font-mono tabular-nums">· {cartUnits}</span>
           ) : null}
         </span>
-        <span className="text-[10px] uppercase tracking-[0.12em] opacity-90">
-          Send
+        <span className="font-mono text-[13px] font-bold tabular-nums">
+          {formatMoney(cartTotal, ORDER_CURRENCY)}
         </span>
       </button>
     </div>

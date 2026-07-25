@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Loader2, Minus, Plus } from "lucide-react";
+import { Check, Loader2, Minus, Package, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { useDashboard } from "@/components/dashboard-provider";
@@ -18,7 +19,10 @@ import {
   type PathAPurchaseOrderListRowRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
+
+const ORDER_CURRENCY = "KES";
 
 function toNum(v: unknown): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -34,6 +38,7 @@ function todayIsoDate(): string {
 }
 
 type ReceiveQty = Record<string, number>;
+type ItemMeta = { name: string; thumbnailUrl: string | null };
 
 export function OrderReceivePanel() {
   const { branchId } = useDashboard();
@@ -44,7 +49,7 @@ export function OrderReceivePanel() {
   const [detail, setDetail] = useState<PathAPurchaseOrderDetailRecord | null>(
     null,
   );
-  const [itemNames, setItemNames] = useState<Record<string, string>>({});
+  const [itemMeta, setItemMeta] = useState<Record<string, ItemMeta>>({});
   const [qtyByLine, setQtyByLine] = useState<ReceiveQty>({});
   const [selectedLines, setSelectedLines] = useState<Record<string, boolean>>(
     {},
@@ -116,11 +121,16 @@ export function OrderReceivePanel() {
             branchId: po.branchId || branchId || undefined,
           });
           if (cancelled) return;
-          const map: Record<string, string> = {};
-          for (const link of links) map[link.itemId] = link.itemName;
-          setItemNames(map);
+          const map: Record<string, ItemMeta> = {};
+          for (const link of links) {
+            map[link.itemId] = {
+              name: link.itemName,
+              thumbnailUrl: link.thumbnailUrl?.trim() || null,
+            };
+          }
+          setItemMeta(map);
         } catch {
-          if (!cancelled) setItemNames({});
+          if (!cancelled) setItemMeta({});
         }
       })
       .catch((error) => {
@@ -153,6 +163,25 @@ export function OrderReceivePanel() {
       ),
     [detail],
   );
+
+  const selectedTotal = useMemo(() => {
+    let sum = 0;
+    for (const line of openLines) {
+      if (!selectedLines[line.id]) continue;
+      const qty = Math.max(0, qtyByLine[line.id] ?? 0);
+      sum += qty * toNum(line.unitEstimatedCost);
+    }
+    return sum;
+  }, [openLines, selectedLines, qtyByLine]);
+
+  const selectedUnits = useMemo(() => {
+    let sum = 0;
+    for (const line of openLines) {
+      if (!selectedLines[line.id]) continue;
+      sum += Math.max(0, qtyByLine[line.id] ?? 0);
+    }
+    return sum;
+  }, [openLines, selectedLines, qtyByLine]);
 
   const confirmSelected = async () => {
     if (!detail) return;
@@ -316,6 +345,11 @@ export function OrderReceivePanel() {
                   toNum(line.qtyOrdered) - toNum(line.qtyReceived);
                 const checked = Boolean(selectedLines[line.id]);
                 const qty = qtyByLine[line.id] ?? remaining;
+                const unit = toNum(line.unitEstimatedCost);
+                const amount = qty * unit;
+                const meta = itemMeta[line.itemId];
+                const name = meta?.name ?? line.itemId.slice(0, 8);
+                const thumb = posTileThumbUrl(name, meta?.thumbnailUrl);
                 return (
                   <li key={line.id} className="flex items-start gap-3 px-3 py-3">
                     <button
@@ -336,14 +370,33 @@ export function OrderReceivePanel() {
                     >
                       {checked ? <Check className="size-3" /> : null}
                     </button>
+                    <div className="relative size-12 shrink-0 overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]">
+                      {thumb ? (
+                        <Image
+                          src={thumb}
+                          alt=""
+                          fill
+                          sizes="48px"
+                          className="object-contain p-0.5"
+                          unoptimized
+                        />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center">
+                          <Package className="size-4 opacity-40" />
+                        </span>
+                      )}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-[13px] font-semibold leading-snug">
-                        {itemNames[line.itemId] ?? line.itemId.slice(0, 8)}
+                        {name}
                       </p>
                       <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                         Ordered {toNum(line.qtyOrdered)} · received{" "}
-                        {toNum(line.qtyReceived)} · est.{" "}
-                        {formatMoney(toNum(line.unitEstimatedCost), "KES")}
+                        {toNum(line.qtyReceived)} ·{" "}
+                        {formatMoney(unit, ORDER_CURRENCY)} ea
+                      </p>
+                      <p className="mt-1 font-mono text-[12px] font-semibold tabular-nums">
+                        {formatMoney(amount, ORDER_CURRENCY)}
                       </p>
                     </div>
                     <div className="inline-flex shrink-0 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
@@ -394,6 +447,19 @@ export function OrderReceivePanel() {
         </div>
 
         <div className="shrink-0 space-y-2 border-t-2 border-[var(--pos-ink,#1c1915)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-3">
+          <div className="flex items-end justify-between gap-2 px-0.5">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                Selected total
+              </p>
+              <p className="font-mono text-[10px] text-muted-foreground">
+                {selectedUnits} unit{selectedUnits === 1 ? "" : "s"}
+              </p>
+            </div>
+            <p className="font-mono text-[18px] font-bold tabular-nums">
+              {formatMoney(selectedTotal, ORDER_CURRENCY)}
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
