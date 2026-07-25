@@ -1,5 +1,12 @@
 import { apiUrl } from "@/lib/config";
 
+export type PublicSupplierSupplyLine = {
+  description: string;
+  quantity: number | string;
+  unitCost: number | string;
+  lineTotal: number | string;
+};
+
 export type PublicSupplierSupplyRow = {
   invoiceNumber: string;
   invoiceDate: string;
@@ -8,6 +15,7 @@ export type PublicSupplierSupplyRow = {
   balanceOpen: number | string;
   paymentStatus: string;
   sourceType: string;
+  lines?: PublicSupplierSupplyLine[];
 };
 
 export type PublicSupplierMovementRow = {

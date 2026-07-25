@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Loader2, MessageSquareWarning, Package, Receipt } from "lucide-react";
+import {
+  ChevronDown,
+  Loader2,
+  MessageSquareWarning,
+  Package,
+  Receipt,
+} from "lucide-react";
 
 import {
   fetchPublicSupplierPortal,
   submitPublicSupplierComplaint,
   type PublicSupplierPortal,
+  type PublicSupplierSupplyRow,
 } from "@/lib/public-supplier-portal";
 import {
   formatMoneyCompact,
@@ -57,6 +64,65 @@ function statusTone(status: string): string {
   return "text-rose-800";
 }
 
+function SupplyLinesDetail({
+  row,
+  currency,
+}: {
+  row: PublicSupplierSupplyRow;
+  currency: string;
+}) {
+  const lines = row.lines ?? [];
+  if (lines.length === 0) {
+    return (
+      <p className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-3 text-center text-[11px] text-muted-foreground">
+        No line items on this supply.
+      </p>
+    );
+  }
+  return (
+    <div className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 pb-3 pt-2">
+      <div
+        className="mb-1.5 grid grid-cols-[1fr_auto_auto_auto] gap-x-2 px-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-muted-foreground"
+        aria-hidden
+      >
+        <span>Item</span>
+        <span className="text-right">Qty</span>
+        <span className="text-right">Cost</span>
+        <span className="text-right">Total</span>
+      </div>
+      <ul className="space-y-1.5">
+        {lines.map((line, i) => (
+          <li
+            key={`${line.description}-${i}`}
+            className="grid grid-cols-[1fr_auto_auto_auto] items-baseline gap-x-2 text-[11px]"
+          >
+            <span className="min-w-0 truncate font-medium leading-snug">
+              {line.description}
+            </span>
+            <span className="min-w-[2rem] text-right font-mono tabular-nums text-muted-foreground">
+              {toNum(line.quantity)}
+            </span>
+            <span className="min-w-[3.25rem] text-right font-mono tabular-nums text-muted-foreground">
+              {toNum(line.unitCost).toFixed(2)}
+            </span>
+            <span className="min-w-[4rem] text-right font-mono font-semibold tabular-nums">
+              {fmtMoney(line.lineTotal, currency)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 flex items-baseline justify-between border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] pt-2 text-[11px]">
+        <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+          Paid {fmtMoney(row.amountPaid, currency)}
+        </span>
+        <span className="font-mono font-semibold tabular-nums">
+          Due {fmtMoney(row.grandTotal, currency)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function PublicSupplierPortalView({ username, branding }: Props) {
   const [data, setData] = useState<PublicSupplierPortal | null>(null);
   const [busy, setBusy] = useState(true);
@@ -68,6 +134,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
   const [noteBusy, setNoteBusy] = useState(false);
   const [noteDone, setNoteDone] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
+  const [openSupplyKey, setOpenSupplyKey] = useState<string | null>(null);
 
   const theme = useMemo(
     () =>
@@ -214,37 +281,65 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
             </p>
           ) : (
             <ul className="divide-y divide-dashed divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
-              {data.supplies.map((row) => (
-                <li
-                  key={`${row.invoiceNumber}-${row.invoiceDate}`}
-                  className="flex items-start justify-between gap-3 px-3 py-2.5"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold">
-                      {row.invoiceNumber}
-                    </p>
-                    <p className="font-mono text-[10px] text-muted-foreground">
-                      {fmtDate(row.invoiceDate)} · {row.sourceType.replace(/_/g, " ")}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="font-mono text-[12px] font-semibold tabular-nums">
-                      {fmtMoney(row.grandTotal, currency)}
-                    </p>
-                    <p
-                      className={cn(
-                        "text-[9px] font-bold uppercase tracking-wide",
-                        statusTone(row.paymentStatus),
-                      )}
+              {data.supplies.map((row) => {
+                const key = `${row.invoiceNumber}-${row.invoiceDate}`;
+                const open = openSupplyKey === key;
+                const lines = row.lines ?? [];
+                return (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenSupplyKey((prev) => (prev === key ? null : key))
+                      }
+                      className="flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]"
+                      aria-expanded={open}
                     >
-                      {row.paymentStatus}
-                      {toNum(row.balanceOpen) > 0.009
-                        ? ` · ${fmtMoney(row.balanceOpen, currency)} open`
-                        : ""}
-                    </p>
-                  </div>
-                </li>
-              ))}
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 truncate text-[13px] font-semibold">
+                          <ChevronDown
+                            className={cn(
+                              "size-3.5 shrink-0 text-muted-foreground transition-transform",
+                              open && "rotate-180",
+                            )}
+                            aria-hidden
+                          />
+                          {row.invoiceNumber}
+                        </p>
+                        <p className="pl-5 font-mono text-[10px] text-muted-foreground">
+                          {fmtDate(row.invoiceDate)} ·{" "}
+                          {row.sourceType.replace(/_/g, " ")}
+                          {lines.length > 0
+                            ? ` · ${lines.length} item${lines.length === 1 ? "" : "s"}`
+                            : ""}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="font-mono text-[12px] font-semibold tabular-nums">
+                          {fmtMoney(row.grandTotal, currency)}
+                        </p>
+                        <p
+                          className={cn(
+                            "text-[9px] font-bold uppercase tracking-wide",
+                            statusTone(row.paymentStatus),
+                          )}
+                        >
+                          {row.paymentStatus}
+                          {toNum(row.balanceOpen) > 0.009
+                            ? ` · ${fmtMoney(row.balanceOpen, currency)} open`
+                            : ""}
+                        </p>
+                      </div>
+                    </button>
+                    {open ? (
+                      <SupplyLinesDetail
+                        row={row}
+                        currency={currency}
+                      />
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
