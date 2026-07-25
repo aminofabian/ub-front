@@ -1,6 +1,19 @@
 import { apiUrl } from "./config";
+import {
+  contactChallengePayload,
+  createContactTillChallenge,
+  type ContactTillChallenge,
+} from "./contact-till-challenge";
 
 export type ContactMessageDestination = "platform" | "tenant";
+
+export type {
+  ContactChallengeKind,
+  ContactTillChallenge,
+  ContactTillLine,
+} from "./contact-till-challenge";
+
+export { createContactTillChallenge } from "./contact-till-challenge";
 
 export type PublicContactMessagePayload = {
   name: string;
@@ -8,6 +21,8 @@ export type PublicContactMessagePayload = {
   phone?: string;
   message: string;
   sourcePath?: string;
+  challenge: ContactTillChallenge;
+  challengeAnswer: number;
 };
 
 export type ContactMessageListItem = {
@@ -73,11 +88,22 @@ export async function submitPublicContactMessage(
       ? `/public/businesses/${encodeURIComponent((slug ?? "").trim())}/contact-messages`
       : "/public/contact-messages";
 
-  const body: Record<string, string> = {
+  const challenge = contactChallengePayload(payload.challenge);
+  const body: Record<string, unknown> = {
     name: payload.name.trim(),
     email: payload.email.trim(),
     message: payload.message.trim(),
+    challengeKind: challenge.challengeKind,
+    lines: challenge.lines,
+    challengeAnswer: payload.challengeAnswer,
+    website: "",
   };
+  if (challenge.tendered != null) body.tendered = challenge.tendered;
+  if (challenge.percent != null) body.percent = challenge.percent;
+  if (challenge.baseAmount != null) body.baseAmount = challenge.baseAmount;
+  if (challenge.secondaryAmount != null) {
+    body.secondaryAmount = challenge.secondaryAmount;
+  }
   const phone = payload.phone?.trim();
   if (phone) body.phone = phone;
   const sourcePath = payload.sourcePath?.trim();
@@ -102,9 +128,14 @@ export function validateContactForm(input: {
   email: string;
   phone: string;
   message: string;
-}): Partial<Record<"name" | "email" | "phone" | "message", string>> {
-  const errors: Partial<Record<"name" | "email" | "phone" | "message", string>> =
-    {};
+  challengeAnswer: string;
+  challengeExpected: number;
+}): Partial<
+  Record<"name" | "email" | "phone" | "message" | "challengeAnswer", string>
+> {
+  const errors: Partial<
+    Record<"name" | "email" | "phone" | "message" | "challengeAnswer", string>
+  > = {};
   if (!input.name.trim()) errors.name = "Name is required";
   if (!input.email.trim()) {
     errors.email = "Email is required";
@@ -114,6 +145,12 @@ export function validateContactForm(input: {
   if (!input.message.trim()) errors.message = "Message is required";
   if (input.phone.trim() && input.phone.replace(/\D/g, "").length < 9) {
     errors.phone = "Enter a valid phone number";
+  }
+  const answer = Number.parseInt(input.challengeAnswer.trim(), 10);
+  if (!input.challengeAnswer.trim() || Number.isNaN(answer)) {
+    errors.challengeAnswer = "Enter your answer";
+  } else if (answer !== input.challengeExpected) {
+    errors.challengeAnswer = "Not quite — try that till maths again";
   }
   return errors;
 }
