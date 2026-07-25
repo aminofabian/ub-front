@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
@@ -27,15 +26,7 @@ import {
 } from "@/lib/marketplace-api";
 import { cn, formatMoney } from "@/lib/utils";
 
-import {
-  mktChip,
-  mktChipActive,
-  mktHero,
-  mktHeroPattern,
-  mktPage,
-  mktSearch,
-  mktTile,
-} from "./_components/marketplace-ui";
+import { mktChip, mktChipActive } from "./_components/marketplace-ui";
 
 const SEARCH_DEBOUNCE_MS = 320;
 const PRODUCT_PAGE_SIZE = 100;
@@ -226,19 +217,24 @@ function PublicMarketplacePageInner() {
   }, [products, suppliers, tab]);
 
   const visibleProducts = useMemo(() => {
-    const filtered = !activeTag
-      ? products
-      : products.filter(
-          (row) =>
-            row.categoryName?.trim().toLowerCase() === activeTag.toLowerCase(),
-        );
+    let filtered = products;
+    // Client-side guard so supplier filter works even if API ignores supplierId.
+    if (activeSupplierId) {
+      filtered = filtered.filter((row) => row.supplierId === activeSupplierId);
+    }
+    if (activeTag) {
+      filtered = filtered.filter(
+        (row) =>
+          row.categoryName?.trim().toLowerCase() === activeTag.toLowerCase(),
+      );
+    }
     return [...filtered].sort((a, b) => {
       const ai = a.imageUrl ? 0 : 1;
       const bi = b.imageUrl ? 0 : 1;
       if (ai !== bi) return ai - bi;
       return (a.productName || "").localeCompare(b.productName || "");
     });
-  }, [products, activeTag]);
+  }, [products, activeTag, activeSupplierId]);
 
   const visibleSuppliers = useMemo(() => {
     if (!activeTag) return suppliers;
@@ -275,9 +271,18 @@ function PublicMarketplacePageInner() {
 
   const activeSupplierName =
     supplierColumn.find((s) => s.id === activeSupplierId)?.name ?? null;
+  const activeSupplierSlug =
+    supplierColumn.find((s) => s.id === activeSupplierId)?.slug ?? null;
 
   const resultCount =
     tab === "suppliers" ? visibleSuppliers.length : visibleProducts.length;
+  // If API ignored supplierId, products still contain other suppliers — count visible only.
+  const supplierFilterIsClientOnly =
+    Boolean(activeSupplierId) &&
+    products.some((p) => p.supplierId !== activeSupplierId);
+  const displayProductCount = supplierFilterIsClientOnly
+    ? visibleProducts.length
+    : productTotal || resultCount;
   const hasQuery = Boolean(
     debouncedSearch.trim() || activeTag || activeLocation || activeSupplierId,
   );
@@ -290,44 +295,59 @@ function PublicMarketplacePageInner() {
   };
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,var(--background),color-mix(in_oklch,var(--muted)_40%,var(--background)))]">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6">
+    <div
+      className="min-h-dvh bg-[radial-gradient(120%_80%_at_50%_-10%,color-mix(in_srgb,#0f766e_12%,#f7f4ef),#efeae2_42%,#e7e1d6)] text-[var(--pos-ink,#1c1915)]"
+      style={{ ["--pos-primary" as string]: "#0f766e" }}
+    >
+      <header className="sticky top-0 z-30 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,#faf8f4_88%,transparent)] backdrop-blur-md">
+        <div className="mx-auto flex h-12 max-w-[1400px] items-center justify-between gap-3 px-3 sm:px-5">
           <div className="flex items-center gap-3">
             <KioskLogo size="sm" href="/" />
-            <span className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:inline">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
               Marketplace
             </span>
           </div>
           <div className="flex items-center gap-2">
             {signedIn ? (
-              <Button asChild variant="outline" size="sm" className="rounded-none">
-                <Link href={APP_ROUTES.suppliers}>My suppliers</Link>
-              </Button>
+              <Link
+                href={APP_ROUTES.suppliers}
+                className="inline-flex h-8 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
+              >
+                My suppliers
+              </Link>
             ) : (
-              <Button asChild size="sm" className="rounded-none">
-                <Link href={APP_ROUTES.login}>Sign in</Link>
-              </Button>
+              <Link
+                href={APP_ROUTES.login}
+                className="inline-flex h-8 items-center bg-[var(--pos-primary,#0f766e)] px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--pos-primary-ink,#fff)]"
+              >
+                Sign in
+              </Link>
             )}
           </div>
         </div>
       </header>
 
-      <main className={cn(mktPage, "px-4 py-5 sm:px-6 sm:py-7")}>
-        <div className="flex min-h-0 flex-1 flex-col gap-3 pb-8">
-          <section className={mktHero}>
-            <div className={mktHeroPattern} aria-hidden />
-            <div className="relative space-y-3 px-4 py-4 sm:px-6 sm:py-5">
-              <div className="flex flex-wrap items-end justify-between gap-3">
+      <main className="mx-auto w-full max-w-[1400px] px-3 pb-10 pt-3 sm:px-5">
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <section className="relative overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]">
+            <span
+              aria-hidden
+              className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
+            />
+            <div className="relative space-y-2.5 px-3 py-3 pl-4 sm:px-4 sm:pl-5">
+              <div className="flex flex-wrap items-end justify-between gap-2">
                 <div className="min-w-0">
-                  <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    Catalogue
+                  </p>
+                  <h1 className="mt-0.5 text-[1.15rem] font-semibold leading-none tracking-tight text-[var(--pos-ink,#1c1915)] sm:text-[1.25rem]">
                     Source products. Order by WhatsApp.
                   </h1>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Filter by area, then supplier · PDF order via WhatsApp
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Area → supplier → products
                   </p>
                 </div>
-                <div className="flex shrink-0 border border-border/60 bg-background p-0.5">
+                <div className="flex shrink-0 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] p-0.5">
                   {(
                     [
                       { id: "products" as const, label: "Products", icon: Package },
@@ -341,10 +361,10 @@ function PublicMarketplacePageInner() {
                         key={item.id}
                         type="button"
                         className={cn(
-                          "inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition",
+                          "inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold transition",
                           active
-                            ? "bg-foreground text-background"
-                            : "text-muted-foreground hover:text-foreground",
+                            ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                            : "text-muted-foreground hover:text-[var(--pos-ink,#1c1915)]",
                         )}
                         onClick={() => {
                           setTab(item.id);
@@ -360,14 +380,14 @@ function PublicMarketplacePageInner() {
                 </div>
               </div>
 
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <div className="relative border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-white/80">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  className={mktSearch}
+                  className="h-9 w-full border-0 bg-transparent pl-8 pr-9 text-[13px] outline-none placeholder:text-muted-foreground/50"
                   placeholder={
                     tab === "products"
-                      ? "Products, barcodes, SKUs…"
-                      : "Suppliers…"
+                      ? "Find products, barcodes, SKUs…"
+                      : "Find suppliers…"
                   }
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -387,14 +407,16 @@ function PublicMarketplacePageInner() {
 
               {!searchInput && tab === "products" ? (
                 <p className="text-[11px] text-muted-foreground">
-                  <span className="font-medium text-foreground/70">Popular</span>
+                  <span className="font-medium text-[var(--pos-ink,#1c1915)]/70">
+                    Popular
+                  </span>
                   {": "}
                   {QUICK_PROMPTS.map((prompt, i) => (
                     <span key={prompt}>
                       {i > 0 ? " · " : null}
                       <button
                         type="button"
-                        className="underline-offset-2 hover:text-foreground hover:underline"
+                        className="underline-offset-2 hover:text-[var(--pos-ink,#1c1915)] hover:underline"
                         onClick={() => {
                           setSearchInput(prompt);
                           setTab("products");
@@ -408,7 +430,7 @@ function PublicMarketplacePageInner() {
               ) : null}
 
               {locationChips.length ? (
-                <div className="flex flex-col gap-2 border-t border-border/50 pt-2.5">
+                <div className="flex flex-col gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2.5">
                   <FilterRow label="1 · Area" icon={MapPin}>
                     <button
                       type="button"
@@ -466,7 +488,7 @@ function PublicMarketplacePageInner() {
                   ) : null}
                 </div>
               ) : categoryTags.length ? (
-                <div className="flex flex-col gap-2 border-t border-border/50 pt-2.5">
+                <div className="flex flex-col gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2.5">
                   <FilterRow label="Category">
                     {activeTag ? (
                       <button
@@ -502,16 +524,17 @@ function PublicMarketplacePageInner() {
               ) : (
                 <>
                   <span className="font-heading text-lg font-semibold tabular-nums">
-                    {tab === "products" ? productTotal || resultCount : resultCount}
+                    {tab === "products" ? displayProductCount : resultCount}
                   </span>
                   <span className="ml-1.5 text-muted-foreground">
                     {tab === "products"
-                      ? `product${(productTotal || resultCount) === 1 ? "" : "s"}`
+                      ? `product${displayProductCount === 1 ? "" : "s"}`
                       : `supplier${resultCount === 1 ? "" : "s"}`}
                     {activeLocation ? ` · ${activeLocation}` : ""}
                     {activeSupplierName ? ` · ${activeSupplierName}` : ""}
                     {activeTag ? ` · ${activeTag}` : ""}
                     {tab === "products" &&
+                    !supplierFilterIsClientOnly &&
                     !productLast &&
                     visibleProducts.length < productTotal
                       ? ` · showing ${visibleProducts.length}`
@@ -547,7 +570,7 @@ function PublicMarketplacePageInner() {
                   showClear={hasQuery}
                 />
               ) : (
-                <div className="flex min-h-[28rem] flex-col gap-3 lg:flex-row lg:items-stretch">
+                <div className="flex h-[min(78dvh,56rem)] min-h-[28rem] flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] lg:flex-row">
                   {showSupplierRail ? (
                     <SupplierFilterColumn
                       suppliers={supplierColumn}
@@ -556,65 +579,85 @@ function PublicMarketplacePageInner() {
                       onSelect={setActiveSupplierId}
                     />
                   ) : null}
-                  <div className="min-w-0 flex-1 space-y-3">
-                    {visibleProducts.length === 0 ? (
-                      <EmptyState
-                        title={
-                          activeSupplierId
-                            ? "No products from this supplier"
-                            : hasQuery
-                              ? "No products match"
-                              : "No linked products yet"
-                        }
-                        hint={
-                          activeSupplierId
-                            ? "Pick another supplier, or clear the supplier filter."
-                            : hasQuery
-                              ? "Try another name, location, or clear filters."
-                              : "When businesses link products to active suppliers, those items appear here."
-                        }
-                        onClear={clearFilters}
-                        showClear={hasQuery}
-                      />
-                    ) : (
-                      <>
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                          {visibleProducts.map((row, index) => (
-                            <ProductTile
-                              key={`${row.supplierId}-${row.productId}`}
-                              row={row}
-                              index={index}
-                            />
-                          ))}
-                        </div>
-                        {!productLast ? (
-                          <div className="flex justify-center pt-1">
-                            <button
-                              type="button"
-                              disabled={loadingMore}
-                              className="inline-flex h-10 items-center gap-2 border border-border bg-background px-4 text-sm font-semibold hover:bg-muted disabled:opacity-60"
-                              onClick={() =>
-                                void loadProducts(productPage + 1, true)
-                              }
-                            >
-                              {loadingMore ? (
-                                <>
-                                  <Loader2 className="size-4 animate-spin" />
-                                  Loading…
-                                </>
-                              ) : (
-                                <>
-                                  Load more
-                                  <span className="font-mono text-xs text-muted-foreground">
-                                    {visibleProducts.length}/{productTotal}
-                                  </span>
-                                </>
-                              )}
-                            </button>
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2.5 py-2">
+                      <h3 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+                        {activeSupplierName ?? "Shelf"}
+                        <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
+                          {visibleProducts.length}
+                        </span>
+                      </h3>
+                      {activeSupplierId && activeSupplierSlug ? (
+                        <Link
+                          href={APP_ROUTES.marketplaceSupplier(activeSupplierSlug)}
+                          className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--pos-primary,#0f766e)] hover:underline"
+                        >
+                          Open passport
+                        </Link>
+                      ) : null}
+                    </div>
+                    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-1.5 py-1.5 sm:px-2.5">
+                      {visibleProducts.length === 0 ? (
+                        <EmptyState
+                          title={
+                            activeSupplierId
+                              ? "No products from this supplier"
+                              : hasQuery
+                                ? "No products match"
+                                : "No linked products yet"
+                          }
+                          hint={
+                            activeSupplierId
+                              ? "Pick another supplier, or clear the supplier filter."
+                              : hasQuery
+                                ? "Try another name, location, or clear filters."
+                                : "When businesses link products to active suppliers, those items appear here."
+                          }
+                          onClear={clearFilters}
+                          showClear={hasQuery}
+                        />
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                            {visibleProducts.map((row, index) => (
+                              <ProductTile
+                                key={`${row.supplierId}-${row.productId}`}
+                                row={row}
+                                index={index}
+                              />
+                            ))}
                           </div>
-                        ) : null}
-                      </>
-                    )}
+                          {!productLast ? (
+                            <div className="flex justify-center py-2">
+                              <button
+                                type="button"
+                                disabled={loadingMore}
+                                className="inline-flex h-9 items-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 text-[12px] font-semibold hover:bg-card disabled:opacity-60"
+                                onClick={() =>
+                                  void loadProducts(productPage + 1, true)
+                                }
+                              >
+                                {loadingMore ? (
+                                  <>
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                    Loading…
+                                  </>
+                                ) : (
+                                  <>
+                                    Load more
+                                    <span className="font-mono text-[10px] text-muted-foreground">
+                                      {supplierFilterIsClientOnly
+                                        ? visibleProducts.length
+                                        : `${visibleProducts.length}/${productTotal}`}
+                                    </span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
@@ -630,7 +673,7 @@ function PublicMarketplacePageInner() {
                 showClear={hasQuery}
               />
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {visibleSuppliers.map((row, index) => (
                   <SupplierTile key={row.id} row={row} index={index} />
                 ))}
@@ -654,18 +697,50 @@ function SupplierFilterColumn({
   areaLabel: string | null;
   onSelect: (id: string | null) => void;
 }) {
+  const [supplierQuery, setSupplierQuery] = useState("");
+  const filtered = useMemo(() => {
+    const q = supplierQuery.trim().toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter((s) => {
+      const hay = [s.name, s.location, ...(s.locations ?? []), s.listedBy]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [suppliers, supplierQuery]);
+
   return (
     <>
-      {/* Mobile: horizontal strip */}
-      <div className="min-w-0 border border-border/55 bg-card lg:hidden">
-        <div className="flex items-center justify-between border-b border-border/50 px-2.5 py-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+      {/* Mobile */}
+      <div className="min-w-0 shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:hidden">
+        <div className="flex items-center justify-between bg-[var(--pos-primary,#0f766e)] px-2.5 py-1.5 text-[var(--pos-primary-ink,#fff)]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em]">
             2 · Supplier
             {areaLabel ? ` · ${areaLabel}` : ""}
           </p>
-          <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-            {suppliers.length}
+          <span className="font-mono text-[10px] tabular-nums opacity-80">
+            {filtered.length}
           </span>
+        </div>
+        <div className="relative border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+          <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+          <input
+            className="h-8 w-full bg-transparent pl-7 pr-8 text-[12px] outline-none placeholder:text-muted-foreground/50"
+            placeholder="Search suppliers…"
+            value={supplierQuery}
+            onChange={(e) => setSupplierQuery(e.target.value)}
+          />
+          {supplierQuery ? (
+            <button
+              type="button"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
+              onClick={() => setSupplierQuery("")}
+              aria-label="Clear supplier search"
+            >
+              <X className="size-3" />
+            </button>
+          ) : null}
         </div>
         <div className="flex gap-1 overflow-x-auto p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
@@ -674,13 +749,13 @@ function SupplierFilterColumn({
             className={cn(
               "flex h-14 w-[4.5rem] shrink-0 flex-col items-center justify-center border px-1 text-center text-[10px] font-semibold leading-tight",
               activeId == null
-                ? "border-foreground bg-foreground text-background"
-                : "border-border/60 text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] text-muted-foreground",
             )}
           >
             All
           </button>
-          {suppliers.map((s) => (
+          {filtered.map((s) => (
             <button
               key={s.id}
               type="button"
@@ -689,8 +764,8 @@ function SupplierFilterColumn({
               className={cn(
                 "flex h-14 w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 border px-1 text-center",
                 activeId === s.id
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border/60 hover:border-foreground/40",
+                  ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                  : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
               )}
             >
               <span className="line-clamp-2 text-[10px] font-semibold leading-tight">
@@ -706,24 +781,48 @@ function SupplierFilterColumn({
               </span>
             </button>
           ))}
+          {filtered.length === 0 ? (
+            <p className="px-2 py-3 text-[11px] text-muted-foreground">
+              No suppliers match “{supplierQuery}”.
+            </p>
+          ) : null}
         </div>
       </div>
 
-      {/* Desktop: vertical column */}
-      <aside className="hidden h-[min(70dvh,40rem)] w-[11rem] shrink-0 flex-col overflow-hidden border border-border/55 bg-card lg:flex xl:w-[12.5rem]">
-        <div className="flex shrink-0 items-center justify-between border-b border-border/50 bg-foreground px-2.5 py-2 text-background">
+      {/* Desktop column — same language as passport parent rail */}
+      <aside className="hidden h-full w-[12rem] shrink-0 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:flex xl:w-[13.5rem]">
+        <div className="flex h-8 shrink-0 items-center justify-between bg-[var(--pos-primary,#0f766e)] px-2.5 text-[var(--pos-primary-ink,#fff)]">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em]">
             2 · Supplier
           </p>
           <span className="font-mono text-[10px] tabular-nums opacity-80">
-            {suppliers.length}
+            {filtered.length}
           </span>
         </div>
         {areaLabel ? (
-          <p className="shrink-0 border-b border-border/50 px-2.5 py-1.5 text-[10px] text-muted-foreground">
+          <p className="shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2.5 py-1 text-[10px] text-muted-foreground">
             in {areaLabel}
           </p>
         ) : null}
+        <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-white/50">
+          <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+          <input
+            className="h-8 w-full bg-transparent pl-7 pr-8 text-[12px] outline-none placeholder:text-muted-foreground/50"
+            placeholder="Search suppliers…"
+            value={supplierQuery}
+            onChange={(e) => setSupplierQuery(e.target.value)}
+          />
+          {supplierQuery ? (
+            <button
+              type="button"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
+              onClick={() => setSupplierQuery("")}
+              aria-label="Clear supplier search"
+            >
+              <X className="size-3" />
+            </button>
+          ) : null}
+        </div>
         <nav
           aria-label="Filter by supplier"
           className="min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain p-1 [scrollbar-width:thin]"
@@ -732,39 +831,39 @@ function SupplierFilterColumn({
             type="button"
             onClick={() => onSelect(null)}
             className={cn(
-              "flex w-full items-center justify-between gap-2 px-2 py-2 text-left text-[12px] font-semibold",
+              "flex w-full items-center gap-2 px-2 py-2 text-left text-[12px] font-semibold",
               activeId == null
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
             )}
           >
-            <span>All suppliers</span>
+            All suppliers
           </button>
-          {suppliers.map((s) => (
+          {filtered.map((s) => (
             <button
               key={s.id}
               type="button"
               onClick={() => onSelect(activeId === s.id ? null : s.id)}
               className={cn(
-                "flex w-full flex-col items-start gap-0.5 px-2 py-2 text-left transition",
+                "flex w-full flex-col items-start gap-0.5 border px-2 py-2 text-left transition",
                 activeId === s.id
-                  ? "bg-foreground text-background"
-                  : "hover:bg-muted/50",
+                  ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
+                  : "border-transparent hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]",
               )}
             >
-              <span className="line-clamp-2 text-[12px] font-semibold leading-snug">
+              <span className="text-[12px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
                 {s.name}
               </span>
-              <span
-                className={cn(
-                  "font-mono text-[10px] tabular-nums",
-                  activeId === s.id ? "opacity-80" : "text-muted-foreground",
-                )}
-              >
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
                 {s.productCount} product{s.productCount === 1 ? "" : "s"}
               </span>
             </button>
           ))}
+          {filtered.length === 0 ? (
+            <p className="px-2 py-4 text-center text-[11px] text-muted-foreground">
+              No suppliers match.
+            </p>
+          ) : null}
         </nav>
       </aside>
     </>
@@ -824,8 +923,8 @@ function ProductImage({
           alt={alt}
           fill
           unoptimized
-          className="object-contain p-2 transition duration-300 group-hover:scale-[1.02]"
-          sizes="(max-width: 640px) 50vw, 240px"
+          className="object-contain p-0.5 transition-transform duration-300 group-hover:scale-[1.04]"
+          sizes="(max-width: 640px) 30vw, (max-width: 1024px) 16vw, 120px"
           onError={() => setFailed(true)}
         />
       ) : (
@@ -855,59 +954,37 @@ function ProductTile({
   return (
     <Link
       href={href}
-      className={mktTile}
+      className={cn(
+        "group relative flex h-full flex-col overflow-hidden border",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+        "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] text-left",
+        "transition-[border-color,background-color,box-shadow] duration-150",
+        "hover:z-[1] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)] hover:bg-card",
+        "hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+      )}
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >
       <ProductImage
         src={row.imageUrl}
         alt={row.productName}
         hue={hue}
-        className="h-40 border-b border-border/50"
-        iconClassName="size-7 opacity-55"
+        className="aspect-square w-full shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
+        iconClassName="size-5 opacity-55"
       />
-      <div className="flex flex-1 flex-col gap-2 p-3.5">
-        <div>
-          {row.categoryName ? (
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              {row.categoryName}
-            </p>
-          ) : null}
-          <p className="line-clamp-2 font-medium leading-snug">
-            {row.productName}
+      <div className="flex min-h-[3.25rem] w-full flex-1 flex-col justify-between gap-1 px-1 pb-1 pt-1">
+        <p className="text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
+          {row.productName}
+        </p>
+        <div className="space-y-0.5">
+          <p className="font-mono text-[10px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+            {row.unitPrice != null
+              ? formatMoney(row.unitPrice, row.currency ?? "KES")
+              : "Ask"}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-[9px] leading-tight text-muted-foreground">
             {row.supplierName}
-            {row.supplierProductCount
-              ? ` · ${row.supplierProductCount} products`
-              : ""}
+            {row.location ? ` · ${row.location}` : ""}
           </p>
-          {row.location ? (
-            <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="size-3 shrink-0" />
-              <span className="truncate">{row.location}</span>
-            </p>
-          ) : null}
-        </div>
-        <div className="mt-auto flex items-end justify-between gap-2">
-          <div className="min-w-0 text-[11px] text-muted-foreground">
-            {row.barcode ? (
-              <p className="truncate font-mono">{row.barcode}</p>
-            ) : null}
-          </div>
-          <div className="shrink-0 text-right">
-            {row.unitPrice != null ? (
-              <>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  Buying
-                </p>
-                <p className="font-heading text-lg font-semibold tracking-tight tabular-nums">
-                  {formatMoney(row.unitPrice, row.currency ?? "KES")}
-                </p>
-              </>
-            ) : (
-              <p className="text-xs text-muted-foreground">Ask price</p>
-            )}
-          </div>
         </div>
       </div>
     </Link>
@@ -929,39 +1006,41 @@ function SupplierTile({
   return (
     <Link
       href={href}
-      className={mktTile}
+      className={cn(
+        "group relative flex h-full flex-col overflow-hidden border",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+        "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] text-left",
+        "transition-[border-color,background-color,box-shadow] duration-150",
+        "hover:z-[1] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)] hover:bg-card",
+        "hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+      )}
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >
       <div
-        className="relative flex h-24 items-end px-4 pb-3"
+        className="relative flex aspect-[16/9] items-end px-2.5 pb-2"
         style={{
-          background: `linear-gradient(135deg, hsl(${hue} 18% 28%), hsl(${(hue + 40) % 360} 14% 18%))`,
+          background: `linear-gradient(145deg, hsl(${hue} 18% 88%), hsl(${(hue + 28) % 360} 14% 78%))`,
         }}
       >
-        <span className="relative flex size-11 items-center justify-center border border-white/25 bg-white/10 text-sm font-semibold tracking-wide text-white">
+        <span className="inline-flex size-9 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card/90 text-[11px] font-bold">
           {initials(row.name)}
         </span>
-        <span className="relative ml-auto border border-white/20 bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white">
-          {row.productCount} products
-        </span>
       </div>
-      <div className="flex flex-1 flex-col gap-2 p-3.5">
-        <div>
-          <p className="font-heading text-lg font-semibold leading-tight tracking-tight">
-            {row.name}
+      <div className="flex flex-1 flex-col gap-1 px-2 pb-2 pt-1.5">
+        <p className="text-[12px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
+          {row.name}
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          {row.location || (row.locations?.[0] ?? "—")}
+          {row.productCount
+            ? ` · ${row.productCount} product${row.productCount === 1 ? "" : "s"}`
+            : ""}
+        </p>
+        {row.listedBy ? (
+          <p className="text-[9px] text-muted-foreground">
+            Listed by {row.listedBy}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {[row.supplierType, row.listedBy ? `via ${row.listedBy}` : null]
-              .filter(Boolean)
-              .join(" · ") || "Supplier"}
-          </p>
-          {row.location ? (
-            <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="size-3 shrink-0" />
-              {row.location}
-            </p>
-          ) : null}
-        </div>
+        ) : null}
       </div>
     </Link>
   );
@@ -979,21 +1058,20 @@ function EmptyState({
   showClear?: boolean;
 }) {
   return (
-    <div className="flex min-h-[280px] flex-col items-center justify-center border border-dashed border-border/70 bg-muted/15 px-6 py-12 text-center">
-      <Store className="size-10 text-muted-foreground/40" />
-      <p className="mt-4 font-heading text-xl font-semibold tracking-tight">
+    <div className="flex min-h-[240px] flex-col items-center justify-center border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_40%,transparent)] px-6 py-10 text-center">
+      <Store className="size-8 text-muted-foreground/40" />
+      <p className="mt-3 text-[15px] font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
         {title}
       </p>
-      <p className="mt-1 max-w-sm text-sm text-muted-foreground">{hint}</p>
+      <p className="mt-1 max-w-sm text-[12px] text-muted-foreground">{hint}</p>
       {showClear ? (
-        <Button
+        <button
           type="button"
-          variant="outline"
-          className="mt-4 rounded-none"
+          className="mt-4 inline-flex h-9 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card px-3 text-[12px] font-semibold hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
           onClick={onClear}
         >
           Clear filters
-        </Button>
+        </button>
       ) : null}
     </div>
   );
@@ -1001,19 +1079,23 @@ function EmptyState({
 
 function MarketplaceSkeleton({ tab }: { tab: SearchTab }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="overflow-hidden border border-border/40 bg-card">
-          <div
-            className={cn(
-              "animate-pulse bg-muted/60",
-              tab === "suppliers" ? "h-24" : "h-40",
-            )}
-          />
-          <div className="space-y-2 p-3.5">
-            <div className="h-4 w-3/4 animate-pulse bg-muted/70" />
-            <div className="h-3 w-full animate-pulse bg-muted/50" />
-            <div className="h-3 w-1/2 animate-pulse bg-muted/40" />
+    <div
+      className={cn(
+        "grid gap-1",
+        tab === "suppliers"
+          ? "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4"
+          : "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6",
+      )}
+    >
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div
+          key={i}
+          className="overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]"
+        >
+          <div className="aspect-square animate-pulse bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)]" />
+          <div className="space-y-1.5 p-1.5">
+            <div className="h-3 w-full animate-pulse bg-muted/60" />
+            <div className="h-2.5 w-1/2 animate-pulse bg-muted/40" />
           </div>
         </div>
       ))}
