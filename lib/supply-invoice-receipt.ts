@@ -32,6 +32,8 @@ export type SupplyInvoiceReceiptSnapshot = {
   paymentTerms: string;
   /** Delay / disputes contact line. */
   contactNote: string;
+  /** Public supplier portal URL (SMS + slip). */
+  portalUrl?: string | null;
 };
 
 export type BuildSupplyInvoiceReceiptInput = {
@@ -50,6 +52,7 @@ export type BuildSupplyInvoiceReceiptInput = {
   currency: string;
   receivedAt?: string;
   lines: SupplyInvoiceReceiptLine[];
+  portalUrl?: string | null;
 };
 
 const CUT_TAIL = new Uint8Array([0x1b, 0x64, 0x08, 0x1d, 0x56, 0x01]);
@@ -175,6 +178,7 @@ export function buildSupplyInvoiceReceiptSnapshot(
     grandTotal,
     paymentTerms: terms.paymentTerms,
     contactNote: terms.contactNote,
+    portalUrl: input.portalUrl?.trim() || null,
   };
 }
 
@@ -233,6 +237,13 @@ export function buildSupplyInvoiceEscPos(
   out.push("");
   for (const row of wrap(strip(snapshot.contactNote), w)) {
     out.push(center(row, w));
+  }
+  if (snapshot.portalUrl?.trim()) {
+    out.push("");
+    out.push(center("Track & notes:", w));
+    for (const row of wrap(strip(snapshot.portalUrl), w)) {
+      out.push(center(row, w));
+    }
   }
 
   out.push(repeat("-", w));

@@ -70,12 +70,14 @@ import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import {
   isSupplierIdSegment,
   resolveSupplierFromSlug,
+  supplierSlug,
   supplierSlugSearchHint,
 } from "@/lib/supplier-slug";
 import {
   buildSupplyInvoiceReceiptSnapshot,
   type SupplyInvoiceReceiptSnapshot,
 } from "@/lib/supply-invoice-receipt";
+import { publicSupplierPortalUrl } from "@/lib/public-supplier-portal";
 import { cn } from "@/lib/utils";
 
 type SupplyCartLine = {
@@ -1776,6 +1778,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
         currency,
         receivedAt: new Date().toISOString(),
         lines: postedLines,
+        portalUrl: publicSupplierPortalUrl(supplierSlug(supplier)),
       });
 
       setLastInvoice(invoice);

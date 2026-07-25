@@ -92,6 +92,7 @@ export function SupplyInvoiceReceipt({
     !receipt.logoUrl && Boolean(receipt.businessName.trim());
   const invoiceRef = receipt.sessionId.slice(0, 8).toUpperCase();
   const location = receipt.branchName.trim() || null;
+  const portalUrl = receipt.portalUrl?.trim() || null;
 
   return (
     <div className={className}>
@@ -243,6 +244,11 @@ export function SupplyInvoiceReceipt({
         >
           <p>{receipt.paymentTerms}</p>
           <p className="font-medium">{receipt.contactNote}</p>
+          {portalUrl ? (
+            <p className="break-all pt-1 font-mono text-[9px] leading-snug">
+              Track &amp; note issues: {portalUrl}
+            </p>
+          ) : null}
         </section>
 
         {showContact ? (
