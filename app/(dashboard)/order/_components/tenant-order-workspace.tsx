@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ClipboardList,
   Loader2,
@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import { getSessionTenantId } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchSupplierItemLinks,
@@ -24,12 +25,18 @@ import {
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import {
+  clearOrderCartForSupplier,
+  readOrderCartDraft,
+  writeOrderCartDraft,
+  type OrderCartQty,
+} from "@/lib/order-cart-storage";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
 
 const ORDER_CURRENCY = "KES";
 
-type CartQty = Record<string, number>;
+type CartQty = OrderCartQty;
 
 function toNum(v: unknown): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -59,6 +66,7 @@ function lineTotal(link: SupplierItemLinkRecord, qty: number): number {
 
 export function TenantOrderWorkspace() {
   const { branchId } = useDashboard();
+  const businessId = getSessionTenantId()?.trim() ?? "";
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [links, setLinks] = useState<SupplierItemLinkRecord[]>([]);
@@ -68,6 +76,49 @@ export function TenantOrderWorkspace() {
   const [cart, setCart] = useState<CartQty>({});
   const [placing, setPlacing] = useState(false);
   const [supplierQuery, setSupplierQuery] = useState("");
+  const [hydrated, setHydrated] = useState(false);
+  const cartsBySupplierRef = useRef<Record<string, CartQty>>({});
+  const supplierIdRef = useRef<string | null>(null);
+  supplierIdRef.current = supplierId;
+
+  const persistDraft = (
+    selectedSupplierId: string | null,
+    nextCart: CartQty,
+  ) => {
+    if (!businessId) return;
+    const maps = { ...cartsBySupplierRef.current };
+    if (selectedSupplierId) {
+      const clean = { ...nextCart };
+      if (Object.keys(clean).length === 0) delete maps[selectedSupplierId];
+      else maps[selectedSupplierId] = clean;
+    }
+    cartsBySupplierRef.current = maps;
+    writeOrderCartDraft({
+      businessId,
+      branchId,
+      selectedSupplierId,
+      cartsBySupplier: maps,
+    });
+  };
+
+  useEffect(() => {
+    if (!businessId) {
+      setHydrated(true);
+      return;
+    }
+    const draft = readOrderCartDraft(businessId, branchId);
+    if (draft) {
+      cartsBySupplierRef.current = draft.cartsBySupplier;
+      if (draft.selectedSupplierId) {
+        setSupplierId(draft.selectedSupplierId);
+        setCart(draft.cartsBySupplier[draft.selectedSupplierId] ?? {});
+      }
+    } else {
+      cartsBySupplierRef.current = {};
+      setCart({});
+    }
+    setHydrated(true);
+  }, [businessId, branchId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,7 +130,10 @@ export function TenantOrderWorkspace() {
           (s) => s.status?.toLowerCase() === "active" && !s.deletedAt,
         );
         setSuppliers(active);
-        if (!supplierId && active[0]) setSupplierId(active[0].id);
+        setSupplierId((current) => {
+          if (current && active.some((s) => s.id === current)) return current;
+          return active[0]?.id ?? null;
+        });
       })
       .catch((error) => {
         toast.error(
@@ -92,7 +146,6 @@ export function TenantOrderWorkspace() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once
   }, []);
 
   useEffect(() => {
@@ -102,7 +155,7 @@ export function TenantOrderWorkspace() {
     }
     let cancelled = false;
     setLoadingLinks(true);
-    setCart({});
+    setCart(cartsBySupplierRef.current[supplierId] ?? {});
     void fetchSupplierItemLinks(supplierId, {
       branchId: branchId || undefined,
     })
@@ -124,6 +177,21 @@ export function TenantOrderWorkspace() {
       cancelled = true;
     };
   }, [supplierId, branchId]);
+
+  useEffect(() => {
+    if (!hydrated || !businessId) return;
+    persistDraft(supplierId, cart);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- persist cart/supplier only
+  }, [hydrated, businessId, branchId, supplierId, cart]);
+
+  const selectSupplier = (nextId: string) => {
+    const prev = supplierIdRef.current;
+    if (prev && prev !== nextId) {
+      const maps = { ...cartsBySupplierRef.current, [prev]: cart };
+      cartsBySupplierRef.current = maps;
+    }
+    setSupplierId(nextId);
+  };
 
   const activeSupplier = suppliers.find((s) => s.id === supplierId) ?? null;
 
@@ -211,6 +279,16 @@ export function TenantOrderWorkspace() {
         await postPathAPurchaseOrderSend(po.id);
       }
       setCart({});
+      if (businessId) {
+        clearOrderCartForSupplier({
+          businessId,
+          branchId,
+          supplierId,
+        });
+        const maps = { ...cartsBySupplierRef.current };
+        delete maps[supplierId];
+        cartsBySupplierRef.current = maps;
+      }
       toast.success(`Order ${po.poNumber} placed — confirm when goods arrive`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not place order");
@@ -274,7 +352,7 @@ export function TenantOrderWorkspace() {
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => setSupplierId(s.id)}
+                  onClick={() => selectSupplier(s.id)}
                   className={cn(
                     "flex w-full flex-col items-start gap-0.5 border px-2 py-2 text-left transition",
                     supplierId === s.id

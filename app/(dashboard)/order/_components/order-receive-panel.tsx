@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Minus, Package, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -41,6 +42,7 @@ type ReceiveQty = Record<string, number>;
 type ItemMeta = { name: string; thumbnailUrl: string | null };
 
 export function OrderReceivePanel() {
+  const router = useRouter();
   const { branchId } = useDashboard();
   const [orders, setOrders] = useState<PathAPurchaseOrderListRowRecord[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
@@ -239,8 +241,9 @@ export function OrderReceivePanel() {
         crypto.randomUUID(),
       );
 
-      toast.success("Order confirmed and posted as supply");
+      toast.success("Order confirmed — opening supplies");
       await refreshOrders();
+      router.push(`${APP_ROUTES.purchasingAddSupplies}?filter=all`);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not confirm order",
