@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Camera,
   Check,
+  Link2,
   Loader2,
   Package,
   PackagePlus,
@@ -32,13 +33,19 @@ import {
   DASHBOARD_SECTION_SURFACE,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import { CashierCreateProductModal } from "@/components/cashier/cashier-create-product-modal";
+import { SupplierReceiveLinkModal } from "@/components/supplier-receive/supplier-receive-link-modal";
 import { Button } from "@/components/ui/button";
 import {
+  addItemSupplierLink,
   addPathBLine,
   createPathBSession,
+  fetchItemById,
   fetchSupplierById,
   fetchSupplierItemLinks,
   fetchSuppliersPage,
+  itemListThumbnailUrl,
+  patchItem,
   postPathBSession,
   postSellingPrice,
   uploadItemImageFile,
@@ -55,6 +62,7 @@ import {
   resolveStockHolderForEdit,
   setCatalogOnHandStock,
 } from "@/lib/set-on-hand-stock";
+import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import {
   isSupplierIdSegment,
   resolveSupplierFromSlug,
@@ -141,20 +149,34 @@ function linkParentLabel(link: SupplierItemLinkRecord): string {
   return sep > 0 ? name.slice(0, sep) : name;
 }
 
+type ParentOption = {
+  id: string | null;
+  label: string;
+  thumbnailUrl: string | null;
+};
+
 const PARENT_RAIL_BASE = cn(
-  "flex aspect-square w-full shrink-0 items-center justify-center rounded-none border px-1",
+  "relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden rounded-none border",
   "text-center text-[11px] font-semibold leading-tight transition touch-manipulation",
 );
 
-function parentRailClass(active: boolean): string {
+function parentRailClass(active: boolean, hasImage: boolean): string {
+  if (hasImage) {
+    return cn(
+      PARENT_RAIL_BASE,
+      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]",
+      "dark:border-border/40",
+      active && "border-[var(--pos-primary)] ring-2 ring-inset ring-[var(--pos-primary)]",
+    );
+  }
   return active
     ? cn(
         PARENT_RAIL_BASE,
-        "border-[var(--pos-primary)] bg-[var(--pos-primary)] text-[var(--pos-primary-ink,#fff)]",
+        "border-[var(--pos-primary)] bg-[var(--pos-primary)] px-1 text-[var(--pos-primary-ink,#fff)]",
       )
     : cn(
         PARENT_RAIL_BASE,
-        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-1",
         "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] text-[var(--pos-ink,#1c1915)]",
         "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,var(--card))]",
         "dark:border-border/40 dark:bg-card dark:text-foreground",
@@ -166,6 +188,120 @@ const PARENT_RAIL_HEADER = cn(
   "bg-[var(--pos-primary)] px-2 text-center text-xs font-bold uppercase tracking-wide",
   "text-[var(--pos-primary-ink,#fff)]",
 );
+
+function ParentFolderButton({
+  parent,
+  active,
+  canEditPhoto,
+  className,
+  onSelect,
+  onPhotoUploaded,
+}: {
+  parent: ParentOption;
+  active: boolean;
+  canEditPhoto: boolean;
+  className?: string;
+  onSelect: () => void;
+  onPhotoUploaded: (parentId: string, imageUrl: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const thumb = parent.thumbnailUrl?.trim() || null;
+  const hasImage = Boolean(thumb);
+
+  const handleFile = async (file: File | null | undefined) => {
+    if (!file || !parent.id) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose a photo (JPG, PNG, or HEIC).");
+      return;
+    }
+    setUploading(true);
+    try {
+      const saved = await uploadItemImageFile(parent.id, file, {
+        altText: parent.label,
+        primary: true,
+      });
+      const url = saved.secureUrl?.trim();
+      if (!url) {
+        toast.error("Upload finished but no image URL was returned.");
+        return;
+      }
+      onPhotoUploaded(parent.id, url);
+      toast.success("Parent photo updated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not upload photo");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className={cn("relative", className)}>
+      <button
+        type="button"
+        onClick={onSelect}
+        className={cn(parentRailClass(active, hasImage), "h-full w-full")}
+        title={parent.label}
+      >
+        {thumb ? (
+          <>
+            <Image
+              src={thumb}
+              alt=""
+              fill
+              sizes="80px"
+              className="object-cover"
+              unoptimized
+            />
+            <span className="absolute inset-x-0 bottom-0 z-[1] bg-gradient-to-t from-black/80 via-black/45 to-transparent px-0.5 pb-0.5 pt-4 text-[9px] font-semibold leading-tight text-white">
+              <span className="line-clamp-2">{parent.label}</span>
+            </span>
+          </>
+        ) : (
+          <span className="line-clamp-3 px-0.5">{parent.label}</span>
+        )}
+      </button>
+      {canEditPhoto && parent.id ? (
+        <>
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              inputRef.current?.click();
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className={cn(
+              "absolute bottom-0.5 right-0.5 z-[3] flex size-5 items-center justify-center",
+              "border border-white/50 bg-black/55 text-white shadow-sm",
+              "transition-colors hover:bg-black/70 disabled:opacity-70",
+            )}
+            aria-label={`Add photo for ${parent.label}`}
+            title="Add parent photo"
+          >
+            {uploading ? (
+              <Loader2 className="size-2.5 animate-spin" aria-hidden />
+            ) : (
+              <Camera className="size-2.5" aria-hidden />
+            )}
+          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              void handleFile(e.target.files?.[0]);
+            }}
+          />
+        </>
+      ) : null}
+    </div>
+  );
+}
 
 function linkToCartSeed(link: SupplierItemLinkRecord): SupplyCartLine {
   const cost = moneySeed(
@@ -448,6 +584,143 @@ function TileStockEditor({
   );
 }
 
+function TileBarcodeEditor({
+  link,
+  canEdit,
+  onUpdated,
+}: {
+  link: SupplierItemLinkRecord;
+  canEdit: boolean;
+  onUpdated: (barcode: string | null) => void;
+}) {
+  const current = link.barcode?.trim() || "";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [editing]);
+
+  const startEdit = (e: React.MouseEvent | React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!canEdit || busy) return;
+    setDraft(current);
+    setEditing(true);
+  };
+
+  const cancel = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setEditing(false);
+    setDraft("");
+  };
+
+  const save = async (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (busy) return;
+    const next = draft.trim();
+    if (next === current) {
+      cancel();
+      return;
+    }
+    setBusy(true);
+    try {
+      await patchItem(link.itemId, { barcode: next });
+      setEditing(false);
+      setDraft("");
+      onUpdated(next || null);
+      toast.success(next ? "Barcode updated" : "Barcode cleared");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update barcode");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div
+        className="flex items-center gap-0.5"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <input
+          ref={inputRef}
+          className={cn(
+            "h-6 min-w-0 flex-1 border border-border/60 bg-background px-1 font-mono text-[10px] tabular-nums",
+            "focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] focus-visible:outline-none",
+          )}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          disabled={busy}
+          inputMode="text"
+          aria-label={`Barcode for ${link.itemName || link.sku}`}
+          placeholder="Barcode"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void save(e);
+            if (e.key === "Escape") cancel(e);
+          }}
+        />
+        <button
+          type="button"
+          className="flex size-6 shrink-0 items-center justify-center text-[var(--pos-primary)] disabled:opacity-50"
+          disabled={busy}
+          title="Save barcode"
+          onClick={(e) => void save(e)}
+        >
+          {busy ? (
+            <Loader2 className="size-3 animate-spin" aria-hidden />
+          ) : (
+            <Check className="size-3" aria-hidden />
+          )}
+        </button>
+        <button
+          type="button"
+          className="flex size-6 shrink-0 items-center justify-center text-muted-foreground disabled:opacity-50"
+          disabled={busy}
+          title="Cancel"
+          onClick={cancel}
+        >
+          <X className="size-3" aria-hidden />
+        </button>
+      </div>
+    );
+  }
+
+  if (!canEdit) {
+    if (!current) return null;
+    return (
+      <p className="truncate font-mono text-[9px] tabular-nums text-muted-foreground">
+        {current}
+      </p>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={startEdit}
+      onPointerDown={(e) => e.stopPropagation()}
+      className={cn(
+        "inline-flex max-w-full items-center gap-0.5 truncate font-mono text-[9px] tabular-nums",
+        "underline-offset-2 hover:underline disabled:opacity-50",
+        current ? "text-muted-foreground" : "text-muted-foreground/70",
+      )}
+      title={current ? "Edit barcode" : "Add barcode"}
+    >
+      <Pencil className="size-2.5 shrink-0" aria-hidden />
+      <span className="truncate">{current || "Add barcode"}</span>
+    </button>
+  );
+}
+
 function ProductTile({
   link,
   cartQty,
@@ -455,10 +728,11 @@ function ProductTile({
   currency,
   branchId,
   canEditStock,
-  canEditPhoto,
+  canEditCatalog,
   onPick,
   onPhotoUploaded,
   onStockUpdated,
+  onBarcodeUpdated,
 }: {
   link: SupplierItemLinkRecord;
   cartQty: number;
@@ -466,10 +740,11 @@ function ProductTile({
   currency: string;
   branchId: string;
   canEditStock: boolean;
-  canEditPhoto: boolean;
+  canEditCatalog: boolean;
   onPick: () => void;
   onPhotoUploaded: (itemId: string, imageUrl: string) => void;
   onStockUpdated: (itemId: string, nextStock: number) => void;
+  onBarcodeUpdated: (itemId: string, barcode: string | null) => void;
 }) {
   const title = link.itemName || link.sku || "Product";
   const thumb = posTileThumbUrl(title, link.thumbnailUrl);
@@ -528,7 +803,7 @@ function ProductTile({
             {cartQty}
           </span>
         ) : null}
-        {canEditPhoto ? (
+        {canEditCatalog ? (
           <TilePhotoButton
             itemId={link.itemId}
             itemName={title}
@@ -554,6 +829,13 @@ function ProductTile({
               : ""}
           </p>
         </button>
+        {(canEditCatalog || link.barcode?.trim()) ? (
+          <TileBarcodeEditor
+            link={link}
+            canEdit={canEditCatalog}
+            onUpdated={(barcode) => onBarcodeUpdated(link.itemId, barcode)}
+          />
+        ) : null}
         {canEditStock ? (
           <TileStockEditor
             link={link}
@@ -777,6 +1059,8 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     branchId,
     branches,
     branchesLoading,
+    itemTypes,
+    itemTypeId,
     canPathBWrite,
     canViewSuppliers,
   } = useDashboard();
@@ -794,9 +1078,14 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const isOwnerOrAdmin = roleKey === "owner" || roleKey === "admin";
   const canEditStock = canAdminEditOnHandStock(me);
-  const canEditPhoto =
+  const canEditCatalog =
     isOwnerOrAdmin &&
     hasPermission(me?.permissions, Permission.CatalogItemsWrite);
+  const canCreateProduct = hasPermission(
+    me?.permissions,
+    Permission.CatalogItemsWrite,
+  );
+  const canLinkProducts = canLinkSupplierProducts(me, business);
   const canAccess = canPathBWrite && canViewSuppliers;
   const activeBranchName =
     branches.find((b) => b.id === branchId)?.name?.trim() || "";
@@ -810,11 +1099,21 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
   const [linksBusy, setLinksBusy] = useState(false);
   const [filter, setFilter] = useState("");
   const [parentFilterId, setParentFilterId] = useState<string | null>(null);
+  /** Fetched parent catalog thumbnails (keyed by parent item id). */
+  const [fetchedParentThumbs, setFetchedParentThumbs] = useState<
+    Record<string, string | null>
+  >({});
+  /** Local uploads win over fetched thumbs until the next supplier load. */
+  const [parentThumbOverrides, setParentThumbOverrides] = useState<
+    Record<string, string>
+  >({});
   const [cart, setCart] = useState<SupplyCartLine[]>([]);
   const [saving, setSaving] = useState(false);
   const [pulseCart, setPulseCart] = useState(false);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [createProductOpen, setCreateProductOpen] = useState(false);
+  const [linkProductsOpen, setLinkProductsOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -825,6 +1124,8 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     setCart([]);
     setParentFilterId(null);
     setFilter("");
+    setFetchedParentThumbs({});
+    setParentThumbOverrides({});
 
     const run = async () => {
       try {
@@ -903,7 +1204,53 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     };
   }, [supplier, branchId]);
 
-  const parentOptions = useMemo(() => {
+  useEffect(() => {
+    const parentIds = [...new Set(links.map(linkParentId))];
+    if (parentIds.length === 0) {
+      setFetchedParentThumbs({});
+      return;
+    }
+
+    let cancelled = false;
+    void Promise.all(
+      parentIds.map(async (id) => {
+        const direct = links
+          .find((l) => l.itemId === id)
+          ?.thumbnailUrl?.trim();
+        if (direct) {
+          return [id, direct] as const;
+        }
+        try {
+          const detail = await fetchItemById(id, {
+            branchId: branchId.trim() || undefined,
+          });
+          const fromSummary = itemListThumbnailUrl(detail);
+          if (fromSummary) {
+            return [id, fromSummary] as const;
+          }
+          const fromGallery = detail.images
+            ?.map((img) => img.secureUrl?.trim())
+            .find((url): url is string => Boolean(url));
+          return [id, fromGallery ?? null] as const;
+        } catch {
+          return [id, null] as const;
+        }
+      }),
+    ).then((pairs) => {
+      if (cancelled) return;
+      const next: Record<string, string | null> = {};
+      for (const [id, url] of pairs) {
+        next[id] = url;
+      }
+      setFetchedParentThumbs(next);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [links, branchId]);
+
+  const parentOptions = useMemo((): ParentOption[] => {
     const map = new Map<string, string>();
     for (const link of links) {
       const id = linkParentId(link);
@@ -912,10 +1259,23 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
       }
     }
     const sorted = [...map.entries()]
-      .map(([id, label]) => ({ id, label }))
-      .sort((a, b) => a.label.localeCompare(b.label, "en", { sensitivity: "base" }));
-    return [{ id: null as string | null, label: "All" }, ...sorted];
-  }, [links]);
+      .map(([id, label]) => ({
+        id,
+        label,
+        thumbnailUrl:
+          parentThumbOverrides[id] ??
+          fetchedParentThumbs[id] ??
+          links.find((l) => l.itemId === id)?.thumbnailUrl?.trim() ??
+          null,
+      }))
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, "en", { sensitivity: "base" }),
+      );
+    return [
+      { id: null, label: "All", thumbnailUrl: null },
+      ...sorted,
+    ];
+  }, [links, fetchedParentThumbs, parentThumbOverrides]);
 
   const showParentRail = parentOptions.length > 2;
 
@@ -1000,13 +1360,43 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     [markAdded],
   );
 
+  const reloadLinks = useCallback(async () => {
+    if (!supplier || !branchId.trim()) return;
+    try {
+      const list = await fetchSupplierItemLinks(supplier.id, {
+        branchId,
+      });
+      setLinks(list.filter((l) => l.active));
+    } catch {
+      toast.error("Could not refresh supplier products");
+    }
+  }, [supplier, branchId]);
+
+  const linkedItemIds = useMemo(
+    () => new Set(links.map((l) => l.itemId)),
+    [links],
+  );
+
   const onPhotoUploaded = useCallback((itemId: string, imageUrl: string) => {
     setLinks((prev) =>
       prev.map((l) =>
         l.itemId === itemId ? { ...l, thumbnailUrl: imageUrl } : l,
       ),
     );
+    setParentThumbOverrides((prev) => ({ ...prev, [itemId]: imageUrl }));
   }, []);
+
+  const onParentPhotoUploaded = useCallback(
+    (parentId: string, imageUrl: string) => {
+      setParentThumbOverrides((prev) => ({ ...prev, [parentId]: imageUrl }));
+      setLinks((prev) =>
+        prev.map((l) =>
+          l.itemId === parentId ? { ...l, thumbnailUrl: imageUrl } : l,
+        ),
+      );
+    },
+    [],
+  );
 
   const onStockUpdated = useCallback((itemId: string, nextStock: number) => {
     setLinks((prev) =>
@@ -1020,6 +1410,17 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
       ),
     );
   }, []);
+
+  const onBarcodeUpdated = useCallback(
+    (itemId: string, barcode: string | null) => {
+      setLinks((prev) =>
+        prev.map((l) =>
+          l.itemId === itemId ? { ...l, barcode } : l,
+        ),
+      );
+    },
+    [],
+  );
 
   const patchLine = (itemId: string, patch: Partial<SupplyCartLine>) => {
     setCart((prev) =>
@@ -1263,6 +1664,26 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
+                {canCreateProduct ? (
+                  <button
+                    type="button"
+                    onClick={() => setCreateProductOpen(true)}
+                    className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] px-2 text-[11px] font-medium text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                  >
+                    <PackagePlus className="size-3.5 text-muted-foreground" aria-hidden />
+                    Create product
+                  </button>
+                ) : null}
+                {canLinkProducts ? (
+                  <button
+                    type="button"
+                    onClick={() => setLinkProductsOpen(true)}
+                    className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] px-2 text-[11px] font-medium text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                  >
+                    <Link2 className="size-3.5 text-muted-foreground" aria-hidden />
+                    Link product
+                  </button>
+                ) : null}
                 <Link
                   href={APP_ROUTES.cashier}
                   className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground"
@@ -1272,9 +1693,9 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                 </Link>
                 <Link
                   href={APP_ROUTES.suppliers}
-                  className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] px-2 text-[11px] font-medium text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                  className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground"
                 >
-                  <Truck className="size-3.5 text-muted-foreground" aria-hidden />
+                  <Truck className="size-3.5" aria-hidden />
                   Suppliers
                 </Link>
               </div>
@@ -1298,17 +1719,15 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
           {showParentRail ? (
             <div className="flex gap-1 overflow-x-auto border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] p-1.5 scrollbar-none dark:border-border/40 dark:bg-muted/20 lg:hidden">
               {parentOptions.map((parent) => (
-                <button
+                <ParentFolderButton
                   key={parent.id ?? "all"}
-                  type="button"
-                  onClick={() => setParentFilterId(parent.id)}
-                  className={cn(
-                    parentRailClass(parentFilterId === parent.id),
-                    "size-[4.25rem] shrink-0",
-                  )}
-                >
-                  <span className="line-clamp-3">{parent.label}</span>
-                </button>
+                  parent={parent}
+                  active={parentFilterId === parent.id}
+                  canEditPhoto={canEditCatalog}
+                  className="size-[4.25rem] shrink-0"
+                  onSelect={() => setParentFilterId(parent.id)}
+                  onPhotoUploaded={onParentPhotoUploaded}
+                />
               ))}
             </div>
           ) : null}
@@ -1324,9 +1743,33 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                   Shelf
                 </span>
               </h3>
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {visibleLinks.length}
-              </span>
+              <div className="flex items-center gap-2">
+                {canCreateProduct || canLinkProducts ? (
+                  <div className="hidden items-center gap-1.5 sm:flex">
+                    {canCreateProduct ? (
+                      <button
+                        type="button"
+                        onClick={() => setCreateProductOpen(true)}
+                        className="text-[11px] font-medium text-[var(--pos-primary)] underline-offset-2 hover:underline"
+                      >
+                        Create product
+                      </button>
+                    ) : null}
+                    {canLinkProducts ? (
+                      <button
+                        type="button"
+                        onClick={() => setLinkProductsOpen(true)}
+                        className="text-[11px] font-medium text-[var(--pos-primary)] underline-offset-2 hover:underline"
+                      >
+                        Link product
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {visibleLinks.length}
+                </span>
+              </div>
             </div>
 
             {linksBusy ? (
@@ -1335,13 +1778,39 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                 Loading products…
               </div>
             ) : visibleLinks.length === 0 ? (
-              <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-xs text-muted-foreground">
-                {links.length === 0
-                  ? "No linked products yet — link items on the suppliers page."
-                  : parentFilterId
-                    ? "No products under this parent."
-                    : "No products match your search."}
-              </p>
+              <div className="space-y-3 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-xs text-muted-foreground">
+                <p>
+                  {links.length === 0
+                    ? "No linked products yet."
+                    : parentFilterId
+                      ? "No products under this parent."
+                      : "No products match your search."}
+                </p>
+                {links.length === 0 && (canCreateProduct || canLinkProducts) ? (
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {canCreateProduct ? (
+                      <button
+                        type="button"
+                        onClick={() => setCreateProductOpen(true)}
+                        className="inline-flex h-8 items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] px-3 text-[11px] font-semibold text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                      >
+                        <PackagePlus className="size-3.5" aria-hidden />
+                        Create product
+                      </button>
+                    ) : null}
+                    {canLinkProducts ? (
+                      <button
+                        type="button"
+                        onClick={() => setLinkProductsOpen(true)}
+                        className="inline-flex h-8 items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] px-3 text-[11px] font-semibold text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                      >
+                        <Link2 className="size-3.5" aria-hidden />
+                        Link product
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <div className="grid grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
                 {visibleLinks.map((link) => (
@@ -1353,10 +1822,11 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                     currency={currency}
                     branchId={branchId}
                     canEditStock={canEditStock}
-                    canEditPhoto={canEditPhoto}
+                    canEditCatalog={canEditCatalog}
                     onPick={() => addLinkToCart(link)}
                     onPhotoUploaded={onPhotoUploaded}
                     onStockUpdated={onStockUpdated}
+                    onBarcodeUpdated={onBarcodeUpdated}
                   />
                 ))}
               </div>
@@ -1372,15 +1842,14 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
               className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1"
             >
               {parentOptions.map((parent) => (
-                <button
+                <ParentFolderButton
                   key={parent.id ?? "all"}
-                  type="button"
-                  onClick={() => setParentFilterId(parent.id)}
-                  className={parentRailClass(parentFilterId === parent.id)}
-                  title={parent.label}
-                >
-                  <span className="line-clamp-3">{parent.label}</span>
-                </button>
+                  parent={parent}
+                  active={parentFilterId === parent.id}
+                  canEditPhoto={canEditCatalog}
+                  onSelect={() => setParentFilterId(parent.id)}
+                  onPhotoUploaded={onParentPhotoUploaded}
+                />
               ))}
             </nav>
           </aside>
@@ -1415,6 +1884,50 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
             onCloseMobile={() => setMobileCartOpen(false)}
           />
         </div>
+      ) : null}
+
+      {canCreateProduct ? (
+        <CashierCreateProductModal
+          open={createProductOpen}
+          onOpenChange={setCreateProductOpen}
+          brandTheme={brandTheme}
+          currency={currency}
+          branchId={branchId}
+          itemTypes={itemTypes}
+          preferredItemTypeId={itemTypeId || null}
+          purpose="receive"
+          onCreated={(item) => {
+            void (async () => {
+              try {
+                await addItemSupplierLink(item.id, {
+                  supplierId: supplier.id,
+                  setPrimary: true,
+                });
+                toast.success(`Linked “${item.name}” → ${supplier.name}`);
+              } catch (e) {
+                toast.error(
+                  e instanceof Error
+                    ? e.message
+                    : "Product created but could not link to supplier",
+                );
+              }
+              await reloadLinks();
+            })();
+          }}
+        />
+      ) : null}
+
+      {canLinkProducts ? (
+        <SupplierReceiveLinkModal
+          open={linkProductsOpen}
+          onOpenChange={setLinkProductsOpen}
+          brandTheme={brandTheme}
+          supplier={supplier}
+          linkedItemIds={linkedItemIds}
+          onLinked={() => {
+            void reloadLinks();
+          }}
+        />
       ) : null}
     </div>
   );
