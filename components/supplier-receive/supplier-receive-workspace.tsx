@@ -117,6 +117,46 @@ function linkStock(link: SupplierItemLinkRecord): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Parent product id for filtering: variant parent, else the item itself. */
+function linkParentId(link: SupplierItemLinkRecord): string {
+  return link.variantOfItemId?.trim() || link.itemId;
+}
+
+function linkParentLabel(link: SupplierItemLinkRecord): string {
+  const parent = link.parentItemName?.trim();
+  if (parent) return parent;
+  // Standalone / parent row — strip variant suffix when present.
+  const name = link.itemName?.trim() || link.sku?.trim() || "Product";
+  const sep = name.indexOf(" · ");
+  return sep > 0 ? name.slice(0, sep) : name;
+}
+
+const PARENT_RAIL_BASE = cn(
+  "flex aspect-square w-full shrink-0 items-center justify-center rounded-none border px-1",
+  "text-center text-[11px] font-semibold leading-tight transition touch-manipulation",
+);
+
+function parentRailClass(active: boolean): string {
+  return active
+    ? cn(
+        PARENT_RAIL_BASE,
+        "border-[var(--pos-primary)] bg-[var(--pos-primary)] text-[var(--pos-primary-ink,#fff)]",
+      )
+    : cn(
+        PARENT_RAIL_BASE,
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+        "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] text-[var(--pos-ink,#1c1915)]",
+        "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,var(--card))]",
+        "dark:border-border/40 dark:bg-card dark:text-foreground",
+      );
+}
+
+const PARENT_RAIL_HEADER = cn(
+  "flex h-10 shrink-0 items-center justify-center rounded-none",
+  "bg-[var(--pos-primary)] px-2 text-center text-xs font-bold uppercase tracking-wide",
+  "text-[var(--pos-primary-ink,#fff)]",
+);
+
 function linkToCartSeed(link: SupplierItemLinkRecord): SupplyCartLine {
   const cost = moneySeed(
     link.lastCostPrice ?? link.defaultCostPrice ?? link.catalogBuyingPrice,
@@ -454,6 +494,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
   const [links, setLinks] = useState<SupplierItemLinkRecord[]>([]);
   const [linksBusy, setLinksBusy] = useState(false);
   const [filter, setFilter] = useState("");
+  const [parentFilterId, setParentFilterId] = useState<string | null>(null);
   const [cart, setCart] = useState<SupplyCartLine[]>([]);
   const [saving, setSaving] = useState(false);
   const [pulseCart, setPulseCart] = useState(false);
@@ -467,6 +508,8 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     setSupplier(null);
     setCandidates([]);
     setCart([]);
+    setParentFilterId(null);
+    setFilter("");
 
     const run = async () => {
       try {
@@ -545,16 +588,45 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     };
   }, [supplier, branchId]);
 
+  const parentOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const link of links) {
+      const id = linkParentId(link);
+      if (!map.has(id)) {
+        map.set(id, linkParentLabel(link));
+      }
+    }
+    const sorted = [...map.entries()]
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "en", { sensitivity: "base" }));
+    return [{ id: null as string | null, label: "All" }, ...sorted];
+  }, [links]);
+
+  const showParentRail = parentOptions.length > 2;
+
+  useEffect(() => {
+    if (
+      parentFilterId &&
+      !parentOptions.some((p) => p.id === parentFilterId)
+    ) {
+      setParentFilterId(null);
+    }
+  }, [parentFilterId, parentOptions]);
+
   const visibleLinks = useMemo(() => {
+    const byParent = parentFilterId
+      ? links.filter((l) => linkParentId(l) === parentFilterId)
+      : links;
     const q = filter.trim().toLowerCase();
-    if (!q) return links;
-    return links.filter(
+    if (!q) return byParent;
+    return byParent.filter(
       (l) =>
         l.itemName.toLowerCase().includes(q) ||
         l.sku.toLowerCase().includes(q) ||
-        (l.barcode ?? "").toLowerCase().includes(q),
+        (l.barcode ?? "").toLowerCase().includes(q) ||
+        (l.parentItemName ?? "").toLowerCase().includes(q),
     );
-  }, [links, filter]);
+  }, [links, filter, parentFilterId]);
 
   const cartQtyByItem = useMemo(() => {
     const map = new Map<string, number>();
@@ -827,9 +899,9 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
       className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden pb-28 lg:pb-0"
       style={brandTheme as CSSProperties}
     >
-      <div className="flex h-full min-h-0 flex-1 items-stretch gap-3 overflow-hidden lg:gap-4">
-        <div className="h-full min-h-0 min-w-0 flex-1 space-y-1.5 overflow-y-auto overscroll-y-contain pr-0.5">
-          <section className="border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] pb-1.5 dark:border-border/40">
+      <div className="flex h-full min-h-0 flex-1 items-stretch overflow-hidden">
+        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40">
+          <section className="shrink-0 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2 pb-1.5 pt-1 dark:border-border/40 sm:px-3">
             <div className="flex flex-wrap items-center justify-between gap-1.5">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -873,23 +945,45 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
             </div>
           </section>
 
-          <div className="sticky top-0 z-20 -mx-1 space-y-1 bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_88%,transparent)] px-1 py-1.5 supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_78%,transparent)] supports-[backdrop-filter]:backdrop-blur-sm dark:bg-background/85 sm:mx-0">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                className={cn(fieldClass, "rounded-none pl-9")}
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                placeholder="Find a product…"
-                disabled={saving || linksBusy}
-              />
-            </div>
+          <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              className={cn(
+                fieldClass,
+                "h-11 rounded-none border-0 bg-transparent pl-9 shadow-none focus-visible:ring-0",
+              )}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Find a product…"
+              disabled={saving || linksBusy}
+            />
           </div>
 
-          <section className="space-y-1.5 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-1.5 dark:border-border/40">
+          {showParentRail ? (
+            <div className="flex gap-1 overflow-x-auto border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] p-1.5 scrollbar-none dark:border-border/40 dark:bg-muted/20 lg:hidden">
+              {parentOptions.map((parent) => (
+                <button
+                  key={parent.id ?? "all"}
+                  type="button"
+                  onClick={() => setParentFilterId(parent.id)}
+                  className={cn(
+                    parentRailClass(parentFilterId === parent.id),
+                    "size-[4.25rem] shrink-0",
+                  )}
+                >
+                  <span className="line-clamp-3">{parent.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-y-contain px-2 py-2 sm:px-3">
             <div className="flex items-center justify-between gap-2">
               <h3 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
-                Linked products
+                {parentFilterId
+                  ? parentOptions.find((p) => p.id === parentFilterId)?.label ??
+                    "Linked products"
+                  : "Linked products"}
                 <span className="ml-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   Shelf
                 </span>
@@ -908,10 +1002,12 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
               <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-xs text-muted-foreground">
                 {links.length === 0
                   ? "No linked products yet — link items on the suppliers page."
-                  : "No products match your search."}
+                  : parentFilterId
+                    ? "No products under this parent."
+                    : "No products match your search."}
               </p>
             ) : (
-              <div className="grid grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+              <div className="grid grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
                 {visibleLinks.map((link) => (
                   <ProductTile
                     key={link.id}
@@ -924,8 +1020,30 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                 ))}
               </div>
             )}
-          </section>
+          </div>
         </div>
+
+        {showParentRail ? (
+          <aside className="hidden min-h-0 w-[7rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] dark:border-border/40 dark:bg-muted/20 xl:w-[8rem] lg:flex">
+            <div className={PARENT_RAIL_HEADER}>Parent</div>
+            <nav
+              aria-label="Filter by parent product"
+              className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1"
+            >
+              {parentOptions.map((parent) => (
+                <button
+                  key={parent.id ?? "all"}
+                  type="button"
+                  onClick={() => setParentFilterId(parent.id)}
+                  className={parentRailClass(parentFilterId === parent.id)}
+                  title={parent.label}
+                >
+                  <span className="line-clamp-3">{parent.label}</span>
+                </button>
+              ))}
+            </nav>
+          </aside>
+        ) : null}
 
         <div className="hidden h-full min-h-0 lg:flex">
           <SupplyCartPanel {...cartPanelProps} />
