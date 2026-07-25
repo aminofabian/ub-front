@@ -234,6 +234,164 @@
         rgb(10, 10, 10);
 }
 
+/* Market fascia header — shelf-edge composition */
+.tablet-header-fascia {
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--tablet-header-paper, #eef3f0) 92%, white) 0%,
+        color-mix(in srgb, var(--tablet-header-paper, #eef3f0) 70%, #d5e3db) 100%
+    );
+}
+
+.dark .tablet-header-fascia {
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--background) 88%, #1a3d30) 0%,
+        var(--background) 100%
+    );
+}
+
+.dark .tablet-header-stamp {
+    background: color-mix(in srgb, #1a3d30 85%, black);
+}
+
+.dark .tablet-app-header {
+    --tablet-header-ink: #e8f0eb;
+    --tablet-header-paper: #121a16;
+}
+
+.tablet-header-wash {
+    background:
+        radial-gradient(
+            120% 80% at 100% 0%,
+            color-mix(in srgb, var(--tablet-header-accent, #0f766e) 16%, transparent),
+            transparent 55%
+        ),
+        linear-gradient(
+            105deg,
+            transparent 40%,
+            color-mix(in srgb, var(--tablet-header-leaf, #1f4d3a) 6%, transparent) 100%
+        );
+}
+
+.tablet-header-hatch {
+    background-image: repeating-linear-gradient(
+        -18deg,
+        transparent 0,
+        transparent 7px,
+        color-mix(in srgb, var(--tablet-header-ink, #14201b) 4.5%, transparent) 7px,
+        color-mix(in srgb, var(--tablet-header-ink, #14201b) 4.5%, transparent) 8px
+    );
+}
+
+.tablet-header-stamp {
+    animation: tablet-header-stamp-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tablet-header-cut {
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.tablet-header-logo {
+    animation: tablet-header-logo-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+
+.tablet-header-brand {
+    animation: tablet-header-brand-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+.tablet-header-kicker {
+    animation: tablet-header-meta-in 0.5s ease-out 0.12s both;
+}
+
+.tablet-header-aisle {
+    animation: tablet-header-meta-in 0.55s ease-out 0.16s both;
+}
+
+.tablet-header-lip {
+    height: 3px;
+    background: color-mix(in srgb, var(--tablet-header-ink, #14201b) 12%, transparent);
+}
+
+.tablet-header-lip-fill {
+    display: block;
+    height: 100%;
+    width: 100%;
+    transform-origin: left center;
+    background: linear-gradient(
+        90deg,
+        var(--tablet-header-accent, #0f766e),
+        color-mix(in srgb, var(--tablet-header-accent, #0f766e) 55%, var(--tablet-header-leaf, #1f4d3a))
+    );
+    animation: tablet-header-lip-draw 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+
+@keyframes tablet-header-stamp-in {
+    from {
+        opacity: 0;
+        transform: translateX(-0.75rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes tablet-header-logo-in {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes tablet-header-brand-in {
+    from {
+        opacity: 0;
+        letter-spacing: 0.08em;
+        transform: translateY(0.35rem);
+    }
+    to {
+        opacity: 1;
+        letter-spacing: -0.02em;
+        transform: translateY(0);
+    }
+}
+
+@keyframes tablet-header-meta-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.4rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes tablet-header-lip-draw {
+    from {
+        transform: scaleX(0);
+    }
+    to {
+        transform: scaleX(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tablet-header-stamp,
+    .tablet-header-logo,
+    .tablet-header-brand,
+    .tablet-header-kicker,
+    .tablet-header-aisle,
+    .tablet-header-lip-fill {
+        animation: none !important;
+    }
+}
+
 @media (max-width: 1535px) {
     .tablet-app-stage {
         margin: 0;

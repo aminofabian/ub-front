@@ -93,7 +93,7 @@ export function HeaderPosLinks({
   }
 
   return (
-    <div className="flex items-center gap-px">
+    <div className="tablet-header-till flex items-stretch">
       {links.map(({ href, label, icon: Icon }) => {
         const active = headerPosLinkActive(pathname, href);
         return (
@@ -104,13 +104,23 @@ export function HeaderPosLinks({
             title={label}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "inline-flex size-9 items-center justify-center border border-transparent text-muted-foreground transition-colors",
+              "tablet-header-till-btn group relative inline-flex h-full min-w-10 flex-col items-center justify-center gap-0.5 px-2.5 transition-colors",
               active
-                ? "border-border bg-muted text-foreground"
-                : "hover:bg-muted/70 hover:text-foreground",
+                ? "bg-[var(--tablet-header-ink,#14201b)] text-[var(--tablet-header-paper,#eef3f0)]"
+                : "text-[var(--tablet-header-ink,#14201b)]/70 hover:bg-[var(--tablet-header-ink,#14201b)]/8 hover:text-[var(--tablet-header-ink,#14201b)]",
             )}
           >
-            <Icon className="size-4" aria-hidden />
+            <Icon className="size-4" strokeWidth={active ? 2.35 : 2} aria-hidden />
+            <span className="font-mono text-[8px] font-bold uppercase tracking-[0.14em]">
+              {label.slice(0, 4)}
+            </span>
+            <span
+              className={cn(
+                "absolute inset-x-0 bottom-0 h-0.5 origin-left bg-[var(--tablet-header-accent,#0f766e)] transition-transform duration-300",
+                active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100",
+              )}
+              aria-hidden
+            />
           </Link>
         );
       })}
@@ -149,59 +159,108 @@ export function TabletAppHeader({
 }: TabletAppHeaderProps) {
   const pathname = usePathname();
   const title = pageTitle ?? shellPageTitle(pathname);
+  const accent = primaryColor?.trim() || "#0f766e";
 
-  const metaParts = [
-    title,
-    branchName?.trim() || null,
-    departmentName?.trim() || null,
-    businessName?.trim() && businessName !== tenantTitle
-      ? businessName.trim()
-      : null,
-  ].filter(Boolean) as string[];
+  const placeLine = [branchName?.trim(), departmentName?.trim()]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <header className="tablet-app-header sticky top-0 z-40 shrink-0 border-b border-border bg-background pt-[env(safe-area-inset-top,0px)]">
-      <div className="flex items-center gap-2.5 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
-        <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden border border-border bg-background sm:size-10">
-          <TenantLogo
-            brand={tenantTitle}
-            logoUrl={logoUrl}
-            faviconUrl={faviconUrl}
-            primaryColor={primaryColor}
-            variant="sidebar-mark"
+    <header
+      className="tablet-app-header sticky top-0 z-40 shrink-0 pt-[env(safe-area-inset-top,0px)]"
+      style={
+        {
+          "--tablet-header-accent": accent,
+          "--tablet-header-ink": "#14201b",
+          "--tablet-header-paper": "#eef3f0",
+          "--tablet-header-leaf": "#1a3d30",
+        } as CSSProperties
+      }
+    >
+      <div className="tablet-header-fascia relative overflow-hidden border-b border-[var(--tablet-header-ink)]/15">
+        {/* Market-awning wash + hatch */}
+        <div className="tablet-header-wash pointer-events-none absolute inset-0" aria-hidden />
+        <div className="tablet-header-hatch pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden />
+
+        <div className="relative flex min-h-[3.75rem] items-stretch">
+          {/* Brand stamp block */}
+          <div className="tablet-header-stamp flex shrink-0 items-center gap-2.5 bg-[var(--tablet-header-leaf)] px-3 py-2.5 text-[var(--tablet-header-paper)] sm:gap-3 sm:px-4">
+            <div className="tablet-header-logo relative flex size-10 shrink-0 items-center justify-center overflow-hidden bg-[var(--tablet-header-paper)] sm:size-11">
+              <TenantLogo
+                brand={tenantTitle}
+                logoUrl={logoUrl}
+                faviconUrl={faviconUrl}
+                primaryColor={primaryColor}
+                variant="sidebar-mark"
+              />
+              <span
+                className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[var(--tablet-header-ink)]/20"
+                aria-hidden
+              />
+            </div>
+            <div className="min-w-0 max-w-[11rem] sm:max-w-[16rem]">
+              <p className="tablet-header-kicker hidden font-mono text-[8px] font-bold uppercase tracking-[0.22em] text-[var(--tablet-header-paper)]/70 min-[380px]:block">
+                Floor open
+              </p>
+              <h1 className="tablet-header-brand truncate font-heading text-[1.35rem] font-semibold leading-[0.95] tracking-[-0.02em] sm:text-[1.55rem]">
+                {tenantTitle}
+              </h1>
+            </div>
+          </div>
+
+          {/* Diagonal cut between stamp and deck */}
+          <div
+            className="tablet-header-cut relative hidden w-4 shrink-0 bg-[var(--tablet-header-leaf)] sm:block"
+            aria-hidden
           />
+
+          {/* Aisle deck */}
+          <div className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 sm:gap-3 sm:px-3">
+            <div className="tablet-header-aisle min-w-0 flex-1">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="tablet-header-page font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--tablet-header-accent)]">
+                  Aisle
+                </span>
+                <p className="truncate font-heading text-xl font-semibold leading-none tracking-tight text-[var(--tablet-header-ink)] sm:text-[1.35rem]">
+                  {title}
+                </p>
+              </div>
+              {placeLine ? (
+                <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--tablet-header-ink)]/55">
+                  {placeLine}
+                  {businessName?.trim() && businessName !== tenantTitle
+                    ? ` · ${businessName.trim()}`
+                    : ""}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex shrink-0 items-stretch self-stretch border border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-paper)]/70">
+              <HeaderPosLinks links={posLinks} pathname={pathname} />
+              {canReadNotifications ? (
+                <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-1.5">
+                  <NotificationBell />
+                </span>
+              ) : (
+                <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-2.5 text-[var(--tablet-header-ink)]/35">
+                  <Bell className="size-4" aria-hidden />
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={onOpenMore}
+                aria-label="Open menu"
+                className="tablet-header-avatar inline-flex size-11 shrink-0 items-center justify-center border-l border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-ink)] font-mono text-sm font-bold text-[var(--tablet-header-paper)] transition-[letter-spacing,background-color] hover:tracking-widest"
+              >
+                {userInitial}
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate font-sans text-[15px] font-semibold leading-tight tracking-tight text-foreground sm:text-base">
-            {tenantTitle}
-          </h1>
-          {metaParts.length > 0 ? (
-            <p className="mt-0.5 truncate text-[11px] leading-snug text-muted-foreground">
-              {metaParts.join(" · ")}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="flex shrink-0 items-center gap-0.5">
-          <HeaderPosLinks links={posLinks} pathname={pathname} />
-          {canReadNotifications ? (
-            <span className="tablet-app-icon-btn">
-              <NotificationBell />
-            </span>
-          ) : (
-            <span className="tablet-app-icon-btn text-muted-foreground/40">
-              <Bell className="size-[18px]" aria-hidden />
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={onOpenMore}
-            aria-label="Open menu"
-            className="tablet-app-avatar flex size-9 items-center justify-center bg-foreground text-sm font-bold text-background transition-opacity hover:opacity-90"
-          >
-            {userInitial}
-          </button>
+        {/* Shelf lip */}
+        <div className="tablet-header-lip" aria-hidden>
+          <span className="tablet-header-lip-fill" />
         </div>
       </div>
     </header>
