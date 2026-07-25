@@ -13,6 +13,7 @@ import {
   fetchPublicSupplierPortal,
   submitPublicSupplierComplaint,
   type PublicSupplierPortal,
+  type PublicSupplierSupplyLine,
   type PublicSupplierSupplyRow,
 } from "@/lib/public-supplier-portal";
 import {
@@ -64,14 +65,25 @@ function statusTone(status: string): string {
   return "text-rose-800";
 }
 
+/** Prefer API `lines`; fall back to movements when backend omits nested lines. */
+function resolveSupplyLines(
+  row: PublicSupplierSupplyRow,
+  movementsByInvoice: Map<string, PublicSupplierSupplyLine[]>,
+): PublicSupplierSupplyLine[] {
+  const fromApi = row.lines ?? [];
+  if (fromApi.length > 0) return fromApi;
+  return movementsByInvoice.get(row.invoiceNumber) ?? [];
+}
+
 function SupplyLinesDetail({
   row,
+  lines,
   currency,
 }: {
   row: PublicSupplierSupplyRow;
+  lines: PublicSupplierSupplyLine[];
   currency: string;
 }) {
-  const lines = row.lines ?? [];
   if (lines.length === 0) {
     return (
       <p className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-3 text-center text-[11px] text-muted-foreground">
@@ -214,6 +226,17 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
   }
 
   const currency = data.currency;
+  const movementsByInvoice = new Map<string, PublicSupplierSupplyLine[]>();
+  for (const m of data.movements) {
+    const list = movementsByInvoice.get(m.invoiceNumber) ?? [];
+    list.push({
+      description: m.description,
+      quantity: m.quantity,
+      unitCost: m.unitCost,
+      lineTotal: m.lineTotal,
+    });
+    movementsByInvoice.set(m.invoiceNumber, list);
+  }
 
   return (
     <div
@@ -284,7 +307,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
               {data.supplies.map((row) => {
                 const key = `${row.invoiceNumber}-${row.invoiceDate}`;
                 const open = openSupplyKey === key;
-                const lines = row.lines ?? [];
+                const lines = resolveSupplyLines(row, movementsByInvoice);
                 return (
                   <li key={key}>
                     <button
@@ -334,6 +357,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                     {open ? (
                       <SupplyLinesDetail
                         row={row}
+                        lines={lines}
                         currency={currency}
                       />
                     ) : null}
