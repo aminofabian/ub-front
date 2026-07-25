@@ -87,6 +87,20 @@ describe("resolveSupplierFromSlug", () => {
     expect(r.candidates).toHaveLength(2);
   });
 
+  it("matches loose prefix uniquely", () => {
+    const fresh = supplier({
+      id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      name: "Jamro Fresh Meats",
+    });
+    const other = supplier({
+      id: "11111111-2222-4333-8444-555555555555",
+      name: "Airtime",
+    });
+    expect(supplierMatchesSlug(fresh, "jamro")).toBe(true);
+    const r = resolveSupplierFromSlug([fresh, other], "jamro");
+    expect(r.match?.id).toBe(fresh.id);
+  });
+
   it("builds a search hint from the slug", () => {
     expect(supplierSlugSearchHint("jamro-ltd")).toBe("jamro ltd");
   });

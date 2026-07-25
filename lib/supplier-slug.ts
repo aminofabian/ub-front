@@ -59,11 +59,23 @@ export function supplierMatchesSlug(
   if (UUID_RE.test(needle) && supplier.id.toLowerCase() === needle) {
     return true;
   }
-  if (supplierSlug(supplier) === needle) return true;
+  const canon = supplierSlug(supplier);
+  if (canon === needle) return true;
   const codeSlug = supplier.code?.trim()
     ? slugifySupplierSegment(supplier.code)
     : "";
-  return Boolean(codeSlug && codeSlug === needle);
+  if (codeSlug && codeSlug === needle) return true;
+
+  // Loose: /s/jamro → "Jamro Fresh Meats"
+  if (!UUID_RE.test(needle)) {
+    if (canon.startsWith(`${needle}-`)) return true;
+    const first = canon.split("-")[0] ?? "";
+    if (first && first === needle) return true;
+    if (codeSlug && (codeSlug === needle || codeSlug.startsWith(`${needle}-`))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export type ResolveSupplierSlugResult = {
@@ -79,6 +91,17 @@ export function resolveSupplierFromSlug(
   const needle = safeDecode(segment);
   if (!needle) {
     return { match: null, candidates: [] };
+  }
+
+  const exact = suppliers.filter((s) => {
+    const n = needle.toLowerCase();
+    if (UUID_RE.test(n) && s.id.toLowerCase() === n) return true;
+    if (supplierSlug(s) === n) return true;
+    const codeSlug = s.code?.trim() ? slugifySupplierSegment(s.code) : "";
+    return Boolean(codeSlug && codeSlug === n);
+  });
+  if (exact.length === 1) {
+    return { match: exact[0]!, candidates: exact };
   }
 
   const candidates = suppliers.filter((s) => supplierMatchesSlug(s, needle));

@@ -137,8 +137,10 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           Supplier not found
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          This link may be outdated, or the supplier slug does not match this
-          shop.
+          No supplier on this shop matches{" "}
+          <span className="font-mono text-foreground">/s/{username}</span>.
+          Check the name under Suppliers, or open the link from the SMS / supply
+          slip (it uses the supplier&apos;s full slug).
         </p>
       </div>
     );
