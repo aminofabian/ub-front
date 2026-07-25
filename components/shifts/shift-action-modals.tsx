@@ -654,8 +654,8 @@ export function EditOpeningCountModal({
                 Edit Opening Count
               </DialogTitle>
               <DialogDescription className="text-xs leading-snug sm:text-[13px] sm:leading-relaxed">
-                Correct the opening float. Expected closing cash updates by the
-                same amount so sales and drawouts stay accurate.
+                Updates opening float only. Cash sales and drawouts are left as
+                recorded; expected closing shifts by the same opening delta.
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -713,13 +713,12 @@ export function EditOpeningCountModal({
               <label className={dashboardFilterFieldLabelClass()}>
                 Reason for correction
               </label>
-              <textarea
-                className={dashboardTextareaClass(loading)}
+              <input
+                className={dashboardInputClass(loading)}
                 placeholder="e.g. Miscounted KES 500 notes at open"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 maxLength={500}
-                rows={2}
               />
             </div>
 
