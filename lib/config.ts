@@ -44,6 +44,7 @@ export const APP_ROUTES = {
   marketplaceProduct: (supplierSlug: string, productSlug: string) =>
     `/marketplace/s/${encodeURIComponent(supplierSlug)}/p/${encodeURIComponent(productSlug)}`,
   supplierPortalLogin: "/supplier-portal/login",
+  supplierPortalClaim: "/supplier-portal/claim",
   supplierPortalOverview: "/supplier-portal/overview",
   supplierPortalProfile: "/supplier-portal/profile",
   supplierPortalCatalog: "/supplier-portal/catalog",
@@ -154,6 +155,9 @@ export const API_ROUTES = {
   publicMarketplace: "/api/v1/public/marketplace",
   marketplace: "/api/v1/marketplace",
   supplierPortalAuthLogin: "/api/v1/supplier-portal/auth/login",
+  supplierPortalAuthClaimSendCode: "/api/v1/supplier-portal/auth/claim/send-code",
+  supplierPortalAuthClaimVerifyCode: "/api/v1/supplier-portal/auth/claim/verify-code",
+  supplierPortalAuthClaimComplete: "/api/v1/supplier-portal/auth/claim/complete",
   supplierPortalProfile: "/api/v1/supplier-portal/profile",
   supplierPortalHub: "/api/v1/supplier-portal/hub",
   supplierPortalProducts: "/api/v1/supplier-portal/products",

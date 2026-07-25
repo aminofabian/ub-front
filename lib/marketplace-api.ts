@@ -128,7 +128,8 @@ export type SupplierPortalLoginResult = {
   accessToken: string;
   userId: string;
   marketplaceSupplierId: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
   name: string;
 };
 
@@ -437,7 +438,7 @@ export async function checkSupplierDuplicates(body: {
 }
 
 export async function loginSupplierPortal(
-  email: string,
+  identifier: string,
   password: string,
 ): Promise<SupplierPortalLoginResult> {
   let response: Response;
@@ -445,7 +446,7 @@ export async function loginSupplierPortal(
     response = await fetch(apiUrl(API_ROUTES.supplierPortalAuthLogin), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim(), password }),
+      body: JSON.stringify({ identifier: identifier.trim(), password }),
     });
   } catch {
     throw new Error("Cannot reach the supplier portal API.");
@@ -457,6 +458,75 @@ export async function loginSupplierPortal(
   const data = payload as SupplierPortalLoginResult;
   if (!data.accessToken) {
     throw new Error("Invalid login response");
+  }
+  setSupplierPortalAccessToken(data.accessToken);
+  return data;
+}
+
+async function publicSupplierAuthFetch<T>(
+  path: string,
+  body: Record<string, unknown>,
+): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(apiUrl(path), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error("Cannot reach the supplier portal API.");
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(getProblemTitle(payload));
+  }
+  return payload as T;
+}
+
+export async function sendSupplierPortalClaimCode(phone: string): Promise<{
+  phone: string;
+  maskedPhone: string;
+  expiresAt: string | null;
+  channel: string | null;
+  alreadyRegistered: boolean;
+}> {
+  return publicSupplierAuthFetch(API_ROUTES.supplierPortalAuthClaimSendCode, {
+    phone: phone.trim(),
+  });
+}
+
+export async function verifySupplierPortalClaimCode(
+  phone: string,
+  code: string,
+): Promise<{ setupToken: string; expiresAt: string; suggestedName: string }> {
+  return publicSupplierAuthFetch(API_ROUTES.supplierPortalAuthClaimVerifyCode, {
+    phone: phone.trim(),
+    code: code.trim(),
+  });
+}
+
+export async function completeSupplierPortalClaim(body: {
+  phone: string;
+  setupToken: string;
+  password: string;
+  name?: string;
+  email?: string;
+  username?: string;
+}): Promise<SupplierPortalLoginResult> {
+  const data = await publicSupplierAuthFetch<SupplierPortalLoginResult>(
+    API_ROUTES.supplierPortalAuthClaimComplete,
+    {
+      phone: body.phone.trim(),
+      setupToken: body.setupToken,
+      password: body.password,
+      name: body.name?.trim() || undefined,
+      email: body.email?.trim() || undefined,
+      username: body.username?.trim() || undefined,
+    },
+  );
+  if (!data.accessToken) {
+    throw new Error("Invalid claim response");
   }
   setSupplierPortalAccessToken(data.accessToken);
   return data;

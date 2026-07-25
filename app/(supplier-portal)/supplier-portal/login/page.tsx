@@ -14,7 +14,7 @@ import { loginSupplierPortal } from "@/lib/marketplace-api";
 
 export default function SupplierPortalLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,7 +24,7 @@ export default function SupplierPortalLoginPage() {
     setError("");
     setBusy(true);
     try {
-      await loginSupplierPortal(email, password);
+      await loginSupplierPortal(identifier, password);
       router.push(APP_ROUTES.supplierPortalOverview);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
@@ -39,19 +39,20 @@ export default function SupplierPortalLoginPage() {
       <AuthCard>
         <AuthPageHeader
           title="Supplier sign in"
-          description="Manage your marketplace catalogue and respond to purchase orders from connected businesses."
+          description="Use the phone number you claimed with, or the email you added — plus your password."
         />
         <form className="space-y-3" onSubmit={onSubmit}>
-          <label className="text-sm font-medium" htmlFor="sp-email">
-            Email
+          <label className="text-sm font-medium" htmlFor="sp-identifier">
+            Phone or email
           </label>
           <input
-            id="sp-email"
-            type="email"
+            id="sp-identifier"
+            type="text"
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-            value={email}
-            onChange={(ev) => setEmail(ev.target.value)}
+            value={identifier}
+            onChange={(ev) => setIdentifier(ev.target.value)}
             autoComplete="username"
+            placeholder="07… / 2547… or you@email.com"
             required
           />
           <label className="text-sm font-medium" htmlFor="sp-password">
@@ -76,12 +77,13 @@ export default function SupplierPortalLoginPage() {
           </div>
         ) : null}
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          <Link href="/" className="underline underline-offset-2">
-            Business app home
+          New here?{" "}
+          <Link href={APP_ROUTES.supplierPortalClaim} className="underline underline-offset-2">
+            Claim with phone
           </Link>
           {" · "}
-          <Link href={APP_ROUTES.staffLogin} className="underline underline-offset-2">
-            Shop staff sign in
+          <Link href="/" className="underline underline-offset-2">
+            Business app home
           </Link>
         </p>
       </AuthCard>

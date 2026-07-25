@@ -333,7 +333,7 @@ function EmptyGlobalFallback({ username }: { username: string }) {
           <Link href={searchHref}>Search marketplace</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href={APP_ROUTES.supplierPortalLogin}>Claim passport</Link>
+          <Link href={APP_ROUTES.supplierPortalClaim}>Claim passport</Link>
         </Button>
       </div>
     </div>
@@ -403,7 +403,7 @@ export function GlobalSupplierHubView({ username }: Props) {
               </p>
             </div>
             <Button asChild size="sm" variant="outline">
-              <Link href={APP_ROUTES.supplierPortalLogin}>Claim this passport</Link>
+              <Link href={APP_ROUTES.supplierPortalClaim}>Claim this passport</Link>
             </Button>
           </div>
         </div>
