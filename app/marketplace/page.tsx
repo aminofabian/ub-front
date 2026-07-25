@@ -4,10 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  ChevronDown,
+  ChevronUp,
   Loader2,
   MapPin,
   Package,
   Search,
+  SlidersHorizontal,
   Store,
   Truck,
   X,
@@ -116,6 +119,22 @@ function PublicMarketplacePageInner() {
   const [supplierDetail, setSupplierDetail] =
     useState<MarketplaceSupplierDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [supplierPickerOpen, setSupplierPickerOpen] = useState(true);
+  const ordering = Boolean(activeSupplierId && tab === "products");
+
+  useEffect(() => {
+    // Entering order mode: collapse browse chrome on small screens.
+    if (typeof window === "undefined") return;
+    const narrow = window.matchMedia("(max-width: 1023px)").matches;
+    if (ordering && narrow) {
+      setFiltersOpen(false);
+      setSupplierPickerOpen(false);
+    } else if (!ordering) {
+      setFiltersOpen(true);
+      setSupplierPickerOpen(true);
+    }
+  }, [ordering]);
 
   useEffect(() => {
     setSignedIn(Boolean(getSessionTokens()?.accessToken));
@@ -378,8 +397,18 @@ function PublicMarketplacePageInner() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1400px] px-3 pb-10 pt-3 sm:px-5">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <main
+        className={cn(
+          "mx-auto flex w-full max-w-[1400px] flex-col px-2 pt-2 sm:px-5 sm:pt-3",
+          ordering ? "pb-2 max-lg:pb-0" : "pb-8 sm:pb-10",
+        )}
+      >
+        <div
+          className={cn(
+            "mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-0.5",
+            ordering && "max-lg:hidden",
+          )}
+        >
           <p className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
             marketplace
             <span className="font-sans text-muted-foreground/80">
@@ -401,11 +430,19 @@ function PublicMarketplacePageInner() {
         <div
           className={cn(
             mktPosShell,
-            "relative flex h-[min(82dvh,58rem)] min-h-[32rem] flex-col",
+            "relative flex min-h-0 flex-col",
+            // Phone: fill the viewport like a till. Desktop: capped workspace.
+            "h-[calc(100dvh-3.25rem)] max-lg:rounded-none max-lg:border-x-0",
+            "lg:h-[min(82dvh,58rem)] lg:min-h-[32rem]",
           )}
         >
           {/* Passport-style identity + search strip */}
-          <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 sm:px-3">
+          <section
+            className={cn(
+              "relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 sm:px-3",
+              ordering && "max-lg:py-1.5",
+            )}
+          >
             <span aria-hidden className={mktPosAccentBar} />
             <div className="space-y-2 pl-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -432,46 +469,86 @@ function PublicMarketplacePageInner() {
                       : ""}
                   </p>
                 </div>
-                <div
-                  role="tablist"
-                  aria-label="Marketplace view"
-                  className="flex shrink-0 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
-                >
-                  {(
-                    [
-                      { id: "products" as const, label: "Products", icon: Package },
-                      { id: "suppliers" as const, label: "Suppliers", icon: Truck },
-                    ] as const
-                  ).map((item) => {
-                    const Icon = item.icon;
-                    const active = tab === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={active}
-                        className={cn(
-                          "inline-flex h-8 items-center gap-1.5 rounded-none px-3 text-[11px] font-semibold uppercase tracking-[0.08em] transition",
-                          active
-                            ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
-                            : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
-                        )}
-                        onClick={() => {
-                          setTab(item.id);
-                          setActiveTag(null);
-                          setActiveSupplierId(null);
-                        }}
-                      >
-                        <Icon className="size-3" strokeWidth={2} />
-                        {item.label}
-                      </button>
-                    );
-                  })}
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {(locationChips.length > 0 || categoryTags.length > 0) && (
+                    <button
+                      type="button"
+                      className={cn(
+                        "inline-flex h-8 items-center gap-1 border px-2 text-[10px] font-semibold uppercase tracking-[0.08em] lg:hidden",
+                        filtersOpen
+                          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] text-muted-foreground",
+                      )}
+                      onClick={() => setFiltersOpen((v) => !v)}
+                      aria-expanded={filtersOpen}
+                    >
+                      <SlidersHorizontal className="size-3" />
+                      Filters
+                      {activeLocation || activeTag ? (
+                        <span className="font-mono tabular-nums">·</span>
+                      ) : null}
+                    </button>
+                  )}
+                  <div
+                    role="tablist"
+                    aria-label="Marketplace view"
+                    className={cn(
+                      "flex rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]",
+                      ordering && "max-lg:hidden",
+                    )}
+                  >
+                    {(
+                      [
+                        {
+                          id: "products" as const,
+                          label: "Products",
+                          short: "Shelf",
+                          icon: Package,
+                        },
+                        {
+                          id: "suppliers" as const,
+                          label: "Suppliers",
+                          short: "Vendors",
+                          icon: Truck,
+                        },
+                      ] as const
+                    ).map((item) => {
+                      const Icon = item.icon;
+                      const active = tab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          className={cn(
+                            "inline-flex h-8 items-center gap-1.5 rounded-none px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] transition sm:px-3",
+                            active
+                              ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                              : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
+                          )}
+                          onClick={() => {
+                            setTab(item.id);
+                            setActiveTag(null);
+                            setActiveSupplierId(null);
+                          }}
+                        >
+                          <Icon className="size-3" strokeWidth={2} />
+                          <span className="sm:hidden">{item.short}</span>
+                          <span className="hidden sm:inline">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              <div className="relative rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_82%,transparent)]">
+              <div
+                className={cn(
+                  "relative rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_82%,transparent)]",
+                  ordering && "max-lg:hidden",
+                )}
+              >
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   className={mktPosSearch}
@@ -496,8 +573,8 @@ function PublicMarketplacePageInner() {
                 ) : null}
               </div>
 
-              {!searchInput && tab === "products" ? (
-                <p className="text-[11px] text-muted-foreground">
+              {!searchInput && tab === "products" && !ordering ? (
+                <p className="text-[11px] text-muted-foreground max-lg:hidden">
                   <span className="font-medium text-[var(--pos-ink,#1c1915)]/70">
                     Popular
                   </span>
@@ -521,7 +598,12 @@ function PublicMarketplacePageInner() {
               ) : null}
 
               {locationChips.length || categoryTags.length ? (
-                <div className="flex flex-col gap-1.5 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2">
+                <div
+                  className={cn(
+                    "flex flex-col gap-1.5 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2",
+                    !filtersOpen && "max-lg:hidden",
+                  )}
+                >
                   {locationChips.length ? (
                     <FilterRow label="1 · Area" icon={MapPin}>
                       <button
@@ -597,7 +679,17 @@ function PublicMarketplacePageInner() {
                     suppliers={supplierColumn}
                     activeId={activeSupplierId}
                     areaLabel={activeLocation}
-                    onSelect={setActiveSupplierId}
+                    expanded={supplierPickerOpen}
+                    onToggleExpanded={() =>
+                      setSupplierPickerOpen((v) => !v)
+                    }
+                    onSelect={(id) => {
+                      setActiveSupplierId(id);
+                      if (id && typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+                        setSupplierPickerOpen(false);
+                        setFiltersOpen(false);
+                      }
+                    }}
                   />
                 ) : null}
                 {activeSupplierId ? (
@@ -653,7 +745,7 @@ function PublicMarketplacePageInner() {
                         />
                       ) : (
                         <>
-                          <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                          <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                             {visibleProducts.map((row, index) => (
                               <ProductTile
                                 key={`${row.supplierId}-${row.productId}`}
@@ -735,11 +827,15 @@ function SupplierFilterColumn({
   suppliers,
   activeId,
   areaLabel,
+  expanded = true,
+  onToggleExpanded,
   onSelect,
 }: {
   suppliers: MarketplaceSupplierSearchRow[];
   activeId: string | null;
   areaLabel: string | null;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
   onSelect: (id: string | null) => void;
 }) {
   const [supplierQuery, setSupplierQuery] = useState("");
@@ -755,83 +851,128 @@ function SupplierFilterColumn({
     });
   }, [suppliers, supplierQuery]);
 
+  const active = suppliers.find((s) => s.id === activeId) ?? null;
+
   return (
     <>
-      {/* Mobile */}
+      {/* Mobile / tablet: collapsible filmstrip */}
       <div className="min-w-0 shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:hidden">
-        <div className={mktPosHeader}>
-          <p>2 · Supplier{areaLabel ? ` · ${areaLabel}` : ""}</p>
-          <span className="font-mono text-[10px] tabular-nums opacity-80">
-            {filtered.length}
-          </span>
-        </div>
-        <div className="relative border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
-          <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
-          <input
-            className="h-8 w-full bg-transparent pl-7 pr-8 text-[12px] outline-none placeholder:text-muted-foreground/50"
-            placeholder="Search suppliers…"
-            value={supplierQuery}
-            onChange={(e) => setSupplierQuery(e.target.value)}
-          />
-          {supplierQuery ? (
-            <button
-              type="button"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
-              onClick={() => setSupplierQuery("")}
-              aria-label="Clear supplier search"
-            >
-              <X className="size-3" />
-            </button>
-          ) : null}
-        </div>
-        <div className="flex gap-1 overflow-x-auto p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {!expanded && active ? (
           <button
             type="button"
-            onClick={() => onSelect(null)}
-            className={cn(
-              "flex h-14 w-[4.5rem] shrink-0 flex-col items-center justify-center border px-1 text-center text-[10px] font-semibold leading-tight",
-              activeId == null
-                ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
-                : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] text-muted-foreground",
-            )}
+            onClick={onToggleExpanded}
+            className="flex w-full items-center gap-2 bg-[var(--pos-primary,#0f766e)] px-2.5 py-2 text-left text-[var(--pos-primary-ink,#fff)]"
           >
-            All
-          </button>
-          {filtered.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              title={s.name}
-              onClick={() => onSelect(activeId === s.id ? null : s.id)}
-              className={cn(
-                "flex h-14 w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 border px-1 text-center",
-                activeId === s.id
-                  ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
-                  : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-              )}
-            >
-              <span className="line-clamp-2 text-[10px] font-semibold leading-tight">
-                {s.name}
+            <span className="min-w-0 flex-1">
+              <span className="block text-[9px] font-bold uppercase tracking-[0.14em] opacity-80">
+                Ordering from
               </span>
-              <span
-                className={cn(
-                  "font-mono text-[9px] tabular-nums",
-                  activeId === s.id ? "opacity-80" : "text-muted-foreground",
-                )}
-              >
-                {s.productCount}
+              <span className="block truncate text-[13px] font-semibold">
+                {active.name}
+              </span>
+            </span>
+            <span className="inline-flex items-center gap-1 border border-white/25 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em]">
+              Change
+              <ChevronDown className="size-3" />
+            </span>
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={cn(mktPosHeader, "w-full cursor-pointer")}
+              onClick={onToggleExpanded}
+              aria-expanded={expanded}
+            >
+              <p>2 · Supplier{areaLabel ? ` · ${areaLabel}` : ""}</p>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="font-mono text-[10px] tabular-nums opacity-80">
+                  {filtered.length}
+                </span>
+                {onToggleExpanded ? (
+                  expanded ? (
+                    <ChevronUp className="size-3.5 opacity-80" />
+                  ) : (
+                    <ChevronDown className="size-3.5 opacity-80" />
+                  )
+                ) : null}
               </span>
             </button>
-          ))}
-          {filtered.length === 0 ? (
-            <p className="px-2 py-3 text-[11px] text-muted-foreground">
-              No suppliers match “{supplierQuery}”.
-            </p>
-          ) : null}
-        </div>
+            {expanded ? (
+              <>
+                <div className="relative border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+                  <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    className="h-8 w-full rounded-none bg-transparent pl-7 pr-8 text-[12px] outline-none placeholder:text-muted-foreground/50"
+                    placeholder="Search suppliers…"
+                    value={supplierQuery}
+                    onChange={(e) => setSupplierQuery(e.target.value)}
+                  />
+                  {supplierQuery ? (
+                    <button
+                      type="button"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
+                      onClick={() => setSupplierQuery("")}
+                      aria-label="Clear supplier search"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  ) : null}
+                </div>
+                <div className="flex gap-1 overflow-x-auto p-1.5 [scrollbar-width:none] snap-x snap-mandatory [&::-webkit-scrollbar]:hidden">
+                  <button
+                    type="button"
+                    onClick={() => onSelect(null)}
+                    className={cn(
+                      "flex h-14 w-[4.5rem] shrink-0 snap-start flex-col items-center justify-center border px-1 text-center text-[10px] font-semibold leading-tight",
+                      activeId == null
+                        ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                        : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] text-muted-foreground",
+                    )}
+                  >
+                    All
+                  </button>
+                  {filtered.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      title={s.name}
+                      onClick={() => onSelect(activeId === s.id ? null : s.id)}
+                      className={cn(
+                        "flex h-14 w-[5.75rem] shrink-0 snap-start flex-col items-center justify-center gap-0.5 border px-1 text-center transition",
+                        activeId === s.id
+                          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+                      )}
+                    >
+                      <span className="line-clamp-2 text-[10px] font-semibold leading-tight">
+                        {s.name}
+                      </span>
+                      <span
+                        className={cn(
+                          "font-mono text-[9px] tabular-nums",
+                          activeId === s.id
+                            ? "opacity-80"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {s.productCount}
+                      </span>
+                    </button>
+                  ))}
+                  {filtered.length === 0 ? (
+                    <p className="px-2 py-3 text-[11px] text-muted-foreground">
+                      No suppliers match “{supplierQuery}”.
+                    </p>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+          </>
+        )}
       </div>
 
-      {/* Desktop column — same language as passport parent rail */}
+      {/* Desktop column */}
       <aside className="hidden h-full w-[12rem] shrink-0 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:flex xl:w-[13.5rem]">
         <div className={mktPosHeader}>
           <p>2 · Supplier</p>
@@ -847,7 +988,7 @@ function SupplierFilterColumn({
         <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-white/50">
           <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
           <input
-            className="h-8 w-full bg-transparent pl-7 pr-8 text-[12px] outline-none placeholder:text-muted-foreground/50"
+            className="h-8 w-full rounded-none bg-transparent pl-7 pr-8 text-[12px] outline-none placeholder:text-muted-foreground/50"
             placeholder="Search suppliers…"
             value={supplierQuery}
             onChange={(e) => setSupplierQuery(e.target.value)}
@@ -925,7 +1066,9 @@ function FilterRow({
         {Icon ? <Icon className="size-3" /> : null}
         {label}
       </span>
-      <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">{children}</div>
+      <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] snap-x snap-mandatory [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible sm:pb-0">
+        {children}
+      </div>
     </div>
   );
 }

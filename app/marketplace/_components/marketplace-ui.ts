@@ -26,7 +26,7 @@ export const mktTileMedia =
   "relative flex h-28 items-end overflow-hidden px-4 pb-3";
 
 export const mktChip =
-  "inline-flex shrink-0 items-center rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] " +
+  "inline-flex shrink-0 snap-start items-center rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] " +
   "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] px-2 py-1 " +
   "text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground " +
   "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] hover:text-[var(--pos-ink,#1c1915)]";

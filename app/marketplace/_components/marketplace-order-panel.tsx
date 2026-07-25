@@ -591,7 +591,7 @@ export function MarketplaceOrderWorkspace({
         )}
       >
         <div className="flex h-full min-h-0 flex-1 items-stretch overflow-hidden">
-          <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
+          <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:border-r lg:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
             <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 sm:px-3">
               <span
                 aria-hidden
@@ -671,25 +671,14 @@ export function MarketplaceOrderWorkspace({
             <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
-                className="h-8 w-full border-0 bg-transparent pl-8 pr-3 text-[13px] shadow-none outline-none placeholder:text-muted-foreground/50"
+                className="h-8 w-full rounded-none border-0 bg-transparent pl-8 pr-3 text-[13px] shadow-none outline-none placeholder:text-muted-foreground/50"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 placeholder="Find a product…"
               />
             </div>
 
-            {showParentRail ? (
-              <ParentRail
-                options={parentOptions}
-                activeId={parentFilterId}
-                onSelect={setParentFilterId}
-                orientation="horizontal"
-                className="min-w-0 shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:hidden"
-                tileClassName="size-[3.25rem]"
-              />
-            ) : null}
-
-            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-y-contain px-1.5 py-1.5 pb-24 sm:px-2.5 lg:pb-2">
+            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-y-contain px-1.5 py-1.5 pb-3 sm:px-2.5">
               <div className="flex items-center justify-between gap-2 px-0.5">
                 <h3 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
                   {activeParentLabel}
@@ -708,7 +697,7 @@ export function MarketplaceOrderWorkspace({
                       : "No products match your search."}
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                   {shelfProducts.map((product) => (
                     <ShelfProductTile
                       key={product.id}
@@ -752,39 +741,102 @@ export function MarketplaceOrderWorkspace({
           </div>
         </div>
 
-        <button
-          type="button"
-          className={cn(
-            "fixed bottom-3 right-3 z-30 flex h-12 items-center gap-2 px-3.5 lg:hidden",
-            "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
-            "shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--pos-primary,#0f766e)_70%,transparent)]",
-          )}
-          onClick={() => setMobileOrderOpen(true)}
-        >
-          <ShoppingCart className="size-4" />
-          <span className="text-[13px] font-semibold">
-            Order
-            {cartUnits > 0 ? (
-              <span className="ml-1.5 font-mono tabular-nums">
-                · {cartUnits}
+        {/* Mobile / tablet: thumb-zone parent stamps + order ticket dock */}
+        <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_78%,transparent)] pb-[env(safe-area-inset-bottom)] lg:hidden">
+          {showParentRail ? (
+            <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
+              <div className="flex items-center justify-between px-2.5 pt-1.5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                  Parent
+                </p>
+                <span className="font-mono text-[9px] tabular-nums text-muted-foreground">
+                  {parentOptions.length - 1}
+                </span>
+              </div>
+              <ParentRail
+                options={parentOptions}
+                activeId={parentFilterId}
+                onSelect={setParentFilterId}
+                orientation="horizontal"
+                className="min-w-0"
+                tileClassName="size-[3rem]"
+              />
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => setMobileOrderOpen(true)}
+            className={cn(
+              "group relative flex w-full items-stretch overflow-hidden",
+              "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
+              "transition active:brightness-95",
+            )}
+          >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-1.5 opacity-40"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 8px 0, transparent 5px, currentColor 5.5px)",
+                backgroundSize: "16px 8px",
+                backgroundRepeat: "repeat-x",
+                color: "color-mix(in srgb, #f7f3eb 70%, transparent)",
+              }}
+            />
+            <span className="flex min-w-0 flex-1 flex-col items-start justify-center gap-0.5 px-3 py-2.5 text-left">
+              <span className="text-[9px] font-bold uppercase tracking-[0.18em] opacity-80">
+                Order ticket
               </span>
-            ) : null}
-          </span>
-        </button>
+              <span className="truncate text-[13px] font-semibold">
+                {cartUnits === 0
+                  ? "Tap products to add lines"
+                  : `${cartUnits} unit${cartUnits === 1 ? "" : "s"} · ${cartLines.length} line${cartLines.length === 1 ? "" : "s"}`}
+              </span>
+            </span>
+            <span className="flex shrink-0 flex-col items-end justify-center gap-0.5 border-l border-white/20 px-3 py-2.5">
+              <span className="font-mono text-[15px] font-bold tabular-nums leading-none">
+                {formatMoney(cartTotal, cartCurrency)}
+              </span>
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] opacity-90">
+                Open
+                <ChevronUp className="size-3.5 transition group-active:-translate-y-0.5" />
+              </span>
+            </span>
+          </button>
+        </div>
 
         {mobileOrderOpen ? (
-          <div className="fixed inset-0 z-40 flex flex-col bg-[color-mix(in_srgb,#e7e1d6_92%,transparent)] p-3 lg:hidden">
-            <OrderManifestPanel
-              supplierName={detail.name}
-              lines={cartLines}
-              currency={cartCurrency}
-              sending={sendingOrder}
-              onSetQty={(productId, qty) => setQty(productId, qty)}
-              onRemove={(productId) => setQty(productId, 0)}
-              onSend={() => void sendOrder()}
-              onClose={() => setMobileOrderOpen(false)}
-              className="h-full max-h-full"
+          <div className="absolute inset-0 z-40 flex flex-col lg:hidden">
+            <button
+              type="button"
+              className="min-h-0 flex-1 bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_35%,transparent)] backdrop-blur-[2px] transition-opacity"
+              aria-label="Dismiss order ticket"
+              onClick={() => setMobileOrderOpen(false)}
             />
+            <div
+              className={cn(
+                "relative flex max-h-[88%] min-h-[50%] flex-col",
+                "animate-in slide-in-from-bottom duration-300",
+                "border-t-2 border-[var(--pos-ink,#1c1915)]",
+                "bg-[color-mix(in_srgb,#faf7f1_98%,transparent)] shadow-[0_-18px_40px_-20px_rgba(28,25,21,0.45)]",
+              )}
+            >
+              <div className="flex shrink-0 justify-center pb-1 pt-2">
+                <span className="h-1 w-10 bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)]" />
+              </div>
+              <OrderManifestPanel
+                supplierName={detail.name}
+                lines={cartLines}
+                currency={cartCurrency}
+                sending={sendingOrder}
+                onSetQty={(productId, qty) => setQty(productId, qty)}
+                onRemove={(productId) => setQty(productId, 0)}
+                onSend={() => void sendOrder()}
+                onClose={() => setMobileOrderOpen(false)}
+                className="min-h-0 flex-1 border-0"
+              />
+            </div>
           </div>
         ) : null}
       </div>
@@ -1421,8 +1473,9 @@ function OrderManifestPanel({
       <div
         className={cn(
           "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
-          "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-          "bg-[color-mix(in_srgb,var(--card)_92%,#faf7f1)]",
+          onClose
+            ? "border-0 bg-transparent"
+            : "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#faf7f1)]",
         )}
       >
         <div className="flex shrink-0 items-start justify-between gap-2 border-b-2 border-[var(--pos-ink,#1c1915)] px-2.5 py-2">
