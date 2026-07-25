@@ -36,6 +36,7 @@ import {
 import { useDashboard } from "@/components/dashboard-provider";
 import { CashierCreateProductModal } from "@/components/cashier/cashier-create-product-modal";
 import { SupplierReceiveLinkModal } from "@/components/supplier-receive/supplier-receive-link-modal";
+import { SupplyInvoiceReceipt } from "@/components/supplier-receive/supply-invoice-receipt";
 import { Button } from "@/components/ui/button";
 import {
   addItemSupplierLink,
@@ -53,9 +54,11 @@ import {
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import { resolveReceiptWebsite } from "@/lib/branch-receipt";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { kioskPlaceholderWashClass } from "@/components/cashier/kiosk-listing-styles";
 import { APP_ROUTES } from "@/lib/config";
+import { printSupplyInvoiceReceipt } from "@/lib/desktop-print";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import {
@@ -69,6 +72,10 @@ import {
   resolveSupplierFromSlug,
   supplierSlugSearchHint,
 } from "@/lib/supplier-slug";
+import {
+  buildSupplyInvoiceReceiptSnapshot,
+  type SupplyInvoiceReceiptSnapshot,
+} from "@/lib/supply-invoice-receipt";
 import { cn } from "@/lib/utils";
 
 type SupplyCartLine = {
@@ -1297,6 +1304,8 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
   const [linkProductsOpen, setLinkProductsOpen] = useState(false);
   /** When false, tile/parent edit controls stay hidden even for admins. */
   const [adminEditOn, setAdminEditOn] = useState(false);
+  const [lastInvoice, setLastInvoice] =
+    useState<SupplyInvoiceReceiptSnapshot | null>(null);
 
   useEffect(() => {
     if (!canToggleAdminEdit) return;
@@ -1682,6 +1691,20 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
       return;
     }
 
+    const postedLines = readyLines.map((line) => {
+      const qty = parsePos(line.qtyStr)!;
+      const cost = parseNonNeg(line.costStr)!;
+      return {
+        description: line.name,
+        quantity: qty,
+        unitCost: cost,
+        lineTotal: Math.round(qty * cost * 100) / 100,
+        sku: line.sku || null,
+      };
+    });
+    const receiptBranch = branches.find((b) => b.id === bid) ?? null;
+    const receiptSettings = receiptBranch?.receipt ?? null;
+
     setSaving(true);
     try {
       const session = await createPathBSession({
@@ -1734,13 +1757,51 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
         }
       }
 
-      toast.success(
-        readyLines.length === 1
-          ? `Stock updated · ${payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`
-          : `${readyLines.length} products updated · ${payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`,
-      );
+      const invoice = buildSupplyInvoiceReceiptSnapshot({
+        businessName: business?.name?.trim() || "Store",
+        logoUrl: business?.branding?.logoUrl ?? null,
+        branchName: receiptBranch?.name?.trim() || activeBranchName || "",
+        branchAddress: receiptBranch?.address ?? null,
+        branchPhone: receiptSettings?.phone ?? null,
+        branchEmail: receiptSettings?.email ?? null,
+        branchWebsite: resolveReceiptWebsite(
+          receiptSettings?.website,
+          business?.primaryDomain,
+        ),
+        tillNumber: receiptSettings?.tillNumber ?? null,
+        receivedByName: me?.name?.trim() || null,
+        sessionId: session.id,
+        supplierName: supplier.name,
+        supplierCode: supplier.code ?? null,
+        currency,
+        receivedAt: new Date().toISOString(),
+        lines: postedLines,
+      });
+
+      setLastInvoice(invoice);
       setCart([]);
       setMobileCartOpen(false);
+
+      const printed = await printSupplyInvoiceReceipt(
+        invoice,
+        undefined,
+        {
+          cupsName: receiptSettings?.printerCupsName ?? null,
+          branchId: bid,
+        },
+        { quiet: true },
+      );
+
+      toast.success(
+        printed
+          ? readyLines.length === 1
+            ? `Stock updated · invoice printed · ${payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`
+            : `${readyLines.length} products updated · invoice printed · ${payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`
+          : readyLines.length === 1
+            ? `Stock updated · ${payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`
+            : `${readyLines.length} products updated · ${payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${currency}`,
+      );
+
       void fetchSupplierItemLinks(supplier.id, { branchId: bid }).then((list) =>
         setLinks(list.filter((l) => l.active)),
       );
@@ -2138,6 +2199,29 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
             {...cartPanelProps}
             onCloseMobile={() => setMobileCartOpen(false)}
           />
+        </div>
+      ) : null}
+
+      {lastInvoice ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_50%,transparent)] p-3 backdrop-blur-[2px] sm:items-center">
+          <div
+            className="max-h-[min(92dvh,40rem)] w-full max-w-sm overflow-y-auto border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_96%,#faf7f1)] p-3 shadow-[4px_4px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_25%,transparent)]"
+            style={brandTheme as CSSProperties}
+          >
+            <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Posted · supply invoice
+            </p>
+            <SupplyInvoiceReceipt
+              receipt={lastInvoice}
+              receiptPrinter={{
+                cupsName:
+                  branches.find((b) => b.id === branchId)?.receipt
+                    ?.printerCupsName ?? null,
+                branchId,
+              }}
+              onDismiss={() => setLastInvoice(null)}
+            />
+          </div>
         </div>
       ) : null}
 

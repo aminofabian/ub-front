@@ -12,6 +12,10 @@ import {
 } from "@/lib/escpos-cash-tender";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
+  buildSupplyInvoiceEscPos,
+  type SupplyInvoiceReceiptSnapshot,
+} from "@/lib/supply-invoice-receipt";
+import {
   getLocalTillCupsName,
   getLocalTillNetworkTarget,
   isTillPrintBridgeUp,
@@ -259,6 +263,63 @@ export async function printWebOrderReceipt(
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "Could not auto-print web order.";
+    toast.error(msg, { duration: 10_000 });
+    return false;
+  }
+}
+
+/**
+ * Print a Path B supply invoice on the till thermal printer (client-built ESC/POS).
+ * Quiet when no printer / bridge — receive till still succeeds without paper.
+ */
+export async function printSupplyInvoiceReceipt(
+  snapshot: SupplyInvoiceReceiptSnapshot,
+  widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
+  printer?: LocalReceiptPrinterTarget | null,
+  opts?: { quiet?: boolean },
+): Promise<boolean> {
+  const quiet = Boolean(opts?.quiet);
+
+  const resolved = await resolvePrinterTarget(printer);
+  const cupsName = resolved?.cupsName?.trim() || "";
+  const host = resolved?.host?.trim() || "";
+
+  if (!cupsName && !host) {
+    if (!quiet) {
+      toast.message(
+        "Supply posted. No receipt printer configured — set one under Branches → Receipt details, or use Detect printers.",
+        { duration: 9_000 },
+      );
+    }
+    return false;
+  }
+
+  const bridgeUp = await isTillPrintBridgeUp();
+  if (!bridgeUp) {
+    if (!quiet) {
+      toast.message(
+        `Supply posted. Till Print Bridge is not running — slip not printed. ${TILL_BRIDGE_START_HINT}`,
+        { duration: 12_000 },
+      );
+    }
+    return false;
+  }
+
+  try {
+    const raw = buildSupplyInvoiceEscPos(snapshot, widthMm);
+    const escpos = new Blob([new Uint8Array(raw)], {
+      type: "application/octet-stream",
+    });
+    await printEscPosViaTillBridge(escpos, {
+      name: cupsName || null,
+      host: host || null,
+      port: resolved?.port ?? 9100,
+    });
+    if (!quiet) toast.success("Supply invoice sent to printer.");
+    return true;
+  } catch (e) {
+    const msg =
+      e instanceof Error ? e.message : "Could not print supply invoice.";
     toast.error(msg, { duration: 10_000 });
     return false;
   }
