@@ -16,6 +16,8 @@ import {
   Plus,
   Search,
   ShoppingCart,
+  Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,6 +51,62 @@ const SHELF_TILE = cn(
   "hover:z-[1] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)] hover:bg-card",
   "hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
 );
+
+const PARENT_RAIL_BASE = cn(
+  "relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden border",
+  "text-center text-[10px] font-semibold leading-tight transition touch-manipulation",
+);
+
+const PARENT_RAIL_HEADER = cn(
+  "flex h-8 shrink-0 items-center justify-center",
+  "bg-[var(--pos-primary,#0f766e)] px-1.5 text-center text-[10px] font-bold uppercase tracking-[0.14em]",
+  "text-[var(--pos-primary-ink,#fff)]",
+);
+
+type ParentOption = {
+  id: string | null;
+  label: string;
+  thumbnailUrl: string | null;
+};
+
+/** Parent id for filtering: variant parent, else the catalog item itself. */
+function productParentId(product: MarketplaceCatalogProductPreview): string {
+  const variant = product.variantOfItemId?.trim();
+  if (variant) return variant;
+  const itemId = product.itemId?.trim();
+  if (itemId) return itemId;
+  return product.id;
+}
+
+function productParentLabel(product: MarketplaceCatalogProductPreview): string {
+  const parent = product.parentItemName?.trim();
+  if (parent) return parent;
+  const name = product.name?.trim() || product.sku?.trim() || "Product";
+  const sep = name.indexOf(" · ");
+  return sep > 0 ? name.slice(0, sep) : name;
+}
+
+function parentRailClass(active: boolean, hasImage: boolean): string {
+  if (hasImage) {
+    return cn(
+      PARENT_RAIL_BASE,
+      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_60%,transparent)]",
+      active &&
+        "border-[var(--pos-primary,#0f766e)] shadow-[inset_0_0_0_2px_var(--pos-primary,#0f766e)]",
+    );
+  }
+  return active
+    ? cn(
+        PARENT_RAIL_BASE,
+        "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] px-1 text-[var(--pos-primary-ink,#fff)]",
+      )
+    : cn(
+        PARENT_RAIL_BASE,
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-1",
+        "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] text-[var(--pos-ink,#1c1915)]",
+        "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,var(--card))]",
+      );
+}
 
 function hueFromId(id: string): number {
   let hash = 0;
@@ -205,6 +263,8 @@ export function MarketplaceOrderWorkspace({
   );
   const [sendingOrder, setSendingOrder] = useState(false);
   const [filter, setFilter] = useState("");
+  const [parentFilterId, setParentFilterId] = useState<string | null>(null);
+  const [mobileOrderOpen, setMobileOrderOpen] = useState(false);
 
   // Opening a product page starts a fresh order with only that product.
   // Related rows stay at Add (0) until the buyer chooses them.
@@ -265,17 +325,66 @@ export function MarketplaceOrderWorkspace({
   // Location already shown under the product title — don't repeat in contact.
   const showAreaInContact = !selected;
 
+  const parentOptions = useMemo((): ParentOption[] => {
+    const map = new Map<string, { label: string; thumbnailUrl: string | null }>();
+    for (const product of detail.products) {
+      const id = productParentId(product);
+      if (map.has(id)) continue;
+      map.set(id, {
+        label: productParentLabel(product),
+        thumbnailUrl:
+          product.parentImageUrl?.trim() ||
+          (product.variantOfItemId ? null : product.imageUrl?.trim() || null) ||
+          null,
+      });
+    }
+    const sorted = [...map.entries()]
+      .map(([id, row]) => ({
+        id,
+        label: row.label,
+        thumbnailUrl: row.thumbnailUrl,
+      }))
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, "en", { sensitivity: "base" }),
+      );
+    return [{ id: null, label: "All", thumbnailUrl: null }, ...sorted];
+  }, [detail.products]);
+
+  const showParentRail = parentOptions.length > 2;
+
+  useEffect(() => {
+    if (
+      parentFilterId &&
+      !parentOptions.some((p) => p.id === parentFilterId)
+    ) {
+      setParentFilterId(null);
+    }
+  }, [parentFilterId, parentOptions]);
+
   const shelfProducts = useMemo(() => {
+    const byParent = parentFilterId
+      ? detail.products.filter((p) => productParentId(p) === parentFilterId)
+      : detail.products;
     const q = filter.trim().toLowerCase();
-    if (!q) return detail.products;
-    return detail.products.filter((p) => {
-      const hay = [p.name, p.sku, p.barcode, p.categoryName]
+    if (!q) return byParent;
+    return byParent.filter((p) => {
+      const hay = [
+        p.name,
+        p.sku,
+        p.barcode,
+        p.categoryName,
+        p.parentItemName,
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [detail.products, filter]);
+  }, [detail.products, filter, parentFilterId]);
+
+  const activeParentLabel = parentFilterId
+    ? parentOptions.find((p) => p.id === parentFilterId)?.label ?? "Shelf"
+    : "Shelf";
 
   const sendOrder = async () => {
     if (cartLines.length === 0) {
@@ -326,15 +435,8 @@ export function MarketplaceOrderWorkspace({
     }
   };
 
-  const orderFooter = (
-    <div
-      className={cn(
-        "sticky bottom-0 space-y-2 border p-3 sm:p-4",
-        isShelf
-          ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#faf8f4_94%,transparent)]"
-          : "border-border/60 bg-card",
-      )}
-    >
+  const orderActions = (
+    <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
           <ShoppingCart className="size-3.5" />
@@ -379,81 +481,179 @@ export function MarketplaceOrderWorkspace({
     </div>
   );
 
+  const orderFooter = (
+    <div
+      className={cn(
+        "sticky bottom-0 space-y-2 border p-3 sm:p-4",
+        isShelf
+          ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#faf8f4_94%,transparent)]"
+          : "border-border/60 bg-card",
+      )}
+    >
+      {orderActions}
+    </div>
+  );
+
   if (isShelf) {
     return (
-      <div className="flex w-full flex-col gap-0 overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]">
-        <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 pb-2 pt-2 sm:px-3">
-          <span
-            aria-hidden
-            className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
-          />
-          <div className="pl-2">
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-              Order
-            </p>
-            <h2 className="mt-0.5 text-[1.05rem] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
-              {detail.name}
-            </h2>
-            {areaLabel ? (
-              <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                <MapPin className="size-3" />
-                {areaLabel}
-              </p>
+      <div className="relative flex w-full flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] lg:min-h-[70vh]">
+        <div className="flex min-h-0 flex-1 items-stretch overflow-hidden">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
+            <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 pb-2 pt-2 sm:px-3">
+              <span
+                aria-hidden
+                className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
+              />
+              <div className="pl-2">
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  Order
+                </p>
+                <h2 className="mt-0.5 text-[1.05rem] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+                  {detail.name}
+                </h2>
+                {areaLabel ? (
+                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <MapPin className="size-3" />
+                    {areaLabel}
+                  </p>
+                ) : null}
+              </div>
+            </section>
+
+            <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="h-9 w-full border-0 bg-transparent pl-8 pr-3 text-[13px] shadow-none outline-none placeholder:text-muted-foreground/50"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Find a product…"
+              />
+            </div>
+
+            <SupplierContactSection
+              detail={detail}
+              areaLabel=""
+              className="border-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-3 sm:px-4"
+            />
+
+            {showParentRail ? (
+              <div className="flex gap-1 overflow-x-auto border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] p-1 scrollbar-none lg:hidden">
+                {parentOptions.map((parent) => (
+                  <ParentFolderButton
+                    key={parent.id ?? "all"}
+                    parent={parent}
+                    active={parentFilterId === parent.id}
+                    className="size-[3.75rem] shrink-0"
+                    onSelect={() => setParentFilterId(parent.id)}
+                  />
+                ))}
+              </div>
             ) : null}
-          </div>
-        </section>
 
-        <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <input
-            className="h-9 w-full border-0 bg-transparent pl-8 pr-3 text-[13px] shadow-none outline-none placeholder:text-muted-foreground/50"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Find a product…"
-          />
+            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-y-contain px-1.5 py-2 pb-24 sm:px-2.5 lg:pb-2">
+              <div className="flex items-center justify-between gap-2 px-0.5">
+                <h3 className="flex items-baseline gap-2 text-[0.9rem] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+                  {activeParentLabel}
+                  <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
+                    {shelfProducts.length}
+                  </span>
+                </h3>
+              </div>
+
+              {shelfProducts.length === 0 ? (
+                <div className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-[11px] text-muted-foreground">
+                  {detail.products.length === 0
+                    ? "No linked products yet."
+                    : parentFilterId
+                      ? "No products under this parent."
+                      : "No products match your search."}
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                  {shelfProducts.map((product) => (
+                    <ShelfProductTile
+                      key={product.id}
+                      product={product}
+                      supplierSlug={detail.slug}
+                      qty={cart[product.id] ?? 0}
+                      onAdd={() =>
+                        setQty(product.id, (cart[product.id] ?? 0) + 1, true)
+                      }
+                      onSetQty={(qty) => setQty(product.id, qty)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {showParentRail ? (
+            <aside className="hidden min-h-0 w-[6.5rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:flex xl:w-[7.25rem]">
+              <div className={PARENT_RAIL_HEADER}>Parent</div>
+              <nav
+                aria-label="Filter by parent product"
+                className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-0.5"
+              >
+                {parentOptions.map((parent) => (
+                  <ParentFolderButton
+                    key={parent.id ?? "all"}
+                    parent={parent}
+                    active={parentFilterId === parent.id}
+                    onSelect={() => setParentFilterId(parent.id)}
+                  />
+                ))}
+              </nav>
+            </aside>
+          ) : null}
+
+          <div className="hidden min-h-0 w-[min(100%,20rem)] shrink-0 lg:flex xl:w-[22rem]">
+            <OrderManifestPanel
+              supplierName={detail.name}
+              lines={cartLines}
+              currency={cartCurrency}
+              sending={sendingOrder}
+              onSetQty={(productId, qty) => setQty(productId, qty)}
+              onRemove={(productId) => setQty(productId, 0)}
+              onSend={() => void sendOrder()}
+            />
+          </div>
         </div>
 
-        <SupplierContactSection
-          detail={detail}
-          areaLabel=""
-          className="border-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-3 sm:px-4"
-        />
-
-        <div className="min-h-0 flex-1 space-y-1.5 px-1.5 py-2 sm:px-2.5">
-          <div className="flex items-center justify-between gap-2 px-0.5">
-            <h3 className="flex items-baseline gap-2 text-[0.9rem] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
-              Shelf
-              <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
-                {shelfProducts.length}
-              </span>
-            </h3>
-          </div>
-
-          {shelfProducts.length === 0 ? (
-            <div className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-[11px] text-muted-foreground">
-              {detail.products.length === 0
-                ? "No linked products yet."
-                : "No products match your search."}
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
-              {shelfProducts.map((product) => (
-                <ShelfProductTile
-                  key={product.id}
-                  product={product}
-                  supplierSlug={detail.slug}
-                  qty={cart[product.id] ?? 0}
-                  onAdd={() =>
-                    setQty(product.id, (cart[product.id] ?? 0) + 1, true)
-                  }
-                  onSetQty={(qty) => setQty(product.id, qty)}
-                />
-              ))}
-            </div>
+        <button
+          type="button"
+          className={cn(
+            "fixed bottom-3 right-3 z-30 flex h-12 items-center gap-2 px-3.5 lg:hidden",
+            "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
+            "shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--pos-primary,#0f766e)_70%,transparent)]",
           )}
-        </div>
+          onClick={() => setMobileOrderOpen(true)}
+        >
+          <ShoppingCart className="size-4" />
+          <span className="text-[13px] font-semibold">
+            Order
+            {cartUnits > 0 ? (
+              <span className="ml-1.5 font-mono tabular-nums">
+                · {cartUnits}
+              </span>
+            ) : null}
+          </span>
+        </button>
 
-        <div className="p-1.5 sm:p-2.5">{orderFooter}</div>
+        {mobileOrderOpen ? (
+          <div className="fixed inset-0 z-40 flex flex-col bg-[color-mix(in_srgb,#e7e1d6_92%,transparent)] p-3 lg:hidden">
+            <OrderManifestPanel
+              supplierName={detail.name}
+              lines={cartLines}
+              currency={cartCurrency}
+              sending={sendingOrder}
+              onSetQty={(productId, qty) => setQty(productId, qty)}
+              onRemove={(productId) => setQty(productId, 0)}
+              onSend={() => void sendOrder()}
+              onClose={() => setMobileOrderOpen(false)}
+              className="h-full max-h-full"
+            />
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -753,6 +953,215 @@ function PhoneLink({
         </a>
       ) : null}
     </span>
+  );
+}
+
+function ParentFolderButton({
+  parent,
+  active,
+  className,
+  onSelect,
+}: {
+  parent: ParentOption;
+  active: boolean;
+  className?: string;
+  onSelect: () => void;
+}) {
+  const thumb = parent.thumbnailUrl?.trim() || null;
+  const hasImage = Boolean(thumb);
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(parentRailClass(active, hasImage), className)}
+      title={parent.label}
+    >
+      {thumb ? (
+        <>
+          <Image
+            src={thumb}
+            alt=""
+            fill
+            sizes="80px"
+            className="object-cover"
+            unoptimized
+          />
+          <span className="absolute inset-x-0 bottom-0 z-[1] bg-gradient-to-t from-black/80 via-black/45 to-transparent px-0.5 pb-0.5 pt-4 text-[9px] font-semibold leading-tight text-white">
+            <span className="line-clamp-2">{parent.label}</span>
+          </span>
+        </>
+      ) : (
+        <span className="line-clamp-3 px-0.5">{parent.label}</span>
+      )}
+    </button>
+  );
+}
+
+function OrderManifestPanel({
+  supplierName,
+  lines,
+  currency,
+  sending,
+  onSetQty,
+  onRemove,
+  onSend,
+  onClose,
+  className,
+}: {
+  supplierName: string;
+  lines: { product: MarketplaceCatalogProductPreview; qty: number }[];
+  currency: string;
+  sending: boolean;
+  onSetQty: (productId: string, qty: number) => void;
+  onRemove: (productId: string) => void;
+  onSend: () => void;
+  onClose?: () => void;
+  className?: string;
+}) {
+  const total = lines.reduce((sum, line) => {
+    if (line.product.unitPrice == null) return sum;
+    return sum + line.product.unitPrice * line.qty;
+  }, 0);
+  const units = lines.reduce((sum, line) => sum + line.qty, 0);
+
+  return (
+    <aside
+      className={cn(
+        "flex h-full max-h-full min-h-0 w-full shrink-0 flex-col self-stretch overflow-hidden",
+        className,
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
+          "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--card)_92%,#faf7f1)]",
+        )}
+      >
+        <div className="flex shrink-0 items-start justify-between gap-2 border-b-2 border-[var(--pos-ink,#1c1915)] px-2.5 py-2">
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+              Order list
+            </p>
+            <h2 className="mt-0.5 truncate text-base font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+              {supplierName}
+            </h2>
+          </div>
+          {onClose ? (
+            <button
+              type="button"
+              className="flex size-7 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] text-muted-foreground hover:text-foreground"
+              onClick={onClose}
+              aria-label="Close order list"
+            >
+              <X className="size-3.5" />
+            </button>
+          ) : null}
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-0 overflow-y-auto">
+          {lines.length === 0 ? (
+            <p className="mx-2.5 my-3 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-3 py-10 text-center text-[11px] leading-relaxed text-muted-foreground">
+              Tap shelf products to build this order.
+            </p>
+          ) : (
+            lines.map((line, index) => (
+              <div
+                key={line.product.id}
+                className="space-y-1.5 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 last:border-b-0"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="flex items-start gap-1.5 text-[12px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
+                      <span className="mt-0.5 shrink-0 font-mono text-[9px] font-normal tabular-nums text-muted-foreground">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span>{line.product.name}</span>
+                    </p>
+                    {line.product.sku ? (
+                      <p className="mt-0.5 pl-5 font-mono text-[9px] uppercase tracking-wide text-muted-foreground">
+                        {line.product.sku}
+                      </p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 p-0.5 text-destructive/70 hover:text-destructive"
+                    onClick={() => onRemove(line.product.id)}
+                    aria-label={`Remove ${line.product.name}`}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-2 pl-5">
+                  <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
+                    <button
+                      type="button"
+                      className="flex size-7 items-center justify-center hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]"
+                      onClick={() => onSetQty(line.product.id, line.qty - 1)}
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="size-3" />
+                    </button>
+                    <span className="min-w-7 text-center font-mono text-[12px] font-semibold tabular-nums">
+                      {line.qty}
+                    </span>
+                    <button
+                      type="button"
+                      className="flex size-7 items-center justify-center hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]"
+                      onClick={() => onSetQty(line.product.id, line.qty + 1)}
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="size-3" />
+                    </button>
+                  </div>
+                  <p className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+                    {line.product.unitPrice != null
+                      ? formatMoney(
+                          line.product.unitPrice * line.qty,
+                          line.product.currency ?? currency,
+                        )
+                      : "Ask"}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="shrink-0 space-y-2 border-t-2 border-[var(--pos-ink,#1c1915)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-2.5 py-2.5">
+          <div className="flex items-center justify-between gap-2 text-[12px]">
+            <span className="text-muted-foreground">
+              {units === 0
+                ? "No lines yet"
+                : `${units} unit${units === 1 ? "" : "s"} · ${lines.length} line${lines.length === 1 ? "" : "s"}`}
+            </span>
+            <span className="font-mono text-[14px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+              {formatMoney(total, currency)}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[var(--pos-primary,#0f766e)] px-4 text-sm font-semibold text-[var(--pos-primary-ink,#fff)] transition hover:opacity-95 disabled:pointer-events-none disabled:opacity-50"
+            disabled={sending || lines.length === 0}
+            onClick={onSend}
+          >
+            {sending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Preparing…
+              </>
+            ) : (
+              <>
+                <FileDown className="size-4" />
+                PDF & WhatsApp
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </aside>
   );
 }
 

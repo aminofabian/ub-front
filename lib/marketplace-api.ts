@@ -99,6 +99,10 @@ export type MarketplaceCatalogProductPreview = {
   unitPrice: number | null;
   currency: string | null;
   available: boolean;
+  itemId?: string | null;
+  variantOfItemId?: string | null;
+  parentItemName?: string | null;
+  parentImageUrl?: string | null;
 };
 
 export type MarketplaceConnectResult = {
