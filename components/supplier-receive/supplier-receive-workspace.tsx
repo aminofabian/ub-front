@@ -24,6 +24,7 @@ import {
   ShoppingCart,
   Trash2,
   Truck,
+  Unlock,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -85,6 +86,9 @@ type SupplyCartLine = {
 type SupplierReceiveWorkspaceProps = {
   slug: string;
 };
+
+/** Browser-local: admin can flip tile edits on/off without a page reload. */
+const ADMIN_EDIT_STORAGE_KEY = "palmart.supplier-receive.admin-edit";
 
 const CHIP = cn(
   "inline-flex h-7 shrink-0 items-center gap-1.5 border px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
@@ -1257,6 +1261,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
   const canEditCatalog =
     isOwnerOrAdmin &&
     hasPermission(me?.permissions, Permission.CatalogItemsWrite);
+  const canToggleAdminEdit = canEditStock || canEditCatalog;
   const canCreateProduct = hasPermission(
     me?.permissions,
     Permission.CatalogItemsWrite,
@@ -1290,6 +1295,42 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [createProductOpen, setCreateProductOpen] = useState(false);
   const [linkProductsOpen, setLinkProductsOpen] = useState(false);
+  /** When false, tile/parent edit controls stay hidden even for admins. */
+  const [adminEditOn, setAdminEditOn] = useState(false);
+
+  useEffect(() => {
+    if (!canToggleAdminEdit) return;
+    try {
+      setAdminEditOn(
+        window.localStorage.getItem(ADMIN_EDIT_STORAGE_KEY) === "1",
+      );
+    } catch {
+      // Storage unavailable — stay locked until the admin toggles.
+    }
+  }, [canToggleAdminEdit]);
+
+  const editStockLive = canEditStock && adminEditOn;
+  const editCatalogLive = canEditCatalog && adminEditOn;
+
+  const toggleAdminEdit = () => {
+    setAdminEditOn((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(
+          ADMIN_EDIT_STORAGE_KEY,
+          next ? "1" : "0",
+        );
+      } catch {
+        // Ignore quota / private-mode failures.
+      }
+      toast.success(
+        next
+          ? "Editing on — tap pencils, stock, photos, barcodes"
+          : "Editing locked",
+      );
+      return next;
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -1862,6 +1903,30 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                 </h2>
               </div>
               <div className="flex flex-wrap items-center gap-1">
+                {canToggleAdminEdit ? (
+                  <button
+                    type="button"
+                    onClick={toggleAdminEdit}
+                    className={cn(
+                      adminEditOn ? CHIP_ACCENT : CHIP_IDLE,
+                      adminEditOn &&
+                        "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)]",
+                    )}
+                    aria-pressed={adminEditOn}
+                    title={
+                      adminEditOn
+                        ? "Lock editing (photos, name, stock, barcode)"
+                        : "Enable editing (photos, name, stock, barcode)"
+                    }
+                  >
+                    {adminEditOn ? (
+                      <Unlock className="size-3" aria-hidden />
+                    ) : (
+                      <Pencil className="size-3" aria-hidden />
+                    )}
+                    {adminEditOn ? "Editing" : "Edit"}
+                  </button>
+                ) : null}
                 {canCreateProduct ? (
                   <button
                     type="button"
@@ -1915,7 +1980,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                   key={parent.id ?? "all"}
                   parent={parent}
                   active={parentFilterId === parent.id}
-                  canEditPhoto={canEditCatalog}
+                  canEditPhoto={editCatalogLive}
                   className="size-[3.75rem] shrink-0"
                   onSelect={() => setParentFilterId(parent.id)}
                   onPhotoUploaded={onParentPhotoUploaded}
@@ -2008,8 +2073,8 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                     justAdded={justAddedId === link.itemId}
                     currency={currency}
                     branchId={branchId}
-                    canEditStock={canEditStock}
-                    canEditCatalog={canEditCatalog}
+                    canEditStock={editStockLive}
+                    canEditCatalog={editCatalogLive}
                     onPick={() => addLinkToCart(link)}
                     onPhotoUploaded={onPhotoUploaded}
                     onStockUpdated={onStockUpdated}
@@ -2034,7 +2099,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                   key={parent.id ?? "all"}
                   parent={parent}
                   active={parentFilterId === parent.id}
-                  canEditPhoto={canEditCatalog}
+                  canEditPhoto={editCatalogLive}
                   onSelect={() => setParentFilterId(parent.id)}
                   onPhotoUploaded={onParentPhotoUploaded}
                 />
