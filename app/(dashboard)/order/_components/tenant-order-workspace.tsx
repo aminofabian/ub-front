@@ -34,6 +34,11 @@ import {
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
 
+import {
+  OrderParentFloater,
+  type OrderParentOption,
+} from "./order-parent-floater";
+
 const ORDER_CURRENCY = "KES";
 
 type CartQty = OrderCartQty;
@@ -64,6 +69,32 @@ function lineTotal(link: SupplierItemLinkRecord, qty: number): number {
   return unitCost(link) * qty;
 }
 
+function normalizeParentLabel(label: string): string {
+  return label.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function linkParentId(link: SupplierItemLinkRecord): string {
+  const variantOf = link.variantOfItemId?.trim();
+  if (variantOf) return variantOf;
+
+  const parentName = link.parentItemName?.trim();
+  if (parentName) return `name:${normalizeParentLabel(parentName)}`;
+
+  const name = link.itemName?.trim() || "";
+  const sep = name.indexOf(" · ");
+  if (sep > 0) return `name:${normalizeParentLabel(name.slice(0, sep))}`;
+  if (name) return `name:${normalizeParentLabel(name)}`;
+  return link.itemId;
+}
+
+function linkParentLabel(link: SupplierItemLinkRecord): string {
+  const parent = link.parentItemName?.trim();
+  if (parent) return parent;
+  const name = link.itemName?.trim() || link.sku?.trim() || "Product";
+  const sep = name.indexOf(" · ");
+  return sep > 0 ? name.slice(0, sep) : name;
+}
+
 export function TenantOrderWorkspace() {
   const { branchId } = useDashboard();
   const businessId = getSessionTenantId()?.trim() ?? "";
@@ -77,6 +108,8 @@ export function TenantOrderWorkspace() {
   const [placing, setPlacing] = useState(false);
   const [supplierQuery, setSupplierQuery] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const [parentFilterId, setParentFilterId] = useState<string | null>(null);
+  const [parentDialOpen, setParentDialOpen] = useState(false);
   const cartsBySupplierRef = useRef<Record<string, CartQty>>({});
   const supplierIdRef = useRef<string | null>(null);
   supplierIdRef.current = supplierId;
@@ -179,6 +212,11 @@ export function TenantOrderWorkspace() {
   }, [supplierId, branchId]);
 
   useEffect(() => {
+    setParentFilterId(null);
+    setParentDialOpen(false);
+  }, [supplierId]);
+
+  useEffect(() => {
     if (!hydrated || !businessId) return;
     persistDraft(supplierId, cart);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- persist cart/supplier only
@@ -201,12 +239,75 @@ export function TenantOrderWorkspace() {
     return suppliers.filter((s) => s.name.toLowerCase().includes(q));
   }, [suppliers, supplierQuery]);
 
+  const parentOptions = useMemo((): OrderParentOption[] => {
+    const map = new Map<
+      string,
+      {
+        label: string;
+        thumbnailUrl: string | null;
+        itemCount: number;
+        lowStockCount: number;
+      }
+    >();
+    for (const link of links) {
+      const id = linkParentId(link);
+      const existing = map.get(id);
+      const stock = toNum(link.currentStock);
+      const reorder = toNum(link.reorderLevel);
+      const low = reorder > 0 && stock <= reorder;
+      const thumb =
+        link.itemId === id
+          ? link.thumbnailUrl?.trim() || null
+          : link.thumbnailUrl?.trim() || null;
+      if (!existing) {
+        map.set(id, {
+          label: linkParentLabel(link),
+          thumbnailUrl: thumb,
+          itemCount: 1,
+          lowStockCount: low ? 1 : 0,
+        });
+        continue;
+      }
+      existing.itemCount += 1;
+      if (low) existing.lowStockCount += 1;
+      if (!existing.thumbnailUrl && thumb) existing.thumbnailUrl = thumb;
+      if (link.itemId === id && link.thumbnailUrl?.trim()) {
+        existing.thumbnailUrl = link.thumbnailUrl.trim();
+      }
+    }
+    const families = [...map.entries()]
+      .map(([id, row]) => ({ id, ...row }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    const total = links.length;
+    const lowTotal = families.reduce((sum, f) => sum + f.lowStockCount, 0);
+    return [
+      {
+        id: "all",
+        label: "All products",
+        thumbnailUrl: null,
+        itemCount: total,
+        lowStockCount: lowTotal,
+      },
+      ...families,
+    ];
+  }, [links]);
+
   const visibleLinks = useMemo(() => {
     const q = filter.trim().toLowerCase();
     let rows = links;
+    if (parentFilterId) {
+      rows = rows.filter((r) => linkParentId(r) === parentFilterId);
+    }
     if (q) {
       rows = rows.filter((r) => {
-        const hay = [r.itemName, r.sku, r.barcode, r.supplierSku, r.variantName]
+        const hay = [
+          r.itemName,
+          r.sku,
+          r.barcode,
+          r.supplierSku,
+          r.variantName,
+          r.parentItemName,
+        ]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
@@ -221,7 +322,11 @@ export function TenantOrderWorkspace() {
       if (lowA !== lowB) return lowA - lowB;
       return a.itemName.localeCompare(b.itemName);
     });
-  }, [links, filter]);
+  }, [links, filter, parentFilterId]);
+
+  const activeParentLabel = parentFilterId
+    ? parentOptions.find((p) => p.id === parentFilterId)?.label ?? null
+    : null;
 
   const cartLines = useMemo(
     () =>
@@ -369,7 +474,7 @@ export function TenantOrderWorkspace() {
           </nav>
         </aside>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -380,131 +485,164 @@ export function TenantOrderWorkspace() {
             />
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-1.5 sm:px-2.5">
-            {!supplierId ? (
-              <p className="py-12 text-center text-[12px] text-muted-foreground">
-                Select a supplier to see linked products and stock.
+          {activeParentLabel ? (
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] px-2.5 py-1.5">
+              <p className="min-w-0 truncate text-[11px] font-semibold text-[var(--pos-ink,#1c1915)]">
+                <span className="mr-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--pos-primary,#0f766e)]">
+                  Family
+                </span>
+                {activeParentLabel}
               </p>
-            ) : loadingLinks ? (
-              <p className="flex items-center justify-center gap-2 py-12 text-[12px] text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                Loading catalogue…
-              </p>
-            ) : visibleLinks.length === 0 ? (
-              <p className="py-12 text-center text-[12px] text-muted-foreground">
-                No linked products for this supplier.
-              </p>
-            ) : (
-              <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-                {visibleLinks.map((link) => {
-                  const qty = cart[link.itemId] ?? 0;
-                  const stock = toNum(link.currentStock);
-                  const reorder = toNum(link.reorderLevel);
-                  const low = reorder > 0 && stock <= reorder;
-                  const cost = unitCost(link);
-                  const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
-                  const amount = lineTotal(link, qty);
-                  return (
-                    <div
-                      key={link.id}
-                      className={cn(
-                        "flex flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]",
-                        qty > 0 &&
-                          "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)]",
-                      )}
-                    >
-                      <button
-                        type="button"
-                        className="relative aspect-square w-full border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
-                        onClick={() => setQty(link.itemId, qty + 1)}
-                        aria-label={`Add ${link.itemName}`}
-                      >
-                        {thumb ? (
-                          <Image
-                            src={thumb}
-                            alt=""
-                            fill
-                            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 140px"
-                            className="object-contain p-1"
-                            unoptimized
-                          />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center">
-                            <Package
-                              className="size-6 opacity-40"
-                              strokeWidth={1.5}
-                            />
-                          </span>
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {visibleLinks.length}
+              </span>
+            </div>
+          ) : null}
+
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            <div className="h-full overflow-y-auto px-1.5 pb-20 pt-1.5 sm:px-2.5 sm:pb-24">
+              {!supplierId ? (
+                <p className="py-12 text-center text-[12px] text-muted-foreground">
+                  Select a supplier to see linked products and stock.
+                </p>
+              ) : loadingLinks ? (
+                <p className="flex items-center justify-center gap-2 py-12 text-[12px] text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" />
+                  Loading catalogue…
+                </p>
+              ) : visibleLinks.length === 0 ? (
+                <p className="py-12 text-center text-[12px] text-muted-foreground">
+                  {parentFilterId
+                    ? "No products in this family."
+                    : "No linked products for this supplier."}
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+                  {visibleLinks.map((link) => {
+                    const qty = cart[link.itemId] ?? 0;
+                    const stock = toNum(link.currentStock);
+                    const reorder = toNum(link.reorderLevel);
+                    const low = reorder > 0 && stock <= reorder;
+                    const cost = unitCost(link);
+                    const thumb = posTileThumbUrl(
+                      link.itemName,
+                      link.thumbnailUrl,
+                    );
+                    const amount = lineTotal(link, qty);
+                    return (
+                      <div
+                        key={link.id}
+                        className={cn(
+                          "flex flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]",
+                          qty > 0 &&
+                            "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)]",
                         )}
-                        {qty > 0 ? (
-                          <span className="absolute left-0 top-0 z-[1] inline-flex h-5 min-w-5 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 font-mono text-[10px] font-bold text-white">
-                            {qty}
-                          </span>
-                        ) : null}
-                        <span
-                          className={cn(
-                            "absolute bottom-0 right-0 z-[1] px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums",
-                            low
-                              ? "bg-amber-600 text-white"
-                              : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_78%,transparent)] text-white",
-                          )}
+                      >
+                        <button
+                          type="button"
+                          className="relative aspect-square w-full border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
+                          onClick={() => setQty(link.itemId, qty + 1)}
+                          aria-label={`Add ${link.itemName}`}
                         >
-                          {stock} in stock
-                        </span>
-                      </button>
-                      <div className="flex flex-1 flex-col gap-1 px-1.5 py-1.5">
-                        <p className="text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
-                          {link.itemName}
-                        </p>
-                        <div className="mt-auto flex items-center justify-between gap-1">
-                          <div className="min-w-0">
-                            <p className="font-mono text-[10px] font-semibold tabular-nums">
-                              {cost > 0
-                                ? formatMoney(cost, ORDER_CURRENCY)
-                                : "Ask"}
-                            </p>
-                            {qty > 0 && cost > 0 ? (
-                              <p className="font-mono text-[9px] tabular-nums text-muted-foreground">
-                                = {formatMoney(amount, ORDER_CURRENCY)}
-                              </p>
-                            ) : null}
-                          </div>
-                          {qty > 0 ? (
-                            <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
-                              <button
-                                type="button"
-                                className="flex size-6 items-center justify-center text-[12px]"
-                                onClick={() => setQty(link.itemId, qty - 1)}
-                              >
-                                −
-                              </button>
-                              <span className="min-w-5 text-center font-mono text-[11px]">
-                                {qty}
-                              </span>
-                              <button
-                                type="button"
-                                className="flex size-6 items-center justify-center text-[12px]"
-                                onClick={() => setQty(link.itemId, qty + 1)}
-                              >
-                                +
-                              </button>
-                            </div>
+                          {thumb ? (
+                            <Image
+                              src={thumb}
+                              alt=""
+                              fill
+                              sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 140px"
+                              className="object-contain p-1"
+                              unoptimized
+                            />
                           ) : (
-                            <button
-                              type="button"
-                              className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]"
-                              onClick={() => setQty(link.itemId, 1)}
-                            >
-                              Add
-                            </button>
+                            <span className="flex h-full w-full items-center justify-center">
+                              <Package
+                                className="size-6 opacity-40"
+                                strokeWidth={1.5}
+                              />
+                            </span>
                           )}
+                          {qty > 0 ? (
+                            <span className="absolute left-0 top-0 z-[1] inline-flex h-5 min-w-5 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 font-mono text-[10px] font-bold text-white">
+                              {qty}
+                            </span>
+                          ) : null}
+                          <span
+                            className={cn(
+                              "absolute bottom-0 right-0 z-[1] px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums",
+                              low
+                                ? "bg-amber-600 text-white"
+                                : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_78%,transparent)] text-white",
+                            )}
+                          >
+                            {stock} in stock
+                          </span>
+                        </button>
+                        <div className="flex flex-1 flex-col gap-1 px-1.5 py-1.5">
+                          <p className="text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
+                            {link.itemName}
+                          </p>
+                          <div className="mt-auto flex items-center justify-between gap-1">
+                            <div className="min-w-0">
+                              <p className="font-mono text-[10px] font-semibold tabular-nums">
+                                {cost > 0
+                                  ? formatMoney(cost, ORDER_CURRENCY)
+                                  : "Ask"}
+                              </p>
+                              {qty > 0 && cost > 0 ? (
+                                <p className="font-mono text-[9px] tabular-nums text-muted-foreground">
+                                  = {formatMoney(amount, ORDER_CURRENCY)}
+                                </p>
+                              ) : null}
+                            </div>
+                            {qty > 0 ? (
+                              <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
+                                <button
+                                  type="button"
+                                  className="flex size-6 items-center justify-center text-[12px]"
+                                  onClick={() =>
+                                    setQty(link.itemId, qty - 1)
+                                  }
+                                >
+                                  −
+                                </button>
+                                <span className="min-w-5 text-center font-mono text-[11px]">
+                                  {qty}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="flex size-6 items-center justify-center text-[12px]"
+                                  onClick={() =>
+                                    setQty(link.itemId, qty + 1)
+                                  }
+                                >
+                                  +
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]"
+                                onClick={() => setQty(link.itemId, 1)}
+                              >
+                                Add
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <OrderParentFloater
+              options={parentOptions}
+              activeId={parentFilterId}
+              open={parentDialOpen}
+              onOpenChange={setParentDialOpen}
+              onSelect={setParentFilterId}
+            />
           </div>
         </div>
 
