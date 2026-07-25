@@ -135,12 +135,32 @@ export type SupplierPortalLoginResult = {
 export type SupplierPortalProfile = {
   marketplaceSupplierId: string;
   name: string;
+  username: string | null;
   description: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
   status: string;
   deliveryRegions: string[];
   categoryTags: string[];
+  publicHubPath: string | null;
+  linkedShops: SupplierPortalLinkedShop[];
+};
+
+export type SupplierPortalLinkedShop = {
+  connectionId: string;
+  businessId: string;
+  shopName: string;
+  localSupplierId: string;
+  localSupplierName: string;
+  status: string;
+};
+
+export type SupplierPortalLinkCandidate = {
+  localSupplierId: string;
+  businessId: string;
+  shopName: string;
+  supplierName: string;
+  matchReason: string;
 };
 
 export type SupplierPortalProduct = {
@@ -461,6 +481,32 @@ export async function patchSupplierPortalProfile(body: {
     method: "PATCH",
     body: JSON.stringify(body),
   });
+}
+
+export async function claimSupplierPortalUsername(
+  username: string,
+): Promise<SupplierPortalProfile> {
+  return supplierPortalFetch<SupplierPortalProfile>(
+    `${API_ROUTES.supplierPortalProfile}/username`,
+    { method: "POST", body: JSON.stringify({ username }) },
+  );
+}
+
+export async function fetchSupplierPortalLinkCandidates(): Promise<
+  SupplierPortalLinkCandidate[]
+> {
+  return supplierPortalFetch<SupplierPortalLinkCandidate[]>(
+    `${API_ROUTES.supplierPortalProfile}/link-candidates`,
+  );
+}
+
+export async function linkSupplierPortalLocalSupplier(
+  localSupplierId: string,
+): Promise<SupplierPortalProfile> {
+  return supplierPortalFetch<SupplierPortalProfile>(
+    `${API_ROUTES.supplierPortalProfile}/link`,
+    { method: "POST", body: JSON.stringify({ localSupplierId }) },
+  );
 }
 
 export async function fetchSupplierPortalProducts(opts?: {

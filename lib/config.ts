@@ -155,6 +155,7 @@ export const API_ROUTES = {
   marketplace: "/api/v1/marketplace",
   supplierPortalAuthLogin: "/api/v1/supplier-portal/auth/login",
   supplierPortalProfile: "/api/v1/supplier-portal/profile",
+  supplierPortalHub: "/api/v1/supplier-portal/hub",
   supplierPortalProducts: "/api/v1/supplier-portal/products",
   supplierPortalOrders: "/api/v1/supplier-portal/orders",
   superAdminAuthLogin: "/api/v1/super-admin/auth/login",
