@@ -277,10 +277,13 @@ export function MarketplaceOrderWorkspace({
   detail,
   selectedProductSlug,
   layout = "default",
+  embedded = false,
 }: {
   detail: MarketplaceSupplierDetail;
   selectedProductSlug?: string | null;
   layout?: OrderLayout;
+  /** Fill parent height without outer border (e.g. nested in marketplace). */
+  embedded?: boolean;
 }) {
   const isShelf = layout === "shelf";
   const selected = isShelf
@@ -579,7 +582,14 @@ export function MarketplaceOrderWorkspace({
     const shelfWa = shelfPhone ? normalizeWhatsAppPhone(shelfPhone) : null;
 
     return (
-      <div className="relative flex h-[min(78dvh,56rem)] w-full flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]">
+      <div
+        className={cn(
+          "relative flex w-full flex-col overflow-hidden",
+          embedded
+            ? "h-full min-h-0 bg-transparent"
+            : "h-[min(78dvh,56rem)] border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]",
+        )}
+      >
         <div className="flex h-full min-h-0 flex-1 items-stretch overflow-hidden">
           <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
             <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 sm:px-3">
@@ -587,45 +597,75 @@ export function MarketplaceOrderWorkspace({
                 aria-hidden
                 className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
               />
-              <div className="flex items-start justify-between gap-2 pl-2">
-                <div className="min-w-0">
-                  <h2 className="truncate text-[15px] font-semibold leading-tight text-[var(--pos-ink,#1c1915)]">
-                    {detail.name}
-                  </h2>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                    {areaLabel ? (
-                      <span className="inline-flex items-center gap-0.5">
-                        <MapPin className="size-3 shrink-0" />
-                        {areaLabel}
-                      </span>
-                    ) : null}
-                    {detail.listedBy ? (
-                      <span className="truncate">
-                        {areaLabel ? "· " : ""}Listed by {detail.listedBy}
-                      </span>
-                    ) : null}
-                  </p>
-                </div>
-                {shelfPhone ? (
-                  <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-                    <TelLink
-                      phone={shelfPhone}
-                      className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
-                    />
-                    {shelfWa ? (
-                      <a
-                        href={`https://wa.me/${shelfWa}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                      >
-                        <MessageCircle className="size-3" />
-                        WhatsApp
-                      </a>
-                    ) : null}
+              {!embedded ? (
+                <div className="flex items-start justify-between gap-2 pl-2">
+                  <div className="min-w-0">
+                    <h2 className="truncate text-[15px] font-semibold leading-tight text-[var(--pos-ink,#1c1915)]">
+                      {detail.name}
+                    </h2>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                      {areaLabel ? (
+                        <span className="inline-flex items-center gap-0.5">
+                          <MapPin className="size-3 shrink-0" />
+                          {areaLabel}
+                        </span>
+                      ) : null}
+                      {detail.listedBy ? (
+                        <span className="truncate">
+                          {areaLabel ? "· " : ""}Listed by {detail.listedBy}
+                        </span>
+                      ) : null}
+                    </p>
                   </div>
-                ) : null}
-              </div>
+                  {shelfPhone ? (
+                    <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+                      <TelLink
+                        phone={shelfPhone}
+                        className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                      />
+                      {shelfWa ? (
+                        <a
+                          href={`https://wa.me/${shelfWa}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                        >
+                          <MessageCircle className="size-3" />
+                          WhatsApp
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2 pl-2">
+                  <p className="min-w-0 truncate text-[13px] font-semibold text-[var(--pos-ink,#1c1915)]">
+                    {detail.name}
+                    <span className="ml-2 font-mono text-[10px] font-medium tabular-nums text-muted-foreground">
+                      {detail.products.length}
+                    </span>
+                  </p>
+                  {shelfPhone ? (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <TelLink
+                        phone={shelfPhone}
+                        className="font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                      />
+                      {shelfWa ? (
+                        <a
+                          href={`https://wa.me/${shelfWa}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                        >
+                          <MessageCircle className="size-3" />
+                          WhatsApp
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </section>
 
             <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">

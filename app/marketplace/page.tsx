@@ -18,14 +18,18 @@ import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchMarketplaceSupplierBySlug,
+  fetchMarketplaceSupplierDetail,
   listMarketplaceLocations,
   searchMarketplaceProducts,
   searchMarketplaceSuppliers,
   type MarketplaceProductSearchRow,
+  type MarketplaceSupplierDetail,
   type MarketplaceSupplierSearchRow,
 } from "@/lib/marketplace-api";
 import { cn, formatMoney } from "@/lib/utils";
 
+import { MarketplaceOrderWorkspace } from "./_components/marketplace-order-panel";
 import {
   mktChip,
   mktChipActive,
@@ -109,6 +113,9 @@ function PublicMarketplacePageInner() {
   const [productTotal, setProductTotal] = useState(0);
   const [productLast, setProductLast] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
+  const [supplierDetail, setSupplierDetail] =
+    useState<MarketplaceSupplierDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
     setSignedIn(Boolean(getSessionTokens()?.accessToken));
@@ -202,8 +209,46 @@ function PublicMarketplacePageInner() {
       void loadSuppliers();
       return;
     }
+    // Ordering workspace loads its own catalogue when a supplier is selected.
+    if (activeSupplierId) {
+      setLoading(false);
+      return;
+    }
     void loadProducts(0, false);
-  }, [tab, loadProducts, loadSuppliers]);
+  }, [tab, loadProducts, loadSuppliers, activeSupplierId]);
+
+  useEffect(() => {
+    if (!activeSupplierId || tab !== "products") {
+      setSupplierDetail(null);
+      setDetailLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setDetailLoading(true);
+    const slug =
+      supplierColumn.find((s) => s.id === activeSupplierId)?.slug ?? null;
+    const request = slug
+      ? fetchMarketplaceSupplierBySlug(slug)
+      : fetchMarketplaceSupplierDetail(activeSupplierId);
+    void request
+      .then((detail) => {
+        if (!cancelled) setSupplierDetail(detail);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setSupplierDetail(null);
+          toast.error(
+            error instanceof Error ? error.message : "Failed to load supplier",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSupplierId, tab, supplierColumn]);
 
   const categoryTags = useMemo(() => {
     const counts = new Map<string, number>();
@@ -279,8 +324,6 @@ function PublicMarketplacePageInner() {
 
   const activeSupplierName =
     supplierColumn.find((s) => s.id === activeSupplierId)?.name ?? null;
-  const activeSupplierSlug =
-    supplierColumn.find((s) => s.id === activeSupplierId)?.slug ?? null;
 
   const resultCount =
     tab === "suppliers" ? visibleSuppliers.length : visibleProducts.length;
@@ -372,13 +415,16 @@ function PublicMarketplacePageInner() {
                       (activeLocation ? activeLocation : "All suppliers")}
                   </h1>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {loading
+                    {loading || detailLoading
                       ? "Loading…"
-                      : tab === "products"
-                        ? `${displayProductCount} product${displayProductCount === 1 ? "" : "s"}`
-                        : `${resultCount} supplier${resultCount === 1 ? "" : "s"}`}
+                      : tab === "products" && activeSupplierId && supplierDetail
+                        ? `${supplierDetail.products.length} product${supplierDetail.products.length === 1 ? "" : "s"} · tap to order`
+                        : tab === "products"
+                          ? `${displayProductCount} product${displayProductCount === 1 ? "" : "s"}`
+                          : `${resultCount} supplier${resultCount === 1 ? "" : "s"}`}
                     {activeTag ? ` · ${activeTag}` : ""}
                     {tab === "products" &&
+                    !activeSupplierId &&
                     !supplierFilterIsClientOnly &&
                     !productLast &&
                     visibleProducts.length < productTotal
@@ -554,86 +600,99 @@ function PublicMarketplacePageInner() {
                     onSelect={setActiveSupplierId}
                   />
                 ) : null}
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                  <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2.5 py-2">
-                    <h2 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
-                      Shelf
-                      <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
-                        {visibleProducts.length}
-                      </span>
-                    </h2>
-                    {activeSupplierId && activeSupplierSlug ? (
-                      <Link
-                        href={APP_ROUTES.marketplaceSupplier(activeSupplierSlug)}
-                        className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--pos-primary,#0f766e)] hover:underline"
-                      >
-                        Open passport
-                      </Link>
-                    ) : null}
-                  </div>
-                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-1.5 py-1.5 sm:px-2.5">
-                    {visibleProducts.length === 0 ? (
-                      <EmptyState
-                        title={
-                          activeSupplierId
-                            ? "No products from this supplier"
-                            : hasQuery
-                              ? "No products match"
-                              : "No linked products yet"
-                        }
-                        hint={
-                          activeSupplierId
-                            ? "Pick another supplier, or clear the supplier filter."
-                            : hasQuery
-                              ? "Try another name, location, or clear filters."
-                              : "When businesses link products to active suppliers, those items appear here."
-                        }
-                        onClear={clearFilters}
-                        showClear={hasQuery}
+                {activeSupplierId ? (
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                    {detailLoading ? (
+                      <div className="flex flex-1 items-center justify-center gap-2 text-[13px] text-muted-foreground">
+                        <Loader2 className="size-4 animate-spin" />
+                        Loading shelf…
+                      </div>
+                    ) : supplierDetail ? (
+                      <MarketplaceOrderWorkspace
+                        key={supplierDetail.id}
+                        detail={supplierDetail}
+                        layout="shelf"
+                        embedded
                       />
                     ) : (
-                      <>
-                        <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-                          {visibleProducts.map((row, index) => (
-                            <ProductTile
-                              key={`${row.supplierId}-${row.productId}`}
-                              row={row}
-                              index={index}
-                            />
-                          ))}
-                        </div>
-                        {!productLast ? (
-                          <div className="flex justify-center py-2">
-                            <button
-                              type="button"
-                              disabled={loadingMore}
-                              className="inline-flex h-9 items-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 text-[12px] font-semibold hover:bg-card disabled:opacity-60"
-                              onClick={() =>
-                                void loadProducts(productPage + 1, true)
-                              }
-                            >
-                              {loadingMore ? (
-                                <>
-                                  <Loader2 className="size-3.5 animate-spin" />
-                                  Loading…
-                                </>
-                              ) : (
-                                <>
-                                  Load more
-                                  <span className="font-mono text-[10px] text-muted-foreground">
-                                    {supplierFilterIsClientOnly
-                                      ? visibleProducts.length
-                                      : `${visibleProducts.length}/${productTotal}`}
-                                  </span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        ) : null}
-                      </>
+                      <div className="flex flex-1 items-center justify-center p-3">
+                        <EmptyState
+                          title="Couldn’t load this supplier"
+                          hint="Pick another supplier, or open their passport page."
+                          onClear={() => setActiveSupplierId(null)}
+                          showClear
+                        />
+                      </div>
                     )}
                   </div>
-                </div>
+                ) : (
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2.5 py-2">
+                      <h2 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+                        Shelf
+                        <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
+                          {visibleProducts.length}
+                        </span>
+                      </h2>
+                    </div>
+                    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-1.5 py-1.5 sm:px-2.5">
+                      {visibleProducts.length === 0 ? (
+                        <EmptyState
+                          title={
+                            hasQuery
+                              ? "No products match"
+                              : "No linked products yet"
+                          }
+                          hint={
+                            hasQuery
+                              ? "Try another name, location, or clear filters."
+                              : "When businesses link products to active suppliers, those items appear here."
+                          }
+                          onClear={clearFilters}
+                          showClear={hasQuery}
+                        />
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                            {visibleProducts.map((row, index) => (
+                              <ProductTile
+                                key={`${row.supplierId}-${row.productId}`}
+                                row={row}
+                                index={index}
+                              />
+                            ))}
+                          </div>
+                          {!productLast ? (
+                            <div className="flex justify-center py-2">
+                              <button
+                                type="button"
+                                disabled={loadingMore}
+                                className="inline-flex h-9 items-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 text-[12px] font-semibold hover:bg-card disabled:opacity-60"
+                                onClick={() =>
+                                  void loadProducts(productPage + 1, true)
+                                }
+                              >
+                                {loadingMore ? (
+                                  <>
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                    Loading…
+                                  </>
+                                ) : (
+                                  <>
+                                    Load more
+                                    <span className="font-mono text-[10px] text-muted-foreground">
+                                      {visibleProducts.length}/{productTotal}
+                                    </span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </>
             ) : visibleSuppliers.length === 0 ? (
               <div className="flex-1 p-3">
