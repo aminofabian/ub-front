@@ -508,7 +508,7 @@ export function GlobalSupplierHubView({ username }: Props) {
     );
   }
 
-  const { hub, detail, source } = storefront;
+  const { hub, detail } = storefront;
 
   if (!detail && !hub) {
     return (
@@ -520,7 +520,7 @@ export function GlobalSupplierHubView({ username }: Props) {
 
   return (
     <HubShell>
-      <div className="mx-auto w-full max-w-[1400px] px-3 pb-10 pt-4 sm:px-5">
+      <div className="mx-auto w-full max-w-[1400px] px-3 pb-10 pt-3 sm:px-5">
         {hub ? (
           <PassportStrip
             hub={hub}
@@ -528,59 +528,56 @@ export function GlobalSupplierHubView({ username }: Props) {
             expandedId={expandedId}
             setExpandedId={setExpandedId}
           />
-        ) : (
-          <div className={cn("relative overflow-hidden border bg-white/80", INK_BORDER)}>
-            <span
-              aria-hidden
-              className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
-            />
-            <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-3.5 pl-4">
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  @{username}
-                </p>
-                <p className="mt-1 text-[13px] text-muted-foreground">
-                  Public marketplace listing
-                  {source === "directory" ? " · order below via WhatsApp / PDF" : ""}
-                </p>
-              </div>
-              <Link
-                href={APP_ROUTES.supplierPortalClaim}
-                className={cn(
-                  "inline-flex h-8 items-center border px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
-                  "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-                  "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
-                )}
-              >
-                Claim this passport
-              </Link>
-            </div>
-          </div>
-        )}
+        ) : null}
 
         {detail ? (
-          <div className={cn(hub ? "mt-6" : "mt-4")}>
-            {detail.slug ? (
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                  Catalogue
-                </p>
-                <Link
-                  href={marketplaceSupplierPath(detail)}
-                  className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
-                >
-                  Open full marketplace page
-                </Link>
+          <div className={cn(hub ? "mt-5" : "mt-0")}>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <p className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+                @{username}
+                {!hub ? (
+                  <span className="font-sans text-muted-foreground/80">
+                    {" "}
+                    · marketplace listing
+                  </span>
+                ) : (
+                  <span className="font-sans font-bold uppercase tracking-[0.14em]">
+                    {" "}
+                    · Catalogue
+                  </span>
+                )}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                {!hub ? (
+                  <Link
+                    href={APP_ROUTES.supplierPortalClaim}
+                    className={cn(
+                      "inline-flex h-7 items-center border px-2 text-[10px] font-semibold uppercase tracking-[0.1em]",
+                      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+                      "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
+                    )}
+                  >
+                    Claim passport
+                  </Link>
+                ) : null}
+                {detail.slug ? (
+                  <Link
+                    href={marketplaceSupplierPath(detail)}
+                    className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+                  >
+                    Full page
+                  </Link>
+                ) : null}
               </div>
-            ) : null}
+            </div>
             <MarketplaceOrderWorkspace detail={detail} layout="shelf" />
           </div>
-        ) : (
+        ) : hub ? (
           <div className="mt-8 text-center text-sm text-muted-foreground">
             Passport claimed, but no public catalogue is linked yet. Link a shop identity
             from the supplier portal profile to show products here.
           </div>
-        )}
+        ) : null}
       </div>
     </HubShell>
   );

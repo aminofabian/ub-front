@@ -573,27 +573,58 @@ export function MarketplaceOrderWorkspace({
   );
 
   if (isShelf) {
+    const primaryContact =
+      detail.contacts.find((c) => c.primaryContact) ?? detail.contacts[0];
+    const shelfPhone =
+      primaryContact?.phone?.trim() || detail.contactPhone?.trim() || null;
+    const shelfWa = shelfPhone ? normalizeWhatsAppPhone(shelfPhone) : null;
+
     return (
       <div className="relative flex w-full flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] lg:min-h-[70vh]">
         <div className="flex min-h-0 flex-1 items-stretch overflow-hidden">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
-            <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 pb-2 pt-2 sm:px-3">
+            <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 sm:px-3">
               <span
                 aria-hidden
                 className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
               />
-              <div className="pl-2">
-                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  Order
-                </p>
-                <h2 className="mt-0.5 text-[1.05rem] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
-                  {detail.name}
-                </h2>
-                {areaLabel ? (
-                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <MapPin className="size-3" />
-                    {areaLabel}
+              <div className="flex items-start justify-between gap-2 pl-2">
+                <div className="min-w-0">
+                  <h2 className="truncate text-[15px] font-semibold leading-tight text-[var(--pos-ink,#1c1915)]">
+                    {detail.name}
+                  </h2>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                    {areaLabel ? (
+                      <span className="inline-flex items-center gap-0.5">
+                        <MapPin className="size-3 shrink-0" />
+                        {areaLabel}
+                      </span>
+                    ) : null}
+                    {detail.listedBy ? (
+                      <span className="truncate">
+                        {areaLabel ? "· " : ""}Listed by {detail.listedBy}
+                      </span>
+                    ) : null}
                   </p>
+                </div>
+                {shelfPhone ? (
+                  <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+                    <TelLink
+                      phone={shelfPhone}
+                      className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                    />
+                    {shelfWa ? (
+                      <a
+                        href={`https://wa.me/${shelfWa}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                      >
+                        <MessageCircle className="size-3" />
+                        WhatsApp
+                      </a>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </section>
@@ -601,18 +632,12 @@ export function MarketplaceOrderWorkspace({
             <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
-                className="h-9 w-full border-0 bg-transparent pl-8 pr-3 text-[13px] shadow-none outline-none placeholder:text-muted-foreground/50"
+                className="h-8 w-full border-0 bg-transparent pl-8 pr-3 text-[13px] shadow-none outline-none placeholder:text-muted-foreground/50"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 placeholder="Find a product…"
               />
             </div>
-
-            <SupplierContactSection
-              detail={detail}
-              areaLabel=""
-              className="border-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-3 sm:px-4"
-            />
 
             {showParentRail ? (
               <ParentRail
@@ -621,12 +646,13 @@ export function MarketplaceOrderWorkspace({
                 onSelect={setParentFilterId}
                 orientation="horizontal"
                 className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:hidden"
+                tileClassName="size-[3.25rem]"
               />
             ) : null}
 
-            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-y-contain px-1.5 py-2 pb-24 sm:px-2.5 lg:pb-2">
+            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-y-contain px-1.5 py-1.5 pb-24 sm:px-2.5 lg:pb-2">
               <div className="flex items-center justify-between gap-2 px-0.5">
-                <h3 className="flex items-baseline gap-2 text-[0.9rem] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+                <h3 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
                   {activeParentLabel}
                   <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
                     {shelfProducts.length}
@@ -1030,12 +1056,14 @@ function ParentRail({
   onSelect,
   orientation,
   className,
+  tileClassName,
 }: {
   options: ParentOption[];
   activeId: string | null;
   onSelect: (id: string | null) => void;
   orientation: "horizontal" | "vertical";
   className?: string;
+  tileClassName?: string;
 }) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [canStart, setCanStart] = useState(false);
@@ -1190,7 +1218,7 @@ function ParentRail({
               active={activeId === parent.id}
               className={cn(
                 "snap-start",
-                vertical ? "shrink-0" : "size-[3.75rem] shrink-0",
+                vertical ? "shrink-0" : cn("size-[3.75rem] shrink-0", tileClassName),
               )}
               onSelect={() => onSelect(parent.id)}
             />
