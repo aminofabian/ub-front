@@ -1,5 +1,11 @@
 import { API_ROUTES, apiUrl, PLATFORM_DOMAIN } from "@/lib/config";
 import {
+  fetchMarketplaceSupplierDetail,
+  searchMarketplaceSuppliers,
+  type MarketplaceSupplierDetail,
+  type MarketplaceSupplierSearchRow,
+} from "@/lib/marketplace-api";
+import {
   getSupplierPortalAccessToken,
 } from "@/lib/supplier-portal-session";
 import type { PublicSupplierSupplyRow } from "@/lib/public-supplier-portal";
@@ -47,6 +53,13 @@ export type GlobalHubShopDetail = {
   supplies: PublicSupplierSupplyRow[];
 };
 
+export type GlobalSupplierStorefront = {
+  hub: GlobalSupplierHub | null;
+  detail: MarketplaceSupplierDetail | null;
+  /** claimed passport catalogue vs public directory name match */
+  source: "claimed" | "directory" | null;
+};
+
 async function readJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail = res.statusText;
@@ -73,6 +86,63 @@ export function shopPortalAbsoluteUrl(shop: GlobalSupplierHubShopCard): string {
   return `https://${PLATFORM_DOMAIN}${path}`;
 }
 
+export function usernameToSearchQuery(username: string): string {
+  return username.replace(/-/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function slugifyLoose(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function directoryMatchScore(
+  row: MarketplaceSupplierSearchRow,
+  username: string,
+): number {
+  const u = username.toLowerCase();
+  const nameSlug = slugifyLoose(row.name);
+  const slug = (row.slug ?? "").toLowerCase();
+  let score = row.productCount;
+  if (nameSlug === u || slug.startsWith(`${u}--`)) score += 1000;
+  else if (nameSlug.startsWith(u) || slug.startsWith(u)) score += 500;
+  else if (nameSlug.includes(u)) score += 200;
+  return score;
+}
+
+async function detailFromDirectory(
+  username: string,
+): Promise<MarketplaceSupplierDetail | null> {
+  const q = usernameToSearchQuery(username);
+  if (!q) return null;
+  try {
+    const page = await searchMarketplaceSuppliers({ q, size: 12 });
+    const ranked = [...page.content].sort(
+      (a, b) => directoryMatchScore(b, username) - directoryMatchScore(a, username),
+    );
+    const best = ranked[0];
+    if (!best) return null;
+    return await fetchMarketplaceSupplierDetail(best.id);
+  } catch {
+    return null;
+  }
+}
+
+async function detailFromClaimedHub(
+  hub: GlobalSupplierHub,
+): Promise<MarketplaceSupplierDetail | null> {
+  for (const shop of hub.shops) {
+    try {
+      return await fetchMarketplaceSupplierDetail(shop.localSupplierId);
+    } catch {
+      /* try next linked shop */
+    }
+  }
+  return detailFromDirectory(hub.username || hub.displayName);
+}
+
 export async function fetchGlobalSupplierHub(
   username: string,
 ): Promise<GlobalSupplierHub | null> {
@@ -90,6 +160,31 @@ export async function fetchGlobalSupplierHub(
   } catch {
     return null;
   }
+}
+
+/** Passport (if claimed) + orderable catalogue for apex /s/{username}. */
+export async function resolveGlobalSupplierStorefront(
+  username: string,
+): Promise<GlobalSupplierStorefront> {
+  const u = username.trim();
+  if (!u) {
+    return { hub: null, detail: null, source: null };
+  }
+  const hub = await fetchGlobalSupplierHub(u);
+  if (hub) {
+    const detail = await detailFromClaimedHub(hub);
+    return {
+      hub,
+      detail,
+      source: detail ? "claimed" : null,
+    };
+  }
+  const detail = await detailFromDirectory(u);
+  return {
+    hub: null,
+    detail,
+    source: detail ? "directory" : null,
+  };
 }
 
 export async function fetchHubShopSupplies(
