@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
 import {
   ArrowLeft,
@@ -580,9 +579,9 @@ export function MarketplaceOrderWorkspace({
     const shelfWa = shelfPhone ? normalizeWhatsAppPhone(shelfPhone) : null;
 
     return (
-      <div className="relative flex w-full flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] lg:min-h-[70vh]">
-        <div className="flex min-h-0 flex-1 items-stretch overflow-hidden">
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
+      <div className="relative flex h-[min(78dvh,56rem)] w-full flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]">
+        <div className="flex h-full min-h-0 flex-1 items-stretch overflow-hidden">
+          <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
             <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 sm:px-3">
               <span
                 aria-hidden
@@ -645,7 +644,7 @@ export function MarketplaceOrderWorkspace({
                 activeId={parentFilterId}
                 onSelect={setParentFilterId}
                 orientation="horizontal"
-                className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:hidden"
+                className="min-w-0 shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:hidden"
                 tileClassName="size-[3.25rem]"
               />
             ) : null}
@@ -688,19 +687,19 @@ export function MarketplaceOrderWorkspace({
           </div>
 
           {showParentRail ? (
-            <aside className="hidden min-h-0 w-[6.5rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:flex xl:w-[7.25rem]">
+            <aside className="hidden h-full min-h-0 w-[6.5rem] shrink-0 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:flex xl:w-[7.25rem]">
               <div className={PARENT_RAIL_HEADER}>Parent</div>
               <ParentRail
                 options={parentOptions}
                 activeId={parentFilterId}
                 onSelect={setParentFilterId}
                 orientation="vertical"
-                className="min-h-0 flex-1"
+                className="min-h-0 flex-1 overflow-hidden"
               />
             </aside>
           ) : null}
 
-          <div className="hidden min-h-0 w-[min(100%,20rem)] shrink-0 lg:flex xl:w-[22rem]">
+          <div className="hidden h-full min-h-0 w-[min(100%,20rem)] shrink-0 overflow-hidden lg:flex xl:w-[22rem]">
             <OrderManifestPanel
               supplierName={detail.name}
               lines={cartLines}
@@ -1078,20 +1077,30 @@ function ParentRail({
       ? el.scrollHeight - el.clientHeight
       : el.scrollWidth - el.clientWidth;
     const pos = vertical ? el.scrollTop : el.scrollLeft;
-    setCanStart(pos > 4);
-    setCanEnd(max - pos > 4);
+    setCanStart(pos > 2);
+    setCanEnd(max - pos > 2);
     setProgress(max > 0 ? Math.min(1, Math.max(0, pos / max)) : 0);
   }, [vertical]);
 
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    syncScrollState();
-    el.addEventListener("scroll", syncScrollState, { passive: true });
-    const ro = new ResizeObserver(() => syncScrollState());
+
+    const run = () => syncScrollState();
+    run();
+    // Layout settles after images/fonts — re-check overflow.
+    const t1 = window.setTimeout(run, 50);
+    const t2 = window.setTimeout(run, 300);
+
+    el.addEventListener("scroll", run, { passive: true });
+    const ro = new ResizeObserver(run);
     ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+
     return () => {
-      el.removeEventListener("scroll", syncScrollState);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      el.removeEventListener("scroll", run);
       ro.disconnect();
     };
   }, [syncScrollState, options.length]);
@@ -1102,18 +1111,34 @@ function ParentRail({
     const active = el.querySelector<HTMLElement>("[data-parent-active='true']");
     if (!active) return;
     active.scrollIntoView({
-      block: vertical ? "nearest" : "nearest",
+      block: "nearest",
       inline: vertical ? "nearest" : "center",
       behavior: "smooth",
     });
-  }, [activeId, vertical]);
+    window.setTimeout(syncScrollState, 320);
+  }, [activeId, vertical, syncScrollState]);
+
+  // Trackpad / mouse wheel: map vertical wheel to horizontal scroll on mobile strip.
+  useEffect(() => {
+    if (vertical) return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      if (el.scrollWidth <= el.clientWidth) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [vertical, options.length]);
 
   const nudge = (dir: 1 | -1) => {
     const el = scrollerRef.current;
     if (!el) return;
     const step = vertical
-      ? Math.max(96, el.clientHeight * 0.65)
-      : Math.max(112, el.clientWidth * 0.55);
+      ? Math.max(96, el.clientHeight * 0.7)
+      : Math.max(112, el.clientWidth * 0.6);
     el.scrollBy({
       top: vertical ? dir * step : 0,
       left: vertical ? 0 : dir * step,
@@ -1121,48 +1146,39 @@ function ParentRail({
     });
   };
 
-  const maskStyle: CSSProperties | undefined =
-    canStart || canEnd
-      ? vertical
-        ? {
-            maskImage: `linear-gradient(to bottom, ${canStart ? "transparent 0%, black 12%" : "black 0%"}, ${canEnd ? "black 88%, transparent 100%" : "black 100%"})`,
-            WebkitMaskImage: `linear-gradient(to bottom, ${canStart ? "transparent 0%, black 12%" : "black 0%"}, ${canEnd ? "black 88%, transparent 100%" : "black 100%"})`,
-          }
-        : {
-            maskImage: `linear-gradient(to right, ${canStart ? "transparent 0%, black 10%" : "black 0%"}, ${canEnd ? "black 90%, transparent 100%" : "black 100%"})`,
-            WebkitMaskImage: `linear-gradient(to right, ${canStart ? "transparent 0%, black 10%" : "black 0%"}, ${canEnd ? "black 90%, transparent 100%" : "black 100%"})`,
-          }
-      : undefined;
-
   const StartIcon = vertical ? ChevronUp : ChevronLeft;
   const EndIcon = vertical ? ChevronDown : ChevronRight;
   const indexLabel = Math.max(
     1,
     options.findIndex((o) => o.id === activeId) + 1,
   );
+  const overflow = canStart || canEnd;
 
   return (
     <div
       className={cn(
-        "relative flex min-h-0",
-        vertical ? "h-full flex-col" : "w-full flex-col",
+        "relative flex min-h-0 min-w-0",
+        vertical ? "h-full flex-col overflow-hidden" : "w-full flex-col overflow-hidden",
         className,
       )}
     >
-      <div className={cn("relative min-h-0 flex-1", vertical && "flex")}>
+      <div
+        className={cn(
+          "relative min-h-0 min-w-0 flex-1 overflow-hidden",
+          !vertical && "h-[3.85rem]",
+        )}
+      >
         {canStart ? (
           <button
             type="button"
             aria-label={vertical ? "Scroll parents up" : "Scroll parents left"}
             onClick={() => nudge(-1)}
             className={cn(
-              "absolute z-[2] flex items-center justify-center",
+              "absolute z-[3] flex items-center justify-center",
               "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-              "bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] text-[var(--pos-ink,#1c1915)] shadow-sm backdrop-blur-sm",
+              "bg-[color-mix(in_srgb,#faf8f4_94%,transparent)] text-[var(--pos-ink,#1c1915)] shadow-sm backdrop-blur-sm",
               "transition hover:bg-white active:scale-95",
-              vertical
-                ? "inset-x-1 top-1 h-6"
-                : "inset-y-1 left-1 w-6",
+              vertical ? "inset-x-1 top-1 h-6" : "inset-y-1 left-1 w-6",
             )}
           >
             <StartIcon className="size-3.5" />
@@ -1175,30 +1191,58 @@ function ParentRail({
             aria-label={vertical ? "Scroll parents down" : "Scroll parents right"}
             onClick={() => nudge(1)}
             className={cn(
-              "absolute z-[2] flex items-center justify-center",
+              "absolute z-[3] flex items-center justify-center",
               "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-              "bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] text-[var(--pos-ink,#1c1915)] shadow-sm backdrop-blur-sm",
+              "bg-[color-mix(in_srgb,#faf8f4_94%,transparent)] text-[var(--pos-ink,#1c1915)] shadow-sm backdrop-blur-sm",
               "transition hover:bg-white active:scale-95",
-              vertical
-                ? "inset-x-1 bottom-1 h-6"
-                : "inset-y-1 right-1 w-6",
+              vertical ? "inset-x-1 bottom-1 h-6" : "inset-y-1 right-1 w-6",
             )}
           >
-            <EndIcon className={cn("size-3.5", canEnd && "opacity-90")} />
+            <EndIcon className="size-3.5" />
           </button>
+        ) : null}
+
+        {/* Edge fades hint that more parents exist */}
+        {canStart ? (
+          <div
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute z-[2]",
+              vertical
+                ? "inset-x-0 top-0 h-8 bg-gradient-to-b from-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)] to-transparent"
+                : "inset-y-0 left-0 w-8 bg-gradient-to-r from-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)] to-transparent",
+            )}
+          />
+        ) : null}
+        {canEnd ? (
+          <div
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute z-[2]",
+              vertical
+                ? "inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)] to-transparent"
+                : "inset-y-0 right-0 w-8 bg-gradient-to-l from-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)] to-transparent",
+            )}
+          />
         ) : null}
 
         <div
           ref={scrollerRef}
           role="navigation"
           aria-label="Filter by parent product"
-          style={maskStyle}
+          tabIndex={0}
           className={cn(
-            "min-h-0 flex-1 overscroll-contain p-0.5",
-            "scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            "absolute inset-0 overscroll-contain p-0.5 outline-none",
+            "scroll-smooth",
             vertical
-              ? "flex max-h-full flex-col gap-0.5 overflow-y-auto overflow-x-hidden scroll-smooth snap-y snap-mandatory"
-              : "flex gap-1 overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory",
+              ? cn(
+                  "flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden",
+                  // Thin visible scrollbar so the column is obviously scrollable
+                  "[scrollbar-width:thin] [scrollbar-color:color-mix(in_srgb,var(--pos-ink,#1c1915)_35%,transparent)_transparent]",
+                  "[&::-webkit-scrollbar]:w-1.5",
+                  "[&::-webkit-scrollbar-thumb]:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
+                )
+              : "flex gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           )}
           onKeyDown={(e) => {
             if (vertical && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
@@ -1217,8 +1261,8 @@ function ParentRail({
               parent={parent}
               active={activeId === parent.id}
               className={cn(
-                "snap-start",
-                vertical ? "shrink-0" : cn("size-[3.75rem] shrink-0", tileClassName),
+                "shrink-0",
+                vertical ? "w-full" : cn("size-[3.75rem]", tileClassName),
               )}
               onSelect={() => onSelect(parent.id)}
             />
@@ -1226,14 +1270,12 @@ function ParentRail({
         </div>
       </div>
 
-      {(canStart || canEnd) && vertical ? (
+      {overflow && vertical ? (
         <div className="flex shrink-0 flex-col items-center gap-1 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-1 py-1.5">
-          <div className="relative h-10 w-1 overflow-hidden bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+          <div className="relative h-8 w-1 overflow-hidden bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
             <span
-              className="absolute inset-x-0 h-3 bg-[var(--pos-primary,#0f766e)] transition-[top] duration-150"
-              style={{
-                top: `calc((100% - 0.75rem) * ${progress})`,
-              }}
+              className="absolute inset-x-0 h-2.5 bg-[var(--pos-primary,#0f766e)] transition-[top] duration-150"
+              style={{ top: `calc((100% - 0.625rem) * ${progress})` }}
             />
           </div>
           <p className="font-mono text-[8px] tabular-nums text-muted-foreground">
@@ -1242,14 +1284,12 @@ function ParentRail({
         </div>
       ) : null}
 
-      {(canStart || canEnd) && !vertical ? (
+      {overflow && !vertical ? (
         <div className="flex items-center justify-between gap-2 px-2 pb-1 pt-0.5">
           <div className="h-0.5 flex-1 overflow-hidden bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
             <span
               className="block h-full w-1/3 bg-[var(--pos-primary,#0f766e)] transition-transform duration-150"
-              style={{
-                transform: `translateX(${progress * 200}%)`,
-              }}
+              style={{ transform: `translateX(${progress * 200}%)` }}
             />
           </div>
           <p className="shrink-0 font-mono text-[8px] tabular-nums text-muted-foreground">
