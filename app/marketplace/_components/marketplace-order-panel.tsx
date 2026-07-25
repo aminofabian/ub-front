@@ -38,6 +38,7 @@ import type {
   MarketplaceCatalogProductPreview,
   MarketplaceSupplierDetail,
 } from "@/lib/marketplace-api";
+import { marketplacePassportProductPath } from "@/lib/marketplace-url";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
 import { cn, formatMoney } from "@/lib/utils";
@@ -286,22 +287,29 @@ export function MarketplaceOrderWorkspace({
   embedded?: boolean;
 }) {
   const isShelf = layout === "shelf";
+  const focusProduct = useMemo(() => {
+    if (!selectedProductSlug?.trim()) return null;
+    const needle = selectedProductSlug.trim().toLowerCase();
+    return (
+      detail.products.find((p) => p.slug?.toLowerCase() === needle) ?? null
+    );
+  }, [detail.products, selectedProductSlug]);
+
   const selected = isShelf
     ? null
-    : (detail.products.find(
-        (p) =>
-          selectedProductSlug &&
-          p.slug?.toLowerCase() === selectedProductSlug.toLowerCase(),
-      ) ??
-      detail.products[0] ??
-      null);
+    : (focusProduct ?? detail.products[0] ?? null);
 
-  const [cart, setCart] = useState<CartQty>(() =>
-    !isShelf && selected ? { [selected.id]: 1 } : {},
-  );
+  const [cart, setCart] = useState<CartQty>(() => {
+    if (isShelf && focusProduct) return { [focusProduct.id]: 1 };
+    if (!isShelf && selected) return { [selected.id]: 1 };
+    return {};
+  });
   const [sendingOrder, setSendingOrder] = useState(false);
   const [filter, setFilter] = useState("");
-  const [parentFilterId, setParentFilterId] = useState<string | null>(null);
+  const [parentFilterId, setParentFilterId] = useState<string | null>(() => {
+    if (!isShelf || !focusProduct) return null;
+    return productParentId(focusProduct);
+  });
   const [mobileOrderOpen, setMobileOrderOpen] = useState(false);
 
   // Opening a product page starts a fresh order with only that product.
@@ -310,6 +318,23 @@ export function MarketplaceOrderWorkspace({
     if (isShelf) return;
     setCart(selected ? { [selected.id]: 1 } : {});
   }, [selected?.id, isShelf]);
+
+  // Passport deep-link: select parent, seed cart, scroll product into view.
+  useEffect(() => {
+    if (!isShelf || !focusProduct) return;
+    setParentFilterId(productParentId(focusProduct));
+    setCart((prev) =>
+      (prev[focusProduct.id] ?? 0) > 0 ? prev : { ...prev, [focusProduct.id]: 1 },
+    );
+    const timer = window.setTimeout(() => {
+      document
+        .querySelector<HTMLElement>(
+          `[data-shelf-product="${CSS.escape(focusProduct.id)}"]`,
+        )
+        ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [isShelf, focusProduct?.id]);
 
   const setQty = (productId: string, qty: number, announce = false) => {
     setCart((prev) => {
@@ -704,6 +729,7 @@ export function MarketplaceOrderWorkspace({
                       product={product}
                       supplierSlug={detail.slug}
                       qty={cart[product.id] ?? 0}
+                      focused={focusProduct?.id === product.id}
                       onAdd={() =>
                         setQty(product.id, (cart[product.id] ?? 0) + 1, true)
                       }
@@ -1616,10 +1642,7 @@ function CatalogueOrderRow({
   onSetQty: (qty: number) => void;
 }) {
   const hue = hueFromId(product.id);
-  const href =
-    supplierSlug && product.slug
-      ? APP_ROUTES.marketplaceProduct(supplierSlug, product.slug)
-      : null;
+  const href = marketplacePassportProductPath(supplierSlug, product.slug);
 
   return (
     <div className="flex items-center gap-2.5 border border-border/50 bg-muted/10 p-2">
@@ -1668,27 +1691,29 @@ function ShelfProductTile({
   product,
   supplierSlug,
   qty,
+  focused = false,
   onAdd,
   onSetQty,
 }: {
   product: MarketplaceCatalogProductPreview;
   supplierSlug: string | null;
   qty: number;
+  focused?: boolean;
   onAdd: () => void;
   onSetQty: (qty: number) => void;
 }) {
   const thumb = posTileThumbUrl(product.name, product.imageUrl);
-  const href =
-    supplierSlug && product.slug
-      ? APP_ROUTES.marketplaceProduct(supplierSlug, product.slug)
-      : null;
+  const href = marketplacePassportProductPath(supplierSlug, product.slug);
 
   return (
     <div
+      data-shelf-product={product.id}
       className={cn(
         SHELF_TILE,
         qty > 0 &&
           "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,var(--card))]",
+        focused &&
+          "z-[1] border-[var(--pos-primary,#0f766e)] ring-1 ring-[var(--pos-primary,#0f766e)]",
       )}
     >
       <div className="relative aspect-square w-full shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]">

@@ -30,6 +30,7 @@ import {
   type MarketplaceSupplierDetail,
   type MarketplaceSupplierSearchRow,
 } from "@/lib/marketplace-api";
+import { marketplacePassportProductPath } from "@/lib/marketplace-url";
 import { cn, formatMoney } from "@/lib/utils";
 
 import { MarketplaceOrderWorkspace } from "./_components/marketplace-order-panel";
@@ -1128,11 +1129,10 @@ function ProductTile({
 }) {
   const hue = hueFromId(row.productId);
   const href =
-    row.supplierSlug && row.productSlug
-      ? APP_ROUTES.marketplaceProduct(row.supplierSlug, row.productSlug)
-      : row.supplierSlug
-        ? APP_ROUTES.marketplaceSupplier(row.supplierSlug)
-        : APP_ROUTES.marketplace;
+    marketplacePassportProductPath(row.supplierSlug, row.productSlug) ??
+    (row.supplierSlug
+      ? APP_ROUTES.marketplaceSupplier(row.supplierSlug)
+      : APP_ROUTES.marketplace);
 
   return (
     <Link

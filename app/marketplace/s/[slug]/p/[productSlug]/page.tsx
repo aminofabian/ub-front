@@ -6,24 +6,20 @@ import { tryFetchMarketplaceProductBySlug } from "@/lib/marketplace-api";
 import {
   findMarketplaceProduct,
   marketplaceProductDescription,
-  marketplaceProductPath,
+  marketplaceSupplierPath,
   marketplaceProductSlugIsCanonical,
   marketplaceSupplierSlugIsCanonical,
 } from "@/lib/marketplace-url";
 
-import { MarketplaceOrderWorkspace } from "../../../../_components/marketplace-order-panel";
-import {
-  MarketplaceProductJsonLd,
-  MarketplaceSeoSummary,
-  marketplaceProductTitle,
-} from "../../../../_components/marketplace-json-ld";
-import { MarketplacePageFrame } from "../../../../_components/marketplace-page-frame";
+import { marketplaceProductTitle } from "../../../../_components/marketplace-json-ld";
 
 type PageProps = {
   params: Promise<{ slug: string; productSlug: string }>;
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { slug, productSlug } = await params;
   const detail = await tryFetchMarketplaceProductBySlug(slug, productSlug);
   const base = APP_BASE_URL.replace(/\/+$/, "");
@@ -43,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const canonical = `${base}${marketplaceProductPath(detail, product)}`;
+  const canonical = `${base}${marketplaceSupplierPath(detail, product.slug)}`;
   const heading = marketplaceProductTitle(detail, product);
   const title = `${heading} · ${detail.name} · Kiosk`;
   const description = marketplaceProductDescription(detail, product);
@@ -57,7 +53,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url: canonical,
       type: "website",
-      ...(product.imageUrl ? { images: [{ url: product.imageUrl, alt: product.name }] } : {}),
+      ...(product.imageUrl
+        ? { images: [{ url: product.imageUrl, alt: product.name }] }
+        : {}),
     },
     twitter: {
       card: product.imageUrl ? "summary_large_image" : "summary",
@@ -69,6 +67,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+/**
+ * Legacy `/marketplace/s/:supplier/p/:product` URLs permanently redirect to the
+ * supplier passport with `?p=` so the shelf opens with that product selected.
+ */
 export default async function MarketplaceProductSlugPage({ params }: PageProps) {
   const { slug, productSlug } = await params;
   const detail = await tryFetchMarketplaceProductBySlug(slug, productSlug);
@@ -77,26 +79,12 @@ export default async function MarketplaceProductSlugPage({ params }: PageProps) 
   const product = findMarketplaceProduct(detail, productSlug);
   if (!product) notFound();
 
-  if (!marketplaceSupplierSlugIsCanonical(slug, detail)) {
-    permanentRedirect(marketplaceProductPath(detail, product));
-  }
-  if (!marketplaceProductSlugIsCanonical(productSlug, product)) {
-    permanentRedirect(marketplaceProductPath(detail, product));
+  if (
+    !marketplaceSupplierSlugIsCanonical(slug, detail) ||
+    !marketplaceProductSlugIsCanonical(productSlug, product)
+  ) {
+    permanentRedirect(marketplaceSupplierPath(detail, product.slug));
   }
 
-  const description = marketplaceProductDescription(detail, product);
-  const heading = marketplaceProductTitle(detail, product);
-
-  return (
-    <>
-      <MarketplaceProductJsonLd detail={detail} product={product} />
-      <MarketplacePageFrame>
-        <MarketplaceSeoSummary title={heading} description={description} />
-        <MarketplaceOrderWorkspace
-          detail={detail}
-          selectedProductSlug={product.slug ?? productSlug}
-        />
-      </MarketplacePageFrame>
-    </>
-  );
+  permanentRedirect(marketplaceSupplierPath(detail, product.slug));
 }

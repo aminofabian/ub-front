@@ -55,19 +55,34 @@ function normalizeHexSuffix(suffix: string): string | null {
   return hex.length > 8 ? hex.slice(0, 8) : hex;
 }
 
-export function marketplaceSupplierPath(detail: Pick<MarketplaceSupplierDetail, "slug">): string {
+export function marketplaceSupplierPath(
+  detail: Pick<MarketplaceSupplierDetail, "slug">,
+  productSlug?: string | null,
+): string {
   if (!detail.slug?.trim()) return APP_ROUTES.marketplace;
-  return APP_ROUTES.marketplaceSupplier(detail.slug);
+  const base = APP_ROUTES.marketplaceSupplier(detail.slug);
+  const product = productSlug?.trim();
+  if (!product) return base;
+  return `${base}?p=${encodeURIComponent(product)}`;
+}
+
+/** Passport URL for a supplier catalogue product (shelf + selection), not the old /p/ page. */
+export function marketplacePassportProductPath(
+  supplierSlug: string | null | undefined,
+  productSlug: string | null | undefined,
+): string | null {
+  if (!supplierSlug?.trim()) return null;
+  const base = APP_ROUTES.marketplaceSupplier(supplierSlug.trim());
+  if (!productSlug?.trim()) return base;
+  return `${base}?p=${encodeURIComponent(productSlug.trim())}`;
 }
 
 export function marketplaceProductPath(
   detail: Pick<MarketplaceSupplierDetail, "slug">,
   product: Pick<MarketplaceCatalogProductPreview, "slug">,
 ): string {
-  if (!detail.slug?.trim() || !product.slug?.trim()) {
-    return marketplaceSupplierPath(detail);
-  }
-  return APP_ROUTES.marketplaceProduct(detail.slug, product.slug);
+  // Prefer the supplier passport with the product selected.
+  return marketplaceSupplierPath(detail, product.slug);
 }
 
 export function marketplaceSupplierSlugIsCanonical(
