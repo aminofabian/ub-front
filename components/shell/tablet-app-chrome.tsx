@@ -93,24 +93,24 @@ export function HeaderPosLinks({
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-px">
       {links.map(({ href, label, icon: Icon }) => {
         const active = headerPosLinkActive(pathname, href);
         return (
           <Link
             key={href}
             href={href}
-            className={cn(
-              "inline-flex h-9 items-center gap-1 border px-2 text-[10px] font-semibold leading-none transition-colors sm:gap-1.5 sm:px-2.5 sm:text-[11px]",
-              active
-                ? "border-primary/35 bg-primary/12 text-primary"
-                : "border-border/55 bg-background/85 text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground",
-            )}
-            aria-current={active ? "page" : undefined}
+            aria-label={label}
             title={label}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "inline-flex size-9 items-center justify-center border border-transparent text-muted-foreground transition-colors",
+              active
+                ? "border-border bg-muted text-foreground"
+                : "hover:bg-muted/70 hover:text-foreground",
+            )}
           >
-            <Icon className="size-3.5 shrink-0" aria-hidden />
-            <span className="hidden sm:inline">{label}</span>
+            <Icon className="size-4" aria-hidden />
           </Link>
         );
       })}
@@ -150,90 +150,58 @@ export function TabletAppHeader({
   const pathname = usePathname();
   const title = pageTitle ?? shellPageTitle(pathname);
 
+  const metaParts = [
+    title,
+    branchName?.trim() || null,
+    departmentName?.trim() || null,
+    businessName?.trim() && businessName !== tenantTitle
+      ? businessName.trim()
+      : null,
+  ].filter(Boolean) as string[];
+
   return (
-    <header className="tablet-app-header sticky top-0 z-40 shrink-0 pt-[env(safe-area-inset-top,0px)]">
-      <div
-        className={cn(
-          "relative overflow-hidden border-b border-border/40",
-          "bg-gradient-to-b from-background via-background to-background/92",
-          "backdrop-blur-xl backdrop-saturate-150",
-          "shadow-[0_1px_0_0_rgba(0,0,0,0.04)]",
-        )}
-      >
-        {/* Ambient brand wash */}
-        <div
-          className="pointer-events-none absolute -right-8 -top-12 h-32 w-48 rounded-full opacity-[0.14] blur-3xl"
-          style={{
-            background: primaryColor
-              ? `radial-gradient(circle, ${primaryColor}, transparent 70%)`
-              : "radial-gradient(circle, rgb(40, 167, 69), transparent 70%)",
-          }}
-          aria-hidden
-        />
+    <header className="tablet-app-header sticky top-0 z-40 shrink-0 border-b border-border bg-background pt-[env(safe-area-inset-top,0px)]">
+      <div className="flex items-center gap-2.5 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+        <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden border border-border bg-background sm:size-10">
+          <TenantLogo
+            brand={tenantTitle}
+            logoUrl={logoUrl}
+            faviconUrl={faviconUrl}
+            primaryColor={primaryColor}
+            variant="sidebar-mark"
+          />
+        </div>
 
-        <div className="relative flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="tablet-app-logo-ring flex size-10 shrink-0 items-center justify-center bg-background shadow-sm ring-1 ring-black/[0.06] dark:ring-white/[0.08] sm:size-11">
-              <TenantLogo
-                brand={tenantTitle}
-                logoUrl={logoUrl}
-                faviconUrl={faviconUrl}
-                primaryColor={primaryColor}
-                variant="sidebar-mark"
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                {tenantTitle}
-              </p>
-              <h1 className="truncate font-sans text-lg font-semibold leading-tight tracking-tight text-foreground sm:text-xl">
-                {title}
-              </h1>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                {branchName ? (
-                  <span className="inline-flex items-center gap-1">
-                    <MapPin className="size-3 shrink-0 opacity-70" aria-hidden />
-                    {branchName}
-                  </span>
-                ) : null}
-                {departmentName ? (
-                  <span className="inline-flex items-center gap-1 border-l border-border/50 pl-2">
-                    {departmentName}
-                  </span>
-                ) : null}
-                {businessName && businessName !== tenantTitle ? (
-                  <span className="hidden sm:inline border-l border-border/50 pl-2 opacity-80">
-                    {businessName}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-          </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate font-sans text-[15px] font-semibold leading-tight tracking-tight text-foreground sm:text-base">
+            {tenantTitle}
+          </h1>
+          {metaParts.length > 0 ? (
+            <p className="mt-0.5 truncate text-[11px] leading-snug text-muted-foreground">
+              {metaParts.join(" · ")}
+            </p>
+          ) : null}
+        </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
-            <HeaderPosLinks links={posLinks} pathname={pathname} />
-            {canReadNotifications ? (
-              <span className="tablet-app-icon-btn">
-                <NotificationBell />
-              </span>
-            ) : (
-              <span className="tablet-app-icon-btn text-muted-foreground/40">
-                <Bell className="size-[18px]" aria-hidden />
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={onOpenMore}
-              aria-label="Open menu"
-              className={cn(
-                "tablet-app-avatar flex size-9 items-center justify-center sm:size-10",
-                "bg-foreground text-sm font-bold text-background",
-                "ring-2 ring-background transition-transform active:scale-95",
-              )}
-            >
-              {userInitial}
-            </button>
-          </div>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <HeaderPosLinks links={posLinks} pathname={pathname} />
+          {canReadNotifications ? (
+            <span className="tablet-app-icon-btn">
+              <NotificationBell />
+            </span>
+          ) : (
+            <span className="tablet-app-icon-btn text-muted-foreground/40">
+              <Bell className="size-[18px]" aria-hidden />
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onOpenMore}
+            aria-label="Open menu"
+            className="tablet-app-avatar flex size-9 items-center justify-center bg-foreground text-sm font-bold text-background transition-opacity hover:opacity-90"
+          >
+            {userInitial}
+          </button>
         </div>
       </div>
     </header>
