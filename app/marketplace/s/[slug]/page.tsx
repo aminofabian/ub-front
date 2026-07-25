@@ -69,7 +69,9 @@ export default async function MarketplaceSupplierSlugPage({ params }: PageProps)
       <MarketplaceSupplierJsonLd detail={detail} />
       <MarketplacePageFrame>
         <MarketplaceSeoSummary title={detail.name} description={description} />
-        <MarketplaceOrderWorkspace detail={detail} />
+        <div className="mx-auto w-full max-w-[1400px] px-3 pb-8 pt-4 sm:px-5">
+          <MarketplaceOrderWorkspace detail={detail} layout="shelf" />
+        </div>
       </MarketplacePageFrame>
     </>
   );

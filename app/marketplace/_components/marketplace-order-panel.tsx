@@ -14,18 +14,21 @@ import {
   Minus,
   Package,
   Plus,
+  Search,
   ShoppingCart,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { kioskPlaceholderWashClass } from "@/components/cashier/kiosk-listing-styles";
+import { TelLink } from "@/components/tel-link";
 import { APP_ROUTES } from "@/lib/config";
 import type {
   MarketplaceCatalogProductPreview,
   MarketplaceSupplierDetail,
 } from "@/lib/marketplace-api";
-import { cn, formatMoney } from "@/lib/utils";
+import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
-import { TelLink } from "@/components/tel-link";
+import { cn, formatMoney } from "@/lib/utils";
 
 import {
   buildMarketplaceOrderPdf,
@@ -36,6 +39,16 @@ import {
 import { mktBtn, mktBtnGhost } from "./marketplace-ui";
 
 type CartQty = Record<string, number>;
+type OrderLayout = "default" | "shelf";
+
+const SHELF_TILE = cn(
+  "group relative flex h-full flex-col overflow-hidden border",
+  "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] text-left",
+  "transition-[border-color,background-color,box-shadow] duration-150",
+  "hover:z-[1] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)] hover:bg-card",
+  "hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+);
 
 function hueFromId(id: string): number {
   let hash = 0;
@@ -170,29 +183,35 @@ function QtyControl({
 export function MarketplaceOrderWorkspace({
   detail,
   selectedProductSlug,
+  layout = "default",
 }: {
   detail: MarketplaceSupplierDetail;
   selectedProductSlug?: string | null;
+  layout?: OrderLayout;
 }) {
-  const selected =
-    detail.products.find(
-      (p) =>
-        selectedProductSlug &&
-        p.slug?.toLowerCase() === selectedProductSlug.toLowerCase(),
-    ) ??
-    detail.products[0] ??
-    null;
+  const isShelf = layout === "shelf";
+  const selected = isShelf
+    ? null
+    : (detail.products.find(
+        (p) =>
+          selectedProductSlug &&
+          p.slug?.toLowerCase() === selectedProductSlug.toLowerCase(),
+      ) ??
+      detail.products[0] ??
+      null);
 
   const [cart, setCart] = useState<CartQty>(() =>
-    selected ? { [selected.id]: 1 } : {},
+    !isShelf && selected ? { [selected.id]: 1 } : {},
   );
   const [sendingOrder, setSendingOrder] = useState(false);
+  const [filter, setFilter] = useState("");
 
   // Opening a product page starts a fresh order with only that product.
   // Related rows stay at Add (0) until the buyer chooses them.
   useEffect(() => {
+    if (isShelf) return;
     setCart(selected ? { [selected.id]: 1 } : {});
-  }, [selected?.id]);
+  }, [selected?.id, isShelf]);
 
   const setQty = (productId: string, qty: number, announce = false) => {
     setCart((prev) => {
@@ -246,6 +265,18 @@ export function MarketplaceOrderWorkspace({
   // Location already shown under the product title — don't repeat in contact.
   const showAreaInContact = !selected;
 
+  const shelfProducts = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return detail.products;
+    return detail.products.filter((p) => {
+      const hay = [p.name, p.sku, p.barcode, p.categoryName]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [detail.products, filter]);
+
   const sendOrder = async () => {
     if (cartLines.length === 0) {
       toast.error("Add at least one product to the order.");
@@ -295,6 +326,138 @@ export function MarketplaceOrderWorkspace({
     }
   };
 
+  const orderFooter = (
+    <div
+      className={cn(
+        "sticky bottom-0 space-y-2 border p-3 sm:p-4",
+        isShelf
+          ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#faf8f4_94%,transparent)]"
+          : "border-border/60 bg-card",
+      )}
+    >
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+          <ShoppingCart className="size-3.5" />
+          {cartUnits === 0
+            ? "Empty"
+            : `${cartUnits} unit${cartUnits === 1 ? "" : "s"} · ${cartLines.length} line${cartLines.length === 1 ? "" : "s"}`}
+        </span>
+        <span
+          className={cn(
+            "font-semibold tabular-nums",
+            isShelf ? "font-mono text-[1.05rem]" : "font-heading text-lg",
+          )}
+        >
+          {formatMoney(cartTotal, cartCurrency)}
+        </span>
+      </div>
+      <button
+        type="button"
+        className={cn(
+          isShelf
+            ? "inline-flex h-11 w-full items-center justify-center gap-2 bg-[var(--pos-primary,#0f766e)] px-4 text-sm font-semibold text-[var(--pos-primary-ink,#fff)] transition hover:opacity-95 disabled:pointer-events-none disabled:opacity-50"
+            : cn(mktBtn, "w-full"),
+        )}
+        disabled={sendingOrder || cartLines.length === 0}
+        onClick={() => void sendOrder()}
+      >
+        {sendingOrder ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            Preparing…
+          </>
+        ) : (
+          <>
+            <FileDown className="size-4" />
+            Download PDF & open WhatsApp
+          </>
+        )}
+      </button>
+      <p className="text-center text-[11px] text-muted-foreground">
+        Downloads an order sheet, then opens WhatsApp with the supplier.
+      </p>
+    </div>
+  );
+
+  if (isShelf) {
+    return (
+      <div className="flex w-full flex-col gap-0 overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]">
+        <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 pb-2 pt-2 sm:px-3">
+          <span
+            aria-hidden
+            className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
+          />
+          <div className="pl-2">
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Order
+            </p>
+            <h2 className="mt-0.5 text-[1.05rem] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+              {detail.name}
+            </h2>
+            {areaLabel ? (
+              <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <MapPin className="size-3" />
+                {areaLabel}
+              </p>
+            ) : null}
+          </div>
+        </section>
+
+        <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            className="h-9 w-full border-0 bg-transparent pl-8 pr-3 text-[13px] shadow-none outline-none placeholder:text-muted-foreground/50"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Find a product…"
+          />
+        </div>
+
+        <SupplierContactSection
+          detail={detail}
+          areaLabel=""
+          className="border-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-3 sm:px-4"
+        />
+
+        <div className="min-h-0 flex-1 space-y-1.5 px-1.5 py-2 sm:px-2.5">
+          <div className="flex items-center justify-between gap-2 px-0.5">
+            <h3 className="flex items-baseline gap-2 text-[0.9rem] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+              Shelf
+              <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
+                {shelfProducts.length}
+              </span>
+            </h3>
+          </div>
+
+          {shelfProducts.length === 0 ? (
+            <div className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-[11px] text-muted-foreground">
+              {detail.products.length === 0
+                ? "No linked products yet."
+                : "No products match your search."}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+              {shelfProducts.map((product) => (
+                <ShelfProductTile
+                  key={product.id}
+                  product={product}
+                  supplierSlug={detail.slug}
+                  qty={cart[product.id] ?? 0}
+                  onAdd={() =>
+                    setQty(product.id, (cart[product.id] ?? 0) + 1, true)
+                  }
+                  onSetQty={(qty) => setQty(product.id, qty)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="p-1.5 sm:p-2.5">{orderFooter}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[920px] flex-col gap-3 px-4 py-5 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
@@ -305,7 +468,7 @@ export function MarketplaceOrderWorkspace({
           <ArrowLeft className="size-4" />
           Marketplace
         </Link>
-        <p className="truncate text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {detail.name}
           {detail.products.length ? ` · ${detail.products.length} products` : ""}
         </p>
@@ -402,40 +565,7 @@ export function MarketplaceOrderWorkspace({
         )}
       </section>
 
-      <div className="sticky bottom-0 space-y-2 border border-border/60 bg-card p-3 sm:p-4">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-            <ShoppingCart className="size-3.5" />
-            {cartUnits === 0
-              ? "Empty"
-              : `${cartUnits} unit${cartUnits === 1 ? "" : "s"} · ${cartLines.length} line${cartLines.length === 1 ? "" : "s"}`}
-          </span>
-          <span className="font-heading text-lg font-semibold tabular-nums">
-            {formatMoney(cartTotal, cartCurrency)}
-          </span>
-        </div>
-        <button
-          type="button"
-          className={cn(mktBtn, "w-full")}
-          disabled={sendingOrder || cartLines.length === 0}
-          onClick={() => void sendOrder()}
-        >
-          {sendingOrder ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Preparing…
-            </>
-          ) : (
-            <>
-              <FileDown className="size-4" />
-              Download PDF & open WhatsApp
-            </>
-          )}
-        </button>
-        <p className="text-center text-[11px] text-muted-foreground">
-          Downloads an order sheet, then opens WhatsApp with the supplier.
-        </p>
-      </div>
+      {orderFooter}
     </div>
   );
 }
@@ -443,9 +573,11 @@ export function MarketplaceOrderWorkspace({
 function SupplierContactSection({
   detail,
   areaLabel,
+  className,
 }: {
   detail: MarketplaceSupplierDetail;
   areaLabel: string;
+  className?: string;
 }) {
   const paymentLabel = detail.paymentMethodPreferred
     ? formatPaymentMethodLabel(detail.paymentMethodPreferred)
@@ -509,7 +641,11 @@ function SupplierContactSection({
   }
 
   return (
-    <section className="border border-border/55 bg-muted/5 px-3 py-3 sm:px-4">
+    <section
+      className={cn(
+        className ?? "border border-border/55 bg-muted/5 px-3 py-3 sm:px-4",
+      )}
+    >
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="min-w-0 space-y-2">
           {contactLines.map((line) => (
@@ -662,12 +798,12 @@ function CatalogueOrderRow({
         {href ? (
           <Link
             href={href}
-            className="block truncate text-sm font-medium hover:underline"
+            className="block text-sm font-medium leading-snug hover:underline"
           >
             {product.name}
           </Link>
         ) : (
-          <p className="truncate text-sm font-medium">{product.name}</p>
+          <p className="text-sm font-medium leading-snug">{product.name}</p>
         )}
         <p className="mt-0.5 text-sm font-semibold tabular-nums">
           {product.unitPrice != null
@@ -676,6 +812,132 @@ function CatalogueOrderRow({
         </p>
       </div>
       <QtyControl qty={qty} onChange={onSetQty} compact />
+    </div>
+  );
+}
+
+function ShelfProductTile({
+  product,
+  supplierSlug,
+  qty,
+  onAdd,
+  onSetQty,
+}: {
+  product: MarketplaceCatalogProductPreview;
+  supplierSlug: string | null;
+  qty: number;
+  onAdd: () => void;
+  onSetQty: (qty: number) => void;
+}) {
+  const thumb = posTileThumbUrl(product.name, product.imageUrl);
+  const href =
+    supplierSlug && product.slug
+      ? APP_ROUTES.marketplaceProduct(supplierSlug, product.slug)
+      : null;
+
+  return (
+    <div
+      className={cn(
+        SHELF_TILE,
+        qty > 0 &&
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,var(--card))]",
+      )}
+    >
+      <div className="relative aspect-square w-full shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]">
+        <button
+          type="button"
+          onClick={onAdd}
+          className="absolute inset-0 z-0 text-left"
+          aria-label={
+            qty > 0
+              ? `${product.name}, ${qty} in order. Tap to add another.`
+              : `Add ${product.name} to order`
+          }
+        >
+          {thumb ? (
+            <Image
+              src={thumb}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 30vw, (max-width: 1024px) 16vw, 120px"
+              className="object-contain p-0.5 transition-transform duration-300 group-hover:scale-[1.04]"
+              unoptimized
+            />
+          ) : (
+            <span
+              className={cn(
+                "flex h-full w-full items-center justify-center bg-gradient-to-br",
+                kioskPlaceholderWashClass(product.name),
+              )}
+              aria-hidden
+            >
+              <Package className="size-5 opacity-55" strokeWidth={1.5} />
+            </span>
+          )}
+        </button>
+        {qty > 0 ? (
+          <span className="pointer-events-none absolute left-0 top-0 z-[1] inline-flex h-5 min-w-5 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 font-mono text-[10px] font-bold tabular-nums text-[var(--pos-primary-ink,#fff)]">
+            {qty}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex min-h-[3.25rem] w-full flex-1 flex-col justify-between gap-1 px-1 pb-1 pt-1">
+        {href ? (
+          <Link
+            href={href}
+            className="text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)] hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {product.name}
+          </Link>
+        ) : (
+          <p className="text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
+            {product.name}
+          </p>
+        )}
+        <div className="flex items-center justify-between gap-1">
+          <p className="font-mono text-[10px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+            {product.unitPrice != null
+              ? formatMoney(product.unitPrice, product.currency ?? "KES")
+              : "Ask"}
+          </p>
+          {qty > 0 ? (
+            <div
+              className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="flex size-6 items-center justify-center hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]"
+                onClick={() => onSetQty(qty - 1)}
+                aria-label="Decrease quantity"
+              >
+                <Minus className="size-3" />
+              </button>
+              <span className="min-w-5 text-center font-mono text-[10px] font-semibold tabular-nums">
+                {qty}
+              </span>
+              <button
+                type="button"
+                className="flex size-6 items-center justify-center hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]"
+                onClick={() => onSetQty(qty + 1)}
+                aria-label="Increase quantity"
+              >
+                <Plus className="size-3" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="inline-flex h-6 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-1.5 text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
+            >
+              <Plus className="mr-0.5 size-3" />
+              Add
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
