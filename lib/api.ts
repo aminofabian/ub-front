@@ -1145,6 +1145,8 @@ export type SupplierItemLinkRecord = {
   itemName: string;
   sku: string;
   barcode?: string | null;
+  /** HTTPS URL for till / list thumbnails when the catalog item has an image. */
+  thumbnailUrl?: string | null;
   currentStock?: number | string | null;
   primary: boolean;
   supplierSku?: string | null;

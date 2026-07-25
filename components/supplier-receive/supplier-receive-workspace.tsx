@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -12,6 +13,7 @@ import {
 import {
   ArrowLeft,
   Loader2,
+  Package,
   PackagePlus,
   Search,
   ShoppingCart,
@@ -42,6 +44,7 @@ import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { kioskPlaceholderWashClass } from "@/components/cashier/kiosk-listing-styles";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import {
   isSupplierIdSegment,
   resolveSupplierFromSlug,
@@ -146,6 +149,7 @@ function ProductTile({
   onPick: () => void;
 }) {
   const title = link.itemName || link.sku || "Product";
+  const thumb = posTileThumbUrl(title, link.thumbnailUrl);
   const cost = moneySeed(
     link.lastCostPrice ?? link.defaultCostPrice ?? link.catalogBuyingPrice,
   );
@@ -166,17 +170,27 @@ function ProductTile({
           : `Add ${title} to supply cart`
       }
     >
-      <div
-        className={cn(
-          "relative aspect-square w-full bg-gradient-to-br",
-          kioskPlaceholderWashClass(title),
+      <div className="relative aspect-square w-full shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] dark:border-border/40">
+        {thumb ? (
+          <Image
+            src={thumb}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 22vw, (max-width: 1024px) 12vw, 90px"
+            className="object-contain p-0.5 transition-transform duration-300 group-hover:scale-[1.04]"
+            unoptimized
+          />
+        ) : (
+          <span
+            className={cn(
+              "flex h-full w-full items-center justify-center bg-gradient-to-br",
+              kioskPlaceholderWashClass(title),
+            )}
+            aria-hidden
+          >
+            <Package className="size-5 opacity-55" strokeWidth={1.5} />
+          </span>
         )}
-      >
-        <PackagePlus
-          className="absolute inset-0 m-auto size-7 opacity-70"
-          strokeWidth={1.25}
-          aria-hidden
-        />
         {cartQty > 0 ? (
           <span
             className={cn(
