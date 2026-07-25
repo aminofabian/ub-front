@@ -379,7 +379,7 @@ export function TenantOrderWorkspace() {
         });
       }
       try {
-        await postPathAPurchaseOrderSendToSupplier(po.id);
+        await postPathAPurchaseOrderSendToSupplier(po.id, { toast: false });
       } catch {
         await postPathAPurchaseOrderSend(po.id);
       }

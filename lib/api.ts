@@ -7464,10 +7464,11 @@ export async function postPathAPurchaseOrderSend(
 
 export async function postPathAPurchaseOrderSendToSupplier(
   purchaseOrderId: string,
+  opts?: { toast?: boolean },
 ): Promise<PathAPurchaseOrderDetailRecord> {
   return request<PathAPurchaseOrderDetailRecord>(
     `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/send-to-supplier`,
-    { method: "POST" },
+    { method: "POST", toast: opts?.toast },
   );
 }
 
