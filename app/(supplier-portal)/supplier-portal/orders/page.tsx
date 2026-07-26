@@ -183,14 +183,12 @@ export default function SupplierPortalOrdersPage() {
     <SupplierPortalShell>
       <div className={cn(spPage, "space-y-3")}>
         {mode === "take" ? (
-          <>
-            <header className="flex flex-wrap items-end justify-between gap-2">
-              <div className="min-w-0">
-                <p className={spEyebrow}>portal · sell → orders</p>
-                <h2 className={cn(spSerifTitle, "mt-0.5 text-2xl sm:text-3xl")}>
-                  Take order
-                </h2>
-              </div>
+          <div className="-mx-3 -my-5 sm:mx-0 sm:my-0">
+            <header className="mb-2 hidden sm:block">
+              <p className={spEyebrow}>portal · sell → orders</p>
+              <h2 className={cn(spSerifTitle, "mt-0.5 text-2xl sm:text-3xl")}>
+                Take order
+              </h2>
             </header>
             <SupplierPortalTakeOrderWorkspace
               onOpenInbox={() => setMode("inbox")}
@@ -199,7 +197,7 @@ export default function SupplierPortalOrdersPage() {
                 void openOrder(id);
               }}
             />
-          </>
+          </div>
         ) : (
           <>
             <header className="flex flex-wrap items-end justify-between gap-2">

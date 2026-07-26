@@ -331,8 +331,10 @@ export function SupplierPortalTakeOrderWorkspace({
   return (
     <div
       className={cn(
-        "relative flex w-full flex-col overflow-hidden border border-border bg-background font-sans",
-        "h-[calc(100dvh-10.5rem)] min-h-[22rem] sm:h-[min(72dvh,48rem)]",
+        "relative flex w-full flex-col overflow-hidden bg-background font-sans",
+        "border-y border-border sm:border",
+        /* Portal shell header ~3.25rem; fill remaining viewport on phones */
+        "h-[calc(100dvh-3.25rem)] min-h-[22rem] sm:h-[min(72dvh,48rem)]",
       )}
       style={{ ["--pos-primary" as string]: "#0f766e" }}
     >
@@ -421,13 +423,13 @@ export function SupplierPortalTakeOrderWorkspace({
           </div>
 
           {showFamilies ? (
-            <div className="shrink-0 border-b border-border">
-              <div className="flex gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="shrink-0 border-b border-border bg-background">
+              <div className="flex gap-0 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
                   onClick={() => setParentFilterId(null)}
                   className={cn(
-                    "shrink-0 border-r border-border px-3.5 py-2 text-[12px] font-medium",
+                    "shrink-0 border-r border-border px-3.5 py-2.5 text-[12px] font-medium touch-manipulation",
                     !parentFilterId
                       ? "bg-[var(--pos-primary,#0f766e)] text-white"
                       : "bg-transparent text-muted-foreground",
@@ -445,7 +447,7 @@ export function SupplierPortalTakeOrderWorkspace({
                       )
                     }
                     className={cn(
-                      "max-w-[10rem] shrink-0 truncate border-r border-border px-3.5 py-2 text-[12px] font-medium",
+                      "max-w-[11rem] shrink-0 truncate border-r border-border px-3.5 py-2.5 text-[12px] font-medium touch-manipulation",
                       parentFilterId === opt.id
                         ? "bg-[var(--pos-primary,#0f766e)] text-white"
                         : "text-muted-foreground",
@@ -458,7 +460,7 @@ export function SupplierPortalTakeOrderWorkspace({
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 sm:p-2.5">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-background p-2 pb-3 sm:p-2.5">
             {!shopId ? (
               <p className="py-16 text-center text-[13px] text-muted-foreground">
                 Choose a shop to start.
@@ -540,7 +542,7 @@ export function SupplierPortalTakeOrderWorkspace({
                             <div className="inline-flex items-center border border-border">
                               <button
                                 type="button"
-                                className="flex size-7 items-center justify-center touch-manipulation"
+                                className="flex size-8 items-center justify-center touch-manipulation"
                                 onClick={() => setQty(product.itemId, qty - 1)}
                               >
                                 −
@@ -550,7 +552,7 @@ export function SupplierPortalTakeOrderWorkspace({
                               </span>
                               <button
                                 type="button"
-                                className="flex size-7 items-center justify-center touch-manipulation"
+                                className="flex size-8 items-center justify-center touch-manipulation"
                                 onClick={() => setQty(product.itemId, qty + 1)}
                               >
                                 +
@@ -559,7 +561,7 @@ export function SupplierPortalTakeOrderWorkspace({
                           ) : (
                             <button
                               type="button"
-                              className="px-1.5 py-1 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] touch-manipulation"
+                              className="min-h-8 px-1.5 py-1 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] touch-manipulation"
                               onClick={() => setQty(product.itemId, 1)}
                             >
                               Add
@@ -592,7 +594,7 @@ export function SupplierPortalTakeOrderWorkspace({
       <button
         type="button"
         onClick={() => setMobileOrderOpen(true)}
-        className="flex w-full shrink-0 items-center justify-between gap-3 border-t border-border bg-[var(--pos-primary,#0f766e)] px-3 py-3 text-white lg:hidden active:brightness-95"
+        className="flex w-full shrink-0 items-center justify-between gap-3 bg-[var(--pos-primary,#0f766e)] px-3 py-3.5 text-white lg:hidden active:brightness-95 pb-[max(0.875rem,env(safe-area-inset-bottom))]"
       >
         <span className="text-left">
           <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/75">
