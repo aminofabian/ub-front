@@ -7,6 +7,7 @@ import Link from "next/link";
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchSupplierPortalCapabilities,
   fetchSupplierPortalHubShops,
   fetchSupplierPortalOrders,
   fetchSupplierPortalPayments,
@@ -45,6 +46,7 @@ export default function SupplierPortalOverviewPage() {
   const [hub, setHub] = useState<SupplierPortalHubShops | null>(null);
   const [pendingOrders, setPendingOrders] = useState(0);
   const [todayCollections, setTodayCollections] = useState(0);
+  const [canViewMoney, setCanViewMoney] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -52,21 +54,27 @@ export default function SupplierPortalOverviewPage() {
       router.replace(APP_ROUTES.supplierPortalLogin);
       return;
     }
-    void Promise.all([
-      fetchSupplierPortalHubShops(),
-      fetchSupplierPortalOrders(),
-      fetchSupplierPortalPayments(),
-    ])
-      .then(([shops, orders, payments]) => {
-        setHub(shops);
+    void (async () => {
+      try {
+        const caps = await fetchSupplierPortalCapabilities();
+        setCanViewMoney(caps.canViewMoney);
+        const orders = await fetchSupplierPortalOrders();
         setPendingOrders(orders.filter((o) => !o.supplierResponseAt).length);
+        if (!caps.canViewMoney) {
+          return;
+        }
+        const [shops, payments] = await Promise.all([
+          fetchSupplierPortalHubShops(),
+          fetchSupplierPortalPayments(),
+        ]);
+        setHub(shops);
         setTodayCollections(
           payments.filter((p) => isToday(p.paidAt)).reduce((sum, p) => sum + toNum(p.amount), 0),
         );
-      })
-      .catch((err) => {
+      } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load dashboard");
-      });
+      }
+    })();
   }, [router]);
 
   const currency = hub?.currency ?? "KES";
@@ -77,43 +85,52 @@ export default function SupplierPortalOverviewPage() {
         <header>
           <h2 className="text-2xl font-semibold tracking-tight">Dashboard</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Balances and activity across shops you supply.
+            {canViewMoney
+              ? "Balances and activity across shops you supply."
+              : "Orders and catalogue activity for your supplier account."}
           </p>
         </header>
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Kpi
-            label="Total shops"
-            value={hub ? String(hub.shopCount) : "—"}
-            href={APP_ROUTES.supplierPortalShops}
-          />
-          <Kpi
-            label="Outstanding"
-            value={hub ? money(hub.totals.owed, currency) : "—"}
-            href={APP_ROUTES.supplierPortalShops}
-          />
-          <Kpi
-            label="Today's collections"
-            value={hub ? money(todayCollections, currency) : "—"}
-            href={APP_ROUTES.supplierPortalPayments}
-          />
-          <Kpi
-            label="Paid (all time)"
-            value={hub ? money(hub.totals.paid, currency) : "—"}
-            href={APP_ROUTES.supplierPortalPayments}
-          />
-          <Kpi
-            label="Partial balances"
-            value={hub ? money(hub.totals.pending, currency) : "—"}
-            href={APP_ROUTES.supplierPortalInvoices}
-          />
+          {canViewMoney ? (
+            <>
+              <Kpi
+                label="Total shops"
+                value={hub ? String(hub.shopCount) : "—"}
+                href={APP_ROUTES.supplierPortalShops}
+              />
+              <Kpi
+                label="Outstanding"
+                value={hub ? money(hub.totals.owed, currency) : "—"}
+                href={APP_ROUTES.supplierPortalShops}
+              />
+              <Kpi
+                label="Today's collections"
+                value={hub ? money(todayCollections, currency) : "—"}
+                href={APP_ROUTES.supplierPortalPayments}
+              />
+              <Kpi
+                label="Paid (all time)"
+                value={hub ? money(hub.totals.paid, currency) : "—"}
+                href={APP_ROUTES.supplierPortalPayments}
+              />
+              <Kpi
+                label="Partial balances"
+                value={hub ? money(hub.totals.pending, currency) : "—"}
+                href={APP_ROUTES.supplierPortalInvoices}
+              />
+            </>
+          ) : null}
           <Kpi
             label="Pending orders"
             value={String(pendingOrders)}
             href={APP_ROUTES.supplierPortalOrders}
           />
+          {!canViewMoney ? (
+            <Kpi label="Catalogue" value="Manage" href={APP_ROUTES.supplierPortalCatalog} />
+          ) : null}
         </div>
 
         {hub && hub.shops.length > 0 ? (

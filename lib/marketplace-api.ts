@@ -743,6 +743,10 @@ export type SupplierPortalCapabilities = {
   requireStoreApprovalProductEdits: boolean;
   allowInvoiceDownloads: boolean;
   allowStatementDownloads: boolean;
+  roleKey: string;
+  permissions: string[];
+  canViewMoney: boolean;
+  canManageTeam: boolean;
 };
 
 export type SupplierPortalHubShops = {
@@ -1056,6 +1060,55 @@ export async function logoutAllSupplierPortalSessions(): Promise<void> {
     method: "POST",
   });
   clearSupplierPortalSession();
+}
+
+export type SupplierPortalTeamUserRow = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  roleKey: string;
+  active: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  currentUser: boolean;
+};
+
+export async function fetchSupplierPortalTeam(): Promise<SupplierPortalTeamUserRow[]> {
+  return supplierPortalFetch<SupplierPortalTeamUserRow[]>(API_ROUTES.supplierPortalTeam);
+}
+
+export async function createSupplierPortalTeamUser(body: {
+  name: string;
+  email?: string;
+  phone?: string;
+  password: string;
+  roleKey: string;
+}): Promise<SupplierPortalTeamUserRow> {
+  return supplierPortalFetch<SupplierPortalTeamUserRow>(API_ROUTES.supplierPortalTeam, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function patchSupplierPortalTeamUser(
+  userId: string,
+  body: { roleKey?: string; active?: boolean },
+): Promise<SupplierPortalTeamUserRow> {
+  return supplierPortalFetch<SupplierPortalTeamUserRow>(
+    `${API_ROUTES.supplierPortalTeam}/${userId}`,
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+export async function resetSupplierPortalTeamUserPassword(
+  userId: string,
+  password: string,
+): Promise<SupplierPortalTeamUserRow> {
+  return supplierPortalFetch<SupplierPortalTeamUserRow>(
+    `${API_ROUTES.supplierPortalTeam}/${userId}/reset-password`,
+    { method: "POST", body: JSON.stringify({ password }) },
+  );
 }
 
 export type SupplierPortalMessageRow = {
