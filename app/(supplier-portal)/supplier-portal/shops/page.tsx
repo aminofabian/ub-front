@@ -93,7 +93,11 @@ export default function SupplierPortalShopsPage() {
 
         {hub && hub.shops.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No linked shops yet. Link local suppliers from your profile, or wait for a shop to connect.
+            No linked shops yet. Sign out and back in to refresh links, or open{" "}
+            <Link href={APP_ROUTES.supplierPortalProfile} className="font-medium text-foreground underline underline-offset-2">
+              Profile
+            </Link>{" "}
+            to link a shop by phone / name match. Shop-linked products appear in Catalogue after a shop is connected.
           </p>
         ) : null}
       </div>
