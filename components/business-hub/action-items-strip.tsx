@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ArrowRight, AlertTriangle, Info } from "lucide-react";
 
-import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
@@ -21,22 +20,19 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   }
 
   return (
-    <section className="hub-rise hub-rise-delay-2 space-y-2">
-      <HubSectionLabel
-        index="03"
-        title="Needs attention"
-        meta={
-          items.length === 1
-            ? "One thing to clear"
-            : `${items.length} items · clear before reports`
-        }
-      />
+    <section className="space-y-1">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
+          Needs attention
+        </h2>
+        <p className="text-[10px] text-[#AAAAAA]">{items.length}</p>
+      </div>
       <div
         className={cn(
           "grid gap-px border border-[#E6E1D8] bg-[#E6E1D8]",
           items.length === 1 && "grid-cols-1",
-          items.length === 2 && "sm:grid-cols-2",
-          items.length >= 3 && "sm:grid-cols-2 lg:grid-cols-3",
+          items.length === 2 && "grid-cols-2",
+          items.length >= 3 && "grid-cols-3",
         )}
       >
         {items.map((item) => {
@@ -47,7 +43,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               href={item.href}
               className={cn(
                 HUB_SURFACE,
-                "group relative flex items-center gap-2.5 overflow-hidden border-0 px-3 py-2.5 transition-colors hover:bg-[#FCFAF6]",
+                "group relative flex items-center gap-1.5 overflow-hidden border-0 px-2 py-1.5 transition-colors hover:bg-[#FCFAF6]",
               )}
             >
               <span
@@ -57,28 +53,18 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
                 )}
                 aria-hidden
               />
-              <span
+              <Icon
                 className={cn(
-                  "ml-1 flex size-7 shrink-0 items-center justify-center",
-                  item.tone === "warning"
-                    ? "bg-[#C47A5A]/10 text-[#C47A5A]"
-                    : "bg-[#F9F6F0] text-[#B08D48]",
+                  "ml-1 size-3 shrink-0",
+                  item.tone === "warning" ? "text-[#C47A5A]" : "text-[#B08D48]",
                 )}
-              >
-                <Icon className="size-3.5" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-[#141414]">
-                  {item.label}
-                </span>
-                {item.detail ? (
-                  <span className="mt-0.5 block truncate text-[11px] text-[#888888]">
-                    {item.detail}
-                  </span>
-                ) : null}
+                aria-hidden
+              />
+              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-[#141414]">
+                {item.label}
               </span>
               <ArrowRight
-                className="size-3.5 shrink-0 text-[#DDDDDD] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#B08D48]"
+                className="size-3 shrink-0 text-[#DDDDDD] group-hover:text-[#B08D48]"
                 aria-hidden
               />
             </Link>

@@ -732,83 +732,85 @@ export function BusinessHubWorkspace() {
   const showMovers = canViewOwnerSummary && topMovers.length > 0;
 
   return (
-    <div className="hub-paper -mx-3 min-h-full px-3 py-3 sm:-mx-4 sm:px-4 sm:py-4 lg:mx-0 lg:px-0 xl:py-0">
+    <div className="hub-paper -mx-3 min-h-full px-3 py-2 sm:-mx-4 sm:px-4 sm:py-3 lg:mx-0 lg:px-0 xl:h-[calc(100dvh-7.5rem)] xl:overflow-hidden xl:py-1.5">
       <div
         className={cn(
-          "mx-auto w-full max-w-5xl space-y-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-16",
+          "mx-auto flex h-full w-full max-w-5xl flex-col gap-1.5 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-4",
           showTillStage && "max-w-6xl xl:max-w-7xl",
           dualLanes && "max-w-7xl",
+          "xl:pb-0",
         )}
       >
         {showTillStage ? (
-          <div className="xl:pt-4">
-            <CashierStageTabs
-              cashiers={cashierNames}
-              selected={selectedCashiers}
-              onChange={setSelectedCashiers}
-              live={pulseLive}
-            />
-          </div>
+          <CashierStageTabs
+            cashiers={cashierNames}
+            selected={selectedCashiers}
+            onChange={setSelectedCashiers}
+            live={pulseLive}
+            className="shrink-0"
+          />
         ) : null}
 
         <div
           className={cn(
-            "xl:grid xl:items-start xl:gap-0",
+            "min-h-0 xl:grid xl:flex-1 xl:items-stretch xl:gap-0",
             showTillStage &&
               !dualLanes &&
               !galleryOpen &&
-              "xl:grid-cols-[minmax(0,1fr)_minmax(240px,280px)]",
+              "xl:grid-cols-[minmax(0,1fr)_minmax(220px,260px)]",
             showTillStage &&
               dualLanes &&
-              "xl:grid-cols-[minmax(0,1fr)_minmax(200px,240px)_minmax(200px,240px)]",
+              "xl:grid-cols-[minmax(0,1fr)_minmax(180px,220px)_minmax(180px,220px)]",
             showTillStage && galleryOpen && "xl:grid-cols-1",
           )}
         >
           <div
             className={cn(
-              "space-y-3",
+              "flex min-h-0 flex-col gap-1.5",
               showTillStage &&
                 !galleryOpen &&
-                "xl:border-r xl:border-[#E6E1D8] xl:pr-3",
-              !showTillStage && "xl:pt-4",
+                "xl:border-r xl:border-[#E6E1D8] xl:pr-2.5",
             )}
           >
-            <header className="hub-rise flex flex-wrap items-end justify-between gap-3 border-b border-[#E6E1D8] pb-3">
+            <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[#E6E1D8] pb-1.5">
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B08D48]">
-                    Morning board
-                  </p>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <h1
+                    className="truncate text-[clamp(1.05rem,1.8vw,1.35rem)] font-medium tracking-tight text-[#141414]"
+                    style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+                  >
+                    {title}
+                  </h1>
                   <HubLiveStatus
                     businessActive={isActive}
                     lastLiveUpdateAt={lastLiveUpdateAt}
                     justUpdated={justUpdated}
                   />
-                  <span className="hidden border border-[#E6E1D8] bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#8A8A8A] capitalize sm:inline">
+                  <span className="hidden border border-[#E6E1D8] bg-white px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[#8A8A8A] capitalize sm:inline">
                     {tier}
                   </span>
                 </div>
-                <h1
-                  className="mt-1.5 text-[clamp(1.35rem,2.5vw,1.85rem)] font-medium tracking-tight text-[#141414]"
-                  style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-                >
-                  {title}
-                </h1>
-                <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <ActiveScopeSubtitle className={cn("text-xs", HUB_MUTED)} />
+                <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
+                    Morning board
+                  </p>
+                  <span className="text-[#D0C6B4]" aria-hidden>
+                    ·
+                  </span>
+                  <ActiveScopeSubtitle className={cn("text-[10px]", HUB_MUTED)} />
                   <span className="hidden text-[#D0C6B4] sm:inline" aria-hidden>
                     ·
                   </span>
-                  <p className={cn("text-xs", HUB_MUTED)}>{periodSubtitle}</p>
+                  <p className={cn("text-[10px]", HUB_MUTED)}>{periodSubtitle}</p>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-1.5">
+              <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   onClick={() => void load()}
                   disabled={refreshing}
                   className={cn(
-                    "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                    "inline-flex size-7 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
                     "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
                     "disabled:cursor-not-allowed disabled:opacity-60",
@@ -825,7 +827,7 @@ export function BusinessHubWorkspace() {
                   <Link
                     href={APP_ROUTES.businessSettings}
                     className={cn(
-                      "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                      "inline-flex size-7 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
                       "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
                     )}
@@ -899,10 +901,10 @@ export function BusinessHubWorkspace() {
             {(stockItems.length > 0 || showMovers) ? (
               <div
                 className={cn(
-                  "grid gap-3 lg:items-start",
+                  "grid shrink-0 gap-1.5 lg:items-start",
                   stockItems.length > 0 &&
                     showMovers &&
-                    "lg:grid-cols-[0.95fr_1.05fr]",
+                    "lg:grid-cols-[1.15fr_0.85fr]",
                 )}
               >
                 <StockHealthPanel items={stockItems} />
@@ -910,11 +912,14 @@ export function BusinessHubWorkspace() {
               </div>
             ) : null}
 
-            <CommandGrid links={commandLinks} />
+            <div className="shrink-0">
+              <CommandGrid links={commandLinks} />
+            </div>
 
-            <StockShelvesBanner catalogueCount={catalogueCount} />
-
-            <PostSetupChecklist catalogueCount={catalogueCount} />
+            <div className="space-y-1.5 xl:hidden">
+              <StockShelvesBanner catalogueCount={catalogueCount} />
+              <PostSetupChecklist catalogueCount={catalogueCount} />
+            </div>
           </div>
 
           {showTillStage && !galleryOpen
@@ -922,7 +927,7 @@ export function BusinessHubWorkspace() {
                 <div
                   key={lane.key}
                   className={cn(
-                    "hidden xl:block xl:sticky xl:top-0 xl:self-start",
+                    "hidden min-h-0 xl:flex xl:h-full xl:flex-col",
                     dualLanes && index === 0 && "xl:border-r xl:border-[#E6E1D8]",
                   )}
                 >
@@ -936,7 +941,8 @@ export function BusinessHubWorkspace() {
                     showCashier={lane.showCashier}
                     accent={lane.accent}
                     laneIndex={dualLanes ? index : undefined}
-                    className="border-0 border-l border-[#E6E1D8]"
+                    fillViewport={false}
+                    className="h-full min-h-0 border-0 border-l border-[#E6E1D8]"
                   />
                 </div>
               ))

@@ -10,15 +10,7 @@ import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { useFormatMoney } from "@/hooks/use-format-money";
 import { cn } from "@/lib/utils";
 
-function fmtBarAmount(n: number): string {
-  if (n <= 0) return "";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 10_000) return `${Math.round(n / 1000)}k`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(Math.round(n));
-}
-
-const BAR_TRACK_PX = 88;
+const BAR_TRACK_PX = 44;
 const BAR_FILL = "#C9A86A";
 const BAR_FILL_TODAY = HUB_ACCENT;
 
@@ -44,42 +36,34 @@ export function RevenueBarChart({
   );
 
   return (
-    <section className={cn(HUB_SURFACE, "hub-rise hub-rise-delay-1 relative overflow-hidden px-3.5 py-3.5 sm:px-4")}>
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent, rgba(176,141,72,0.55), transparent)",
-        }}
-        aria-hidden
-      />
-      <div className="space-y-3">
-        <div>
+    <section className={cn(HUB_SURFACE, "relative overflow-hidden px-3 py-2")}>
+      <div className="space-y-1.5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
           <HubSectionLabel
             index="02"
             title={title}
             meta={
               activeDays > 0
-                ? `${activeDays} day${activeDays === 1 ? "" : "s"} plotted`
-                : "Waiting on sales"
+                ? `${activeDays}d`
+                : "Waiting"
             }
           />
           {caption ? (
-            <p className="mt-1 text-xs font-medium leading-snug text-[#3A3A3A] sm:text-sm">
+            <p className="max-w-[55%] truncate text-[10px] font-medium text-[#5A5A5A]">
               {caption}
             </p>
           ) : null}
         </div>
 
         <div
-          className="relative flex items-end justify-between gap-1 border-b border-[#E6E1D8] sm:gap-1.5"
-          style={{ height: BAR_TRACK_PX + 28 }}
+          className="relative flex items-end justify-between gap-1 border-b border-[#E6E1D8]"
+          style={{ height: BAR_TRACK_PX + 14 }}
           role="img"
           aria-label={ariaLabel}
         >
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-6 border-t border-dashed border-[#EDE8DF]"
-            style={{ top: 12 }}
+            className="pointer-events-none absolute inset-x-0 bottom-4 border-t border-dashed border-[#EDE8DF]"
+            style={{ top: 4 }}
             aria-hidden
           />
 
@@ -87,7 +71,7 @@ export function RevenueBarChart({
             const heightPx =
               point.value <= 0
                 ? 0
-                : Math.max(6, Math.round((point.value / max) * BAR_TRACK_PX));
+                : Math.max(4, Math.round((point.value / max) * BAR_TRACK_PX));
             const isHighlight = index === points.length - 1 && point.value > 0;
             const isPeak = index === peakIndex && point.value > 0 && !isHighlight;
             const showLabel =
@@ -99,7 +83,7 @@ export function RevenueBarChart({
             return (
               <div
                 key={point.day}
-                className="group relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5 pb-0"
+                className="group relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1 pb-0"
                 style={{ height: "100%" }}
               >
                 <div
@@ -120,38 +104,24 @@ export function RevenueBarChart({
                   style={{ height: BAR_TRACK_PX }}
                 >
                   {point.value > 0 ? (
-                    <>
-                      <span
-                        className={cn(
-                          "mb-1 max-w-full truncate text-center text-[9px] font-semibold tabular-nums leading-none sm:text-[10px]",
-                          isHighlight
-                            ? "text-[#8A6B2E]"
-                            : isPeak
-                              ? "text-[#141414]"
-                              : "text-[#6B6B6B]",
-                        )}
-                      >
-                        {fmtBarAmount(point.value)}
-                      </span>
-                      <div
-                        className={cn(
-                          "hub-bar-grow w-full max-w-[26px]",
-                          isHighlight && "ring-1 ring-[#B08D48]/35 ring-offset-1 ring-offset-white",
-                        )}
-                        style={{
-                          height: heightPx,
-                          animationDelay: `${index * 40}ms`,
-                          background: isHighlight
-                            ? `linear-gradient(180deg, #D4B06A 0%, ${BAR_FILL_TODAY} 100%)`
-                            : isPeak
-                              ? `linear-gradient(180deg, #D9C7A0 0%, ${BAR_FILL} 100%)`
-                              : `linear-gradient(180deg, #D9C7A0 0%, ${BAR_FILL} 100%)`,
-                        }}
-                      />
-                    </>
+                    <div
+                      className={cn(
+                        "hub-bar-grow w-full max-w-[22px]",
+                        isHighlight && "ring-1 ring-[#B08D48]/35 ring-offset-1 ring-offset-white",
+                      )}
+                      style={{
+                        height: heightPx,
+                        animationDelay: `${index * 40}ms`,
+                        background: isHighlight
+                          ? `linear-gradient(180deg, #D4B06A 0%, ${BAR_FILL_TODAY} 100%)`
+                          : isPeak
+                            ? `linear-gradient(180deg, #D9C7A0 0%, ${BAR_FILL} 100%)`
+                            : `linear-gradient(180deg, #D9C7A0 0%, ${BAR_FILL} 100%)`,
+                      }}
+                    />
                   ) : (
                     <div
-                      className="w-full max-w-[26px] bg-[#E8E8E8]"
+                      className="w-full max-w-[22px] bg-[#E8E8E8]"
                       style={{ height: 2 }}
                     />
                   )}

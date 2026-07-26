@@ -12,17 +12,10 @@ function shortName(name: string): string {
 }
 
 function modeCopy(selected: string[]): string {
-  if (selected.length === 0) return "Floor · every till";
+  if (selected.length === 0) return "Floor";
   if (selected.length === 1) return `Solo · ${shortName(selected[0]!)}`;
-  if (selected.length === 2) return "Dual · side-by-side";
-  return `Gallery · ${selected.length} tills`;
-}
-
-function hintCopy(selected: string[]): string {
-  if (selected.length === 0) return "Tap a cashier for solo";
-  if (selected.length === 1) return "Tap another for dual lanes";
-  if (selected.length === 2) return "Tap a third for full-screen gallery";
-  return "Switch inside the gallery · Esc closes";
+  if (selected.length === 2) return "Dual";
+  return `Gallery · ${selected.length}`;
 }
 
 export function CashierStageTabs({
@@ -59,81 +52,64 @@ export function CashierStageTabs({
   return (
     <div
       className={cn(
-        "hub-rise overflow-hidden border border-[#E6E1D8] bg-white",
+        "overflow-hidden border border-[#E6E1D8] bg-white",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-[#E6E1D8] bg-[#FCFAF6] px-3 py-1.5 sm:px-3.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B08D48]">
-            Stage
-          </p>
-          <span className="text-[#D0C6B4]" aria-hidden>
-            /
-          </span>
-          <p className="truncate text-[11px] text-[#5A5A5A]">{modeCopy(selected)}</p>
-        </div>
-        <p className="hidden shrink-0 text-[10px] text-[#9A9A9A] sm:block">
-          {hintCopy(selected)}
-        </p>
-      </div>
-
       <div
         className="grid"
         style={{
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          gridTemplateColumns: `auto repeat(${columns}, minmax(0, 1fr))`,
         }}
         role="tablist"
         aria-label="Cashier lanes"
       >
+        <div className="flex items-center gap-2 border-r border-[#E6E1D8] bg-[#FCFAF6] px-2.5 py-1.5">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
+            Stage
+          </p>
+          <span className="hidden text-[10px] text-[#8A8A8A] lg:inline">
+            {modeCopy(selected)}
+          </span>
+        </div>
+
         <button
           type="button"
           role="tab"
           aria-selected={viewingAll}
           onClick={selectAll}
           className={cn(
-            "relative flex min-h-[4.25rem] flex-col justify-center gap-1 border-r border-[#E6E1D8] px-3 py-3 text-left transition-colors sm:px-4",
+            "relative flex items-center justify-between gap-2 border-r border-[#E6E1D8] px-3 py-2 text-left transition-colors",
             viewingAll
               ? "bg-[#141414] text-[#F5E6C8]"
               : "bg-white text-[#141414] hover:bg-[#FCFAF6]",
           )}
         >
-          <span className="flex items-center gap-2">
+          <span className="min-w-0">
             <span
               className={cn(
-                "text-[11px] font-semibold uppercase tracking-[0.14em]",
+                "block text-[9px] font-semibold uppercase tracking-[0.12em]",
                 viewingAll ? "text-[#B08D48]" : "text-[#8A8A8A]",
               )}
             >
               All
             </span>
-            {live ? (
-              <span
-                className={cn(
-                  "size-1.5 hub-live-beacon",
-                  viewingAll ? "bg-emerald-400" : "bg-emerald-500",
-                )}
-                aria-hidden
-              />
-            ) : null}
+            <span
+              className="block truncate text-[13px] font-medium leading-tight"
+              style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+            >
+              Floor
+            </span>
           </span>
-          <span
-            className={cn(
-              "text-sm font-medium tracking-tight sm:text-base",
-              viewingAll ? "text-[#F5E6C8]" : "text-[#141414]",
-            )}
-            style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-          >
-            Floor
-          </span>
-          <span
-            className={cn(
-              "text-[10px]",
-              viewingAll ? "text-[#A89878]" : "text-[#9A9A9A]",
-            )}
-          >
-            Every till
-          </span>
+          {live ? (
+            <span
+              className={cn(
+                "size-1.5 shrink-0 hub-live-beacon",
+                viewingAll ? "bg-emerald-400" : "bg-emerald-500",
+              )}
+              aria-hidden
+            />
+          ) : null}
           {viewingAll ? (
             <span
               className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[#B08D48]"
@@ -163,7 +139,7 @@ export function CashierStageTabs({
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                "relative flex min-h-[4.25rem] flex-col justify-center gap-1 px-3 py-3 text-left transition-colors sm:px-4",
+                "relative flex items-center gap-2 px-3 py-2 text-left transition-colors",
                 !isLast && "border-r border-[#E6E1D8]",
                 active
                   ? gallery
@@ -172,72 +148,36 @@ export function CashierStageTabs({
                   : "bg-white text-[#141414] hover:bg-[#FCFAF6]",
               )}
             >
-              <span className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "font-mono text-[9px] tabular-nums",
+                  active ? "text-[#B08D48]" : "text-[#C4BBA8]",
+                )}
+              >
+                {laneIndex >= 0
+                  ? String(laneIndex + 1).padStart(2, "0")
+                  : String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    "font-mono text-[10px] tabular-nums",
-                    active
-                      ? gallery
-                        ? "text-[#B08D48]"
-                        : "text-[#B08D48]"
-                      : "text-[#C4BBA8]",
-                  )}
-                >
-                  {laneIndex >= 0
-                    ? String(laneIndex + 1).padStart(2, "0")
-                    : String(index + 1).padStart(2, "0")}
-                </span>
-                <span
-                  className={cn(
-                    "text-[11px] font-semibold uppercase tracking-[0.12em]",
-                    active
-                      ? gallery
-                        ? "text-[#B08D48]"
-                        : "text-[#B08D48]"
-                      : "text-[#8A8A8A]",
+                    "block text-[9px] font-semibold uppercase tracking-[0.12em]",
+                    active ? "text-[#B08D48]" : "text-[#8A8A8A]",
                   )}
                 >
                   Till
                 </span>
-              </span>
-              <span
-                className={cn(
-                  "truncate text-sm font-medium tracking-tight sm:text-base",
-                  active && gallery
-                    ? "text-[#F5E6C8]"
-                    : active
-                      ? "text-[#141414]"
-                      : "text-[#141414]",
-                )}
-                style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-                title={name}
-              >
-                {shortName(name)}
-              </span>
-              <span
-                className={cn(
-                  "truncate text-[10px]",
-                  active
-                    ? gallery
-                      ? "text-[#A89878]"
-                      : "text-[#8A6B2E]/80"
-                    : "text-[#9A9A9A]",
-                )}
-              >
-                {active
-                  ? gallery
-                    ? "In gallery"
-                    : selected.length === 1
-                      ? "Solo lane"
-                      : `Lane ${laneIndex + 1}`
-                  : "Tap to open"}
+                <span
+                  className="block truncate text-[13px] font-medium leading-tight"
+                  style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+                  title={name}
+                >
+                  {shortName(name)}
+                </span>
               </span>
               {active ? (
                 <span
-                  className={cn(
-                    "pointer-events-none absolute inset-x-0 bottom-0 h-0.5",
-                    gallery ? "bg-[#B08D48]" : "bg-[#B08D48]",
-                  )}
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[#B08D48]"
                   aria-hidden
                 />
               ) : null}
