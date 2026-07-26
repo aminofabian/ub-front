@@ -1,27 +1,35 @@
 import type { SaleTransaction } from "@/lib/sale-transactions";
 
+export type RecentTickItem = {
+  name: string;
+  quantity: number;
+};
+
 export type RecentTick = {
   saleId: string;
-  itemLabel: string;
+  items: RecentTickItem[];
   soldAt: string;
   amount: number;
 };
 
 const TICK_LIMIT = 3;
 
+function toNum(n: number | string | null | undefined): number {
+  if (n == null) return 0;
+  return typeof n === "number" ? n : Number(n);
+}
+
 export function ticksFromTransactions(
   txs: SaleTransaction[],
   limit = TICK_LIMIT,
 ): RecentTick[] {
-  return txs.slice(0, limit).map((tx) => {
-    const primary = tx.lines[0]?.itemName?.trim() || "Sale";
-    const itemLabel =
-      tx.lineCount > 1 ? `${primary} +${tx.lineCount - 1}` : primary;
-    return {
-      saleId: tx.saleId,
-      itemLabel,
-      soldAt: tx.soldAt,
-      amount: tx.total,
-    };
-  });
+  return txs.slice(0, limit).map((tx) => ({
+    saleId: tx.saleId,
+    soldAt: tx.soldAt,
+    amount: tx.total,
+    items: tx.lines.map((line) => ({
+      name: line.itemName?.trim() || "Item",
+      quantity: Math.max(1, toNum(line.quantity) || 1),
+    })),
+  }));
 }

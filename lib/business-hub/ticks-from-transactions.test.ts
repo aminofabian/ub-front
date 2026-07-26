@@ -53,10 +53,11 @@ describe("ticksFromTransactions", () => {
     ]);
   });
 
-  it("labels multi-line sales with a plus count", () => {
+  it("lists every line item on a sale", () => {
     const multi = tx({
       saleId: "m",
       lineCount: 3,
+      total: 180,
       lines: [
         {
           saleId: "m",
@@ -66,14 +67,31 @@ describe("ticksFromTransactions", () => {
           paymentMethod: "cash",
           itemId: "i1",
           itemName: "Bread",
-          quantity: 1,
+          quantity: 2,
           unitPrice: 50,
-          lineTotal: 50,
-          profit: 10,
+          lineTotal: 100,
+          profit: 20,
+          status: "completed",
+        },
+        {
+          saleId: "m",
+          soldAt: "2026-07-26T10:00:00Z",
+          cashierName: "A",
+          customerName: "",
+          paymentMethod: "cash",
+          itemId: "i2",
+          itemName: "Milk 1L",
+          quantity: 1,
+          unitPrice: 80,
+          lineTotal: 80,
+          profit: 15,
           status: "completed",
         },
       ],
     });
-    expect(ticksFromTransactions([multi])[0]?.itemLabel).toBe("Bread +2");
+    expect(ticksFromTransactions([multi])[0]?.items).toEqual([
+      { name: "Bread", quantity: 2 },
+      { name: "Milk 1L", quantity: 1 },
+    ]);
   });
 });

@@ -29,6 +29,7 @@ import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PostSetupChecklist } from "@/components/business-hub/post-setup-checklist";
 import { StockShelvesBanner } from "@/components/business-hub/stock-shelves-banner";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
+import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
 import { RevenueBarChart } from "@/components/business-hub/revenue-bar-chart";
 import { StockHealthPanel } from "@/components/business-hub/stock-health-panel";
 import { TopMoversPanel } from "@/components/business-hub/top-movers-panel";
@@ -685,126 +686,157 @@ export function BusinessHubWorkspace() {
   const showMovers = canViewOwnerSummary && topMovers.length > 0;
 
   return (
-    <div className="hub-paper -mx-3 min-h-full px-3 py-3 sm:-mx-4 sm:px-4 sm:py-4 lg:mx-0 lg:px-0">
-      <div className="mx-auto w-full max-w-5xl space-y-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-16">
-      <header className="hub-rise flex flex-wrap items-end justify-between gap-3 border-b border-[#E6E1D8] pb-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B08D48]">
-              Morning board
-            </p>
-            <HubLiveStatus
-              businessActive={isActive}
-              lastLiveUpdateAt={lastLiveUpdateAt}
-              justUpdated={justUpdated}
+    <div className="hub-paper -mx-3 min-h-full px-3 py-3 sm:-mx-4 sm:px-4 sm:py-4 lg:mx-0 lg:px-0 xl:py-0">
+      <div
+        className={cn(
+          "mx-auto w-full max-w-5xl pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-16",
+          canViewSalesIntelligence &&
+            "max-w-6xl xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:items-start xl:gap-0",
+        )}
+      >
+        <div className="space-y-3 py-0 xl:border-r xl:border-[#E6E1D8] xl:pr-3 xl:pt-4">
+          <header className="hub-rise flex flex-wrap items-end justify-between gap-3 border-b border-[#E6E1D8] pb-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B08D48]">
+                  Morning board
+                </p>
+                <HubLiveStatus
+                  businessActive={isActive}
+                  lastLiveUpdateAt={lastLiveUpdateAt}
+                  justUpdated={justUpdated}
+                />
+                <span className="hidden border border-[#E6E1D8] bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#8A8A8A] capitalize sm:inline">
+                  {tier}
+                </span>
+              </div>
+              <h1
+                className="mt-1.5 text-[clamp(1.35rem,2.5vw,1.85rem)] font-medium tracking-tight text-[#141414]"
+                style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+              >
+                {title}
+              </h1>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <ActiveScopeSubtitle className={cn("text-xs", HUB_MUTED)} />
+                <span className="hidden text-[#D0C6B4] sm:inline" aria-hidden>
+                  ·
+                </span>
+                <p className={cn("text-xs", HUB_MUTED)}>{periodSubtitle}</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => void load()}
+                disabled={refreshing}
+                className={cn(
+                  "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                  "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                )}
+                aria-label="Refresh business hub"
+              >
+                <RefreshCw
+                  className={cn("size-3.5", refreshing && "animate-spin")}
+                  aria-hidden
+                />
+              </button>
+              <PeriodToggle value={period} onChange={setPeriod} />
+              {canManageBusinessSettings ? (
+                <Link
+                  href={APP_ROUTES.businessSettings}
+                  className={cn(
+                    "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                    "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+                  )}
+                  aria-label="Business settings"
+                >
+                  <Settings className="size-3.5" aria-hidden />
+                </Link>
+              ) : null}
+            </div>
+          </header>
+
+          {salesEmpty ? (
+            <BusinessHubEmptyState
+              period={period}
+              showStorefrontLink={canManageBusinessSettings}
             />
-            <span className="hidden border border-[#E6E1D8] bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#8A8A8A] capitalize sm:inline">
-              {tier}
-            </span>
-          </div>
-          <h1
-            className="mt-1.5 text-[clamp(1.35rem,2.5vw,1.85rem)] font-medium tracking-tight text-[#141414]"
-            style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-          >
-            {title}
-          </h1>
-          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <ActiveScopeSubtitle className={cn("text-xs", HUB_MUTED)} />
-            <span className="hidden text-[#D0C6B4] sm:inline" aria-hidden>
-              ·
-            </span>
-            <p className={cn("text-xs", HUB_MUTED)}>{periodSubtitle}</p>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={refreshing}
-            className={cn(
-              "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-              "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-            )}
-            aria-label="Refresh business hub"
-          >
-            <RefreshCw
-              className={cn("size-3.5", refreshing && "animate-spin")}
-              aria-hidden
-            />
-          </button>
-          <PeriodToggle value={period} onChange={setPeriod} />
-          {canManageBusinessSettings ? (
-            <Link
-              href={APP_ROUTES.businessSettings}
-              className={cn(
-                "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-                "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
-              )}
-              aria-label="Business settings"
-            >
-              <Settings className="size-3.5" aria-hidden />
-            </Link>
           ) : null}
+
+          {canViewSalesIntelligence ? (
+            <div className="xl:hidden">
+              <RecentTicksRail
+                ticks={recentTicks}
+                currency={currency}
+                live={pulseLive}
+                justUpdated={justUpdated}
+                className="min-h-[18rem]"
+              />
+            </div>
+          ) : null}
+
+          <PulseHero
+            eyebrow={isToday ? "01 · Today's pulse" : "01 · This week's pulse"}
+            revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
+            revenue={money(revenue)}
+            headline={headline}
+            trend={revenueTrend}
+            trendTone={revenueFooterTone}
+            metrics={pulseMetrics}
+            live={pulseLive}
+            justUpdated={justUpdated}
+          />
+
+          <RevenueBarChart
+            points={chartPoints}
+            ariaLabel={chartAriaLabel}
+            caption={chartCaption}
+            title={isToday ? "Twelve-day runway" : "Seven-day runway"}
+          />
+
+          {showAttentionSection ? (
+            actionItems.length > 0 ? (
+              <ActionItemsStrip items={actionItems} />
+            ) : (
+              <HubAllClear />
+            )
+          ) : null}
+
+          {(stockItems.length > 0 || showMovers) ? (
+            <div
+              className={cn(
+                "grid gap-3 lg:items-start",
+                stockItems.length > 0 &&
+                  showMovers &&
+                  "lg:grid-cols-[0.95fr_1.05fr]",
+              )}
+            >
+              <StockHealthPanel items={stockItems} />
+              {showMovers ? <TopMoversPanel movers={topMovers} /> : null}
+            </div>
+          ) : null}
+
+          <CommandGrid links={commandLinks} />
+
+          <StockShelvesBanner catalogueCount={catalogueCount} />
+
+          <PostSetupChecklist catalogueCount={catalogueCount} />
         </div>
-      </header>
 
-      {salesEmpty ? (
-        <BusinessHubEmptyState
-          period={period}
-          showStorefrontLink={canManageBusinessSettings}
-        />
-      ) : null}
-
-      <PulseHero
-        eyebrow={isToday ? "01 · Today's pulse" : "01 · This week's pulse"}
-        revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
-        revenue={money(revenue)}
-        headline={headline}
-        trend={revenueTrend}
-        trendTone={revenueFooterTone}
-        metrics={pulseMetrics}
-        live={pulseLive}
-        justUpdated={justUpdated}
-        showTicks={canViewSalesIntelligence}
-        ticks={recentTicks}
-        currency={currency}
-      />
-
-      <RevenueBarChart
-        points={chartPoints}
-        ariaLabel={chartAriaLabel}
-        caption={chartCaption}
-        title={isToday ? "Twelve-day runway" : "Seven-day runway"}
-      />
-
-      {showAttentionSection ? (
-        actionItems.length > 0 ? (
-          <ActionItemsStrip items={actionItems} />
-        ) : (
-          <HubAllClear />
-        )
-      ) : null}
-
-      {(stockItems.length > 0 || showMovers) ? (
-        <div
-          className={cn(
-            "grid gap-3 lg:items-start",
-            stockItems.length > 0 && showMovers && "lg:grid-cols-[0.95fr_1.05fr]",
-          )}
-        >
-          <StockHealthPanel items={stockItems} />
-          {showMovers ? <TopMoversPanel movers={topMovers} /> : null}
-        </div>
-      ) : null}
-
-      <CommandGrid links={commandLinks} />
-
-      <StockShelvesBanner catalogueCount={catalogueCount} />
-
-      <PostSetupChecklist catalogueCount={catalogueCount} />
+        {canViewSalesIntelligence ? (
+          <div className="hidden xl:block xl:sticky xl:top-0 xl:self-start">
+            <RecentTicksRail
+              ticks={recentTicks}
+              currency={currency}
+              live={pulseLive}
+              justUpdated={justUpdated}
+              className="border-0 border-l border-[#E6E1D8]"
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );
