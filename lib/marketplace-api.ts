@@ -189,6 +189,7 @@ export type SupplierPortalProduct = {
   updatedAt: string;
   pendingEditId?: string | null;
   pendingProposed?: Record<string, unknown> | null;
+  imageUrl?: string | null;
 };
 
 export type SupplierPortalOrderRow = {
