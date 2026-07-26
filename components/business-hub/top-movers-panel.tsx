@@ -20,8 +20,8 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
   const rows = movers.slice(0, 3);
 
   return (
-    <section className="space-y-1">
-      <h2 className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
+    <section className="space-y-2">
+      <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
         Top sellers · 30d
       </h2>
       <div className={cn(HUB_SURFACE, "overflow-hidden")}>
@@ -32,11 +32,11 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
               <Link
                 key={sku.itemId}
                 href={`/products?search=${encodeURIComponent(sku.itemName)}`}
-                className="group flex items-center gap-2 px-2 py-1 transition-colors hover:bg-[#FCFAF6]"
+                className="group flex items-center gap-2.5 px-3 py-2 transition-colors hover:bg-[#FCFAF6]"
               >
                 <span
                   className={cn(
-                    "flex size-4 shrink-0 items-center justify-center font-mono text-[9px] font-semibold tabular-nums",
+                    "flex size-5 shrink-0 items-center justify-center font-mono text-[10px] font-semibold tabular-nums",
                     i === 0
                       ? "bg-[#141414] text-[#F5E6C8]"
                       : "border border-[#E6E1D8] bg-[#F7F5F1] text-[#666666]",
@@ -44,10 +44,10 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
                 >
                   {i + 1}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-[#141414] group-hover:text-[#8A6B2E]">
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#141414] group-hover:text-[#8A6B2E]">
                   {sku.itemName}
                 </span>
-                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-[#141414]">
+                <span className="shrink-0 text-xs font-semibold tabular-nums text-[#141414]">
                   {formatMoneyCompact(revenue)}
                 </span>
               </Link>

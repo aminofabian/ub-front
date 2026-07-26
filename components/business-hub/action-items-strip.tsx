@@ -20,12 +20,12 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   }
 
   return (
-    <section className="space-y-1">
+    <section className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
+        <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
           Needs attention
         </h2>
-        <p className="text-[10px] text-[#AAAAAA]">{items.length}</p>
+        <p className="text-[11px] text-[#AAAAAA]">{items.length}</p>
       </div>
       <div
         className={cn(
@@ -43,7 +43,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               href={item.href}
               className={cn(
                 HUB_SURFACE,
-                "group relative flex items-center gap-1.5 overflow-hidden border-0 px-2 py-1.5 transition-colors hover:bg-[#FCFAF6]",
+                "group relative flex items-center gap-2 overflow-hidden border-0 px-3 py-2.5 transition-colors hover:bg-[#FCFAF6]",
               )}
             >
               <span
@@ -55,16 +55,16 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               />
               <Icon
                 className={cn(
-                  "ml-1 size-3 shrink-0",
+                  "ml-1 size-3.5 shrink-0",
                   item.tone === "warning" ? "text-[#C47A5A]" : "text-[#B08D48]",
                 )}
                 aria-hidden
               />
-              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-[#141414]">
+              <span className="min-w-0 flex-1 truncate text-xs font-semibold text-[#141414]">
                 {item.label}
               </span>
               <ArrowRight
-                className="size-3 shrink-0 text-[#DDDDDD] group-hover:text-[#B08D48]"
+                className="size-3.5 shrink-0 text-[#DDDDDD] group-hover:text-[#B08D48]"
                 aria-hidden
               />
             </Link>

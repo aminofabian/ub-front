@@ -73,7 +73,7 @@ export function RecentTicksRail({
   return (
     <aside
       className={cn(
-        "hub-rise relative flex h-full min-h-[18rem] flex-col border border-[#E6E1D8] bg-white text-[#141414]",
+        "hub-rise relative flex h-full min-h-[16rem] flex-col border border-[#E6E1D8] bg-white text-[#141414]",
         fillViewport && "xl:min-h-[100dvh] xl:h-[100dvh]",
         justUpdated && "hub-scan-sweep border-[#B08D48]/55",
         className,
@@ -88,28 +88,28 @@ export function RecentTicksRail({
         aria-hidden
       />
 
-      <header className="shrink-0 border-b border-[#E6E1D8] px-2.5 py-1.5">
+      <header className="shrink-0 border-b border-[#E6E1D8] px-3.5 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {laneIndex != null ? (
-                <span className="font-mono text-[9px] tabular-nums text-[#C4BBA8]">
+                <span className="font-mono text-[10px] tabular-nums text-[#C4BBA8]">
                   {String(laneIndex + 1).padStart(2, "0")}
                 </span>
               ) : null}
               <p
-                className="truncate text-[9px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]"
+                className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]"
                 title={title}
               >
                 {title}
               </p>
             </div>
-            <p className="truncate text-[10px] text-[#8A8A8A]">
+            <p className="mt-0.5 truncate text-[11px] text-[#8A8A8A]">
               {subtitle ?? `Last ${ticks.length || 3} sales`}
             </p>
           </div>
           {live ? (
-            <span className="inline-flex shrink-0 items-center gap-1 border border-emerald-200 bg-emerald-500/10 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-800">
+            <span className="inline-flex shrink-0 items-center gap-1.5 border border-emerald-200 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-800">
               <span
                 className="size-1.5 bg-emerald-500 hub-live-beacon"
                 aria-hidden
@@ -146,7 +146,7 @@ export function RecentTicksRail({
                 <li
                   key={tick.saleId}
                   className={cn(
-                    "px-2.5 py-2 transition-colors",
+                    "px-3.5 py-3 transition-colors",
                     newest && "bg-[#FCFAF6] hub-figure-pop",
                   )}
                 >

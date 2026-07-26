@@ -10,7 +10,7 @@ import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { useFormatMoney } from "@/hooks/use-format-money";
 import { cn } from "@/lib/utils";
 
-const BAR_TRACK_PX = 44;
+const BAR_TRACK_PX = 56;
 const BAR_FILL = "#C9A86A";
 const BAR_FILL_TODAY = HUB_ACCENT;
 
@@ -36,9 +36,9 @@ export function RevenueBarChart({
   );
 
   return (
-    <section className={cn(HUB_SURFACE, "relative overflow-hidden px-3 py-2")}>
-      <div className="space-y-1.5">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+    <section className={cn(HUB_SURFACE, "relative overflow-hidden px-4 py-3")}>
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <HubSectionLabel
             index="02"
             title={title}
@@ -49,15 +49,15 @@ export function RevenueBarChart({
             }
           />
           {caption ? (
-            <p className="max-w-[55%] truncate text-[10px] font-medium text-[#5A5A5A]">
+            <p className="max-w-[55%] truncate text-[11px] font-medium text-[#5A5A5A]">
               {caption}
             </p>
           ) : null}
         </div>
 
         <div
-          className="relative flex items-end justify-between gap-1 border-b border-[#E6E1D8]"
-          style={{ height: BAR_TRACK_PX + 14 }}
+          className="relative flex items-end justify-between gap-1.5 border-b border-[#E6E1D8]"
+          style={{ height: BAR_TRACK_PX + 16 }}
           role="img"
           aria-label={ariaLabel}
         >

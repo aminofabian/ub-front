@@ -18,8 +18,8 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="space-y-1">
-      <h2 className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
+    <section className="space-y-2">
+      <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
         Store & stock
       </h2>
       <div className="grid grid-cols-2 gap-px border border-[#E6E1D8] bg-[#E6E1D8] sm:grid-cols-4">
@@ -29,7 +29,7 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
             href={item.href}
             className={cn(
               HUB_SURFACE,
-              "group relative overflow-hidden border-0 px-2.5 py-1.5 transition-colors hover:bg-[#FCFAF6]",
+              "group relative overflow-hidden border-0 px-3 py-2.5 transition-colors hover:bg-[#FCFAF6]",
             )}
           >
             <div
@@ -44,16 +44,18 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
             <div className="pl-1.5">
               <p
                 className={cn(
-                  "text-[9px] font-medium uppercase tracking-[0.08em]",
+                  "text-[10px] font-medium uppercase tracking-[0.08em]",
                   HUB_MUTED,
                 )}
               >
                 {item.label}
               </p>
-              <p className="mt-0.5 truncate text-sm font-semibold tracking-tight text-[#141414] tabular-nums">
+              <p className="mt-1 truncate text-[15px] font-semibold tracking-tight text-[#141414] tabular-nums">
                 {item.value}
               </p>
-              <p className="truncate text-[9px] text-[#888888]">{item.detail}</p>
+              <p className="mt-0.5 truncate text-[10px] text-[#888888]">
+                {item.detail}
+              </p>
             </div>
           </Link>
         ))}

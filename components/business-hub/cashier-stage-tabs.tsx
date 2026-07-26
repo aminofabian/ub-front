@@ -64,11 +64,11 @@ export function CashierStageTabs({
         role="tablist"
         aria-label="Cashier lanes"
       >
-        <div className="flex items-center gap-2 border-r border-[#E6E1D8] bg-[#FCFAF6] px-2.5 py-1.5">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
+        <div className="flex items-center gap-2 border-r border-[#E6E1D8] bg-[#FCFAF6] px-3 py-2.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
             Stage
           </p>
-          <span className="hidden text-[10px] text-[#8A8A8A] lg:inline">
+          <span className="hidden text-[11px] text-[#8A8A8A] lg:inline">
             {modeCopy(selected)}
           </span>
         </div>
@@ -79,7 +79,7 @@ export function CashierStageTabs({
           aria-selected={viewingAll}
           onClick={selectAll}
           className={cn(
-            "relative flex items-center justify-between gap-2 border-r border-[#E6E1D8] px-3 py-2 text-left transition-colors",
+            "relative flex items-center justify-between gap-2 border-r border-[#E6E1D8] px-3.5 py-2.5 text-left transition-colors",
             viewingAll
               ? "bg-[#141414] text-[#F5E6C8]"
               : "bg-white text-[#141414] hover:bg-[#FCFAF6]",
@@ -139,7 +139,7 @@ export function CashierStageTabs({
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                "relative flex items-center gap-2 px-3 py-2 text-left transition-colors",
+                "relative flex items-center gap-2 px-3.5 py-2.5 text-left transition-colors",
                 !isLast && "border-r border-[#E6E1D8]",
                 active
                   ? gallery

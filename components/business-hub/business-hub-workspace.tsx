@@ -713,188 +713,190 @@ export function BusinessHubWorkspace() {
   const showMovers = canViewOwnerSummary && topMovers.length > 0;
 
   return (
-    <div className="hub-paper -mx-3 min-h-full px-3 py-2 sm:-mx-4 sm:px-4 sm:py-3 lg:mx-0 lg:px-0 xl:h-[calc(100dvh-7.5rem)] xl:overflow-hidden xl:py-1.5">
+    <div className="hub-paper -mx-3 min-h-full px-3 py-4 sm:-mx-4 sm:px-4 sm:py-5 lg:mx-0 lg:px-0 lg:py-4">
       <div
         className={cn(
-          "mx-auto flex h-full w-full max-w-5xl flex-col gap-1.5 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-4",
+          "mx-auto w-full max-w-5xl border border-[#E6E1D8] bg-white/70 p-3 shadow-[0_1px_0_rgba(20,20,20,0.03)] sm:p-4",
+          "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-4",
           showTillStage && "max-w-6xl xl:max-w-7xl",
           dualLanes && "max-w-7xl",
-          "xl:pb-0",
         )}
       >
-        {showTillStage ? (
-          <CashierStageTabs
-            cashiers={cashierNames}
-            selected={selectedCashiers}
-            onChange={setSelectedCashiers}
-            live={pulseLive}
-            className="shrink-0"
-          />
-        ) : null}
+        <div className="flex flex-col gap-3">
+          {showTillStage ? (
+            <CashierStageTabs
+              cashiers={cashierNames}
+              selected={selectedCashiers}
+              onChange={setSelectedCashiers}
+              live={pulseLive}
+            />
+          ) : null}
 
-        <div
-          className={cn(
-            "min-h-0 xl:grid xl:flex-1 xl:items-stretch xl:gap-0",
-            showTillStage &&
-              !dualLanes &&
-              !galleryOpen &&
-              "xl:grid-cols-[minmax(0,1fr)_minmax(220px,260px)]",
-            showTillStage &&
-              dualLanes &&
-              "xl:grid-cols-[minmax(0,1fr)_minmax(180px,220px)_minmax(180px,220px)]",
-            showTillStage && galleryOpen && "xl:grid-cols-1",
-          )}
-        >
           <div
             className={cn(
-              "flex min-h-0 flex-col gap-1.5",
+              "xl:grid xl:items-start xl:gap-0",
               showTillStage &&
+                !dualLanes &&
                 !galleryOpen &&
-                "xl:border-r xl:border-[#E6E1D8] xl:pr-2.5",
+                "xl:grid-cols-[minmax(0,1fr)_minmax(240px,280px)]",
+              showTillStage &&
+                dualLanes &&
+                "xl:grid-cols-[minmax(0,1fr)_minmax(200px,240px)_minmax(200px,240px)]",
+              showTillStage && galleryOpen && "xl:grid-cols-1",
             )}
           >
-            <div className="flex shrink-0 items-center justify-end gap-1">
-              <button
-                type="button"
-                onClick={() => void load()}
-                disabled={refreshing}
-                className={cn(
-                  "inline-flex size-7 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-                  "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                )}
-                aria-label="Refresh business hub"
-              >
-                <RefreshCw
-                  className={cn("size-3.5", refreshing && "animate-spin")}
-                  aria-hidden
-                />
-              </button>
-              <PeriodToggle value={period} onChange={setPeriod} />
-              {canManageBusinessSettings ? (
-                <Link
-                  href={APP_ROUTES.businessSettings}
+            <div
+              className={cn(
+                "flex flex-col gap-3",
+                showTillStage &&
+                  !galleryOpen &&
+                  "xl:border-r xl:border-[#E6E1D8] xl:pr-4",
+              )}
+            >
+              <div className="flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void load()}
+                  disabled={refreshing}
                   className={cn(
-                    "inline-flex size-7 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                    "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
                     "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+                    "disabled:cursor-not-allowed disabled:opacity-60",
                   )}
-                  aria-label="Business settings"
+                  aria-label="Refresh business hub"
                 >
-                  <Settings className="size-3.5" aria-hidden />
-                </Link>
+                  <RefreshCw
+                    className={cn("size-3.5", refreshing && "animate-spin")}
+                    aria-hidden
+                  />
+                </button>
+                <PeriodToggle value={period} onChange={setPeriod} />
+                {canManageBusinessSettings ? (
+                  <Link
+                    href={APP_ROUTES.businessSettings}
+                    className={cn(
+                      "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                      "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+                    )}
+                    aria-label="Business settings"
+                  >
+                    <Settings className="size-3.5" aria-hidden />
+                  </Link>
+                ) : null}
+              </div>
+
+              {salesEmpty ? (
+                <BusinessHubEmptyState
+                  period={period}
+                  showStorefrontLink={canManageBusinessSettings}
+                />
               ) : null}
-            </div>
 
-            {salesEmpty ? (
-              <BusinessHubEmptyState
-                period={period}
-                showStorefrontLink={canManageBusinessSettings}
-              />
-            ) : null}
-
-            {showTillStage && !galleryOpen ? (
-              <div
-                className={cn(
-                  "grid gap-2 xl:hidden",
-                  dualLanes && "sm:grid-cols-2",
-                )}
-              >
-                {tickLanes.map((lane, index) => (
-                  <RecentTicksRail
-                    key={lane.key}
-                    ticks={lane.ticks}
-                    currency={currency}
-                    live={pulseLive}
-                    justUpdated={justUpdated && index === 0}
-                    title={lane.title}
-                    subtitle={lane.subtitle}
-                    showCashier={lane.showCashier}
-                    accent={lane.accent}
-                    laneIndex={dualLanes ? index : undefined}
-                    className="min-h-[18rem]"
-                  />
-                ))}
-              </div>
-            ) : null}
-
-            <PulseHero
-              eyebrow={isToday ? "01 · Today's pulse" : "01 · This week's pulse"}
-              revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
-              revenue={money(revenue)}
-              headline={headline}
-              trend={revenueTrend}
-              trendTone={revenueFooterTone}
-              metrics={pulseMetrics}
-              live={pulseLive}
-              justUpdated={justUpdated}
-            />
-
-            <RevenueBarChart
-              points={chartPoints}
-              ariaLabel={chartAriaLabel}
-              caption={chartCaption}
-              title={isToday ? "Twelve-day runway" : "Seven-day runway"}
-            />
-
-            {showAttentionSection ? (
-              actionItems.length > 0 ? (
-                <ActionItemsStrip items={actionItems} />
-              ) : (
-                <HubAllClear />
-              )
-            ) : null}
-
-            {(stockItems.length > 0 || showMovers) ? (
-              <div
-                className={cn(
-                  "grid shrink-0 gap-1.5 lg:items-start",
-                  stockItems.length > 0 &&
-                    showMovers &&
-                    "lg:grid-cols-[1.15fr_0.85fr]",
-                )}
-              >
-                <StockHealthPanel items={stockItems} />
-                {showMovers ? <TopMoversPanel movers={topMovers} /> : null}
-              </div>
-            ) : null}
-
-            <div className="shrink-0">
-              <CommandGrid links={commandLinks} />
-            </div>
-
-            <div className="space-y-1.5 xl:hidden">
-              <StockShelvesBanner catalogueCount={catalogueCount} />
-              <PostSetupChecklist catalogueCount={catalogueCount} />
-            </div>
-          </div>
-
-          {showTillStage && !galleryOpen
-            ? tickLanes.map((lane, index) => (
+              {showTillStage && !galleryOpen ? (
                 <div
-                  key={lane.key}
                   className={cn(
-                    "hidden min-h-0 xl:flex xl:h-full xl:flex-col",
-                    dualLanes && index === 0 && "xl:border-r xl:border-[#E6E1D8]",
+                    "grid gap-3 xl:hidden",
+                    dualLanes && "sm:grid-cols-2",
                   )}
                 >
-                  <RecentTicksRail
-                    ticks={lane.ticks}
-                    currency={currency}
-                    live={pulseLive}
-                    justUpdated={justUpdated && index === 0}
-                    title={lane.title}
-                    subtitle={lane.subtitle}
-                    showCashier={lane.showCashier}
-                    accent={lane.accent}
-                    laneIndex={dualLanes ? index : undefined}
-                    fillViewport={false}
-                    className="h-full min-h-0 border-0 border-l border-[#E6E1D8]"
-                  />
+                  {tickLanes.map((lane, index) => (
+                    <RecentTicksRail
+                      key={lane.key}
+                      ticks={lane.ticks}
+                      currency={currency}
+                      live={pulseLive}
+                      justUpdated={justUpdated && index === 0}
+                      title={lane.title}
+                      subtitle={lane.subtitle}
+                      showCashier={lane.showCashier}
+                      accent={lane.accent}
+                      laneIndex={dualLanes ? index : undefined}
+                      fillViewport={false}
+                      className="max-h-[22rem]"
+                    />
+                  ))}
                 </div>
-              ))
-            : null}
+              ) : null}
+
+              <PulseHero
+                eyebrow={isToday ? "01 · Today's pulse" : "01 · This week's pulse"}
+                revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
+                revenue={money(revenue)}
+                headline={headline}
+                trend={revenueTrend}
+                trendTone={revenueFooterTone}
+                metrics={pulseMetrics}
+                live={pulseLive}
+                justUpdated={justUpdated}
+              />
+
+              <RevenueBarChart
+                points={chartPoints}
+                ariaLabel={chartAriaLabel}
+                caption={chartCaption}
+                title={isToday ? "Twelve-day runway" : "Seven-day runway"}
+              />
+
+              {showAttentionSection ? (
+                actionItems.length > 0 ? (
+                  <ActionItemsStrip items={actionItems} />
+                ) : (
+                  <HubAllClear />
+                )
+              ) : null}
+
+              {(stockItems.length > 0 || showMovers) ? (
+                <div
+                  className={cn(
+                    "grid gap-3 lg:items-start",
+                    stockItems.length > 0 &&
+                      showMovers &&
+                      "lg:grid-cols-[1.15fr_0.85fr]",
+                  )}
+                >
+                  <StockHealthPanel items={stockItems} />
+                  {showMovers ? <TopMoversPanel movers={topMovers} /> : null}
+                </div>
+              ) : null}
+
+              <CommandGrid links={commandLinks} />
+
+              <div className="space-y-3 xl:hidden">
+                <StockShelvesBanner catalogueCount={catalogueCount} />
+                <PostSetupChecklist catalogueCount={catalogueCount} />
+              </div>
+            </div>
+
+            {showTillStage && !galleryOpen
+              ? tickLanes.map((lane, index) => (
+                  <div
+                    key={lane.key}
+                    className={cn(
+                      "hidden xl:block xl:self-stretch",
+                      dualLanes &&
+                        index === 0 &&
+                        "xl:border-r xl:border-[#E6E1D8]",
+                    )}
+                  >
+                    <RecentTicksRail
+                      ticks={lane.ticks}
+                      currency={currency}
+                      live={pulseLive}
+                      justUpdated={justUpdated && index === 0}
+                      title={lane.title}
+                      subtitle={lane.subtitle}
+                      showCashier={lane.showCashier}
+                      accent={lane.accent}
+                      laneIndex={dualLanes ? index : undefined}
+                      fillViewport={false}
+                      className="h-full max-h-[min(40rem,72dvh)] border-0 border-l border-[#E6E1D8]"
+                    />
+                  </div>
+                ))
+              : null}
+          </div>
         </div>
       </div>
 
