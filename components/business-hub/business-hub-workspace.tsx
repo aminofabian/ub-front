@@ -78,6 +78,7 @@ import {
   fetchInventoryExpiryPipeline,
   fetchInventoryValuation,
   fetchItemsPage,
+  fetchRecentSales,
   fetchSalesRegister,
   type BatchDashboardResponse,
   type FinancePulseResponse,
@@ -85,8 +86,14 @@ import {
   type InventoryValuationResponseRecord,
   type OwnerDashboardResponse,
   type ProfitAndLossResponse,
+  type RecentSaleRow,
   type SalesRegisterResponse,
 } from "@/lib/api";
+import { groupLinesIntoTransactions } from "@/lib/sale-transactions";
+import {
+  ticksFromTransactions,
+  type RecentTick,
+} from "@/lib/business-hub/ticks-from-transactions";
 
 export function BusinessHubWorkspace() {
   const {
@@ -148,6 +155,7 @@ export function BusinessHubWorkspace() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastLiveUpdateAt, setLastLiveUpdateAt] = useState<number | null>(null);
   const [justUpdated, setJustUpdated] = useState(false);
+  const [recentTicks, setRecentTicks] = useState<RecentTick[]>([]);
   const loadGen = useRef(0);
   const justUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -172,6 +180,9 @@ export function BusinessHubWorkspace() {
       const branch = branchId || undefined;
       const type = itemTypeId?.trim() || undefined;
 
+      const ticksFrom = toISODate(addDays(new Date(), -7));
+      const ticksTo = toISODate(new Date());
+
       const [
         owner,
         v,
@@ -185,6 +196,7 @@ export function BusinessHubWorkspace() {
         prevWeekReg,
         batchDash,
         expiryRes,
+        recentSalesRes,
       ] = await Promise.all([
         canViewOwnerSummary
           ? fetchDashboardOwnerSummary(branch, type).catch(() => null)
@@ -238,6 +250,11 @@ export function BusinessHubWorkspace() {
               () => null,
             )
           : Promise.resolve(null),
+        canViewSalesIntelligence
+          ? fetchRecentSales(ticksFrom, ticksTo, branch, type).catch(
+              () => [] as RecentSaleRow[],
+            )
+          : Promise.resolve([] as RecentSaleRow[]),
       ]);
 
       if (gen !== loadGen.current) return;
@@ -256,6 +273,13 @@ export function BusinessHubWorkspace() {
       setChartPoints(
         buildDailyRevenueSeries(chartReg?.days ?? [], chartFrom, chartTo),
       );
+      setRecentTicks(
+        ticksFromTransactions(
+          groupLinesIntoTransactions(
+            Array.isArray(recentSalesRes) ? recentSalesRes : [],
+          ),
+        ),
+      );
     } catch {
       /* gracefully degrade */
     } finally {
@@ -272,6 +296,7 @@ export function BusinessHubWorkspace() {
     canViewInventoryValuation,
     canViewSupplyBatches,
     period,
+    canViewSalesIntelligence,
   ]);
 
   useEffect(() => {
@@ -743,6 +768,9 @@ export function BusinessHubWorkspace() {
         metrics={pulseMetrics}
         live={pulseLive}
         justUpdated={justUpdated}
+        showTicks={canViewSalesIntelligence}
+        ticks={recentTicks}
+        currency={currency}
       />
 
       <RevenueBarChart

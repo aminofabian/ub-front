@@ -14,7 +14,7 @@ export function BusinessHubSkeleton() {
         <div className="h-8 w-36 shrink-0 bg-[#E6E1D8] animate-pulse" />
       </header>
 
-      <div className={cn(HUB_SURFACE, "grid lg:grid-cols-2")}>
+      <div className={cn(HUB_SURFACE, "grid lg:grid-cols-[1fr_1fr_240px]")}>
         <div className="space-y-3 border-b border-[#E6E1D8] px-4 py-4 lg:border-b-0 lg:border-r">
           <div className="h-2.5 w-28 bg-[#E6E1D8] animate-pulse" />
           <div className="h-12 w-48 max-w-full bg-[#E6E1D8] animate-pulse" />
@@ -23,6 +23,16 @@ export function BusinessHubSkeleton() {
         <div className="grid grid-cols-2 gap-px bg-[#E6E1D8]">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-24 bg-white animate-pulse" />
+          ))}
+        </div>
+        <div className="hidden space-y-3 bg-[#141414] p-3 lg:block">
+          <div className="h-2.5 w-20 bg-white/10 animate-pulse" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-1.5 border-t border-white/10 pt-2">
+              <div className="h-2 w-16 bg-white/10 animate-pulse" />
+              <div className="h-3 w-28 bg-white/10 animate-pulse" />
+              <div className="h-3 w-20 bg-white/10 animate-pulse" />
+            </div>
           ))}
         </div>
       </div>

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
+import type { RecentTick } from "@/lib/business-hub/ticks-from-transactions";
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +25,9 @@ export function PulseHero({
   metrics,
   live = false,
   justUpdated = false,
+  ticks = [],
+  showTicks = false,
+  currency,
 }: {
   eyebrow: string;
   revenueLabel: string;
@@ -33,6 +38,9 @@ export function PulseHero({
   metrics: PulseMetric[];
   live?: boolean;
   justUpdated?: boolean;
+  ticks?: RecentTick[];
+  showTicks?: boolean;
+  currency?: string | null;
 }) {
   return (
     <section
@@ -55,7 +63,14 @@ export function PulseHero({
         aria-hidden
       />
 
-      <div className="relative grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      <div
+        className={cn(
+          "relative grid gap-0",
+          showTicks
+            ? "lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)_minmax(220px,260px)]"
+            : "lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]",
+        )}
+      >
         <div className="space-y-3 border-b border-[#E6E1D8] px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B08D48]">
@@ -116,7 +131,12 @@ export function PulseHero({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 bg-[#E6E1D8]">
+        <div
+          className={cn(
+            "grid grid-cols-2 bg-[#E6E1D8]",
+            showTicks && "border-b border-[#E6E1D8] lg:border-b-0 lg:border-r",
+          )}
+        >
           {metrics.map((metric, i) => {
             const body = (
               <div className="group relative flex h-full flex-col justify-between bg-white px-3.5 py-3 transition-colors hover:bg-[#FCFAF6]">
@@ -170,6 +190,15 @@ export function PulseHero({
             );
           })}
         </div>
+
+        {showTicks ? (
+          <RecentTicksRail
+            ticks={ticks}
+            currency={currency}
+            live={live}
+            justUpdated={justUpdated}
+          />
+        ) : null}
       </div>
     </section>
   );
