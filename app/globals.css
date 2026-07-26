@@ -4609,3 +4609,84 @@ body:has(.landing-page) {
     animation: none !important;
   }
 }
+
+/* —— Supplier portal (authenticated shell) —— */
+.supplier-portal {
+  --sp-forest: #1a3026;
+  --sp-forest-deep: #13241c;
+  --sp-ochre: #c48f4b;
+  --sp-ochre-soft: #d4a574;
+  --sp-cream: #f5f2e8;
+  --sp-cream-deep: #ebe6d8;
+  --sp-ink: #1a3026;
+  --sp-muted: #6b726c;
+  --sp-card: #ffffff;
+  --sp-border: rgba(26, 48, 38, 0.1);
+  --sp-sidebar-muted: rgba(245, 242, 232, 0.55);
+  --sp-sidebar-label: rgba(245, 242, 232, 0.38);
+  background: var(--sp-cream);
+  color: var(--sp-ink);
+}
+
+.supplier-portal .sp-serif {
+  font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+}
+
+.supplier-portal .sp-card {
+  background: var(--sp-card);
+  border-radius: 0.85rem;
+  box-shadow: 0 1px 2px rgba(26, 48, 38, 0.04), 0 8px 24px rgba(26, 48, 38, 0.05);
+  border: 1px solid var(--sp-border);
+}
+
+.supplier-portal .sp-card-accent-forest {
+  border-left: 4px solid var(--sp-forest);
+}
+
+.supplier-portal .sp-card-accent-ochre {
+  border-left: 4px solid var(--sp-ochre);
+}
+
+.supplier-portal .sp-card-accent-sage {
+  border-left: 4px solid #7a9a84;
+}
+
+.supplier-portal .sp-section-rule {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--sp-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.supplier-portal .sp-section-rule::before,
+.supplier-portal .sp-section-rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(26, 48, 38, 0.12);
+}
+
+@keyframes sp-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.supplier-portal .sp-rise {
+  animation: sp-card-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .supplier-portal .sp-rise {
+    animation: none !important;
+  }
+}
