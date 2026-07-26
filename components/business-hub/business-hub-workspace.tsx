@@ -18,7 +18,6 @@ import {
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
-import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { ActionItemsStrip } from "@/components/business-hub/action-items-strip";
 import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-empty-state";
 import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skeleton";
@@ -26,7 +25,6 @@ import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
 import { CommandGrid } from "@/components/business-hub/command-grid";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
-import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PostSetupChecklist } from "@/components/business-hub/post-setup-checklist";
 import { StockShelvesBanner } from "@/components/business-hub/stock-shelves-banner";
@@ -45,7 +43,6 @@ import {
   isHubSalesEmpty,
   payablesTotalOpen,
 } from "@/lib/business-hub/build-action-items";
-import { HUB_MUTED } from "@/lib/business-hub/constants";
 import {
   buildDailyRevenueSeries,
   type DailyRevenuePoint,
@@ -55,7 +52,6 @@ import {
   fmtMoney,
   fmtPct,
   fmtTrendPct,
-  formatPeriodSubtitle,
   toNum,
 } from "@/lib/business-hub/formatters";
 import {
@@ -159,7 +155,6 @@ export function BusinessHubWorkspace() {
   const [chartPoints, setChartPoints] = useState<DailyRevenuePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastLiveUpdateAt, setLastLiveUpdateAt] = useState<number | null>(null);
   const [justUpdated, setJustUpdated] = useState(false);
   const [recentTicks, setRecentTicks] = useState<RecentTick[]>([]);
   const [selectedCashiers, setSelectedCashiers] = useState<string[]>([]);
@@ -318,7 +313,6 @@ export function BusinessHubWorkspace() {
   }, []);
 
   const markLiveEvent = useCallback(() => {
-    setLastLiveUpdateAt(Date.now());
     setJustUpdated(true);
     if (justUpdatedTimer.current) clearTimeout(justUpdatedTimer.current);
     justUpdatedTimer.current = setTimeout(() => {
@@ -339,16 +333,6 @@ export function BusinessHubWorkspace() {
   const realtime = useOptionalRealtime();
   const pulseLive =
     business?.active !== false && realtime?.connectionState === "connected";
-
-  const activeRange = useMemo(
-    () => (period === "today" ? presetRange("today")! : presetRange("last7")!),
-    [period],
-  );
-
-  const periodSubtitle = useMemo(
-    () => formatPeriodSubtitle(period, activeRange.from, activeRange.to),
-    [period, activeRange],
-  );
 
   const isToday = period === "today";
 
@@ -725,9 +709,6 @@ export function BusinessHubWorkspace() {
 
   if (loading) return <BusinessHubSkeleton />;
 
-  const title = business?.name ?? me?.name ?? "Business";
-  const tier = business?.subscriptionTier ?? "starter";
-  const isActive = business?.active !== false;
   const topMovers = ownerSummary?.topSkusLast30Days ?? [];
   const showMovers = canViewOwnerSummary && topMovers.length > 0;
 
@@ -772,72 +753,39 @@ export function BusinessHubWorkspace() {
                 "xl:border-r xl:border-[#E6E1D8] xl:pr-2.5",
             )}
           >
-            <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[#E6E1D8] pb-1.5">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <h1
-                    className="truncate text-[clamp(1.05rem,1.8vw,1.35rem)] font-medium tracking-tight text-[#141414]"
-                    style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-                  >
-                    {title}
-                  </h1>
-                  <HubLiveStatus
-                    businessActive={isActive}
-                    lastLiveUpdateAt={lastLiveUpdateAt}
-                    justUpdated={justUpdated}
-                  />
-                  <span className="hidden border border-[#E6E1D8] bg-white px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[#8A8A8A] capitalize sm:inline">
-                    {tier}
-                  </span>
-                </div>
-                <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
-                    Morning board
-                  </p>
-                  <span className="text-[#D0C6B4]" aria-hidden>
-                    ·
-                  </span>
-                  <ActiveScopeSubtitle className={cn("text-[10px]", HUB_MUTED)} />
-                  <span className="hidden text-[#D0C6B4] sm:inline" aria-hidden>
-                    ·
-                  </span>
-                  <p className={cn("text-[10px]", HUB_MUTED)}>{periodSubtitle}</p>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => void load()}
-                  disabled={refreshing}
+            <div className="flex shrink-0 items-center justify-end gap-1">
+              <button
+                type="button"
+                onClick={() => void load()}
+                disabled={refreshing}
+                className={cn(
+                  "inline-flex size-7 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                  "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                )}
+                aria-label="Refresh business hub"
+              >
+                <RefreshCw
+                  className={cn("size-3.5", refreshing && "animate-spin")}
+                  aria-hidden
+                />
+              </button>
+              <PeriodToggle value={period} onChange={setPeriod} />
+              {canManageBusinessSettings ? (
+                <Link
+                  href={APP_ROUTES.businessSettings}
                   className={cn(
                     "inline-flex size-7 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
                     "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
-                    "disabled:cursor-not-allowed disabled:opacity-60",
                   )}
-                  aria-label="Refresh business hub"
+                  aria-label="Business settings"
                 >
-                  <RefreshCw
-                    className={cn("size-3.5", refreshing && "animate-spin")}
-                    aria-hidden
-                  />
-                </button>
-                <PeriodToggle value={period} onChange={setPeriod} />
-                {canManageBusinessSettings ? (
-                  <Link
-                    href={APP_ROUTES.businessSettings}
-                    className={cn(
-                      "inline-flex size-7 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-                      "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
-                    )}
-                    aria-label="Business settings"
-                  >
-                    <Settings className="size-3.5" aria-hidden />
-                  </Link>
-                ) : null}
-              </div>
-            </header>
+                  <Settings className="size-3.5" aria-hidden />
+                </Link>
+              ) : null}
+            </div>
 
             {salesEmpty ? (
               <BusinessHubEmptyState
