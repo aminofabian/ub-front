@@ -1,15 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { APP_ROUTES } from "@/lib/config";
 import { fmtMoney } from "@/lib/business-hub/formatters";
-import {
-  cashiersFromTicks,
-  filterTicksByCashiers,
-  type RecentTick,
-} from "@/lib/business-hub/ticks-from-transactions";
+import type { RecentTick } from "@/lib/business-hub/ticks-from-transactions";
 import { cn } from "@/lib/utils";
 
 function formatClock(iso: string): string {
@@ -40,90 +36,78 @@ function paymentTone(label: string): "cash" | "mpesa" | "split" | "other" {
   return "other";
 }
 
-function shortCashierName(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length <= 1) return name;
-  return parts[0]!;
-}
-
 export function RecentTicksRail({
   ticks,
   currency,
   live = false,
   justUpdated = false,
+  title = "Till tape",
+  subtitle,
+  showCashier = true,
+  accent = "brass",
+  laneIndex,
   className,
 }: {
   ticks: RecentTick[];
   currency?: string | null;
   live?: boolean;
   justUpdated?: boolean;
+  title?: string;
+  subtitle?: string;
+  /** When false, hide per-sale “By cashier” (solo/dual lane already names the till). */
+  showCashier?: boolean;
+  accent?: "brass" | "ink";
+  laneIndex?: number;
   className?: string;
 }) {
   const [now, setNow] = useState(() => Date.now());
-  /** Empty = all cashiers. Otherwise show sales from selected names. */
-  const [selectedCashiers, setSelectedCashiers] = useState<string[]>([]);
-
-  const cashiers = useMemo(() => cashiersFromTicks(ticks), [ticks]);
-  const visibleTicks = useMemo(
-    () => filterTicksByCashiers(ticks, selectedCashiers),
-    [ticks, selectedCashiers],
-  );
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 20_000);
     return () => window.clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    setSelectedCashiers((prev) =>
-      prev.filter((name) => cashiers.includes(name)),
-    );
-  }, [cashiers]);
-
-  const showCashierTabs = cashiers.length > 1;
-  const viewingAll = selectedCashiers.length === 0;
-
-  function selectAll() {
-    setSelectedCashiers([]);
-  }
-
-  function toggleCashier(name: string) {
-    setSelectedCashiers((prev) => {
-      if (prev.length === 0) return [name];
-      if (prev.includes(name)) {
-        const next = prev.filter((n) => n !== name);
-        return next;
-      }
-      return [...prev, name];
-    });
-  }
-
   return (
     <aside
       className={cn(
-        "relative flex h-full min-h-[22rem] flex-col border border-[#E6E1D8] bg-white text-[#141414]",
+        "hub-rise relative flex h-full min-h-[22rem] flex-col border border-[#E6E1D8] bg-white text-[#141414]",
         "xl:min-h-[100dvh] xl:h-[100dvh]",
         justUpdated && "hub-scan-sweep border-[#B08D48]/55",
         className,
       )}
-      aria-label="Last three transactions"
+      aria-label={title}
     >
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-y-0 left-0 w-0.5",
+          accent === "ink" ? "bg-[#141414]" : "bg-[#B08D48]",
+        )}
+        aria-hidden
+      />
+
       <header className="shrink-0 border-b border-[#E6E1D8] px-3.5 py-3">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B08D48]">
-              Till tape
-            </p>
+            <div className="flex items-center gap-2">
+              {laneIndex != null ? (
+                <span className="font-mono text-[10px] tabular-nums text-[#C4BBA8]">
+                  {String(laneIndex + 1).padStart(2, "0")}
+                </span>
+              ) : null}
+              <p
+                className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B08D48]"
+                title={title}
+              >
+                {title}
+              </p>
+            </div>
             <p className="mt-0.5 text-[11px] text-[#8A8A8A]">
-              {viewingAll
-                ? `Last ${visibleTicks.length || 3} · all cashiers`
-                : selectedCashiers.length === 1
-                  ? `Last ${visibleTicks.length || 3} · ${selectedCashiers[0]}`
-                  : `Last ${visibleTicks.length || 3} · ${selectedCashiers.length} cashiers`}
+              {subtitle ??
+                `Last ${ticks.length || 3} sales · item & price`}
             </p>
           </div>
           {live ? (
-            <span className="inline-flex items-center gap-1.5 border border-emerald-200 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
+            <span className="inline-flex shrink-0 items-center gap-1.5 border border-emerald-200 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
               <span
                 className="size-1.5 bg-emerald-500 hub-live-beacon"
                 aria-hidden
@@ -131,84 +115,30 @@ export function RecentTicksRail({
               Live
             </span>
           ) : (
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#AAAAAA]">
+            <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#AAAAAA]">
               Feed
             </span>
           )}
         </div>
-
-        {showCashierTabs ? (
-          <div
-            className="mt-2.5 flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            role="tablist"
-            aria-label="Filter by cashier"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewingAll}
-              onClick={selectAll}
-              className={cn(
-                "shrink-0 border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors",
-                viewingAll
-                  ? "border-[#141414] bg-[#141414] text-[#F5E6C8]"
-                  : "border-[#E6E1D8] bg-[#FCFAF6] text-[#666666] hover:border-[#B08D48] hover:text-[#8A6B2E]",
-              )}
-            >
-              All
-            </button>
-            {cashiers.map((name) => {
-              const active = selectedCashiers.includes(name);
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  title={
-                    active
-                      ? `Hide ${name}`
-                      : viewingAll
-                        ? `Show only ${name}`
-                        : `Also show ${name}`
-                  }
-                  onClick={() => toggleCashier(name)}
-                  className={cn(
-                    "max-w-[7.5rem] shrink-0 truncate border px-2 py-1 text-[10px] font-semibold tracking-[0.04em] transition-colors",
-                    active
-                      ? "border-[#B08D48] bg-[#F9F6F0] text-[#8A6B2E]"
-                      : "border-[#E6E1D8] bg-white text-[#666666] hover:border-[#B08D48] hover:text-[#8A6B2E]",
-                  )}
-                >
-                  {shortCashierName(name)}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {visibleTicks.length === 0 ? (
+        {ticks.length === 0 ? (
           <div className="flex h-full min-h-[12rem] flex-col justify-center px-3.5 py-8">
             <p
               className="text-sm font-medium text-[#141414]"
               style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
             >
-              {ticks.length === 0
-                ? "Waiting for a ring…"
-                : "No sales for this till"}
+              Quiet till…
             </p>
             <p className="mt-1 max-w-[16rem] text-[11px] leading-snug text-[#8A8A8A]">
-              {ticks.length === 0
-                ? "New sales land here the moment the till confirms."
-                : "Try All, or pick another cashier."}
+              No recent rings on this lane yet.
             </p>
           </div>
         ) : (
           <ol className="divide-y divide-[#EDE8DF]">
-            {visibleTicks.map((tick, i) => {
-              const newest = i === 0 && justUpdated && viewingAll;
+            {ticks.map((tick, i) => {
+              const newest = i === 0 && justUpdated;
               const payTone = paymentTone(tick.paymentLabel);
               return (
                 <li
@@ -255,17 +185,19 @@ export function RecentTicksRail({
                     </span>
                   </div>
 
-                  <p
-                    className="mt-1.5 truncate text-[11px] text-[#8A8A8A]"
-                    title={tick.cashierName}
-                  >
-                    <span className="uppercase tracking-[0.08em]">By</span>{" "}
-                    <span className="font-medium text-[#3A3A3A]">
-                      {tick.cashierName}
-                    </span>
-                  </p>
+                  {showCashier ? (
+                    <p
+                      className="mt-1.5 truncate text-[11px] text-[#8A8A8A]"
+                      title={tick.cashierName}
+                    >
+                      <span className="uppercase tracking-[0.08em]">By</span>{" "}
+                      <span className="font-medium text-[#3A3A3A]">
+                        {tick.cashierName}
+                      </span>
+                    </p>
+                  ) : null}
 
-                  <ul className="mt-2 space-y-1.5">
+                  <ul className={cn("space-y-1.5", showCashier ? "mt-2" : "mt-2.5")}>
                     {tick.items.map((item, itemIndex) => (
                       <li
                         key={`${tick.saleId}-${item.name}-${itemIndex}`}

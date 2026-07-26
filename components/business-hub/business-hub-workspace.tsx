@@ -22,6 +22,7 @@ import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { ActionItemsStrip } from "@/components/business-hub/action-items-strip";
 import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-empty-state";
 import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skeleton";
+import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CommandGrid } from "@/components/business-hub/command-grid";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
 import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
@@ -92,6 +93,8 @@ import {
 } from "@/lib/api";
 import { groupLinesIntoTransactions } from "@/lib/sale-transactions";
 import {
+  cashiersFromTicks,
+  filterTicksByCashiers,
   ticksFromTransactions,
   TICK_POOL_LIMIT,
   type RecentTick,
@@ -158,6 +161,7 @@ export function BusinessHubWorkspace() {
   const [lastLiveUpdateAt, setLastLiveUpdateAt] = useState<number | null>(null);
   const [justUpdated, setJustUpdated] = useState(false);
   const [recentTicks, setRecentTicks] = useState<RecentTick[]>([]);
+  const [selectedCashiers, setSelectedCashiers] = useState<string[]>([]);
   const loadGen = useRef(0);
   const justUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -679,6 +683,41 @@ export function BusinessHubWorkspace() {
     showButcherCounter,
   ]);
 
+  const cashierNames = useMemo(
+    () => cashiersFromTicks(recentTicks),
+    [recentTicks],
+  );
+  const tickLanes = useMemo(() => {
+    if (selectedCashiers.length === 0) {
+      return [
+        {
+          key: "floor",
+          title: "Floor tape",
+          subtitle: "Last 3 · every cashier",
+          ticks: filterTicksByCashiers(recentTicks, []),
+          showCashier: true,
+          accent: "brass" as const,
+        },
+      ];
+    }
+    return selectedCashiers.map((name, index) => ({
+      key: name,
+      title: name,
+      subtitle: `Last 3 · ${name.split(/\s+/)[0] ?? name}`,
+      ticks: filterTicksByCashiers(recentTicks, [name]),
+      showCashier: false,
+      accent: (index === 0 ? "brass" : "ink") as "brass" | "ink",
+    }));
+  }, [recentTicks, selectedCashiers]);
+  const dualLanes = tickLanes.length === 2;
+  const showTillStage = canViewSalesIntelligence;
+
+  useEffect(() => {
+    setSelectedCashiers((prev) =>
+      prev.filter((name) => cashierNames.includes(name)),
+    );
+  }, [cashierNames]);
+
   if (loading) return <BusinessHubSkeleton />;
 
   const title = business?.name ?? me?.name ?? "Business";
@@ -691,154 +730,209 @@ export function BusinessHubWorkspace() {
     <div className="hub-paper -mx-3 min-h-full px-3 py-3 sm:-mx-4 sm:px-4 sm:py-4 lg:mx-0 lg:px-0 xl:py-0">
       <div
         className={cn(
-          "mx-auto w-full max-w-5xl pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-16",
-          canViewSalesIntelligence &&
-            "max-w-6xl xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:items-start xl:gap-0",
+          "mx-auto w-full max-w-5xl space-y-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-16",
+          showTillStage && "max-w-6xl xl:max-w-7xl",
+          dualLanes && "max-w-7xl",
         )}
       >
-        <div className="space-y-3 py-0 xl:border-r xl:border-[#E6E1D8] xl:pr-3 xl:pt-4">
-          <header className="hub-rise flex flex-wrap items-end justify-between gap-3 border-b border-[#E6E1D8] pb-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B08D48]">
-                  Morning board
-                </p>
-                <HubLiveStatus
-                  businessActive={isActive}
-                  lastLiveUpdateAt={lastLiveUpdateAt}
-                  justUpdated={justUpdated}
-                />
-                <span className="hidden border border-[#E6E1D8] bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#8A8A8A] capitalize sm:inline">
-                  {tier}
-                </span>
+        {showTillStage ? (
+          <div className="xl:pt-4">
+            <CashierStageTabs
+              cashiers={cashierNames}
+              selected={selectedCashiers}
+              onChange={setSelectedCashiers}
+              live={pulseLive}
+            />
+          </div>
+        ) : null}
+
+        <div
+          className={cn(
+            "xl:grid xl:items-start xl:gap-0",
+            showTillStage &&
+              !dualLanes &&
+              "xl:grid-cols-[minmax(0,1fr)_minmax(240px,280px)]",
+            showTillStage &&
+              dualLanes &&
+              "xl:grid-cols-[minmax(0,1fr)_minmax(200px,240px)_minmax(200px,240px)]",
+          )}
+        >
+          <div
+            className={cn(
+              "space-y-3",
+              showTillStage && "xl:border-r xl:border-[#E6E1D8] xl:pr-3",
+              !showTillStage && "xl:pt-4",
+            )}
+          >
+            <header className="hub-rise flex flex-wrap items-end justify-between gap-3 border-b border-[#E6E1D8] pb-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B08D48]">
+                    Morning board
+                  </p>
+                  <HubLiveStatus
+                    businessActive={isActive}
+                    lastLiveUpdateAt={lastLiveUpdateAt}
+                    justUpdated={justUpdated}
+                  />
+                  <span className="hidden border border-[#E6E1D8] bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#8A8A8A] capitalize sm:inline">
+                    {tier}
+                  </span>
+                </div>
+                <h1
+                  className="mt-1.5 text-[clamp(1.35rem,2.5vw,1.85rem)] font-medium tracking-tight text-[#141414]"
+                  style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+                >
+                  {title}
+                </h1>
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <ActiveScopeSubtitle className={cn("text-xs", HUB_MUTED)} />
+                  <span className="hidden text-[#D0C6B4] sm:inline" aria-hidden>
+                    ·
+                  </span>
+                  <p className={cn("text-xs", HUB_MUTED)}>{periodSubtitle}</p>
+                </div>
               </div>
-              <h1
-                className="mt-1.5 text-[clamp(1.35rem,2.5vw,1.85rem)] font-medium tracking-tight text-[#141414]"
-                style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-              >
-                {title}
-              </h1>
-              <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <ActiveScopeSubtitle className={cn("text-xs", HUB_MUTED)} />
-                <span className="hidden text-[#D0C6B4] sm:inline" aria-hidden>
-                  ·
-                </span>
-                <p className={cn("text-xs", HUB_MUTED)}>{periodSubtitle}</p>
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => void load()}
-                disabled={refreshing}
-                className={cn(
-                  "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-                  "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                )}
-                aria-label="Refresh business hub"
-              >
-                <RefreshCw
-                  className={cn("size-3.5", refreshing && "animate-spin")}
-                  aria-hidden
-                />
-              </button>
-              <PeriodToggle value={period} onChange={setPeriod} />
-              {canManageBusinessSettings ? (
-                <Link
-                  href={APP_ROUTES.businessSettings}
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void load()}
+                  disabled={refreshing}
                   className={cn(
                     "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
                     "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+                    "disabled:cursor-not-allowed disabled:opacity-60",
                   )}
-                  aria-label="Business settings"
+                  aria-label="Refresh business hub"
                 >
-                  <Settings className="size-3.5" aria-hidden />
-                </Link>
-              ) : null}
-            </div>
-          </header>
+                  <RefreshCw
+                    className={cn("size-3.5", refreshing && "animate-spin")}
+                    aria-hidden
+                  />
+                </button>
+                <PeriodToggle value={period} onChange={setPeriod} />
+                {canManageBusinessSettings ? (
+                  <Link
+                    href={APP_ROUTES.businessSettings}
+                    className={cn(
+                      "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                      "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+                    )}
+                    aria-label="Business settings"
+                  >
+                    <Settings className="size-3.5" aria-hidden />
+                  </Link>
+                ) : null}
+              </div>
+            </header>
 
-          {salesEmpty ? (
-            <BusinessHubEmptyState
-              period={period}
-              showStorefrontLink={canManageBusinessSettings}
-            />
-          ) : null}
-
-          {canViewSalesIntelligence ? (
-            <div className="xl:hidden">
-              <RecentTicksRail
-                ticks={recentTicks}
-                currency={currency}
-                live={pulseLive}
-                justUpdated={justUpdated}
-                className="min-h-[18rem]"
+            {salesEmpty ? (
+              <BusinessHubEmptyState
+                period={period}
+                showStorefrontLink={canManageBusinessSettings}
               />
-            </div>
-          ) : null}
+            ) : null}
 
-          <PulseHero
-            eyebrow={isToday ? "01 · Today's pulse" : "01 · This week's pulse"}
-            revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
-            revenue={money(revenue)}
-            headline={headline}
-            trend={revenueTrend}
-            trendTone={revenueFooterTone}
-            metrics={pulseMetrics}
-            live={pulseLive}
-            justUpdated={justUpdated}
-          />
+            {showTillStage ? (
+              <div
+                className={cn(
+                  "grid gap-2 xl:hidden",
+                  dualLanes && "sm:grid-cols-2",
+                )}
+              >
+                {tickLanes.map((lane, index) => (
+                  <RecentTicksRail
+                    key={lane.key}
+                    ticks={lane.ticks}
+                    currency={currency}
+                    live={pulseLive}
+                    justUpdated={justUpdated && index === 0}
+                    title={lane.title}
+                    subtitle={lane.subtitle}
+                    showCashier={lane.showCashier}
+                    accent={lane.accent}
+                    laneIndex={dualLanes ? index : undefined}
+                    className="min-h-[18rem]"
+                  />
+                ))}
+              </div>
+            ) : null}
 
-          <RevenueBarChart
-            points={chartPoints}
-            ariaLabel={chartAriaLabel}
-            caption={chartCaption}
-            title={isToday ? "Twelve-day runway" : "Seven-day runway"}
-          />
-
-          {showAttentionSection ? (
-            actionItems.length > 0 ? (
-              <ActionItemsStrip items={actionItems} />
-            ) : (
-              <HubAllClear />
-            )
-          ) : null}
-
-          {(stockItems.length > 0 || showMovers) ? (
-            <div
-              className={cn(
-                "grid gap-3 lg:items-start",
-                stockItems.length > 0 &&
-                  showMovers &&
-                  "lg:grid-cols-[0.95fr_1.05fr]",
-              )}
-            >
-              <StockHealthPanel items={stockItems} />
-              {showMovers ? <TopMoversPanel movers={topMovers} /> : null}
-            </div>
-          ) : null}
-
-          <CommandGrid links={commandLinks} />
-
-          <StockShelvesBanner catalogueCount={catalogueCount} />
-
-          <PostSetupChecklist catalogueCount={catalogueCount} />
-        </div>
-
-        {canViewSalesIntelligence ? (
-          <div className="hidden xl:block xl:sticky xl:top-0 xl:self-start">
-            <RecentTicksRail
-              ticks={recentTicks}
-              currency={currency}
+            <PulseHero
+              eyebrow={isToday ? "01 · Today's pulse" : "01 · This week's pulse"}
+              revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
+              revenue={money(revenue)}
+              headline={headline}
+              trend={revenueTrend}
+              trendTone={revenueFooterTone}
+              metrics={pulseMetrics}
               live={pulseLive}
               justUpdated={justUpdated}
-              className="border-0 border-l border-[#E6E1D8]"
             />
+
+            <RevenueBarChart
+              points={chartPoints}
+              ariaLabel={chartAriaLabel}
+              caption={chartCaption}
+              title={isToday ? "Twelve-day runway" : "Seven-day runway"}
+            />
+
+            {showAttentionSection ? (
+              actionItems.length > 0 ? (
+                <ActionItemsStrip items={actionItems} />
+              ) : (
+                <HubAllClear />
+              )
+            ) : null}
+
+            {(stockItems.length > 0 || showMovers) ? (
+              <div
+                className={cn(
+                  "grid gap-3 lg:items-start",
+                  stockItems.length > 0 &&
+                    showMovers &&
+                    "lg:grid-cols-[0.95fr_1.05fr]",
+                )}
+              >
+                <StockHealthPanel items={stockItems} />
+                {showMovers ? <TopMoversPanel movers={topMovers} /> : null}
+              </div>
+            ) : null}
+
+            <CommandGrid links={commandLinks} />
+
+            <StockShelvesBanner catalogueCount={catalogueCount} />
+
+            <PostSetupChecklist catalogueCount={catalogueCount} />
           </div>
-        ) : null}
+
+          {showTillStage
+            ? tickLanes.map((lane, index) => (
+                <div
+                  key={lane.key}
+                  className={cn(
+                    "hidden xl:block xl:sticky xl:top-0 xl:self-start",
+                    dualLanes && index === 0 && "xl:border-r xl:border-[#E6E1D8]",
+                  )}
+                >
+                  <RecentTicksRail
+                    ticks={lane.ticks}
+                    currency={currency}
+                    live={pulseLive}
+                    justUpdated={justUpdated && index === 0}
+                    title={lane.title}
+                    subtitle={lane.subtitle}
+                    showCashier={lane.showCashier}
+                    accent={lane.accent}
+                    laneIndex={dualLanes ? index : undefined}
+                    className="border-0 border-l border-[#E6E1D8]"
+                  />
+                </div>
+              ))
+            : null}
+        </div>
       </div>
     </div>
   );
