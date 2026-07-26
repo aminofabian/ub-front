@@ -363,11 +363,50 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               placeholder={
                 settings?.hasWhatsappMetaAccessToken
                   ? "••••••••  (leave blank to keep)"
-                  : "Paste token"
+                  : "Leave blank to use Super Admin → Platform integrations"
               }
               disabled={!canEdit}
               autoComplete="off"
             />
+            <span className="text-xs text-muted-foreground">
+              Tenant token overrides the platform token. If WhatsApp returns 401, clear
+              this field and rely on Super Admin → Platform integrations.
+            </span>
+            {settings?.hasWhatsappMetaAccessToken && canEdit ? (
+              <button
+                type="button"
+                className="self-start text-xs text-destructive hover:underline"
+                disabled={saving}
+                onClick={() => {
+                  void (async () => {
+                    setSaving(true);
+                    setMessage(null);
+                    try {
+                      const updated = await updateCreditSaleReminderSettings({
+                        enabled,
+                        paymentAccountUrl: paymentUrl.trim(),
+                        whatsappMetaAccessToken: "",
+                      });
+                      setSettings(updated);
+                      setWhatsappToken("");
+                      setMessage({
+                        text: "Tenant Meta access token cleared — platform token will be used.",
+                        kind: "success",
+                      });
+                    } catch (err) {
+                      setMessage({
+                        text: err instanceof Error ? err.message : "Could not clear token.",
+                        kind: "error",
+                      });
+                    } finally {
+                      setSaving(false);
+                    }
+                  })();
+                }}
+              >
+                Clear tenant Meta token (use platform)
+              </button>
+            ) : null}
           </label>
           <label className="flex flex-col gap-1.5 sm:max-w-xs">
             <span className={dashboardLabelClass()}>Graph API version</span>

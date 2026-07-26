@@ -78,7 +78,7 @@ function explainMetaDetail(detail: string): string | null {
     return "Meta phone number ID is wrong for this token, or the app lacks WhatsApp permissions. Fix Meta phone number ID / access token — this is not a RapidAPI or SMS issue.";
   }
   if (/http_401|http_403|oauth|access token/i.test(d)) {
-    return "Meta rejected the access token. Paste a fresh permanent token from Meta Business Manager.";
+    return "Meta rejected the access token. Clear any tenant Meta token on Credit tab reminders, re-save a permanent System User token in Super Admin → Platform integrations, and remove a stale WHATSAPP_META_ACCESS_TOKEN from server env if present.";
   }
   if (/http_400/i.test(d) && /graph/i.test(d)) {
     return "Meta Graph API rejected the send request (credentials or payload).";
