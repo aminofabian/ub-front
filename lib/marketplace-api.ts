@@ -187,6 +187,8 @@ export type SupplierPortalProduct = {
   version: number;
   createdAt: string;
   updatedAt: string;
+  pendingEditId?: string | null;
+  pendingProposed?: Record<string, unknown> | null;
 };
 
 export type SupplierPortalOrderRow = {
@@ -1053,4 +1055,98 @@ export async function logoutAllSupplierPortalSessions(): Promise<void> {
     method: "POST",
   });
   clearSupplierPortalSession();
+}
+
+export type SupplierPortalMessageRow = {
+  id: string;
+  businessId: string;
+  shopName: string;
+  localSupplierId: string | null;
+  direction: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+  readAt: string | null;
+};
+
+export async function fetchSupplierPortalMessages(): Promise<SupplierPortalMessageRow[]> {
+  return supplierPortalFetch<SupplierPortalMessageRow[]>(API_ROUTES.supplierPortalMessages);
+}
+
+export async function sendSupplierPortalMessage(body: {
+  localSupplierId: string;
+  body: string;
+}): Promise<SupplierPortalMessageRow> {
+  return supplierPortalFetch<SupplierPortalMessageRow>(API_ROUTES.supplierPortalMessages, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function markSupplierPortalMessageRead(messageId: string): Promise<void> {
+  await supplierPortalFetch(`${API_ROUTES.supplierPortalMessages}/${messageId}/read`, {
+    method: "POST",
+  });
+}
+
+export async function downloadSupplierPortalReport(
+  type: "payments" | "outstanding" | "deliveries",
+): Promise<void> {
+  const token = getSupplierPortalAccessToken();
+  if (!token) {
+    throw new Error("Sign in required");
+  }
+  const response = await fetch(
+    apiUrl(`${API_ROUTES.supplierPortalReports}?type=${encodeURIComponent(type)}`),
+    { headers: { Authorization: `Bearer ${token}`, Accept: "text/csv" } },
+  );
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(getProblemTitle(payload) || "Download failed");
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `supplier-${type}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export type MarketplaceProductEditRequest = {
+  id: string;
+  marketplaceSupplierId: string;
+  supplierName: string;
+  productId: string;
+  productName: string;
+  status: string;
+  proposed: Record<string, unknown>;
+  liveSnapshot: Record<string, unknown>;
+  createdAt: string;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+};
+
+export async function fetchMarketplaceProductEditRequests(): Promise<MarketplaceProductEditRequest[]> {
+  return tenantFetch<MarketplaceProductEditRequest[]>(API_ROUTES.marketplaceProductEditRequests);
+}
+
+export async function approveMarketplaceProductEdit(
+  editId: string,
+  note?: string,
+): Promise<MarketplaceProductEditRequest> {
+  return tenantFetch<MarketplaceProductEditRequest>(
+    `${API_ROUTES.marketplaceProductEditRequests}/${editId}/approve`,
+    { method: "POST", body: JSON.stringify({ note: note || undefined }) },
+  );
+}
+
+export async function rejectMarketplaceProductEdit(
+  editId: string,
+  note?: string,
+): Promise<MarketplaceProductEditRequest> {
+  return tenantFetch<MarketplaceProductEditRequest>(
+    `${API_ROUTES.marketplaceProductEditRequests}/${editId}/reject`,
+    { method: "POST", body: JSON.stringify({ note: note || undefined }) },
+  );
 }

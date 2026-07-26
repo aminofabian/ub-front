@@ -14,6 +14,7 @@ import {
   createSupplierPortalProduct,
   deleteSupplierPortalProduct,
   fetchSupplierPortalProducts,
+  patchSupplierPortalProduct,
   type SupplierPortalProduct,
 } from "@/lib/marketplace-api";
 import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
@@ -101,6 +102,30 @@ export default function SupplierPortalCatalogPage() {
     });
   };
 
+  const onEditPrice = async (product: SupplierPortalProduct) => {
+    const raw = window.prompt(
+      `New unit price for ${product.name}`,
+      product.unitPrice != null ? String(product.unitPrice) : "",
+    );
+    if (raw == null) return;
+    const price = Number(raw);
+    if (!Number.isFinite(price) || price < 0) {
+      toast.error("Enter a valid price");
+      return;
+    }
+    try {
+      const updated = await patchSupplierPortalProduct(product.id, { unitPrice: price });
+      if (updated.pendingEditId) {
+        toast.success("Price change submitted for shop approval");
+      } else {
+        toast.success("Price updated");
+      }
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Update failed");
+    }
+  };
+
   return (
     <SupplierPortalShell>
       <div className="space-y-6">
@@ -173,7 +198,17 @@ export default function SupplierPortalCatalogPage() {
                 ) : (
                   products.map((product) => (
                     <tr key={product.id}>
-                      <td className="px-4 py-3 font-medium">{product.name}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium">{product.name}</p>
+                        {product.pendingEditId ? (
+                          <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
+                            Pending shop approval
+                            {product.pendingProposed?.unitPrice != null
+                              ? ` → ${String(product.pendingProposed.unitPrice)}`
+                              : ""}
+                          </p>
+                        ) : null}
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {product.barcode ?? product.sku ?? "—"}
                       </td>
@@ -183,6 +218,14 @@ export default function SupplierPortalCatalogPage() {
                           : "—"}
                       </td>
                       <td className="px-4 py-3 text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void onEditPrice(product)}
+                        >
+                          Edit price
+                        </Button>
                         <Button
                           type="button"
                           variant="ghost"
