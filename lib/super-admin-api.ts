@@ -509,6 +509,160 @@ export async function updateSupplierPortalSettings(
   });
 }
 
+// ─── Marketplace suppliers (portal ops) ─────────────────────────────
+
+export type SaMarketplaceSupplierRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  contactEmail: string | null;
+  status: string;
+  contactPhone: string | null;
+  username: string | null;
+  portalUserCount: number;
+};
+
+export type SaMarketplaceSupplierUserRow = {
+  id: string;
+  marketplaceSupplierId: string;
+  email: string | null;
+  phone: string | null;
+  name: string;
+  roleKey: string;
+  active: boolean;
+  lastLoginAt: string | null;
+  lockedUntil: string | null;
+  createdAt: string;
+};
+
+export type SaMarketplaceInviteResult = {
+  inviteId: string;
+  marketplaceSupplierId: string;
+  claimCode: string;
+  phone: string | null;
+  expiresAt: string;
+  smsSent: boolean;
+  claimUrl: string;
+};
+
+export async function fetchSaMarketplaceSuppliers(params?: {
+  q?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+}): Promise<SaMarketplaceSupplierRow[]> {
+  const query = new URLSearchParams({
+    page: String(params?.page ?? 0),
+    size: String(params?.size ?? 50),
+    sort: "name,asc",
+  });
+  if (params?.q?.trim()) query.set("q", params.q.trim());
+  if (params?.status?.trim()) query.set("status", params.status.trim());
+  const payload = await saRequest<unknown>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}?${query.toString()}`,
+    { method: "GET" },
+  );
+  return extractPageContent<SaMarketplaceSupplierRow>(payload);
+}
+
+export async function activateSaMarketplaceSupplier(
+  supplierId: string,
+): Promise<SaMarketplaceSupplierRow> {
+  return saRequest<SaMarketplaceSupplierRow>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/activate`,
+    { method: "POST" },
+  );
+}
+
+export async function suspendSaMarketplaceSupplier(
+  supplierId: string,
+): Promise<SaMarketplaceSupplierRow> {
+  return saRequest<SaMarketplaceSupplierRow>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/suspend`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchSaMarketplaceSupplierUsers(
+  supplierId: string,
+): Promise<SaMarketplaceSupplierUserRow[]> {
+  return saRequest<SaMarketplaceSupplierUserRow[]>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/users`,
+    { method: "GET" },
+  );
+}
+
+export async function createSaMarketplaceSupplierUser(
+  supplierId: string,
+  body: { email: string; name: string; password: string },
+): Promise<void> {
+  await saRequest<unknown>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/users`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function inviteSaMarketplaceSupplier(
+  supplierId: string,
+  body?: { phone?: string; sendSms?: boolean },
+): Promise<SaMarketplaceInviteResult> {
+  return saRequest<SaMarketplaceInviteResult>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/invites`,
+    { method: "POST", body: JSON.stringify(body ?? {}) },
+  );
+}
+
+export async function suspendSaMarketplaceSupplierUser(
+  supplierId: string,
+  userId: string,
+): Promise<SaMarketplaceSupplierUserRow> {
+  return saRequest<SaMarketplaceSupplierUserRow>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/users/${userId}/suspend`,
+    { method: "POST" },
+  );
+}
+
+export async function unsuspendSaMarketplaceSupplierUser(
+  supplierId: string,
+  userId: string,
+): Promise<SaMarketplaceSupplierUserRow> {
+  return saRequest<SaMarketplaceSupplierUserRow>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/users/${userId}/unsuspend`,
+    { method: "POST" },
+  );
+}
+
+export async function resetSaMarketplaceSupplierUserPassword(
+  supplierId: string,
+  userId: string,
+  password: string,
+): Promise<SaMarketplaceSupplierUserRow> {
+  return saRequest<SaMarketplaceSupplierUserRow>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/users/${userId}/reset-password`,
+    { method: "POST", body: JSON.stringify({ password }) },
+  );
+}
+
+export async function forceLogoutSaMarketplaceSupplierUser(
+  supplierId: string,
+  userId: string,
+): Promise<void> {
+  await saRequest<unknown>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/users/${userId}/force-logout`,
+    { method: "POST" },
+  );
+}
+
+export async function unlockSaMarketplaceSupplierUser(
+  supplierId: string,
+  userId: string,
+): Promise<SaMarketplaceSupplierUserRow> {
+  return saRequest<SaMarketplaceSupplierUserRow>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/users/${userId}/unlock`,
+    { method: "POST" },
+  );
+}
+
 export async function fetchSaBusinessUsers(
   businessId: string,
 ): Promise<SaBusinessUserRow[]> {
