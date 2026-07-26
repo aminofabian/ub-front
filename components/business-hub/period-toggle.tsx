@@ -11,7 +11,7 @@ export function PeriodToggle({
   onChange: (p: Period) => void;
 }) {
   return (
-    <div className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#EEEEEE] bg-white p-1">
+    <div className="inline-flex shrink-0 items-center border border-[#EEEEEE] bg-white p-0.5">
       {(
         [
           { id: "week" as const, label: "This week" },
@@ -25,7 +25,7 @@ export function PeriodToggle({
             type="button"
             onClick={() => onChange(id)}
             className={cn(
-              "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+              "px-3 py-1 text-xs font-medium transition-colors",
               active
                 ? "border border-[#E8DFD0] bg-[#F9F6F0] text-[#B08D48]"
                 : "border border-transparent text-[#666666] hover:text-foreground",

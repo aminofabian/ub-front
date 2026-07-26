@@ -21,12 +21,12 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
   const max = Math.max(...rows.map((m) => toNum(m.revenueLast30Days)), 1);
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-1.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-        <h2 className={cn("text-sm font-medium", HUB_MUTED)}>
+        <h2 className={cn("text-xs font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
           What&apos;s selling
         </h2>
-        <p className="text-xs text-[#888888]">Last 30 days</p>
+        <p className="text-[11px] text-[#888888]">Last 30 days</p>
       </div>
       <div className={cn(HUB_SURFACE, "overflow-hidden")}>
         <div className="divide-y divide-[#F0EBE3]">
@@ -37,12 +37,12 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
               <Link
                 key={sku.itemId}
                 href={`/products?search=${encodeURIComponent(sku.itemName)}`}
-                className="block px-3.5 py-2.5 transition-colors hover:bg-[#FCFBF8]"
+                className="block px-3 py-2 transition-colors hover:bg-[#FCFBF8]"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span
-                      className="flex size-6 shrink-0 items-center justify-center rounded text-[10px] font-semibold tabular-nums"
+                      className="flex size-5 shrink-0 items-center justify-center text-[10px] font-semibold tabular-nums"
                       style={{
                         backgroundColor: i === 0 ? "#F9F6F0" : "#F7F7F7",
                         color: i === 0 ? HUB_ACCENT : "#666666",
@@ -59,9 +59,9 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
                     {formatMoneyCompact(revenue)}
                   </span>
                 </div>
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[#F3F0EA]">
+                <div className="mt-1.5 h-0.5 overflow-hidden bg-[#F3F0EA]">
                   <div
-                    className="h-full rounded-full transition-[width] duration-500 ease-out"
+                    className="h-full transition-[width] duration-500 ease-out"
                     style={{
                       width: `${share}%`,
                       backgroundColor: i === 0 ? HUB_ACCENT : "#D9C7A0",

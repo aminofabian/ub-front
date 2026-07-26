@@ -31,28 +31,14 @@ export function PulseHero({
   metrics: PulseMetric[];
 }) {
   return (
-    <section
-      className={cn(
-        HUB_SURFACE,
-        "relative overflow-hidden px-4 py-4 sm:px-5 sm:py-5",
-      )}
-    >
-      <div
-        className="pointer-events-none absolute -right-12 -top-16 size-48 rounded-full opacity-70"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(176,141,72,0.14) 0%, transparent 68%)",
-        }}
-        aria-hidden
-      />
-
-      <div className="relative space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+    <section className={cn(HUB_SURFACE, "px-3.5 py-3 sm:px-4")}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5">
           <div className="min-w-0">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <p
                 className={cn(
-                  "text-[10px] font-semibold uppercase tracking-[0.16em]",
+                  "text-[10px] font-semibold uppercase tracking-[0.14em]",
                   HUB_MUTED,
                 )}
               >
@@ -61,9 +47,9 @@ export function PulseHero({
               <span className={cn("text-[10px]", HUB_MUTED)}>·</span>
               <p className={cn("text-[10px]", HUB_MUTED)}>{revenueLabel}</p>
             </div>
-            <div className="mt-1 flex flex-wrap items-end gap-2.5">
+            <div className="mt-1 flex flex-wrap items-end gap-2">
               <p
-                className="font-[family-name:var(--font-heading)] text-[clamp(1.85rem,4.5vw,2.65rem)] font-medium leading-none tracking-tight text-black"
+                className="text-[clamp(1.5rem,3.8vw,2.15rem)] font-medium leading-none tracking-tight text-black"
                 style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
               >
                 {revenue}
@@ -71,7 +57,7 @@ export function PulseHero({
               {trend ? (
                 <span
                   className={cn(
-                    "mb-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+                    "mb-0.5 inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
                     trendTone === "positive" &&
                       "bg-emerald-500/10 text-emerald-700",
                     trendTone === "warning" &&
@@ -84,26 +70,26 @@ export function PulseHero({
                 </span>
               ) : null}
             </div>
-            <p className="mt-2 max-w-2xl text-sm leading-snug text-[#3A3A3A]">
+            <p className="mt-1.5 max-w-2xl text-xs leading-snug text-[#3A3A3A] sm:text-sm">
               {headline}
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px border border-[#F0EBE3] bg-[#F0EBE3] lg:grid-cols-4">
           {metrics.map((metric) => {
             const body = (
-              <div className="rounded-md border border-[#F0EBE3] bg-white/70 px-3 py-2.5 transition-colors hover:border-[#E8DFD0] hover:bg-[#FCFBF8]">
-                <p className={cn("text-[11px] font-medium", HUB_MUTED)}>
+              <div className="bg-white px-3 py-2 transition-colors hover:bg-[#FCFBF8]">
+                <p className={cn("text-[10px] font-medium", HUB_MUTED)}>
                   {metric.label}
                 </p>
-                <p className="mt-0.5 text-base font-semibold tracking-tight text-black tabular-nums sm:text-lg">
+                <p className="mt-0.5 text-sm font-semibold tracking-tight text-black tabular-nums sm:text-base">
                   {metric.value}
                 </p>
                 {metric.hint ? (
                   <p
                     className={cn(
-                      "mt-0.5 text-[11px] font-medium leading-tight",
+                      "mt-0.5 text-[10px] font-medium leading-tight",
                       metric.tone === "positive" && "text-emerald-600",
                       metric.tone === "warning" && "text-[#C47A5A]",
                       metric.tone === "negative" && "text-rose-600",

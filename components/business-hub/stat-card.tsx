@@ -20,14 +20,14 @@ export function StatCard({
 }) {
   const card = (
     <div className={HUB_CARD}>
-      <p className={cn("text-sm", HUB_MUTED)}>{label}</p>
-      <p className="mt-3 text-[1.75rem] font-bold leading-none tracking-tight text-black">
+      <p className={cn("text-xs", HUB_MUTED)}>{label}</p>
+      <p className="mt-2 text-xl font-bold leading-none tracking-tight text-black">
         {value}
       </p>
       {footer ? (
         <p
           className={cn(
-            "mt-auto pt-4 text-sm font-medium",
+            "mt-auto pt-2.5 text-xs font-medium",
             footerTone === "positive" && "text-emerald-600",
             footerTone === "warning" && "text-[#C47A5A]",
             footerTone === "negative" && "text-rose-600",

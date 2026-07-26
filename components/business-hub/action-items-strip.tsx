@@ -20,10 +20,12 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   }
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-1.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-        <h2 className={cn("text-sm font-medium", HUB_MUTED)}>Needs attention</h2>
-        <p className="text-xs text-[#888888]">
+        <h2 className={cn("text-xs font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
+          Needs attention
+        </h2>
+        <p className="text-[11px] text-[#888888]">
           {items.length === 1
             ? "One thing to clear"
             : `${items.length} items · clear before reports`}
@@ -31,7 +33,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
       </div>
       <div
         className={cn(
-          "grid gap-2",
+          "grid gap-px border border-[#EEEEEE] bg-[#EEEEEE]",
           items.length === 1 && "grid-cols-1",
           items.length === 2 && "sm:grid-cols-2",
           items.length >= 3 && "sm:grid-cols-2 lg:grid-cols-3",
@@ -45,12 +47,12 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               href={item.href}
               className={cn(
                 HUB_SURFACE,
-                "group flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:border-[#E8DFD0]",
+                "group flex items-center gap-2.5 border-0 px-3 py-2 transition-colors hover:bg-[#FCFBF8]",
               )}
             >
               <span
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-md",
+                  "flex size-7 shrink-0 items-center justify-center",
                   item.tone === "warning"
                     ? "bg-[#C47A5A]/10 text-[#C47A5A]"
                     : "bg-[#F9F6F0] text-[#B08D48]",

@@ -18,12 +18,12 @@ export function QuickChip({
     <Link
       href={href}
       className={cn(
-        "inline-flex items-center gap-2 rounded-lg border border-[#EEEEEE] bg-white px-4 py-2.5 text-sm font-medium text-black shadow-sm",
+        "inline-flex items-center gap-2 border border-[#EEEEEE] bg-white px-3 py-2 text-sm font-medium text-black",
         "transition-opacity hover:opacity-90",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
       )}
     >
-      <Icon className="size-4 text-[#888888]" aria-hidden />
+      <Icon className="size-3.5 text-[#888888]" aria-hidden />
       {label}
       <ArrowRight className="size-3 text-[#888888]" aria-hidden />
     </Link>

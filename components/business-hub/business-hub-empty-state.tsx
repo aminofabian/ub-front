@@ -18,49 +18,41 @@ export function BusinessHubEmptyState({
 
   return (
     <section
-      className={cn(HUB_SURFACE, "relative overflow-hidden px-5 py-8 sm:px-8")}
+      className={cn(HUB_SURFACE, "px-4 py-5 sm:px-5")}
       aria-label="No sales yet"
     >
-      <div
-        className="pointer-events-none absolute -right-10 top-0 size-40 rounded-full opacity-70"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(176,141,72,0.18) 0%, transparent 70%)",
-        }}
-        aria-hidden
-      />
-      <div className="relative mx-auto max-w-lg text-center">
+      <div className="mx-auto max-w-lg text-center">
         <p
-          className="text-2xl font-medium tracking-tight text-black"
+          className="text-xl font-medium tracking-tight text-black"
           style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
         >
           No sales {label} yet
         </p>
-        <p className={cn("mt-2 text-sm leading-relaxed", HUB_MUTED)}>
+        <p className={cn("mt-1.5 text-sm leading-snug", HUB_MUTED)}>
           This board wakes up the moment money moves. Add products, open the
           till, and the pulse, runway, and movers will fill in.
         </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           <Link
             href={APP_ROUTES.salesQuick}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#B08D48] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 bg-[#B08D48] px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
           >
-            <ShoppingCart className="size-4" aria-hidden />
+            <ShoppingCart className="size-3.5" aria-hidden />
             Record a sale
           </Link>
           <Link
             href={APP_ROUTES.products}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#EEEEEE] bg-white px-4 py-2.5 text-sm font-medium text-black shadow-sm transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 border border-[#EEEEEE] bg-white px-3 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90"
           >
-            <Package className="size-4 text-[#888888]" aria-hidden />
+            <Package className="size-3.5 text-[#888888]" aria-hidden />
             Add products
           </Link>
           {showStorefrontLink ? (
             <Link
               href={APP_ROUTES.businessSettings}
-              className="inline-flex items-center gap-2 rounded-lg border border-[#EEEEEE] bg-white px-4 py-2.5 text-sm font-medium text-black shadow-sm transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-2 border border-[#EEEEEE] bg-white px-3 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90"
             >
-              <Store className="size-4 text-[#888888]" aria-hidden />
+              <Store className="size-3.5 text-[#888888]" aria-hidden />
               Storefront setup
             </Link>
           ) : null}

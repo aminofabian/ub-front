@@ -637,14 +637,16 @@ export function BusinessHubWorkspace() {
   const isActive = business?.active !== false;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:space-y-5 2xl:pb-16">
-      <header className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
+    <div className="mx-auto w-full max-w-5xl space-y-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-16">
+      <header className="flex flex-wrap items-start justify-between gap-2 border-b border-[#EEEEEE] pb-2.5">
         <div className="min-w-0 flex-1">
-          <div className="hidden flex-wrap items-center gap-2 2xl:flex">
-            <p className={cn("text-sm font-medium", HUB_MUTED)}>Morning board</p>
+          <div className="hidden flex-wrap items-center gap-1.5 2xl:flex">
+            <p className={cn("text-xs font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
+              Morning board
+            </p>
             <span
               className={cn(
-                "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                "inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
                 pulseLive
                   ? "bg-emerald-500/10 text-emerald-700"
                   : isActive
@@ -666,21 +668,21 @@ export function BusinessHubWorkspace() {
             </span>
           </div>
           <h1
-            className="hidden text-2xl font-medium tracking-tight text-black 2xl:mt-0.5 2xl:block"
+            className="hidden text-xl font-medium tracking-tight text-black 2xl:mt-0.5 2xl:block"
             style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
           >
             {title}
           </h1>
-          <ActiveScopeSubtitle className={cn("mt-0 2xl:mt-0.5", HUB_MUTED)} />
-          <p className={cn("mt-0.5 text-sm", HUB_MUTED)}>{periodSubtitle}</p>
+          <ActiveScopeSubtitle className={cn("mt-0 text-xs 2xl:mt-0.5", HUB_MUTED)} />
+          <p className={cn("mt-0.5 text-xs", HUB_MUTED)}>{periodSubtitle}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           <button
             type="button"
             onClick={() => void load()}
             disabled={refreshing}
             className={cn(
-              "inline-flex size-9 items-center justify-center rounded-lg border border-[#EEEEEE] bg-white text-[#666666] shadow-sm",
+              "inline-flex size-8 items-center justify-center border border-[#EEEEEE] bg-white text-[#666666]",
               "transition-colors hover:bg-[#F9F6F0] hover:text-[#B08D48]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
               "disabled:cursor-not-allowed disabled:opacity-60",
@@ -697,7 +699,7 @@ export function BusinessHubWorkspace() {
             <Link
               href={APP_ROUTES.businessSettings}
               className={cn(
-                "inline-flex size-9 items-center justify-center rounded-lg border border-[#EEEEEE] bg-white text-[#666666] shadow-sm",
+                "inline-flex size-8 items-center justify-center border border-[#EEEEEE] bg-white text-[#666666]",
                 "transition-colors hover:bg-[#F9F6F0] hover:text-[#B08D48]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
               )}

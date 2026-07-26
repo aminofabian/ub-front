@@ -82,9 +82,9 @@ export function PostSetupChecklist({
   ];
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <h2 className={cn("text-sm font-medium", HUB_MUTED)}>
+        <h2 className={cn("text-xs font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
           Getting started
         </h2>
         <button
@@ -104,13 +104,13 @@ export function PostSetupChecklist({
             key={item.href + item.label}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#F9F6F0]/60",
+              "flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-[#F9F6F0]/60",
               item.done && "opacity-60",
             )}
           >
             <item.icon
               className={cn(
-                "size-4 shrink-0",
+                "size-3.5 shrink-0",
                 item.done ? "text-[#0D9488]" : "text-[#B08D48]",
               )}
               aria-hidden
@@ -122,7 +122,7 @@ export function PostSetupChecklist({
               <p className="text-xs text-[#888888]">{item.desc}</p>
             </div>
             <ArrowRight
-              className="ml-auto size-4 shrink-0 text-[#CCCCCC]"
+              className="ml-auto size-3.5 shrink-0 text-[#CCCCCC]"
               aria-hidden
             />
           </Link>
