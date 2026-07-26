@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
+import {
+  filterDrawoutsByCashiers,
+  type HubDrawout,
+} from "@/lib/business-hub/drawouts-for-hub";
 import { filterTicksByCashiers } from "@/lib/business-hub/ticks-from-transactions";
 import type { RecentTick } from "@/lib/business-hub/ticks-from-transactions";
 import { cn } from "@/lib/utils";
@@ -25,6 +29,7 @@ export function CashierTillDrawer({
   open,
   cashiers,
   ticks,
+  drawouts = [],
   currency,
   live = false,
   justUpdated = false,
@@ -34,6 +39,7 @@ export function CashierTillDrawer({
   open: boolean;
   cashiers: string[];
   ticks: RecentTick[];
+  drawouts?: HubDrawout[];
   currency?: string | null;
   live?: boolean;
   justUpdated?: boolean;
@@ -67,6 +73,7 @@ export function CashierTillDrawer({
   if (!open || cashiers.length === 0) return null;
 
   const activeTicks = filterTicksByCashiers(ticks, [activeCashier]);
+  const activeDrawouts = filterDrawoutsByCashiers(drawouts, [activeCashier]);
 
   return (
     <div
@@ -178,11 +185,16 @@ export function CashierTillDrawer({
           <RecentTicksRail
             key={activeCashier}
             ticks={activeTicks}
+            drawouts={activeDrawouts}
             currency={currency}
             live={live}
             justUpdated={justUpdated}
             title={activeCashier}
-            subtitle={`Last 3 · ${shortName(activeCashier)}`}
+            subtitle={
+              activeDrawouts.length > 0
+                ? `Sales & drawouts · ${shortName(activeCashier)}`
+                : `Last 3 · ${shortName(activeCashier)}`
+            }
             showCashier={false}
             accent="brass"
             fillViewport={false}

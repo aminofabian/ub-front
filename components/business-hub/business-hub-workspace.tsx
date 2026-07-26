@@ -79,7 +79,10 @@ import {
   fetchItemsPage,
   fetchRecentSales,
   fetchSalesRegister,
+  fetchShiftDrawouts,
+  fetchShifts,
   type BatchDashboardResponse,
+  type DrawoutRecord,
   type FinancePulseResponse,
   type InventoryExpiryPipelineResponse,
   type InventoryValuationResponseRecord,
@@ -87,8 +90,15 @@ import {
   type ProfitAndLossResponse,
   type RecentSaleRow,
   type SalesRegisterResponse,
+  type ShiftListItem,
 } from "@/lib/api";
 import { groupLinesIntoTransactions } from "@/lib/sale-transactions";
+import {
+  cashiersFromDrawouts,
+  filterDrawoutsByCashiers,
+  hubDrawoutsFromRecords,
+  type HubDrawout,
+} from "@/lib/business-hub/drawouts-for-hub";
 import {
   cashiersFromTicks,
   filterTicksByCashiers,
@@ -157,6 +167,7 @@ export function BusinessHubWorkspace() {
   const [refreshing, setRefreshing] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
   const [recentTicks, setRecentTicks] = useState<RecentTick[]>([]);
+  const [recentDrawouts, setRecentDrawouts] = useState<HubDrawout[]>([]);
   const [selectedCashiers, setSelectedCashiers] = useState<string[]>([]);
   const loadGen = useRef(0);
   const justUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -199,6 +210,8 @@ export function BusinessHubWorkspace() {
         batchDash,
         expiryRes,
         recentSalesRes,
+        openShiftsRes,
+        recentShiftsRes,
       ] = await Promise.all([
         canViewOwnerSummary
           ? fetchDashboardOwnerSummary(branch, type).catch(() => null)
@@ -257,6 +270,16 @@ export function BusinessHubWorkspace() {
               () => [] as RecentSaleRow[],
             )
           : Promise.resolve([] as RecentSaleRow[]),
+        canViewShifts
+          ? fetchShifts({
+              branchId: branch,
+              status: "OPEN",
+              size: 30,
+            }).catch(() => null)
+          : Promise.resolve(null),
+        canViewShifts
+          ? fetchShifts({ branchId: branch, size: 30 }).catch(() => null)
+          : Promise.resolve(null),
       ]);
 
       if (gen !== loadGen.current) return;
@@ -283,6 +306,32 @@ export function BusinessHubWorkspace() {
           TICK_POOL_LIMIT,
         ),
       );
+
+      const shiftMap = new Map<string, ShiftListItem>();
+      for (const row of [
+        ...(openShiftsRes?.shifts ?? []),
+        ...(recentShiftsRes?.shifts ?? []),
+      ]) {
+        shiftMap.set(row.id, row);
+      }
+      const shiftRows = [...shiftMap.values()];
+      if (shiftRows.length > 0) {
+        const drawoutLists = await Promise.all(
+          shiftRows.map(async (shift) => {
+            const list = await fetchShiftDrawouts(shift.id).catch(
+              () => [] as DrawoutRecord[],
+            );
+            return list.map((row) => ({
+              ...row,
+              shiftCashierName: shift.cashierName,
+            }));
+          }),
+        );
+        if (gen !== loadGen.current) return;
+        setRecentDrawouts(hubDrawoutsFromRecords(drawoutLists.flat()));
+      } else {
+        setRecentDrawouts([]);
+      }
     } catch {
       /* gracefully degrade */
     } finally {
@@ -300,6 +349,7 @@ export function BusinessHubWorkspace() {
     canViewSupplyBatches,
     period,
     canViewSalesIntelligence,
+    canViewShifts,
   ]);
 
   useEffect(() => {
@@ -668,35 +718,56 @@ export function BusinessHubWorkspace() {
     showButcherCounter,
   ]);
 
-  const cashierNames = useMemo(
-    () => cashiersFromTicks(recentTicks),
-    [recentTicks],
-  );
+  const cashierNames = useMemo(() => {
+    const fromSales = cashiersFromTicks(recentTicks);
+    const fromDrawouts = cashiersFromDrawouts(recentDrawouts);
+    const seen = new Set(fromSales);
+    const names = [...fromSales];
+    for (const name of fromDrawouts) {
+      if (seen.has(name)) continue;
+      seen.add(name);
+      names.push(name);
+    }
+    return names;
+  }, [recentTicks, recentDrawouts]);
   const tickLanes = useMemo(() => {
     if (selectedCashiers.length >= 3) {
       return [];
     }
     if (selectedCashiers.length === 0) {
+      const drawouts = filterDrawoutsByCashiers(recentDrawouts, []);
       return [
         {
           key: "floor",
           title: "Floor tape",
-          subtitle: "Last 3 · every cashier",
+          subtitle:
+            drawouts.length > 0
+              ? "Last 3 sales · recent drawouts"
+              : "Last 3 · every cashier",
           ticks: filterTicksByCashiers(recentTicks, []),
+          drawouts,
           showCashier: true,
           accent: "brass" as const,
         },
       ];
     }
-    return selectedCashiers.map((name, index) => ({
-      key: name,
-      title: name,
-      subtitle: `Last 3 · ${name.split(/\s+/)[0] ?? name}`,
-      ticks: filterTicksByCashiers(recentTicks, [name]),
-      showCashier: false,
-      accent: (index === 0 ? "brass" : "ink") as "brass" | "ink",
-    }));
-  }, [recentTicks, selectedCashiers]);
+    return selectedCashiers.map((name, index) => {
+      const drawouts = filterDrawoutsByCashiers(recentDrawouts, [name]);
+      const short = name.split(/\s+/)[0] ?? name;
+      return {
+        key: name,
+        title: name,
+        subtitle:
+          drawouts.length > 0
+            ? `Sales & drawouts · ${short}`
+            : `Last 3 · ${short}`,
+        ticks: filterTicksByCashiers(recentTicks, [name]),
+        drawouts,
+        showCashier: false,
+        accent: (index === 0 ? "brass" : "ink") as "brass" | "ink",
+      };
+    });
+  }, [recentTicks, recentDrawouts, selectedCashiers]);
   const dualLanes = tickLanes.length === 2;
   const galleryOpen = selectedCashiers.length >= 3;
   const showTillStage = canViewSalesIntelligence;
@@ -805,6 +876,7 @@ export function BusinessHubWorkspace() {
                     <RecentTicksRail
                       key={lane.key}
                       ticks={lane.ticks}
+                      drawouts={lane.drawouts}
                       currency={currency}
                       live={pulseLive}
                       justUpdated={justUpdated && index === 0}
@@ -882,6 +954,7 @@ export function BusinessHubWorkspace() {
                   >
                     <RecentTicksRail
                       ticks={lane.ticks}
+                      drawouts={lane.drawouts}
                       currency={currency}
                       live={pulseLive}
                       justUpdated={justUpdated && index === 0}
@@ -905,6 +978,7 @@ export function BusinessHubWorkspace() {
           open={galleryOpen}
           cashiers={selectedCashiers}
           ticks={recentTicks}
+          drawouts={recentDrawouts}
           currency={currency}
           live={pulseLive}
           justUpdated={justUpdated}
