@@ -5,6 +5,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
+import {
+  mktChip,
+  mktPosAccentBar,
+  mktPosHeader,
+  spBtnPrimary,
+  spEyebrow,
+  spMetric,
+  spPage,
+  spPanel,
+  spSerifTitle,
+} from "@/components/supplier-portal/supplier-portal-ui";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchSupplierPortalCapabilities,
@@ -68,7 +79,6 @@ export default function SupplierPortalOverviewPage() {
   const [canViewMoney, setCanViewMoney] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
-  // Client-only stamp — server/browser timezone would hydrate-mismatch (#418).
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -125,43 +135,39 @@ export default function SupplierPortalOverviewPage() {
 
   return (
     <SupplierPortalShell>
-      <div className="mx-auto max-w-5xl space-y-8">
-        <header className="flex flex-wrap items-start justify-between gap-3">
+      <div className={cn(spPage, "space-y-5")}>
+        <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="sp-serif text-4xl font-semibold tracking-tight text-[var(--sp-ink)] sm:text-[2.6rem]">
-              Dashboard
-            </h2>
-            <p className="mt-1.5 text-sm text-[var(--sp-muted)]">
+            <p className={spEyebrow}>portal · overview → activity</p>
+            <h2 className={cn(spSerifTitle, "mt-1")}>Dashboard</h2>
+            <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
               {canViewMoney
                 ? "Balances and activity across shops you supply."
                 : "Orders and catalogue activity for your supplier account."}
             </p>
           </div>
-          <p className="pt-2 text-xs text-[var(--sp-muted)] tabular-nums">
+          <p className="text-[11px] font-medium tracking-wide text-muted-foreground tabular-nums uppercase">
             {now ? formatStamp(now) : "\u00a0"}
           </p>
         </header>
 
         {error ? (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {error}
-          </p>
+          <p className="border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
         ) : null}
 
         {canViewMoney ? (
-          <section className="space-y-4">
-            <div className="sp-section-rule">Money</div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <section className={spPanel}>
+            <div className={mktPosHeader}>
+              <span>1 · Money</span>
+              <span>{hub?.shopCount ?? 0}</span>
+            </div>
+            <div className="grid gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2 lg:grid-cols-3">
               <MetricCard
-                className="sp-rise sp-card-accent-forest"
                 label="Outstanding"
                 value={hub ? money(hub.totals.owed, currency) : "—"}
                 hint={hub ? `Across ${hub.shopCount} shop${hub.shopCount === 1 ? "" : "s"}` : "Loading…"}
-                valueClass="text-[var(--sp-forest)]"
-                style={{ animationDelay: "40ms" }}
               />
               <MetricCard
-                className="sp-rise sp-card-accent-sage"
                 label="Today's collections"
                 value={hub ? money(todayCollections, currency) : "—"}
                 hint={
@@ -169,26 +175,24 @@ export default function SupplierPortalOverviewPage() {
                     ? `${shopsPaidToday} shop${shopsPaidToday === 1 ? "" : "s"} paid so far`
                     : "No payments yet today"
                 }
-                valueClass="text-[var(--sp-forest)]"
-                style={{ animationDelay: "90ms" }}
               />
               <MetricCard
-                className="sp-rise sp-card-accent-forest sm:col-span-2 lg:col-span-1"
                 label="Paid (all time)"
                 value={hub ? money(hub.totals.paid, currency) : "—"}
                 hint={shopsHint}
-                valueClass="text-[var(--sp-forest)]"
-                style={{ animationDelay: "140ms" }}
+                className="sm:col-span-2 lg:col-span-1"
               />
             </div>
           </section>
         ) : null}
 
-        <section className="space-y-4">
-          <div className="sp-section-rule">Needs attention</div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section className={spPanel}>
+          <div className={mktPosHeader}>
+            <span>2 · Needs attention</span>
+            <span>{pendingOrders}</span>
+          </div>
+          <div className="grid gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2 lg:grid-cols-3">
             <MetricCard
-              className="sp-rise sp-card-accent-ochre"
               label="Pending orders"
               value={String(pendingOrders)}
               hint={
@@ -198,13 +202,10 @@ export default function SupplierPortalOverviewPage() {
                     ? "Respond to keep shops moving"
                     : "You're caught up"
               }
-              valueClass="text-[var(--sp-ochre)]"
               href={APP_ROUTES.supplierPortalOrders}
-              style={{ animationDelay: "180ms" }}
             />
             {canViewMoney ? (
               <MetricCard
-                className="sp-rise sp-card-accent-ochre"
                 label="Partial balances"
                 value={hub ? money(hub.totals.pending, currency) : "—"}
                 hint={
@@ -212,54 +213,43 @@ export default function SupplierPortalOverviewPage() {
                     ? `${partialShopCount} shop${partialShopCount === 1 ? "" : "s"} with part payment`
                     : "No partial balances"
                 }
-                valueClass="text-[var(--sp-ochre)]"
                 href={APP_ROUTES.supplierPortalInvoices}
-                style={{ animationDelay: "220ms" }}
               />
             ) : (
               <MetricCard
-                className="sp-rise sp-card-accent-ochre"
                 label="Catalogue"
                 value="Manage"
                 hint="Products you supply"
-                valueClass="text-[var(--sp-ochre)]"
                 href={APP_ROUTES.supplierPortalCatalog}
-                style={{ animationDelay: "220ms" }}
               />
             )}
             <MetricCard
-              className="sp-rise sp-card-accent-sage"
-              label={canViewMoney ? "Total shops" : "Orders hub"}
-              value={canViewMoney ? (hub ? String(hub.shopCount) : "—") : String(pendingOrders)}
-              hint={canViewMoney ? shopsHint : "Open the orders inbox"}
-              valueClass="text-[var(--sp-ink)]"
-              href={canViewMoney ? APP_ROUTES.supplierPortalShops : APP_ROUTES.supplierPortalOrders}
-              style={{ animationDelay: "260ms" }}
+              label="Total shops"
+              value={hub ? String(hub.shopCount) : "—"}
+              hint={shopsHint}
+              href={APP_ROUTES.supplierPortalShops}
             />
           </div>
         </section>
 
         {hub && hub.shops.length > 0 ? (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="sp-section-rule flex-1">Shops</div>
-              <Link
-                href={APP_ROUTES.supplierPortalShops}
-                className="shrink-0 text-sm font-medium text-[var(--sp-forest)] underline-offset-2 hover:underline"
-              >
-                View all
+          <section className={spPanel}>
+            <div className={mktPosHeader}>
+              <span>3 · Shops</span>
+              <Link href={APP_ROUTES.supplierPortalShops} className="hover:underline">
+                View all →
               </Link>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {hub.shops.slice(0, 4).map((shop, i) => (
+            <div className="grid gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2">
+              {hub.shops.slice(0, 4).map((shop) => (
                 <Link
                   key={shop.localSupplierId}
                   href={`${APP_ROUTES.supplierPortalShops}/${shop.localSupplierId}`}
-                  className="sp-card sp-rise sp-card-accent-forest block px-5 py-4 transition hover:shadow-md"
-                  style={{ animationDelay: `${300 + i * 40}ms` }}
+                  className={cn(spMetric, "block bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)]")}
                 >
-                  <p className="font-medium text-[var(--sp-ink)]">{shop.shopName}</p>
-                  <p className="mt-1.5 text-sm text-[var(--sp-muted)]">
+                  <span className={mktPosAccentBar} />
+                  <p className="pl-2 font-medium text-[var(--pos-ink,#1c1915)]">{shop.shopName}</p>
+                  <p className="mt-1.5 pl-2 text-sm text-muted-foreground">
                     Outstanding {money(shop.owed, currency)}
                   </p>
                 </Link>
@@ -269,17 +259,14 @@ export default function SupplierPortalOverviewPage() {
         ) : null}
 
         {emptyShops ? (
-          <div className="flex flex-col gap-4 rounded-xl border border-dashed border-[var(--sp-forest)]/25 bg-[var(--sp-cream-deep)]/60 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className={cn(spPanel, "flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between")}>
             <div>
-              <p className="font-semibold text-[var(--sp-ink)]">No shops linked yet</p>
-              <p className="mt-1 text-sm text-[var(--sp-muted)]">
+              <p className="font-semibold text-[var(--pos-ink,#1c1915)]">No shops linked yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Your live account starts at zero until shops, orders, and payments come in.
               </p>
             </div>
-            <Link
-              href={APP_ROUTES.supplierPortalProfile}
-              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[var(--sp-forest)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--sp-forest-deep)]"
-            >
+            <Link href={APP_ROUTES.supplierPortalProfile} className={spBtnPrimary}>
               Link your first shop
             </Link>
           </div>
@@ -295,46 +282,40 @@ function MetricCard({
   hint,
   href,
   className,
-  valueClass,
-  style,
 }: {
   label: string;
   value: string;
   hint: string;
   href?: string;
   className?: string;
-  valueClass?: string;
-  style?: React.CSSProperties;
 }) {
   const body = (
     <>
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-[0.68rem] font-semibold tracking-[0.12em] text-[var(--sp-muted)] uppercase">
-          {label}
-        </p>
-        {href ? (
-          <span className="rounded-md border border-[var(--sp-border)] px-2 py-0.5 text-[0.7rem] font-medium text-[var(--sp-muted)]">
-            View →
-          </span>
-        ) : null}
+      <span className={mktPosAccentBar} />
+      <div className="flex items-start justify-between gap-2 pl-2">
+        <p className={spEyebrow}>{label}</p>
+        {href ? <span className={cn(mktChip, "px-1.5 py-0.5")}>View →</span> : null}
       </div>
-      <p className={cn("mt-3 text-[1.65rem] font-semibold tracking-tight tabular-nums sm:text-3xl", valueClass)}>
+      <p className="mt-3 pl-2 text-[1.55rem] font-semibold tracking-tight text-[var(--pos-primary,#0f766e)] tabular-nums sm:text-[1.75rem]">
         {value}
       </p>
-      <p className="mt-2 text-sm text-[var(--sp-muted)]">{hint}</p>
+      <p className="mt-1.5 pl-2 text-sm text-muted-foreground">{hint}</p>
     </>
   );
 
   if (href) {
     return (
-      <Link href={href} className={cn("sp-card block px-5 py-4 transition hover:shadow-md", className)} style={style}>
+      <Link
+        href={href}
+        className={cn(spMetric, "block bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)]", className)}
+      >
         {body}
       </Link>
     );
   }
 
   return (
-    <div className={cn("sp-card px-5 py-4", className)} style={style}>
+    <div className={cn(spMetric, "bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)]", className)}>
       {body}
     </div>
   );

@@ -5,9 +5,19 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
+import {
+  mktChip,
+  mktChipActive,
+  mktPosHeader,
+  spBtnGhost,
+  spBtnPrimary,
+  spEyebrow,
+  spPage,
+  spPanel,
+  spSerifTitle,
+} from "@/components/supplier-portal/supplier-portal-ui";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchSupplierPortalOrder,
@@ -128,23 +138,28 @@ export default function SupplierPortalOrdersPage() {
 
   return (
     <SupplierPortalShell>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]">
-        <section className="space-y-4">
-          <header>
-            <h2 className="text-2xl font-semibold tracking-tight">Orders</h2>
+      <div className={cn(spPage, "grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]")}>
+        <section className={spPanel}>
+          <div className={mktPosHeader}>
+            <span>1 · Orders inbox</span>
+            <span>{orders.length}</span>
+          </div>
+          <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-4">
+            <p className={spEyebrow}>portal · sell → orders</p>
+            <h2 className={cn(spSerifTitle, "mt-1 text-3xl sm:text-[2rem]")}>Orders</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Purchase orders sent from connected businesses.
             </p>
-          </header>
+          </div>
           {loading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 px-4 py-8 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
               Loading inbox…
             </div>
           ) : (
-            <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+            <ul className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
               {orders.length === 0 ? (
-                <li className="p-8 text-center text-sm text-muted-foreground">
+                <li className="px-4 py-10 text-center text-sm text-muted-foreground">
                   No purchase orders yet.
                 </li>
               ) : (
@@ -153,18 +168,24 @@ export default function SupplierPortalOrdersPage() {
                     <button
                       type="button"
                       className={cn(
-                        "flex w-full flex-col gap-1 px-4 py-3 text-left hover:bg-muted/40",
-                        selectedId === order.purchaseOrderId && "bg-muted/50",
+                        "flex w-full flex-col gap-1.5 px-4 py-3 text-left transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]",
+                        selectedId === order.purchaseOrderId &&
+                          "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)]",
                       )}
                       onClick={() => void openOrder(order.purchaseOrderId)}
                     >
-                      <span className="font-medium">
+                      <span className="font-medium text-[var(--pos-ink,#1c1915)]">
                         {order.poNumber} · {order.businessName}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {order.lineCount} lines · {order.status}
-                        {order.deliveryStatus ? ` · ${order.deliveryStatus}` : ""}
-                        {!order.supplierResponseAt ? " · awaiting response" : ""}
+                      <span className="flex flex-wrap gap-1.5">
+                        <span className={mktChip}>{order.lineCount} lines</span>
+                        <span className={mktChip}>{order.status}</span>
+                        {order.deliveryStatus ? (
+                          <span className={mktChip}>{order.deliveryStatus}</span>
+                        ) : null}
+                        {!order.supplierResponseAt ? (
+                          <span className={cn(mktChip, mktChipActive)}>Awaiting response</span>
+                        ) : null}
                       </span>
                     </button>
                   </li>
@@ -174,7 +195,12 @@ export default function SupplierPortalOrdersPage() {
           )}
         </section>
 
-        <aside className="rounded-xl border bg-card p-4">
+        <aside className={spPanel}>
+          <div className={mktPosHeader}>
+            <span>2 · Order detail</span>
+            <span>{selectedId ? "1" : "0"}</span>
+          </div>
+          <div className="p-4">
           {!selectedId ? (
             <p className="text-sm text-muted-foreground">Select an order to review lines.</p>
           ) : detailLoading ? (
@@ -185,19 +211,24 @@ export default function SupplierPortalOrdersPage() {
           ) : detail ? (
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold">{detail.poNumber}</h3>
+                <h3 className="font-[family-name:var(--font-heading)] text-xl font-semibold text-[var(--pos-ink,#1c1915)]">
+                  {detail.poNumber}
+                </h3>
                 <p className="text-sm text-muted-foreground">{detail.businessName}</p>
                 {detail.notes ? (
                   <p className="mt-2 text-sm text-muted-foreground">{detail.notes}</p>
                 ) : null}
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {lineDrafts.map((line, index) => {
                   const item = detail.lines[index];
                   return (
-                    <div key={line.purchaseOrderLineId} className="rounded-lg border p-3 text-sm">
-                      <p className="font-medium">{item?.itemName}</p>
+                    <div
+                      key={line.purchaseOrderLineId}
+                      className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] p-3 text-sm"
+                    >
+                      <p className="font-medium text-[var(--pos-ink,#1c1915)]">{item?.itemName}</p>
                       <p className="text-xs text-muted-foreground">
                         Ordered {item?.qtyOrdered}
                         {item?.unitEstimatedCost != null
@@ -206,7 +237,7 @@ export default function SupplierPortalOrdersPage() {
                       </p>
                       <div className="mt-2 grid gap-2">
                         <select
-                          className="rounded-md border bg-background px-2 py-1 text-sm"
+                          className="h-9 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-2 text-sm"
                           value={line.supplierLineStatus}
                           onChange={(e) =>
                             setLineDrafts((rows) =>
@@ -253,11 +284,16 @@ export default function SupplierPortalOrdersPage() {
               </div>
 
               {!detail.supplierResponseAt ? (
-                <Button className="w-full" disabled={submitting} onClick={() => void onRespond()}>
+                <button
+                  type="button"
+                  className={cn(spBtnPrimary, "w-full")}
+                  disabled={submitting}
+                  onClick={() => void onRespond()}
+                >
                   Submit response
-                </Button>
+                </button>
               ) : (
-                <p className="text-xs text-green-700 dark:text-green-400">
+                <p className="text-xs text-[var(--pos-primary,#0f766e)]">
                   Response submitted
                   {detail.supplierResponseAt
                     ? ` · ${new Date(detail.supplierResponseAt).toLocaleString()}`
@@ -266,23 +302,29 @@ export default function SupplierPortalOrdersPage() {
               )}
 
               {detail.supplierResponseAt ? (
-                <div className="space-y-2 border-t pt-4">
+                <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-4">
                   <Input
                     placeholder="Tracking note (optional)"
                     value={trackingNote}
                     onChange={(e) => setTrackingNote(e.target.value)}
                   />
                   <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
+                    <button
+                      type="button"
+                      className={spBtnGhost}
                       disabled={submitting}
                       onClick={() => void onShip("in_transit")}
                     >
                       In transit
-                    </Button>
-                    <Button disabled={submitting} onClick={() => void onShip("delivered")}>
+                    </button>
+                    <button
+                      type="button"
+                      className={spBtnPrimary}
+                      disabled={submitting}
+                      onClick={() => void onShip("delivered")}
+                    >
                       Delivered
-                    </Button>
+                    </button>
                   </div>
                   {detail.deliveryStatus ? (
                     <p className="text-xs text-muted-foreground">
@@ -293,6 +335,7 @@ export default function SupplierPortalOrdersPage() {
               ) : null}
             </div>
           ) : null}
+          </div>
         </aside>
       </div>
     </SupplierPortalShell>

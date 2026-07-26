@@ -5,6 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { LogOut, Menu, X } from "lucide-react";
 
+import { KioskLogo } from "@/components/brand/kiosk-logo";
+import {
+  mktChip,
+  mktChipActive,
+  mktPosHeader,
+  spEyebrow,
+  spShellBg,
+} from "@/components/supplier-portal/supplier-portal-ui";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchSupplierPortalCapabilities,
@@ -93,27 +101,37 @@ function SidebarNav({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-5 pt-7 pb-5">
-        <p className="sp-serif text-[1.85rem] leading-none font-semibold tracking-tight text-white">
-          Palmart
-        </p>
-        <p className="mt-1.5 text-[0.65rem] font-semibold tracking-[0.18em] text-[var(--sp-sidebar-muted)] uppercase">
-          Supplier portal
-        </p>
+      <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-5">
+        <div className="flex items-center gap-2.5">
+          <KioskLogo size="sm" href={APP_ROUTES.supplierPortalOverview} />
+          <div className="min-w-0">
+            <p className="font-[family-name:var(--font-heading)] text-lg leading-none font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
+              Kiosk
+            </p>
+            <p className={cn(spEyebrow, "mt-1")}>Supplier portal</p>
+          </div>
+        </div>
         {caps?.roleKey ? (
-          <span className="mt-4 inline-flex rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-[0.7rem] text-[var(--sp-sidebar-muted)]">
+          <span
+            className={cn(
+              mktChip,
+              "mt-4 border-[var(--pos-primary,#0f766e)]/30 text-[var(--pos-primary,#0f766e)]",
+            )}
+          >
             Role · {roleLabel}
           </span>
         ) : null}
       </div>
 
-      <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
-        {groups.map((group) => (
+      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+        {groups.map((group, index) => (
           <div key={group.label}>
-            <p className="mb-2 px-3 text-[0.62rem] font-semibold tracking-[0.16em] text-[var(--sp-sidebar-label)] uppercase">
-              {group.label}
-            </p>
-            <ul className="space-y-0.5">
+            <div className={cn(mktPosHeader, "mb-2")}>
+              <span>
+                {index + 1} · {group.label}
+              </span>
+            </div>
+            <ul className="space-y-1">
               {group.items.map((item) => {
                 const active = isActivePath(pathname, item.href);
                 return (
@@ -122,18 +140,11 @@ function SidebarNav({
                       href={item.href}
                       onClick={onNavigate}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-full px-3 py-2 text-[0.92rem] transition",
-                        active
-                          ? "bg-[var(--sp-ochre)] font-medium text-white shadow-sm"
-                          : "text-[var(--sp-sidebar-muted)] hover:bg-white/5 hover:text-white",
+                        mktChip,
+                        "w-full justify-start px-2.5 py-1.5 text-[11px]",
+                        active && mktChipActive,
                       )}
                     >
-                      <span
-                        className={cn(
-                          "size-1.5 shrink-0 rounded-full",
-                          active ? "bg-white" : "bg-current opacity-50",
-                        )}
-                      />
                       {item.label}
                     </Link>
                   </li>
@@ -144,7 +155,7 @@ function SidebarNav({
         ))}
       </nav>
 
-      <div className="border-t border-white/10 p-3">
+      <div className="border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] p-3">
         <LogoutButton />
       </div>
     </div>
@@ -161,9 +172,9 @@ function LogoutButton() {
         clearSupplierPortalSession();
         router.replace(APP_ROUTES.supplierPortalLogin);
       }}
-      className="flex w-full items-center gap-2.5 rounded-full px-3 py-2 text-[0.9rem] text-[var(--sp-sidebar-muted)] transition hover:bg-white/5 hover:text-white"
+      className={cn(mktChip, "w-full justify-start gap-2 px-2.5 py-1.5 text-[11px]")}
     >
-      <LogOut className="size-3.5 opacity-70" />
+      <LogOut className="size-3 opacity-70" />
       Sign out
     </button>
   );
@@ -186,8 +197,8 @@ export function SupplierPortalShell({ children }: { children: React.ReactNode })
   }, [pathname]);
 
   return (
-    <div className="supplier-portal min-h-screen lg:flex">
-      <aside className="hidden w-[15.5rem] shrink-0 bg-[var(--sp-forest)] lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+    <div className={cn(spShellBg, "lg:flex")}>
+      <aside className="hidden w-[15.75rem] shrink-0 border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
         <SidebarNav caps={caps} pathname={pathname} />
       </aside>
 
@@ -196,17 +207,17 @@ export function SupplierPortalShell({ children }: { children: React.ReactNode })
           <button
             type="button"
             aria-label="Close menu"
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_40%,transparent)]"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative z-10 flex h-full w-[16rem] flex-col bg-[var(--sp-forest)] shadow-xl">
+          <aside className="relative z-10 flex h-full w-[16rem] flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[#faf8f4] shadow-xl">
             <button
               type="button"
               aria-label="Close"
-              className="absolute top-4 right-3 rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
+              className="absolute top-3 right-3 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card p-1.5 text-muted-foreground hover:text-foreground"
               onClick={() => setMobileOpen(false)}
             >
-              <X className="size-5" />
+              <X className="size-4" />
             </button>
             <SidebarNav caps={caps} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
           </aside>
@@ -214,23 +225,23 @@ export function SupplierPortalShell({ children }: { children: React.ReactNode })
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--sp-border)] bg-[var(--sp-cream)]/95 px-4 py-3 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,#faf8f4_88%,transparent)] px-3 py-2.5 backdrop-blur-md lg:hidden">
           <button
             type="button"
             aria-label="Open menu"
-            className="rounded-lg border border-[var(--sp-border)] bg-white p-2 text-[var(--sp-ink)]"
+            className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card p-2 text-[var(--pos-ink,#1c1915)]"
             onClick={() => setMobileOpen(true)}
           >
             <Menu className="size-5" />
           </button>
           <div className="min-w-0">
-            <p className="sp-serif truncate text-lg font-semibold leading-none">Palmart</p>
-            <p className="text-[0.65rem] font-semibold tracking-[0.14em] text-[var(--sp-muted)] uppercase">
-              Supplier portal
+            <p className="font-[family-name:var(--font-heading)] truncate text-lg leading-none font-semibold">
+              Kiosk
             </p>
+            <p className={spEyebrow}>Supplier portal</p>
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">{children}</main>
+        <main className="flex-1 px-3 py-5 sm:px-5 lg:px-7 lg:py-7">{children}</main>
       </div>
     </div>
   );
