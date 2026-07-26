@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { HUB_ACCENT } from "@/lib/business-hub/constants";
 
 const DUAL_LANE_MAX = 2;
-const GALLERY_MIN = 3;
 
 function shortName(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -32,7 +32,6 @@ export function CashierStageTabs({
   className?: string;
 }) {
   const viewingAll = selected.length === 0;
-  const gallery = selected.length >= GALLERY_MIN;
   const columns = 1 + cashiers.length;
 
   function selectAll() {
@@ -50,69 +49,64 @@ export function CashierStageTabs({
   if (cashiers.length === 0) return null;
 
   return (
-    <div
-      className={cn(
-        "overflow-hidden border border-[#E6E1D8] bg-white",
-        className,
-      )}
-    >
+    <div className={cn("bg-transparent", className)}>
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <p
+            className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+            style={{ color: HUB_ACCENT }}
+          >
+            Stage
+          </p>
+          <span className="text-[11px] text-[#8A8A8A]">{modeCopy(selected)}</span>
+        </div>
+        {live ? (
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
+            <span className="size-1.5 bg-emerald-500 hub-live-beacon" aria-hidden />
+            Live
+          </span>
+        ) : null}
+      </div>
+
       <div
-        className="grid"
+        className="grid gap-2"
         style={{
-          gridTemplateColumns: `auto repeat(${columns}, minmax(0, 1fr))`,
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
         }}
         role="tablist"
         aria-label="Cashier lanes"
       >
-        <div className="flex items-center gap-2 border-r border-[#E6E1D8] bg-[#FCFAF6] px-3 py-2.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
-            Stage
-          </p>
-          <span className="hidden text-[11px] text-[#8A8A8A] lg:inline">
-            {modeCopy(selected)}
-          </span>
-        </div>
-
         <button
           type="button"
           role="tab"
           aria-selected={viewingAll}
           onClick={selectAll}
           className={cn(
-            "relative flex items-center justify-between gap-2 border-r border-[#E6E1D8] px-3.5 py-2.5 text-left transition-colors",
+            "group relative flex items-center justify-between gap-2 border bg-white px-3.5 py-3 text-left transition-colors",
             viewingAll
-              ? "bg-[#141414] text-[#F5E6C8]"
-              : "bg-white text-[#141414] hover:bg-[#FCFAF6]",
+              ? "border-[#B08D48] text-[#141414]"
+              : "border-[#E6E1D8] text-[#141414] hover:border-[#D4C4A0]",
           )}
         >
           <span className="min-w-0">
             <span
               className={cn(
-                "block text-[9px] font-semibold uppercase tracking-[0.12em]",
+                "block text-[9px] font-semibold uppercase tracking-[0.14em]",
                 viewingAll ? "text-[#B08D48]" : "text-[#8A8A8A]",
               )}
             >
               All
             </span>
             <span
-              className="block truncate text-[13px] font-medium leading-tight"
+              className="mt-0.5 block truncate text-[14px] font-medium leading-tight"
               style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
             >
               Floor
             </span>
           </span>
-          {live ? (
-            <span
-              className={cn(
-                "size-1.5 shrink-0 hub-live-beacon",
-                viewingAll ? "bg-emerald-400" : "bg-emerald-500",
-              )}
-              aria-hidden
-            />
-          ) : null}
           {viewingAll ? (
             <span
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[#B08D48]"
+              className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 bg-[#B08D48]"
               aria-hidden
             />
           ) : null}
@@ -121,7 +115,6 @@ export function CashierStageTabs({
         {cashiers.map((name, index) => {
           const active = selected.includes(name);
           const laneIndex = selected.indexOf(name);
-          const isLast = index === cashiers.length - 1;
           return (
             <button
               key={name}
@@ -139,18 +132,15 @@ export function CashierStageTabs({
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                "relative flex items-center gap-2 px-3.5 py-2.5 text-left transition-colors",
-                !isLast && "border-r border-[#E6E1D8]",
+                "relative flex items-center gap-2.5 border bg-white px-3.5 py-3 text-left transition-colors",
                 active
-                  ? gallery
-                    ? "bg-[#141414] text-[#F5E6C8]"
-                    : "bg-[#F9F6F0] text-[#8A6B2E]"
-                  : "bg-white text-[#141414] hover:bg-[#FCFAF6]",
+                  ? "border-[#B08D48] text-[#141414]"
+                  : "border-[#E6E1D8] text-[#141414] hover:border-[#D4C4A0]",
               )}
             >
               <span
                 className={cn(
-                  "font-mono text-[9px] tabular-nums",
+                  "font-mono text-[10px] tabular-nums",
                   active ? "text-[#B08D48]" : "text-[#C4BBA8]",
                 )}
               >
@@ -161,14 +151,14 @@ export function CashierStageTabs({
               <span className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    "block text-[9px] font-semibold uppercase tracking-[0.12em]",
+                    "block text-[9px] font-semibold uppercase tracking-[0.14em]",
                     active ? "text-[#B08D48]" : "text-[#8A8A8A]",
                   )}
                 >
                   Till
                 </span>
                 <span
-                  className="block truncate text-[13px] font-medium leading-tight"
+                  className="mt-0.5 block truncate text-[14px] font-medium leading-tight"
                   style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
                   title={name}
                 >
@@ -177,7 +167,7 @@ export function CashierStageTabs({
               </span>
               {active ? (
                 <span
-                  className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[#B08D48]"
+                  className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 bg-[#B08D48]"
                   aria-hidden
                 />
               ) : null}

@@ -107,7 +107,7 @@ export function CashierTillDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex size-9 items-center justify-center border border-[#E6E1D8] text-[#666666] transition-colors hover:border-[#141414] hover:bg-[#141414] hover:text-[#F5E6C8]"
+              className="inline-flex size-9 items-center justify-center border border-[#E6E1D8] text-[#666666] transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]"
               aria-label="Close"
             >
               <X className="size-4" aria-hidden />
@@ -135,21 +135,26 @@ export function CashierTillDrawer({
                       : name
                   }
                   className={cn(
-                    "relative flex min-w-[5.5rem] max-w-[9rem] shrink-0 flex-col items-center gap-1 border px-3 py-2 transition-colors",
+                    "relative flex min-w-[5.5rem] max-w-[9rem] shrink-0 flex-col items-center gap-1 border bg-white px-3 py-2 transition-colors",
                     active
-                      ? "border-[#141414] bg-[#141414] text-[#F5E6C8]"
-                      : "border-[#E6E1D8] bg-[#FCFAF6] text-[#666666] hover:border-[#B08D48]",
+                      ? "border-[#B08D48] text-[#141414]"
+                      : "border-[#E6E1D8] text-[#666666] hover:border-[#D4C4A0]",
                   )}
                 >
-                  <span className="absolute left-1.5 top-1 font-mono text-[9px] tabular-nums opacity-50">
+                  <span
+                    className={cn(
+                      "absolute left-1.5 top-1 font-mono text-[9px] tabular-nums",
+                      active ? "text-[#B08D48]" : "text-[#C4BBA8]",
+                    )}
+                  >
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <span
                     className={cn(
                       "flex size-7 items-center justify-center text-[10px] font-semibold",
                       active
-                        ? "bg-[#B08D48] text-[#141414]"
-                        : "bg-white text-[#8A8A8A] ring-1 ring-[#E6E1D8]",
+                        ? "border border-[#B08D48] bg-[#F9F6F0] text-[#8A6B2E]"
+                        : "border border-[#E6E1D8] bg-white text-[#8A8A8A]",
                     )}
                   >
                     {initials(name)}
@@ -157,6 +162,12 @@ export function CashierTillDrawer({
                   <span className="w-full truncate text-center text-[10px] font-semibold tracking-[0.04em]">
                     {shortName(name)}
                   </span>
+                  {active ? (
+                    <span
+                      className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 bg-[#B08D48]"
+                      aria-hidden
+                    />
+                  ) : null}
                 </button>
               );
             })}

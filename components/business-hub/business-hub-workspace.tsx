@@ -760,7 +760,7 @@ export function BusinessHubWorkspace() {
                   disabled={refreshing}
                   className={cn(
                     "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-                    "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
+                    "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
                     "disabled:cursor-not-allowed disabled:opacity-60",
                   )}
@@ -777,7 +777,7 @@ export function BusinessHubWorkspace() {
                     href={APP_ROUTES.businessSettings}
                     className={cn(
                       "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-                      "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
+                      "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
                     )}
                     aria-label="Business settings"

@@ -38,8 +38,8 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
                   className={cn(
                     "flex size-5 shrink-0 items-center justify-center font-mono text-[10px] font-semibold tabular-nums",
                     i === 0
-                      ? "bg-[#141414] text-[#F5E6C8]"
-                      : "border border-[#E6E1D8] bg-[#F7F5F1] text-[#666666]",
+                      ? "border border-[#B08D48] bg-[#F9F6F0] text-[#8A6B2E]"
+                      : "border border-[#E6E1D8] bg-white text-[#666666]",
                   )}
                 >
                   {i + 1}
