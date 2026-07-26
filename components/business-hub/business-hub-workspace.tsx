@@ -93,6 +93,7 @@ import {
 import { groupLinesIntoTransactions } from "@/lib/sale-transactions";
 import {
   ticksFromTransactions,
+  TICK_POOL_LIMIT,
   type RecentTick,
 } from "@/lib/business-hub/ticks-from-transactions";
 
@@ -279,6 +280,7 @@ export function BusinessHubWorkspace() {
           groupLinesIntoTransactions(
             Array.isArray(recentSalesRes) ? recentSalesRes : [],
           ),
+          TICK_POOL_LIMIT,
         ),
       );
     } catch {

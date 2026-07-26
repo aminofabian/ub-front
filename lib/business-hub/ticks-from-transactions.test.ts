@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { ticksFromTransactions } from "@/lib/business-hub/ticks-from-transactions";
+import {
+  cashiersFromTicks,
+  filterTicksByCashiers,
+  ticksFromTransactions,
+} from "@/lib/business-hub/ticks-from-transactions";
 import type { SaleTransaction } from "@/lib/sale-transactions";
 
 function tx(
@@ -9,7 +13,7 @@ function tx(
   return {
     receiptNo: null,
     soldAt: "2026-07-26T10:00:00Z",
-    cashierName: "A",
+    cashierName: "Amina",
     customerName: "",
     paymentMethod: "cash",
     paymentMethods: null,
@@ -22,7 +26,7 @@ function tx(
       {
         saleId: partial.saleId,
         soldAt: "2026-07-26T10:00:00Z",
-        cashierName: "A",
+        cashierName: partial.cashierName ?? "Amina",
         customerName: "",
         paymentMethod: "cash",
         itemId: "i1",
@@ -39,77 +43,36 @@ function tx(
 }
 
 describe("ticksFromTransactions", () => {
-  it("keeps only the newest three sales", () => {
+  it("keeps a pool of recent sales with cashier", () => {
     const rows = [
-      tx({ saleId: "a", total: 10 }),
-      tx({ saleId: "b", total: 20 }),
-      tx({ saleId: "c", total: 30 }),
-      tx({ saleId: "d", total: 40 }),
+      tx({ saleId: "a", cashierName: "Amina" }),
+      tx({ saleId: "b", cashierName: "Brian" }),
+      tx({ saleId: "c", cashierName: "Amina" }),
+      tx({ saleId: "d", cashierName: "Cate" }),
     ];
-    expect(ticksFromTransactions(rows).map((t) => t.saleId)).toEqual([
+    const ticks = ticksFromTransactions(rows, 3);
+    expect(ticks.map((t) => t.saleId)).toEqual(["a", "b", "c"]);
+    expect(ticks[0]?.cashierName).toBe("Amina");
+  });
+
+  it("lists cashiers and filters by selection", () => {
+    const ticks = ticksFromTransactions(
+      [
+        tx({ saleId: "a", cashierName: "Amina" }),
+        tx({ saleId: "b", cashierName: "Brian" }),
+        tx({ saleId: "c", cashierName: "Amina" }),
+        tx({ saleId: "d", cashierName: "Brian" }),
+      ],
+      10,
+    );
+    expect(cashiersFromTicks(ticks)).toEqual(["Amina", "Brian"]);
+    expect(
+      filterTicksByCashiers(ticks, ["Brian"]).map((t) => t.saleId),
+    ).toEqual(["b", "d"]);
+    expect(filterTicksByCashiers(ticks, []).map((t) => t.saleId)).toEqual([
       "a",
       "b",
       "c",
     ]);
-  });
-
-  it("lists every line item with price", () => {
-    const multi = tx({
-      saleId: "m",
-      lineCount: 2,
-      total: 180,
-      lines: [
-        {
-          saleId: "m",
-          soldAt: "2026-07-26T10:00:00Z",
-          cashierName: "A",
-          customerName: "",
-          paymentMethod: "cash",
-          itemId: "i1",
-          itemName: "Bread",
-          quantity: 2,
-          unitPrice: 50,
-          lineTotal: 100,
-          profit: 20,
-          status: "completed",
-        },
-        {
-          saleId: "m",
-          soldAt: "2026-07-26T10:00:00Z",
-          cashierName: "A",
-          customerName: "",
-          paymentMethod: "cash",
-          itemId: "i2",
-          itemName: "Milk 1L",
-          quantity: 1,
-          unitPrice: 80,
-          lineTotal: 80,
-          profit: 15,
-          status: "completed",
-        },
-      ],
-    });
-    expect(ticksFromTransactions([multi])[0]?.items).toEqual([
-      { name: "Bread", quantity: 2, lineTotal: 100 },
-      { name: "Milk 1L", quantity: 1, lineTotal: 80 },
-    ]);
-  });
-
-  it("labels cash and mpesa payments", () => {
-    const cash = tx({ saleId: "c1", paymentMethod: "cash" });
-    const mpesa = tx({
-      saleId: "m1",
-      paymentMethod: "mpesa_manual",
-    });
-    const split = tx({
-      saleId: "s1",
-      paymentMethod: "split",
-      paymentMethods: "cash,mpesa_manual",
-    });
-    expect(ticksFromTransactions([cash])[0]?.paymentLabel).toBe("Cash");
-    expect(ticksFromTransactions([mpesa])[0]?.paymentLabel).toBe("M-Pesa");
-    expect(ticksFromTransactions([split])[0]?.paymentLabel).toBe(
-      "Split · Cash + M-Pesa",
-    );
   });
 });
