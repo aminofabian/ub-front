@@ -3,6 +3,7 @@ import type { SaleTransaction } from "@/lib/sale-transactions";
 export type RecentTickItem = {
   name: string;
   quantity: number;
+  lineTotal: number;
 };
 
 export type RecentTick = {
@@ -16,7 +17,8 @@ const TICK_LIMIT = 3;
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
-  return typeof n === "number" ? n : Number(n);
+  const v = typeof n === "number" ? n : Number(n);
+  return Number.isFinite(v) ? v : 0;
 }
 
 export function ticksFromTransactions(
@@ -30,6 +32,7 @@ export function ticksFromTransactions(
     items: tx.lines.map((line) => ({
       name: line.itemName?.trim() || "Item",
       quantity: Math.max(1, toNum(line.quantity) || 1),
+      lineTotal: toNum(line.lineTotal),
     })),
   }));
 }

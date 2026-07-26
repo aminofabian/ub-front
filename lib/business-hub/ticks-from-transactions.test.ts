@@ -53,10 +53,10 @@ describe("ticksFromTransactions", () => {
     ]);
   });
 
-  it("lists every line item on a sale", () => {
+  it("lists every line item with price", () => {
     const multi = tx({
       saleId: "m",
-      lineCount: 3,
+      lineCount: 2,
       total: 180,
       lines: [
         {
@@ -90,8 +90,8 @@ describe("ticksFromTransactions", () => {
       ],
     });
     expect(ticksFromTransactions([multi])[0]?.items).toEqual([
-      { name: "Bread", quantity: 2 },
-      { name: "Milk 1L", quantity: 1 },
+      { name: "Bread", quantity: 2, lineTotal: 100 },
+      { name: "Milk 1L", quantity: 1, lineTotal: 80 },
     ]);
   });
 });
