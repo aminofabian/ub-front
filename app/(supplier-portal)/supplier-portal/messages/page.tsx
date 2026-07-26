@@ -7,7 +7,7 @@ import { SupplierPortalShell } from "@/components/supplier-portal/supplier-porta
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import {
-  fetchSupplierPortalHubShops,
+  fetchSupplierPortalMessageShops,
   fetchSupplierPortalMessages,
   markSupplierPortalMessageRead,
   sendSupplierPortalMessage,
@@ -39,15 +39,11 @@ export default function SupplierPortalMessagesPage() {
   const [busy, setBusy] = useState(false);
 
   const reload = async () => {
-    const [messages, hub] = await Promise.all([
+    const [messages, nextShops] = await Promise.all([
       fetchSupplierPortalMessages(),
-      fetchSupplierPortalHubShops(),
+      fetchSupplierPortalMessageShops(),
     ]);
     setRows(messages);
-    const nextShops = hub.shops.map((s) => ({
-      localSupplierId: s.localSupplierId,
-      shopName: s.shopName,
-    }));
     setShops(nextShops);
     if (!localSupplierId && nextShops[0]) {
       setLocalSupplierId(nextShops[0].localSupplierId);

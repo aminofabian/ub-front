@@ -1127,6 +1127,19 @@ export async function fetchSupplierPortalMessages(): Promise<SupplierPortalMessa
   return supplierPortalFetch<SupplierPortalMessageRow[]>(API_ROUTES.supplierPortalMessages);
 }
 
+export type SupplierPortalMessageShopOption = {
+  localSupplierId: string;
+  shopName: string;
+};
+
+export async function fetchSupplierPortalMessageShops(): Promise<
+  SupplierPortalMessageShopOption[]
+> {
+  return supplierPortalFetch<SupplierPortalMessageShopOption[]>(
+    `${API_ROUTES.supplierPortalMessages}/shops`,
+  );
+}
+
 export async function sendSupplierPortalMessage(body: {
   localSupplierId: string;
   body: string;
