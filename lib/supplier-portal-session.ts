@@ -11,6 +11,18 @@ export function setSupplierPortalAccessToken(token: string): void {
   window.sessionStorage.setItem(STORAGE_KEYS.supplierPortalAccessToken, token);
 }
 
+export function getSupplierPortalSessionId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return window.sessionStorage.getItem(STORAGE_KEYS.supplierPortalSessionId);
+}
+
+export function setSupplierPortalSessionId(sessionId: string): void {
+  window.sessionStorage.setItem(STORAGE_KEYS.supplierPortalSessionId, sessionId);
+}
+
 export function clearSupplierPortalSession(): void {
   window.sessionStorage.removeItem(STORAGE_KEYS.supplierPortalAccessToken);
+  window.sessionStorage.removeItem(STORAGE_KEYS.supplierPortalSessionId);
 }

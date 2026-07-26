@@ -58,6 +58,9 @@ export const APP_ROUTES = {
   supplierPortalPaymentDetails: "/supplier-portal/payment-details",
   supplierPortalInvoices: "/supplier-portal/invoices",
   supplierPortalStatements: "/supplier-portal/statements",
+  supplierPortalDeliveries: "/supplier-portal/deliveries",
+  supplierPortalNotifications: "/supplier-portal/notifications",
+  supplierPortalSettings: "/supplier-portal/settings",
   customers: "/customers",
   customerPhones: "/customers/phones",
   messages: "/messages",
@@ -178,6 +181,9 @@ export const API_ROUTES = {
   supplierPortalPaymentDetails: "/api/v1/supplier-portal/payment-details",
   supplierPortalInvoices: "/api/v1/supplier-portal/invoices",
   supplierPortalStatements: "/api/v1/supplier-portal/statements",
+  supplierPortalDeliveries: "/api/v1/supplier-portal/deliveries",
+  supplierPortalNotifications: "/api/v1/supplier-portal/notifications",
+  supplierPortalSessions: "/api/v1/supplier-portal/sessions",
   supplierPortalCapabilities: "/api/v1/supplier-portal/capabilities",
   superAdminAuthLogin: "/api/v1/super-admin/auth/login",
   superAdminBusinesses: "/api/v1/super-admin/businesses",
@@ -202,6 +208,7 @@ export const STORAGE_KEYS = {
   tenantId: "ub.tenantId",
   superAdminAccessToken: "ub.sa.accessToken",
   supplierPortalAccessToken: "ub.sp.accessToken",
+  supplierPortalSessionId: "ub.sp.sessionId",
   /** Set on tenant origin after SA impersonation handoff; drives the support banner. */
   impersonationSession: "ub.impersonation",
 } as const;

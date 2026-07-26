@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Bell,
   ClipboardList,
   CreditCard,
   FileText,
   LayoutDashboard,
   LogOut,
   Package,
+  Settings,
   Store,
+  Truck,
   User,
   Wallet,
 } from "lucide-react";
@@ -24,11 +27,14 @@ const NAV = [
   { href: APP_ROUTES.supplierPortalOverview, label: "Dashboard", icon: LayoutDashboard },
   { href: APP_ROUTES.supplierPortalShops, label: "Shops", icon: Store },
   { href: APP_ROUTES.supplierPortalOrders, label: "Orders", icon: ClipboardList },
+  { href: APP_ROUTES.supplierPortalDeliveries, label: "Deliveries", icon: Truck },
   { href: APP_ROUTES.supplierPortalPayments, label: "Payments", icon: Wallet },
   { href: APP_ROUTES.supplierPortalInvoices, label: "Invoices", icon: FileText },
   { href: APP_ROUTES.supplierPortalStatements, label: "Statements", icon: FileText },
   { href: APP_ROUTES.supplierPortalCatalog, label: "Catalogue", icon: Package },
   { href: APP_ROUTES.supplierPortalPaymentDetails, label: "Payout", icon: CreditCard },
+  { href: APP_ROUTES.supplierPortalNotifications, label: "Alerts", icon: Bell },
+  { href: APP_ROUTES.supplierPortalSettings, label: "Settings", icon: Settings },
   { href: APP_ROUTES.supplierPortalProfile, label: "Profile", icon: User },
 ] as const;
 

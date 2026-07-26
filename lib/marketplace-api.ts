@@ -7,6 +7,7 @@ import {
   clearSupplierPortalSession,
   getSupplierPortalAccessToken,
   setSupplierPortalAccessToken,
+  setSupplierPortalSessionId,
 } from "@/lib/supplier-portal-session";
 import type { ItemsPageResult } from "@/lib/api";
 
@@ -130,6 +131,7 @@ export type SupplierDuplicateMatch = {
 
 export type SupplierPortalLoginResult = {
   accessToken: string;
+  sessionId?: string | null;
   userId: string;
   marketplaceSupplierId: string;
   email: string | null;
@@ -468,6 +470,9 @@ export async function loginSupplierPortal(
     throw new Error("Invalid login response");
   }
   setSupplierPortalAccessToken(data.accessToken);
+  if (data.sessionId) {
+    setSupplierPortalSessionId(data.sessionId);
+  }
   return data;
 }
 
@@ -576,11 +581,21 @@ export async function completeSupplierPortalClaim(body: {
   );
   if (data.accessToken) {
     setSupplierPortalAccessToken(data.accessToken);
+    if (data.sessionId) {
+      setSupplierPortalSessionId(data.sessionId);
+    }
   }
   return data;
 }
 
 export function logoutSupplierPortal(): void {
+  const token = getSupplierPortalAccessToken();
+  if (token) {
+    void fetch(apiUrl(`${API_ROUTES.supplierPortalSessions}/logout`), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => undefined);
+  }
   clearSupplierPortalSession();
 }
 
@@ -940,4 +955,102 @@ export async function downloadSupplierPortalStatement(opts: {
   a.download = `statement-${opts.year}-${String(opts.month).padStart(2, "0")}.${opts.format}`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export type SupplierPortalDeliveryRow = {
+  purchaseOrderId: string;
+  businessId: string;
+  businessName: string;
+  poNumber: string;
+  expectedDate: string | null;
+  sentToSupplierAt: string | null;
+  supplierResponseAt: string | null;
+  updatedAt: string | null;
+  deliveryStatus: string;
+  poStatus: string;
+  qtyOrdered: number | string;
+  qtyReceived: number | string;
+};
+
+export async function fetchSupplierPortalDeliveries(): Promise<SupplierPortalDeliveryRow[]> {
+  return supplierPortalFetch<SupplierPortalDeliveryRow[]>(API_ROUTES.supplierPortalDeliveries);
+}
+
+export type SupplierPortalNotificationRow = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  actionUrl: string | null;
+  createdAt: string;
+  readAt: string | null;
+};
+
+export type SupplierPortalNotificationPrefs = {
+  notifyPoInApp: boolean;
+  notifyPoSms: boolean;
+  notifyPaymentInApp: boolean;
+  notifyPaymentSms: boolean;
+  notifyDeliveryInApp: boolean;
+};
+
+export async function fetchSupplierPortalNotifications(): Promise<SupplierPortalNotificationRow[]> {
+  return supplierPortalFetch<SupplierPortalNotificationRow[]>(
+    API_ROUTES.supplierPortalNotifications,
+  );
+}
+
+export async function markSupplierPortalNotificationRead(id: string): Promise<void> {
+  await supplierPortalFetch(`${API_ROUTES.supplierPortalNotifications}/${id}/read`, {
+    method: "POST",
+  });
+}
+
+export async function markAllSupplierPortalNotificationsRead(): Promise<void> {
+  await supplierPortalFetch(`${API_ROUTES.supplierPortalNotifications}/read-all`, {
+    method: "POST",
+  });
+}
+
+export async function fetchSupplierPortalNotificationPrefs(): Promise<SupplierPortalNotificationPrefs> {
+  return supplierPortalFetch<SupplierPortalNotificationPrefs>(
+    `${API_ROUTES.supplierPortalNotifications}/prefs`,
+  );
+}
+
+export async function patchSupplierPortalNotificationPrefs(
+  body: Partial<SupplierPortalNotificationPrefs>,
+): Promise<SupplierPortalNotificationPrefs> {
+  return supplierPortalFetch<SupplierPortalNotificationPrefs>(
+    `${API_ROUTES.supplierPortalNotifications}/prefs`,
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+export type SupplierPortalSessionRow = {
+  sessionId: string;
+  ip: string | null;
+  userAgent: string | null;
+  issuedAt: string;
+  lastSeenAt: string;
+  expiresAt: string;
+  current: boolean;
+  revoked: boolean;
+};
+
+export async function fetchSupplierPortalSessions(): Promise<SupplierPortalSessionRow[]> {
+  return supplierPortalFetch<SupplierPortalSessionRow[]>(API_ROUTES.supplierPortalSessions);
+}
+
+export async function revokeSupplierPortalSession(sessionId: string): Promise<void> {
+  await supplierPortalFetch(`${API_ROUTES.supplierPortalSessions}/${sessionId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function logoutAllSupplierPortalSessions(): Promise<void> {
+  await supplierPortalFetch(`${API_ROUTES.supplierPortalSessions}/logout-all`, {
+    method: "POST",
+  });
+  clearSupplierPortalSession();
 }
