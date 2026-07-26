@@ -7,6 +7,7 @@ import { APP_ROUTES } from "@/lib/config";
 import { fmtMoney } from "@/lib/business-hub/formatters";
 import {
   drawoutStatusLabel,
+  totalDrawoutAmount,
   type HubDrawout,
 } from "@/lib/business-hub/drawouts-for-hub";
 import type { RecentTick } from "@/lib/business-hub/ticks-from-transactions";
@@ -82,6 +83,7 @@ export function RecentTicksRail({
 }) {
   const [now, setNow] = useState(() => Date.now());
   const empty = ticks.length === 0 && drawouts.length === 0;
+  const drawoutTotal = totalDrawoutAmount(drawouts);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 20_000);
@@ -125,7 +127,7 @@ export function RecentTicksRail({
             <p className="mt-0.5 truncate text-[11px] text-[#8A8A8A]">
               {subtitle ??
                 (drawouts.length > 0
-                  ? `${ticks.length || 3} sales · ${drawouts.length} drawout${drawouts.length === 1 ? "" : "s"}`
+                  ? `${ticks.length || 3} sales · open-shift drawouts`
                   : `Last ${ticks.length || 3} sales`)}
             </p>
           </div>
@@ -272,12 +274,28 @@ export function RecentTicksRail({
                 )}
               >
                 <div className="flex items-center justify-between gap-2 border-b border-[#EDE8DF] bg-[#FCFAF6] px-3.5 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
-                    Drawouts
-                  </p>
-                  <p className="text-[10px] tabular-nums text-[#8A8A8A]">
-                    {drawouts.length}
-                  </p>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
+                      Open-shift drawouts
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-[#8A8A8A]">
+                      {drawouts.length}{" "}
+                      {drawouts.length === 1 ? "entry" : "entries"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8A8A8A]">
+                      Total
+                    </p>
+                    <p
+                      className="text-[13px] font-semibold tabular-nums tracking-tight text-[#C47A5A]"
+                      style={{
+                        fontFamily: "var(--font-heading), Georgia, serif",
+                      }}
+                    >
+                      −{fmtMoney(drawoutTotal, currency)}
+                    </p>
+                  </div>
                 </div>
                 <ol className="divide-y divide-[#EDE8DF]">
                   {drawouts.map((row, i) => {
@@ -366,6 +384,19 @@ export function RecentTicksRail({
                     );
                   })}
                 </ol>
+                <div className="flex items-center justify-between gap-2 border-t border-[#E6E1D8] bg-[#FCFAF6] px-3.5 py-2.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]">
+                    Shift drawout total
+                  </span>
+                  <p
+                    className="text-sm font-semibold tabular-nums tracking-tight text-[#C47A5A]"
+                    style={{
+                      fontFamily: "var(--font-heading), Georgia, serif",
+                    }}
+                  >
+                    −{fmtMoney(drawoutTotal, currency)}
+                  </p>
+                </div>
               </section>
             ) : null}
           </div>

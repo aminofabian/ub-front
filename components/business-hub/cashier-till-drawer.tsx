@@ -192,7 +192,7 @@ export function CashierTillDrawer({
             title={activeCashier}
             subtitle={
               activeDrawouts.length > 0
-                ? `Sales & drawouts · ${shortName(activeCashier)}`
+                ? `Open shift · ${shortName(activeCashier)}`
                 : `Last 3 · ${shortName(activeCashier)}`
             }
             showCashier={false}

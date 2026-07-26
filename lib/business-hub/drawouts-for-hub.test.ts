@@ -5,6 +5,7 @@ import {
   cashiersFromDrawouts,
   filterDrawoutsByCashiers,
   hubDrawoutsFromRecords,
+  totalDrawoutAmount,
 } from "@/lib/business-hub/drawouts-for-hub";
 
 function record(
@@ -74,7 +75,7 @@ describe("hubDrawoutsFromRecords", () => {
         shiftCashierName: "moreen",
       }),
     ]);
-    expect(cashiersFromDrawouts(rows)).toEqual(["moreen", "brian", "admin"]);
+    expect(cashiersFromDrawouts(rows)).toEqual(["Moreen", "Brian", "Admin"]);
     expect(filterDrawoutsByCashiers(rows, ["moreen"]).map((r) => r.id)).toEqual(
       ["a", "c"],
     );
@@ -98,5 +99,15 @@ describe("hubDrawoutsFromRecords", () => {
       "b",
       "c",
     ]);
+  });
+
+  it("totals only approved and pending drawouts", () => {
+    const rows = hubDrawoutsFromRecords([
+      record({ id: "a", amount: 100, status: "APPROVED" }),
+      record({ id: "b", amount: 50, status: "PENDING_APPROVAL" }),
+      record({ id: "c", amount: 80, status: "REJECTED" }),
+      record({ id: "d", amount: 20, status: "VOIDED" }),
+    ]);
+    expect(totalDrawoutAmount(rows)).toBe(150);
   });
 });

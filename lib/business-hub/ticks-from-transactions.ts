@@ -30,9 +30,32 @@ function toNum(n: number | string | null | undefined): number {
   return Number.isFinite(v) ? v : 0;
 }
 
+/** Case-insensitive identity key for the same person behind a till. */
+export function cashierIdentityKey(name: string | null | undefined): string {
+  return (name?.trim() || UNKNOWN_CASHIER).toLowerCase();
+}
+
+/**
+ * Canonical display name so "moreen" and "Moreen" collapse to one till tab.
+ */
 export function normalizeCashierName(name: string | null | undefined): string {
   const trimmed = name?.trim() ?? "";
-  return trimmed || UNKNOWN_CASHIER;
+  if (!trimmed) return UNKNOWN_CASHIER;
+  return trimmed
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+export function cashierNamesMatch(a: string, b: string): boolean {
+  if (a === b) return true;
+  const left = cashierIdentityKey(a);
+  const right = cashierIdentityKey(b);
+  if (left === right) return true;
+  const leftFirst = left.split(/\s+/)[0] ?? left;
+  const rightFirst = right.split(/\s+/)[0] ?? right;
+  return leftFirst.length > 1 && leftFirst === rightFirst;
 }
 
 export function ticksFromTransactions(
@@ -61,8 +84,9 @@ export function cashiersFromTicks(ticks: RecentTick[]): string[] {
   const seen = new Set<string>();
   const names: string[] = [];
   for (const tick of ticks) {
-    if (seen.has(tick.cashierName)) continue;
-    seen.add(tick.cashierName);
+    const key = cashierIdentityKey(tick.cashierName);
+    if (seen.has(key)) continue;
+    seen.add(key);
     names.push(tick.cashierName);
   }
   return names;
@@ -80,8 +104,9 @@ export function filterTicksByCashiers(
   if (selectedCashiers.length === 0) {
     return ticks.slice(0, displayLimit);
   }
-  const allowed = new Set(selectedCashiers);
   return ticks
-    .filter((tick) => allowed.has(tick.cashierName))
+    .filter((tick) =>
+      selectedCashiers.some((name) => cashierNamesMatch(name, tick.cashierName)),
+    )
     .slice(0, displayLimit);
 }

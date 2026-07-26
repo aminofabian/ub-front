@@ -90,7 +90,6 @@ import {
   type ProfitAndLossResponse,
   type RecentSaleRow,
   type SalesRegisterResponse,
-  type ShiftListItem,
 } from "@/lib/api";
 import { groupLinesIntoTransactions } from "@/lib/sale-transactions";
 import {
@@ -209,9 +208,8 @@ export function BusinessHubWorkspace() {
         prevWeekReg,
         batchDash,
         expiryRes,
-        recentSalesRes,
         openShiftsRes,
-        recentShiftsRes,
+        recentSalesRes,
       ] = await Promise.all([
         canViewOwnerSummary
           ? fetchDashboardOwnerSummary(branch, type).catch(() => null)
@@ -265,11 +263,6 @@ export function BusinessHubWorkspace() {
               () => null,
             )
           : Promise.resolve(null),
-        canViewSalesIntelligence
-          ? fetchRecentSales(ticksFrom, ticksTo, branch, type).catch(
-              () => [] as RecentSaleRow[],
-            )
-          : Promise.resolve([] as RecentSaleRow[]),
         canViewShifts
           ? fetchShifts({
               branchId: branch,
@@ -277,9 +270,11 @@ export function BusinessHubWorkspace() {
               size: 30,
             }).catch(() => null)
           : Promise.resolve(null),
-        canViewShifts
-          ? fetchShifts({ branchId: branch, size: 30 }).catch(() => null)
-          : Promise.resolve(null),
+        canViewSalesIntelligence
+          ? fetchRecentSales(ticksFrom, ticksTo, branch, type).catch(
+              () => [] as RecentSaleRow[],
+            )
+          : Promise.resolve([] as RecentSaleRow[]),
       ]);
 
       if (gen !== loadGen.current) return;
@@ -307,17 +302,10 @@ export function BusinessHubWorkspace() {
         ),
       );
 
-      const shiftMap = new Map<string, ShiftListItem>();
-      for (const row of [
-        ...(openShiftsRes?.shifts ?? []),
-        ...(recentShiftsRes?.shifts ?? []),
-      ]) {
-        shiftMap.set(row.id, row);
-      }
-      const shiftRows = [...shiftMap.values()];
-      if (shiftRows.length > 0) {
+      const openShiftRows = openShiftsRes?.shifts ?? [];
+      if (openShiftRows.length > 0) {
         const drawoutLists = await Promise.all(
-          shiftRows.map(async (shift) => {
+          openShiftRows.map(async (shift) => {
             const list = await fetchShiftDrawouts(shift.id).catch(
               () => [] as DrawoutRecord[],
             );
@@ -721,11 +709,12 @@ export function BusinessHubWorkspace() {
   const cashierNames = useMemo(() => {
     const fromSales = cashiersFromTicks(recentTicks);
     const fromDrawouts = cashiersFromDrawouts(recentDrawouts);
-    const seen = new Set(fromSales);
+    const seen = new Set(fromSales.map((name) => name.toLowerCase()));
     const names = [...fromSales];
     for (const name of fromDrawouts) {
-      if (seen.has(name)) continue;
-      seen.add(name);
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
       names.push(name);
     }
     return names;
@@ -742,7 +731,7 @@ export function BusinessHubWorkspace() {
           title: "Floor tape",
           subtitle:
             drawouts.length > 0
-              ? "Last 3 sales · recent drawouts"
+              ? "Open-shift sales & drawouts"
               : "Last 3 · every cashier",
           ticks: filterTicksByCashiers(recentTicks, []),
           drawouts,
@@ -759,7 +748,7 @@ export function BusinessHubWorkspace() {
         title: name,
         subtitle:
           drawouts.length > 0
-            ? `Sales & drawouts · ${short}`
+            ? `Open shift · ${short}`
             : `Last 3 · ${short}`,
         ticks: filterTicksByCashiers(recentTicks, [name]),
         drawouts,
@@ -773,9 +762,31 @@ export function BusinessHubWorkspace() {
   const showTillStage = canViewSalesIntelligence;
 
   useEffect(() => {
-    setSelectedCashiers((prev) =>
-      prev.filter((name) => cashierNames.includes(name)),
-    );
+    setSelectedCashiers((prev) => {
+      const next = prev
+        .map((name) => {
+          const match = cashierNames.find(
+            (candidate) => candidate.toLowerCase() === name.toLowerCase(),
+          );
+          return match ?? null;
+        })
+        .filter((name): name is string => Boolean(name));
+      const unique: string[] = [];
+      const seen = new Set<string>();
+      for (const name of next) {
+        const key = name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        unique.push(name);
+      }
+      if (
+        unique.length === prev.length &&
+        unique.every((name, i) => name === prev[i])
+      ) {
+        return prev;
+      }
+      return unique;
+    });
   }, [cashierNames]);
 
   if (loading) return <BusinessHubSkeleton />;

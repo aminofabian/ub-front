@@ -1,10 +1,13 @@
 "use client";
 
 import type { DrawoutRecord } from "@/lib/api";
-import { normalizeCashierName } from "@/lib/business-hub/ticks-from-transactions";
+import {
+  cashierIdentityKey,
+  cashierNamesMatch,
+  normalizeCashierName,
+} from "@/lib/business-hub/ticks-from-transactions";
 
-export const DRAWOUT_POOL_LIMIT = 20;
-export const DRAWOUT_DISPLAY_LIMIT = 5;
+export const DRAWOUT_POOL_LIMIT = 50;
 
 export const HUB_DRAWOUT_CATEGORIES: Record<string, string> = {
   PETTY_CASH: "Petty cash",
@@ -13,6 +16,8 @@ export const HUB_DRAWOUT_CATEGORIES: Record<string, string> = {
   RECURRING: "Recurring",
   OTHER: "Other",
 };
+
+const ACTIVE_DRAWOUT_STATUSES = new Set(["APPROVED", "PENDING_APPROVAL"]);
 
 export type HubDrawout = {
   id: string;
@@ -47,6 +52,18 @@ export function drawoutStatusLabel(status: string): string {
   if (status === "VOIDED") return "Voided";
   if (status === "EXPIRED") return "Expired";
   return status;
+}
+
+export function isActiveDrawoutStatus(status: string): boolean {
+  return ACTIVE_DRAWOUT_STATUSES.has(status);
+}
+
+/** Sum of approved + pending drawouts (cash out / reserved on the open shift). */
+export function totalDrawoutAmount(drawouts: HubDrawout[]): number {
+  return drawouts.reduce((sum, row) => {
+    if (!isActiveDrawoutStatus(row.status)) return sum;
+    return sum + row.amount;
+  }, 0);
 }
 
 export function hubDrawoutsFromRecords(
@@ -90,43 +107,32 @@ export function cashiersFromDrawouts(drawouts: HubDrawout[]): string[] {
   const names: string[] = [];
   for (const row of drawouts) {
     for (const name of [row.cashierName, row.shiftCashierName]) {
-      if (seen.has(name)) continue;
-      seen.add(name);
+      const key = cashierIdentityKey(name);
+      if (seen.has(key)) continue;
+      seen.add(key);
       names.push(name);
     }
   }
   return names;
 }
 
-function namesMatch(a: string, b: string): boolean {
-  if (a === b) return true;
-  const left = a.toLowerCase();
-  const right = b.toLowerCase();
-  if (left === right) return true;
-  const leftFirst = left.split(/\s+/)[0] ?? left;
-  const rightFirst = right.split(/\s+/)[0] ?? right;
-  return leftFirst.length > 1 && leftFirst === rightFirst;
-}
-
 /**
- * Filter drawouts for the active stage selection.
- * Empty selection = floor (all). A cashier lane matches initiator or shift owner.
+ * Filter open-shift drawouts for the active stage selection.
+ * Empty selection = floor (all open shifts). A cashier lane matches
+ * initiator or shift owner. Returns every match on the open shift(s).
  */
 export function filterDrawoutsByCashiers(
   drawouts: HubDrawout[],
   selectedCashiers: string[],
-  displayLimit = DRAWOUT_DISPLAY_LIMIT,
 ): HubDrawout[] {
   if (selectedCashiers.length === 0) {
-    return drawouts.slice(0, displayLimit);
+    return drawouts;
   }
-  return drawouts
-    .filter((row) =>
-      selectedCashiers.some(
-        (name) =>
-          namesMatch(name, row.cashierName) ||
-          namesMatch(name, row.shiftCashierName),
-      ),
-    )
-    .slice(0, displayLimit);
+  return drawouts.filter((row) =>
+    selectedCashiers.some(
+      (name) =>
+        cashierNamesMatch(name, row.cashierName) ||
+        cashierNamesMatch(name, row.shiftCashierName),
+    ),
+  );
 }

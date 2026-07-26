@@ -75,4 +75,24 @@ describe("ticksFromTransactions", () => {
       "c",
     ]);
   });
+
+  it("collapses casing variants into one cashier tab", () => {
+    const ticks = ticksFromTransactions(
+      [
+        tx({ saleId: "a", cashierName: "moreen" }),
+        tx({ saleId: "b", cashierName: "Agnes" }),
+        tx({ saleId: "c", cashierName: "Moreen" }),
+      ],
+      10,
+    );
+    expect(ticks.map((t) => t.cashierName)).toEqual([
+      "Moreen",
+      "Agnes",
+      "Moreen",
+    ]);
+    expect(cashiersFromTicks(ticks)).toEqual(["Moreen", "Agnes"]);
+    expect(
+      filterTicksByCashiers(ticks, ["moreen"]).map((t) => t.saleId),
+    ).toEqual(["a", "c"]);
+  });
 });
