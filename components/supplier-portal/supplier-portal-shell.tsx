@@ -31,7 +31,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Overview",
     items: [
       { href: APP_ROUTES.supplierPortalOverview, label: "Dashboard" },
-      { href: APP_ROUTES.supplierPortalShops, label: "Shops", money: true },
+      { href: APP_ROUTES.supplierPortalShops, label: "Shops" },
     ],
   },
   {

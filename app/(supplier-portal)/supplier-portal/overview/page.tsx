@@ -84,7 +84,14 @@ export default function SupplierPortalOverviewPage() {
       try {
         const caps = await fetchSupplierPortalCapabilities();
         setCanViewMoney(caps.canViewMoney);
-        const orders = await fetchSupplierPortalOrders();
+        const [orders, shops] = await Promise.all([
+          fetchSupplierPortalOrders(),
+          fetchSupplierPortalHubShops().catch(() => null),
+        ]);
+        if (shops) {
+          setHub(shops);
+          setPartialShopCount(shops.shops.filter((s) => toNum(s.pending) > 0).length);
+        }
         const pending = orders.filter((o) => !o.supplierResponseAt);
         setPendingOrders(pending.length);
         const dayMs = 24 * 60 * 60 * 1000;
@@ -95,15 +102,10 @@ export default function SupplierPortalOverviewPage() {
           }).length,
         );
         if (caps.canViewMoney) {
-          const [shops, payments] = await Promise.all([
-            fetchSupplierPortalHubShops(),
-            fetchSupplierPortalPayments(),
-          ]);
-          setHub(shops);
+          const payments = await fetchSupplierPortalPayments();
           const todayPays = payments.filter((p) => isToday(p.paidAt));
           setTodayCollections(todayPays.reduce((sum, p) => sum + toNum(p.amount), 0));
           setShopsPaidToday(new Set(todayPays.map((p) => p.localSupplierId).filter(Boolean)).size);
-          setPartialShopCount(shops.shops.filter((s) => toNum(s.pending) > 0).length);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load dashboard");
@@ -114,7 +116,7 @@ export default function SupplierPortalOverviewPage() {
   }, [router]);
 
   const currency = hub?.currency ?? "KES";
-  const emptyShops = loaded && canViewMoney && (!hub || hub.shopCount === 0);
+  const emptyShops = loaded && (!hub || hub.shopCount === 0);
 
   const shopsHint = useMemo(() => {
     if (!hub) return "Connected storefronts";
