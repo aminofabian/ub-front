@@ -1,0 +1,69 @@
+"use client";
+
+import { useEffect, useId, useRef } from "react";
+
+import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
+
+const PULSE_REFETCH_DEBOUNCE_MS = 400;
+
+type BusinessHubRealtimeOptions = {
+  /** Selected hub branch; empty = all branches. */
+  branchId: string;
+  enabled?: boolean;
+  onInvalidate: () => void;
+};
+
+function frameBranchId(frame: RealtimeFrame): string {
+  return String(frame.data.branchId ?? "").trim();
+}
+
+/**
+ * Invalidates Morning board metrics when sales or shifts change.
+ * WebSocket signal only — metrics still load via REST (no polling).
+ */
+export function useBusinessHubRealtime({
+  branchId,
+  enabled = true,
+  onInvalidate,
+}: BusinessHubRealtimeOptions) {
+  const subscriptionId = useId();
+  const onInvalidateRef = useRef(onInvalidate);
+  onInvalidateRef.current = onInvalidate;
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    let stopped = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleInvalidate = (frame: RealtimeFrame) => {
+      if (stopped) return;
+      const scope = branchIdRef.current.trim();
+      const eventBranch = frameBranchId(frame);
+      if (scope && eventBranch && scope !== eventBranch) return;
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        if (!stopped) onInvalidateRef.current();
+      }, PULSE_REFETCH_DEBOUNCE_MS);
+    };
+
+    const client = getRealtimeClient();
+    const unregister = client.registerListener(subscriptionId, {
+      channels: ["pos"],
+      onSaleCompleted: scheduleInvalidate,
+      onShiftOpened: scheduleInvalidate,
+      onShiftClosed: scheduleInvalidate,
+      onPaymentConfirmed: scheduleInvalidate,
+    });
+
+    return () => {
+      stopped = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      unregister();
+    };
+  }, [enabled, subscriptionId]);
+}

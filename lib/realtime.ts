@@ -53,6 +53,10 @@ export type RealtimeEventType =
   | "stock.depleted"
   | "price.changed"
   | "payment.confirmed"
+  | "sale.completed"
+  | "shift.opened"
+  | "shift.closed"
+  | "shift.variance_detected"
   | "approval.requested"
   | "approval.resolved"
   | "transfer.initiated"
@@ -104,6 +108,9 @@ export interface RealtimeClientOptions {
   onStockDepleted?: FrameHandler;
   onPriceChanged?: FrameHandler;
   onPaymentConfirmed?: FrameHandler;
+  onSaleCompleted?: FrameHandler;
+  onShiftOpened?: FrameHandler;
+  onShiftClosed?: FrameHandler;
   onApprovalRequested?: FrameHandler;
   onApprovalResolved?: FrameHandler;
   onGroceryInvoiceCreated?: FrameHandler;
@@ -132,6 +139,9 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "stock.depleted": "onStockDepleted",
   "price.changed": "onPriceChanged",
   "payment.confirmed": "onPaymentConfirmed",
+  "sale.completed": "onSaleCompleted",
+  "shift.opened": "onShiftOpened",
+  "shift.closed": "onShiftClosed",
   "approval.requested": "onApprovalRequested",
   "approval.resolved": "onApprovalResolved",
   "grocery.invoice.created": "onGroceryInvoiceCreated",
@@ -259,6 +269,9 @@ export type RealtimeListenerOptions = Pick<
   | "onStockDepleted"
   | "onPriceChanged"
   | "onPaymentConfirmed"
+  | "onSaleCompleted"
+  | "onShiftOpened"
+  | "onShiftClosed"
   | "onApprovalRequested"
   | "onApprovalResolved"
   | "onGroceryInvoiceCreated"
@@ -276,6 +289,9 @@ const LISTENER_HANDLER_KEYS = [
   "onStockDepleted",
   "onPriceChanged",
   "onPaymentConfirmed",
+  "onSaleCompleted",
+  "onShiftOpened",
+  "onShiftClosed",
   "onApprovalRequested",
   "onApprovalResolved",
   "onGroceryInvoiceCreated",

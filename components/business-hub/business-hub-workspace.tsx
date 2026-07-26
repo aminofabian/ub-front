@@ -31,6 +31,8 @@ import { PulseHero } from "@/components/business-hub/pulse-hero";
 import { RevenueBarChart } from "@/components/business-hub/revenue-bar-chart";
 import { StockHealthPanel } from "@/components/business-hub/stock-health-panel";
 import { TopMoversPanel } from "@/components/business-hub/top-movers-panel";
+import { useBusinessHubRealtime } from "@/hooks/use-business-hub-realtime";
+import { useOptionalRealtime } from "@/components/realtime-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { isButcherPosEnabled } from "@/lib/butcher-feature";
 import {
@@ -271,6 +273,18 @@ export function BusinessHubWorkspace() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useBusinessHubRealtime({
+    branchId,
+    enabled: headerScopeReady,
+    onInvalidate: () => {
+      void load();
+    },
+  });
+
+  const realtime = useOptionalRealtime();
+  const pulseLive =
+    business?.active !== false && realtime?.connectionState === "connected";
 
   const activeRange = useMemo(
     () => (period === "today" ? presetRange("today")! : presetRange("last7")!),
@@ -631,12 +645,21 @@ export function BusinessHubWorkspace() {
             <span
               className={cn(
                 "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                isActive
+                pulseLive
                   ? "bg-emerald-500/10 text-emerald-700"
-                  : "bg-muted text-muted-foreground",
+                  : isActive
+                    ? "bg-amber-500/10 text-amber-800"
+                    : "bg-muted text-muted-foreground",
               )}
+              title={
+                pulseLive
+                  ? "Connected — figures update when sales complete"
+                  : isActive
+                    ? "Reconnecting realtime…"
+                    : "Business paused"
+              }
             >
-              {isActive ? "Live" : "Paused"}
+              {pulseLive ? "Live" : isActive ? "Syncing" : "Paused"}
             </span>
             <span className="text-[10px] font-medium uppercase tracking-wide text-[#AAAAAA] capitalize">
               {tier}
