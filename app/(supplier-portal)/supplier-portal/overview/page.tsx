@@ -68,7 +68,12 @@ export default function SupplierPortalOverviewPage() {
   const [canViewMoney, setCanViewMoney] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
-  const [now] = useState(() => new Date());
+  // Client-only stamp — server/browser timezone would hydrate-mismatch (#418).
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+  }, []);
 
   useEffect(() => {
     if (!getSupplierPortalAccessToken()) {
@@ -130,7 +135,9 @@ export default function SupplierPortalOverviewPage() {
                 : "Orders and catalogue activity for your supplier account."}
             </p>
           </div>
-          <p className="pt-2 text-xs text-[var(--sp-muted)] tabular-nums">{formatStamp(now)}</p>
+          <p className="pt-2 text-xs text-[var(--sp-muted)] tabular-nums">
+            {now ? formatStamp(now) : "\u00a0"}
+          </p>
         </header>
 
         {error ? (
