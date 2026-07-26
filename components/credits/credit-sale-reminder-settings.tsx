@@ -386,11 +386,13 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                         enabled,
                         paymentAccountUrl: paymentUrl.trim(),
                         whatsappMetaAccessToken: "",
+                        whatsappMetaPhoneNumberId: "",
                       });
                       setSettings(updated);
                       setWhatsappToken("");
+                      setWhatsappPhoneId("");
                       setMessage({
-                        text: "Tenant Meta access token cleared — platform token will be used.",
+                        text: "Tenant Meta token and phone ID cleared — platform settings will be used.",
                         kind: "success",
                       });
                     } catch (err) {
