@@ -505,6 +505,7 @@ export async function sendSupplierPortalClaimCode(phone: string): Promise<{
   expiresAt: string | null;
   channel: string | null;
   alreadyRegistered: boolean;
+  devCode?: string | null;
 }> {
   return publicSupplierAuthFetch(API_ROUTES.supplierPortalAuthClaimSendCode, {
     phone: phone.trim(),

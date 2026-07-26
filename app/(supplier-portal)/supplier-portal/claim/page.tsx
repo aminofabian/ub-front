@@ -37,6 +37,7 @@ function ClaimWizard() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [devCodeHint, setDevCodeHint] = useState("");
 
   const codeLength = config?.codeLength ?? 6;
   const passwordMin = config?.passwordMinLength ?? 8;
@@ -83,6 +84,10 @@ function ClaimWizard() {
         }
         setPhone(res.phone);
         setMaskedPhone(res.maskedPhone);
+        setDevCodeHint(res.devCode?.trim() || "");
+        if (res.devCode?.trim()) {
+          setCode(res.devCode.trim());
+        }
         setStep("code");
       })
       .catch((err) => {
@@ -101,6 +106,7 @@ function ClaimWizard() {
   const onSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setDevCodeHint("");
     setBusy(true);
     try {
       const res = await sendSupplierPortalClaimCode(phone);
@@ -110,6 +116,10 @@ function ClaimWizard() {
       }
       setPhone(res.phone);
       setMaskedPhone(res.maskedPhone);
+      setDevCodeHint(res.devCode?.trim() || "");
+      if (res.devCode?.trim()) {
+        setCode(res.devCode.trim());
+      }
       setStep("code");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send code");
@@ -283,6 +293,12 @@ function ClaimWizard() {
             <p className="text-sm text-muted-foreground">
               Enter the {codeLength}-digit code sent to {maskedPhone || phone}.
             </p>
+            {devCodeHint ? (
+              <AuthAlert variant="success">
+                SMS is not configured on this environment. Use code{" "}
+                <span className="font-mono font-semibold tracking-wider">{devCodeHint}</span>.
+              </AuthAlert>
+            ) : null}
             <label className="text-sm font-medium" htmlFor="claim-code">
               Verification code
             </label>
