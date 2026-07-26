@@ -656,13 +656,16 @@ export function BusinessHubWorkspace() {
   const title = business?.name ?? me?.name ?? "Business";
   const tier = business?.subscriptionTier ?? "starter";
   const isActive = business?.active !== false;
+  const topMovers = ownerSummary?.topSkusLast30Days ?? [];
+  const showMovers = canViewOwnerSummary && topMovers.length > 0;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-16">
-      <header className="flex flex-wrap items-start justify-between gap-2 border-b border-[#EEEEEE] pb-2.5">
+    <div className="hub-paper -mx-3 min-h-full px-3 py-3 sm:-mx-4 sm:px-4 sm:py-4 lg:mx-0 lg:px-0">
+      <div className="mx-auto w-full max-w-5xl space-y-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-16">
+      <header className="hub-rise flex flex-wrap items-end justify-between gap-3 border-b border-[#E6E1D8] pb-3">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <p className={cn("hidden text-xs font-medium uppercase tracking-[0.08em] 2xl:inline", HUB_MUTED)}>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B08D48]">
               Morning board
             </p>
             <HubLiveStatus
@@ -670,18 +673,23 @@ export function BusinessHubWorkspace() {
               lastLiveUpdateAt={lastLiveUpdateAt}
               justUpdated={justUpdated}
             />
-            <span className="hidden text-[10px] font-medium uppercase tracking-wide text-[#AAAAAA] capitalize 2xl:inline">
+            <span className="hidden border border-[#E6E1D8] bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#8A8A8A] capitalize sm:inline">
               {tier}
             </span>
           </div>
           <h1
-            className="hidden text-xl font-medium tracking-tight text-black 2xl:mt-0.5 2xl:block"
+            className="mt-1.5 text-[clamp(1.35rem,2.5vw,1.85rem)] font-medium tracking-tight text-[#141414]"
             style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
           >
             {title}
           </h1>
-          <ActiveScopeSubtitle className={cn("mt-0 text-xs 2xl:mt-0.5", HUB_MUTED)} />
-          <p className={cn("mt-0.5 text-xs", HUB_MUTED)}>{periodSubtitle}</p>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <ActiveScopeSubtitle className={cn("text-xs", HUB_MUTED)} />
+            <span className="hidden text-[#D0C6B4] sm:inline" aria-hidden>
+              ·
+            </span>
+            <p className={cn("text-xs", HUB_MUTED)}>{periodSubtitle}</p>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <button
@@ -689,8 +697,8 @@ export function BusinessHubWorkspace() {
             onClick={() => void load()}
             disabled={refreshing}
             className={cn(
-              "inline-flex size-8 items-center justify-center border border-[#EEEEEE] bg-white text-[#666666]",
-              "transition-colors hover:bg-[#F9F6F0] hover:text-[#B08D48]",
+              "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+              "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
               "disabled:cursor-not-allowed disabled:opacity-60",
             )}
@@ -706,8 +714,8 @@ export function BusinessHubWorkspace() {
             <Link
               href={APP_ROUTES.businessSettings}
               className={cn(
-                "inline-flex size-8 items-center justify-center border border-[#EEEEEE] bg-white text-[#666666]",
-                "transition-colors hover:bg-[#F9F6F0] hover:text-[#B08D48]",
+                "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                "transition-colors hover:border-[#B08D48] hover:bg-[#141414] hover:text-[#F5E6C8]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
               )}
               aria-label="Business settings"
@@ -726,7 +734,7 @@ export function BusinessHubWorkspace() {
       ) : null}
 
       <PulseHero
-        eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
+        eyebrow={isToday ? "01 · Today's pulse" : "01 · This week's pulse"}
         revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
         revenue={money(revenue)}
         headline={headline}
@@ -752,10 +760,16 @@ export function BusinessHubWorkspace() {
         )
       ) : null}
 
-      <StockHealthPanel items={stockItems} />
-
-      {canViewOwnerSummary ? (
-        <TopMoversPanel movers={ownerSummary?.topSkusLast30Days ?? []} />
+      {(stockItems.length > 0 || showMovers) ? (
+        <div
+          className={cn(
+            "grid gap-3 lg:items-start",
+            stockItems.length > 0 && showMovers && "lg:grid-cols-[0.95fr_1.05fr]",
+          )}
+        >
+          <StockHealthPanel items={stockItems} />
+          {showMovers ? <TopMoversPanel movers={topMovers} /> : null}
+        </div>
       ) : null}
 
       <CommandGrid links={commandLinks} />
@@ -763,6 +777,7 @@ export function BusinessHubWorkspace() {
       <StockShelvesBanner catalogueCount={catalogueCount} />
 
       <PostSetupChecklist catalogueCount={catalogueCount} />
+      </div>
     </div>
   );
 }

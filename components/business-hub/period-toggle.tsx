@@ -11,10 +11,10 @@ export function PeriodToggle({
   onChange: (p: Period) => void;
 }) {
   return (
-    <div className="inline-flex shrink-0 items-center border border-[#EEEEEE] bg-white p-0.5">
+    <div className="inline-flex shrink-0 items-stretch border border-[#E6E1D8] bg-[#F7F5F1] p-0.5">
       {(
         [
-          { id: "week" as const, label: "This week" },
+          { id: "week" as const, label: "Week" },
           { id: "today" as const, label: "Today" },
         ] as const
       ).map(({ id, label }) => {
@@ -25,10 +25,10 @@ export function PeriodToggle({
             type="button"
             onClick={() => onChange(id)}
             className={cn(
-              "px-3 py-1 text-xs font-medium transition-colors",
+              "relative min-w-[4.25rem] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors",
               active
-                ? "border border-[#E8DFD0] bg-[#F9F6F0] text-[#B08D48]"
-                : "border border-transparent text-[#666666] hover:text-foreground",
+                ? "bg-[#141414] text-[#F5E6C8]"
+                : "text-[#666666] hover:text-[#141414]",
             )}
           >
             {label}

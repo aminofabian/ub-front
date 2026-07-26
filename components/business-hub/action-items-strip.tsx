@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { ArrowRight, AlertTriangle, Info } from "lucide-react";
 
-import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export type ActionItem = {
@@ -20,20 +21,19 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   }
 
   return (
-    <section className="space-y-1.5">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-        <h2 className={cn("text-xs font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
-          Needs attention
-        </h2>
-        <p className="text-[11px] text-[#888888]">
-          {items.length === 1
+    <section className="hub-rise hub-rise-delay-2 space-y-2">
+      <HubSectionLabel
+        index="03"
+        title="Needs attention"
+        meta={
+          items.length === 1
             ? "One thing to clear"
-            : `${items.length} items · clear before reports`}
-        </p>
-      </div>
+            : `${items.length} items · clear before reports`
+        }
+      />
       <div
         className={cn(
-          "grid gap-px border border-[#EEEEEE] bg-[#EEEEEE]",
+          "grid gap-px border border-[#E6E1D8] bg-[#E6E1D8]",
           items.length === 1 && "grid-cols-1",
           items.length === 2 && "sm:grid-cols-2",
           items.length >= 3 && "sm:grid-cols-2 lg:grid-cols-3",
@@ -47,12 +47,19 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               href={item.href}
               className={cn(
                 HUB_SURFACE,
-                "group flex items-center gap-2.5 border-0 px-3 py-2 transition-colors hover:bg-[#FCFBF8]",
+                "group relative flex items-center gap-2.5 overflow-hidden border-0 px-3 py-2.5 transition-colors hover:bg-[#FCFAF6]",
               )}
             >
               <span
                 className={cn(
-                  "flex size-7 shrink-0 items-center justify-center",
+                  "absolute inset-y-0 left-0 w-0.5",
+                  item.tone === "warning" ? "bg-[#C47A5A]" : "bg-[#B08D48]",
+                )}
+                aria-hidden
+              />
+              <span
+                className={cn(
+                  "ml-1 flex size-7 shrink-0 items-center justify-center",
                   item.tone === "warning"
                     ? "bg-[#C47A5A]/10 text-[#C47A5A]"
                     : "bg-[#F9F6F0] text-[#B08D48]",
@@ -61,7 +68,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
                 <Icon className="size-3.5" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-black">
+                <span className="block truncate text-sm font-semibold text-[#141414]">
                   {item.label}
                 </span>
                 {item.detail ? (
@@ -71,7 +78,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
                 ) : null}
               </span>
               <ArrowRight
-                className="size-3.5 shrink-0 text-[#DDDDDD] transition-colors group-hover:text-[#B08D48]"
+                className="size-3.5 shrink-0 text-[#DDDDDD] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#B08D48]"
                 aria-hidden
               />
             </Link>

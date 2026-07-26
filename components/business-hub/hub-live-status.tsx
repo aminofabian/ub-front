@@ -3,16 +3,12 @@
 import { useEffect, useState } from "react";
 
 import { useOptionalRealtime } from "@/components/realtime-provider";
-import { HUB_MUTED } from "@/lib/business-hub/constants";
 import type { RealtimeConnectionState } from "@/lib/realtime";
 import { cn } from "@/lib/utils";
 
 type HubLiveStatusProps = {
-  /** Business is active (not paused). */
   businessActive?: boolean;
-  /** Epoch ms of the last websocket-driven hub refresh. */
   lastLiveUpdateAt?: number | null;
-  /** Brief flash after a realtime invalidate. */
   justUpdated?: boolean;
   className?: string;
 };
@@ -53,7 +49,7 @@ function resolveStatus(
     if (justUpdated) {
       return {
         label: "Live",
-        detail: "Updated",
+        detail: "Tick",
         title: "WebSocket connected — board just refreshed from a live event",
         tone: "live",
       };
@@ -69,7 +65,7 @@ function resolveStatus(
     }
     return {
       label: "Live",
-      detail: "Realtime",
+      detail: "Listening",
       title:
         "WebSocket connected — figures refresh when sales, payments, or shifts change",
       tone: "live",
@@ -120,14 +116,15 @@ export function HubLiveStatus({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
+        "relative inline-flex items-center gap-2 overflow-hidden border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
         view.tone === "live" &&
-          "border-emerald-200 bg-emerald-500/10 text-emerald-800",
+          "border-emerald-300/80 bg-[#0B1F17] text-emerald-100",
         view.tone === "sync" &&
-          "border-amber-200 bg-amber-500/10 text-amber-900",
-        view.tone === "off" && "border-[#EEEEEE] bg-[#F7F7F7] text-[#666666]",
-        view.tone === "paused" && "border-[#EEEEEE] bg-muted text-muted-foreground",
-        justUpdated && "ring-1 ring-emerald-400/50",
+          "border-amber-300 bg-amber-50 text-amber-950",
+        view.tone === "off" && "border-[#E6E1D8] bg-[#F7F5F1] text-[#666666]",
+        view.tone === "paused" &&
+          "border-[#E6E1D8] bg-muted text-muted-foreground",
+        justUpdated && view.tone === "live" && "hub-scan-sweep",
         className,
       )}
       title={view.title}
@@ -136,18 +133,24 @@ export function HubLiveStatus({
     >
       <span
         className={cn(
-          "size-1.5 shrink-0",
-          view.tone === "live" && "bg-emerald-500",
+          "relative size-1.5 shrink-0",
+          view.tone === "live" && "bg-emerald-400 hub-live-beacon",
           view.tone === "sync" && "animate-pulse bg-amber-500",
           view.tone === "off" && "bg-[#BBBBBB]",
           view.tone === "paused" && "bg-muted-foreground/50",
-          view.tone === "live" && justUpdated && "animate-pulse",
         )}
         aria-hidden
       />
-      <span>{view.label}</span>
-      <span className={cn("font-medium normal-case tracking-normal", HUB_MUTED)}>
-        · {view.detail}
+      <span className="tracking-[0.14em]">{view.label}</span>
+      <span
+        className={cn(
+          "border-l pl-2 font-medium normal-case tracking-normal",
+          view.tone === "live"
+            ? "border-emerald-400/30 text-emerald-200/90"
+            : "border-current/20 text-current/70",
+        )}
+      >
+        {view.detail}
       </span>
     </span>
   );

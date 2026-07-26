@@ -47,16 +47,16 @@ export function StockShelvesBanner({
     <section
       className={cn(
         HUB_SURFACE,
-        "flex flex-col gap-2.5 px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-2.5 border-[#B08D48]/30 bg-[#FCFAF6] px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between",
         className,
       )}
     >
       <div className="flex min-w-0 items-start gap-2.5">
-        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center bg-[#F0FDFA] text-[#0D9488]">
+        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center bg-[#141414] text-[#F5E6C8]">
           <Package className="size-3.5" aria-hidden />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-black">
+          <p className="text-sm font-medium text-[#141414]">
             Import products we already have
           </p>
           <p className={cn("text-xs", HUB_MUTED)}>
@@ -73,7 +73,7 @@ export function StockShelvesBanner({
               resumeOnboardingQuestionnaire();
               reopen();
             }}
-            className="px-2 text-xs font-medium text-[#0D9488] hover:underline"
+            className="px-2 text-xs font-medium text-[#8A6B2E] hover:underline"
           >
             Resume setup
           </button>
@@ -90,7 +90,7 @@ export function StockShelvesBanner({
         </button>
         <Link
           href={`${APP_ROUTES.productsCatalog}?from=onboarding`}
-          className="inline-flex h-8 items-center bg-[#0D9488] px-3 text-xs font-semibold text-white hover:bg-[#0F766E]"
+          className="inline-flex h-8 items-center bg-[#141414] px-3 text-xs font-semibold text-[#F5E6C8] hover:bg-[#2A2A2A]"
         >
           Browse catalog
         </Link>

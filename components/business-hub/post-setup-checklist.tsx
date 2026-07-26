@@ -11,9 +11,10 @@ import {
 } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
-import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { getOnboardingQuestionnaireState } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
+import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 
 const POST_SETUP_CHECKLIST_DISMISSED_KEY = "post-setup-checklist-dismissed";
 
@@ -82,11 +83,9 @@ export function PostSetupChecklist({
   ];
 
   return (
-    <section className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <h2 className={cn("text-xs font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
-          Getting started
-        </h2>
+    <section className="hub-rise hub-rise-delay-5 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <HubSectionLabel index="07" title="Getting started" />
         <button
           type="button"
           onClick={() => {
@@ -98,13 +97,13 @@ export function PostSetupChecklist({
           Dismiss
         </button>
       </div>
-      <div className={cn(HUB_SURFACE, "divide-y divide-[#EEEEEE]")}>
+      <div className={cn(HUB_SURFACE, "divide-y divide-[#E6E1D8]")}>
         {items.map((item) => (
           <Link
             key={item.href + item.label}
             href={item.href}
             className={cn(
-              "flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-[#F9F6F0]/60",
+              "flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-[#FCFAF6]",
               item.done && "opacity-60",
             )}
           >
@@ -116,7 +115,7 @@ export function PostSetupChecklist({
               aria-hidden
             />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-black">
+              <p className="text-sm font-medium text-[#141414]">
                 {item.done ? `✓ ${item.label}` : item.label}
               </p>
               <p className="text-xs text-[#888888]">{item.desc}</p>

@@ -5,31 +5,32 @@ import { cn } from "@/lib/utils";
 
 export function BusinessHubSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-16 animate-in fade-in duration-500">
-      <header className="flex items-start justify-between gap-3">
-        <div className="space-y-1.5">
-          <div className="h-6 w-48 bg-[#EEEEEE] animate-pulse" />
-          <div className="h-3.5 w-36 max-w-full bg-[#EEEEEE] animate-pulse" />
+    <div className="hub-paper mx-auto w-full max-w-5xl space-y-3 p-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:p-4 2xl:pb-16">
+      <header className="flex items-start justify-between gap-3 border-b border-[#E6E1D8] pb-3">
+        <div className="space-y-2">
+          <div className="h-6 w-28 bg-[#E6E1D8] animate-pulse" />
+          <div className="h-3.5 w-40 max-w-full bg-[#E6E1D8] animate-pulse" />
         </div>
-        <div className="h-8 w-44 shrink-0 bg-[#EEEEEE] animate-pulse" />
+        <div className="h-8 w-36 shrink-0 bg-[#E6E1D8] animate-pulse" />
       </header>
 
-      <div className={cn(HUB_SURFACE, "space-y-3 px-3.5 py-3 sm:px-4")}>
-        <div className="h-2.5 w-24 bg-[#EEEEEE] animate-pulse" />
-        <div className="h-10 w-52 max-w-full bg-[#EEEEEE] animate-pulse" />
-        <div className="h-3.5 w-full max-w-xl bg-[#EEEEEE] animate-pulse" />
-        <div className="grid gap-px border border-[#F0EBE3] bg-[#F0EBE3] sm:grid-cols-2 lg:grid-cols-4">
+      <div className={cn(HUB_SURFACE, "grid lg:grid-cols-2")}>
+        <div className="space-y-3 border-b border-[#E6E1D8] px-4 py-4 lg:border-b-0 lg:border-r">
+          <div className="h-2.5 w-28 bg-[#E6E1D8] animate-pulse" />
+          <div className="h-12 w-48 max-w-full bg-[#E6E1D8] animate-pulse" />
+          <div className="h-3.5 w-full max-w-sm bg-[#E6E1D8] animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 gap-px bg-[#E6E1D8]">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-16 bg-white animate-pulse" />
+            <div key={i} className="h-24 bg-white animate-pulse" />
           ))}
         </div>
       </div>
 
-      <div className="h-36 border border-[#EEEEEE] bg-[#EEEEEE] animate-pulse" />
-      <div className="grid gap-px border border-[#EEEEEE] bg-[#EEEEEE] sm:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-20 bg-white animate-pulse" />
-        ))}
+      <div className="h-40 border border-[#E6E1D8] bg-white animate-pulse" />
+      <div className="grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="h-44 border border-[#E6E1D8] bg-white animate-pulse" />
+        <div className="h-44 border border-[#E6E1D8] bg-white animate-pulse" />
       </div>
     </div>
   );

@@ -18,31 +18,49 @@ export function BusinessHubEmptyState({
 
   return (
     <section
-      className={cn(HUB_SURFACE, "px-4 py-5 sm:px-5")}
+      className={cn(
+        HUB_SURFACE,
+        "hub-rise relative overflow-hidden px-5 py-7 sm:px-8",
+      )}
       aria-label="No sales yet"
     >
-      <div className="mx-auto max-w-lg text-center">
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[#141414]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-8 top-0 h-full w-40 opacity-40"
+        style={{
+          background:
+            "repeating-linear-gradient(-12deg, transparent, transparent 10px, rgba(176,141,72,0.12) 10px, rgba(176,141,72,0.12) 11px)",
+        }}
+        aria-hidden
+      />
+      <div className="relative mx-auto max-w-lg text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B08D48]">
+          Quiet ledger
+        </p>
         <p
-          className="text-xl font-medium tracking-tight text-black"
+          className="mt-2 text-2xl font-medium tracking-tight text-[#141414]"
           style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
         >
           No sales {label} yet
         </p>
-        <p className={cn("mt-1.5 text-sm leading-snug", HUB_MUTED)}>
+        <p className={cn("mt-2 text-sm leading-relaxed", HUB_MUTED)}>
           This board wakes up the moment money moves. Add products, open the
           till, and the pulse, runway, and movers will fill in.
         </p>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           <Link
             href={APP_ROUTES.salesQuick}
-            className="inline-flex items-center gap-2 bg-[#B08D48] px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 bg-[#141414] px-3.5 py-2 text-sm font-medium text-[#F5E6C8] transition-opacity hover:opacity-90"
           >
             <ShoppingCart className="size-3.5" aria-hidden />
             Record a sale
           </Link>
           <Link
             href={APP_ROUTES.products}
-            className="inline-flex items-center gap-2 border border-[#EEEEEE] bg-white px-3 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 border border-[#E6E1D8] bg-white px-3.5 py-2 text-sm font-medium text-[#141414] transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]"
           >
             <Package className="size-3.5 text-[#888888]" aria-hidden />
             Add products
@@ -50,7 +68,7 @@ export function BusinessHubEmptyState({
           {showStorefrontLink ? (
             <Link
               href={APP_ROUTES.businessSettings}
-              className="inline-flex items-center gap-2 border border-[#EEEEEE] bg-white px-3 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-2 border border-[#E6E1D8] bg-white px-3.5 py-2 text-sm font-medium text-[#141414] transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]"
             >
               <Store className="size-3.5 text-[#888888]" aria-hidden />
               Storefront setup
