@@ -103,6 +103,67 @@ export default function SupplierPortalOrdersPage() {
   const [orderNotes, setOrderNotes] = useState("");
   const [creating, setCreating] = useState(false);
 
+  const [shopFilterId, setShopFilterId] = useState<string | null>(null);
+  const [shopQuery, setShopQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "awaiting" | "responded" | "in_transit" | "delivered"
+  >("all");
+  const [orderSearch, setOrderSearch] = useState("");
+
+  const shopOptions = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; count: number }>();
+    for (const order of orders) {
+      const id = order.businessId;
+      const existing = map.get(id);
+      if (existing) {
+        existing.count += 1;
+        continue;
+      }
+      map.set(id, {
+        id,
+        name: order.businessName?.trim() || "Shop",
+        count: 1,
+      });
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [orders]);
+
+  const filteredShops = useMemo(() => {
+    const q = shopQuery.trim().toLowerCase();
+    if (!q) return shopOptions;
+    return shopOptions.filter((s) => s.name.toLowerCase().includes(q));
+  }, [shopOptions, shopQuery]);
+
+  const filteredOrders = useMemo(() => {
+    const q = orderSearch.trim().toLowerCase();
+    return orders.filter((order) => {
+      if (shopFilterId && order.businessId !== shopFilterId) return false;
+      if (statusFilter === "awaiting" && order.supplierResponseAt) return false;
+      if (statusFilter === "responded" && !order.supplierResponseAt) return false;
+      if (
+        statusFilter === "in_transit" &&
+        order.deliveryStatus !== "in_transit"
+      ) {
+        return false;
+      }
+      if (
+        statusFilter === "delivered" &&
+        order.deliveryStatus !== "delivered"
+      ) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        order.poNumber.toLowerCase().includes(q) ||
+        order.businessName.toLowerCase().includes(q) ||
+        order.status.toLowerCase().includes(q)
+      );
+    });
+  }, [orders, shopFilterId, statusFilter, orderSearch]);
+
+  const selectedShopName =
+    shopOptions.find((s) => s.id === shopFilterId)?.name ?? null;
+
   const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
@@ -297,14 +358,11 @@ export default function SupplierPortalOrdersPage() {
 
   return (
     <SupplierPortalShell>
-      <div className={cn(spPage, "space-y-4")}>
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+      <div className={cn(spPage, "space-y-3")}>
+        <header className="flex flex-wrap items-end justify-between gap-2">
+          <div className="min-w-0">
             <p className={spEyebrow}>portal · sell → orders</p>
-            <h2 className={cn(spSerifTitle, "mt-1")}>Orders</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Take a new order for a shop, or respond to purchase orders they send you.
-            </p>
+            <h2 className={cn(spSerifTitle, "mt-0.5 text-2xl sm:text-3xl")}>Orders</h2>
           </div>
           <button type="button" className={spBtnPrimary} onClick={() => void openComposer()}>
             <ShoppingBag className="size-3.5" />
@@ -337,69 +395,190 @@ export default function SupplierPortalOrdersPage() {
           />
         ) : null}
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]">
-          <section className={spPanel}>
+        <div
+          className={cn(
+            "flex min-h-[min(72dvh,40rem)] flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+            "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] lg:flex-row",
+          )}
+          style={{ ["--pos-primary" as string]: "#0f766e" }}
+        >
+          {/* Parent filter · shops */}
+          <aside className="flex max-h-[28%] w-full shrink-0 flex-col overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] lg:max-h-none lg:w-52 lg:border-b-0 lg:border-r xl:w-56">
             <div className={mktPosHeader}>
-              <span>1 · Orders inbox</span>
-              <span>{orders.length}</span>
+              <span>Shops</span>
+              <span className="font-mono tabular-nums opacity-80">
+                {shopOptions.length}
+              </span>
             </div>
-            {loading ? (
-              <div className="flex items-center gap-2 px-4 py-8 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                Loading inbox…
-              </div>
-            ) : (
-              <ul className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
-                {orders.length === 0 ? (
-                  <li className="px-4 py-10 text-center text-sm text-muted-foreground">
-                    No purchase orders yet. Take an order for a connected shop to get started.
-                  </li>
-                ) : (
-                  orders.map((order) => (
-                    <li key={order.purchaseOrderId}>
-                      <button
-                        type="button"
-                        className={cn(
-                          "flex w-full flex-col gap-1.5 px-4 py-3 text-left transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]",
-                          selectedId === order.purchaseOrderId &&
-                            "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)]",
-                        )}
-                        onClick={() => void openOrder(order.purchaseOrderId)}
-                      >
-                        <span className="font-medium text-[var(--pos-ink,#1c1915)]">
-                          {order.poNumber} · {order.businessName}
-                        </span>
-                        <span className="flex flex-wrap gap-1.5">
-                          <span className={mktChip}>{order.lineCount} lines</span>
-                          <span className={mktChip}>{order.status}</span>
-                          {order.deliveryStatus ? (
-                            <span className={mktChip}>{order.deliveryStatus}</span>
-                          ) : null}
-                          {!order.supplierResponseAt ? (
-                            <span className={cn(mktChip, mktChipActive)}>Awaiting response</span>
-                          ) : null}
-                        </span>
-                      </button>
-                    </li>
-                  ))
+            <div className="relative border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="h-9 w-full bg-transparent pl-8 pr-2 text-[13px] outline-none placeholder:text-muted-foreground/60"
+                placeholder="Find shop"
+                value={shopQuery}
+                onChange={(e) => setShopQuery(e.target.value)}
+              />
+            </div>
+            <nav className="min-h-0 flex-1 overflow-y-auto p-1">
+              <button
+                type="button"
+                onClick={() => setShopFilterId(null)}
+                className={cn(
+                  "mb-0.5 flex w-full items-center justify-between px-2.5 py-2 text-left text-[13px] font-medium",
+                  !shopFilterId
+                    ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)]"
+                    : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-foreground",
                 )}
-              </ul>
-            )}
-          </section>
+              >
+                <span>All shops</span>
+                <span className="font-mono text-[10px] tabular-nums opacity-70">
+                  {orders.length}
+                </span>
+              </button>
+              {filteredShops.map((shop) => (
+                <button
+                  key={shop.id}
+                  type="button"
+                  onClick={() => setShopFilterId(shop.id)}
+                  className={cn(
+                    "mb-0.5 flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left text-[13px] font-medium",
+                    shopFilterId === shop.id
+                      ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)]"
+                      : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-foreground",
+                  )}
+                >
+                  <span className="min-w-0 truncate">{shop.name}</span>
+                  <span className="shrink-0 font-mono text-[10px] tabular-nums opacity-70">
+                    {shop.count}
+                  </span>
+                </button>
+              ))}
+              {!loading && shopOptions.length === 0 ? (
+                <p className="px-2 py-6 text-center text-[11px] text-muted-foreground">
+                  No shops in inbox yet.
+                </p>
+              ) : null}
+            </nav>
+          </aside>
 
-          <aside className={spPanel}>
+          {/* Order list */}
+          <aside className="flex max-h-[36%] w-full shrink-0 flex-col overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] lg:max-h-none lg:w-[17.5rem] lg:border-b-0 lg:border-r xl:w-[19rem]">
             <div className={mktPosHeader}>
-              <span>2 · Order detail</span>
-              <span>{selectedId ? "1" : "0"}</span>
+              <span>Orders</span>
+              <span className="font-mono tabular-nums opacity-80">
+                {filteredOrders.length}
+              </span>
             </div>
-            <div className="p-4">
+            <div className="relative border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="h-9 w-full bg-transparent pl-8 pr-2 text-[13px] outline-none placeholder:text-muted-foreground/60"
+                placeholder="Search PO or shop"
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+              />
+            </div>
+            <div className="flex shrink-0 gap-0 overflow-x-auto border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {(
+                [
+                  ["all", "All"],
+                  ["awaiting", "Awaiting"],
+                  ["responded", "Responded"],
+                  ["in_transit", "In transit"],
+                  ["delivered", "Delivered"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setStatusFilter(id)}
+                  className={cn(
+                    "shrink-0 border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-2.5 py-1.5 text-[11px] font-medium",
+                    statusFilter === id
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-1">
+              {loading ? (
+                <p className="px-2 py-8 text-center text-[12px] text-muted-foreground">
+                  <Loader2 className="mr-1 inline size-3.5 animate-spin" />
+                  Loading inbox…
+                </p>
+              ) : filteredOrders.length === 0 ? (
+                <p className="px-2 py-10 text-center text-[12px] text-muted-foreground">
+                  {orders.length === 0
+                    ? "No purchase orders yet. Take an order to get started."
+                    : "No orders match this filter."}
+                </p>
+              ) : (
+                filteredOrders.map((order) => (
+                  <button
+                    key={order.purchaseOrderId}
+                    type="button"
+                    onClick={() => void openOrder(order.purchaseOrderId)}
+                    className={cn(
+                      "mb-0.5 flex w-full flex-col items-start gap-0.5 border px-2 py-2 text-left",
+                      selectedId === order.purchaseOrderId
+                        ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
+                        : "border-transparent hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]",
+                    )}
+                  >
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {order.poNumber} · {order.status}
+                    </span>
+                    <span className="w-full truncate text-[12px] font-semibold text-[var(--pos-ink,#1c1915)]">
+                      {order.businessName}
+                    </span>
+                    <span className="flex flex-wrap gap-1">
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {order.lineCount} lines
+                      </span>
+                      {!order.supplierResponseAt ? (
+                        <span className="text-[10px] font-semibold text-[var(--pos-primary,#0f766e)]">
+                          · awaiting
+                        </span>
+                      ) : order.deliveryStatus ? (
+                        <span className="text-[10px] text-muted-foreground">
+                          · {order.deliveryStatus}
+                        </span>
+                      ) : null}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </aside>
+
+          {/* Order detail */}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                  Order detail
+                  {selectedShopName ? ` · ${selectedShopName}` : ""}
+                </p>
+                <h3 className="truncate text-[15px] font-semibold text-[var(--pos-ink,#1c1915)]">
+                  {detail
+                    ? `${detail.poNumber} · ${detail.businessName}`
+                    : "Select an order"}
+                </h3>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
               {!selectedId ? (
-                <p className="text-sm text-muted-foreground">Select an order to review lines.</p>
+                <p className="py-16 text-center text-[12px] text-muted-foreground">
+                  Pick an order from the list to review lines.
+                </p>
               ) : detailLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <p className="flex items-center justify-center gap-2 py-16 text-[12px] text-muted-foreground">
                   <Loader2 className="size-4 animate-spin" />
                   Loading order…
-                </div>
+                </p>
               ) : detail ? (
                 <OrderDetailPanel
                   detail={detail}
@@ -413,7 +592,7 @@ export default function SupplierPortalOrdersPage() {
                 />
               ) : null}
             </div>
-          </aside>
+          </div>
         </div>
       </div>
     </SupplierPortalShell>
