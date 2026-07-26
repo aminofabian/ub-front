@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { KeyRound, MessageSquare, Sparkles } from "lucide-react";
+import { KeyRound, MessageSquare, Phone, Sparkles } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
@@ -29,6 +29,11 @@ export default function SuperAdminPlatformIntegrationsPage() {
   const [rapidApiWhatsappPhoneField, setRapidApiWhatsappPhoneField] = useState("phone");
   const [rapidApiWhatsappPhoneDigitsOnly, setRapidApiWhatsappPhoneDigitsOnly] =
     useState(false);
+  const [whatsappMetaAccessToken, setWhatsappMetaAccessToken] = useState("");
+  const [whatsappMetaPhoneNumberId, setWhatsappMetaPhoneNumberId] = useState("");
+  const [whatsappMetaGraphVersion, setWhatsappMetaGraphVersion] = useState("v25.0");
+  const [whatsappMetaWebhookVerifyToken, setWhatsappMetaWebhookVerifyToken] = useState("");
+  const [whatsappMetaAppSecret, setWhatsappMetaAppSecret] = useState("");
   const [smsProvider, setSmsProvider] = useState("none");
   const [sozuriProject, setSozuriProject] = useState("");
   const [sozuriApiKey, setSozuriApiKey] = useState("");
@@ -58,6 +63,8 @@ export default function SuperAdminPlatformIntegrationsPage() {
       setRapidApiWhatsappLookupUrl(row.rapidApiWhatsappLookupUrl ?? "");
       setRapidApiWhatsappPhoneField(row.rapidApiWhatsappPhoneField || "phone");
       setRapidApiWhatsappPhoneDigitsOnly(Boolean(row.rapidApiWhatsappPhoneDigitsOnly));
+      setWhatsappMetaPhoneNumberId(row.whatsappMetaPhoneNumberId ?? "");
+      setWhatsappMetaGraphVersion(row.whatsappMetaGraphVersion || "v25.0");
       setSmsProvider(row.smsProvider || "none");
       setSozuriProject(row.sozuriProject ?? "");
       setSozuriFrom(row.sozuriFrom || "Sozuri");
@@ -70,6 +77,9 @@ export default function SuperAdminPlatformIntegrationsPage() {
       );
       setDeepseekApiKey("");
       setRapidApiWhatsappKey("");
+      setWhatsappMetaAccessToken("");
+      setWhatsappMetaWebhookVerifyToken("");
+      setWhatsappMetaAppSecret("");
       setSozuriApiKey("");
       setTextsmsApiKey("");
     } catch (e) {
@@ -95,6 +105,8 @@ export default function SuperAdminPlatformIntegrationsPage() {
         rapidApiWhatsappLookupUrl: rapidApiWhatsappLookupUrl.trim(),
         rapidApiWhatsappPhoneField: rapidApiWhatsappPhoneField.trim() || "phone",
         rapidApiWhatsappPhoneDigitsOnly,
+        whatsappMetaPhoneNumberId: whatsappMetaPhoneNumberId.trim(),
+        whatsappMetaGraphVersion: whatsappMetaGraphVersion.trim() || "v25.0",
         smsProvider: smsProvider.trim() || "none",
         sozuriProject: sozuriProject.trim(),
         sozuriFrom: sozuriFrom.trim() || "Sozuri",
@@ -111,6 +123,15 @@ export default function SuperAdminPlatformIntegrationsPage() {
       if (rapidApiWhatsappKey.trim()) {
         body.rapidApiWhatsappKey = rapidApiWhatsappKey.trim();
       }
+      if (whatsappMetaAccessToken.trim()) {
+        body.whatsappMetaAccessToken = whatsappMetaAccessToken.trim();
+      }
+      if (whatsappMetaWebhookVerifyToken.trim()) {
+        body.whatsappMetaWebhookVerifyToken = whatsappMetaWebhookVerifyToken.trim();
+      }
+      if (whatsappMetaAppSecret.trim()) {
+        body.whatsappMetaAppSecret = whatsappMetaAppSecret.trim();
+      }
       if (sozuriApiKey.trim()) {
         body.sozuriApiKey = sozuriApiKey.trim();
       }
@@ -121,8 +142,13 @@ export default function SuperAdminPlatformIntegrationsPage() {
       setSettings(updated);
       setDeepseekApiKey("");
       setRapidApiWhatsappKey("");
+      setWhatsappMetaAccessToken("");
+      setWhatsappMetaWebhookVerifyToken("");
+      setWhatsappMetaAppSecret("");
       setSozuriApiKey("");
       setTextsmsApiKey("");
+      setWhatsappMetaPhoneNumberId(updated.whatsappMetaPhoneNumberId ?? "");
+      setWhatsappMetaGraphVersion(updated.whatsappMetaGraphVersion || "v25.0");
       setSuccess("Platform integration settings saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
@@ -172,6 +198,80 @@ export default function SuperAdminPlatformIntegrationsPage() {
           setSuccess("RapidAPI WhatsApp key cleared.");
         } catch (err) {
           setError(err instanceof Error ? err.message : "Could not clear key.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
+  };
+
+  const onClearMetaAccessToken = () => {
+    showThemedConfirmToast({
+      id: "clear-meta-access-token",
+      title: "Remove Meta access token?",
+      description: "Env fallback still applies if set. Tenant overrides still apply.",
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setBusy(true);
+        setError("");
+        setSuccess("");
+        try {
+          const updated = await updatePlatformIntegrations({ whatsappMetaAccessToken: "" });
+          setSettings(updated);
+          setWhatsappMetaAccessToken("");
+          setSuccess("Meta WhatsApp access token cleared.");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not clear token.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
+  };
+
+  const onClearMetaWebhookVerifyToken = () => {
+    showThemedConfirmToast({
+      id: "clear-meta-webhook-verify",
+      title: "Remove webhook verify token?",
+      description: "Env fallback still applies if set.",
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setBusy(true);
+        setError("");
+        setSuccess("");
+        try {
+          const updated = await updatePlatformIntegrations({
+            whatsappMetaWebhookVerifyToken: "",
+          });
+          setSettings(updated);
+          setWhatsappMetaWebhookVerifyToken("");
+          setSuccess("Webhook verify token cleared.");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not clear token.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
+  };
+
+  const onClearMetaAppSecret = () => {
+    showThemedConfirmToast({
+      id: "clear-meta-app-secret",
+      title: "Remove Meta app secret?",
+      description: "Env fallback still applies if set.",
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setBusy(true);
+        setError("");
+        setSuccess("");
+        try {
+          const updated = await updatePlatformIntegrations({ whatsappMetaAppSecret: "" });
+          setSettings(updated);
+          setWhatsappMetaAppSecret("");
+          setSuccess("Meta app secret cleared.");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not clear secret.");
         } finally {
           setBusy(false);
         }
@@ -336,6 +436,146 @@ export default function SuperAdminPlatformIntegrationsPage() {
                   onChange={(ev) => setDeepseekModel(ev.target.value)}
                   placeholder="DeepSeek-V3-0324"
                 />
+              </div>
+            </div>
+
+            <div className="border-t border-border/60 pt-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Phone className="size-4 text-muted-foreground" aria-hidden />
+                <p className="text-sm font-medium">Meta WhatsApp Cloud API</p>
+              </div>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Platform defaults for outbound WhatsApp and the{" "}
+                <span className="font-mono">/webhooks/whatsapp</span> callback. Tenants can
+                override access token / phone ID on the Credit tab. Env vars are optional
+                last-resort fallbacks.
+              </p>
+              {settings ? (
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Stored access token: {settings.hasWhatsappMetaAccessToken ? "yes" : "no"}
+                  {" · "}
+                  verify token: {settings.hasWhatsappMetaWebhookVerifyToken ? "yes" : "no"}
+                  {" · "}
+                  app secret: {settings.hasWhatsappMetaAppSecret ? "yes" : "no"}
+                  {settings.envWhatsappMetaConfigured ? " · env also configured" : null}
+                </p>
+              ) : null}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="sa-meta-access-token">
+                    Access token
+                  </label>
+                  <Input
+                    id="sa-meta-access-token"
+                    type="password"
+                    autoComplete="off"
+                    placeholder={
+                      settings?.hasWhatsappMetaAccessToken
+                        ? "••••••••  (leave blank to keep)"
+                        : "Paste Meta WhatsApp access token"
+                    }
+                    value={whatsappMetaAccessToken}
+                    onChange={(ev) => setWhatsappMetaAccessToken(ev.target.value)}
+                  />
+                  {settings?.hasWhatsappMetaAccessToken ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-destructive hover:text-destructive"
+                      disabled={busy}
+                      onClick={() => void onClearMetaAccessToken()}
+                    >
+                      Clear stored token
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="sa-meta-phone-id">
+                      Phone number ID
+                    </label>
+                    <Input
+                      id="sa-meta-phone-id"
+                      value={whatsappMetaPhoneNumberId}
+                      onChange={(ev) => setWhatsappMetaPhoneNumberId(ev.target.value)}
+                      placeholder="1252977897893339"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="sa-meta-graph-version">
+                      Graph API version
+                    </label>
+                    <Input
+                      id="sa-meta-graph-version"
+                      value={whatsappMetaGraphVersion}
+                      onChange={(ev) => setWhatsappMetaGraphVersion(ev.target.value)}
+                      placeholder="v25.0"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="sa-meta-verify-token">
+                    Webhook verify token
+                  </label>
+                  <Input
+                    id="sa-meta-verify-token"
+                    type="password"
+                    autoComplete="off"
+                    placeholder={
+                      settings?.hasWhatsappMetaWebhookVerifyToken
+                        ? "••••••••  (leave blank to keep)"
+                        : "Same token configured in Meta dashboard"
+                    }
+                    value={whatsappMetaWebhookVerifyToken}
+                    onChange={(ev) => setWhatsappMetaWebhookVerifyToken(ev.target.value)}
+                  />
+                  {settings?.hasWhatsappMetaWebhookVerifyToken ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-destructive hover:text-destructive"
+                      disabled={busy}
+                      onClick={() => void onClearMetaWebhookVerifyToken()}
+                    >
+                      Clear stored token
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="sa-meta-app-secret">
+                    App secret
+                  </label>
+                  <Input
+                    id="sa-meta-app-secret"
+                    type="password"
+                    autoComplete="off"
+                    placeholder={
+                      settings?.hasWhatsappMetaAppSecret
+                        ? "••••••••  (leave blank to keep)"
+                        : "Meta app secret for X-Hub-Signature-256"
+                    }
+                    value={whatsappMetaAppSecret}
+                    onChange={(ev) => setWhatsappMetaAppSecret(ev.target.value)}
+                  />
+                  {settings?.hasWhatsappMetaAppSecret ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-destructive hover:text-destructive"
+                      disabled={busy}
+                      onClick={() => void onClearMetaAppSecret()}
+                    >
+                      Clear stored secret
+                    </Button>
+                  ) : null}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Callback URL:{" "}
+                  <span className="font-mono">{"{API_PUBLIC_BASE_URL}/webhooks/whatsapp"}</span>
+                </p>
               </div>
             </div>
 

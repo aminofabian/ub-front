@@ -391,10 +391,16 @@ export type PlatformIntegrationsRecord = {
   textsmsShortcode: string;
   textsmsApiUrl: string;
   hasTextsmsApiKey: boolean;
+  hasWhatsappMetaAccessToken: boolean;
+  whatsappMetaPhoneNumberId: string;
+  whatsappMetaGraphVersion: string;
+  hasWhatsappMetaWebhookVerifyToken: boolean;
+  hasWhatsappMetaAppSecret: boolean;
   envDeepseekConfigured: boolean;
   envRapidapiWhatsappConfigured: boolean;
   envSozuriConfigured: boolean;
   envTextsmsConfigured: boolean;
+  envWhatsappMetaConfigured: boolean;
   secretsReadable: boolean;
   secretsError: string | null;
   encryptionEphemeral: boolean;
@@ -420,6 +426,11 @@ export type UpdatePlatformIntegrationsPayload = {
   textsmsApiKey?: string | null;
   textsmsShortcode?: string | null;
   textsmsApiUrl?: string | null;
+  whatsappMetaAccessToken?: string | null;
+  whatsappMetaPhoneNumberId?: string | null;
+  whatsappMetaGraphVersion?: string | null;
+  whatsappMetaWebhookVerifyToken?: string | null;
+  whatsappMetaAppSecret?: string | null;
 };
 
 export async function fetchPlatformIntegrations(): Promise<PlatformIntegrationsRecord> {
