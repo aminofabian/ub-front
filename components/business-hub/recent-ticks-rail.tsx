@@ -28,6 +28,14 @@ function formatRelative(iso: string, now: number): string {
   return `${Math.floor(seconds / 86_400)}d`;
 }
 
+function paymentTone(label: string): "cash" | "mpesa" | "split" | "other" {
+  const lower = label.toLowerCase();
+  if (lower.startsWith("split")) return "split";
+  if (lower.includes("m-pesa") || lower.includes("mpesa")) return "mpesa";
+  if (lower === "cash") return "cash";
+  return "other";
+}
+
 export function RecentTicksRail({
   ticks,
   currency,
@@ -101,6 +109,7 @@ export function RecentTicksRail({
           <ol className="divide-y divide-[#EDE8DF]">
             {ticks.map((tick, i) => {
               const newest = i === 0 && justUpdated;
+              const payTone = paymentTone(tick.paymentLabel);
               return (
                 <li
                   key={tick.saleId}
@@ -128,9 +137,21 @@ export function RecentTicksRail({
                         {formatRelative(tick.soldAt, now)}
                       </span>
                     </div>
-                    <span className="shrink-0 text-[10px] text-[#AAAAAA]">
-                      {tick.items.length}{" "}
-                      {tick.items.length === 1 ? "item" : "items"}
+                    <span
+                      className={cn(
+                        "shrink-0 border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]",
+                        payTone === "cash" &&
+                          "border-[#E6E1D8] bg-[#F7F5F1] text-[#5A5A5A]",
+                        payTone === "mpesa" &&
+                          "border-emerald-200 bg-emerald-500/10 text-emerald-800",
+                        payTone === "split" &&
+                          "border-[#E8DFD0] bg-[#F9F6F0] text-[#8A6B2E]",
+                        payTone === "other" &&
+                          "border-[#E6E1D8] bg-white text-[#666666]",
+                      )}
+                      title={tick.paymentLabel}
+                    >
+                      {tick.paymentLabel}
                     </span>
                   </div>
 
@@ -159,7 +180,8 @@ export function RecentTicksRail({
 
                   <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-dashed border-[#E6E1D8] pt-2">
                     <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]">
-                      Total
+                      Total · {tick.items.length}{" "}
+                      {tick.items.length === 1 ? "item" : "items"}
                     </span>
                     <p
                       className="text-sm font-semibold tabular-nums tracking-tight text-[#141414]"

@@ -94,4 +94,22 @@ describe("ticksFromTransactions", () => {
       { name: "Milk 1L", quantity: 1, lineTotal: 80 },
     ]);
   });
+
+  it("labels cash and mpesa payments", () => {
+    const cash = tx({ saleId: "c1", paymentMethod: "cash" });
+    const mpesa = tx({
+      saleId: "m1",
+      paymentMethod: "mpesa_manual",
+    });
+    const split = tx({
+      saleId: "s1",
+      paymentMethod: "split",
+      paymentMethods: "cash,mpesa_manual",
+    });
+    expect(ticksFromTransactions([cash])[0]?.paymentLabel).toBe("Cash");
+    expect(ticksFromTransactions([mpesa])[0]?.paymentLabel).toBe("M-Pesa");
+    expect(ticksFromTransactions([split])[0]?.paymentLabel).toBe(
+      "Split · Cash + M-Pesa",
+    );
+  });
 });

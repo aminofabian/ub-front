@@ -1,4 +1,5 @@
 import type { SaleTransaction } from "@/lib/sale-transactions";
+import { formatSalePaymentDisplay } from "@/lib/sale-payment-filter";
 
 export type RecentTickItem = {
   name: string;
@@ -11,6 +12,8 @@ export type RecentTick = {
   items: RecentTickItem[];
   soldAt: string;
   amount: number;
+  /** Display label, e.g. Cash, M-Pesa, Split · Cash + M-Pesa. */
+  paymentLabel: string;
 };
 
 const TICK_LIMIT = 3;
@@ -29,6 +32,10 @@ export function ticksFromTransactions(
     saleId: tx.saleId,
     soldAt: tx.soldAt,
     amount: tx.total,
+    paymentLabel: formatSalePaymentDisplay(
+      tx.paymentMethod,
+      tx.paymentMethods,
+    ),
     items: tx.lines.map((line) => ({
       name: line.itemName?.trim() || "Item",
       quantity: Math.max(1, toNum(line.quantity) || 1),
