@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { APP_ROUTES } from "@/lib/config";
@@ -82,6 +83,7 @@ export function RecentTicksRail({
   className?: string;
 }) {
   const [now, setNow] = useState(() => Date.now());
+  const [drawoutsOpen, setDrawoutsOpen] = useState(false);
   const empty = ticks.length === 0 && drawouts.length === 0;
   const drawoutTotal = totalDrawoutAmount(drawouts);
 
@@ -273,14 +275,30 @@ export function RecentTicksRail({
                   ticks.length > 0 && "mt-0",
                 )}
               >
-                <div className="flex items-center justify-between gap-2 border-b border-[#EDE8DF] bg-[#FCFAF6] px-3.5 py-2">
-                  <div className="min-w-0">
+                <button
+                  type="button"
+                  aria-expanded={drawoutsOpen}
+                  onClick={() => setDrawoutsOpen((open) => !open)}
+                  className="flex w-full items-center gap-2 bg-[#FCFAF6] px-3.5 py-2.5 text-left transition-colors hover:bg-[#F7F5F1]"
+                >
+                  <ChevronDown
+                    className={cn(
+                      "size-3.5 shrink-0 text-[#B08D48] transition-transform",
+                      !drawoutsOpen && "-rotate-90",
+                    )}
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
                       Open-shift drawouts
                     </p>
                     <p className="mt-0.5 text-[10px] text-[#8A8A8A]">
                       {drawouts.length}{" "}
                       {drawouts.length === 1 ? "entry" : "entries"}
+                      <span className="mx-1 text-[#D0C6B4]" aria-hidden>
+                        ·
+                      </span>
+                      {drawoutsOpen ? "Hide details" : "Show details"}
                     </p>
                   </div>
                   <div className="text-right">
@@ -296,107 +314,94 @@ export function RecentTicksRail({
                       −{fmtMoney(drawoutTotal, currency)}
                     </p>
                   </div>
-                </div>
-                <ol className="divide-y divide-[#EDE8DF]">
-                  {drawouts.map((row, i) => {
-                    const tone = statusTone(row.status);
-                    return (
-                      <li key={row.id} className="px-3.5 py-3">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <div className="flex min-w-0 items-baseline gap-1.5">
-                            <span
-                              className="font-mono text-[9px] tabular-nums text-[#C4BBA8]"
-                              aria-hidden
-                            >
-                              {String(i + 1).padStart(2, "0")}
-                            </span>
-                            <time
-                              dateTime={row.createdAt}
-                              className="font-mono text-[11px] font-medium tabular-nums text-[#141414]"
-                              title={new Date(row.createdAt).toLocaleString()}
-                            >
-                              {formatClock(row.createdAt)}
-                            </time>
-                            <span className="text-[9px] uppercase tracking-[0.08em] text-[#AAAAAA]">
-                              {formatRelative(row.createdAt, now)}
-                            </span>
+                </button>
+
+                {drawoutsOpen ? (
+                  <ol className="divide-y divide-[#EDE8DF] border-t border-[#EDE8DF]">
+                    {drawouts.map((row, i) => {
+                      const tone = statusTone(row.status);
+                      return (
+                        <li key={row.id} className="px-3.5 py-3">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <div className="flex min-w-0 items-baseline gap-1.5">
+                              <span
+                                className="font-mono text-[9px] tabular-nums text-[#C4BBA8]"
+                                aria-hidden
+                              >
+                                {String(i + 1).padStart(2, "0")}
+                              </span>
+                              <time
+                                dateTime={row.createdAt}
+                                className="font-mono text-[11px] font-medium tabular-nums text-[#141414]"
+                                title={new Date(row.createdAt).toLocaleString()}
+                              >
+                                {formatClock(row.createdAt)}
+                              </time>
+                              <span className="text-[9px] uppercase tracking-[0.08em] text-[#AAAAAA]">
+                                {formatRelative(row.createdAt, now)}
+                              </span>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              <span
+                                className={cn(
+                                  "border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                                  tone === "pending" &&
+                                    "border-amber-200 bg-amber-500/10 text-amber-800",
+                                  tone === "approved" &&
+                                    "border-emerald-200 bg-emerald-500/10 text-emerald-800",
+                                  tone === "rejected" &&
+                                    "border-rose-200 bg-rose-500/10 text-rose-700",
+                                  tone === "other" &&
+                                    "border-[#E6E1D8] bg-[#F7F5F1] text-[#5A5A5A]",
+                                )}
+                              >
+                                {drawoutStatusLabel(row.status)}
+                              </span>
+                              <span
+                                className="text-[12px] font-semibold tabular-nums text-[#C47A5A]"
+                                style={{
+                                  fontFamily:
+                                    "var(--font-heading), Georgia, serif",
+                                }}
+                              >
+                                −{fmtMoney(row.amount, currency)}
+                              </span>
+                            </div>
                           </div>
-                          <span
-                            className={cn(
-                              "shrink-0 border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
-                              tone === "pending" &&
-                                "border-amber-200 bg-amber-500/10 text-amber-800",
-                              tone === "approved" &&
-                                "border-emerald-200 bg-emerald-500/10 text-emerald-800",
-                              tone === "rejected" &&
-                                "border-rose-200 bg-rose-500/10 text-rose-700",
-                              tone === "other" &&
-                                "border-[#E6E1D8] bg-[#F7F5F1] text-[#5A5A5A]",
-                            )}
-                          >
-                            {drawoutStatusLabel(row.status)}
-                          </span>
-                        </div>
 
-                        {showCashier ? (
-                          <p
-                            className="mt-1 truncate text-[10px] text-[#8A8A8A]"
-                            title={row.cashierName}
-                          >
-                            <span className="uppercase tracking-[0.08em]">
-                              By
-                            </span>{" "}
-                            <span className="font-medium text-[#3A3A3A]">
-                              {row.cashierName}
-                            </span>
-                          </p>
-                        ) : null}
+                          {showCashier ? (
+                            <p
+                              className="mt-1 truncate text-[10px] text-[#8A8A8A]"
+                              title={row.cashierName}
+                            >
+                              <span className="uppercase tracking-[0.08em]">
+                                By
+                              </span>{" "}
+                              <span className="font-medium text-[#3A3A3A]">
+                                {row.cashierName}
+                              </span>
+                            </p>
+                          ) : null}
 
-                        <div className="mt-1.5 space-y-0.5">
-                          <p className="truncate text-[12px] font-medium text-[#141414]">
-                            {row.categoryLabel}
-                            <span className="mx-1 text-[#D0C6B4]" aria-hidden>
-                              ·
-                            </span>
-                            <span className="font-normal text-[#5A5A5A]">
-                              {row.description}
-                            </span>
-                          </p>
-                          <p className="truncate text-[10px] text-[#8A8A8A]">
-                            To {row.recipientName}
-                          </p>
-                        </div>
-
-                        <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-dashed border-[#E6E1D8] pt-1.5">
-                          <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8A8A8A]">
-                            Drawn out
-                          </span>
-                          <p
-                            className="text-[13px] font-semibold tabular-nums tracking-tight text-[#C47A5A]"
-                            style={{
-                              fontFamily: "var(--font-heading), Georgia, serif",
-                            }}
-                          >
-                            −{fmtMoney(row.amount, currency)}
-                          </p>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-                <div className="flex items-center justify-between gap-2 border-t border-[#E6E1D8] bg-[#FCFAF6] px-3.5 py-2.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]">
-                    Shift drawout total
-                  </span>
-                  <p
-                    className="text-sm font-semibold tabular-nums tracking-tight text-[#C47A5A]"
-                    style={{
-                      fontFamily: "var(--font-heading), Georgia, serif",
-                    }}
-                  >
-                    −{fmtMoney(drawoutTotal, currency)}
-                  </p>
-                </div>
+                          <div className="mt-1.5 space-y-0.5">
+                            <p className="truncate text-[12px] font-medium text-[#141414]">
+                              {row.categoryLabel}
+                              <span className="mx-1 text-[#D0C6B4]" aria-hidden>
+                                ·
+                              </span>
+                              <span className="font-normal text-[#5A5A5A]">
+                                {row.description}
+                              </span>
+                            </p>
+                            <p className="truncate text-[10px] text-[#8A8A8A]">
+                              To {row.recipientName}
+                            </p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                ) : null}
               </section>
             ) : null}
           </div>
