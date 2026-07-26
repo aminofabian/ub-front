@@ -300,10 +300,6 @@
     animation: tablet-header-brand-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
 }
 
-.tablet-header-kicker {
-    animation: tablet-header-meta-in 0.5s ease-out 0.12s both;
-}
-
 .tablet-header-aisle {
     animation: tablet-header-meta-in 0.55s ease-out 0.16s both;
 }
@@ -385,7 +381,6 @@
     .tablet-header-stamp,
     .tablet-header-logo,
     .tablet-header-brand,
-    .tablet-header-kicker,
     .tablet-header-aisle,
     .tablet-header-lip-fill {
         animation: none !important;

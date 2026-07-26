@@ -199,9 +199,6 @@ export function TabletAppHeader({
               />
             </div>
             <div className="min-w-0 max-w-[11rem] sm:max-w-[16rem]">
-              <p className="tablet-header-kicker hidden font-mono text-[8px] font-bold uppercase tracking-[0.22em] text-[var(--tablet-header-paper)]/70 min-[380px]:block">
-                Floor open
-              </p>
               <h1 className="tablet-header-brand truncate font-heading text-[1.35rem] font-semibold leading-[0.95] tracking-[-0.02em] sm:text-[1.55rem]">
                 {tenantTitle}
               </h1>
