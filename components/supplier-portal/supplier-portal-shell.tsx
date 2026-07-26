@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ClipboardList, LayoutDashboard, LogOut, Package, User } from "lucide-react";
+import {
+  ClipboardList,
+  CreditCard,
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Package,
+  Store,
+  User,
+  Wallet,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
@@ -11,10 +21,15 @@ import { clearSupplierPortalSession } from "@/lib/supplier-portal-session";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: APP_ROUTES.supplierPortalOverview, label: "Overview", icon: LayoutDashboard },
-  { href: APP_ROUTES.supplierPortalProfile, label: "Profile", icon: User },
-  { href: APP_ROUTES.supplierPortalCatalog, label: "Catalogue", icon: Package },
+  { href: APP_ROUTES.supplierPortalOverview, label: "Dashboard", icon: LayoutDashboard },
+  { href: APP_ROUTES.supplierPortalShops, label: "Shops", icon: Store },
   { href: APP_ROUTES.supplierPortalOrders, label: "Orders", icon: ClipboardList },
+  { href: APP_ROUTES.supplierPortalPayments, label: "Payments", icon: Wallet },
+  { href: APP_ROUTES.supplierPortalInvoices, label: "Invoices", icon: FileText },
+  { href: APP_ROUTES.supplierPortalStatements, label: "Statements", icon: FileText },
+  { href: APP_ROUTES.supplierPortalCatalog, label: "Catalogue", icon: Package },
+  { href: APP_ROUTES.supplierPortalPaymentDetails, label: "Payout", icon: CreditCard },
+  { href: APP_ROUTES.supplierPortalProfile, label: "Profile", icon: User },
 ] as const;
 
 export function SupplierPortalShell({ children }: { children: React.ReactNode }) {
@@ -51,7 +66,7 @@ export function SupplierPortalShell({ children }: { children: React.ReactNode })
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium",
+                  "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap",
                   active
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",

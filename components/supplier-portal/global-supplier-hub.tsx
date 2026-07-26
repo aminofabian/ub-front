@@ -284,7 +284,7 @@ function PassportStrip({
             [
               ["Owed", hub.totals.owed],
               ["Paid", hub.totals.paid],
-              ["Pending", hub.totals.pending],
+              ["Partial", hub.totals.pending],
             ] as const
           ).map(([label, value]) => (
             <div key={label} className="px-3 py-3 sm:px-4">

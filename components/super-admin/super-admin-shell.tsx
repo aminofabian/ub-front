@@ -74,6 +74,15 @@ function crumbLabel(pathname: string): { items: { label: string; href?: string }
       ],
     };
   }
+  if (pathname === APP_ROUTES.superAdminPlatformSupplierPortal) {
+    return {
+      items: [
+        { label: "Overview", href: APP_ROUTES.superAdminDashboard },
+        { label: "Platform" },
+        { label: "Supplier Portal" },
+      ],
+    };
+  }
   if (pathname === APP_ROUTES.superAdminMessages) {
     return {
       items: [
@@ -252,6 +261,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               <NavLeaf href={APP_ROUTES.superAdminPlatformGlobalCatalog} label="Global catalog" match="prefix" />
               <NavLeaf href={APP_ROUTES.superAdminPlatformPayments} label="Payment gateways" />
               <NavLeaf href={APP_ROUTES.superAdminPlatformIntegrations} label="Integrations" />
+              <NavLeaf href={APP_ROUTES.superAdminPlatformSupplierPortal} label="Supplier Portal" />
             </div>
           </Collapsible.Content>
         </Collapsible.Root>

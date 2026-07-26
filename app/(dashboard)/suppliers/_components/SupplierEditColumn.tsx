@@ -1,13 +1,15 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { Building2, PencilLine, UserPlus } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Building2, PencilLine, Send, UserPlus } from "lucide-react";
+import { toast } from "sonner";
 
 import type {
   SupplierContactRecord,
   SupplierPurchaseHistoryOrderRecord,
   SupplierRecord,
 } from "@/lib/api";
+import { inviteSupplierToPortal } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TelLink } from "@/components/tel-link";
@@ -47,6 +49,25 @@ export function SupplierEditColumn({
   purchaseHistoryRefreshKey?: number;
 }) {
   const compact = variant === "sidebar";
+  const [inviteBusy, setInviteBusy] = useState(false);
+
+  const onInvite = async () => {
+    if (!detail) return;
+    setInviteBusy(true);
+    try {
+      const res = await inviteSupplierToPortal(detail.id, { sendSms: true });
+      toast.success(
+        res.smsSent
+          ? `Invite SMS sent. Code ${res.claimCode}`
+          : `Invite created. Code ${res.claimCode}`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not send portal invite");
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+
   if (!detail) {
     return (
       <SupEmptyState
@@ -116,7 +137,7 @@ export function SupplierEditColumn({
             ]}
           />
           {canWrite && onEditProfile && onAddContact ? (
-            <div className="grid grid-cols-2 border-x border-b border-border">
+            <div className="grid grid-cols-3 border-x border-b border-border">
               <Button
                 type="button"
                 size="sm"
@@ -131,11 +152,22 @@ export function SupplierEditColumn({
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-7 gap-1 rounded-none text-xs font-semibold"
+                className="h-7 gap-1 rounded-none border-r border-border text-xs font-semibold"
                 onClick={onAddContact}
               >
                 <UserPlus className="size-3" aria-hidden />
                 Contact
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1 rounded-none text-xs font-semibold"
+                disabled={inviteBusy}
+                onClick={() => void onInvite()}
+              >
+                <Send className="size-3" aria-hidden />
+                {inviteBusy ? "…" : "Invite"}
               </Button>
             </div>
           ) : null}
@@ -229,7 +261,7 @@ export function SupplierEditColumn({
             </tbody>
           </table>
           {canWrite && onEditProfile && onAddContact ? (
-            <div className="grid grid-cols-2 border-t border-border">
+            <div className="grid grid-cols-3 border-t border-border">
               <Button
                 type="button"
                 size="sm"
@@ -244,11 +276,22 @@ export function SupplierEditColumn({
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-8 gap-1.5 rounded-none text-sm font-semibold"
+                className="h-8 gap-1.5 rounded-none border-r border-border text-sm font-semibold"
                 onClick={onAddContact}
               >
                 <UserPlus className="size-3.5" aria-hidden />
                 Add contact
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-8 gap-1.5 rounded-none text-sm font-semibold"
+                disabled={inviteBusy}
+                onClick={() => void onInvite()}
+              >
+                <Send className="size-3.5" aria-hidden />
+                {inviteBusy ? "Sending…" : "Invite portal"}
               </Button>
             </div>
           ) : null}

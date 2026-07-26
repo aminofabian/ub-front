@@ -435,6 +435,80 @@ export async function updatePlatformIntegrations(
   });
 }
 
+export type SupplierPortalSettingsRecord = {
+  portalEnabled: boolean;
+  allowSelfClaim: boolean;
+  allowProfileEdits: boolean;
+  allowPaymentDetailEdits: boolean;
+  allowProductEdits: boolean;
+  requireStoreApprovalProductEdits: boolean;
+  allowInvoiceDownloads: boolean;
+  allowStatementDownloads: boolean;
+  portalPublicUrl: string;
+  claimEnabled: boolean;
+  claimMethod: string;
+  codeLength: number;
+  codeExpiryMinutes: number;
+  maxAttempts: number;
+  lockDurationMinutes: number;
+  resendCooldownSeconds: number;
+  autoLoginAfterSetup: boolean;
+  passwordMinLength: number;
+  passwordRequireNumber: boolean;
+  passwordRequireUppercase: boolean;
+  passwordRequireSpecial: boolean;
+  invitationMessageTemplate: string | null;
+  smsTemplate: string | null;
+  emailSubjectTemplate: string | null;
+  emailBodyTemplate: string | null;
+  supportPhone: string | null;
+  supportEmail: string | null;
+  updatedAt: string | null;
+};
+
+export type UpdateSupplierPortalSettingsPayload = Partial<{
+  portalEnabled: boolean;
+  allowSelfClaim: boolean;
+  allowProfileEdits: boolean;
+  allowPaymentDetailEdits: boolean;
+  allowProductEdits: boolean;
+  requireStoreApprovalProductEdits: boolean;
+  allowInvoiceDownloads: boolean;
+  allowStatementDownloads: boolean;
+  portalPublicUrl: string;
+  claimEnabled: boolean;
+  claimMethod: string;
+  codeLength: number;
+  codeExpiryMinutes: number;
+  maxAttempts: number;
+  lockDurationMinutes: number;
+  resendCooldownSeconds: number;
+  autoLoginAfterSetup: boolean;
+  passwordMinLength: number;
+  passwordRequireNumber: boolean;
+  passwordRequireUppercase: boolean;
+  passwordRequireSpecial: boolean;
+  invitationMessageTemplate: string | null;
+  smsTemplate: string | null;
+  emailSubjectTemplate: string | null;
+  emailBodyTemplate: string | null;
+  supportPhone: string | null;
+  supportEmail: string | null;
+}>;
+
+export async function fetchSupplierPortalSettings(): Promise<SupplierPortalSettingsRecord> {
+  return saRequest<SupplierPortalSettingsRecord>(API_ROUTES.superAdminPlatformSupplierPortal);
+}
+
+export async function updateSupplierPortalSettings(
+  body: UpdateSupplierPortalSettingsPayload,
+): Promise<SupplierPortalSettingsRecord> {
+  return saRequest<SupplierPortalSettingsRecord>(API_ROUTES.superAdminPlatformSupplierPortal, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function fetchSaBusinessUsers(
   businessId: string,
 ): Promise<SaBusinessUserRow[]> {

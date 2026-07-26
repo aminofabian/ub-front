@@ -7847,6 +7847,7 @@ export type SupplierRecord = {
   paymentDetails: string | null;
   payoutType: string | null;
   payoutPhone: string | null;
+  marketplaceSupplierId?: string | null;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -7983,6 +7984,28 @@ export async function deleteSupplier(supplierId: string): Promise<void> {
   });
 }
 
+export type SupplierPortalInviteResult = {
+  inviteId: string;
+  marketplaceSupplierId: string;
+  claimCode: string;
+  phone: string | null;
+  expiresAt: string;
+  smsSent: boolean;
+  claimUrl: string;
+};
+
+export async function inviteSupplierToPortal(
+  supplierId: string,
+  opts?: { sendSms?: boolean },
+): Promise<SupplierPortalInviteResult> {
+  const params = new URLSearchParams();
+  params.set("sendSms", String(opts?.sendSms ?? true));
+  return request<SupplierPortalInviteResult>(
+    `/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}/portal-invite?${params}`,
+    { method: "POST" },
+  );
+}
+
 export async function fetchSupplierContacts(
   supplierId: string,
 ): Promise<SupplierContactRecord[]> {
@@ -7995,6 +8018,7 @@ export type SupplierPurchaseHistorySummaryRecord = {
   totalSpent: number;
   totalPaid: number;
   openBalance: number;
+  partialOpenBalance?: number;
   invoiceCount: number;
   lastInvoiceDate: string | null;
 };

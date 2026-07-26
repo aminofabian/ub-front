@@ -504,6 +504,37 @@ export async function sendSupplierPortalClaimCode(phone: string): Promise<{
   });
 }
 
+export type SupplierPortalClaimPublicConfig = {
+  portalEnabled: boolean;
+  claimEnabled: boolean;
+  allowSelfClaim: boolean;
+  claimMethod: string;
+  codeLength: number;
+  codeExpiryMinutes: number;
+  passwordMinLength: number;
+  passwordRequireNumber: boolean;
+  passwordRequireUppercase: boolean;
+  passwordRequireSpecial: boolean;
+  autoLoginAfterSetup: boolean;
+};
+
+export async function fetchSupplierPortalClaimConfig(): Promise<SupplierPortalClaimPublicConfig> {
+  let response: Response;
+  try {
+    response = await fetch(apiUrl(API_ROUTES.supplierPortalAuthClaimConfig), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+  } catch {
+    throw new Error("Cannot reach the supplier portal API.");
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(getProblemTitle(payload));
+  }
+  return payload as SupplierPortalClaimPublicConfig;
+}
+
 export async function verifySupplierPortalClaimCode(
   phone: string,
   code: string,
@@ -511,6 +542,16 @@ export async function verifySupplierPortalClaimCode(
   return publicSupplierAuthFetch(API_ROUTES.supplierPortalAuthClaimVerifyCode, {
     phone: phone.trim(),
     code: code.trim(),
+  });
+}
+
+export async function verifySupplierPortalInviteCode(
+  code: string,
+  phone?: string,
+): Promise<{ setupToken: string; expiresAt: string; suggestedName: string }> {
+  return publicSupplierAuthFetch(API_ROUTES.supplierPortalAuthClaimVerifyInvite, {
+    code: code.trim(),
+    phone: phone?.trim() || undefined,
   });
 }
 
@@ -533,10 +574,9 @@ export async function completeSupplierPortalClaim(body: {
       username: body.username?.trim() || undefined,
     },
   );
-  if (!data.accessToken) {
-    throw new Error("Invalid claim response");
+  if (data.accessToken) {
+    setSupplierPortalAccessToken(data.accessToken);
   }
-  setSupplierPortalAccessToken(data.accessToken);
   return data;
 }
 
@@ -675,4 +715,229 @@ export async function shipSupplierPortalOrder(
     `${API_ROUTES.supplierPortalOrders}/${purchaseOrderId}/ship`,
     { method: "POST", body: JSON.stringify(body) },
   );
+}
+
+export type SupplierPortalCapabilities = {
+  portalEnabled: boolean;
+  allowProfileEdits: boolean;
+  allowPaymentDetailEdits: boolean;
+  allowProductEdits: boolean;
+  requireStoreApprovalProductEdits: boolean;
+  allowInvoiceDownloads: boolean;
+  allowStatementDownloads: boolean;
+};
+
+export type SupplierPortalHubShops = {
+  username: string | null;
+  displayName: string;
+  shopCount: number;
+  currency: string;
+  totals: { owed: number | string; paid: number | string; pending: number | string };
+  shops: Array<{
+    businessId: string;
+    shopName: string;
+    slugHost: string | null;
+    localSupplierId: string;
+    owed: number | string;
+    paid: number | string;
+    pending: number | string;
+    lastSupplyAt: string | null;
+    tenantPortalPath: string;
+  }>;
+};
+
+export type SupplierPortalShopDetail = {
+  businessId: string;
+  shopName: string;
+  localSupplierId: string;
+  localSupplierName: string;
+  currency: string;
+  summary: {
+    totalSpent: number | string;
+    totalPaid: number | string;
+    openBalance: number | string;
+    partialOpenBalance?: number | string;
+    invoiceCount: number;
+    lastInvoiceDate: string | null;
+  };
+  supplies: Array<{
+    invoiceNumber: string;
+    invoiceDate: string;
+    grandTotal: number | string;
+    amountPaid: number | string;
+    balanceOpen: number | string;
+    paymentStatus: string;
+    sourceType: string;
+    lines: Array<{
+      description: string | null;
+      quantity: number | string;
+      unitCost: number | string;
+      lineTotal: number | string;
+    }>;
+  }>;
+};
+
+export type SupplierPortalPaymentRow = {
+  paymentId: string;
+  businessId: string;
+  businessName: string;
+  localSupplierId: string;
+  paidAt: string;
+  paymentMethod: string;
+  amount: number | string;
+  reference: string | null;
+  status: string;
+  shopOpenBalance: number | string | null;
+};
+
+export type SupplierPortalInvoiceRow = {
+  invoiceId: string;
+  businessId: string;
+  businessName: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string | null;
+  subtotal: number | string;
+  taxTotal: number | string;
+  grandTotal: number | string;
+  amountPaid: number | string;
+  balanceOpen: number | string;
+  paymentStatus: string;
+  status: string;
+};
+
+export type SupplierPortalPaymentDetails = {
+  marketplaceSupplierId: string;
+  businessLegalName: string | null;
+  paybill: string | null;
+  tillNumber: string | null;
+  bankName: string | null;
+  bankBranch: string | null;
+  bankAccountNumber: string | null;
+  bankAccountName: string | null;
+  mobileMoney: string | null;
+  preferredPaymentMethod: string | null;
+  taxPin: string | null;
+  vatNumber: string | null;
+  contactPerson: string | null;
+  phone: string | null;
+  email: string | null;
+  editable: boolean;
+};
+
+export async function fetchSupplierPortalCapabilities(): Promise<SupplierPortalCapabilities> {
+  return supplierPortalFetch<SupplierPortalCapabilities>(API_ROUTES.supplierPortalCapabilities);
+}
+
+export async function fetchSupplierPortalHubShops(): Promise<SupplierPortalHubShops> {
+  return supplierPortalFetch<SupplierPortalHubShops>(API_ROUTES.supplierPortalHubShops);
+}
+
+export async function fetchSupplierPortalShopDetail(
+  localSupplierId: string,
+): Promise<SupplierPortalShopDetail> {
+  return supplierPortalFetch<SupplierPortalShopDetail>(
+    `${API_ROUTES.supplierPortalHub}/shops/${localSupplierId}/supplies`,
+  );
+}
+
+export async function fetchSupplierPortalPayments(opts?: {
+  localSupplierId?: string;
+}): Promise<SupplierPortalPaymentRow[]> {
+  const params = new URLSearchParams();
+  if (opts?.localSupplierId?.trim()) {
+    params.set("localSupplierId", opts.localSupplierId.trim());
+  }
+  const qs = params.toString();
+  return supplierPortalFetch<SupplierPortalPaymentRow[]>(
+    qs ? `${API_ROUTES.supplierPortalPayments}?${qs}` : API_ROUTES.supplierPortalPayments,
+  );
+}
+
+export async function fetchSupplierPortalInvoices(): Promise<SupplierPortalInvoiceRow[]> {
+  return supplierPortalFetch<SupplierPortalInvoiceRow[]>(API_ROUTES.supplierPortalInvoices);
+}
+
+export async function fetchSupplierPortalPaymentDetails(): Promise<SupplierPortalPaymentDetails> {
+  return supplierPortalFetch<SupplierPortalPaymentDetails>(API_ROUTES.supplierPortalPaymentDetails);
+}
+
+export async function patchSupplierPortalPaymentDetails(
+  body: Partial<Omit<SupplierPortalPaymentDetails, "marketplaceSupplierId" | "editable">>,
+): Promise<SupplierPortalPaymentDetails> {
+  return supplierPortalFetch<SupplierPortalPaymentDetails>(API_ROUTES.supplierPortalPaymentDetails, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export type SupplierPortalStatement = {
+  localSupplierId: string;
+  shopName: string;
+  currency: string;
+  year: number;
+  month: number;
+  periodStart: string;
+  periodEnd: string;
+  openingBalance: number | string;
+  closingBalance: number | string;
+  periodInvoices: number | string;
+  periodPayments: number | string;
+  entries: Array<{
+    date: string;
+    type: string;
+    reference: string | null;
+    description: string | null;
+    debit: number | string;
+    credit: number | string;
+    balance: number | string;
+  }>;
+};
+
+export async function fetchSupplierPortalStatement(opts: {
+  localSupplierId: string;
+  year: number;
+  month: number;
+}): Promise<SupplierPortalStatement> {
+  const params = new URLSearchParams({
+    localSupplierId: opts.localSupplierId,
+    year: String(opts.year),
+    month: String(opts.month),
+    format: "json",
+  });
+  return supplierPortalFetch<SupplierPortalStatement>(
+    `${API_ROUTES.supplierPortalStatements}?${params}`,
+  );
+}
+
+export async function downloadSupplierPortalStatement(opts: {
+  localSupplierId: string;
+  year: number;
+  month: number;
+  format: "csv" | "pdf";
+}): Promise<void> {
+  const token = getSupplierPortalAccessToken();
+  if (!token) {
+    throw new Error("Sign in required");
+  }
+  const params = new URLSearchParams({
+    localSupplierId: opts.localSupplierId,
+    year: String(opts.year),
+    month: String(opts.month),
+    format: opts.format,
+  });
+  const response = await fetch(apiUrl(`${API_ROUTES.supplierPortalStatements}?${params}`), {
+    headers: { Authorization: `Bearer ${token}`, Accept: "*/*" },
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(getProblemTitle(payload) || "Download failed");
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `statement-${opts.year}-${String(opts.month).padStart(2, "0")}.${opts.format}`;
+  a.click();
+  URL.revokeObjectURL(url);
 }

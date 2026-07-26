@@ -3,108 +3,156 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ClipboardList, Package, User } from "lucide-react";
 
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
 import { APP_ROUTES } from "@/lib/config";
-import { fetchSupplierPortalOrders, fetchSupplierPortalProfile } from "@/lib/marketplace-api";
+import {
+  fetchSupplierPortalHubShops,
+  fetchSupplierPortalOrders,
+  fetchSupplierPortalPayments,
+  type SupplierPortalHubShops,
+} from "@/lib/marketplace-api";
+import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
 import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
+
+function toNum(v: unknown): number {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const n = Number.parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
+function money(amount: unknown, currency: string): string {
+  return formatMoneyCompact(toNum(amount), resolveCurrencyCode(currency));
+}
+
+function isToday(iso: string | null | undefined): boolean {
+  if (!iso) return false;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
 
 export default function SupplierPortalOverviewPage() {
   const router = useRouter();
+  const [hub, setHub] = useState<SupplierPortalHubShops | null>(null);
+  const [pendingOrders, setPendingOrders] = useState(0);
+  const [todayCollections, setTodayCollections] = useState(0);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!getSupplierPortalAccessToken()) {
       router.replace(APP_ROUTES.supplierPortalLogin);
+      return;
     }
+    void Promise.all([
+      fetchSupplierPortalHubShops(),
+      fetchSupplierPortalOrders(),
+      fetchSupplierPortalPayments(),
+    ])
+      .then(([shops, orders, payments]) => {
+        setHub(shops);
+        setPendingOrders(orders.filter((o) => !o.supplierResponseAt).length);
+        setTodayCollections(
+          payments.filter((p) => isToday(p.paidAt)).reduce((sum, p) => sum + toNum(p.amount), 0),
+        );
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Could not load dashboard");
+      });
   }, [router]);
+
+  const currency = hub?.currency ?? "KES";
 
   return (
     <SupplierPortalShell>
       <div className="space-y-6">
         <header>
-          <h2 className="text-2xl font-semibold tracking-tight">Overview</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Dashboard</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Keep your catalogue current and respond to incoming purchase orders.
+            Balances and activity across shops you supply.
           </p>
         </header>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <PortalCard
-            href={APP_ROUTES.supplierPortalProfile}
-            icon={User}
-            title="Profile"
-            description="Business details and delivery areas"
+
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Kpi
+            label="Total shops"
+            value={hub ? String(hub.shopCount) : "—"}
+            href={APP_ROUTES.supplierPortalShops}
           />
-          <PortalCard
-            href={APP_ROUTES.supplierPortalCatalog}
-            icon={Package}
-            title="Catalogue"
-            description="Products and prices"
+          <Kpi
+            label="Outstanding"
+            value={hub ? money(hub.totals.owed, currency) : "—"}
+            href={APP_ROUTES.supplierPortalShops}
           />
-          <PortalCard
+          <Kpi
+            label="Today's collections"
+            value={hub ? money(todayCollections, currency) : "—"}
+            href={APP_ROUTES.supplierPortalPayments}
+          />
+          <Kpi
+            label="Paid (all time)"
+            value={hub ? money(hub.totals.paid, currency) : "—"}
+            href={APP_ROUTES.supplierPortalPayments}
+          />
+          <Kpi
+            label="Partial balances"
+            value={hub ? money(hub.totals.pending, currency) : "—"}
+            href={APP_ROUTES.supplierPortalInvoices}
+          />
+          <Kpi
+            label="Pending orders"
+            value={String(pendingOrders)}
             href={APP_ROUTES.supplierPortalOrders}
-            icon={ClipboardList}
-            title="Orders"
-            description="PO inbox and fulfilment"
           />
         </div>
-        <PendingOrdersSummary />
+
+        {hub && hub.shops.length > 0 ? (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-medium">Shops</h3>
+              <Link
+                href={APP_ROUTES.supplierPortalShops}
+                className="text-sm font-medium text-primary underline underline-offset-2"
+              >
+                View all
+              </Link>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {hub.shops.slice(0, 4).map((shop) => (
+                <Link
+                  key={shop.localSupplierId}
+                  href={`${APP_ROUTES.supplierPortalShops}/${shop.localSupplierId}`}
+                  className="rounded-xl border bg-card p-4 transition hover:border-primary/40"
+                >
+                  <p className="font-medium">{shop.shopName}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Outstanding {money(shop.owed, currency)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </SupplierPortalShell>
   );
 }
 
-function PortalCard({
-  href,
-  icon: Icon,
-  title,
-  description,
-}: {
-  href: string;
-  icon: typeof User;
-  title: string;
-  description: string;
-}) {
+function Kpi({ label, value, href }: { label: string; value: string; href: string }) {
   return (
-    <Link
-      href={href}
-      className="rounded-xl border bg-card p-4 transition hover:border-primary/40 hover:shadow-sm"
-    >
-      <Icon className="size-5 text-primary" />
-      <h3 className="mt-3 font-medium">{title}</h3>
-      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+    <Link href={href} className="rounded-xl border bg-card p-4 transition hover:border-primary/40">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-2 text-xl font-semibold tracking-tight">{value}</p>
     </Link>
-  );
-}
-
-function PendingOrdersSummary() {
-  const [summary, setSummary] = useState<{ name: string; pending: number } | null>(null);
-
-  useEffect(() => {
-    void Promise.all([fetchSupplierPortalProfile(), fetchSupplierPortalOrders()])
-      .then(([profile, orders]) => {
-        const pending = orders.filter((o) => !o.supplierResponseAt).length;
-        setSummary({ name: profile.name, pending });
-      })
-      .catch(() => setSummary(null));
-  }, []);
-
-  if (!summary) return null;
-
-  return (
-    <div className="rounded-xl border bg-card p-4">
-      <p className="text-sm text-muted-foreground">Signed in as {summary.name}</p>
-      <p className="mt-2 text-lg font-semibold">
-        {summary.pending} order{summary.pending === 1 ? "" : "s"} awaiting response
-      </p>
-      {summary.pending > 0 ? (
-        <Link
-          href={APP_ROUTES.supplierPortalOrders}
-          className="mt-2 inline-block text-sm font-medium text-primary underline underline-offset-2"
-        >
-          Open orders inbox
-        </Link>
-      ) : null}
-    </div>
   );
 }
