@@ -6,140 +6,188 @@ import {
   HUB_SURFACE,
 } from "@/lib/business-hub/constants";
 import type { DailyRevenuePoint } from "@/lib/business-hub/build-daily-revenue-series";
+import { chartWindowStats } from "@/lib/business-hub/pulse-insights";
 import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { useFormatMoney } from "@/hooks/use-format-money";
 import { cn } from "@/lib/utils";
 
-const BAR_TRACK_PX = 56;
-const BAR_FILL = "#C9A86A";
-const BAR_FILL_TODAY = HUB_ACCENT;
+const METER_TRACK_PX = 52;
+
+function dayOfMonth(isoDay: string): string {
+  const day = isoDay.slice(8, 10);
+  return day.startsWith("0") ? day.slice(1) : day;
+}
+
+function weekdayInitial(isoDay: string): string {
+  const date = new Date(`${isoDay}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-GB", { weekday: "narrow" });
+}
 
 export function RevenueBarChart({
   points,
   ariaLabel,
-  caption,
   title = "Revenue runway",
 }: {
   points: DailyRevenuePoint[];
   ariaLabel: string;
+  /** Kept for callers; stats are derived from points instead of a caption string. */
   caption?: string;
   title?: string;
 }) {
   const { formatMoneyCompact } = useFormatMoney();
   const max = Math.max(...points.map((p) => p.value), 1);
-  const showEveryLabel = points.length <= 8;
-  const activeDays = points.filter((p) => p.value > 0).length;
-  const peakIndex = points.reduce(
-    (best, point, index) =>
-      point.value > points[best]!.value ? index : best,
-    0,
-  );
+  const stats = chartWindowStats(points);
+  const peakDay = stats.best?.day ?? null;
+  const todayDay = points[points.length - 1]?.day ?? null;
+
+  const summary = [
+    {
+      id: "window",
+      label: "Window",
+      value: formatMoneyCompact(stats.total),
+      hint: `${points.length} days`,
+    },
+    {
+      id: "avg",
+      label: "Daily avg",
+      value: formatMoneyCompact(stats.average),
+      hint: "Across runway",
+    },
+    {
+      id: "best",
+      label: "Best day",
+      value: stats.best ? stats.best.label : "—",
+      hint: stats.best ? formatMoneyCompact(stats.best.value) : "No sales yet",
+    },
+    {
+      id: "active",
+      label: "Active",
+      value: String(stats.activeDays),
+      hint: stats.activeDays === 1 ? "day with sales" : "days with sales",
+    },
+  ] as const;
 
   return (
-    <section className={cn(HUB_SURFACE, "relative overflow-hidden px-4 py-3")}>
-      <div className="space-y-2.5">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <section className={cn(HUB_SURFACE, "overflow-hidden")}>
+      <div className="space-y-0">
+        <div className="border-b border-[#E6E1D8] px-4 py-2.5">
           <HubSectionLabel
             index="02"
             title={title}
             meta={
-              activeDays > 0
-                ? `${activeDays}d`
+              stats.activeDays > 0
+                ? `${stats.activeDays} of ${points.length}`
                 : "Waiting"
             }
           />
-          {caption ? (
-            <p className="max-w-[55%] truncate text-[11px] font-medium text-[#5A5A5A]">
-              {caption}
-            </p>
-          ) : null}
         </div>
 
-        <div
-          className="relative flex items-end justify-between gap-1.5 border-b border-[#E6E1D8]"
-          style={{ height: BAR_TRACK_PX + 16 }}
-          role="img"
-          aria-label={ariaLabel}
-        >
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-4 border-t border-dashed border-[#EDE8DF]"
-            style={{ top: 4 }}
-            aria-hidden
-          />
-
-          {points.map((point, index) => {
-            const heightPx =
-              point.value <= 0
-                ? 0
-                : Math.max(4, Math.round((point.value / max) * BAR_TRACK_PX));
-            const isHighlight = index === points.length - 1 && point.value > 0;
-            const isPeak = index === peakIndex && point.value > 0 && !isHighlight;
-            const showLabel =
-              showEveryLabel ||
-              index === 0 ||
-              index === points.length - 1 ||
-              index % Math.ceil(points.length / 5) === 0;
-
-            return (
-              <div
-                key={point.day}
-                className="group relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1 pb-0"
-                style={{ height: "100%" }}
+        <div className="grid grid-cols-2 gap-px border-b border-[#E6E1D8] bg-[#E6E1D8] sm:grid-cols-4">
+          {summary.map((item) => (
+            <div key={item.id} className="bg-white px-3 py-2.5">
+              <p
+                className={cn(
+                  "text-[10px] font-medium uppercase tracking-[0.08em]",
+                  HUB_MUTED,
+                )}
               >
-                <div
-                  className={cn(
-                    "pointer-events-none absolute bottom-full z-10 mb-1.5 hidden border border-[#E6E1D8] bg-[#141414] px-2 py-1 text-[11px] text-white group-hover:block",
-                    "whitespace-nowrap",
-                  )}
-                >
-                  <span className="font-medium">{point.label}</span>
-                  <span className="mx-1 text-[#888888]">·</span>
-                  <span className="tabular-nums font-semibold">
-                    {formatMoneyCompact(point.value)}
-                  </span>
-                </div>
+                {item.label}
+              </p>
+              <p
+                className="mt-1 truncate text-[15px] font-semibold tracking-tight text-[#141414] tabular-nums"
+                title={item.value}
+              >
+                {item.value}
+              </p>
+              <p className="mt-0.5 truncate text-[10px] text-[#8A8A8A]">
+                {item.hint}
+              </p>
+            </div>
+          ))}
+        </div>
 
+        <div className="px-3 py-3 sm:px-4" role="img" aria-label={ariaLabel}>
+          <div
+            className="grid items-end gap-1"
+            style={{
+              gridTemplateColumns: `repeat(${Math.max(points.length, 1)}, minmax(0, 1fr))`,
+            }}
+          >
+            {points.map((point) => {
+              const heightPx =
+                point.value <= 0
+                  ? 0
+                  : Math.max(3, Math.round((point.value / max) * METER_TRACK_PX));
+              const isToday = point.day === todayDay;
+              const isPeak = point.day === peakDay && point.value > 0 && !isToday;
+
+              return (
                 <div
-                  className="flex w-full flex-col items-center justify-end"
-                  style={{ height: BAR_TRACK_PX }}
+                  key={point.day}
+                  className="group relative flex min-w-0 flex-col items-stretch gap-1.5"
+                  title={`${point.label} · ${formatMoneyCompact(point.value)}`}
                 >
-                  {point.value > 0 ? (
-                    <div
+                  <div
+                    className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 border border-[#E6E1D8] bg-white px-2 py-1 text-[11px] shadow-sm group-hover:block"
+                  >
+                    <span className="whitespace-nowrap font-medium text-[#141414]">
+                      {point.label}
+                    </span>
+                    <span className="mx-1 text-[#C4BBA8]" aria-hidden>
+                      ·
+                    </span>
+                    <span className="whitespace-nowrap font-semibold tabular-nums text-[#8A6B2E]">
+                      {formatMoneyCompact(point.value)}
+                    </span>
+                  </div>
+
+                  <div
+                    className="flex w-full items-end justify-center"
+                    style={{ height: METER_TRACK_PX }}
+                  >
+                    {point.value > 0 ? (
+                      <div
+                        className={cn(
+                          "hub-bar-grow w-full",
+                          isToday && "outline outline-1 outline-[#B08D48] outline-offset-1",
+                        )}
+                        style={{
+                          height: heightPx,
+                          backgroundColor: isToday
+                            ? HUB_ACCENT
+                            : isPeak
+                              ? "#C9A86A"
+                              : "#D9C7A0",
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full bg-[#EDE8DF]" style={{ height: 2 }} />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span
                       className={cn(
-                        "hub-bar-grow w-full max-w-[22px]",
-                        isHighlight && "ring-1 ring-[#B08D48]/35 ring-offset-1 ring-offset-white",
+                        "text-[10px] font-semibold tabular-nums leading-none",
+                        isToday ? "text-[#8A6B2E]" : "text-[#141414]",
                       )}
-                      style={{
-                        height: heightPx,
-                        animationDelay: `${index * 40}ms`,
-                        background: isHighlight
-                          ? `linear-gradient(180deg, #D4B06A 0%, ${BAR_FILL_TODAY} 100%)`
-                          : isPeak
-                            ? `linear-gradient(180deg, #D9C7A0 0%, ${BAR_FILL} 100%)`
-                            : `linear-gradient(180deg, #D9C7A0 0%, ${BAR_FILL} 100%)`,
-                      }}
-                    />
-                  ) : (
-                    <div
-                      className="w-full max-w-[22px] bg-[#E8E8E8]"
-                      style={{ height: 2 }}
-                    />
-                  )}
+                    >
+                      {dayOfMonth(point.day)}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[9px] uppercase leading-none",
+                        isToday ? "text-[#B08D48]" : "text-[#B0A898]",
+                      )}
+                    >
+                      {weekdayInitial(point.day)}
+                    </span>
+                  </div>
                 </div>
-
-                <span
-                  className={cn(
-                    "w-full truncate text-center text-[9px] leading-none sm:text-[10px]",
-                    HUB_MUTED,
-                    isHighlight && "font-semibold text-[#8A6B2E]",
-                    !showLabel && "invisible",
-                  )}
-                >
-                  {point.label}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
