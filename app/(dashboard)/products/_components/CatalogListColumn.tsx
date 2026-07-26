@@ -188,7 +188,7 @@ export function CatalogListColumn({
         </div>
       ) : (
         <div className={catalogListToolbarClass}>
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <p className={catalogListToolbarMetaClass}>
               <span className="tabular-nums font-medium text-foreground">
                 {catalog.listTotalElements.toLocaleString()}
@@ -200,21 +200,15 @@ export function CatalogListColumn({
               {filtersActive ? (
                 <span className="text-muted-foreground"> · filtered</span>
               ) : null}
-              {catalog.debouncedSearch.trim() ? (
-                <span className="text-muted-foreground">
-                  {" "}
-                  · searching all departments
-                </span>
-              ) : null}
             </p>
             <p
-              className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 border-l border-border/40 pl-2 text-[10px] text-muted-foreground"
+              className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 border-l border-border/40 pl-2 text-[10px] text-muted-foreground"
               aria-label="Row type counts"
             >
               {ROW_TYPE_LEGEND.map(({ id, label }, index) => {
                 const count = catalog.rowTypeCounts[id];
                 return (
-                  <span key={id} className="inline-flex items-center gap-1">
+                  <span key={id} className="inline-flex items-center gap-0.5">
                     {index > 0 ? (
                       <span className="text-border" aria-hidden>
                         ·
@@ -229,37 +223,6 @@ export function CatalogListColumn({
               })}
             </p>
           </div>
-          <div
-            className="flex shrink-0 items-center gap-0.5 border border-border bg-background p-0.5"
-            role="group"
-            aria-label="List density"
-          >
-            {(
-              [
-                ["dense", "Dense"],
-                ["comfortable", "Comfortable"],
-              ] as const
-            ).map(([value, label]) => {
-              const active = catalog.listDensity === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => catalog.setListDensity(value)}
-                  className={cn(
-                    "h-6 px-1.5 text-[10px] font-medium transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                    active
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
         </div>
       )}
 
@@ -271,7 +234,7 @@ export function CatalogListColumn({
           variantIdsByParentId={catalog.variantIdsByParent}
           selectedId={selectedId}
           selectedIds={catalog.rowSelection}
-          density={catalog.listDensity}
+          density="dense"
           onRowClick={onRowClick}
           onToggleRowSelect={catalog.onToggleRowSelect}
           onToggleSelectAllLoaded={onToggleSelectAllLoaded}

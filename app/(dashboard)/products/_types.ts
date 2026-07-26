@@ -228,8 +228,8 @@ export {
 } from "./_components/product-form-styles";
 
 export const panelClass = cn(
-  "rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] backdrop-blur-sm",
-  "dark:bg-card/90 dark:ring-white/[0.04]",
+  "rounded-lg border border-border bg-card",
+  "dark:bg-card/90",
 );
 
 export const filterLabelClass =

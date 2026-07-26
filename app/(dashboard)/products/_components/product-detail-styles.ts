@@ -80,10 +80,10 @@ export function detailPanelTone(kind: DetailPanelKind): DetailPanelTone {
   };
 }
 
-export const detailShellClass = "relative flex flex-col gap-2.5 pb-[4.75rem] lg:pb-0";
+export const detailShellClass = "relative flex flex-col gap-2 pb-[4.5rem] lg:pb-0";
 
 export const detailHeroClass = cn(
-  "relative overflow-hidden border border-border/55 p-2.5 shadow-sm ring-1 ring-inset sm:p-3",
+  "relative overflow-hidden border border-border/55 p-2 shadow-sm ring-1 ring-inset sm:p-2.5",
 );
 
 export const detailSectionClass =

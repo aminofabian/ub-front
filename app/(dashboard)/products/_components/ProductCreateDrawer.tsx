@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import {
   PackagePlus,
   X,
@@ -12,6 +11,7 @@ import {
   ChevronRight,
   Plus,
   Camera,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ import { FormDrawer, FormDrawerFields, type FormDrawerProps } from "@/components
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
-import type { BranchRecord } from "@/lib/api";
+import type { BranchRecord, GlobalProductRecord, ItemTypeRecord } from "@/lib/api";
 import {
   productFormInputClass,
   productFormLabelClass,
@@ -30,19 +30,17 @@ import { StockIncreaseFields } from "./StockIncreaseFields";
 import { ProductCreatePricingSection } from "./ProductCreatePricingSection";
 import { PackageVariantsSection } from "./PackageVariantsSection";
 import { ProductDescriptionField } from "./ProductDescriptionField";
+import { ProductCreateSearchStep } from "./ProductCreateSearchStep";
 import type { ParentDraft } from "../_types";
 import { toNumber } from "../_utils";
 import {
   BUTCHER_PRODUCT_TEMPLATES,
   matchItemTypeIdForTemplate,
 } from "@/lib/butcher-product-templates";
-import {
-  lookupGlobalCatalogProducts,
-  type GlobalProductRecord,
-} from "@/lib/api";
 import { useDashboard } from "@/components/dashboard-provider";
 import { isButcheryBusiness } from "@/lib/business-store-type";
-import { APP_ROUTES } from "@/lib/config";
+
+type CreateStep = "search" | "form";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  Types
@@ -71,7 +69,33 @@ type Props = {
   currencyCode: string;
   branches: BranchRecord[];
   canGlobalCatalog?: boolean;
+  onOpenExistingProduct?: (itemId: string) => void;
 };
+
+function matchItemTypeFromHint(
+  itemTypes: ItemTypeRecord[],
+  hint: string | null | undefined,
+): string | null {
+  const key = hint?.trim().toLowerCase();
+  if (!key) return null;
+  const byKey = itemTypes.find((t) => t.key.trim().toLowerCase() === key);
+  if (byKey) return byKey.id;
+  return matchItemTypeIdForTemplate(itemTypes, key);
+}
+
+function matchCategoryIdByName(
+  categories: { id: string; name: string }[],
+  name: string | null | undefined,
+): string | null {
+  const needle = name?.trim().toLowerCase();
+  if (!needle) return null;
+  const exact = categories.find((c) => c.name.trim().toLowerCase() === needle);
+  if (exact) return exact.id;
+  const partial = categories.find((c) =>
+    c.name.trim().toLowerCase().includes(needle),
+  );
+  return partial?.id ?? null;
+}
 
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -237,69 +261,29 @@ export function ProductCreateDrawer({
   currencyCode,
   branches,
   canGlobalCatalog = false,
+  onOpenExistingProduct,
 }: Props) {
   const { business } = useDashboard();
   const showButcherTemplates = isButcheryBusiness(business);
   const fileRef = useRef<HTMLInputElement>(null);
   const isGroup = m.parentDraft.productStructure === "group";
+  const [step, setStep] = useState<CreateStep>("search");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [keepOpen, setKeepOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [moreExpanded, setMoreExpanded] = useState(false);
   const [descGenError, setDescGenError] = useState("");
-  const [globalMatch, setGlobalMatch] = useState<GlobalProductRecord | null>(null);
-  const [globalLookupBusy, setGlobalLookupBusy] = useState(false);
-  const lookupTimerRef = useRef<number | null>(null);
+  const [fromLibraryLabel, setFromLibraryLabel] = useState<string | null>(null);
 
-  const runGlobalLookup = useCallback(
-    async (barcode?: string, q?: string) => {
-      if (!canGlobalCatalog || isGroup) {
-        setGlobalMatch(null);
-        return;
-      }
-      const trimmedBarcode = barcode?.trim();
-      const trimmedQ = q?.trim();
-      if (!trimmedBarcode && (!trimmedQ || trimmedQ.length < 3)) {
-        setGlobalMatch(null);
-        return;
-      }
-      setGlobalLookupBusy(true);
-      try {
-        const results = await lookupGlobalCatalogProducts({
-          barcode: trimmedBarcode || undefined,
-          q: trimmedQ || undefined,
-        });
-        const match = results.find((row) => !row.alreadyImported) ?? null;
-        setGlobalMatch(match);
-      } catch {
-        setGlobalMatch(null);
-      } finally {
-        setGlobalLookupBusy(false);
-      }
-    },
-    [canGlobalCatalog, isGroup],
-  );
-
-  const scheduleGlobalLookup = useCallback(
-    (barcode?: string, q?: string) => {
-      if (lookupTimerRef.current) {
-        window.clearTimeout(lookupTimerRef.current);
-      }
-      lookupTimerRef.current = window.setTimeout(() => {
-        void runGlobalLookup(barcode, q);
-      }, 400);
-    },
-    [runGlobalLookup],
-  );
-
-  /* ── Reset expanded state when drawer opens ── */
+  /* ── Reset when drawer opens ── */
   useEffect(() => {
     if (open) {
+      setStep("search");
       setMoreExpanded(false);
       setKeepOpen(false);
       setScannerOpen(false);
       setDescGenError("");
-      setGlobalMatch(null);
+      setFromLibraryLabel(null);
     }
   }, [open]);
 
@@ -322,14 +306,30 @@ export function ProductCreateDrawer({
 
   const applyGlobalMatch = useCallback(
     (match: GlobalProductRecord) => {
+      const matchedTypeId = matchItemTypeFromHint(
+        catalog.itemTypes,
+        match.itemTypeKeyHint,
+      );
+      const matchedCategoryId = matchCategoryIdByName(
+        catalog.sortedCategories,
+        match.categoryName,
+      );
       m.setParentDraft((prev) => {
-        const next = {
+        const next: ParentDraft = {
           ...prev,
+          productStructure: "standalone",
+          isSellable: match.sellable,
+          isStocked: match.stocked,
+          isWeighed: match.weighed,
           name: match.name,
-          barcode: match.barcode ?? prev.barcode,
-          sku: match.skuTemplate ?? prev.sku,
-          brand: match.brand ?? prev.brand,
-          size: match.size ?? prev.size,
+          barcode: match.barcode?.trim() || prev.barcode,
+          sku: match.skuTemplate?.trim() || prev.sku,
+          brand: match.brand?.trim() || prev.brand,
+          size: match.size?.trim() || prev.size,
+          description: match.description?.trim() || prev.description,
+          unitType: match.unitType?.trim() || prev.unitType,
+          itemTypeId: matchedTypeId || prev.itemTypeId,
+          categoryId: matchedCategoryId || prev.categoryId,
           buyingPrice:
             match.recommendedBuyingPrice != null
               ? String(match.recommendedBuyingPrice)
@@ -342,6 +342,10 @@ export function ProductCreateDrawer({
             match.defaultReorderLevel != null
               ? String(match.defaultReorderLevel)
               : prev.reorderLevel,
+          reorderQty:
+            match.defaultReorderQty != null
+              ? String(match.defaultReorderQty)
+              : prev.reorderQty,
           minStockLevel:
             match.defaultMinStockLevel != null
               ? String(match.defaultMinStockLevel)
@@ -349,10 +353,41 @@ export function ProductCreateDrawer({
         };
         return syncCostsFromBuyingPrice(next.buyingPrice, next);
       });
-      setGlobalMatch(null);
+      setFromLibraryLabel(match.name);
+      setStep("form");
     },
-    [m, syncCostsFromBuyingPrice],
+    [catalog.itemTypes, catalog.sortedCategories, m, syncCostsFromBuyingPrice],
   );
+
+  const startBlankForm = useCallback(
+    (seed: { name: string; barcode: string }) => {
+      m.setParentDraft((prev) => ({
+        ...prev,
+        productStructure: "standalone",
+        isSellable: true,
+        name: seed.name,
+        barcode: seed.barcode,
+      }));
+      setFromLibraryLabel(null);
+      setStep("form");
+    },
+    [m],
+  );
+
+  const startGroupForm = useCallback(() => {
+    m.setParentDraft((prev) => ({
+      ...prev,
+      productStructure: "group",
+      isSellable: false,
+    }));
+    setFromLibraryLabel(null);
+    setStep("form");
+  }, [m]);
+
+  const backToSearch = useCallback(() => {
+    setFromLibraryLabel(null);
+    setStep("search");
+  }, []);
 
   const marginInfo = useMemo(() => {
     const buy = Number(m.parentDraft.buyingPrice);
@@ -464,6 +499,8 @@ export function ProductCreateDrawer({
         setPrimarySupplier: true,
       });
       m.setPendingCreateImage(null);
+      setFromLibraryLabel(null);
+      setStep("search");
     },
     [keepOpen, m],
   );
@@ -476,112 +513,105 @@ export function ProductCreateDrawer({
         if (!o) onClose();
       }}
       banner={banner}
-      title={isGroup ? "New product group" : "New product"}
+      title={
+        step === "search"
+          ? "Add product"
+          : isGroup
+            ? "New product group"
+            : "New product"
+      }
+      description={
+        step === "search"
+          ? "Search your store catalog and the product library before creating."
+          : undefined
+      }
       contextLabel="Catalog"
       width="wide"
       headerDensity="compact"
       icon={<PackagePlus className="size-3.5 text-primary" aria-hidden />}
       footer={
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={keepOpen}
-              onChange={(e) => setKeepOpen(e.target.checked)}
-              className="size-3.5 rounded border-border text-primary"
-            />
-            Keep open
-          </label>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 px-2.5 text-xs"
-              onClick={onClose}
-              disabled={m.parentCreateBusy}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="create-parent-form"
-              size="sm"
-              disabled={catalog.itemTypes.length === 0 || m.parentCreateBusy}
-              className="h-8 gap-1.5 px-2.5 text-xs"
-            >
-              {m.parentCreateBusy ? (
-                <>
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                  Saving…
-                </>
-              ) : isGroup ? (
-                "Create group"
-              ) : (
-                <>
-                  <Plus className="size-3.5" />
-                  Create
-                </>
-              )}
-            </Button>
+        step === "search" ? undefined : (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={keepOpen}
+                onChange={(e) => setKeepOpen(e.target.checked)}
+                className="size-3.5 rounded border-border text-primary"
+              />
+              Keep open
+            </label>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 px-2.5 text-xs"
+                onClick={onClose}
+                disabled={m.parentCreateBusy}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="create-parent-form"
+                size="sm"
+                disabled={catalog.itemTypes.length === 0 || m.parentCreateBusy}
+                className="h-8 gap-1.5 px-2.5 text-xs"
+              >
+                {m.parentCreateBusy ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    Saving…
+                  </>
+                ) : isGroup ? (
+                  "Create group"
+                ) : (
+                  <>
+                    <Plus className="size-3.5" />
+                    Create
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
+        )
       }
     >
+      {step === "search" ? (
+        <ProductCreateSearchStep
+          canGlobalCatalog={canGlobalCatalog}
+          onOpenExisting={(itemId) => {
+            onOpenExistingProduct?.(itemId);
+            onClose();
+          }}
+          onUseGlobal={applyGlobalMatch}
+          onCreateNew={startBlankForm}
+          onCreateGroup={startGroupForm}
+        />
+      ) : (
       <form id="create-parent-form" className="space-y-2" onSubmit={handleSubmit}>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={backToSearch}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition hover:text-foreground"
+          >
+            <ArrowLeft className="size-3" aria-hidden />
+            Back to search
+          </button>
+          {fromLibraryLabel ? (
+            <span className="rounded-md border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+              From library · {fromLibraryLabel}
+            </span>
+          ) : null}
+        </div>
+
         {catalog.itemTypes.length === 0 && (
           <div className="rounded-md border border-destructive/20 bg-destructive/5 p-2 text-xs text-destructive">
             Add departments first (Catalog → Departments).
           </div>
         )}
-
-        {!isGroup && canGlobalCatalog && (globalMatch || globalLookupBusy) ? (
-          <div className="rounded-lg border border-primary/25 bg-primary/5 p-3">
-            {globalLookupBusy && !globalMatch ? (
-              <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                Checking global catalog…
-              </p>
-            ) : globalMatch ? (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-foreground">
-                  Found in catalog library
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {globalMatch.name}
-                  {globalMatch.brand ? ` · ${globalMatch.brand}` : ""}
-                  {globalMatch.size ? ` · ${globalMatch.size}` : ""}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => applyGlobalMatch(globalMatch)}
-                  >
-                    Pre-fill from template
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    asChild
-                  >
-                    <Link href={APP_ROUTES.productsCatalog}>Import from catalog</Link>
-                  </Button>
-                  <button
-                    type="button"
-                    className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-                    onClick={() => setGlobalMatch(null)}
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
 
         <FormDrawerFields legend="Essentials" compact>
           <div className="inline-flex rounded-md border border-border/60 p-0.5">
@@ -658,9 +688,7 @@ export function ProductCreateDrawer({
                   value={m.parentDraft.name}
                   onChange={(e) => {
                     m.setParentDraft((p) => ({ ...p, name: e.target.value }));
-                    scheduleGlobalLookup(m.parentDraft.barcode, e.target.value);
                   }}
-                  onBlur={() => scheduleGlobalLookup(m.parentDraft.barcode, m.parentDraft.name)}
                   required
                   autoFocus
                 />
@@ -803,11 +831,7 @@ export function ProductCreateDrawer({
                       value={m.parentDraft.barcode}
                       onChange={(e) => {
                         m.setParentDraft((p) => ({ ...p, barcode: e.target.value }));
-                        scheduleGlobalLookup(e.target.value, m.parentDraft.name);
                       }}
-                      onBlur={() =>
-                        scheduleGlobalLookup(m.parentDraft.barcode, m.parentDraft.name)
-                      }
                     />
                     <button
                       type="button"
@@ -1097,13 +1121,13 @@ export function ProductCreateDrawer({
           <BarcodeScanner
             onScan={(barcode) => {
               m.setParentDraft((p) => ({ ...p, barcode }));
-              scheduleGlobalLookup(barcode, m.parentDraft.name);
               setScannerOpen(false);
             }}
             onClose={() => setScannerOpen(false)}
           />
         ) : null}
       </form>
+      )}
     </FormDrawer>
   );
 }

@@ -37,29 +37,29 @@ export const catalogListShellClass = cn(
 );
 
 export const catalogListToolbarClass = cn(
-  "flex flex-wrap items-center justify-between gap-2 border-y border-r border-border",
-  "bg-muted/30 px-2.5 py-1.5",
+  "flex flex-wrap items-center justify-between gap-1.5 border-y border-r border-border",
+  "bg-muted/30 px-2 py-1",
 );
 
 export const catalogListToolbarMetaClass =
-  "text-xs text-muted-foreground";
+  "text-[11px] text-muted-foreground";
 
 /** Left filter column — shares borders with {@link catalogListShellClass}. */
 export const catalogFilterColumnClass =
-  "hidden min-h-0 w-[12rem] shrink-0 flex-col lg:flex";
+  "hidden min-h-0 w-[10rem] shrink-0 flex-col lg:flex";
 
 export const catalogFilterToolbarClass = cn(
   "flex shrink-0 items-center justify-between gap-2",
   "border-y border-l border-r border-border bg-muted/30",
-  "px-2.5 py-1.5",
+  "px-2 py-1",
 );
 
 export const catalogFilterToolbarTitleClass =
   "text-[10px] font-semibold uppercase tracking-wider text-muted-foreground";
 
 export const catalogFilterBodyClass = cn(
-  "flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overflow-x-hidden",
-  "border-b border-l border-r border-border bg-card px-2.5 py-2",
+  "flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden",
+  "border-b border-l border-r border-border bg-card px-2 py-1.5",
 );
 
 export const catalogFilterSectionClass = "flex min-w-0 flex-col gap-1";
@@ -104,8 +104,8 @@ export const catalogListGridClass =
   "xl:grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_4.25rem_4.5rem]";
 
 const catalogColRowBorder = "border-b border-border";
-const catalogCellPad = "px-3 py-1";
-const catalogMetricPad = "px-1.5 py-1";
+const catalogCellPad = "px-2 py-0.5";
+const catalogMetricPad = "px-1 py-0.5";
 
 /** Whole-row inset for variant SKUs (checkbox through metrics). */
 export function catalogVariantRowIndentClass(
@@ -615,13 +615,13 @@ export function catalogRowHeightPx(
     ? CATALOG_VARIANT_GROUP_END_GAP_PX[density]
     : 0;
   if (density === "dense") {
-    if (kind === "group") return 40 + gap;
-    if (kind === "variant") return 32 + groupEndGap;
-    return 36 + gap;
+    if (kind === "group") return 34 + gap;
+    if (kind === "variant") return 28 + groupEndGap;
+    return 32 + gap;
   }
-  if (kind === "group") return 48 + gap;
-  if (kind === "variant") return 40 + groupEndGap;
-  return 44 + gap;
+  if (kind === "group") return 44 + gap;
+  if (kind === "variant") return 36 + groupEndGap;
+  return 40 + gap;
 }
 
 export function catalogStockTone(qty: number | string | null | undefined): {

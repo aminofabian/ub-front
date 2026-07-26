@@ -62,16 +62,16 @@ export function ProductHeroHeader({
   return (
     <header
       className={cn(
-        "flex shrink-0 flex-col gap-1.5 border border-border bg-card px-2 py-1.5",
-        "sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-2.5",
+        "flex shrink-0 flex-col gap-1 border border-border bg-card px-2 py-1",
+        "sm:flex-row sm:items-center sm:justify-between sm:gap-2",
       )}
     >
-      <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">
-        <ActiveScopeSubtitle className="w-full text-[11px] sm:w-auto" />
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+        <ActiveScopeSubtitle className="w-full text-[10px] sm:w-auto" />
 
         {visibleAttention.length > 0 ? (
           <div
-            className="flex min-w-0 flex-wrap items-center gap-1"
+            className="flex min-w-0 flex-wrap items-center gap-0.5"
             role="group"
             aria-label="Needs attention filters"
           >
@@ -87,7 +87,7 @@ export function ProductHeroHeader({
                     : `Filter: ${stat.label}`
                 }
                 className={cn(
-                  "inline-flex h-6 items-center gap-1 border px-1.5 text-[10px] transition-colors",
+                  "inline-flex h-5 items-center gap-0.5 border px-1 text-[10px] transition-colors",
                   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   stat.active
                     ? "border-foreground bg-foreground text-background"
@@ -97,7 +97,7 @@ export function ProductHeroHeader({
                 <span className="tabular-nums font-semibold">
                   {stat.count.toLocaleString()}
                 </span>
-                <span>{stat.label}</span>
+                <span className="hidden sm:inline">{stat.label}</span>
               </button>
             ))}
           </div>
@@ -105,32 +105,27 @@ export function ProductHeroHeader({
 
         <nav
           aria-label="Related catalog pages"
-          className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground sm:border-l sm:border-border/50 sm:pl-3"
+          className="flex min-w-0 items-center gap-0.5 sm:border-l sm:border-border/50 sm:pl-2"
         >
-          {relatedLinks.map(({ href, label, icon: Icon }, index) => (
-            <span key={href} className="inline-flex items-center gap-2">
-              {index > 0 ? (
-                <span className="text-border" aria-hidden>
-                  ·
-                </span>
-              ) : null}
-              <Link
-                href={href}
-                className={cn(
-                  "inline-flex items-center gap-1 font-medium text-muted-foreground",
-                  "transition-colors hover:text-foreground",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                )}
-              >
-                <Icon className="size-3 shrink-0 opacity-70" aria-hidden />
-                {label}
-              </Link>
-            </span>
+          {relatedLinks.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              title={label}
+              className={cn(
+                "inline-flex size-6 items-center justify-center text-muted-foreground",
+                "transition-colors hover:bg-muted/60 hover:text-foreground",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              )}
+            >
+              <Icon className="size-3" aria-hidden />
+              <span className="sr-only">{label}</span>
+            </Link>
           ))}
         </nav>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex shrink-0 items-center gap-0.5">
         {onAddVariant ? (
           <Button
             type="button"
@@ -138,10 +133,10 @@ export function ProductHeroHeader({
             size="sm"
             disabled={!canCreate || !canAddVariant}
             onClick={onAddVariant}
-            className="h-7 gap-1 rounded-none px-1.5 text-xs text-muted-foreground shadow-none hover:text-foreground"
+            className="h-6 gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground shadow-none hover:text-foreground"
           >
-            <Layers className="size-3.5" aria-hidden />
-            <span className="hidden sm:inline">Add variant</span>
+            <Layers className="size-3" aria-hidden />
+            <span className="hidden sm:inline">Variant</span>
           </Button>
         ) : null}
         {onAddFromCatalog ? (
@@ -151,10 +146,10 @@ export function ProductHeroHeader({
             size="sm"
             disabled={!canCreate || !canAddFromCatalog}
             onClick={onAddFromCatalog}
-            className="h-7 gap-1 rounded-none px-1.5 text-xs text-muted-foreground shadow-none hover:text-foreground"
+            className="h-6 gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground shadow-none hover:text-foreground"
           >
-            <Library className="size-3.5" aria-hidden />
-            <span className="hidden sm:inline">From catalog</span>
+            <Library className="size-3" aria-hidden />
+            <span className="hidden sm:inline">Library</span>
           </Button>
         ) : null}
         <Button
@@ -162,10 +157,10 @@ export function ProductHeroHeader({
           size="sm"
           disabled={!canCreate}
           onClick={onCreateNew}
-          className="h-7 gap-1.5 rounded-none px-2.5 text-xs shadow-none"
+          className="h-6 gap-1 rounded-none px-2 text-[11px] shadow-none"
         >
-          <PackagePlus className="size-3.5" aria-hidden />
-          New product
+          <PackagePlus className="size-3" aria-hidden />
+          New
         </Button>
       </div>
     </header>

@@ -218,6 +218,21 @@ export type SupplierPortalOrderLine = {
   supplierNote: string | null;
 };
 
+export type SupplierPortalShopProduct = {
+  itemId: string;
+  itemName: string;
+  sku: string | null;
+  barcode: string | null;
+  thumbnailUrl: string | null;
+  currentStock: number | null;
+  defaultCostPrice: number | null;
+  lastCostPrice: number | null;
+  packSize: number | null;
+  packUnit: string | null;
+  variantName: string | null;
+  parentItemName: string | null;
+};
+
 export type SupplierPortalOrderDetail = {
   purchaseOrderId: string;
   businessId: string;
@@ -701,6 +716,30 @@ export async function deleteSupplierPortalProduct(productId: string): Promise<vo
 
 export async function fetchSupplierPortalOrders(): Promise<SupplierPortalOrderRow[]> {
   return supplierPortalFetch<SupplierPortalOrderRow[]>(API_ROUTES.supplierPortalOrders);
+}
+
+export async function fetchSupplierPortalShopProducts(
+  localSupplierId: string,
+): Promise<SupplierPortalShopProduct[]> {
+  return supplierPortalFetch<SupplierPortalShopProduct[]>(
+    `${API_ROUTES.supplierPortalHub}/shops/${encodeURIComponent(localSupplierId)}/products`,
+  );
+}
+
+export async function createSupplierPortalOrder(body: {
+  localSupplierId: string;
+  expectedDate?: string;
+  notes?: string;
+  lines: Array<{
+    itemId: string;
+    qtyOrdered: number;
+    unitEstimatedCost?: number;
+  }>;
+}): Promise<SupplierPortalOrderDetail> {
+  return supplierPortalFetch<SupplierPortalOrderDetail>(API_ROUTES.supplierPortalOrders, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export async function fetchSupplierPortalOrder(

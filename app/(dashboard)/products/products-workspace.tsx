@@ -363,8 +363,8 @@ export function ProductsWorkspace() {
 
   return (
     <>
-      <div className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col gap-1.5 overflow-x-hidden px-2 pb-3 sm:px-3 sm:pb-4">
-        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-1.5">
+      <div className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col gap-1 overflow-x-hidden px-1.5 pb-2 sm:px-2 sm:pb-3">
+        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-1">
           <ProductHeroHeader
             itemTypeCount={catalog.itemTypes.length}
             attentionStats={[
@@ -433,7 +433,7 @@ export function ProductsWorkspace() {
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
             )}
           >
-            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-0 overflow-x-hidden p-0 lg:grid-cols-[minmax(0,1fr)_minmax(19.5rem,min(27rem,33vw))] lg:items-stretch 2xl:grid-cols-[minmax(0,1fr)_minmax(21rem,min(31.5rem,34.5vw))]">
+            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-0 overflow-x-hidden p-0 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,min(24rem,30vw))] lg:items-stretch 2xl:grid-cols-[minmax(0,1fr)_minmax(19rem,min(28rem,32vw))]">
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex-row lg:items-stretch">
                 <ProductFilterSidebar catalog={catalog} />
                 <CatalogListColumn
@@ -466,15 +466,15 @@ export function ProductsWorkspace() {
               </div>
               <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border/50">
                 {D ? (
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 sm:p-3">
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 sm:p-2.5">
                     <ProductDetailPanel {...p} />
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-                    <div className="flex size-9 items-center justify-center border border-dashed border-border bg-muted/50">
-                      <MousePointerClick className="size-4 text-muted-foreground" />
+                  <div className="flex flex-col items-center justify-center gap-1.5 px-3 py-6 text-center">
+                    <div className="flex size-8 items-center justify-center border border-dashed border-border bg-muted/50">
+                      <MousePointerClick className="size-3.5 text-muted-foreground" />
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       Select a product from the list
                     </p>
                   </div>
@@ -514,6 +514,10 @@ export function ProductsWorkspace() {
         currencyCode={business?.currency?.trim() || ""}
         branches={branches}
         canGlobalCatalog={canGlobalCatalog}
+        onOpenExistingProduct={(itemId) => {
+          detail.selectProduct(itemId);
+          setMobileDetailOpen(true);
+        }}
       />
 
       <ProductEditDrawer
