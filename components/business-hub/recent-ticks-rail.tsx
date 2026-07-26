@@ -173,12 +173,12 @@ export function RecentTicksRail({
                     <li
                       key={tick.saleId}
                       className={cn(
-                        "px-3.5 py-3 transition-colors",
+                        "px-3.5 py-4 transition-colors sm:px-4 sm:py-5",
                         newest && "bg-[#FCFAF6] hub-figure-pop",
                       )}
                     >
                       <div className="flex items-baseline justify-between gap-2">
-                        <div className="flex min-w-0 items-baseline gap-1.5">
+                        <div className="flex min-w-0 items-baseline gap-2">
                           <span
                             className="font-mono text-[9px] tabular-nums text-[#C4BBA8]"
                             aria-hidden
@@ -187,7 +187,7 @@ export function RecentTicksRail({
                           </span>
                           <time
                             dateTime={tick.soldAt}
-                            className="font-mono text-[11px] font-medium tabular-nums text-[#141414]"
+                            className="font-mono text-[12px] font-medium tabular-nums text-[#141414]"
                             title={new Date(tick.soldAt).toLocaleString()}
                           >
                             {formatClock(tick.soldAt)}
@@ -198,7 +198,7 @@ export function RecentTicksRail({
                         </div>
                         <span
                           className={cn(
-                            "shrink-0 border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                            "shrink-0 border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
                             payTone === "cash" &&
                               "border-[#E6E1D8] bg-[#F7F5F1] text-[#5A5A5A]",
                             payTone === "mpesa" &&
@@ -216,7 +216,7 @@ export function RecentTicksRail({
 
                       {showCashier ? (
                         <p
-                          className="mt-1 truncate text-[10px] text-[#8A8A8A]"
+                          className="mt-2 truncate text-[10px] text-[#8A8A8A]"
                           title={tick.cashierName}
                         >
                           <span className="uppercase tracking-[0.08em]">By</span>{" "}
@@ -226,17 +226,22 @@ export function RecentTicksRail({
                         </p>
                       ) : null}
 
-                      <ul className="mt-1.5 space-y-1">
+                      <ul
+                        className={cn(
+                          "space-y-2",
+                          showCashier ? "mt-3" : "mt-3",
+                        )}
+                      >
                         {tick.items.map((item, itemIndex) => (
                           <li
                             key={`${tick.saleId}-${item.name}-${itemIndex}`}
-                            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2"
+                            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3"
                           >
                             <div className="min-w-0">
                               <p className="truncate text-[12px] font-medium leading-snug text-[#141414]">
                                 {item.name}
                                 {item.quantity > 1 ? (
-                                  <span className="ml-1 font-mono text-[10px] text-[#8A8A8A]">
+                                  <span className="ml-1.5 font-mono text-[10px] text-[#8A8A8A]">
                                     ×{item.quantity}
                                   </span>
                                 ) : null}
@@ -249,12 +254,12 @@ export function RecentTicksRail({
                         ))}
                       </ul>
 
-                      <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-dashed border-[#E6E1D8] pt-1.5">
+                      <div className="mt-3.5 flex items-center justify-between gap-2 border-t border-dashed border-[#E6E1D8] pt-3">
                         <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8A8A8A]">
                           Total · {tick.items.length}
                         </span>
                         <p
-                          className="text-[13px] font-semibold tabular-nums tracking-tight text-[#141414]"
+                          className="text-[14px] font-semibold tabular-nums tracking-tight text-[#141414]"
                           style={{
                             fontFamily: "var(--font-heading), Georgia, serif",
                           }}
