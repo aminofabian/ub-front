@@ -46,6 +46,7 @@ export function RecentTicksRail({
   showCashier = true,
   accent = "brass",
   laneIndex,
+  fillViewport = true,
   className,
 }: {
   ticks: RecentTick[];
@@ -58,6 +59,8 @@ export function RecentTicksRail({
   showCashier?: boolean;
   accent?: "brass" | "ink";
   laneIndex?: number;
+  /** Stick to full viewport height on wide layouts (side lanes). */
+  fillViewport?: boolean;
   className?: string;
 }) {
   const [now, setNow] = useState(() => Date.now());
@@ -71,7 +74,7 @@ export function RecentTicksRail({
     <aside
       className={cn(
         "hub-rise relative flex h-full min-h-[22rem] flex-col border border-[#E6E1D8] bg-white text-[#141414]",
-        "xl:min-h-[100dvh] xl:h-[100dvh]",
+        fillViewport && "xl:min-h-[100dvh] xl:h-[100dvh]",
         justUpdated && "hub-scan-sweep border-[#B08D48]/55",
         className,
       )}

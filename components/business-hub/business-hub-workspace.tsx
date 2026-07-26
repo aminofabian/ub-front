@@ -23,6 +23,7 @@ import { ActionItemsStrip } from "@/components/business-hub/action-items-strip";
 import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-empty-state";
 import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skeleton";
 import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
+import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
 import { CommandGrid } from "@/components/business-hub/command-grid";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
 import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
@@ -688,6 +689,9 @@ export function BusinessHubWorkspace() {
     [recentTicks],
   );
   const tickLanes = useMemo(() => {
+    if (selectedCashiers.length >= 3) {
+      return [];
+    }
     if (selectedCashiers.length === 0) {
       return [
         {
@@ -710,6 +714,7 @@ export function BusinessHubWorkspace() {
     }));
   }, [recentTicks, selectedCashiers]);
   const dualLanes = tickLanes.length === 2;
+  const galleryOpen = selectedCashiers.length >= 3;
   const showTillStage = canViewSalesIntelligence;
 
   useEffect(() => {
@@ -751,16 +756,20 @@ export function BusinessHubWorkspace() {
             "xl:grid xl:items-start xl:gap-0",
             showTillStage &&
               !dualLanes &&
+              !galleryOpen &&
               "xl:grid-cols-[minmax(0,1fr)_minmax(240px,280px)]",
             showTillStage &&
               dualLanes &&
               "xl:grid-cols-[minmax(0,1fr)_minmax(200px,240px)_minmax(200px,240px)]",
+            showTillStage && galleryOpen && "xl:grid-cols-1",
           )}
         >
           <div
             className={cn(
               "space-y-3",
-              showTillStage && "xl:border-r xl:border-[#E6E1D8] xl:pr-3",
+              showTillStage &&
+                !galleryOpen &&
+                "xl:border-r xl:border-[#E6E1D8] xl:pr-3",
               !showTillStage && "xl:pt-4",
             )}
           >
@@ -835,7 +844,7 @@ export function BusinessHubWorkspace() {
               />
             ) : null}
 
-            {showTillStage ? (
+            {showTillStage && !galleryOpen ? (
               <div
                 className={cn(
                   "grid gap-2 xl:hidden",
@@ -908,7 +917,7 @@ export function BusinessHubWorkspace() {
             <PostSetupChecklist catalogueCount={catalogueCount} />
           </div>
 
-          {showTillStage
+          {showTillStage && !galleryOpen
             ? tickLanes.map((lane, index) => (
                 <div
                   key={lane.key}
@@ -934,6 +943,21 @@ export function BusinessHubWorkspace() {
             : null}
         </div>
       </div>
+
+      {showTillStage ? (
+        <CashierTillDrawer
+          open={galleryOpen}
+          cashiers={selectedCashiers}
+          ticks={recentTicks}
+          currency={currency}
+          live={pulseLive}
+          justUpdated={justUpdated}
+          onClose={() => setSelectedCashiers((prev) => prev.slice(0, 2))}
+          onRemoveCashier={(name) =>
+            setSelectedCashiers((prev) => prev.filter((n) => n !== name))
+          }
+        />
+      ) : null}
     </div>
   );
 }

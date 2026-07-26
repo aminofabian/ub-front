@@ -2,19 +2,27 @@
 
 import { cn } from "@/lib/utils";
 
-const MAX_LANES = 2;
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
-}
+const DUAL_LANE_MAX = 2;
+const GALLERY_MIN = 3;
 
 function shortName(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length <= 1) return name;
   return parts[0]!;
+}
+
+function modeCopy(selected: string[]): string {
+  if (selected.length === 0) return "Floor · every till";
+  if (selected.length === 1) return `Solo · ${shortName(selected[0]!)}`;
+  if (selected.length === 2) return "Dual · side-by-side";
+  return `Gallery · ${selected.length} tills`;
+}
+
+function hintCopy(selected: string[]): string {
+  if (selected.length === 0) return "Tap a cashier for solo";
+  if (selected.length === 1) return "Tap another for dual lanes";
+  if (selected.length === 2) return "Tap a third for full-screen gallery";
+  return "Switch inside the gallery · Esc closes";
 }
 
 export function CashierStageTabs({
@@ -31,7 +39,8 @@ export function CashierStageTabs({
   className?: string;
 }) {
   const viewingAll = selected.length === 0;
-  const dual = selected.length === 2;
+  const gallery = selected.length >= GALLERY_MIN;
+  const columns = 1 + cashiers.length;
 
   function selectAll() {
     onChange([]);
@@ -42,16 +51,7 @@ export function CashierStageTabs({
       onChange(selected.filter((n) => n !== name));
       return;
     }
-    if (selected.length === 0) {
-      onChange([name]);
-      return;
-    }
-    if (selected.length === 1) {
-      onChange([...selected, name]);
-      return;
-    }
-    // Already two lanes — swap the oldest for the new pick.
-    onChange([selected[1]!, name]);
+    onChange([...selected, name]);
   }
 
   if (cashiers.length === 0) return null;
@@ -59,41 +59,30 @@ export function CashierStageTabs({
   return (
     <div
       className={cn(
-        "hub-rise relative border border-[#E6E1D8] bg-white",
+        "hub-rise overflow-hidden border border-[#E6E1D8] bg-white",
         className,
       )}
     >
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent, rgba(176,141,72,0.65), transparent)",
-        }}
-        aria-hidden
-      />
-
-      <div className="flex flex-wrap items-end justify-between gap-3 px-3.5 pb-2.5 pt-3 sm:px-4">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B08D48]">
-            Cashier stage
+      <div className="flex items-center justify-between gap-3 border-b border-[#E6E1D8] bg-[#FCFAF6] px-3 py-1.5 sm:px-3.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B08D48]">
+            Stage
           </p>
-          <p className="mt-0.5 text-[11px] text-[#8A8A8A]">
-            {viewingAll
-              ? "Floor feed · every till"
-              : dual
-                ? "Dual lanes · compare two tills"
-                : `Solo lane · ${selected[0]}`}
-          </p>
+          <span className="text-[#D0C6B4]" aria-hidden>
+            /
+          </span>
+          <p className="truncate text-[11px] text-[#5A5A5A]">{modeCopy(selected)}</p>
         </div>
-        <p className="text-[10px] text-[#AAAAAA]">
-          {dual
-            ? "Tap a third cashier to swap a lane"
-            : "Tap one for solo · tap a second for dual"}
+        <p className="hidden shrink-0 text-[10px] text-[#9A9A9A] sm:block">
+          {hintCopy(selected)}
         </p>
       </div>
 
       <div
-        className="flex gap-1.5 overflow-x-auto px-3.5 pb-3 sm:px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="grid"
+        style={{
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        }}
         role="tablist"
         aria-label="Cashier lanes"
       >
@@ -103,33 +92,60 @@ export function CashierStageTabs({
           aria-selected={viewingAll}
           onClick={selectAll}
           className={cn(
-            "group relative flex min-w-[4.5rem] shrink-0 flex-col items-center gap-1.5 border px-3 py-2.5 transition-all duration-300",
+            "relative flex min-h-[4.25rem] flex-col justify-center gap-1 border-r border-[#E6E1D8] px-3 py-3 text-left transition-colors sm:px-4",
             viewingAll
-              ? "border-[#141414] bg-[#141414] text-[#F5E6C8]"
-              : "border-[#E6E1D8] bg-[#FCFAF6] text-[#666666] hover:border-[#B08D48]",
+              ? "bg-[#141414] text-[#F5E6C8]"
+              : "bg-white text-[#141414] hover:bg-[#FCFAF6]",
           )}
         >
+          <span className="flex items-center gap-2">
+            <span
+              className={cn(
+                "text-[11px] font-semibold uppercase tracking-[0.14em]",
+                viewingAll ? "text-[#B08D48]" : "text-[#8A8A8A]",
+              )}
+            >
+              All
+            </span>
+            {live ? (
+              <span
+                className={cn(
+                  "size-1.5 hub-live-beacon",
+                  viewingAll ? "bg-emerald-400" : "bg-emerald-500",
+                )}
+                aria-hidden
+              />
+            ) : null}
+          </span>
           <span
             className={cn(
-              "flex size-8 items-center justify-center text-[11px] font-semibold tracking-wide",
-              viewingAll
-                ? "bg-[#B08D48] text-[#141414]"
-                : "bg-white text-[#8A8A8A] ring-1 ring-[#E6E1D8]",
+              "text-sm font-medium tracking-tight sm:text-base",
+              viewingAll ? "text-[#F5E6C8]" : "text-[#141414]",
             )}
+            style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
           >
-            All
-          </span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em]">
             Floor
           </span>
-          {live && viewingAll ? (
-            <span className="absolute right-1.5 top-1.5 size-1.5 bg-emerald-400 hub-live-beacon" />
+          <span
+            className={cn(
+              "text-[10px]",
+              viewingAll ? "text-[#A89878]" : "text-[#9A9A9A]",
+            )}
+          >
+            Every till
+          </span>
+          {viewingAll ? (
+            <span
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[#B08D48]"
+              aria-hidden
+            />
           ) : null}
         </button>
 
-        {cashiers.map((name) => {
+        {cashiers.map((name, index) => {
           const active = selected.includes(name);
           const laneIndex = selected.indexOf(name);
+          const isLast = index === cashiers.length - 1;
           return (
             <button
               key={name}
@@ -138,39 +154,93 @@ export function CashierStageTabs({
               aria-selected={active}
               title={
                 active
-                  ? `Remove ${name} lane`
-                  : selected.length >= MAX_LANES
-                    ? `Swap into lane with ${name}`
+                  ? `Remove ${name}`
+                  : selected.length >= DUAL_LANE_MAX
+                    ? `Add ${name} · opens till gallery`
                     : selected.length === 1
                       ? `Open dual lane with ${name}`
                       : `Open ${name} lane`
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                "group relative flex min-w-[5.25rem] max-w-[8rem] shrink-0 flex-col items-center gap-1.5 border px-3 py-2.5 transition-all duration-300",
+                "relative flex min-h-[4.25rem] flex-col justify-center gap-1 px-3 py-3 text-left transition-colors sm:px-4",
+                !isLast && "border-r border-[#E6E1D8]",
                 active
-                  ? "border-[#B08D48] bg-[#F9F6F0] text-[#8A6B2E]"
-                  : "border-[#E6E1D8] bg-white text-[#666666] hover:border-[#B08D48]",
+                  ? gallery
+                    ? "bg-[#141414] text-[#F5E6C8]"
+                    : "bg-[#F9F6F0] text-[#8A6B2E]"
+                  : "bg-white text-[#141414] hover:bg-[#FCFAF6]",
               )}
             >
-              {laneIndex >= 0 ? (
-                <span className="absolute left-1.5 top-1 font-mono text-[9px] tabular-nums text-[#C4BBA8]">
-                  {String(laneIndex + 1).padStart(2, "0")}
+              <span className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "font-mono text-[10px] tabular-nums",
+                    active
+                      ? gallery
+                        ? "text-[#B08D48]"
+                        : "text-[#B08D48]"
+                      : "text-[#C4BBA8]",
+                  )}
+                >
+                  {laneIndex >= 0
+                    ? String(laneIndex + 1).padStart(2, "0")
+                    : String(index + 1).padStart(2, "0")}
                 </span>
-              ) : null}
+                <span
+                  className={cn(
+                    "text-[11px] font-semibold uppercase tracking-[0.12em]",
+                    active
+                      ? gallery
+                        ? "text-[#B08D48]"
+                        : "text-[#B08D48]"
+                      : "text-[#8A8A8A]",
+                  )}
+                >
+                  Till
+                </span>
+              </span>
               <span
                 className={cn(
-                  "flex size-8 items-center justify-center text-[11px] font-semibold tracking-wide transition-colors",
-                  active
-                    ? "bg-[#141414] text-[#F5E6C8]"
-                    : "bg-[#FCFAF6] text-[#8A8A8A] ring-1 ring-[#E6E1D8] group-hover:ring-[#B08D48]",
+                  "truncate text-sm font-medium tracking-tight sm:text-base",
+                  active && gallery
+                    ? "text-[#F5E6C8]"
+                    : active
+                      ? "text-[#141414]"
+                      : "text-[#141414]",
                 )}
+                style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+                title={name}
               >
-                {initials(name)}
-              </span>
-              <span className="w-full truncate text-center text-[10px] font-semibold tracking-[0.04em]">
                 {shortName(name)}
               </span>
+              <span
+                className={cn(
+                  "truncate text-[10px]",
+                  active
+                    ? gallery
+                      ? "text-[#A89878]"
+                      : "text-[#8A6B2E]/80"
+                    : "text-[#9A9A9A]",
+                )}
+              >
+                {active
+                  ? gallery
+                    ? "In gallery"
+                    : selected.length === 1
+                      ? "Solo lane"
+                      : `Lane ${laneIndex + 1}`
+                  : "Tap to open"}
+              </span>
+              {active ? (
+                <span
+                  className={cn(
+                    "pointer-events-none absolute inset-x-0 bottom-0 h-0.5",
+                    gallery ? "bg-[#B08D48]" : "bg-[#B08D48]",
+                  )}
+                  aria-hidden
+                />
+              ) : null}
             </button>
           );
         })}
