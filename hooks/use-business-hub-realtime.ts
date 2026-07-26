@@ -11,6 +11,8 @@ type BusinessHubRealtimeOptions = {
   branchId: string;
   enabled?: boolean;
   onInvalidate: () => void;
+  /** Fires when a websocket event schedules a hub refresh. */
+  onLiveEvent?: () => void;
 };
 
 function frameBranchId(frame: RealtimeFrame): string {
@@ -25,10 +27,13 @@ export function useBusinessHubRealtime({
   branchId,
   enabled = true,
   onInvalidate,
+  onLiveEvent,
 }: BusinessHubRealtimeOptions) {
   const subscriptionId = useId();
   const onInvalidateRef = useRef(onInvalidate);
   onInvalidateRef.current = onInvalidate;
+  const onLiveEventRef = useRef(onLiveEvent);
+  onLiveEventRef.current = onLiveEvent;
   const branchIdRef = useRef(branchId);
   branchIdRef.current = branchId;
 
@@ -43,6 +48,8 @@ export function useBusinessHubRealtime({
       const scope = branchIdRef.current.trim();
       const eventBranch = frameBranchId(frame);
       if (scope && eventBranch && scope !== eventBranch) return;
+
+      onLiveEventRef.current?.();
 
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {

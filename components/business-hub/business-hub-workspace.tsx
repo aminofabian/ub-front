@@ -24,6 +24,7 @@ import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-em
 import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skeleton";
 import { CommandGrid } from "@/components/business-hub/command-grid";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
+import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PostSetupChecklist } from "@/components/business-hub/post-setup-checklist";
 import { StockShelvesBanner } from "@/components/business-hub/stock-shelves-banner";
@@ -145,7 +146,10 @@ export function BusinessHubWorkspace() {
   const [chartPoints, setChartPoints] = useState<DailyRevenuePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastLiveUpdateAt, setLastLiveUpdateAt] = useState<number | null>(null);
+  const [justUpdated, setJustUpdated] = useState(false);
   const loadGen = useRef(0);
+  const justUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
     // Wait until header branch/department seed finishes. An early fetch with
@@ -274,12 +278,29 @@ export function BusinessHubWorkspace() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    return () => {
+      if (justUpdatedTimer.current) clearTimeout(justUpdatedTimer.current);
+    };
+  }, []);
+
+  const markLiveEvent = useCallback(() => {
+    setLastLiveUpdateAt(Date.now());
+    setJustUpdated(true);
+    if (justUpdatedTimer.current) clearTimeout(justUpdatedTimer.current);
+    justUpdatedTimer.current = setTimeout(() => {
+      setJustUpdated(false);
+      justUpdatedTimer.current = null;
+    }, 2400);
+  }, []);
+
   useBusinessHubRealtime({
     branchId,
     enabled: headerScopeReady,
     onInvalidate: () => {
       void load();
     },
+    onLiveEvent: markLiveEvent,
   });
 
   const realtime = useOptionalRealtime();
@@ -640,30 +661,16 @@ export function BusinessHubWorkspace() {
     <div className="mx-auto w-full max-w-5xl space-y-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-16">
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-[#EEEEEE] pb-2.5">
         <div className="min-w-0 flex-1">
-          <div className="hidden flex-wrap items-center gap-1.5 2xl:flex">
-            <p className={cn("text-xs font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className={cn("hidden text-xs font-medium uppercase tracking-[0.08em] 2xl:inline", HUB_MUTED)}>
               Morning board
             </p>
-            <span
-              className={cn(
-                "inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                pulseLive
-                  ? "bg-emerald-500/10 text-emerald-700"
-                  : isActive
-                    ? "bg-amber-500/10 text-amber-800"
-                    : "bg-muted text-muted-foreground",
-              )}
-              title={
-                pulseLive
-                  ? "Connected — figures update when sales complete"
-                  : isActive
-                    ? "Reconnecting realtime…"
-                    : "Business paused"
-              }
-            >
-              {pulseLive ? "Live" : isActive ? "Syncing" : "Paused"}
-            </span>
-            <span className="text-[10px] font-medium uppercase tracking-wide text-[#AAAAAA] capitalize">
+            <HubLiveStatus
+              businessActive={isActive}
+              lastLiveUpdateAt={lastLiveUpdateAt}
+              justUpdated={justUpdated}
+            />
+            <span className="hidden text-[10px] font-medium uppercase tracking-wide text-[#AAAAAA] capitalize 2xl:inline">
               {tier}
             </span>
           </div>
@@ -726,6 +733,8 @@ export function BusinessHubWorkspace() {
         trend={revenueTrend}
         trendTone={revenueFooterTone}
         metrics={pulseMetrics}
+        live={pulseLive}
+        justUpdated={justUpdated}
       />
 
       <RevenueBarChart

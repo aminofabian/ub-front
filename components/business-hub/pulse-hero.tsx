@@ -21,6 +21,8 @@ export function PulseHero({
   trend,
   trendTone = "muted",
   metrics,
+  live = false,
+  justUpdated = false,
 }: {
   eyebrow: string;
   revenueLabel: string;
@@ -29,9 +31,19 @@ export function PulseHero({
   trend?: string | null;
   trendTone?: "muted" | "positive" | "warning" | "negative";
   metrics: PulseMetric[];
+  /** WebSocket connected — values can stream in. */
+  live?: boolean;
+  /** Brief highlight after a realtime refresh. */
+  justUpdated?: boolean;
 }) {
   return (
-    <section className={cn(HUB_SURFACE, "px-3.5 py-3 sm:px-4")}>
+    <section
+      className={cn(
+        HUB_SURFACE,
+        "px-3.5 py-3 sm:px-4 transition-colors duration-500",
+        justUpdated && "border-emerald-300 bg-emerald-50/40",
+      )}
+    >
       <div className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5">
           <div className="min-w-0">
@@ -46,6 +58,18 @@ export function PulseHero({
               </p>
               <span className={cn("text-[10px]", HUB_MUTED)}>·</span>
               <p className={cn("text-[10px]", HUB_MUTED)}>{revenueLabel}</p>
+              {live ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                  <span
+                    className={cn(
+                      "size-1.5 bg-emerald-500",
+                      justUpdated && "animate-pulse",
+                    )}
+                    aria-hidden
+                  />
+                  Live
+                </span>
+              ) : null}
             </div>
             <div className="mt-1 flex flex-wrap items-end gap-2">
               <p
