@@ -21,11 +21,14 @@ type Props = {
   theme: CSSProperties;
 };
 
+const INK_BORDER =
+  "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]";
+
 const fieldClass = cn(
-  "w-full rounded-xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+  "w-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
   "bg-[color-mix(in_srgb,#fff_72%,var(--pos-paper,#f1ece3))] px-3 text-[13px] outline-none",
   "placeholder:text-muted-foreground/55",
-  "focus:border-[var(--pos-primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
+  "focus:border-[var(--pos-primary)] focus:ring-1 focus:ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)]",
   "disabled:opacity-55",
 );
 
@@ -87,23 +90,24 @@ export function PublicSupplierComplaintModal({
         side="bottom"
         style={theme}
         className={cn(
-          "gap-0 rounded-t-[1.35rem] border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] p-0",
+          "gap-0 rounded-none border p-0",
+          INK_BORDER,
           "h-auto max-h-[min(88dvh,34rem)] bg-[linear-gradient(180deg,#faf8f4_0%,#f3efe7_100%)]",
           "sm:left-1/2 sm:right-auto sm:w-[calc(100vw-2rem)] sm:max-w-md sm:-translate-x-1/2",
-          "[&>button]:right-3 [&>button]:top-3 [&>button]:rounded-full",
+          "[&>button]:right-3 [&>button]:top-3 [&>button]:rounded-none",
         )}
       >
         <div
           aria-hidden
-          className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] sm:hidden"
+          className="mx-auto mt-2.5 h-0.5 w-10 bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] sm:hidden"
         />
 
-        <DialogHeader className="space-y-1 px-4 pb-3 pt-3 text-left">
+        <DialogHeader className="space-y-1 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-4 pb-3 pt-3 text-left">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Note to {shopName}
           </p>
-          <DialogTitle className="flex items-center gap-2 text-[1.05rem] font-semibold tracking-tight">
-            <span className="flex size-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)]">
+          <DialogTitle className="flex items-center gap-2.5 text-[1.05rem] font-semibold tracking-tight">
+            <span className="flex size-8 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)]">
               <MessageSquareWarning className="size-4" aria-hidden />
             </span>
             Voice a complaint
@@ -113,9 +117,14 @@ export function PublicSupplierComplaintModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
           {done ? (
-            <div className="mb-2 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)] bg-white/70 px-4 py-8 text-center">
+            <div
+              className={cn(
+                "mb-2 border border-dashed bg-white/70 px-4 py-8 text-center",
+                "border-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
+              )}
+            >
               <p className="text-[14px] font-medium">Thanks — note sent.</p>
               <p className="mt-1 text-[12px] text-muted-foreground">
                 {shopName} has your message.
@@ -123,7 +132,7 @@ export function PublicSupplierComplaintModal({
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className="mt-4 h-10 w-full rounded-xl bg-[var(--pos-primary)] text-[12px] font-semibold text-[var(--pos-primary-ink,#fff)]"
+                className="mt-4 h-10 w-full bg-[var(--pos-primary)] text-[12px] font-semibold text-[var(--pos-primary-ink,#fff)]"
               >
                 Done
               </button>
@@ -171,7 +180,7 @@ export function PublicSupplierComplaintModal({
                 type="button"
                 disabled={busy}
                 onClick={() => void onSubmit()}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary)] text-[13px] font-semibold text-[var(--pos-primary-ink,#fff)] disabled:opacity-60"
+                className="flex h-11 w-full items-center justify-center gap-2 bg-[var(--pos-primary)] text-[13px] font-semibold text-[var(--pos-primary-ink,#fff)] disabled:opacity-60"
               >
                 {busy ? (
                   <>

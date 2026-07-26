@@ -35,6 +35,15 @@ type Props = {
 
 type PortalTab = "supplies" | "movements";
 
+const INK_BORDER =
+  "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]";
+const INK_BORDER_SOFT =
+  "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]";
+const INK_DIVIDE =
+  "divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]";
+const PAPER =
+  "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)]";
+
 function toNum(v: unknown): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
   if (typeof v === "string") {
@@ -86,20 +95,22 @@ function SupplyLinesDetail({
 }) {
   if (lines.length === 0) {
     return (
-      <p className="px-3 py-2.5 text-center text-[11px] text-muted-foreground">
+      <p className={cn("border-t px-3.5 py-3 text-center text-[11px] text-muted-foreground", INK_BORDER_SOFT, PAPER)}>
         No line items on this supply.
       </p>
     );
   }
   return (
-    <div className="space-y-1.5 bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-3 py-2.5">
+    <div className={cn("space-y-2 border-t px-3.5 py-3", INK_BORDER_SOFT, PAPER)}>
       {lines.map((line, i) => (
         <div
           key={`${line.description}-${i}`}
           className="flex items-baseline justify-between gap-3 text-[12px]"
         >
           <div className="min-w-0 flex-1">
-            <p className="font-medium leading-snug">{line.description}</p>
+            <p className="font-medium leading-snug text-[var(--pos-ink,#1c1915)]">
+              {line.description}
+            </p>
             <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
               {toNum(line.quantity)} × {toNum(line.unitCost).toFixed(2)}
             </p>
@@ -109,7 +120,12 @@ function SupplyLinesDetail({
           </p>
         </div>
       ))}
-      <div className="flex items-baseline justify-between border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-1.5 text-[11px]">
+      <div
+        className={cn(
+          "flex items-baseline justify-between border-t pt-2 text-[11px]",
+          INK_BORDER_SOFT,
+        )}
+      >
         <span className="text-muted-foreground">
           Paid {fmtMoney(row.amountPaid, currency)}
         </span>
@@ -203,17 +219,25 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
       style={theme}
     >
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-        <header className="sticky top-0 z-20 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,#faf8f4_88%,transparent)] px-3 pb-2.5 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md">
-          <div className="flex items-center gap-2.5">
+        <header
+          className={cn(
+            "sticky top-0 z-20 border-b bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md",
+            INK_BORDER_SOFT,
+          )}
+        >
+          <div className="flex items-center gap-3 px-3.5 pb-3">
             {branding.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={branding.logoUrl}
                 alt=""
-                className="size-9 rounded-xl object-contain ring-1 ring-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]"
+                className={cn(
+                  "size-10 shrink-0 border object-contain bg-white",
+                  INK_BORDER_SOFT,
+                )}
               />
             ) : (
-              <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--pos-primary)] text-[11px] font-bold text-[var(--pos-primary-ink,#fff)]">
+              <span className="flex size-10 shrink-0 items-center justify-center bg-[var(--pos-primary)] text-[11px] font-bold text-[var(--pos-primary-ink,#fff)]">
                 {data.supplierName.slice(0, 2).toUpperCase()}
               </span>
             )}
@@ -224,7 +248,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                 </h1>
                 <span
                   className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                    "shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]",
                     settled
                       ? "bg-emerald-500/12 text-emerald-800"
                       : "bg-amber-500/14 text-amber-900",
@@ -233,48 +257,58 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                   {settled ? "Settled" : "Open"}
                 </span>
               </div>
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                 {data.shopName}
               </p>
             </div>
           </div>
         </header>
 
-        <section className="px-3 pt-3">
-          <div className="overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-white/75 shadow-[0_10px_30px_-18px_rgba(28,25,21,0.35)]">
-            <div className="grid grid-cols-2 divide-x divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
-              <div className="px-3.5 py-3">
+        <section className="px-3.5 pt-3.5">
+          <div className={cn("relative overflow-hidden border bg-white/85", INK_BORDER)}>
+            <span
+              aria-hidden
+              className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary)]"
+            />
+            <div className={cn("grid grid-cols-2 divide-x pl-1", INK_DIVIDE)}>
+              <div className="px-3.5 py-3.5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Amount owed
                 </p>
-                <p className="mt-0.5 text-[1.65rem] font-semibold leading-none tracking-tight tabular-nums">
+                <p className="mt-1.5 text-[1.65rem] font-semibold leading-none tracking-tight tabular-nums">
                   {fmtMoney(data.openBalance, currency)}
                 </p>
               </div>
-              <div className="px-3.5 py-3">
+              <div className="px-3.5 py-3.5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Paid to date
                 </p>
-                <p className="mt-0.5 text-[1.15rem] font-semibold leading-none tracking-tight tabular-nums">
+                <p className="mt-1.5 text-[1.15rem] font-semibold leading-none tracking-tight tabular-nums">
                   {fmtMoney(data.totalPaid, currency)}
                 </p>
-                <p className="mt-1 text-[10px] text-muted-foreground">
+                <p className="mt-1.5 text-[10px] text-muted-foreground">
                   of {fmtMoney(data.totalSpent, currency)} · {data.invoiceCount}{" "}
                   {data.invoiceCount === 1 ? "supply" : "supplies"}
                 </p>
               </div>
             </div>
-            <p className="border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_5%,transparent)] px-3.5 py-2 text-[11px] leading-snug text-muted-foreground">
+            <p
+              className={cn(
+                "border-t px-3.5 py-2.5 text-[11px] leading-snug text-muted-foreground",
+                INK_BORDER_SOFT,
+                "bg-[color-mix(in_srgb,var(--pos-primary)_5%,transparent)]",
+              )}
+            >
               Usually settled within 48 hours. Delayed? Tap Voice a complaint.
             </p>
           </div>
         </section>
 
-        <div className="px-3 pt-3">
+        <div className="px-3.5 pt-4">
           <div
             role="tablist"
             aria-label="Portal sections"
-            className="grid grid-cols-2 rounded-xl bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] p-1"
+            className={cn("grid grid-cols-2 border bg-white/70", INK_BORDER)}
           >
             {(
               [
@@ -291,17 +325,17 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                   aria-selected={active}
                   onClick={() => setTab(id)}
                   className={cn(
-                    "flex h-9 items-center justify-center gap-1.5 rounded-lg text-[12px] font-semibold transition-all",
+                    "relative flex h-10 items-center justify-center gap-1.5 text-[12px] font-semibold transition-colors",
                     active
-                      ? "bg-white text-[var(--pos-ink,#1c1915)] shadow-sm"
-                      : "text-muted-foreground",
+                      ? "bg-white text-[var(--pos-ink,#1c1915)]"
+                      : "text-muted-foreground hover:bg-white/60",
                   )}
                 >
                   <Icon className="size-3.5" aria-hidden />
                   {label}
                   <span
                     className={cn(
-                      "rounded-md px-1.5 py-0.5 font-mono text-[10px] tabular-nums",
+                      "px-1.5 py-0.5 font-mono text-[10px] tabular-nums",
                       active
                         ? "bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-[var(--pos-primary)]"
                         : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)]",
@@ -309,18 +343,24 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                   >
                     {count}
                   </span>
+                  {active ? (
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--pos-primary)]"
+                    />
+                  ) : null}
                 </button>
               );
             })}
           </div>
         </div>
 
-        <main className="min-h-0 flex-1 overflow-y-auto px-3 pb-28 pt-2.5">
+        <main className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-28 pt-3">
           {tab === "supplies" ? (
             data.supplies.length === 0 ? (
               <EmptyState label="No posted supplies yet." />
             ) : (
-              <ul className="space-y-2">
+              <ul className={cn("overflow-hidden border bg-white/90", INK_BORDER)}>
                 {data.supplies.map((row) => {
                   const key = `${row.invoiceNumber}-${row.invoiceDate}`;
                   const open = openSupplyKey === key;
@@ -328,14 +368,17 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                   return (
                     <li
                       key={key}
-                      className="overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-white/80"
+                      className={cn(
+                        "border-b last:border-b-0",
+                        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)]",
+                      )}
                     >
                       <button
                         type="button"
                         onClick={() =>
                           setOpenSupplyKey((prev) => (prev === key ? null : key))
                         }
-                        className="flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left transition-colors active:bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]"
+                        className="flex w-full items-start justify-between gap-3 px-3.5 py-3.5 text-left transition-colors active:bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]"
                         aria-expanded={open}
                       >
                         <div className="min-w-0">
@@ -347,9 +390,11 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                               )}
                               aria-hidden
                             />
-                            <span className="truncate">{row.invoiceNumber}</span>
+                            <span className="truncate font-mono tracking-tight">
+                              {row.invoiceNumber}
+                            </span>
                           </p>
-                          <p className="pl-5 text-[10px] text-muted-foreground">
+                          <p className="mt-1 pl-5 text-[10px] text-muted-foreground">
                             {fmtDate(row.invoiceDate)} ·{" "}
                             {row.sourceType.replace(/_/g, " ").toLowerCase()}
                             {lines.length > 0
@@ -358,12 +403,12 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                           </p>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className="font-mono text-[12px] font-semibold tabular-nums">
+                          <p className="font-mono text-[13px] font-semibold tabular-nums">
                             {fmtMoney(row.grandTotal, currency)}
                           </p>
                           <span
                             className={cn(
-                              "mt-0.5 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                              "mt-1 inline-flex px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]",
                               statusTone(row.paymentStatus),
                             )}
                           >
@@ -386,11 +431,14 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           ) : data.movements.length === 0 ? (
             <EmptyState label="No line movements yet." />
           ) : (
-            <ul className="-mx-3 overflow-hidden border-y border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-white/90 sm:mx-0 sm:border">
+            <ul className={cn("overflow-hidden border bg-white/90", INK_BORDER)}>
               {data.movements.map((m, i) => (
                 <li
                   key={`${m.invoiceNumber}-${m.description}-${i}`}
-                  className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)] px-3.5 py-3.5 last:border-b-0"
+                  className={cn(
+                    "border-b px-3.5 py-3.5 last:border-b-0",
+                    "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)]",
+                  )}
                 >
                   <p className="text-[13px] font-medium leading-snug text-[var(--pos-ink,#1c1915)]">
                     {m.description}
@@ -419,7 +467,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                 </li>
               ))}
               {data.linkedProducts.length > 0 ? (
-                <li className="bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3.5 py-3">
+                <li className={cn("px-3.5 py-3", PAPER)}>
                   <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                     Linked catalogue
                   </p>
@@ -439,12 +487,12 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           </p>
         </main>
 
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8">
-          <div className="pointer-events-auto rounded-2xl bg-gradient-to-t from-[#e7e1d6] via-[#e7e1d6]/90% to-transparent pb-1 pt-6">
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md px-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8">
+          <div className="pointer-events-auto bg-gradient-to-t from-[#e7e1d6] via-[#e7e1d6]/90% to-transparent pb-1 pt-6">
             <button
               type="button"
               onClick={() => setComplaintOpen(true)}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--pos-primary)] text-[13px] font-semibold text-[var(--pos-primary-ink,#fff)] shadow-[0_12px_28px_-10px_color-mix(in_srgb,var(--pos-primary)_70%,transparent)] transition-transform active:scale-[0.98]"
+              className="flex h-12 w-full items-center justify-center gap-2 bg-[var(--pos-primary)] text-[13px] font-semibold text-[var(--pos-primary-ink,#fff)] shadow-[0_12px_28px_-10px_color-mix(in_srgb,var(--pos-primary)_70%,transparent)] transition-opacity active:opacity-90"
             >
               <MessageSquareWarning className="size-4" aria-hidden />
               Voice a complaint
@@ -466,7 +514,12 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-white/50 px-4 py-10 text-center text-[12px] text-muted-foreground">
+    <div
+      className={cn(
+        "border border-dashed bg-white/50 px-4 py-10 text-center text-[12px] text-muted-foreground",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+      )}
+    >
       {label}
     </div>
   );
