@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Plus,
   Camera,
-  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -30,7 +29,7 @@ import { StockIncreaseFields } from "./StockIncreaseFields";
 import { ProductCreatePricingSection } from "./ProductCreatePricingSection";
 import { PackageVariantsSection } from "./PackageVariantsSection";
 import { ProductDescriptionField } from "./ProductDescriptionField";
-import { ProductCreateSearchStep } from "./ProductCreateSearchStep";
+import { ProductNameSuggestions } from "./ProductNameSuggestions";
 import type { ParentDraft } from "../_types";
 import { toNumber } from "../_utils";
 import {
@@ -39,8 +38,6 @@ import {
 } from "@/lib/butcher-product-templates";
 import { useDashboard } from "@/components/dashboard-provider";
 import { isButcheryBusiness } from "@/lib/business-store-type";
-
-type CreateStep = "search" | "form";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  Types
@@ -267,23 +264,23 @@ export function ProductCreateDrawer({
   const showButcherTemplates = isButcheryBusiness(business);
   const fileRef = useRef<HTMLInputElement>(null);
   const isGroup = m.parentDraft.productStructure === "group";
-  const [step, setStep] = useState<CreateStep>("search");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [keepOpen, setKeepOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [moreExpanded, setMoreExpanded] = useState(false);
   const [descGenError, setDescGenError] = useState("");
   const [fromLibraryLabel, setFromLibraryLabel] = useState<string | null>(null);
+  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
 
   /* ── Reset when drawer opens ── */
   useEffect(() => {
     if (open) {
-      setStep("search");
       setMoreExpanded(false);
       setKeepOpen(false);
       setScannerOpen(false);
       setDescGenError("");
       setFromLibraryLabel(null);
+      setSuggestionsDismissed(false);
     }
   }, [open]);
 
@@ -354,40 +351,10 @@ export function ProductCreateDrawer({
         return syncCostsFromBuyingPrice(next.buyingPrice, next);
       });
       setFromLibraryLabel(match.name);
-      setStep("form");
+      setSuggestionsDismissed(true);
     },
     [catalog.itemTypes, catalog.sortedCategories, m, syncCostsFromBuyingPrice],
   );
-
-  const startBlankForm = useCallback(
-    (seed: { name: string; barcode: string }) => {
-      m.setParentDraft((prev) => ({
-        ...prev,
-        productStructure: "standalone",
-        isSellable: true,
-        name: seed.name,
-        barcode: seed.barcode,
-      }));
-      setFromLibraryLabel(null);
-      setStep("form");
-    },
-    [m],
-  );
-
-  const startGroupForm = useCallback(() => {
-    m.setParentDraft((prev) => ({
-      ...prev,
-      productStructure: "group",
-      isSellable: false,
-    }));
-    setFromLibraryLabel(null);
-    setStep("form");
-  }, [m]);
-
-  const backToSearch = useCallback(() => {
-    setFromLibraryLabel(null);
-    setStep("search");
-  }, []);
 
   const marginInfo = useMemo(() => {
     const buy = Number(m.parentDraft.buyingPrice);
@@ -500,7 +467,7 @@ export function ProductCreateDrawer({
       });
       m.setPendingCreateImage(null);
       setFromLibraryLabel(null);
-      setStep("search");
+      setSuggestionsDismissed(false);
     },
     [keepOpen, m],
   );
@@ -513,95 +480,64 @@ export function ProductCreateDrawer({
         if (!o) onClose();
       }}
       banner={banner}
-      title={
-        step === "search"
-          ? "Add product"
-          : isGroup
-            ? "New product group"
-            : "New product"
-      }
-      description={step === "search" ? "Enter a product name to get started." : undefined}
+      title={isGroup ? "New product group" : "Add product"}
       contextLabel="Catalog"
       width="wide"
       headerDensity="compact"
       icon={<PackagePlus className="size-3.5 text-primary" aria-hidden />}
       footer={
-        step === "search" ? undefined : (
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={keepOpen}
-                onChange={(e) => setKeepOpen(e.target.checked)}
-                className="size-3.5 rounded border-border text-primary"
-              />
-              Keep open
-            </label>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 px-2.5 text-xs"
-                onClick={onClose}
-                disabled={m.parentCreateBusy}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                form="create-parent-form"
-                size="sm"
-                disabled={catalog.itemTypes.length === 0 || m.parentCreateBusy}
-                className="h-8 gap-1.5 px-2.5 text-xs"
-              >
-                {m.parentCreateBusy ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                    Saving…
-                  </>
-                ) : isGroup ? (
-                  "Create group"
-                ) : (
-                  <>
-                    <Plus className="size-3.5" />
-                    Create
-                  </>
-                )}
-              </Button>
-            </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={keepOpen}
+              onChange={(e) => setKeepOpen(e.target.checked)}
+              className="size-3.5 rounded border-border text-primary"
+            />
+            Keep open
+          </label>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 px-2.5 text-xs"
+              onClick={onClose}
+              disabled={m.parentCreateBusy}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="create-parent-form"
+              size="sm"
+              disabled={catalog.itemTypes.length === 0 || m.parentCreateBusy}
+              className="h-8 gap-1.5 px-2.5 text-xs"
+            >
+              {m.parentCreateBusy ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : isGroup ? (
+                "Create group"
+              ) : (
+                <>
+                  <Plus className="size-3.5" />
+                  Create
+                </>
+              )}
+            </Button>
           </div>
-        )
+        </div>
       }
     >
-      {step === "search" ? (
-        <ProductCreateSearchStep
-          canGlobalCatalog={canGlobalCatalog}
-          onOpenExisting={(itemId) => {
-            onOpenExistingProduct?.(itemId);
-            onClose();
-          }}
-          onUseGlobal={applyGlobalMatch}
-          onCreateNew={startBlankForm}
-          onCreateGroup={startGroupForm}
-        />
-      ) : (
       <form id="create-parent-form" className="space-y-2" onSubmit={handleSubmit}>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={backToSearch}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition hover:text-foreground"
-          >
-            <ArrowLeft className="size-3" aria-hidden />
-            Back to search
-          </button>
-          {fromLibraryLabel ? (
-            <span className="rounded-md border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-              From library · {fromLibraryLabel}
-            </span>
-          ) : null}
-        </div>
+        {fromLibraryLabel ? (
+          <p className="text-[11px] text-muted-foreground">
+            Filled from library · {fromLibraryLabel}
+          </p>
+        ) : null}
 
         {catalog.itemTypes.length === 0 && (
           <div className="rounded-md border border-destructive/20 bg-destructive/5 p-2 text-xs text-destructive">
@@ -676,19 +612,36 @@ export function ProductCreateDrawer({
                 )}
               </button>
             ) : null}
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 space-y-1.5">
               <Label required className="gap-0.5" label={isGroup ? "Group name" : "Product name"}>
                 <input
                   className={icClass()}
                   placeholder={isGroup ? "Group name" : "Product name"}
                   value={m.parentDraft.name}
                   onChange={(e) => {
-                    m.setParentDraft((p) => ({ ...p, name: e.target.value }));
+                    const name = e.target.value;
+                    setSuggestionsDismissed(false);
+                    if (fromLibraryLabel && name !== fromLibraryLabel) {
+                      setFromLibraryLabel(null);
+                    }
+                    m.setParentDraft((p) => ({ ...p, name }));
                   }}
                   required
                   autoFocus
                 />
               </Label>
+              {!isGroup ? (
+                <ProductNameSuggestions
+                  query={m.parentDraft.name}
+                  enabled={!suggestionsDismissed}
+                  canGlobalCatalog={canGlobalCatalog}
+                  onOpenExisting={(itemId) => {
+                    onOpenExistingProduct?.(itemId);
+                    onClose();
+                  }}
+                  onUseGlobal={applyGlobalMatch}
+                />
+              ) : null}
             </div>
             {!isGroup && m.pendingCreateImage ? (
               <button
@@ -1123,7 +1076,6 @@ export function ProductCreateDrawer({
           />
         ) : null}
       </form>
-      )}
     </FormDrawer>
   );
 }
