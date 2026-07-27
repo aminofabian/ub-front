@@ -128,6 +128,8 @@ export function PaySupplyDrawer({
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Advanced / manual record: notify supplier by SMS (default on). */
+  const [notifySupplier, setNotifySupplier] = useState(true);
   const [payOptions, setPayOptions] = useState<SupplyPayOptionsRecord | null>(null);
   const [payOptionsLoading, setPayOptionsLoading] = useState(false);
   const [kopokopoPhase, setKopokopoPhase] = useState<KopokopoPayPhase>("idle");
@@ -326,6 +328,7 @@ export function PaySupplyDrawer({
     setCreditApplied("0");
     setReference("");
     setNotes("");
+    setNotifySupplier(true);
     setPaidAtLocal(defaultLocalDateTime());
     setError(null);
     setShowAdvanced(false);
@@ -431,6 +434,51 @@ export function PaySupplyDrawer({
     }
   }, [allocation, showAdvanced, row, multiSelect]);
 
+  const recordPayment = async (opts: {
+    allocations: { supplierInvoiceId: string; amount: number }[];
+    cash: number;
+    credit: number;
+    method: string;
+    paidAt: string;
+    notify: boolean;
+  }) => {
+    if (!row) return;
+    const totalAlloc = opts.allocations.reduce((sum, line) => sum + line.amount, 0);
+    setBusy(true);
+    try {
+      await postSupplierPayment({
+        supplierId: row.supplierId,
+        paidAt: opts.paidAt,
+        paymentMethod: opts.method,
+        paymentAmount: opts.cash,
+        creditApplied: opts.credit,
+        reference: reference.trim() || undefined,
+        notes: notes.trim() || undefined,
+        allocations: opts.allocations,
+        notifySupplier: opts.notify,
+      });
+      toast.success(
+        opts.allocations.length > 1
+          ? `Cleared ${opts.allocations.length} unpaid invoices`
+          : opts.notify
+            ? "Supplier paid"
+            : "Marked as paid",
+        {
+          description: opts.notify
+            ? `${formatSupplyMoney(totalAlloc)} recorded for ${row.supplierName || "supplier"}.`
+            : `${formatSupplyMoney(totalAlloc)} recorded for ${row.supplierName || "supplier"} — no SMS sent.`,
+          duration: 8000,
+        },
+      );
+      onPaid();
+      onOpenChange(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Payment failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const submitPayment = async () => {
     if (!row || !canPay) {
       return;
@@ -486,34 +534,46 @@ export function PaySupplyDrawer({
       setError("Cash payment plus supplier credit must cover the amount applied.");
       return;
     }
-    setBusy(true);
-    try {
-      await postSupplierPayment({
-        supplierId: row.supplierId,
-        paidAt,
-        paymentMethod,
-        paymentAmount: cash,
-        creditApplied: credit,
-        reference: reference.trim() || undefined,
-        notes: notes.trim() || undefined,
-        allocations,
-      });
-      toast.success(
-        multiSelect
-          ? `Cleared ${allocations.length} unpaid invoices`
-          : "Supplier paid",
-        {
-          description: `${formatSupplyMoney(totalAlloc)} recorded for ${row.supplierName || "supplier"}.`,
-          duration: 8000,
-        },
-      );
-      onPaid();
-      onOpenChange(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Payment failed.");
-    } finally {
-      setBusy(false);
+    await recordPayment({
+      allocations,
+      cash,
+      credit,
+      method: paymentMethod,
+      paidAt,
+      notify: notifySupplier,
+    });
+  };
+
+  /** Full open balance(s) recorded as paid — no supplier SMS / portal alert. */
+  const markPaidWithoutNotify = async () => {
+    if (!row || !canPay) {
+      return;
     }
+    if (selectedOpen.length === 0) {
+      setError("Select at least one unpaid invoice.");
+      return;
+    }
+    setError(null);
+    const allocations = selectedOpen.map((inv) => ({
+      supplierInvoiceId: inv.id,
+      amount: Number(supplyN(inv.openBalance).toFixed(2)),
+    }));
+    const totalAlloc = allocations.reduce((sum, line) => sum + line.amount, 0);
+    let paidAt: string;
+    try {
+      paidAt = toIsoInstant(defaultLocalDateTime());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Invalid date");
+      return;
+    }
+    await recordPayment({
+      allocations,
+      cash: totalAlloc,
+      credit: 0,
+      method: preferredMethod,
+      paidAt,
+      notify: false,
+    });
   };
 
   const initiateKopokopoPay = async () => {
@@ -577,34 +637,14 @@ export function PaySupplyDrawer({
         setError(e instanceof Error ? e.message : "Invalid date");
         return;
       }
-      setBusy(true);
-      try {
-        await postSupplierPayment({
-          supplierId: row.supplierId,
-          paidAt,
-          paymentMethod: preferredMethod,
-          paymentAmount: totalAlloc,
-          creditApplied: 0,
-          reference: reference.trim() || undefined,
-          notes: notes.trim() || undefined,
-          allocations,
-        });
-        toast.success(
-          allocations.length > 1
-            ? `Cleared ${allocations.length} unpaid invoices`
-            : "Supplier paid",
-          {
-            description: `${formatSupplyMoney(totalAlloc)} recorded for ${row.supplierName || "supplier"}.`,
-            duration: 8000,
-          },
-        );
-        onPaid();
-        onOpenChange(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Payment failed.");
-      } finally {
-        setBusy(false);
-      }
+      await recordPayment({
+        allocations,
+        cash: totalAlloc,
+        credit: 0,
+        method: preferredMethod,
+        paidAt,
+        notify: true,
+      });
     })();
   };
 
@@ -696,27 +736,49 @@ export function PaySupplyDrawer({
             </Button>
           ) : null}
           {!paidFull && (payTotal > 0.009 || rowBalanceOpen > 0.009) && canPay ? (
-            <Button
-              type="button"
-              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
-              onClick={() => void onConfirmPay()}
-              disabled={
-                busy ||
-                deletingSupply ||
-                payOptionsLoading ||
-                openInvoicesLoading ||
-                selectedOpen.length === 0 ||
-                kopokopoPhase === "pending" ||
-                kopokopoPhase === "sending"
-              }
-            >
-              {busy || kopokopoPhase === "pending" || kopokopoPhase === "sending" ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <Check className="size-4" strokeWidth={3} aria-hidden />
-              )}
-              {confirmLabel()}
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5"
+                title="Record payment in PalMart without SMS or portal alert"
+                onClick={() => void markPaidWithoutNotify()}
+                disabled={
+                  busy ||
+                  deletingSupply ||
+                  openInvoicesLoading ||
+                  selectedOpen.length === 0 ||
+                  kopokopoPhase === "pending" ||
+                  kopokopoPhase === "sending"
+                }
+              >
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : null}
+                Mark paid · no SMS
+              </Button>
+              <Button
+                type="button"
+                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => void onConfirmPay()}
+                disabled={
+                  busy ||
+                  deletingSupply ||
+                  payOptionsLoading ||
+                  openInvoicesLoading ||
+                  selectedOpen.length === 0 ||
+                  kopokopoPhase === "pending" ||
+                  kopokopoPhase === "sending"
+                }
+              >
+                {busy || kopokopoPhase === "pending" || kopokopoPhase === "sending" ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <Check className="size-4" strokeWidth={3} aria-hidden />
+                )}
+                {confirmLabel()}
+              </Button>
+            </>
           ) : null}
         </div>
       }
@@ -1027,7 +1089,9 @@ export function PaySupplyDrawer({
                       Tap{" "}
                       <span className="font-semibold text-foreground">Send M-Pesa</span> to pay{" "}
                       <span className="font-semibold text-foreground">{formatSupplyMoney(rowBalanceOpen)}</span>{" "}
-                      via KopoKopo. The ledger updates when KopoKopo confirms.
+                      via KopoKopo. The ledger updates when KopoKopo confirms. Or use{" "}
+                      <span className="font-semibold text-foreground">Mark paid · no SMS</span>{" "}
+                      if you already paid outside PalMart.
                     </>
                   ) : (
                     <>
@@ -1039,7 +1103,9 @@ export function PaySupplyDrawer({
                       <span className="font-semibold text-foreground">
                         {multiSelect ? "Clear unpaid" : "Confirm payment"}
                       </span>{" "}
-                      to record it in PalMart.
+                      to record it (notifies the supplier), or{" "}
+                      <span className="font-semibold text-foreground">Mark paid · no SMS</span>{" "}
+                      to update the ledger silently.
                     </>
                   )}
                 </p>
@@ -1139,6 +1205,21 @@ export function PaySupplyDrawer({
                         onChange={(e) => setNotes(e.target.value)}
                         disabled={busy}
                       />
+                    </label>
+                    <label className="flex items-start gap-2.5 sm:col-span-2">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 size-3.5 accent-emerald-600"
+                        checked={notifySupplier}
+                        onChange={(e) => setNotifySupplier(e.target.checked)}
+                        disabled={busy}
+                      />
+                      <span className="text-sm leading-snug text-foreground">
+                        Notify supplier by SMS
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          Uncheck to record the payment silently (no SMS or portal alert).
+                        </span>
+                      </span>
                     </label>
                     <div className="sm:col-span-2">
                       <Button

@@ -7239,6 +7239,8 @@ export type PostSupplierPaymentPayload = {
   reference?: string;
   notes?: string;
   allocations: PostSupplierPaymentAllocationLine[];
+  /** When false, records payment without SMS / portal payment notification. Default true. */
+  notifySupplier?: boolean;
 };
 
 export type PostSupplierPaymentResult = {
