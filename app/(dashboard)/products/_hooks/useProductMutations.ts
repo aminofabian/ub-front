@@ -13,6 +13,7 @@ import {
   fetchItemSupplierLinks,
   fetchSuggestedNextSku,
   fetchSuppliers,
+  globalCatalogAdopt,
   patchItem,
   patchItemSupplierLink,
   postSellingPrice,
@@ -64,6 +65,7 @@ type Dependencies = {
   canListSuppliers: boolean;
   canSetSellPrice: boolean;
   canInventoryWrite: boolean;
+  canGlobalAdopt: boolean;
   currencyCode: string;
   refreshFullCatalog: () => Promise<void>;
   syncListRowFromDetail: (row: ItemSummaryRecord) => void;
@@ -95,6 +97,7 @@ export function useProductMutations(d: Dependencies) {
     canListSuppliers,
     canSetSellPrice,
     canInventoryWrite,
+    canGlobalAdopt,
     refreshFullCatalog,
     syncListRowFromDetail,
     refreshSelectedDetail,
@@ -448,7 +451,152 @@ export function useProductMutations(d: Dependencies) {
               reorderQty: parseNum(parentDraft.reorderQty, "Reorder qty"),
             };
 
-        const created = await createItem(payload);
+        const linkedGlobalId = !isCreatingGroup
+          ? parentDraft.globalProductSourceId?.trim() || ""
+          : "";
+        let created: { id: string };
+        let adoptedFromSharedCatalog = false;
+        let openingStockHandledByAdopt = false;
+
+        if (linkedGlobalId) {
+          if (!canGlobalAdopt) {
+            setMessage(
+              "You can fill from the shared catalog, but linking requires catalog adopt permission.",
+            );
+            return;
+          }
+          const branchId = parentDraft.openingBranchId.trim();
+          if (!branchId) {
+            setMessage(
+              "Choose a branch so this product can be linked from the shared catalog.",
+            );
+            return;
+          }
+
+          const openingQty = parentDraft.openingQty.trim()
+            ? parseNum(parentDraft.openingQty, "Opening quantity")
+            : undefined;
+          if (openingQty != null && openingQty <= 0) {
+            setMessage("Opening quantity must be a positive number.");
+            return;
+          }
+
+          const buyingPrice = parseNum(parentDraft.buyingPrice, "Buy price");
+          const sellingPrice = parseNum(parentDraft.bundlePrice, "Sell price");
+          const packQty = Math.max(
+            1,
+            parseNum(parentDraft.bundleQty, "Pack qty", true) ?? 1,
+          );
+          const ucRaw = parentDraft.openingUnitCost.trim();
+          const openingUnitCost =
+            ucRaw === ""
+              ? buyingPrice != null
+                ? buyingPrice / packQty
+                : undefined
+              : parseNum(parentDraft.openingUnitCost, "Opening unit cost");
+
+          const adoptResult = await globalCatalogAdopt(branchId, [
+            {
+              globalProductId: linkedGlobalId,
+              ...(parentDraft.sku.trim()
+                ? { sku: parentDraft.sku.trim() }
+                : {}),
+              ...(parentDraft.categoryId.trim()
+                ? { categoryId: parentDraft.categoryId.trim() }
+                : {}),
+              ...(sellingPrice != null ? { sellingPrice } : {}),
+              ...(buyingPrice != null ? { buyingPrice } : {}),
+              ...(openingQty != null ? { openingQty } : {}),
+              ...(openingUnitCost != null ? { openingUnitCost } : {}),
+              ...(parseNum(parentDraft.reorderLevel, "Reorder level") != null
+                ? {
+                    reorderLevel: parseNum(
+                      parentDraft.reorderLevel,
+                      "Reorder level",
+                    ),
+                  }
+                : {}),
+              ...(parseNum(parentDraft.reorderQty, "Reorder qty") != null
+                ? {
+                    reorderQty: parseNum(parentDraft.reorderQty, "Reorder qty"),
+                  }
+                : {}),
+              ...(parseNum(parentDraft.minStockLevel, "Min stock") != null
+                ? {
+                    minStockLevel: parseNum(
+                      parentDraft.minStockLevel,
+                      "Min stock",
+                    ),
+                  }
+                : {}),
+              onSkuConflict: "rename",
+            },
+          ]);
+
+          const line =
+            adoptResult.lines.find((l) => l.globalProductId === linkedGlobalId) ??
+            adoptResult.lines[0];
+          const okStatuses = new Set(["imported", "merged"]);
+          if (!line?.itemId || !okStatuses.has(line.status)) {
+            setMessage(
+              line?.message?.trim() ||
+                "Could not link this product from the shared catalog.",
+            );
+            return;
+          }
+
+          created = { id: line.itemId };
+          adoptedFromSharedCatalog = true;
+          openingStockHandledByAdopt = openingQty != null;
+
+          // Apply form overrides adopt takes from the global template.
+          try {
+            await patchItem(created.id, {
+              name: displayName,
+              ...(parentDraft.barcode.trim()
+                ? { barcode: parentDraft.barcode.trim() }
+                : {}),
+              ...(parentDraft.pluCode.trim()
+                ? { pluCode: parentDraft.pluCode.trim() }
+                : {}),
+              ...(parentDraft.brand.trim()
+                ? { brand: parentDraft.brand.trim() }
+                : {}),
+              ...(parentDraft.size.trim()
+                ? { size: parentDraft.size.trim() }
+                : {}),
+              ...(parentDraft.description.trim()
+                ? { description: parentDraft.description.trim() }
+                : {}),
+              ...(parentDraft.unitType.trim()
+                ? { unitType: parentDraft.unitType.trim() }
+                : {}),
+              ...(parentDraft.itemTypeId.trim()
+                ? { itemTypeId: parentDraft.itemTypeId.trim() }
+                : {}),
+              isWeighed: parentDraft.isWeighed,
+              isSellable: parentDraft.isSellable,
+              isStocked:
+                parentDraft.isStocked || Boolean(parentDraft.openingQty.trim()),
+              ...(parseNum(parentDraft.bundleQty, "Pack qty", true) != null
+                ? {
+                    bundleQty: parseNum(
+                      parentDraft.bundleQty,
+                      "Pack qty",
+                      true,
+                    ),
+                  }
+                : {}),
+              ...(parentDraft.bundleName.trim()
+                ? { bundleName: parentDraft.bundleName.trim() }
+                : {}),
+            } as never);
+          } catch {
+            // Non-fatal — product is already linked; overrides can be edited after.
+          }
+        } else {
+          created = await createItem(payload);
+        }
 
         // Supplier link — standalone only
         const sup = parentDraft.supplierId.trim();
@@ -486,9 +634,10 @@ export function useProductMutations(d: Dependencies) {
           }
         }
 
-        // Opening stock for standalone products
+        // Opening stock for standalone products (skip when adopt already applied it)
         if (
           !isCreatingGroup &&
+          !openingStockHandledByAdopt &&
           canInventoryWrite &&
           parentDraft.openingQty.trim() &&
           parentDraft.openingBranchId.trim()
@@ -565,9 +714,15 @@ export function useProductMutations(d: Dependencies) {
           setMessage("Group created — add your first variant.");
         } else {
           if (!opts?.keepOpen) setActiveDrawer(null);
-          const linked = canLinkSupplier && sup;
+          const linkedSupplier = canLinkSupplier && Boolean(sup);
           setMessage(
-            linked ? "Product created and linked." : "Product created.",
+            adoptedFromSharedCatalog
+              ? linkedSupplier
+                ? "Product created, linked to shared catalog, and supplier linked."
+                : "Product created and linked to shared catalog."
+              : linkedSupplier
+                ? "Product created and linked."
+                : "Product created.",
           );
         }
       } catch (err) {
@@ -581,6 +736,8 @@ export function useProductMutations(d: Dependencies) {
       parentDraft,
       canLinkSupplier,
       canInventoryWrite,
+      canGlobalAdopt,
+      canCatalogWrite,
       pendingCreateImage,
       refreshFullCatalog,
       refreshSelectedDetail,

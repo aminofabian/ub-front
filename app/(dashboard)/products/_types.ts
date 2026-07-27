@@ -85,6 +85,8 @@ export type ParentDraft = {
   openingUnitCost: string;
   sellAsPackages: boolean;
   packageRows: PackageDraft[];
+  /** When set, create adopts this shared catalog product (sets global_product_source_id). */
+  globalProductSourceId: string | null;
 };
 
 // ─── package / bundle sell variants ───────────────────────────────────────────
@@ -132,6 +134,7 @@ export const EMPTY_PARENT: ParentDraft = {
   openingUnitCost: "",
   sellAsPackages: false,
   packageRows: [emptyPackageDraft()],
+  globalProductSourceId: null,
 };
 
 // ─── add-variant draft ────────────────────────────────────────────────────────

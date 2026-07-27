@@ -71,6 +71,10 @@ export function ProductsWorkspace() {
     me?.permissions,
     Permission.CatalogGlobalRead,
   );
+  const canGlobalAdopt = hasPermission(
+    me?.permissions,
+    Permission.CatalogGlobalAdopt,
+  );
 
   const catalog = useCatalogList(branchId, dashboardItemTypeId);
   const detail = useProductDetail(branchId);
@@ -149,6 +153,7 @@ export function ProductsWorkspace() {
     canListSuppliers,
     canSetSellPrice,
     canInventoryWrite,
+    canGlobalAdopt,
     currencyCode: business?.currency?.trim() || "",
     refreshFullCatalog: catalog.refreshFullCatalog,
     syncListRowFromDetail: catalog.syncListRowFromDetail,

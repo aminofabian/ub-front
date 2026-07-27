@@ -19,7 +19,8 @@ const RESULT_LIMIT = 5;
 const BARCODE_DIGIT_MIN = 6;
 
 type Props = {
-  query: string;
+  name: string;
+  barcode?: string;
   enabled?: boolean;
   canGlobalCatalog: boolean;
   onOpenExisting: (itemId: string) => void;
@@ -39,7 +40,8 @@ function formatPrice(value: number | null | undefined): string | null {
 }
 
 export function ProductNameSuggestions({
-  query,
+  name,
+  barcode = "",
   enabled = true,
   canGlobalCatalog,
   onOpenExisting,
@@ -60,8 +62,19 @@ export function ProductNameSuggestions({
       return () => window.clearTimeout(idle);
     }
 
-    const trimmed = query.trim();
-    if (!trimmed || trimmed.length < MIN_QUERY_LEN) {
+    const nameQ = name.trim();
+    const barcodeQ = barcode.trim();
+    const lookupBarcode = queryLooksLikeBarcode(barcodeQ)
+      ? barcodeQ
+      : queryLooksLikeBarcode(nameQ)
+        ? nameQ
+        : "";
+    const lookupName =
+      nameQ.length >= MIN_QUERY_LEN && !queryLooksLikeBarcode(nameQ)
+        ? nameQ
+        : "";
+
+    if (!lookupBarcode && !lookupName) {
       const idle = window.setTimeout(() => {
         setTenantHits([]);
         setGlobalHits([]);
@@ -73,34 +86,38 @@ export function ProductNameSuggestions({
     const requestId = ++requestIdRef.current;
     const timer = window.setTimeout(() => {
       setBusy(true);
-      const asBarcode = queryLooksLikeBarcode(trimmed);
       const tenantPromise = (async () => {
-        if (!asBarcode) {
-          return fetchItemsPage(trimmed, {
+        if (lookupBarcode) {
+          const exact = await fetchItemsPage(undefined, {
+            barcode: lookupBarcode,
+            page: 0,
+            size: RESULT_LIMIT,
+            includeInactive: true,
+          });
+          if (exact.content.length > 0) return exact;
+        }
+        if (lookupName) {
+          return fetchItemsPage(lookupName, {
             page: 0,
             size: RESULT_LIMIT,
             includeInactive: true,
           });
         }
-        const exact = await fetchItemsPage(undefined, {
-          barcode: trimmed,
-          page: 0,
-          size: RESULT_LIMIT,
-          includeInactive: true,
-        });
-        if (exact.content.length > 0) return exact;
-        return fetchItemsPage(trimmed, {
+        return fetchItemsPage(lookupBarcode || undefined, {
           page: 0,
           size: RESULT_LIMIT,
           includeInactive: true,
         });
       })();
       const globalPromise = canGlobalCatalog
-        ? lookupGlobalCatalogProducts(
-            asBarcode
-              ? { barcode: trimmed, q: trimmed }
-              : { q: trimmed },
-          )
+        ? lookupGlobalCatalogProducts({
+            ...(lookupBarcode ? { barcode: lookupBarcode } : {}),
+            ...(lookupName
+              ? { q: lookupName }
+              : lookupBarcode
+                ? { q: lookupBarcode }
+                : {}),
+          })
         : Promise.resolve([] as GlobalProductRecord[]);
 
       void Promise.all([tenantPromise, globalPromise])
@@ -120,7 +137,7 @@ export function ProductNameSuggestions({
     }, SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [query, canGlobalCatalog, enabled]);
+  }, [name, barcode, canGlobalCatalog, enabled]);
 
   if (!enabled) return null;
 
@@ -132,7 +149,7 @@ export function ProductNameSuggestions({
       {busy && !hasMatches ? (
         <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Loader2 className="size-3 animate-spin" aria-hidden />
-          Checking catalog…
+          Checking shared catalog…
         </p>
       ) : null}
 
@@ -165,7 +182,9 @@ export function ProductNameSuggestions({
                         {hit.active === false ? " · inactive" : ""}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[10px] font-medium text-primary">Open</span>
+                    <span className="shrink-0 text-[10px] font-medium text-primary">
+                      Open
+                    </span>
                   </button>
                 </li>
               );
@@ -178,7 +197,7 @@ export function ProductNameSuggestions({
         <section className="space-y-1">
           <h3 className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             <Globe2 className="size-3" aria-hidden />
-            Fill from library
+            Shared catalog
           </h3>
           <ul className="overflow-hidden rounded-md border border-border/70 bg-background divide-y divide-border/60">
             {globalHits.map((hit) => {

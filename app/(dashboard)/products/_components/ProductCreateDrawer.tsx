@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Plus,
   Camera,
+  Globe2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -269,8 +270,7 @@ export function ProductCreateDrawer({
   const [scannerOpen, setScannerOpen] = useState(false);
   const [moreExpanded, setMoreExpanded] = useState(false);
   const [descGenError, setDescGenError] = useState("");
-  const [fromLibraryLabel, setFromLibraryLabel] = useState<string | null>(null);
-  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
+  const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(null);
 
   /* ── Reset when drawer opens ── */
   useEffect(() => {
@@ -279,8 +279,7 @@ export function ProductCreateDrawer({
       setKeepOpen(false);
       setScannerOpen(false);
       setDescGenError("");
-      setFromLibraryLabel(null);
-      setSuggestionsDismissed(false);
+      setLinkedGlobalLabel(null);
     }
   }, [open]);
 
@@ -347,14 +346,19 @@ export function ProductCreateDrawer({
             match.defaultMinStockLevel != null
               ? String(match.defaultMinStockLevel)
               : prev.minStockLevel,
+          globalProductSourceId: match.id,
         };
         return syncCostsFromBuyingPrice(next.buyingPrice, next);
       });
-      setFromLibraryLabel(match.name);
-      setSuggestionsDismissed(true);
+      setLinkedGlobalLabel(match.name);
     },
     [catalog.itemTypes, catalog.sortedCategories, m, syncCostsFromBuyingPrice],
   );
+
+  const unlinkSharedCatalog = useCallback(() => {
+    m.setParentDraft((prev) => ({ ...prev, globalProductSourceId: null }));
+    setLinkedGlobalLabel(null);
+  }, [m]);
 
   const marginInfo = useMemo(() => {
     const buy = Number(m.parentDraft.buyingPrice);
@@ -456,6 +460,7 @@ export function ProductCreateDrawer({
         defaultCostPrice: "",
         openingQty: "",
         openingUnitCost: "",
+        globalProductSourceId: null,
         /* preserved: */
         productStructure: savedStructure,
         itemTypeId: savedType,
@@ -466,8 +471,7 @@ export function ProductCreateDrawer({
         setPrimarySupplier: true,
       });
       m.setPendingCreateImage(null);
-      setFromLibraryLabel(null);
-      setSuggestionsDismissed(false);
+      setLinkedGlobalLabel(null);
     },
     [keepOpen, m],
   );
@@ -533,10 +537,21 @@ export function ProductCreateDrawer({
       }
     >
       <form id="create-parent-form" className="space-y-2" onSubmit={handleSubmit}>
-        {fromLibraryLabel ? (
-          <p className="text-[11px] text-muted-foreground">
-            Filled from library · {fromLibraryLabel}
-          </p>
+        {m.parentDraft.globalProductSourceId ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-[11px] text-primary">
+            <Globe2 className="size-3 shrink-0" aria-hidden />
+            <span className="min-w-0 flex-1">
+              Linked to shared catalog
+              {linkedGlobalLabel ? ` · ${linkedGlobalLabel}` : ""}
+            </span>
+            <button
+              type="button"
+              onClick={unlinkSharedCatalog}
+              className="shrink-0 font-medium underline-offset-2 hover:underline"
+            >
+              Unlink
+            </button>
+          </div>
         ) : null}
 
         {catalog.itemTypes.length === 0 && (
@@ -567,13 +582,15 @@ export function ProductCreateDrawer({
             </button>
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
                 m.setParentDraft((p) => ({
                   ...p,
                   productStructure: "group",
                   isSellable: false,
-                }))
-              }
+                  globalProductSourceId: null,
+                }));
+                setLinkedGlobalLabel(null);
+              }}
               className={cn(
                 "rounded px-2.5 py-1 text-[11px] font-medium transition",
                 isGroup
@@ -619,21 +636,16 @@ export function ProductCreateDrawer({
                   placeholder={isGroup ? "Group name" : "Product name"}
                   value={m.parentDraft.name}
                   onChange={(e) => {
-                    const name = e.target.value;
-                    setSuggestionsDismissed(false);
-                    if (fromLibraryLabel && name !== fromLibraryLabel) {
-                      setFromLibraryLabel(null);
-                    }
-                    m.setParentDraft((p) => ({ ...p, name }));
+                    m.setParentDraft((p) => ({ ...p, name: e.target.value }));
                   }}
                   required
                   autoFocus
                 />
               </Label>
-              {!isGroup ? (
+              {!isGroup && !m.parentDraft.globalProductSourceId ? (
                 <ProductNameSuggestions
-                  query={m.parentDraft.name}
-                  enabled={!suggestionsDismissed}
+                  name={m.parentDraft.name}
+                  barcode={m.parentDraft.barcode}
                   canGlobalCatalog={canGlobalCatalog}
                   onOpenExisting={(itemId) => {
                     onOpenExistingProduct?.(itemId);
