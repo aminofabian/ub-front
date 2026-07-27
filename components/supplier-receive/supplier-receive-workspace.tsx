@@ -101,7 +101,14 @@ type SupplyCartLine = {
 };
 
 type SupplierReceiveWorkspaceProps = {
-  slug: string;
+  /** Page route segment (`/supplier/[slug]`). Ignored when `supplierId` is set. */
+  slug?: string;
+  /** Direct supplier id (cashier receive drawer). */
+  supplierId?: string | null;
+  /** `drawer` hides page nav and uses Close instead of leaving cashier. */
+  variant?: "page" | "drawer";
+  onClose?: () => void;
+  onPosted?: () => void;
 };
 
 /** Browser-local: admin can flip tile edits on/off without a page reload. */
@@ -1270,8 +1277,16 @@ function SupplyCartPanel({
   );
 }
 
-export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps) {
+export function SupplierReceiveWorkspace({
+  slug = "",
+  supplierId = null,
+  variant = "page",
+  onClose,
+  onPosted,
+}: SupplierReceiveWorkspaceProps) {
   const router = useRouter();
+  const isDrawer = variant === "drawer";
+  const resolveKey = (supplierId?.trim() || slug.trim()).toLowerCase();
   const {
     me,
     business,
@@ -1403,15 +1418,22 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
 
     const run = async () => {
       try {
-        if (isSupplierIdSegment(slug)) {
-          const row = await fetchSupplierById(slug.trim());
+        const idHint = supplierId?.trim() || "";
+        const slugHint = slug.trim();
+        if (idHint || isSupplierIdSegment(slugHint)) {
+          const row = await fetchSupplierById(idHint || slugHint);
           if (cancelled) return;
           setSupplier(row);
           setCandidates([row]);
           return;
         }
 
-        const hint = supplierSlugSearchHint(slug);
+        if (!slugHint) {
+          setResolveError("No supplier selected.");
+          return;
+        }
+
+        const hint = supplierSlugSearchHint(slugHint);
         const page = await fetchSuppliersPage({
           ...(hint ? { search: hint } : {}),
           status: "active",
@@ -1420,7 +1442,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
         });
         if (cancelled) return;
 
-        let resolved = resolveSupplierFromSlug(page.content, slug);
+        let resolved = resolveSupplierFromSlug(page.content, slugHint);
         if (resolved.candidates.length === 0 && hint) {
           const broad = await fetchSuppliersPage({
             status: "active",
@@ -1428,7 +1450,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
             size: 200,
           });
           if (cancelled) return;
-          resolved = resolveSupplierFromSlug(broad.content, slug);
+          resolved = resolveSupplierFromSlug(broad.content, slugHint);
         }
 
         setCandidates(resolved.candidates);
@@ -1451,7 +1473,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [resolveKey, supplierId, slug]);
 
   // Restore per-supplier manifest draft after supplier resolves.
   useEffect(() => {
@@ -1986,6 +2008,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
         branchId: bid,
         lines: [],
       };
+      onPosted?.();
 
       const printed = await printSupplyInvoiceReceipt(
         invoice,
@@ -2032,9 +2055,16 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
         <DashboardAccessDenied
           title="Receive stock locked"
           description="You need receive-stock access to open a supplier till."
-          backHref={APP_ROUTES.cashier}
-          backLabel="Back to cashier"
+          backHref={isDrawer ? undefined : APP_ROUTES.cashier}
+          backLabel={isDrawer ? undefined : "Back to cashier"}
         />
+        {isDrawer && onClose ? (
+          <div className="mt-3 flex justify-center pb-4">
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -2058,7 +2088,7 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
           Which supplier?
         </h1>
         <p className="text-sm text-muted-foreground">
-          More than one supplier uses “{slug}”. Pick one to open the receive till.
+          More than one supplier uses “{slug || "this link"}”. Pick one to open the receive till.
         </p>
         <ul className="divide-y border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
           {candidates.map((c) => (
@@ -2069,8 +2099,10 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                 onClick={() => {
                   setSupplier(c);
                   setCandidates([c]);
-                  // Prefer a stable id URL when names collide.
-                  router.replace(APP_ROUTES.supplier(c.id));
+                  if (!isDrawer) {
+                    // Prefer a stable id URL when names collide.
+                    router.replace(APP_ROUTES.supplier(c.id));
+                  }
                 }}
               >
                 <Truck className="size-4 shrink-0 text-[var(--pos-primary)]" />
@@ -2086,13 +2118,20 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
             </li>
           ))}
         </ul>
-        <Link
-          href={APP_ROUTES.suppliers}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" />
-          Back to suppliers
-        </Link>
+        {isDrawer && onClose ? (
+          <Button type="button" variant="ghost" size="sm" className="self-start gap-1.5" onClick={onClose}>
+            <ArrowLeft className="size-3.5" />
+            Back to cashier
+          </Button>
+        ) : (
+          <Link
+            href={APP_ROUTES.suppliers}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            Back to suppliers
+          </Link>
+        )}
       </div>
     );
   }
@@ -2104,15 +2143,26 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
           Supplier not found
         </h1>
         <p className="text-sm text-muted-foreground">
-          {resolveError ?? `No active supplier matches /supplier/${slug}.`}
+          {resolveError ??
+            (slug
+              ? `No active supplier matches /supplier/${slug}.`
+              : "No supplier selected.")}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href={APP_ROUTES.supplierDirectory}>Browse suppliers</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={APP_ROUTES.suppliers}>Suppliers directory</Link>
-          </Button>
+          {isDrawer && onClose ? (
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
+              Close
+            </Button>
+          ) : (
+            <>
+              <Button asChild variant="outline" size="sm">
+                <Link href={APP_ROUTES.supplierDirectory}>Browse suppliers</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href={APP_ROUTES.suppliers}>Suppliers directory</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -2143,7 +2193,10 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
 
   return (
     <div
-      className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden pb-24 lg:pb-0"
+      className={cn(
+        "mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden",
+        isDrawer ? "pb-0" : "pb-24 lg:pb-0",
+      )}
       style={brandTheme as CSSProperties}
     >
       <div className="flex h-full min-h-0 flex-1 items-stretch overflow-hidden">
@@ -2222,14 +2275,23 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
                     Link
                   </button>
                 ) : null}
-                <Link href={APP_ROUTES.cashier} className={CHIP_IDLE}>
-                  <ArrowLeft className="size-3" aria-hidden />
-                  Cashier
-                </Link>
-                <Link href={APP_ROUTES.suppliers} className={CHIP_IDLE}>
-                  <Truck className="size-3" aria-hidden />
-                  List
-                </Link>
+                {isDrawer && onClose ? (
+                  <button type="button" onClick={onClose} className={CHIP_IDLE}>
+                    <X className="size-3" aria-hidden />
+                    Close
+                  </button>
+                ) : (
+                  <>
+                    <Link href={APP_ROUTES.cashier} className={CHIP_IDLE}>
+                      <ArrowLeft className="size-3" aria-hidden />
+                      Cashier
+                    </Link>
+                    <Link href={APP_ROUTES.suppliers} className={CHIP_IDLE}>
+                      <Truck className="size-3" aria-hidden />
+                      List
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </section>

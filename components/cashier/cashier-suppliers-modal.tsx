@@ -127,7 +127,12 @@ export function CashierSuppliersModal({
   }, [open, canWrite, canReceive, draftBusinessId, draftUserId]);
 
   useEffect(() => {
-    if (!open || tab !== "link" || supplier) {
+    const needSupplierSearch =
+      open &&
+      !supplier &&
+      ((tab === "link" && canLink) ||
+        (canReceive && (tab !== "create" || !canWrite)));
+    if (!needSupplierSearch) {
       if (supplier) {
         setSupplierHits([]);
         setSupplierBusy(false);
@@ -160,7 +165,7 @@ export function CashierSuppliersModal({
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [open, tab, supplierQuery, supplier]);
+  }, [open, tab, supplierQuery, supplier, canLink, canReceive, canWrite]);
 
   useEffect(() => {
     if (!open || tab !== "link" || !supplier) {
@@ -301,6 +306,89 @@ export function CashierSuppliersModal({
 
   const showTabs = canWrite && canLink;
   const linkCount = selectedProducts.length;
+  const showReceiveSupplierPicker =
+    canReceive && (tab !== "create" || !canWrite || !canLink);
+  const showLinkSupplierPicker = tab === "link" && canLink;
+  const showSupplierPicker = showReceiveSupplierPicker || showLinkSupplierPicker;
+
+  const supplierPicker = showSupplierPicker ? (
+    <div className="space-y-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        Supplier
+      </span>
+      {supplier ? (
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{supplier.name}</p>
+            {supplier.code ? (
+              <p className="font-mono text-[10px] text-muted-foreground">
+                {supplier.code}
+              </p>
+            ) : null}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 shrink-0"
+            onClick={() => {
+              setSupplier(null);
+              setSupplierQuery("");
+              setSelectedProducts([]);
+            }}
+            aria-label="Change supplier"
+          >
+            <X className="size-3.5" />
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          <div className="relative">
+            <input
+              className={fieldClass}
+              value={supplierQuery}
+              onChange={(e) => setSupplierQuery(e.target.value)}
+              placeholder="Search suppliers…"
+              autoFocus={tab !== "create"}
+            />
+            {supplierBusy ? (
+              <Loader2 className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+            ) : null}
+          </div>
+          {supplierHits.length > 0 ? (
+            <ul className="max-h-40 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-sm">
+              {supplierHits.map((s) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    className="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-muted/60"
+                    onClick={() => {
+                      setSupplier(s);
+                      setSupplierQuery("");
+                      setSupplierHits([]);
+                    }}
+                  >
+                    <span className="font-medium">{s.name}</span>
+                    {s.code ? (
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {s.code}
+                      </span>
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : !supplierBusy ? (
+            <p className="px-1 text-xs text-muted-foreground">
+              {supplierQuery.trim()
+                ? "No suppliers match"
+                : "No active suppliers yet"}
+            </p>
+          ) : null}
+        </div>
+      )}
+    </div>
+  ) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -330,12 +418,16 @@ export function CashierSuppliersModal({
             <Button
               type="button"
               className="mt-3 w-full gap-1.5 rounded-xl"
-              onClick={() => onReceiveSupply(supplier)}
+              disabled={!supplier}
+              onClick={() => {
+                if (!supplier) return;
+                onReceiveSupply(supplier);
+              }}
             >
               <ShoppingCart className="size-3.5" />
               {supplier
                 ? `Open till · ${supplier.name}`
-                : "Open till · pick supplier"}
+                : "Open till · select a supplier below"}
             </Button>
           ) : null}
 
@@ -447,86 +539,11 @@ export function CashierSuppliersModal({
             </>
           ) : null}
 
+          {showSupplierPicker && !(tab === "link" && canLink) ? supplierPicker : null}
+
           {tab === "link" && canLink ? (
             <>
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Supplier
-                </span>
-                {supplier ? (
-                  <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {supplier.name}
-                      </p>
-                      {supplier.code ? (
-                        <p className="font-mono text-[10px] text-muted-foreground">
-                          {supplier.code}
-                        </p>
-                      ) : null}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 shrink-0"
-                      onClick={() => {
-                        setSupplier(null);
-                        setSupplierQuery("");
-                        setSelectedProducts([]);
-                      }}
-                      aria-label="Change supplier"
-                    >
-                      <X className="size-3.5" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <div className="relative">
-                      <input
-                        className={fieldClass}
-                        value={supplierQuery}
-                        onChange={(e) => setSupplierQuery(e.target.value)}
-                        placeholder="Search suppliers…"
-                        autoFocus
-                      />
-                      {supplierBusy ? (
-                        <Loader2 className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
-                      ) : null}
-                    </div>
-                    {supplierHits.length > 0 ? (
-                      <ul className="max-h-40 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-sm">
-                        {supplierHits.map((s) => (
-                          <li key={s.id}>
-                            <button
-                              type="button"
-                              className="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-muted/60"
-                              onClick={() => {
-                                setSupplier(s);
-                                setSupplierQuery("");
-                                setSupplierHits([]);
-                              }}
-                            >
-                              <span className="font-medium">{s.name}</span>
-                              {s.code ? (
-                                <span className="font-mono text-[10px] text-muted-foreground">
-                                  {s.code}
-                                </span>
-                              ) : null}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : !supplierBusy ? (
-                      <p className="px-1 text-xs text-muted-foreground">
-                        {supplierQuery.trim()
-                          ? "No suppliers match"
-                          : "No active suppliers yet"}
-                      </p>
-                    ) : null}
-                  </div>
-                )}
-              </div>
+              {supplierPicker}
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">

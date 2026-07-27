@@ -9,7 +9,6 @@ import {
   type CSSProperties,
 } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import {
   Camera,
   ChevronLeft,
@@ -52,7 +51,6 @@ import {
   shelfPriceToInputString,
   splitShelfPriceDisplay,
 } from "@/lib/cashier-shelf-price";
-import { APP_ROUTES } from "@/lib/config";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { CART_STALE_MS, CART_VERY_STALE_MS } from "@/lib/cart-session";
 import { useMediaLg } from "@/hooks/use-media-lg";
@@ -80,6 +78,7 @@ import { BarcodeScanner } from "@/components/barcode-scanner";
 import { CashierCreateProductModal } from "./cashier-create-product-modal";
 import { CashierEditPriceModal } from "./cashier-edit-price-modal";
 import { CashierCreditTabsModal } from "./cashier-credit-tabs-modal";
+import { CashierReceiveTillDrawer } from "./cashier-receive-till-drawer";
 import { CashierSuppliersModal } from "./cashier-suppliers-modal";
 
 const POS_SHIFT_CHIP_CLASS = cn(
@@ -898,7 +897,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     cart,
   } = props;
 
-  const router = useRouter();
   const [pickedItem, setPickedItem] = useState<ItemSummaryRecord | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -907,6 +905,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [createProductOpen, setCreateProductOpen] = useState(false);
   const [suppliersOpen, setSuppliersOpen] = useState(false);
+  const [receiveTillOpen, setReceiveTillOpen] = useState(false);
+  const [receiveTillSupplier, setReceiveTillSupplier] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [creditTabsOpen, setCreditTabsOpen] = useState(false);
   const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
   const allowManageSuppliers =
@@ -950,6 +953,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       !showScanner &&
       !createProductOpen &&
       !suppliersOpen &&
+      !receiveTillOpen &&
       !creditTabsOpen &&
       editPriceKey == null,
     onScan: applyBarcodeSearch,
@@ -2067,14 +2071,32 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         canLink={allowLinkSupplierProducts}
         canReceive={allowReceiveSupply}
         onReceiveSupply={(supplier) => {
-          setSuppliersOpen(false);
-          if (supplier) {
-            // Prefer id so unfinished drafts resume without name collisions.
-            router.push(APP_ROUTES.supplier(supplier.id));
+          if (!supplier?.id) {
+            toast.message("Pick a supplier first", {
+              description: "Select a vendor, then Open till — you stay on cashier.",
+            });
             return;
           }
-          router.push(APP_ROUTES.supplierDirectory);
+          setSuppliersOpen(false);
+          setReceiveTillSupplier({
+            id: supplier.id,
+            name: supplier.name,
+          });
+          setReceiveTillOpen(true);
         }}
+      />
+
+      <CashierReceiveTillDrawer
+        open={receiveTillOpen}
+        onOpenChange={(o) => {
+          setReceiveTillOpen(o);
+          if (!o) {
+            setReceiveTillSupplier(null);
+            window.requestAnimationFrame(() => focusSearch());
+          }
+        }}
+        supplierId={receiveTillSupplier?.id ?? null}
+        supplierName={receiveTillSupplier?.name ?? null}
       />
 
       <CashierCreditTabsModal
