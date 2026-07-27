@@ -520,11 +520,7 @@ export function ProductCreateDrawer({
             ? "New product group"
             : "New product"
       }
-      description={
-        step === "search"
-          ? "Find an existing item first, or create a new one if nothing matches."
-          : undefined
-      }
+      description={step === "search" ? "Enter a product name to get started." : undefined}
       contextLabel="Catalog"
       width="wide"
       headerDensity="compact"

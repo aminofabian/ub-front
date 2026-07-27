@@ -8,7 +8,6 @@ import {
   Loader2,
   Package,
   Plus,
-  Search,
   Store,
 } from "lucide-react";
 
@@ -135,44 +134,37 @@ export function ProductCreateSearchStep({
   }, [query, canGlobalCatalog]);
 
   const trimmed = query.trim();
+  const asBarcode = queryLooksLikeBarcode(trimmed);
   const canContinue =
-    trimmed.length > 0 && (queryLooksLikeBarcode(trimmed) || trimmed.length >= MIN_QUERY_LEN);
-  const seed = queryLooksLikeBarcode(trimmed)
+    trimmed.length > 0 && (asBarcode || trimmed.length >= MIN_QUERY_LEN);
+  const seed = asBarcode
     ? { name: "", barcode: trimmed }
     : { name: trimmed, barcode: "" };
 
   const hasMatches = tenantHits.length > 0 || globalHits.length > 0;
-  const showCreateCta = canContinue && !busy;
 
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <p className={cn(productFormLabelClass, "normal-case")}>
-          Start by searching
-        </p>
+        <p className={cn(productFormLabelClass, "normal-case")}>Product name</p>
         <div className="flex gap-1.5">
-          <div className="relative min-w-0 flex-1">
-            <Search
-              className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <input
-              ref={inputRef}
-              type="search"
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && canContinue) {
-                  e.preventDefault();
-                  onCreateNew(seed);
-                }
-              }}
-              placeholder="Type a name, SKU, or barcode"
-              className={cn(productFormInputClass, "pl-8 pr-2")}
-              aria-label="Search existing products"
-            />
-          </div>
+          <input
+            ref={inputRef}
+            type="text"
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && canContinue) {
+                e.preventDefault();
+                onCreateNew(seed);
+              }
+            }}
+            placeholder="Enter product name"
+            className={cn(productFormInputClass, "min-w-0 flex-1")}
+            aria-label="Product name"
+            autoComplete="off"
+          />
           <button
             type="button"
             onClick={() => setScannerOpen(true)}
@@ -183,32 +175,17 @@ export function ProductCreateSearchStep({
             <Camera className="size-3.5" aria-hidden />
           </button>
         </div>
-        {!trimmed ? (
+        {canGlobalCatalog ? (
           <p className="text-[10px] leading-snug text-muted-foreground">
-            We check your catalog (and the product library) so you don’t add
-            the same item twice. If nothing matches, you’ll create a new one.
+            Suggestions appear as you type if we already know this product.
           </p>
-        ) : trimmed.length < MIN_QUERY_LEN && !queryLooksLikeBarcode(trimmed) ? (
-          <p className="text-[10px] leading-snug text-muted-foreground">
-            Keep typing — search starts after 2 characters.
-          </p>
-        ) : (
-          <p className="text-[10px] leading-snug text-muted-foreground">
-            Pick a match below, or create a new product with this name.
-          </p>
-        )}
+        ) : null}
       </div>
 
       {busy ? (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin" aria-hidden />
-          Searching…
-        </p>
-      ) : null}
-
-      {searched && !busy && !hasMatches ? (
-        <p className="rounded-md border border-dashed border-border/70 bg-muted/20 px-2.5 py-2 text-xs text-muted-foreground">
-          No matches found. Create a new product to continue.
+          Looking up suggestions…
         </p>
       ) : null}
 
@@ -267,7 +244,7 @@ export function ProductCreateSearchStep({
         <section className="space-y-1.5">
           <h3 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             <Globe2 className="size-3" aria-hidden />
-            From the product library
+            Suggestions
           </h3>
           <ul className="overflow-hidden rounded-md border border-border/70 divide-y divide-border/60">
             {globalHits.map((hit) => {
@@ -321,22 +298,23 @@ export function ProductCreateSearchStep({
         </section>
       ) : null}
 
+      {searched && !busy && !hasMatches && canContinue ? (
+        <p className="text-[11px] text-muted-foreground">
+          No suggestions — continue to add it as a new product.
+        </p>
+      ) : null}
+
       <div className="flex flex-col gap-1.5 border-t border-border/50 pt-2">
-        {showCreateCta ? (
-          <Button
-            type="button"
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            onClick={() => onCreateNew(seed)}
-          >
-            <Plus className="size-3.5" aria-hidden />
-            {hasMatches ? "None of these — create new" : "Create new product"}
-          </Button>
-        ) : (
-          <p className="rounded-md bg-muted/40 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
-            Type in the search box above to continue.
-          </p>
-        )}
+        <Button
+          type="button"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          disabled={!canContinue || busy}
+          onClick={() => onCreateNew(seed)}
+        >
+          <Plus className="size-3.5" aria-hidden />
+          {hasMatches ? "Continue with this name" : "Continue"}
+        </Button>
         <button
           type="button"
           onClick={onCreateGroup}
