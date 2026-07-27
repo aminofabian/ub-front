@@ -39,6 +39,7 @@ import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
 import {
   attachMarketplaceSupplier,
   attachMarketplaceSupplierByNumber,
+  attachMarketplaceSupplierFromSeed,
   checkSupplierDuplicates,
   type MarketplaceAttachResult,
   type SupplierDuplicateMatch,
@@ -131,10 +132,8 @@ export function CashierSuppliersModal({
     ReceiveTillDraftSummary[]
   >([]);
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [lookup, setLookup] = useState("");
   const [code, setCode] = useState("");
-  const [supplierNumber, setSupplierNumber] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
   const [globalMatches, setGlobalMatches] = useState<SupplierDuplicateMatch[]>(
     [],
@@ -167,15 +166,13 @@ export function CashierSuppliersModal({
   useEffect(() => {
     if (!open) return;
     setPanel(defaultPanel());
-    setName("");
-    setPhone("");
+    setLookup("");
     setCode("");
-    setSupplierNumber("");
     setGlobalMatches([]);
     setAttachingId(null);
     setSupplierQuery("");
-    setSupplierHits([]);
     setFindGlobalMatches([]);
+    setSupplierHits([]);
     setSupplier(null);
     setProductQuery("");
     setProductHits([]);
@@ -223,23 +220,18 @@ export function CashierSuppliersModal({
             if (!cancelled) setSupplierHits([]);
           });
 
-        const looksLikeNumber = /^s-?\d+$/i.test(q);
+        const looksLikeNumber = /^s-?\d{1,4}$/i.test(q) || /^\d{1,4}$/.test(q);
         const canLookupGlobal =
-          canConnectMarketplace &&
-          (looksLikeNumber || q.length >= 3);
+          canConnectMarketplace && (looksLikeNumber || q.length >= 2);
         const globalPromise = canLookupGlobal
-            ? checkSupplierDuplicates(
-                looksLikeNumber
-                  ? { supplierNumber: q }
-                  : { name: q, phone: q },
-              )
+            ? checkSupplierDuplicates({ query: q })
                 .then((result) => {
                   if (!cancelled) {
                     setFindGlobalMatches(
                       (result.matches ?? []).filter(
                         (m) =>
-                          m.source === "marketplace" &&
-                          Boolean(m.marketplaceSupplierId),
+                          m.source === "marketplace" ||
+                          m.source === "platform",
                       ),
                     );
                   }
@@ -302,22 +294,15 @@ export function CashierSuppliersModal({
       setGlobalLookupBusy(false);
       return;
     }
-    const ready =
-      name.trim() ||
-      phone.trim() ||
-      supplierNumber.trim();
-    if (!ready) {
+    const q = lookup.trim();
+    if (!q) {
       setGlobalMatches([]);
       return;
     }
     let cancelled = false;
     const t = window.setTimeout(() => {
       setGlobalLookupBusy(true);
-      void checkSupplierDuplicates({
-        name: name.trim() || undefined,
-        phone: phone.trim() || undefined,
-        supplierNumber: supplierNumber.trim() || undefined,
-      })
+      void checkSupplierDuplicates({ query: q })
         .then((result) => {
           if (!cancelled) setGlobalMatches(result.matches ?? []);
         })
@@ -332,7 +317,7 @@ export function CashierSuppliersModal({
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [open, panel, name, phone, supplierNumber]);
+  }, [open, panel, lookup]);
 
   const finishWithSupplier = (created: SupplierRecord, message: string) => {
     toast.success(message);
@@ -425,35 +410,30 @@ export function CashierSuppliersModal({
   };
 
   const onCreate = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      toast.error("Supplier name is required");
+    const q = lookup.trim();
+    if (!q) {
+      toast.error("Enter a name, phone, or S-number");
+      return;
+    }
+    // Pure number with no match → don't invent a supplier named "42"
+    if (/^s-?\d{1,4}$/i.test(q) || (/^\d{1,4}$/.test(q) && q.length <= 4)) {
+      toast.error("No supplier found for that number");
       return;
     }
     setCreateBusy(true);
     try {
-      // Prefer attach-by-number when the cashier typed an S-number.
-      const number = supplierNumber.trim();
-      if (number && canConnectMarketplace) {
-        try {
-          const attached = await attachMarketplaceSupplierByNumber(number);
-          await applyAttachResult(attached);
-          return;
-        } catch {
-          // Fall through to create when number is unknown.
-        }
-      }
-
+      const digits = q.replace(/\D/g, "");
+      const looksPhone = /^[\d\s+().-]+$/.test(q) && digits.length >= 9;
       const created = await createSupplier({
-        name: trimmed,
+        name: looksPhone ? q : q,
         ...(code.trim() ? { code: code.trim() } : {}),
-        ...(phone.trim() ? { payoutPhone: phone.trim() } : {}),
+        ...(looksPhone ? { payoutPhone: q } : {}),
         status: "active",
       });
-      if (phone.trim()) {
+      if (looksPhone) {
         await createSupplierContact(created.id, {
-          name: trimmed,
-          phone: phone.trim(),
+          name: created.name,
+          phone: q,
           primaryContact: true,
         });
       }
@@ -471,15 +451,54 @@ export function CashierSuppliersModal({
     }
   };
 
-  const onUseGlobalSupplier = async (marketplaceSupplierId: string) => {
+  const onUseMatch = async (match: SupplierDuplicateMatch) => {
+    if (match.source === "own_business" && match.localSupplierId) {
+      const localHit = {
+        id: match.localSupplierId,
+        name: match.name ?? "Supplier",
+        code: null,
+        supplierType: "distributor",
+        vatPin: null,
+        taxExempt: false,
+        creditTermsDays: null,
+        creditLimit: null,
+        rating: null,
+        status: "active",
+        notes: null,
+        paymentMethodPreferred: null,
+        paymentDetails: null,
+        payoutType: null,
+        payoutPhone: match.phone,
+        marketplaceSupplierId: match.marketplaceSupplierId,
+        supplierNumber: match.supplierNumber,
+        version: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } satisfies SupplierRecord;
+      finishWithSupplier(localHit, `Using “${localHit.name}”`);
+      return;
+    }
+
     if (!canConnectMarketplace) {
       toast.error("You don’t have permission to attach global suppliers");
       return;
     }
-    setAttachingId(marketplaceSupplierId);
+
+    const attachKey =
+      match.marketplaceSupplierId ?? match.localSupplierId ?? "seed";
+    setAttachingId(attachKey);
     setCreateBusy(true);
     try {
-      const result = await attachMarketplaceSupplier(marketplaceSupplierId);
+      let result: MarketplaceAttachResult;
+      if (match.marketplaceSupplierId) {
+        result = await attachMarketplaceSupplier(match.marketplaceSupplierId);
+      } else if (match.source === "platform" && match.localSupplierId) {
+        result = await attachMarketplaceSupplierFromSeed(match.localSupplierId);
+      } else if (match.supplierNumber) {
+        result = await attachMarketplaceSupplierByNumber(match.supplierNumber);
+      } else {
+        throw new Error("Cannot attach this match");
+      }
       await applyAttachResult(result);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not attach supplier");
@@ -487,6 +506,21 @@ export function CashierSuppliersModal({
       setAttachingId(null);
       setCreateBusy(false);
     }
+  };
+
+  const onUseGlobalSupplier = async (marketplaceSupplierId: string) => {
+    await onUseMatch({
+      confidence: "strong",
+      source: "marketplace",
+      localSupplierId: null,
+      marketplaceSupplierId,
+      name: null,
+      phone: null,
+      email: null,
+      taxId: null,
+      regionHint: null,
+      supplierNumber: null,
+    });
   };
 
   const onLink = async () => {
@@ -771,7 +805,7 @@ export function CashierSuppliersModal({
                       className={cn(fieldClass, "pl-8")}
                       value={supplierQuery}
                       onChange={(e) => setSupplierQuery(e.target.value)}
-                      placeholder="Name, phone, or S-000001…"
+                      placeholder="Name, phone, or S-0001…"
                       autoFocus
                     />
                     {supplierBusy ? (
@@ -810,15 +844,15 @@ export function CashierSuppliersModal({
                               )}
                               disabled={
                                 createBusy ||
-                                attachingId === match.marketplaceSupplierId
+                                attachingId ===
+                                  (match.marketplaceSupplierId ??
+                                    match.localSupplierId)
                               }
-                              onClick={() =>
-                                void onUseGlobalSupplier(
-                                  match.marketplaceSupplierId!,
-                                )
-                              }
+                              onClick={() => void onUseMatch(match)}
                             >
-                              {attachingId === match.marketplaceSupplierId ? (
+                              {attachingId ===
+                                (match.marketplaceSupplierId ??
+                                  match.localSupplierId) ? (
                                 <Loader2 className="size-3 animate-spin" />
                               ) : (
                                 "Use"
@@ -845,13 +879,7 @@ export function CashierSuppliersModal({
                           className={cn(classicPrimary, "mt-3 h-9 gap-1.5")}
                           onClick={() => {
                             const q = supplierQuery.trim();
-                            if (q) {
-                              if (/^s-?\d+$/i.test(q)) {
-                                setSupplierNumber(q);
-                              } else {
-                                setName(q);
-                              }
-                            }
+                            if (q) setLookup(q);
                             setPanel("create");
                           }}
                         >
@@ -885,39 +913,19 @@ export function CashierSuppliersModal({
           {panel === "create" && canWrite ? (
             <section className="space-y-2.5">
               <p className="border border-[#c0c0c0] bg-[#fff8dc] px-2.5 py-2 text-xs text-[#333] dark:border-border dark:bg-amber-950/30 dark:text-amber-100">
-                Look up by name, phone, or global number (S-000001). If they
-                already exist, attach them — otherwise saving registers them
-                globally
+                One field: type a name, phone, or S-0001. We’ll detect which it
+                is. If they already exist anywhere on the platform, use them —
+                otherwise saving registers them globally
                 {canReceive ? " and opens the receive till." : "."}
               </p>
               <label className="block space-y-1">
-                <span className={labelClass}>Global supplier number</span>
+                <span className={labelClass}>Name, phone, or S-number</span>
                 <input
                   className={fieldClass}
-                  value={supplierNumber}
-                  onChange={(e) => setSupplierNumber(e.target.value)}
-                  placeholder="S-000001"
-                  maxLength={32}
+                  value={lookup}
+                  onChange={(e) => setLookup(e.target.value)}
+                  placeholder="e.g. Simon Mukiha · 07… · S-0001"
                   autoFocus
-                />
-              </label>
-              <label className="block space-y-1">
-                <span className={labelClass}>Supplier name</span>
-                <input
-                  className={fieldClass}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Siena Distributors"
-                />
-              </label>
-              <label className="block space-y-1">
-                <span className={labelClass}>Phone (optional)</span>
-                <input
-                  className={fieldClass}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="07…"
-                  inputMode="tel"
                 />
               </label>
               <label className="block space-y-1">
@@ -933,7 +941,7 @@ export function CashierSuppliersModal({
               {globalLookupBusy ? (
                 <p className="flex items-center gap-1.5 text-[11px] text-[#555] dark:text-muted-foreground">
                   <Loader2 className="size-3 animate-spin" />
-                  Checking global directory…
+                  Checking directory…
                 </p>
               ) : null}
 
@@ -949,7 +957,16 @@ export function CashierSuppliersModal({
                         match.localSupplierId ??
                         match.marketplaceSupplierId ??
                         String(index);
-                      const isOwn = match.source === "own_business";
+                      const sourceLabel =
+                        match.source === "own_business"
+                          ? "Already in your directory"
+                          : match.source === "platform"
+                            ? "On another shop"
+                            : "Global";
+                      const busyKey =
+                        match.marketplaceSupplierId ??
+                        match.localSupplierId ??
+                        null;
                       return (
                         <li
                           key={key}
@@ -963,71 +980,28 @@ export function CashierSuppliersModal({
                               {[
                                 match.supplierNumber,
                                 match.phone,
-                                isOwn ? "Already in your directory" : "Global",
+                                sourceLabel,
                               ]
                                 .filter(Boolean)
                                 .join(" · ")}
                             </p>
                           </div>
-                          {isOwn && match.localSupplierId ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              className={cn(classicPrimary, "h-8 shrink-0 px-2 text-xs")}
-                              onClick={() => {
-                                const localHit = {
-                                  id: match.localSupplierId!,
-                                  name: match.name ?? "Supplier",
-                                  code: null,
-                                  supplierType: "distributor",
-                                  vatPin: null,
-                                  taxExempt: false,
-                                  creditTermsDays: null,
-                                  creditLimit: null,
-                                  rating: null,
-                                  status: "active",
-                                  notes: null,
-                                  paymentMethodPreferred: null,
-                                  paymentDetails: null,
-                                  payoutType: null,
-                                  payoutPhone: match.phone,
-                                  marketplaceSupplierId: match.marketplaceSupplierId,
-                                  supplierNumber: match.supplierNumber,
-                                  version: 0,
-                                  createdAt: new Date().toISOString(),
-                                  updatedAt: new Date().toISOString(),
-                                } satisfies SupplierRecord;
-                                finishWithSupplier(
-                                  localHit,
-                                  `Using “${localHit.name}”`,
-                                );
-                              }}
-                            >
-                              Use
-                            </Button>
-                          ) : match.marketplaceSupplierId &&
-                            canConnectMarketplace ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              className={cn(classicPrimary, "h-8 shrink-0 px-2 text-xs")}
-                              disabled={
-                                createBusy ||
-                                attachingId === match.marketplaceSupplierId
-                              }
-                              onClick={() =>
-                                void onUseGlobalSupplier(
-                                  match.marketplaceSupplierId!,
-                                )
-                              }
-                            >
-                              {attachingId === match.marketplaceSupplierId ? (
-                                <Loader2 className="size-3 animate-spin" />
-                              ) : (
-                                "Use supplier"
-                              )}
-                            </Button>
-                          ) : null}
+                          <Button
+                            type="button"
+                            size="sm"
+                            className={cn(
+                              classicPrimary,
+                              "h-8 shrink-0 px-2 text-xs",
+                            )}
+                            disabled={createBusy || attachingId === busyKey}
+                            onClick={() => void onUseMatch(match)}
+                          >
+                            {attachingId === busyKey ? (
+                              <Loader2 className="size-3 animate-spin" />
+                            ) : (
+                              "Use"
+                            )}
+                          </Button>
                         </li>
                       );
                     })}
@@ -1036,11 +1010,11 @@ export function CashierSuppliersModal({
               ) : null}
 
               {!globalLookupBusy &&
-              (name.trim() || phone.trim() || supplierNumber.trim()) &&
+              lookup.trim() &&
               globalMatches.length === 0 ? (
                 <p className="text-[11px] text-[#555] dark:text-muted-foreground">
-                  No global match — saving will create a new supplier with an
-                  S-number.
+                  No match yet — saving will create them and assign an S-number
+                  (e.g. S-0001).
                 </p>
               ) : null}
 
@@ -1229,7 +1203,7 @@ export function CashierSuppliersModal({
               type="button"
               className={cn(classicPrimary, "h-9 gap-1.5")}
               onClick={() => void onCreate()}
-              disabled={createBusy || !name.trim()}
+              disabled={createBusy || !lookup.trim()}
             >
               {createBusy ? (
                 <Loader2 className="size-3.5 animate-spin" />

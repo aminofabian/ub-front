@@ -488,7 +488,20 @@ export async function attachMarketplaceSupplierByNumber(
   );
 }
 
+export async function attachMarketplaceSupplierFromSeed(
+  sourceLocalSupplierId: string,
+): Promise<MarketplaceAttachResult> {
+  return tenantFetch<MarketplaceAttachResult>(
+    `${API_ROUTES.marketplace}/suppliers/attach-from-seed`,
+    {
+      method: "POST",
+      body: JSON.stringify({ sourceLocalSupplierId }),
+    },
+  );
+}
+
 export async function checkSupplierDuplicates(body: {
+  query?: string;
   name?: string;
   phone?: string;
   email?: string;

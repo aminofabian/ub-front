@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import {
   attachMarketplaceSupplier,
+  attachMarketplaceSupplierFromSeed,
   checkSupplierDuplicates,
   type MarketplaceAttachResult,
   type SupplierDuplicateMatch,
@@ -34,6 +35,7 @@ type Props = {
 function matchLabel(match: SupplierDuplicateMatch): string {
   if (match.source === "marketplace") return "Global supplier";
   if (match.source === "own_business") return "Already in your directory";
+  if (match.source === "platform") return "On another shop";
   return "Possible platform match";
 }
 
@@ -112,12 +114,16 @@ export function SupplierDuplicateCheckPanel({
   const marketplaceMatches = matches.filter((m) => m.marketplaceSupplierId);
   const strongMarketplace = marketplaceMatches.some((m) => m.confidence === "strong");
 
-  async function handleAttach(marketplaceSupplierId: string) {
+  async function handleAttach(match: SupplierDuplicateMatch) {
     if (!canConnectMarketplace || !onAttached) return;
     setAttachError("");
-    setAttachingId(marketplaceSupplierId);
+    const key = match.marketplaceSupplierId ?? match.localSupplierId;
+    if (!key) return;
+    setAttachingId(key);
     try {
-      const result = await attachMarketplaceSupplier(marketplaceSupplierId);
+      const result = match.marketplaceSupplierId
+        ? await attachMarketplaceSupplier(match.marketplaceSupplierId)
+        : await attachMarketplaceSupplierFromSeed(match.localSupplierId!);
       onAttached(result);
     } catch (e) {
       setAttachError(e instanceof Error ? e.message : "Could not attach supplier.");
@@ -132,7 +138,7 @@ export function SupplierDuplicateCheckPanel({
       hint={
         lookupReady
           ? "We compare what you typed against your suppliers and the global directory (including drafts when allowed)."
-          : "Enter a name, phone, email, tax ID, or global supplier number (S-000001) before creating."
+          : "Enter a name, phone, email, tax ID, or S-0001 before creating."
       }
     >
       <div className="border-t border-border px-2.5 py-2">
@@ -143,8 +149,8 @@ export function SupplierDuplicateCheckPanel({
           className={supFormCellInput}
           value={supplierNumber}
           onChange={(e) => onSupplierNumberChange?.(e.target.value)}
-          placeholder="S-000001"
-          maxLength={32}
+          placeholder="S-0001"
+          maxLength={16}
         />
       </div>
 
@@ -231,7 +237,7 @@ export function SupplierDuplicateCheckPanel({
                           {!match.phone && !match.email && !match.taxId ? "—" : null}
                         </td>
                         <td className={supTableCell}>
-                          {match.localSupplierId ? (
+                          {match.source === "own_business" && match.localSupplierId ? (
                             <Link
                               href={`${APP_ROUTES.suppliers}?selected=${encodeURIComponent(match.localSupplierId)}`}
                               className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
@@ -239,16 +245,22 @@ export function SupplierDuplicateCheckPanel({
                               <Link2 className="size-3" />
                               Open
                             </Link>
-                          ) : match.marketplaceSupplierId && canConnectMarketplace ? (
+                          ) : (match.marketplaceSupplierId ||
+                              (match.source === "platform" && match.localSupplierId)) &&
+                            canConnectMarketplace ? (
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
                               className="h-7 rounded-none px-2 text-xs"
-                              disabled={attachingId === match.marketplaceSupplierId}
-                              onClick={() => void handleAttach(match.marketplaceSupplierId!)}
+                              disabled={
+                                attachingId ===
+                                (match.marketplaceSupplierId ?? match.localSupplierId)
+                              }
+                              onClick={() => void handleAttach(match)}
                             >
-                              {attachingId === match.marketplaceSupplierId ? (
+                              {attachingId ===
+                              (match.marketplaceSupplierId ?? match.localSupplierId) ? (
                                 <Loader2 className="mr-1 size-3 animate-spin" />
                               ) : (
                                 <Store className="mr-1 size-3" />
