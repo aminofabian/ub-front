@@ -522,7 +522,7 @@ export function ProductCreateDrawer({
       }
       description={
         step === "search"
-          ? "Search your store catalog and the product library before creating."
+          ? "Find an existing item first, or create a new one if nothing matches."
           : undefined
       }
       contextLabel="Catalog"

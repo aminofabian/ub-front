@@ -141,11 +141,14 @@ export function ProductCreateSearchStep({
     ? { name: "", barcode: trimmed }
     : { name: trimmed, barcode: "" };
 
+  const hasMatches = tenantHits.length > 0 || globalHits.length > 0;
+  const showCreateCta = canContinue && !busy;
+
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
         <p className={cn(productFormLabelClass, "normal-case")}>
-          Search your catalog or the product library first
+          Start by searching
         </p>
         <div className="flex gap-1.5">
           <div className="relative min-w-0 flex-1">
@@ -165,7 +168,7 @@ export function ProductCreateSearchStep({
                   onCreateNew(seed);
                 }
               }}
-              placeholder="Name, SKU, or barcode"
+              placeholder="Type a name, SKU, or barcode"
               className={cn(productFormInputClass, "pl-8 pr-2")}
               aria-label="Search existing products"
             />
@@ -175,13 +178,25 @@ export function ProductCreateSearchStep({
             onClick={() => setScannerOpen(true)}
             className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input/80 bg-background text-muted-foreground shadow-sm hover:bg-muted"
             aria-label="Scan barcode"
+            title="Scan barcode"
           >
             <Camera className="size-3.5" aria-hidden />
           </button>
         </div>
-        <p className="text-[10px] leading-snug text-muted-foreground">
-          Avoid duplicates — pick a match, or continue to create a new product.
-        </p>
+        {!trimmed ? (
+          <p className="text-[10px] leading-snug text-muted-foreground">
+            We check your catalog (and the product library) so you don’t add
+            the same item twice. If nothing matches, you’ll create a new one.
+          </p>
+        ) : trimmed.length < MIN_QUERY_LEN && !queryLooksLikeBarcode(trimmed) ? (
+          <p className="text-[10px] leading-snug text-muted-foreground">
+            Keep typing — search starts after 2 characters.
+          </p>
+        ) : (
+          <p className="text-[10px] leading-snug text-muted-foreground">
+            Pick a match below, or create a new product with this name.
+          </p>
+        )}
       </div>
 
       {busy ? (
@@ -191,9 +206,9 @@ export function ProductCreateSearchStep({
         </p>
       ) : null}
 
-      {searched && !busy && tenantHits.length === 0 && globalHits.length === 0 ? (
+      {searched && !busy && !hasMatches ? (
         <p className="rounded-md border border-dashed border-border/70 bg-muted/20 px-2.5 py-2 text-xs text-muted-foreground">
-          No matches. You can create this as a new product.
+          No matches found. Create a new product to continue.
         </p>
       ) : null}
 
@@ -201,7 +216,7 @@ export function ProductCreateSearchStep({
         <section className="space-y-1.5">
           <h3 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             <Store className="size-3" aria-hidden />
-            In your catalog
+            Already in your catalog
           </h3>
           <ul className="overflow-hidden rounded-md border border-border/70 divide-y divide-border/60">
             {tenantHits.map((hit) => {
@@ -252,7 +267,7 @@ export function ProductCreateSearchStep({
         <section className="space-y-1.5">
           <h3 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             <Globe2 className="size-3" aria-hidden />
-            Product library
+            From the product library
           </h3>
           <ul className="overflow-hidden rounded-md border border-border/70 divide-y divide-border/60">
             {globalHits.map((hit) => {
@@ -307,22 +322,27 @@ export function ProductCreateSearchStep({
       ) : null}
 
       <div className="flex flex-col gap-1.5 border-t border-border/50 pt-2">
-        <Button
-          type="button"
-          size="sm"
-          className="h-8 gap-1.5 text-xs"
-          disabled={!canContinue}
-          onClick={() => onCreateNew(seed)}
-        >
-          <Plus className="size-3.5" aria-hidden />
-          {trimmed ? "Create as new product" : "Enter a name or barcode"}
-        </Button>
+        {showCreateCta ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={() => onCreateNew(seed)}
+          >
+            <Plus className="size-3.5" aria-hidden />
+            {hasMatches ? "None of these — create new" : "Create new product"}
+          </Button>
+        ) : (
+          <p className="rounded-md bg-muted/40 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
+            Type in the search box above to continue.
+          </p>
+        )}
         <button
           type="button"
           onClick={onCreateGroup}
           className="text-left text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
-          Create a product group instead
+          Creating variants (sizes, colors)? Start a product group
         </button>
       </div>
 
