@@ -58,7 +58,6 @@ import { CART_STALE_MS, CART_VERY_STALE_MS } from "@/lib/cart-session";
 import { useMediaLg } from "@/hooks/use-media-lg";
 import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
 import { usePosEvents } from "@/hooks/use-pos-events";
-import { supplierReceivePath } from "@/lib/supplier-slug";
 import { type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
 import {
@@ -2070,7 +2069,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         onReceiveSupply={(supplier) => {
           setSuppliersOpen(false);
           if (supplier) {
-            router.push(supplierReceivePath(supplier));
+            // Prefer id so unfinished drafts resume without name collisions.
+            router.push(APP_ROUTES.supplier(supplier.id));
             return;
           }
           router.push(APP_ROUTES.supplierDirectory);

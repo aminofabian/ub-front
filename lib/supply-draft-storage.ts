@@ -13,6 +13,9 @@ import type {
 export const SUPPLY_DRAFT_STORAGE_PREFIX = "palmart:supplyDraft:v1:";
 export const CASHIER_SUPPLY_DRAFT_STORAGE_PREFIX =
   "palmart:cashierSupplyDraft:v1:";
+/** Per-supplier Shelf/Manifest cart on the receive till. */
+export const RECEIVE_TILL_DRAFT_STORAGE_PREFIX =
+  "palmart:receiveTillDraft:v1:";
 
 export type SupplyDraftExtraPersisted = {
   key: string;
@@ -73,8 +76,48 @@ export type CashierSupplyDraftPersisted = {
   lines: CashierSupplyLinePersisted[];
 };
 
+/** One cart line on the supplier receive till (Shelf → Manifest). */
+export type ReceiveTillCartLinePersisted = {
+  itemId: string;
+  name: string;
+  sku: string;
+  stock: number | null;
+  qtyStr: string;
+  costStr: string;
+  sellStr: string;
+  seedCost: string;
+  seedSell: string;
+};
+
+export type ReceiveTillDraftPersisted = {
+  v: 1;
+  updatedAt: number;
+  businessId: string;
+  userId: string;
+  branchId: string;
+  supplierId: string;
+  supplierName: string;
+  lines: ReceiveTillCartLinePersisted[];
+};
+
+export type ReceiveTillDraftSummary = {
+  supplierId: string;
+  supplierName: string;
+  branchId: string;
+  lineCount: number;
+  updatedAt: number;
+};
+
 function storageKey(prefix: string, businessId: string, userId: string): string {
   return `${prefix}${businessId.trim()}:${userId.trim()}`;
+}
+
+function receiveTillStorageKey(
+  businessId: string,
+  userId: string,
+  supplierId: string,
+): string {
+  return `${RECEIVE_TILL_DRAFT_STORAGE_PREFIX}${businessId.trim()}:${userId.trim()}:${supplierId.trim()}`;
 }
 
 function readJson<T>(key: string): T | null {
@@ -327,4 +370,139 @@ export function mergeCashierLinesOntoLinks(
     }
   }
   return merged;
+}
+
+export function receiveTillDraftHasProgress(
+  draft: Pick<ReceiveTillDraftPersisted, "lines">,
+): boolean {
+  return draft.lines.some(
+    (l) =>
+      l.qtyStr.trim() ||
+      (l.costStr.trim() && l.costStr !== l.seedCost) ||
+      (l.sellStr.trim() && l.sellStr !== l.seedSell),
+  );
+}
+
+export function loadReceiveTillDraft(
+  businessId: string,
+  userId: string,
+  supplierId: string,
+): ReceiveTillDraftPersisted | null {
+  const bid = businessId.trim();
+  const uid = userId.trim();
+  const sid = supplierId.trim();
+  if (!bid || !uid || !sid) {
+    return null;
+  }
+  const draft = readJson<ReceiveTillDraftPersisted>(
+    receiveTillStorageKey(bid, uid, sid),
+  );
+  if (!draft || draft.v !== 1) {
+    return null;
+  }
+  if (
+    draft.businessId !== bid ||
+    draft.userId !== uid ||
+    draft.supplierId !== sid
+  ) {
+    return null;
+  }
+  if (!Array.isArray(draft.lines)) {
+    return null;
+  }
+  return draft;
+}
+
+export function saveReceiveTillDraft(
+  draft: Omit<ReceiveTillDraftPersisted, "v" | "updatedAt">,
+): void {
+  const bid = draft.businessId.trim();
+  const uid = draft.userId.trim();
+  const sid = draft.supplierId.trim();
+  if (!bid || !uid || !sid) {
+    return;
+  }
+  if (!receiveTillDraftHasProgress(draft)) {
+    clearReceiveTillDraft(bid, uid, sid);
+    return;
+  }
+  writeJson(receiveTillStorageKey(bid, uid, sid), {
+    ...draft,
+    businessId: bid,
+    userId: uid,
+    supplierId: sid,
+    supplierName: draft.supplierName.trim() || "Supplier",
+    v: 1 as const,
+    updatedAt: Date.now(),
+  } satisfies ReceiveTillDraftPersisted);
+}
+
+export function clearReceiveTillDraft(
+  businessId: string,
+  userId: string,
+  supplierId: string,
+): void {
+  const bid = businessId.trim();
+  const uid = userId.trim();
+  const sid = supplierId.trim();
+  if (!bid || !uid || !sid) {
+    return;
+  }
+  removeKey(receiveTillStorageKey(bid, uid, sid));
+}
+
+/** Unfinished receive tills for this cashier (newest first). */
+export function listReceiveTillDraftSummaries(
+  businessId: string,
+  userId: string,
+): ReceiveTillDraftSummary[] {
+  const bid = businessId.trim();
+  const uid = userId.trim();
+  if (!bid || !uid || typeof window === "undefined") {
+    return [];
+  }
+  const needle = `${RECEIVE_TILL_DRAFT_STORAGE_PREFIX}${bid}:${uid}:`;
+  const out: ReceiveTillDraftSummary[] = [];
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (!key || !key.startsWith(needle)) {
+        continue;
+      }
+      const draft = readJson<ReceiveTillDraftPersisted>(key);
+      if (
+        !draft ||
+        draft.v !== 1 ||
+        draft.businessId !== bid ||
+        draft.userId !== uid ||
+        !Array.isArray(draft.lines) ||
+        !receiveTillDraftHasProgress(draft)
+      ) {
+        continue;
+      }
+      out.push({
+        supplierId: draft.supplierId,
+        supplierName: draft.supplierName || "Supplier",
+        branchId: draft.branchId,
+        lineCount: draft.lines.length,
+        updatedAt: draft.updatedAt,
+      });
+    }
+  } catch {
+    return [];
+  }
+  out.sort((a, b) => b.updatedAt - a.updatedAt);
+  return out;
+}
+
+/** Relative age for draft badges (e.g. "12m ago"). */
+export function formatReceiveTillDraftAge(updatedAt: number, now = Date.now()): string {
+  const sec = Math.max(0, Math.floor((now - updatedAt) / 1000));
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 48) return `${hr}h ago`;
+  const days = Math.floor(hr / 24);
+  return `${days}d ago`;
 }

@@ -846,7 +846,7 @@ export function BusinessSettingsForm({
                 }
                 icon={<ShoppingCart className="size-4 text-muted-foreground" />}
                 title="Allow cashiers to receive stock"
-                description="Cashiers can receive deliveries from the till or Receive supplies page."
+                description="Cashiers open tills from Cashier → Suppliers → Open till. Manifest drafts stay on the device until posted."
               />
             </FormDrawerFields>
           </SettingsAnchor>

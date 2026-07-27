@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Check, Link2, Loader2, PackagePlus, Truck, X } from "lucide-react";
+import {
+  Check,
+  Link2,
+  Loader2,
+  PackagePlus,
+  ShoppingCart,
+  Truck,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,7 +31,13 @@ import {
   type ItemSummaryRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import { getSessionTenantId } from "@/lib/auth";
 import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
+import {
+  formatReceiveTillDraftAge,
+  listReceiveTillDraftSummaries,
+  type ReceiveTillDraftSummary,
+} from "@/lib/supply-draft-storage";
 import { cn } from "@/lib/utils";
 
 type TabId = "create" | "link";
@@ -34,8 +49,10 @@ type CashierSuppliersModalProps = {
   canWrite: boolean;
   canLink: boolean;
   canReceive?: boolean;
-  /** Open the receive-supply drawer; optional supplier preselect. */
-  onReceiveSupply?: (supplier?: SupplierRecord | null) => void;
+  /** Open the receive till; optional supplier preselect. */
+  onReceiveSupply?: (
+    supplier?: Pick<SupplierRecord, "id" | "name" | "code"> | null,
+  ) => void;
 };
 
 const fieldClass = cn(
@@ -53,8 +70,15 @@ export function CashierSuppliersModal({
   canReceive = false,
   onReceiveSupply,
 }: CashierSuppliersModalProps) {
+  const { me, business } = useDashboard();
+  const draftBusinessId =
+    business?.id?.trim() || getSessionTenantId()?.trim() || "";
+  const draftUserId = me?.id?.trim() || "";
   const defaultTab: TabId = canWrite ? "create" : "link";
   const [tab, setTab] = useState<TabId>(defaultTab);
+  const [unfinishedTills, setUnfinishedTills] = useState<
+    ReceiveTillDraftSummary[]
+  >([]);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -93,7 +117,14 @@ export function CashierSuppliersModal({
     setProductHits([]);
     setSelectedProducts([]);
     setCostStr("");
-  }, [open, canWrite]);
+    if (canReceive && draftBusinessId && draftUserId) {
+      setUnfinishedTills(
+        listReceiveTillDraftSummaries(draftBusinessId, draftUserId),
+      );
+    } else {
+      setUnfinishedTills([]);
+    }
+  }, [open, canWrite, canReceive, draftBusinessId, draftUserId]);
 
   useEffect(() => {
     if (!open || tab !== "link" || supplier) {
@@ -282,11 +313,11 @@ export function CashierSuppliersModal({
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Truck className="size-4 text-[var(--pos-primary)]" />
-              Suppliers
+              {canReceive ? "Open till" : "Suppliers"}
             </DialogTitle>
             <DialogDescription className="text-xs">
               {canReceive
-                ? "Receive stock, add a vendor, or link products — without leaving the till."
+                ? "Open a supplier receive till, resume an unfinished draft, or create/link vendors — drafts stay on this device until you post."
                 : canWrite && canLink
                   ? "Add a vendor or link catalog products without leaving the till."
                   : canWrite
@@ -301,11 +332,48 @@ export function CashierSuppliersModal({
               className="mt-3 w-full gap-1.5 rounded-xl"
               onClick={() => onReceiveSupply(supplier)}
             >
-              <PackagePlus className="size-3.5" />
+              <ShoppingCart className="size-3.5" />
               {supplier
-                ? `Receive stock · ${supplier.name}`
-                : "Receive stock"}
+                ? `Open till · ${supplier.name}`
+                : "Open till · pick supplier"}
             </Button>
+          ) : null}
+
+          {canReceive && onReceiveSupply && unfinishedTills.length > 0 ? (
+            <div className="mt-3 space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Unfinished tills
+              </p>
+              <ul className="max-h-36 space-y-1 overflow-y-auto">
+                {unfinishedTills.map((draft) => (
+                  <li key={draft.supplierId}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-left transition-colors hover:bg-emerald-500/10"
+                      onClick={() =>
+                        onReceiveSupply({
+                          id: draft.supplierId,
+                          name: draft.supplierName,
+                          code: null,
+                        })
+                      }
+                    >
+                      <PackagePlus className="size-3.5 shrink-0 text-emerald-700 dark:text-emerald-300" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-foreground">
+                          {draft.supplierName}
+                        </span>
+                        <span className="block text-[11px] text-muted-foreground">
+                          {draft.lineCount} item
+                          {draft.lineCount === 1 ? "" : "s"} ·{" "}
+                          {formatReceiveTillDraftAge(draft.updatedAt)}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
 
           {showTabs ? (
@@ -605,7 +673,7 @@ export function CashierSuppliersModal({
               ) : (
                 <Truck className="size-3.5" />
               )}
-              {canReceive ? "Create & receive" : "Create supplier"}
+              {canReceive ? "Create & open till" : "Create supplier"}
             </Button>
           ) : null}
           {tab === "link" && canLink ? (

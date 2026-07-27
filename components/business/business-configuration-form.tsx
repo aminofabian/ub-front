@@ -559,7 +559,7 @@ export function BusinessConfigurationForm({
             }
             icon={<ShoppingCart className="size-4" aria-hidden />}
             title="Allow cashiers to receive stock"
-            description="Cashiers can receive deliveries from the till or Receive supplies page."
+            description="Cashiers open tills from Cashier → Suppliers → Open till. Manifest drafts stay on the device until posted."
           />
         </PolicyPanel>
       ) : null}

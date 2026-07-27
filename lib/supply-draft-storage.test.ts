@@ -5,6 +5,8 @@ import {
   mergeCashierLinesOntoLinks,
   mergeNewSupplyRowsOntoLinks,
   newSupplyDraftHasProgress,
+  formatReceiveTillDraftAge,
+  receiveTillDraftHasProgress,
   type CashierSupplyLinePersisted,
   type SupplyDraftRowPersisted,
 } from "@/lib/supply-draft-storage";
@@ -150,5 +152,50 @@ describe("supply-draft-storage", () => {
     expect(merged[0]?.qtyStr).toBe("10");
     expect(merged[0]?.costStr).toBe("40");
     expect(merged[0]?.seedCost).toBe("35.00");
+  });
+
+  it("formats receive-till draft ages", () => {
+    const now = 1_700_000_000_000;
+    expect(formatReceiveTillDraftAge(now - 10_000, now)).toBe("just now");
+    expect(formatReceiveTillDraftAge(now - 5 * 60_000, now)).toBe("5m ago");
+    expect(formatReceiveTillDraftAge(now - 3 * 3_600_000, now)).toBe("3h ago");
+  });
+
+  it("detects receive-till draft progress", () => {
+    expect(
+      receiveTillDraftHasProgress({
+        lines: [
+          {
+            itemId: "i1",
+            name: "Milk",
+            sku: "M1",
+            stock: null,
+            qtyStr: "",
+            costStr: "40.00",
+            sellStr: "50.00",
+            seedCost: "40.00",
+            seedSell: "50.00",
+          },
+        ],
+      }),
+    ).toBe(false);
+
+    expect(
+      receiveTillDraftHasProgress({
+        lines: [
+          {
+            itemId: "i1",
+            name: "Milk",
+            sku: "M1",
+            stock: null,
+            qtyStr: "2",
+            costStr: "40.00",
+            sellStr: "50.00",
+            seedCost: "40.00",
+            seedSell: "50.00",
+          },
+        ],
+      }),
+    ).toBe(true);
   });
 });

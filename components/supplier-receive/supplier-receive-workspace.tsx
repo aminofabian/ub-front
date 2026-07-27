@@ -58,7 +58,9 @@ import { resolveReceiptWebsite } from "@/lib/branch-receipt";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { kioskPlaceholderWashClass } from "@/components/cashier/kiosk-listing-styles";
 import { APP_ROUTES } from "@/lib/config";
+import { getSessionTenantId } from "@/lib/auth";
 import { printSupplyInvoiceReceipt } from "@/lib/desktop-print";
+import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import {
@@ -77,6 +79,12 @@ import {
   buildSupplyInvoiceReceiptSnapshot,
   type SupplyInvoiceReceiptSnapshot,
 } from "@/lib/supply-invoice-receipt";
+import {
+  clearReceiveTillDraft,
+  formatReceiveTillDraftAge,
+  loadReceiveTillDraft,
+  saveReceiveTillDraft,
+} from "@/lib/supply-draft-storage";
 import { publicSupplierPortalUrl } from "@/lib/public-supplier-portal";
 import { cn } from "@/lib/utils";
 
@@ -1038,6 +1046,8 @@ function SupplyCartPanel({
   saving,
   canPost,
   canSetSellPrice,
+  draftHint,
+  onClearDraft,
   onPatch,
   onRemove,
   onPost,
@@ -1051,6 +1061,8 @@ function SupplyCartPanel({
   saving: boolean;
   canPost: boolean;
   canSetSellPrice: boolean;
+  draftHint?: string | null;
+  onClearDraft?: () => void;
   onPatch: (itemId: string, patch: Partial<SupplyCartLine>) => void;
   onRemove: (itemId: string) => void;
   onPost: () => void;
@@ -1079,23 +1091,42 @@ function SupplyCartPanel({
             <h2 className="pos-market-section-label mt-0.5 truncate text-base leading-none text-foreground">
               {supplierName}
             </h2>
+            {draftHint ? (
+              <p className="mt-1 text-[10px] leading-snug text-emerald-800 dark:text-emerald-200">
+                {draftHint}
+              </p>
+            ) : null}
           </div>
-          {onCloseMobile ? (
-            <button
-              type="button"
-              className="flex size-7 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] text-muted-foreground hover:text-foreground lg:hidden"
-              onClick={onCloseMobile}
-              aria-label="Close cart"
-            >
-              <X className="size-3.5" />
-            </button>
-          ) : null}
+          <div className="flex shrink-0 items-center gap-1">
+            {lines.length > 0 && onClearDraft ? (
+              <button
+                type="button"
+                className="h-7 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-destructive"
+                onClick={onClearDraft}
+                disabled={saving}
+                title="Clear manifest draft"
+              >
+                Clear
+              </button>
+            ) : null}
+            {onCloseMobile ? (
+              <button
+                type="button"
+                className="flex size-7 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] text-muted-foreground hover:text-foreground lg:hidden"
+                onClick={onCloseMobile}
+                aria-label="Close cart"
+              >
+                <X className="size-3.5" />
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 space-y-0 overflow-y-auto">
           {lines.length === 0 ? (
             <p className="mx-2.5 my-3 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-3 py-10 text-center text-[11px] leading-relaxed text-muted-foreground">
-              Tap shelf products to build this delivery.
+              Tap shelf products or scan a barcode to build this delivery.
+              Drafts save on this device until you post.
             </p>
           ) : (
             lines.map((line, index) => {
@@ -1308,6 +1339,19 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
   const [adminEditOn, setAdminEditOn] = useState(false);
   const [lastInvoice, setLastInvoice] =
     useState<SupplyInvoiceReceiptSnapshot | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftRestoredAt, setDraftRestoredAt] = useState<number | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const linksRef = useRef<SupplierItemLinkRecord[]>([]);
+  const persistSnapshotRef = useRef<{
+    supplierId: string;
+    supplierName: string;
+    branchId: string;
+    lines: SupplyCartLine[];
+  } | null>(null);
+  const draftBusinessId =
+    business?.id?.trim() || getSessionTenantId()?.trim() || "";
+  const draftUserId = me?.id?.trim() || "";
 
   useEffect(() => {
     if (!canToggleAdminEdit) return;
@@ -1350,6 +1394,8 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     setSupplier(null);
     setCandidates([]);
     setCart([]);
+    setDraftReady(false);
+    setDraftRestoredAt(null);
     setParentFilterId(null);
     setFilter("");
     setFetchedParentThumbs({});
@@ -1406,6 +1452,94 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
       cancelled = true;
     };
   }, [slug]);
+
+  // Restore per-supplier manifest draft after supplier resolves.
+  useEffect(() => {
+    if (!supplier?.id || !draftBusinessId || !draftUserId) {
+      setDraftReady(false);
+      return;
+    }
+    const draft = loadReceiveTillDraft(
+      draftBusinessId,
+      draftUserId,
+      supplier.id,
+    );
+    if (draft && draft.lines.length > 0) {
+      setCart(draft.lines);
+      setDraftRestoredAt(draft.updatedAt);
+      toast.message(
+        `Restored draft · ${draft.lines.length} item${draft.lines.length === 1 ? "" : "s"}`,
+        {
+          description: formatReceiveTillDraftAge(draft.updatedAt),
+          duration: 4000,
+        },
+      );
+    } else {
+      setCart([]);
+      setDraftRestoredAt(null);
+    }
+    setDraftReady(true);
+  }, [supplier?.id, draftBusinessId, draftUserId]);
+
+  // Keep a flushable snapshot so exit / supplier switch cannot drop mid-edit qty.
+  useEffect(() => {
+    if (!supplier?.id || !draftReady) {
+      return;
+    }
+    persistSnapshotRef.current = {
+      supplierId: supplier.id,
+      supplierName: supplier.name,
+      branchId: branchId.trim(),
+      lines: cart,
+    };
+  }, [supplier?.id, supplier?.name, branchId, cart, draftReady]);
+
+  // Debounced autosave while editing this till.
+  useEffect(() => {
+    if (!draftReady || !supplier?.id || !draftBusinessId || !draftUserId) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      saveReceiveTillDraft({
+        businessId: draftBusinessId,
+        userId: draftUserId,
+        branchId: branchId.trim(),
+        supplierId: supplier.id,
+        supplierName: supplier.name,
+        lines: cart,
+      });
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [
+    cart,
+    draftReady,
+    supplier?.id,
+    supplier?.name,
+    draftBusinessId,
+    draftUserId,
+    branchId,
+  ]);
+
+  // Flush previous supplier draft when leaving this till (Cashier / List / switch).
+  useEffect(() => {
+    if (!draftBusinessId || !draftUserId) {
+      return;
+    }
+    return () => {
+      const snap = persistSnapshotRef.current;
+      if (!snap) {
+        return;
+      }
+      saveReceiveTillDraft({
+        businessId: draftBusinessId,
+        userId: draftUserId,
+        branchId: snap.branchId,
+        supplierId: snap.supplierId,
+        supplierName: snap.supplierName,
+        lines: snap.lines,
+      });
+    };
+  }, [supplier?.id, draftBusinessId, draftUserId]);
 
   useEffect(() => {
     if (!supplier || !branchId.trim()) {
@@ -1587,6 +1721,64 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     },
     [markAdded],
   );
+
+  useEffect(() => {
+    linksRef.current = links;
+  }, [links]);
+
+  const applyBarcodeToCart = useCallback(
+    (raw: string) => {
+      const code = raw.trim();
+      if (!code) return;
+      const q = code.toLowerCase();
+      const hit = linksRef.current.find((l) => {
+        const barcode = (l.barcode ?? "").trim().toLowerCase();
+        const sku = (l.sku ?? "").trim().toLowerCase();
+        return (barcode && barcode === q) || (sku && sku === q);
+      });
+      if (hit) {
+        addLinkToCart(hit);
+        toast.success(`Added ${hit.itemName || hit.sku || "product"}`);
+        setFilter("");
+        return;
+      }
+      toast.error("Not linked to this supplier", {
+        description: code,
+      });
+      setFilter(code);
+    },
+    [addLinkToCart],
+  );
+
+  usePosBarcodeWedge({
+    enabled: Boolean(supplier) && !saving && !resolveBusy,
+    onScan: applyBarcodeToCart,
+    searchInputRef,
+  });
+
+  const clearManifestDraft = useCallback(() => {
+    if (!supplier?.id || !draftBusinessId || !draftUserId) {
+      setCart([]);
+      setDraftRestoredAt(null);
+      return;
+    }
+    clearReceiveTillDraft(draftBusinessId, draftUserId, supplier.id);
+    persistSnapshotRef.current = {
+      supplierId: supplier.id,
+      supplierName: supplier.name,
+      branchId: branchId.trim(),
+      lines: [],
+    };
+    setCart([]);
+    setDraftRestoredAt(null);
+    toast.message("Draft cleared");
+  }, [
+    supplier?.id,
+    supplier?.name,
+    draftBusinessId,
+    draftUserId,
+    branchId,
+  ]);
 
   const reloadLinks = useCallback(async () => {
     if (!supplier || !branchId.trim()) return;
@@ -1784,6 +1976,16 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
       setLastInvoice(invoice);
       setCart([]);
       setMobileCartOpen(false);
+      setDraftRestoredAt(null);
+      if (draftBusinessId && draftUserId) {
+        clearReceiveTillDraft(draftBusinessId, draftUserId, supplier.id);
+      }
+      persistSnapshotRef.current = {
+        supplierId: supplier.id,
+        supplierName: supplier.name,
+        branchId: bid,
+        lines: [],
+      };
 
       const printed = await printSupplyInvoiceReceipt(
         invoice,
@@ -1916,6 +2118,13 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     );
   }
 
+  const draftHint =
+    cart.length > 0
+      ? draftRestoredAt
+        ? `Draft restored · ${formatReceiveTillDraftAge(draftRestoredAt)} · saves on this device`
+        : "Draft saved on this device"
+      : null;
+
   const cartPanelProps = {
     supplierName: supplier.name,
     currency,
@@ -1925,6 +2134,8 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
     saving,
     canPost: readyLines.length > 0 && Boolean(branchId.trim()),
     canSetSellPrice,
+    draftHint,
+    onClearDraft: clearManifestDraft,
     onPatch: patchLine,
     onRemove: removeLine,
     onPost,
@@ -2026,13 +2237,29 @@ export function SupplierReceiveWorkspace({ slug }: SupplierReceiveWorkspaceProps
           <div className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
+              ref={searchInputRef}
               className={cn(
                 fieldClass,
                 "h-9 border-0 bg-transparent pl-8 text-[13px] shadow-none focus-visible:ring-0",
               )}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="Find a product…"
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                const q = filter.trim();
+                if (q.length < 4) return;
+                // HID scanners that focus the search box end with Enter.
+                const exact = linksRef.current.find((l) => {
+                  const barcode = (l.barcode ?? "").trim().toLowerCase();
+                  const sku = (l.sku ?? "").trim().toLowerCase();
+                  const needle = q.toLowerCase();
+                  return (barcode && barcode === needle) || (sku && sku === needle);
+                });
+                if (!exact) return;
+                e.preventDefault();
+                applyBarcodeToCart(q);
+              }}
+              placeholder="Find a product or scan barcode…"
               disabled={saving || linksBusy}
             />
           </div>
