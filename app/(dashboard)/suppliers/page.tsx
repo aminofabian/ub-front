@@ -101,6 +101,10 @@ export default function SuppliersPage() {
     Permission.CatalogItemsRead,
   );
   const canLinkProducts = canLinkSupplierProducts(me, business);
+  const canConnectMarketplace = hasPermission(
+    me?.permissions,
+    Permission.MarketplaceSuppliersConnect,
+  );
 
   const selectionRef = useRef<string | null>(null);
   const [feedback, setFeedback] = useState<{
@@ -125,6 +129,7 @@ export default function SuppliersPage() {
   const [createDraft, setCreateDraft] = useState<SupplierProfileDraft>(
     EMPTY_SUPPLIER_PROFILE,
   );
+  const [lookupSupplierNumber, setLookupSupplierNumber] = useState("");
   const [contactDraft, setContactDraft] =
     useState<CreateSupplierContactPayload>({
       name: "",
@@ -152,6 +157,7 @@ export default function SuppliersPage() {
 
   const resetCreateDraft = useCallback(() => {
     setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
+    setLookupSupplierNumber("");
   }, []);
 
   const onCreateDrawerOpenChange = (open: boolean) => {
@@ -470,11 +476,15 @@ export default function SuppliersPage() {
         });
       }
       setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
+      setLookupSupplierNumber("");
       await refreshList();
       await onSelectSupplier(created.id);
       skipCreateDrawerResetAfterCreate.current = true;
       setCreateDrawerOpen(false);
-      setFeedback({ text: "Supplier created.", kind: "success" });
+      const numberNote = created.supplierNumber
+        ? ` Global number ${created.supplierNumber}.`
+        : "";
+      setFeedback({ text: `Supplier created.${numberNote}`, kind: "success" });
     } catch (error) {
       setFeedback({
         text: error instanceof Error ? error.message : "Create failed.",
@@ -1281,7 +1291,7 @@ export default function SuppliersPage() {
           footer={
             <SupDrawerFooter
               onCancel={() => onCreateDrawerOpenChange(false)}
-              submitLabel={canViewMarketplace ? "Create private supplier" : "Create supplier"}
+              submitLabel={canViewMarketplace ? "Create global supplier" : "Create supplier"}
               submitForm="new-supplier-form"
             />
           }
@@ -1296,10 +1306,33 @@ export default function SuppliersPage() {
               onDraftChange={(partial) =>
                 setCreateDraft((d) => ({ ...d, ...partial }))
               }
+              lookupSupplierNumber={lookupSupplierNumber}
+              onLookupSupplierNumberChange={setLookupSupplierNumber}
               canViewMarketplace={canViewMarketplace}
+              canConnectMarketplace={canConnectMarketplace}
               onBrowseMarketplace={() => {
                 setCreateDrawerOpen(false);
                 router.push(APP_ROUTES.marketplace);
+              }}
+              onAttached={async (result) => {
+                setLookupSupplierNumber("");
+                setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
+                await refreshList();
+                await onSelectSupplier(result.localSupplierId);
+                skipCreateDrawerResetAfterCreate.current = true;
+                setCreateDrawerOpen(false);
+                const parts = [
+                  result.linkedExisting > 0
+                    ? `${result.linkedExisting} linked`
+                    : null,
+                  result.createdItems > 0
+                    ? `${result.createdItems} items created`
+                    : null,
+                ].filter(Boolean);
+                setFeedback({
+                  text: `Attached ${result.supplierName}${result.supplierNumber ? ` (${result.supplierNumber})` : ""}${parts.length ? ` — ${parts.join(", ")}` : ""}.`,
+                  kind: "success",
+                });
               }}
             />
           </form>

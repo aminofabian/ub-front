@@ -7850,6 +7850,7 @@ export type SupplierRecord = {
   payoutType: string | null;
   payoutPhone: string | null;
   marketplaceSupplierId?: string | null;
+  supplierNumber?: string | null;
   version: number;
   createdAt: string;
   updatedAt: string;

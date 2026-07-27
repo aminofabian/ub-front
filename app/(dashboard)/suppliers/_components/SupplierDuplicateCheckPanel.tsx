@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AlertTriangle, Link2, Store } from "lucide-react";
+import { AlertTriangle, Link2, Loader2, Store } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  attachMarketplaceSupplier,
   checkSupplierDuplicates,
+  type MarketplaceAttachResult,
   type SupplierDuplicateMatch,
 } from "@/lib/marketplace-api";
 import { cn } from "@/lib/utils";
 
 import { SupFormSection } from "./supplier-layout-primitives";
-import { supTableCell, supTableHead, supTableRow } from "./supplier-ui-tokens";
+import { supFormCellInput, supTableCell, supTableHead, supTableRow } from "./supplier-ui-tokens";
 
 const DEBOUNCE_MS = 400;
 
@@ -22,11 +24,15 @@ type Props = {
   taxId?: string;
   phone?: string;
   email?: string;
+  supplierNumber?: string;
+  onSupplierNumberChange?: (value: string) => void;
   canViewMarketplace?: boolean;
+  canConnectMarketplace?: boolean;
+  onAttached?: (result: MarketplaceAttachResult) => void;
 };
 
 function matchLabel(match: SupplierDuplicateMatch): string {
-  if (match.source === "marketplace") return "Marketplace supplier";
+  if (match.source === "marketplace") return "Global supplier";
   if (match.source === "own_business") return "Already in your directory";
   return "Possible platform match";
 }
@@ -38,9 +44,19 @@ function confidenceBadgeClass(confidence: string): string {
   return "border-border bg-muted/40 text-muted-foreground";
 }
 
-function hasLookupInput(name: string, taxId?: string, phone?: string, email?: string): boolean {
+function hasLookupInput(
+  name: string,
+  taxId?: string,
+  phone?: string,
+  email?: string,
+  supplierNumber?: string,
+): boolean {
   return Boolean(
-    name.trim() || taxId?.trim() || phone?.trim() || email?.trim(),
+    name.trim() ||
+      taxId?.trim() ||
+      phone?.trim() ||
+      email?.trim() ||
+      supplierNumber?.trim(),
   );
 }
 
@@ -49,13 +65,19 @@ export function SupplierDuplicateCheckPanel({
   taxId,
   phone,
   email,
+  supplierNumber = "",
+  onSupplierNumberChange,
   canViewMarketplace = false,
+  canConnectMarketplace = false,
+  onAttached,
 }: Props) {
   const [matches, setMatches] = useState<SupplierDuplicateMatch[]>([]);
   const [loading, setLoading] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [attachingId, setAttachingId] = useState<string | null>(null);
+  const [attachError, setAttachError] = useState("");
 
-  const lookupReady = hasLookupInput(name, taxId, phone, email);
+  const lookupReady = hasLookupInput(name, taxId, phone, email, supplierNumber);
 
   useEffect(() => {
     if (!lookupReady) {
@@ -71,6 +93,7 @@ export function SupplierDuplicateCheckPanel({
         taxId: taxId?.trim() || undefined,
         phone: phone?.trim() || undefined,
         email: email?.trim() || undefined,
+        supplierNumber: supplierNumber.trim() || undefined,
       })
         .then((result) => {
           setMatches(result.matches ?? []);
@@ -84,20 +107,47 @@ export function SupplierDuplicateCheckPanel({
     }, DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [name, taxId, phone, email, lookupReady]);
+  }, [name, taxId, phone, email, supplierNumber, lookupReady]);
 
   const marketplaceMatches = matches.filter((m) => m.marketplaceSupplierId);
   const strongMarketplace = marketplaceMatches.some((m) => m.confidence === "strong");
 
+  async function handleAttach(marketplaceSupplierId: string) {
+    if (!canConnectMarketplace || !onAttached) return;
+    setAttachError("");
+    setAttachingId(marketplaceSupplierId);
+    try {
+      const result = await attachMarketplaceSupplier(marketplaceSupplierId);
+      onAttached(result);
+    } catch (e) {
+      setAttachError(e instanceof Error ? e.message : "Could not attach supplier.");
+    } finally {
+      setAttachingId(null);
+    }
+  }
+
   return (
     <SupFormSection
-      title="Duplicate check"
+      title="Find existing supplier"
       hint={
         lookupReady
-          ? "We compare what you typed against your suppliers and the platform directory."
-          : "Enter a name, tax ID, phone, or email to check your directory and the marketplace before creating a private supplier."
+          ? "We compare what you typed against your suppliers and the global directory (including drafts when allowed)."
+          : "Enter a name, phone, email, tax ID, or global supplier number (S-000001) before creating."
       }
     >
+      <div className="border-t border-border px-2.5 py-2">
+        <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+          Global supplier number
+        </label>
+        <input
+          className={supFormCellInput}
+          value={supplierNumber}
+          onChange={(e) => onSupplierNumberChange?.(e.target.value)}
+          placeholder="S-000001"
+          maxLength={32}
+        />
+      </div>
+
       {lookupReady ? (
         <div className="border-t border-border">
           {loading ? (
@@ -108,34 +158,28 @@ export function SupplierDuplicateCheckPanel({
 
           {!loading && checked && matches.length === 0 ? (
             <p className="border-b border-border px-2.5 py-2 text-xs text-muted-foreground">
-              No close matches found. You can create this as a new private supplier.
+              No close matches found. Creating will also register this supplier globally with a new
+              S-number.
             </p>
           ) : null}
 
-          {!loading && strongMarketplace && canViewMarketplace ? (
+          {!loading && strongMarketplace && canConnectMarketplace ? (
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-primary/25 bg-primary/5 px-2.5 py-2">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">
-                  This vendor may already be on the marketplace.
+                  This vendor may already exist globally.
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Connecting imports their catalogue and enables portal purchase orders.
+                  Attach imports their catalogue (creates missing items) and links your shop.
                 </p>
               </div>
-              <Button asChild size="sm" variant="outline" className="h-8 shrink-0 rounded-none px-3">
-                <Link
-                  href={`${APP_ROUTES.marketplace}?supplier=${encodeURIComponent(
-                    marketplaceMatches.find((m) => m.confidence === "strong")
-                      ?.marketplaceSupplierId ??
-                      marketplaceMatches[0]?.marketplaceSupplierId ??
-                      "",
-                  )}`}
-                >
-                  <Store className="mr-1.5 size-3.5" />
-                  Connect from marketplace
-                </Link>
-              </Button>
             </div>
+          ) : null}
+
+          {attachError ? (
+            <p className="border-b border-destructive/30 bg-destructive/5 px-2.5 py-2 text-xs text-destructive">
+              {attachError}
+            </p>
           ) : null}
 
           {!loading && matches.length > 0 ? (
@@ -145,13 +189,14 @@ export function SupplierDuplicateCheckPanel({
                 {matches.length} possible match{matches.length === 1 ? "" : "es"}
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[28rem] border-collapse text-left text-xs">
+                <table className="w-full min-w-[32rem] border-collapse text-left text-xs">
                   <thead>
                     <tr className={supTableHead}>
-                      <th className={cn(supTableCell, "w-[34%]")}>Name</th>
-                      <th className={cn(supTableCell, "w-[26%]")}>Source</th>
-                      <th className={cn(supTableCell, "w-[22%]")}>Details</th>
-                      <th className={cn(supTableCell, "w-[18%]")}>Action</th>
+                      <th className={cn(supTableCell, "w-[28%]")}>Name</th>
+                      <th className={cn(supTableCell, "w-[14%]")}>Number</th>
+                      <th className={cn(supTableCell, "w-[20%]")}>Source</th>
+                      <th className={cn(supTableCell, "w-[18%]")}>Details</th>
+                      <th className={cn(supTableCell, "w-[20%]")}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -173,6 +218,9 @@ export function SupplierDuplicateCheckPanel({
                             {match.confidence === "strong" ? "Strong match" : "Similar name"}
                           </span>
                         </td>
+                        <td className={cn(supTableCell, "font-mono text-[11px] text-muted-foreground")}>
+                          {match.supplierNumber ?? "—"}
+                        </td>
                         <td className={cn(supTableCell, "text-muted-foreground")}>
                           {matchLabel(match)}
                         </td>
@@ -183,21 +231,37 @@ export function SupplierDuplicateCheckPanel({
                           {!match.phone && !match.email && !match.taxId ? "—" : null}
                         </td>
                         <td className={supTableCell}>
-                          {match.marketplaceSupplierId ? (
-                            <Link
-                              href={`${APP_ROUTES.marketplace}?supplier=${encodeURIComponent(match.marketplaceSupplierId)}`}
-                              className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
-                            >
-                              <Store className="size-3" />
-                              View
-                            </Link>
-                          ) : match.localSupplierId ? (
+                          {match.localSupplierId ? (
                             <Link
                               href={`${APP_ROUTES.suppliers}?selected=${encodeURIComponent(match.localSupplierId)}`}
                               className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
                             >
                               <Link2 className="size-3" />
                               Open
+                            </Link>
+                          ) : match.marketplaceSupplierId && canConnectMarketplace ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 rounded-none px-2 text-xs"
+                              disabled={attachingId === match.marketplaceSupplierId}
+                              onClick={() => void handleAttach(match.marketplaceSupplierId!)}
+                            >
+                              {attachingId === match.marketplaceSupplierId ? (
+                                <Loader2 className="mr-1 size-3 animate-spin" />
+                              ) : (
+                                <Store className="mr-1 size-3" />
+                              )}
+                              Use supplier
+                            </Button>
+                          ) : match.marketplaceSupplierId && canViewMarketplace ? (
+                            <Link
+                              href={`${APP_ROUTES.marketplace}?supplier=${encodeURIComponent(match.marketplaceSupplierId)}`}
+                              className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
+                            >
+                              <Store className="size-3" />
+                              View
                             </Link>
                           ) : (
                             "—"
@@ -209,7 +273,8 @@ export function SupplierDuplicateCheckPanel({
                 </table>
               </div>
               <p className="border-t border-border px-2.5 py-2 text-[11px] text-muted-foreground">
-                Still a different business? Continue below to create a private supplier record.
+                Still a different business? Continue below to create — they will get a new global
+                S-number.
               </p>
             </>
           ) : null}

@@ -178,7 +178,9 @@ export default function SuperAdminMarketplaceSuppliersPage() {
                 <tr key={row.id} className="border-b last:border-0">
                   <td className="px-3 py-2.5">
                     <div className="font-medium">{row.name}</div>
-                    <div className="font-mono text-[11px] text-muted-foreground">{row.id}</div>
+                    <div className="font-mono text-[11px] text-muted-foreground">
+                      {row.supplierNumber || row.id}
+                    </div>
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">
                     <div>{row.contactPhone || "—"}</div>

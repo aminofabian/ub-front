@@ -58,6 +58,8 @@ export default function SuperAdminSupplierPortalSettingsPage() {
   const [requireStoreApprovalProductEdits, setRequireStoreApprovalProductEdits] = useState(false);
   const [allowInvoiceDownloads, setAllowInvoiceDownloads] = useState(true);
   const [allowStatementDownloads, setAllowStatementDownloads] = useState(true);
+  const [allowFindUnclaimedDrafts, setAllowFindUnclaimedDrafts] = useState(true);
+  const [autoPromoteOnCreate, setAutoPromoteOnCreate] = useState(true);
   const [portalPublicUrl, setPortalPublicUrl] = useState("https://kiosk.ke/supplier-portal");
   const [claimEnabled, setClaimEnabled] = useState(true);
   const [claimMethod, setClaimMethod] = useState("phone_code");
@@ -88,6 +90,8 @@ export default function SuperAdminSupplierPortalSettingsPage() {
     setRequireStoreApprovalProductEdits(row.requireStoreApprovalProductEdits);
     setAllowInvoiceDownloads(row.allowInvoiceDownloads);
     setAllowStatementDownloads(row.allowStatementDownloads);
+    setAllowFindUnclaimedDrafts(row.allowFindUnclaimedDrafts ?? true);
+    setAutoPromoteOnCreate(row.autoPromoteOnCreate ?? true);
     setPortalPublicUrl(row.portalPublicUrl || "https://kiosk.ke/supplier-portal");
     setClaimEnabled(row.claimEnabled);
     setClaimMethod(row.claimMethod || "phone_code");
@@ -137,6 +141,8 @@ export default function SuperAdminSupplierPortalSettingsPage() {
         requireStoreApprovalProductEdits,
         allowInvoiceDownloads,
         allowStatementDownloads,
+        allowFindUnclaimedDrafts,
+        autoPromoteOnCreate,
         portalPublicUrl: portalPublicUrl.trim(),
         claimEnabled,
         claimMethod,
@@ -257,6 +263,20 @@ export default function SuperAdminSupplierPortalSettingsPage() {
             label="Allow statement downloads"
             checked={allowStatementDownloads}
             onChange={setAllowStatementDownloads}
+          />
+          <ToggleRow
+            id="allow-find-drafts"
+            label="Find unclaimed / draft suppliers"
+            description="Shops can look up draft global suppliers by name, phone, or S-number when adding a vendor."
+            checked={allowFindUnclaimedDrafts}
+            onChange={setAllowFindUnclaimedDrafts}
+          />
+          <ToggleRow
+            id="auto-promote-create"
+            label="Auto-promote on create"
+            description="Creating a supplier with no match also creates a global passport and assigns an S-number."
+            checked={autoPromoteOnCreate}
+            onChange={setAutoPromoteOnCreate}
           />
           <div className="sm:col-span-2 space-y-2">
             <label className="text-sm font-medium" htmlFor="portal-url">

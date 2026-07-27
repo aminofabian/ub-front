@@ -455,6 +455,8 @@ export type SupplierPortalSettingsRecord = {
   requireStoreApprovalProductEdits: boolean;
   allowInvoiceDownloads: boolean;
   allowStatementDownloads: boolean;
+  allowFindUnclaimedDrafts: boolean;
+  autoPromoteOnCreate: boolean;
   portalPublicUrl: string;
   claimEnabled: boolean;
   claimMethod: string;
@@ -486,6 +488,8 @@ export type UpdateSupplierPortalSettingsPayload = Partial<{
   requireStoreApprovalProductEdits: boolean;
   allowInvoiceDownloads: boolean;
   allowStatementDownloads: boolean;
+  allowFindUnclaimedDrafts: boolean;
+  autoPromoteOnCreate: boolean;
   portalPublicUrl: string;
   claimEnabled: boolean;
   claimMethod: string;
@@ -525,6 +529,7 @@ export async function updateSupplierPortalSettings(
 export type SaMarketplaceSupplierRow = {
   id: string;
   name: string;
+  supplierNumber?: string | null;
   description: string | null;
   contactEmail: string | null;
   status: string;

@@ -115,6 +115,19 @@ export type MarketplaceConnectResult = {
   status: string;
 };
 
+export type MarketplaceAttachResult = {
+  connectionId: string;
+  localSupplierId: string;
+  marketplaceSupplierId: string;
+  supplierNumber: string | null;
+  supplierName: string;
+  linkedExisting: number;
+  createdItems: number;
+  alreadyLinked: number;
+  skipped: number;
+  status: string;
+};
+
 export type SupplierDuplicateMatch = {
   confidence: string;
   source: string;
@@ -125,6 +138,7 @@ export type SupplierDuplicateMatch = {
   email: string | null;
   taxId: string | null;
   regionHint: string | null;
+  supplierNumber: string | null;
 };
 
 // —— Supplier portal ——
@@ -453,11 +467,33 @@ export async function connectMarketplaceSupplier(
   );
 }
 
+export async function attachMarketplaceSupplier(
+  marketplaceSupplierId: string,
+): Promise<MarketplaceAttachResult> {
+  return tenantFetch<MarketplaceAttachResult>(
+    `${API_ROUTES.marketplace}/suppliers/${encodeURIComponent(marketplaceSupplierId)}/attach`,
+    { method: "POST" },
+  );
+}
+
+export async function attachMarketplaceSupplierByNumber(
+  supplierNumber: string,
+): Promise<MarketplaceAttachResult> {
+  return tenantFetch<MarketplaceAttachResult>(
+    `${API_ROUTES.marketplace}/suppliers/attach-by-number`,
+    {
+      method: "POST",
+      body: JSON.stringify({ supplierNumber }),
+    },
+  );
+}
+
 export async function checkSupplierDuplicates(body: {
   name?: string;
   phone?: string;
   email?: string;
   taxId?: string;
+  supplierNumber?: string;
 }): Promise<{ matches: SupplierDuplicateMatch[] }> {
   return tenantFetch<{ matches: SupplierDuplicateMatch[] }>(
     "/api/v1/suppliers/duplicate-check",
