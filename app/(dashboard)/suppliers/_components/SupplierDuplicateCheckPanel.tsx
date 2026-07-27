@@ -30,6 +30,7 @@ type Props = {
   canViewMarketplace?: boolean;
   canConnectMarketplace?: boolean;
   onAttached?: (result: MarketplaceAttachResult) => void;
+  onIdentityConflictChange?: (match: SupplierDuplicateMatch | null) => void;
 };
 
 function matchLabel(match: SupplierDuplicateMatch): string {
@@ -37,6 +38,30 @@ function matchLabel(match: SupplierDuplicateMatch): string {
   if (match.source === "own_business") return "Already in your directory";
   if (match.source === "platform") return "On another shop";
   return "Possible platform match";
+}
+
+function isIdentityConflict(match: SupplierDuplicateMatch): boolean {
+  if (match.source !== "own_business" || match.confidence !== "strong") {
+    return false;
+  }
+  const reasons = match.matchReasons ?? [];
+  return (
+    reasons.includes("phone_last9") ||
+    reasons.includes("phone") ||
+    reasons.includes("email")
+  );
+}
+
+function identityConflictMessage(match: SupplierDuplicateMatch): string {
+  const reasons = match.matchReasons ?? [];
+  const name = match.name ?? "that supplier";
+  if (reasons.includes("email") && (reasons.includes("phone_last9") || reasons.includes("phone"))) {
+    return `Phone and email already belong to “${name}”. Open them instead of creating a duplicate.`;
+  }
+  if (reasons.includes("email")) {
+    return `Email already belongs to “${name}”. Open them instead of creating a duplicate.`;
+  }
+  return `Same phone (last 9 digits) already on “${name}”. +254… and 07… count as the same number.`;
 }
 
 function confidenceBadgeClass(confidence: string): string {
@@ -72,6 +97,7 @@ export function SupplierDuplicateCheckPanel({
   canViewMarketplace = false,
   canConnectMarketplace = false,
   onAttached,
+  onIdentityConflictChange,
 }: Props) {
   const [matches, setMatches] = useState<SupplierDuplicateMatch[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,6 +106,17 @@ export function SupplierDuplicateCheckPanel({
   const [attachError, setAttachError] = useState("");
 
   const lookupReady = hasLookupInput(name, taxId, phone, email, supplierNumber);
+  const identityConflicts = matches.filter(isIdentityConflict);
+  const blocked = identityConflicts.length > 0;
+  const primaryConflict = identityConflicts[0] ?? null;
+  const conflictKey = primaryConflict
+    ? `${primaryConflict.localSupplierId ?? ""}:${(primaryConflict.matchReasons ?? []).join(",")}`
+    : "";
+
+  useEffect(() => {
+    onIdentityConflictChange?.(blocked ? primaryConflict : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- notify on identity key changes only
+  }, [blocked, conflictKey, onIdentityConflictChange]);
 
   useEffect(() => {
     if (!lookupReady) {
@@ -137,7 +174,7 @@ export function SupplierDuplicateCheckPanel({
       title="Find existing supplier"
       hint={
         lookupReady
-          ? "We compare what you typed against your suppliers and the global directory (including drafts when allowed)."
+          ? "Phones match on the last 9 digits (+254… = 07…). Emails match exactly (case-insensitive)."
           : "Enter a name, phone, email, tax ID, or S-0001 before creating."
       }
     >
@@ -169,7 +206,24 @@ export function SupplierDuplicateCheckPanel({
             </p>
           ) : null}
 
-          {!loading && strongMarketplace && canConnectMarketplace ? (
+          {!loading && blocked && identityConflicts[0] ? (
+            <div className="border-b border-destructive/30 bg-destructive/5 px-2.5 py-2">
+              <p className="text-sm font-medium text-destructive">
+                {identityConflictMessage(identityConflicts[0])}
+              </p>
+              {identityConflicts[0].localSupplierId ? (
+                <Link
+                  href={`${APP_ROUTES.suppliers}?selected=${encodeURIComponent(identityConflicts[0].localSupplierId)}`}
+                  className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  <Link2 className="size-3" />
+                  Open {identityConflicts[0].name ?? "existing supplier"}
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+
+          {!loading && !blocked && strongMarketplace && canConnectMarketplace ? (
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-primary/25 bg-primary/5 px-2.5 py-2">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">
@@ -218,10 +272,16 @@ export function SupplierDuplicateCheckPanel({
                           <span
                             className={cn(
                               "mt-0.5 inline-block border px-1 py-px text-[10px] font-medium",
-                              confidenceBadgeClass(match.confidence),
+                              isIdentityConflict(match)
+                                ? "border-destructive/40 bg-destructive/10 text-destructive"
+                                : confidenceBadgeClass(match.confidence),
                             )}
                           >
-                            {match.confidence === "strong" ? "Strong match" : "Similar name"}
+                            {isIdentityConflict(match)
+                              ? "Already yours"
+                              : match.confidence === "strong"
+                                ? "Strong match"
+                                : "Similar name"}
                           </span>
                         </td>
                         <td className={cn(supTableCell, "font-mono text-[11px] text-muted-foreground")}>
@@ -285,8 +345,9 @@ export function SupplierDuplicateCheckPanel({
                 </table>
               </div>
               <p className="border-t border-border px-2.5 py-2 text-[11px] text-muted-foreground">
-                Still a different business? Continue below to create — they will get a new global
-                S-number.
+                {blocked
+                  ? "Create is blocked while this phone or email is already on a supplier in your shop."
+                  : "Still a different business? Continue below to create — they will get a new global S-number."}
               </p>
             </>
           ) : null}

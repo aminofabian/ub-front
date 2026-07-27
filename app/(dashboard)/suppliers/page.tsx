@@ -54,6 +54,7 @@ import {
 } from "@/lib/supplier-access";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import type { SupplierDuplicateMatch } from "@/lib/marketplace-api";
 
 import { SupplierCatalogColumn } from "./_components/SupplierCatalogColumn";
 import { SupplierSupplyInvoicePanel } from "./_components/SupplierSupplyInvoicePanel";
@@ -130,6 +131,8 @@ export default function SuppliersPage() {
     EMPTY_SUPPLIER_PROFILE,
   );
   const [lookupSupplierNumber, setLookupSupplierNumber] = useState("");
+  const [createIdentityConflict, setCreateIdentityConflict] =
+    useState<SupplierDuplicateMatch | null>(null);
   const [contactDraft, setContactDraft] =
     useState<CreateSupplierContactPayload>({
       name: "",
@@ -158,6 +161,7 @@ export default function SuppliersPage() {
   const resetCreateDraft = useCallback(() => {
     setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
     setLookupSupplierNumber("");
+    setCreateIdentityConflict(null);
   }, []);
 
   const onCreateDrawerOpenChange = (open: boolean) => {
@@ -409,6 +413,16 @@ export default function SuppliersPage() {
   const onCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!createDraft.name.trim()) {
+      return;
+    }
+    if (createIdentityConflict) {
+      setFeedback({
+        text:
+          createIdentityConflict.matchReasons?.includes("email")
+            ? `Email already belongs to “${createIdentityConflict.name ?? "an existing supplier"}”. Open them instead.`
+            : `Phone already belongs to “${createIdentityConflict.name ?? "an existing supplier"}” (last 9 digits match). Open them instead.`,
+        kind: "error",
+      });
       return;
     }
     setFeedback(null);
@@ -1291,8 +1305,15 @@ export default function SuppliersPage() {
           footer={
             <SupDrawerFooter
               onCancel={() => onCreateDrawerOpenChange(false)}
-              submitLabel={canViewMarketplace ? "Create global supplier" : "Create supplier"}
+              submitLabel={
+                createIdentityConflict
+                  ? "Already in your directory"
+                  : canViewMarketplace
+                    ? "Create global supplier"
+                    : "Create supplier"
+              }
               submitForm="new-supplier-form"
+              submitDisabled={Boolean(createIdentityConflict)}
             />
           }
         >
@@ -1310,6 +1331,7 @@ export default function SuppliersPage() {
               onLookupSupplierNumberChange={setLookupSupplierNumber}
               canViewMarketplace={canViewMarketplace}
               canConnectMarketplace={canConnectMarketplace}
+              onIdentityConflictChange={setCreateIdentityConflict}
               onBrowseMarketplace={() => {
                 setCreateDrawerOpen(false);
                 router.push(APP_ROUTES.marketplace);
@@ -1317,6 +1339,7 @@ export default function SuppliersPage() {
               onAttached={async (result) => {
                 setLookupSupplierNumber("");
                 setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
+                setCreateIdentityConflict(null);
                 await refreshList();
                 await onSelectSupplier(result.localSupplierId);
                 skipCreateDrawerResetAfterCreate.current = true;

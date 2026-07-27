@@ -1,6 +1,9 @@
 "use client";
 
-import type { MarketplaceAttachResult } from "@/lib/marketplace-api";
+import type {
+  MarketplaceAttachResult,
+  SupplierDuplicateMatch,
+} from "@/lib/marketplace-api";
 
 import type { SupplierProfileDraft } from "./supplier-profile-shared";
 import { SupplierProfileFields } from "./supplier-profile-shared";
@@ -16,6 +19,7 @@ export function NewSupplierForm({
   canConnectMarketplace,
   onBrowseMarketplace,
   onAttached,
+  onIdentityConflictChange,
 }: {
   draft: SupplierProfileDraft;
   onDraftChange: (partial: Partial<SupplierProfileDraft>) => void;
@@ -25,7 +29,10 @@ export function NewSupplierForm({
   canConnectMarketplace: boolean;
   onBrowseMarketplace?: () => void;
   onAttached?: (result: MarketplaceAttachResult) => void;
+  onIdentityConflictChange?: (match: SupplierDuplicateMatch | null) => void;
 }) {
+  const lookupPhone = draft.contactPhone.trim() || draft.payoutPhone.trim();
+
   return (
     <div className="overflow-hidden border border-border bg-card">
       <MarketplaceAddSupplierBanner
@@ -41,13 +48,14 @@ export function NewSupplierForm({
           <SupplierDuplicateCheckPanel
             name={draft.name}
             taxId={draft.vatPin}
-            phone={draft.contactPhone}
+            phone={lookupPhone}
             email={draft.contactEmail}
             supplierNumber={lookupSupplierNumber}
             onSupplierNumberChange={onLookupSupplierNumberChange}
             canViewMarketplace={canViewMarketplace}
             canConnectMarketplace={canConnectMarketplace}
             onAttached={onAttached}
+            onIdentityConflictChange={onIdentityConflictChange}
           />
         }
       />

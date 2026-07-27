@@ -139,6 +139,8 @@ export type SupplierDuplicateMatch = {
   taxId: string | null;
   regionHint: string | null;
   supplierNumber: string | null;
+  /** phone_last9 | email | name | tax_id | supplier_number */
+  matchReasons?: string[] | null;
 };
 
 // —— Supplier portal ——

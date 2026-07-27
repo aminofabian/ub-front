@@ -420,6 +420,26 @@ export function CashierSuppliersModal({
       toast.error("No supplier found for that number");
       return;
     }
+
+    const ownPhoneOrEmail = globalMatches.find(
+      (m) =>
+        m.source === "own_business" &&
+        m.confidence === "strong" &&
+        m.localSupplierId &&
+        (m.matchReasons?.includes("phone_last9") ||
+          m.matchReasons?.includes("phone") ||
+          m.matchReasons?.includes("email") ||
+          // Fallback when reasons missing: digit lookup that already matched strongly
+          (/^[\d\s+().-]+$/.test(q) && (q.replace(/\D/g, "").length >= 9))),
+    );
+    if (ownPhoneOrEmail?.localSupplierId) {
+      toast.message(
+        `“${ownPhoneOrEmail.name ?? "Supplier"}” already uses this phone/email — opening them`,
+      );
+      await onUseMatch(ownPhoneOrEmail);
+      return;
+    }
+
     setCreateBusy(true);
     try {
       const digits = q.replace(/\D/g, "");
