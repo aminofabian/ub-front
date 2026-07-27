@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   Check,
   Link2,
   Loader2,
   PackagePlus,
+  Plus,
+  Search,
   ShoppingCart,
   Truck,
+  UserPlus,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -40,7 +43,7 @@ import {
 } from "@/lib/supply-draft-storage";
 import { cn } from "@/lib/utils";
 
-type TabId = "create" | "link";
+type PanelId = "find" | "create" | "link";
 
 type CashierSuppliersModalProps = {
   open: boolean;
@@ -55,10 +58,44 @@ type CashierSuppliersModalProps = {
   ) => void;
 };
 
+/** Classic sharp fields — readable on Win7 / Chrome 109 without soft radii. */
 const fieldClass = cn(
-  "w-full rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm shadow-sm",
-  "placeholder:text-muted-foreground/60",
-  "focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_25%,transparent)]",
+  "w-full rounded-none border border-[#8a8a8a] bg-[#ffffff] px-2.5 py-2 text-sm text-[#1a1a1a]",
+  "placeholder:text-[#888]",
+  "shadow-[inset_1px_1px_0_#d4d4d4]",
+  "focus-visible:border-[var(--pos-primary)] focus-visible:outline-none",
+  "focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)]",
+  "disabled:bg-[#f0f0f0] disabled:text-[#888]",
+  "dark:border-border dark:bg-background dark:text-foreground dark:shadow-none",
+);
+
+const labelClass =
+  "text-[10px] font-bold uppercase tracking-[0.12em] text-[#555] dark:text-muted-foreground";
+
+const panelBtn = cn(
+  "flex flex-col items-start gap-0.5 rounded-none border px-3 py-2.5 text-left transition-colors",
+  "border-[#a0a0a0] bg-[#f3f3f3] text-[#1a1a1a]",
+  "hover:bg-[#e8e8e8]",
+  "dark:border-border dark:bg-muted/40 dark:text-foreground dark:hover:bg-muted/60",
+);
+
+const panelBtnActive = cn(
+  "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_14%,#fff)]",
+  "shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
+  "dark:bg-[color-mix(in_srgb,var(--pos-primary)_18%,transparent)]",
+);
+
+const classicBtn = cn(
+  "rounded-none border border-[#707070] bg-[#e1e1e1] text-[#1a1a1a]",
+  "shadow-[inset_0_1px_0_#fff,0_1px_0_#b0b0b0]",
+  "hover:bg-[#ececec] dark:border-border dark:bg-muted dark:text-foreground dark:shadow-none",
+);
+
+const classicPrimary = cn(
+  "rounded-none border border-[color-mix(in_srgb,var(--pos-primary)_55%,#333)]",
+  "bg-[var(--pos-primary)] text-[var(--pos-primary-ink,#fff)]",
+  "shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]",
+  "hover:brightness-105",
 );
 
 export function CashierSuppliersModal({
@@ -74,8 +111,15 @@ export function CashierSuppliersModal({
   const draftBusinessId =
     business?.id?.trim() || getSessionTenantId()?.trim() || "";
   const draftUserId = me?.id?.trim() || "";
-  const defaultTab: TabId = canWrite ? "create" : "link";
-  const [tab, setTab] = useState<TabId>(defaultTab);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const defaultPanel = (): PanelId => {
+    if (canReceive || canLink) return "find";
+    if (canWrite) return "create";
+    return "find";
+  };
+
+  const [panel, setPanel] = useState<PanelId>(defaultPanel);
   const [unfinishedTills, setUnfinishedTills] = useState<
     ReceiveTillDraftSummary[]
   >([]);
@@ -106,7 +150,7 @@ export function CashierSuppliersModal({
 
   useEffect(() => {
     if (!open) return;
-    setTab(canWrite ? "create" : "link");
+    setPanel(defaultPanel());
     setName("");
     setPhone("");
     setCode("");
@@ -124,15 +168,18 @@ export function CashierSuppliersModal({
     } else {
       setUnfinishedTills([]);
     }
-  }, [open, canWrite, canReceive, draftBusinessId, draftUserId]);
+    window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when dialog opens
+  }, [open, canWrite, canLink, canReceive, draftBusinessId, draftUserId]);
 
   useEffect(() => {
-    const needSupplierSearch =
+    const needSearch =
       open &&
       !supplier &&
-      ((tab === "link" && canLink) ||
-        (canReceive && (tab !== "create" || !canWrite)));
-    if (!needSupplierSearch) {
+      (panel === "find" || panel === "link");
+    if (!needSearch) {
       if (supplier) {
         setSupplierHits([]);
         setSupplierBusy(false);
@@ -146,7 +193,7 @@ export function CashierSuppliersModal({
         setSupplierBusy(true);
         void fetchSuppliersPage({
           ...(q ? { search: q } : {}),
-          size: 20,
+          size: 24,
           status: "active",
         })
           .then((page) => {
@@ -159,16 +206,16 @@ export function CashierSuppliersModal({
             if (!cancelled) setSupplierBusy(false);
           });
       },
-      q.length > 0 ? 220 : 0,
+      q.length > 0 ? 180 : 0,
     );
     return () => {
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [open, tab, supplierQuery, supplier, canLink, canReceive, canWrite]);
+  }, [open, panel, supplierQuery, supplier]);
 
   useEffect(() => {
-    if (!open || tab !== "link" || !supplier) {
+    if (!open || panel !== "link" || !supplier) {
       setProductHits([]);
       setProductBusy(false);
       return;
@@ -198,7 +245,7 @@ export function CashierSuppliersModal({
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [open, tab, productQuery, supplier]);
+  }, [open, panel, productQuery, supplier]);
 
   const toggleProduct = (item: ItemSummaryRecord) => {
     setSelectedProducts((prev) => {
@@ -207,6 +254,24 @@ export function CashierSuppliersModal({
       }
       return [...prev, item];
     });
+  };
+
+  const pickSupplier = (s: SupplierRecord) => {
+    setSupplier(s);
+    setSupplierQuery("");
+    setSupplierHits([]);
+  };
+
+  const clearSupplier = () => {
+    setSupplier(null);
+    setSupplierQuery("");
+    setSelectedProducts([]);
+    window.requestAnimationFrame(() => searchInputRef.current?.focus());
+  };
+
+  const openTill = () => {
+    if (!supplier || !onReceiveSupply) return;
+    onReceiveSupply(supplier);
   };
 
   const onCreate = async () => {
@@ -236,7 +301,7 @@ export function CashierSuppliersModal({
       }
       if (canLink) {
         setSupplier(created);
-        setTab("link");
+        setPanel("link");
       } else {
         onOpenChange(false);
       }
@@ -304,144 +369,156 @@ export function CashierSuppliersModal({
     }
   };
 
-  const showTabs = canWrite && canLink;
   const linkCount = selectedProducts.length;
-  const showReceiveSupplierPicker =
-    canReceive && (tab !== "create" || !canWrite || !canLink);
-  const showLinkSupplierPicker = tab === "link" && canLink;
-  const showSupplierPicker = showReceiveSupplierPicker || showLinkSupplierPicker;
+  const title = canReceive ? "Open till" : "Suppliers";
 
-  const supplierPicker = showSupplierPicker ? (
-    <div className="space-y-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        Supplier
-      </span>
-      {supplier ? (
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{supplier.name}</p>
-            {supplier.code ? (
-              <p className="font-mono text-[10px] text-muted-foreground">
-                {supplier.code}
-              </p>
-            ) : null}
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0"
-            onClick={() => {
-              setSupplier(null);
-              setSupplierQuery("");
-              setSelectedProducts([]);
-            }}
-            aria-label="Change supplier"
-          >
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          <div className="relative">
-            <input
-              className={fieldClass}
-              value={supplierQuery}
-              onChange={(e) => setSupplierQuery(e.target.value)}
-              placeholder="Search suppliers…"
-              autoFocus={tab !== "create"}
-            />
-            {supplierBusy ? (
-              <Loader2 className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
-            ) : null}
-          </div>
-          {supplierHits.length > 0 ? (
-            <ul className="max-h-40 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-sm">
-              {supplierHits.map((s) => (
-                <li key={s.id}>
-                  <button
-                    type="button"
-                    className="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-muted/60"
-                    onClick={() => {
-                      setSupplier(s);
-                      setSupplierQuery("");
-                      setSupplierHits([]);
-                    }}
-                  >
-                    <span className="font-medium">{s.name}</span>
-                    {s.code ? (
-                      <span className="font-mono text-[10px] text-muted-foreground">
-                        {s.code}
-                      </span>
-                    ) : null}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : !supplierBusy ? (
-            <p className="px-1 text-xs text-muted-foreground">
-              {supplierQuery.trim()
-                ? "No suppliers match"
-                : "No active suppliers yet"}
-            </p>
-          ) : null}
-        </div>
-      )}
-    </div>
-  ) : null;
+  const supplierList = (
+    <ul className="max-h-48 divide-y divide-[#c8c8c8] overflow-auto border border-[#8a8a8a] bg-[#fff] dark:divide-border dark:border-border dark:bg-popover">
+      {supplierHits.map((s) => {
+        const active = supplier?.id === s.id;
+        return (
+          <li key={s.id}>
+            <button
+              type="button"
+              className={cn(
+                "flex w-full items-center gap-2 px-2.5 py-2 text-left text-sm",
+                active
+                  ? "bg-[color-mix(in_srgb,var(--pos-primary)_18%,#fff)] dark:bg-primary/20"
+                  : "hover:bg-[#e8f0fc] dark:hover:bg-muted/50",
+              )}
+              onClick={() => pickSupplier(s)}
+            >
+              <Truck
+                className="size-3.5 shrink-0 text-[var(--pos-primary)]"
+                aria-hidden
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">{s.name}</span>
+                {s.code ? (
+                  <span className="font-mono text-[10px] text-[#666] dark:text-muted-foreground">
+                    {s.code}
+                  </span>
+                ) : null}
+              </span>
+              {active ? (
+                <Check className="size-3.5 shrink-0 text-[var(--pos-primary)]" />
+              ) : null}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side="center"
-        className="max-h-[min(92dvh,42rem)] max-w-md gap-0 overflow-hidden p-0"
+        showCloseButton
+        className={cn(
+          "max-h-[min(92dvh,44rem)] max-w-lg gap-0 overflow-hidden rounded-none border-2 border-[#6d6d6d] p-0",
+          "bg-[#f0f0f0] shadow-[4px_4px_0_rgba(0,0,0,0.18)]",
+          "dark:border-border dark:bg-background dark:shadow-none",
+          "sm:rounded-none",
+        )}
         style={brandTheme}
+        overlayClassName="bg-[rgba(0,0,0,0.45)] supports-[backdrop-filter]:backdrop-blur-none"
       >
-        <div className="border-b border-border/40 px-4 py-4">
-          <DialogHeader className="space-y-1 text-left">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Truck className="size-4 text-[var(--pos-primary)]" />
-              {canReceive ? "Open till" : "Suppliers"}
+        {/* Classic title bar */}
+        <div
+          className={cn(
+            "flex items-center gap-2 border-b border-[#707070] px-3 py-2",
+            "bg-[linear-gradient(180deg,#6ba3d8_0%,#3a7ab8_8%,#2b5f96_100%)]",
+            "dark:border-border dark:bg-primary",
+          )}
+        >
+          <Truck className="size-4 shrink-0 text-white" aria-hidden />
+          <DialogHeader className="min-w-0 flex-1 space-y-0 p-0 text-left">
+            <DialogTitle className="truncate text-sm font-semibold text-white">
+              {title}
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              {canReceive
-                ? "Open a supplier receive till, resume an unfinished draft, or create/link vendors — drafts stay on this device until you post."
-                : canWrite && canLink
-                  ? "Add a vendor or link catalog products without leaving the till."
-                  : canWrite
-                    ? "Create a supplier from the till."
-                    : "Link catalog products to a supplier from the till."}
+            <DialogDescription className="sr-only">
+              Find or create a supplier, then open the receive till without
+              leaving cashier.
             </DialogDescription>
           </DialogHeader>
+        </div>
 
-          {canReceive && onReceiveSupply ? (
-            <Button
+        {/* Immediate actions — find first, new supplier always visible */}
+        <div className="grid grid-cols-2 gap-px border-b border-[#a0a0a0] bg-[#a0a0a0] dark:border-border dark:bg-border">
+          <button
+            type="button"
+            className={cn(
+              panelBtn,
+              "border-0 bg-[#f3f3f3] dark:bg-muted/30",
+              panel === "find" && panelBtnActive,
+            )}
+            onClick={() => {
+              setPanel("find");
+              window.requestAnimationFrame(() => searchInputRef.current?.focus());
+            }}
+          >
+            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide">
+              <Search className="size-3.5" aria-hidden />
+              Find supplier
+            </span>
+            <span className="text-[11px] text-[#555] dark:text-muted-foreground">
+              Search who delivers today
+            </span>
+          </button>
+          {canWrite ? (
+            <button
               type="button"
-              className="mt-3 w-full gap-1.5 rounded-xl"
-              disabled={!supplier}
-              onClick={() => {
-                if (!supplier) return;
-                onReceiveSupply(supplier);
-              }}
+              className={cn(
+                panelBtn,
+                "border-0 bg-[#f3f3f3] dark:bg-muted/30",
+                panel === "create" && panelBtnActive,
+              )}
+              onClick={() => setPanel("create")}
             >
-              <ShoppingCart className="size-3.5" />
-              {supplier
-                ? `Open till · ${supplier.name}`
-                : "Open till · select a supplier below"}
-            </Button>
-          ) : null}
+              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide">
+                <UserPlus className="size-3.5" aria-hidden />
+                New supplier
+              </span>
+              <span className="text-[11px] text-[#555] dark:text-muted-foreground">
+                First time? Add them here
+              </span>
+            </button>
+          ) : (
+            <div className="flex items-center bg-[#ebebeb] px-3 text-[11px] text-[#666] dark:bg-muted/20 dark:text-muted-foreground">
+              Ask an admin to enable supplier create
+            </div>
+          )}
+        </div>
 
+        {canLink ? (
+          <div className="border-b border-[#c0c0c0] bg-[#e8e8e8] px-3 py-1.5 dark:border-border dark:bg-muted/20">
+            <button
+              type="button"
+              className={cn(
+                "inline-flex items-center gap-1.5 border border-transparent px-2 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                panel === "link"
+                  ? "border-[#707070] bg-[#fff] text-[#1a1a1a] dark:border-border dark:bg-background dark:text-foreground"
+                  : "text-[#555] hover:border-[#a0a0a0] hover:bg-[#f5f5f5] dark:text-muted-foreground",
+              )}
+              onClick={() => setPanel("link")}
+            >
+              <Link2 className="size-3" aria-hidden />
+              Link products to a supplier
+            </button>
+          </div>
+        ) : null}
+
+        <div className="max-h-[min(52dvh,28rem)] space-y-3 overflow-y-auto bg-[#f7f7f7] px-3 py-3 dark:bg-background">
           {canReceive && onReceiveSupply && unfinishedTills.length > 0 ? (
-            <div className="mt-3 space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Unfinished tills
-              </p>
-              <ul className="max-h-36 space-y-1 overflow-y-auto">
+            <section className="space-y-1.5">
+              <p className={labelClass}>Resume unfinished</p>
+              <ul className="divide-y divide-[#c8c8c8] border border-[#8a8a8a] bg-white dark:divide-border dark:border-border dark:bg-card">
                 {unfinishedTills.map((draft) => (
                   <li key={draft.supplierId}>
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-left transition-colors hover:bg-emerald-500/10"
+                      className="flex w-full items-center gap-2 px-2.5 py-2 text-left hover:bg-[#e8f0fc] dark:hover:bg-muted/40"
                       onClick={() =>
                         onReceiveSupply({
                           id: draft.supplierId,
@@ -450,12 +527,15 @@ export function CashierSuppliersModal({
                         })
                       }
                     >
-                      <PackagePlus className="size-3.5 shrink-0 text-emerald-700 dark:text-emerald-300" />
+                      <PackagePlus
+                        className="size-3.5 shrink-0 text-[var(--pos-primary)]"
+                        aria-hidden
+                      />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-foreground">
+                        <span className="block truncate text-sm font-semibold">
                           {draft.supplierName}
                         </span>
-                        <span className="block text-[11px] text-muted-foreground">
+                        <span className="block text-[11px] text-[#666] dark:text-muted-foreground">
                           {draft.lineCount} item
                           {draft.lineCount === 1 ? "" : "s"} ·{" "}
                           {formatReceiveTillDraftAge(draft.updatedAt)}
@@ -465,46 +545,117 @@ export function CashierSuppliersModal({
                   </li>
                 ))}
               </ul>
-            </div>
+            </section>
           ) : null}
 
-          {showTabs ? (
-            <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl border border-border/50 bg-muted/30 p-1">
-              <button
-                type="button"
-                className={cn(
-                  "rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors",
-                  tab === "create"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-                onClick={() => setTab("create")}
-              >
-                New supplier
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors",
-                  tab === "link"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-                onClick={() => setTab("link")}
-              >
-                Link products
-              </button>
-            </div>
-          ) : null}
-        </div>
+          {panel === "find" ? (
+            <section className="space-y-2">
+              <div className="flex items-end justify-between gap-2">
+                <p className={labelClass}>Who is delivering?</p>
+                {canWrite ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 border border-[#707070] bg-[#fff] px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-[#1a1a1a] hover:bg-[#eef6ff] dark:border-border dark:bg-background dark:text-foreground"
+                    onClick={() => setPanel("create")}
+                  >
+                    <Plus className="size-3" aria-hidden />
+                    New
+                  </button>
+                ) : null}
+              </div>
 
-        <div className="max-h-[min(56dvh,26rem)] space-y-3 overflow-y-auto px-4 py-4">
-          {tab === "create" && canWrite ? (
-            <>
-              <label className="block space-y-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Supplier name
-                </span>
+              {supplier ? (
+                <div className="flex items-center justify-between gap-2 border border-[#8a8a8a] bg-white px-2.5 py-2 dark:border-border dark:bg-card">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">{supplier.name}</p>
+                    {supplier.code ? (
+                      <p className="font-mono text-[10px] text-[#666]">
+                        {supplier.code}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn(classicBtn, "h-8 gap-1 px-2")}
+                    onClick={clearSupplier}
+                  >
+                    <X className="size-3.5" />
+                    Change
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#666]" />
+                    <input
+                      ref={searchInputRef}
+                      className={cn(fieldClass, "pl-8")}
+                      value={supplierQuery}
+                      onChange={(e) => setSupplierQuery(e.target.value)}
+                      placeholder="Type name — e.g. David, Eggs, Githurai…"
+                      autoFocus
+                    />
+                    {supplierBusy ? (
+                      <Loader2 className="absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-[#666]" />
+                    ) : null}
+                  </div>
+                  {supplierHits.length > 0 ? (
+                    supplierList
+                  ) : !supplierBusy ? (
+                    <div className="border border-dashed border-[#a0a0a0] bg-[#fafafa] px-3 py-4 text-center dark:border-border dark:bg-muted/20">
+                      <p className="text-xs text-[#555] dark:text-muted-foreground">
+                        {supplierQuery.trim()
+                          ? "No match — try another spelling, or add them."
+                          : "Start typing to find a supplier."}
+                      </p>
+                      {canWrite ? (
+                        <Button
+                          type="button"
+                          className={cn(classicPrimary, "mt-3 h-9 gap-1.5")}
+                          onClick={() => {
+                            if (supplierQuery.trim()) {
+                              setName(supplierQuery.trim());
+                            }
+                            setPanel("create");
+                          }}
+                        >
+                          <UserPlus className="size-3.5" aria-hidden />
+                          {supplierQuery.trim()
+                            ? `Add “${supplierQuery.trim()}” as new supplier`
+                            : "Add new supplier"}
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+              {canReceive && onReceiveSupply ? (
+                <Button
+                  type="button"
+                  className={cn(classicPrimary, "h-11 w-full gap-2 text-sm font-bold")}
+                  disabled={!supplier}
+                  onClick={openTill}
+                >
+                  <ShoppingCart className="size-4" aria-hidden />
+                  {supplier
+                    ? `Open till · ${supplier.name}`
+                    : "Select a supplier above, then open till"}
+                </Button>
+              ) : null}
+            </section>
+          ) : null}
+
+          {panel === "create" && canWrite ? (
+            <section className="space-y-2.5">
+              <p className="border border-[#c0c0c0] bg-[#fff8dc] px-2.5 py-2 text-xs text-[#333] dark:border-border dark:bg-amber-950/30 dark:text-amber-100">
+                New vendor? Enter their name, save, and{" "}
+                {canReceive ? "the receive till opens right away." : "they’re ready to use."}
+              </p>
+              <label className="block space-y-1">
+                <span className={labelClass}>Supplier name</span>
                 <input
                   className={fieldClass}
                   value={name}
@@ -513,10 +664,8 @@ export function CashierSuppliersModal({
                   autoFocus
                 />
               </label>
-              <label className="block space-y-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Phone (optional)
-                </span>
+              <label className="block space-y-1">
+                <span className={labelClass}>Phone (optional)</span>
                 <input
                   className={fieldClass}
                   value={phone}
@@ -525,10 +674,8 @@ export function CashierSuppliersModal({
                   inputMode="tel"
                 />
               </label>
-              <label className="block space-y-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Code (optional)
-                </span>
+              <label className="block space-y-1">
+                <span className={labelClass}>Code (optional)</span>
                 <input
                   className={fieldClass}
                   value={code}
@@ -536,56 +683,92 @@ export function CashierSuppliersModal({
                   placeholder="Internal code"
                 />
               </label>
-            </>
+              <button
+                type="button"
+                className="text-[11px] font-semibold text-[#2558a8] underline-offset-2 hover:underline dark:text-primary"
+                onClick={() => {
+                  setPanel("find");
+                  window.requestAnimationFrame(() =>
+                    searchInputRef.current?.focus(),
+                  );
+                }}
+              >
+                ← Back to find supplier
+              </button>
+            </section>
           ) : null}
 
-          {showSupplierPicker && !(tab === "link" && canLink) ? supplierPicker : null}
-
-          {tab === "link" && canLink ? (
-            <>
-              {supplierPicker}
+          {panel === "link" && canLink ? (
+            <section className="space-y-2.5">
+              <p className={labelClass}>Supplier</p>
+              {supplier ? (
+                <div className="flex items-center justify-between gap-2 border border-[#8a8a8a] bg-white px-2.5 py-2 dark:border-border dark:bg-card">
+                  <p className="truncate text-sm font-semibold">{supplier.name}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn(classicBtn, "h-8")}
+                    onClick={clearSupplier}
+                  >
+                    Change
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#666]" />
+                    <input
+                      ref={searchInputRef}
+                      className={cn(fieldClass, "pl-8")}
+                      value={supplierQuery}
+                      onChange={(e) => setSupplierQuery(e.target.value)}
+                      placeholder="Search suppliers…"
+                      autoFocus
+                    />
+                    {supplierBusy ? (
+                      <Loader2 className="absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-[#666]" />
+                    ) : null}
+                  </div>
+                  {supplierHits.length > 0 ? supplierList : null}
+                </>
+              )}
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    Products
-                  </span>
+                  <span className={labelClass}>Products</span>
                   {linkCount > 0 ? (
                     <button
                       type="button"
-                      className="text-[10px] font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                      className="text-[10px] font-bold uppercase text-[#555] underline-offset-2 hover:underline"
                       onClick={() => setSelectedProducts([])}
                     >
                       Clear {linkCount}
                     </button>
                   ) : null}
                 </div>
-
                 {selectedProducts.length > 0 ? (
-                  <ul className="flex max-h-28 flex-col gap-1 overflow-auto rounded-xl border border-border/60 bg-muted/15 p-1.5">
+                  <ul className="max-h-28 divide-y divide-[#c8c8c8] overflow-auto border border-[#8a8a8a] bg-white dark:divide-border dark:border-border dark:bg-card">
                     {selectedProducts.map((p) => (
                       <li
                         key={p.id}
-                        className="flex items-center justify-between gap-2 rounded-lg bg-background px-2.5 py-1.5"
+                        className="flex items-center justify-between gap-2 px-2 py-1.5"
                       >
                         <p className="min-w-0 truncate text-sm font-medium">
                           {cashierItemPrimaryLabel(p)}
                         </p>
-                        <Button
+                        <button
                           type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-7 shrink-0"
+                          className="p-1 text-[#888] hover:text-destructive"
                           onClick={() => toggleProduct(p)}
                           aria-label={`Remove ${cashierItemPrimaryLabel(p)}`}
                         >
                           <X className="size-3.5" />
-                        </Button>
+                        </button>
                       </li>
                     ))}
                   </ul>
                 ) : null}
-
                 <div className="relative">
                   <input
                     className={fieldClass}
@@ -599,11 +782,11 @@ export function CashierSuppliersModal({
                     disabled={!supplier}
                   />
                   {productBusy ? (
-                    <Loader2 className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+                    <Loader2 className="absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-[#666]" />
                   ) : null}
                 </div>
                 {productHits.length > 0 ? (
-                  <ul className="max-h-44 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-sm">
+                  <ul className="max-h-40 divide-y divide-[#c8c8c8] overflow-auto border border-[#8a8a8a] bg-white dark:divide-border dark:border-border dark:bg-popover">
                     {productHits.map((item) => {
                       const selected = selectedIds.has(item.id);
                       return (
@@ -611,17 +794,18 @@ export function CashierSuppliersModal({
                           <button
                             type="button"
                             className={cn(
-                              "flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted/60",
-                              selected && "bg-primary/[0.06]",
+                              "flex w-full items-start gap-2 px-2.5 py-2 text-left text-sm hover:bg-[#e8f0fc] dark:hover:bg-muted/50",
+                              selected &&
+                                "bg-[color-mix(in_srgb,var(--pos-primary)_12%,#fff)]",
                             )}
                             onClick={() => toggleProduct(item)}
                           >
                             <span
                               className={cn(
-                                "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border",
+                                "mt-0.5 flex size-4 shrink-0 items-center justify-center border",
                                 selected
-                                  ? "border-primary bg-primary text-primary-foreground"
-                                  : "border-border bg-background",
+                                  ? "border-[var(--pos-primary)] bg-[var(--pos-primary)] text-[var(--pos-primary-ink,#fff)]"
+                                  : "border-[#8a8a8a] bg-white",
                               )}
                               aria-hidden
                             >
@@ -634,7 +818,7 @@ export function CashierSuppliersModal({
                                 {cashierItemPrimaryLabel(item)}
                               </span>
                               {item.barcode || item.sku ? (
-                                <span className="font-mono text-[10px] text-muted-foreground">
+                                <span className="font-mono text-[10px] text-[#666]">
                                   {[item.barcode, item.sku]
                                     .filter(Boolean)
                                     .join(" · ")}
@@ -649,10 +833,8 @@ export function CashierSuppliersModal({
                 ) : null}
               </div>
 
-              <label className="block space-y-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Default buying price (optional)
-                </span>
+              <label className="block space-y-1">
+                <span className={labelClass}>Default buying price (optional)</span>
                 <input
                   className={fieldClass}
                   value={costStr}
@@ -662,41 +844,44 @@ export function CashierSuppliersModal({
                   disabled={linkCount === 0}
                 />
               </label>
-            </>
+            </section>
           ) : null}
         </div>
 
-        <DialogFooter className="border-t border-border/40 px-4 py-3">
+        <DialogFooter
+          className={cn(
+            "flex-row justify-end gap-2 border-t border-[#a0a0a0] bg-[#e8e8e8] px-3 py-2.5",
+            "dark:border-border dark:bg-muted/30",
+          )}
+        >
           <Button
             type="button"
             variant="outline"
-            className="rounded-xl"
+            className={cn(classicBtn, "h-9")}
             onClick={() => onOpenChange(false)}
             disabled={createBusy || linkBusy}
           >
             Close
           </Button>
-          {tab === "create" && canWrite ? (
+          {panel === "create" && canWrite ? (
             <Button
               type="button"
-              className="rounded-xl gap-1.5"
+              className={cn(classicPrimary, "h-9 gap-1.5")}
               onClick={() => void onCreate()}
               disabled={createBusy || !name.trim()}
             >
               {createBusy ? (
                 <Loader2 className="size-3.5 animate-spin" />
-              ) : canReceive ? (
-                <PackagePlus className="size-3.5" />
               ) : (
-                <Truck className="size-3.5" />
+                <UserPlus className="size-3.5" />
               )}
-              {canReceive ? "Create & open till" : "Create supplier"}
+              {canReceive ? "Save & open till" : "Save supplier"}
             </Button>
           ) : null}
-          {tab === "link" && canLink ? (
+          {panel === "link" && canLink ? (
             <Button
               type="button"
-              className="rounded-xl gap-1.5"
+              className={cn(classicPrimary, "h-9 gap-1.5")}
               onClick={() => void onLink()}
               disabled={linkBusy || !supplier || linkCount === 0}
             >
@@ -708,6 +893,16 @@ export function CashierSuppliersModal({
               {linkCount <= 1
                 ? "Link product"
                 : `Link ${linkCount} products`}
+            </Button>
+          ) : null}
+          {panel === "find" && canReceive && onReceiveSupply && supplier ? (
+            <Button
+              type="button"
+              className={cn(classicPrimary, "h-9 gap-1.5")}
+              onClick={openTill}
+            >
+              <ShoppingCart className="size-3.5" />
+              Open till
             </Button>
           ) : null}
         </DialogFooter>
