@@ -19,6 +19,8 @@ export type CartSession = {
   /** Optimistic-lock version from server. */
   version: number;
   syncStatus: CartSyncStatus;
+  /** Last server error message when syncStatus is "error". */
+  lastSyncError?: string | null;
   lastSyncedAt: string | null;
   label: string;
   createdAt: number;

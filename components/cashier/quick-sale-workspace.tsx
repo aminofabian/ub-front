@@ -1304,7 +1304,11 @@ export function QuickSaleWorkspace({
         customerRegisterName: "",
       });
       resetPhoneVerification();
-      setNotice(`${created.name} registered — tab ready for credit.`);
+      setNotice(
+        creditChangeToWallet
+          ? `${created.name} registered — wallet ready (tab credit considered if they owe).`
+          : `${created.name} registered — tab ready for credit.`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not register customer.");
     } finally {
@@ -1321,6 +1325,7 @@ export function QuickSaleWorkspace({
     setCustomerHits,
     setSelectedCustomer,
     updateActiveCart,
+    creditChangeToWallet,
   ]);
 
   /**
@@ -2767,7 +2772,11 @@ export function QuickSaleWorkspace({
         });
         if (synced.syncStatus === "error") {
           setLoading(false);
-          setError("Could not sync sale to the server. Try again.");
+          setError(
+            synced.lastSyncError?.trim()
+              ? `Could not sync sale: ${synced.lastSyncError}`
+              : "Could not sync sale to the server. Try again.",
+          );
           return;
         }
         draftId = synced.draftId;

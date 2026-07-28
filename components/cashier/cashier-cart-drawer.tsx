@@ -754,7 +754,11 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           ? Number(cashChange) === 0
                             ? "Exact — tap Complete below"
                             : creditChangeToWallet
-                              ? `Park ${cashChange} ${currency} on their wallet`
+                              ? selectedCustomer &&
+                                  Number(selectedCustomer.credit?.balanceOwed) >
+                                    0
+                                ? `Apply ${cashChange} ${currency} to tab first, rest to wallet`
+                                : `Park ${cashChange} ${currency} on their wallet`
                               : `Give back ${cashChange} ${currency}`
                           : "Tap Exact total, or pick a note amount"}
                       </p>
@@ -787,7 +791,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             </span>
                             <span className="mt-0.5 block text-muted-foreground">
                               Keep the note — park {cashChange} {currency} on
-                              their phone for next time
+                              their phone. If they owe on tab, that is paid
+                              first; the rest goes to wallet.
                             </span>
                           </span>
                         </label>
@@ -1142,6 +1147,18 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                     c.phones[0]?.phone ??
                                     ""}
                                 </span>
+                                {c.credit ? (
+                                  <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
+                                    {Number(c.credit.balanceOwed) > 0
+                                      ? `Tab owed ${Number(c.credit.balanceOwed).toFixed(2)}`
+                                      : "Tab clear"}
+                                    {" · "}
+                                    Wallet{" "}
+                                    {Number(c.credit.walletBalance ?? 0).toFixed(
+                                      2,
+                                    )}
+                                  </span>
+                                ) : null}
                               </button>
                             </li>
                           ))}

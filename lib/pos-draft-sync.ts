@@ -77,9 +77,11 @@ export function applyPosDraftToCart(
   return {
     ...cart,
     draftId: draft.id,
+    clientDraftId: draft.clientDraftId || cart.clientDraftId,
     ticketNumber: draft.ticketNumber,
     version: draft.version,
     syncStatus: "idle",
+    lastSyncError: null,
     lastSyncedAt: draft.updatedAt,
     removedServerLineIds: [],
     label,
@@ -107,7 +109,11 @@ async function refreshCartDraftVersion(cart: CartSession): Promise<CartSession> 
 export async function syncCartSessionToServer(
   cart: CartSession,
   branchId: string,
-  opts?: { uiVisible?: boolean; retriedAfterConflict?: boolean },
+  opts?: {
+    uiVisible?: boolean;
+    retriedAfterConflict?: boolean;
+    retriedAfterStaleDraft?: boolean;
+  },
 ): Promise<CartSession> {
   const inputs = linesToInputs(cart);
   const removedServerLineIds = cart.removedServerLineIds ?? [];
@@ -175,8 +181,47 @@ export async function syncCartSessionToServer(
         return { ...cart, syncStatus: "idle" };
       }
     }
-    return { ...cart, syncStatus: "error" };
+
+    // Draft already completed/cancelled — start a fresh pending draft so
+    // checkout can proceed instead of hard-failing with a vague sync error.
+    if (
+      e instanceof PosDraftApiError &&
+      isStaleDraftError(e) &&
+      !opts?.retriedAfterStaleDraft
+    ) {
+      const fresh: CartSession = {
+        ...cart,
+        draftId: null,
+        ticketNumber: null,
+        version: 0,
+        clientDraftId: crypto.randomUUID(),
+        removedServerLineIds: [],
+        syncStatus: "idle",
+      };
+      return syncCartSessionToServer(fresh, branchId, {
+        ...opts,
+        retriedAfterStaleDraft: true,
+      });
+    }
+
+    return {
+      ...cart,
+      syncStatus: "error",
+      lastSyncError:
+        e instanceof Error ? e.message : "Could not sync cart to server",
+    };
   }
+}
+
+function isStaleDraftError(e: PosDraftApiError): boolean {
+  if (e.status === 423) return true;
+  const msg = (e.message ?? "").toLowerCase();
+  return (
+    msg.includes("not pending") ||
+    msg.includes("is cancelled") ||
+    msg.includes("draft is cancelled") ||
+    msg.includes("already completed")
+  );
 }
 
 export type ReplayMirroredDraftsResult = {
