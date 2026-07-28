@@ -335,6 +335,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     : NaN;
   const walletAvail =
     Number.isFinite(walletBalance) && walletBalance > 0 ? walletBalance : 0;
+  const walletSplitNum = Number(walletSplitStr.trim());
   const walletSplitApplied =
     Number.isFinite(walletSplitNum) && walletSplitNum > 0 ? walletSplitNum : 0;
   const walletOverAvail =
