@@ -33,6 +33,9 @@ export const APP_ROUTES = {
   businessImport: "/business/import",
   branches: "/branches",
   users: "/users",
+  /** Open staff profile drawer on Users (`?profile=<userId>`). */
+  userProfile: (userId: string) =>
+    `/users?profile=${encodeURIComponent(userId)}`,
   payroll: "/payroll",
   products: "/products",
   productsCatalog: "/products/catalog",
@@ -207,6 +210,10 @@ export const API_ROUTES = {
   superAdminPlatformSupplierPortal: "/api/v1/super-admin/platform/supplier-portal",
   superAdminMarketplaceSuppliers: "/api/v1/super-admin/marketplace/suppliers",
   superAdminGlobalCatalog: "/api/v1/super-admin/global-catalog",
+  aiStatus: "/api/v1/ai/status",
+  aiChat: "/api/v1/ai/chat",
+  aiFeedback: "/api/v1/ai/feedback",
+  aiRouteGuide: "/api/v1/ai/route-guide",
   paymentGatewaysAvailable: "/api/v1/payments/gateways/available",
   paymentGateways: "/api/v1/payments/gateways",
   paymentSupplierPayout: "/api/v1/payments/supplier-payout",

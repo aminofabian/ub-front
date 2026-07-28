@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Banknote, Loader2, Pencil, Wallet } from "lucide-react";
+import { Banknote, IdCard, Loader2, Pencil, Wallet } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -15,6 +15,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
+import { StaffProfileDrawer } from "@/components/staff/staff-profile-drawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -42,9 +43,11 @@ function monthLabel(year: number, month: number): string {
 export default function PayrollPage() {
   const {
     loading: dashLoading,
+    me,
     canViewPayroll,
     canManagePayroll,
     canRunPayroll,
+    canReadStaffProfile,
   } = useDashboard();
 
   const now = useMemo(() => new Date(), []);
@@ -58,6 +61,9 @@ export default function PayrollPage() {
     text: string;
   } | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
+
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [profileUserLabel, setProfileUserLabel] = useState("");
 
   const [advanceOpen, setAdvanceOpen] = useState(false);
   const [advanceUserId, setAdvanceUserId] = useState<string | null>(null);
@@ -143,6 +149,13 @@ export default function PayrollPage() {
     setAdvanceDate(new Date().toISOString().slice(0, 10));
     setAdvanceNote("");
     setAdvanceOpen(true);
+  }
+
+  function openProfile(row: PayrollRunRow) {
+    setProfileUserId(row.userId);
+    setProfileUserLabel(
+      `${row.displayName}${row.title ? ` · ${row.title}` : ""}`,
+    );
   }
 
   function openSalary(row: PayrollRunRow) {
@@ -292,46 +305,56 @@ export default function PayrollPage() {
           onRetry={() => void load()}
         />
       ) : (
-        <section className={cn(DASHBOARD_TABLE_SURFACE, "overflow-hidden")}>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Employee</th>
-                  <th className="px-4 py-3 font-medium">Branch</th>
-                  <th className="px-4 py-3 font-medium text-right">Base</th>
-                  <th className="px-4 py-3 font-medium text-right">Advances</th>
-                  <th className="px-4 py-3 font-medium text-right">Net</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-10 text-center text-muted-foreground"
-                    >
-                      No staff in this payroll run.
-                    </td>
-                  </tr>
-                ) : (
-                  rows.map((row) => (
-                    <tr
-                      key={row.userId}
-                      className="border-b border-border/40 last:border-0"
-                    >
-                      <td className="px-4 py-3">
+        <>
+          {/* Mobile: stacked cards with thumb-friendly profile entry */}
+          <div className="space-y-3 md:hidden">
+            {rows.length === 0 ? (
+              <p className="rounded-xl border border-border/50 px-4 py-10 text-center text-sm text-muted-foreground">
+                No staff in this payroll run.
+              </p>
+            ) : (
+              rows.map((row) => (
+                <article
+                  key={row.userId}
+                  className={cn(
+                    DASHBOARD_TABLE_SURFACE,
+                    "space-y-3 p-4",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      {canReadStaffProfile ? (
+                        <button
+                          type="button"
+                          className="text-left font-medium text-foreground underline-offset-2 hover:underline"
+                          onClick={() => openProfile(row)}
+                        >
+                          {row.displayName}
+                        </button>
+                      ) : (
                         <div className="font-medium">{row.displayName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {row.title || row.employmentStatus}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {row.branchName ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {[row.title, row.branchName, row.employmentStatus]
+                          .filter(Boolean)
+                          .join(" · ") || "—"}
+                      </div>
+                    </div>
+                    {row.alreadyPaid ? (
+                      <span className="shrink-0 rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
+                        Paid
+                      </span>
+                    ) : (
+                      <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        Pending
+                      </span>
+                    )}
+                  </div>
+
+                  <dl className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="rounded-lg bg-muted/40 px-2 py-2">
+                      <dt className="text-muted-foreground">Base</dt>
+                      <dd className="mt-0.5 tabular-nums font-medium">
                         {row.baseSalary > 0 ? (
                           money(row.baseSalary)
                         ) : (
@@ -339,79 +362,245 @@ export default function PayrollPage() {
                             Not set
                           </span>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
+                      </dd>
+                    </div>
+                    <div className="rounded-lg bg-muted/40 px-2 py-2">
+                      <dt className="text-muted-foreground">Advances</dt>
+                      <dd className="mt-0.5 tabular-nums font-medium">
                         {money(row.advancesOutstanding)}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums font-medium">
+                      </dd>
+                    </div>
+                    <div className="rounded-lg bg-muted/40 px-2 py-2">
+                      <dt className="text-muted-foreground">Net</dt>
+                      <dd className="mt-0.5 tabular-nums font-medium">
                         {money(row.suggestedNet)}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div className="flex flex-wrap gap-2">
+                    {canReadStaffProfile ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-9 flex-1 gap-1.5 text-xs sm:flex-none"
+                        onClick={() => openProfile(row)}
+                      >
+                        <IdCard className="size-3.5" aria-hidden />
+                        Profile
+                      </Button>
+                    ) : null}
+                    {canManagePayroll ? (
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={row.baseSalary > 0 ? "outline" : "default"}
+                          className="h-9 flex-1 gap-1.5 text-xs sm:flex-none"
+                          onClick={() => openSalary(row)}
+                        >
+                          <Pencil className="size-3.5" aria-hidden />
+                          {row.baseSalary > 0 ? "Salary" : "Set salary"}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-9 flex-1 gap-1.5 text-xs sm:flex-none"
+                          onClick={() => openAdvance(row)}
+                        >
+                          <Wallet className="size-3.5" aria-hidden />
+                          Advance
+                        </Button>
+                      </>
+                    ) : null}
+                    {canRunPayroll && !row.alreadyPaid ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-9 flex-1 gap-1.5 text-xs sm:flex-none"
+                        disabled={payingId === row.userId}
+                        onClick={() => void onPay(row)}
+                      >
+                        {payingId === row.userId ? (
+                          <Loader2
+                            className="size-3.5 animate-spin"
+                            aria-hidden
+                          />
+                        ) : null}
+                        Mark paid
+                      </Button>
+                    ) : null}
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <section
+            className={cn(
+              DASHBOARD_TABLE_SURFACE,
+              "hidden overflow-hidden md:block",
+            )}
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Employee</th>
+                    <th className="px-4 py-3 font-medium">Branch</th>
+                    <th className="px-4 py-3 font-medium text-right">Base</th>
+                    <th className="px-4 py-3 font-medium text-right">Advances</th>
+                    <th className="px-4 py-3 font-medium text-right">Net</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-4 py-10 text-center text-muted-foreground"
+                      >
+                        No staff in this payroll run.
                       </td>
-                      <td className="px-4 py-3">
-                        {row.alreadyPaid ? (
-                          <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
-                            Paid
-                          </span>
-                        ) : (
-                          <span className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                            Pending
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap justify-end gap-1.5">
-                          {canManagePayroll ? (
-                            <>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant={
-                                  row.baseSalary > 0 ? "outline" : "default"
-                                }
-                                className="h-7 gap-1 px-2 text-xs"
-                                onClick={() => openSalary(row)}
-                              >
-                                <Pencil className="size-3" aria-hidden />
-                                {row.baseSalary > 0 ? "Salary" : "Set salary"}
-                              </Button>
+                    </tr>
+                  ) : (
+                    rows.map((row) => (
+                      <tr
+                        key={row.userId}
+                        className="border-b border-border/40 last:border-0"
+                      >
+                        <td className="px-4 py-3">
+                          {canReadStaffProfile ? (
+                            <button
+                              type="button"
+                              className="text-left font-medium text-foreground underline-offset-2 hover:underline"
+                              onClick={() => openProfile(row)}
+                            >
+                              {row.displayName}
+                            </button>
+                          ) : (
+                            <div className="font-medium">{row.displayName}</div>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            {row.title || row.employmentStatus}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {row.branchName ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums">
+                          {row.baseSalary > 0 ? (
+                            money(row.baseSalary)
+                          ) : (
+                            <span className="text-amber-700 dark:text-amber-300">
+                              Not set
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums">
+                          {money(row.advancesOutstanding)}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums font-medium">
+                          {money(row.suggestedNet)}
+                        </td>
+                        <td className="px-4 py-3">
+                          {row.alreadyPaid ? (
+                            <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
+                              Paid
+                            </span>
+                          ) : (
+                            <span className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap justify-end gap-1.5">
+                            {canReadStaffProfile ? (
                               <Button
                                 type="button"
                                 size="sm"
                                 variant="outline"
                                 className="h-7 gap-1 px-2 text-xs"
-                                onClick={() => openAdvance(row)}
+                                onClick={() => openProfile(row)}
                               >
-                                <Wallet className="size-3" aria-hidden />
-                                Advance
+                                <IdCard className="size-3" aria-hidden />
+                                Profile
                               </Button>
-                            </>
-                          ) : null}
-                          {canRunPayroll && !row.alreadyPaid ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="h-7 gap-1 px-2 text-xs"
-                              disabled={payingId === row.userId}
-                              onClick={() => void onPay(row)}
-                            >
-                              {payingId === row.userId ? (
-                                <Loader2
-                                  className="size-3 animate-spin"
-                                  aria-hidden
-                                />
-                              ) : null}
-                              Mark paid
-                            </Button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                            ) : null}
+                            {canManagePayroll ? (
+                              <>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={
+                                    row.baseSalary > 0 ? "outline" : "default"
+                                  }
+                                  className="h-7 gap-1 px-2 text-xs"
+                                  onClick={() => openSalary(row)}
+                                >
+                                  <Pencil className="size-3" aria-hidden />
+                                  {row.baseSalary > 0 ? "Salary" : "Set salary"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 gap-1 px-2 text-xs"
+                                  onClick={() => openAdvance(row)}
+                                >
+                                  <Wallet className="size-3" aria-hidden />
+                                  Advance
+                                </Button>
+                              </>
+                            ) : null}
+                            {canRunPayroll && !row.alreadyPaid ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-7 gap-1 px-2 text-xs"
+                                disabled={payingId === row.userId}
+                                onClick={() => void onPay(row)}
+                              >
+                                {payingId === row.userId ? (
+                                  <Loader2
+                                    className="size-3 animate-spin"
+                                    aria-hidden
+                                  />
+                                ) : null}
+                                Mark paid
+                              </Button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
       )}
+
+      <StaffProfileDrawer
+        open={profileUserId != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setProfileUserId(null);
+            setProfileUserLabel("");
+            void load();
+          }
+        }}
+        userId={profileUserId}
+        userLabel={profileUserLabel}
+        permissions={me?.permissions}
+      />
 
       <FormDrawer
         open={salaryOpen}

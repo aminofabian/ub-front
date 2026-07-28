@@ -27,6 +27,7 @@ import {
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
+import { SokoMindGuide } from "@/components/sokomind-guide";
 import { DesktopNavRail } from "@/components/shell/desktop-nav-rail";
 import {
   HeaderPosLinks,
@@ -1391,6 +1392,7 @@ export function AppShell({ children }: AppShellProps) {
           />
         </div>
       </div>
+      <SokoMindGuide />
     </div>
   );
 }

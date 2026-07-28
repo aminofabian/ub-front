@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Building2,
   Eye,
@@ -415,6 +416,8 @@ function UserDepartmentsControl({
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function UsersPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { me, refreshSession, itemTypes } = useDashboard();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [roles, setRoles] = useState<RoleRecord[]>([]);
@@ -515,6 +518,18 @@ export default function UsersPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  // Deep link: /users?profile=<userId> opens the staff profile drawer.
+  useEffect(() => {
+    if (!firstLoadDone || !canReadStaffProfile) return;
+    const profileId = searchParams.get("profile")?.trim();
+    if (!profileId) return;
+    const match = users.find((u) => u.id === profileId);
+    setProfileUserId(profileId);
+    setProfileUserLabel(
+      match ? `${match.name} · ${match.email}` : profileId,
+    );
+  }, [firstLoadDone, canReadStaffProfile, searchParams, users]);
 
   // For non-owner users, restrict branch filter to their assigned branch
   useEffect(() => {
@@ -2000,6 +2015,9 @@ export default function UsersPage() {
           if (!open) {
             setProfileUserId(null);
             setProfileUserLabel("");
+            if (searchParams.get("profile")) {
+              router.replace(APP_ROUTES.users, { scroll: false });
+            }
           }
         }}
         userId={profileUserId}
