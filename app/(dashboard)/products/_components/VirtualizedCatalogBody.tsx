@@ -221,7 +221,11 @@ export const VirtualizedCatalogBody = forwardRef<
   return (
     <div className={catalogListShellClass}>
       <div
-        className={cn(catalogListGridClass, catalogListHeaderRowClass)}
+        className={cn(
+          catalogListGridClass,
+          catalogListHeaderRowClass,
+          "hidden sm:grid",
+        )}
         role="row"
         aria-label="Catalog columns"
       >
@@ -422,7 +426,9 @@ export const VirtualizedCatalogBody = forwardRef<
                     className={cn(
                       catalogListGridClass,
                       "group relative min-w-0 max-w-full text-left",
-                      density === "dense" ? "min-h-[2rem]" : "min-h-[2.25rem]",
+                      density === "dense"
+                        ? "min-h-11 sm:min-h-[2rem]"
+                        : "min-h-12 sm:min-h-[2.25rem]",
                       catalogRowHierarchyClass(meta, tone),
                       catalogRowAccentClass(tone, active),
                       catalogRowInteractionClasses(tone, rowInteraction),

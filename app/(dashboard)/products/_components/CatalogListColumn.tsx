@@ -187,7 +187,7 @@ export function CatalogListColumn({
           </div>
         </div>
       ) : (
-        <div className={catalogListToolbarClass}>
+        <div className={cn(catalogListToolbarClass, "hidden lg:flex")}>
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <p className={catalogListToolbarMetaClass}>
               <span className="tabular-nums font-medium text-foreground">
@@ -226,7 +226,7 @@ export function CatalogListColumn({
         </div>
       )}
 
-      <div className="relative min-h-0 flex-1 overflow-hidden pr-5">
+      <div className="relative min-h-0 flex-1 overflow-hidden lg:pr-5">
         <VirtualizedCatalogBody
           ref={listBodyRef}
           rows={catalog.displayRows}
@@ -258,6 +258,7 @@ export function CatalogListColumn({
             busy={catalog.letterJumpBusy}
             activeLetter={activeLetter}
             onJump={(letter) => void handleLetterJump(letter)}
+            className="hidden lg:flex"
           />
         ) : null}
       </div>

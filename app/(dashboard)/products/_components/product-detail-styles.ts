@@ -156,7 +156,7 @@ export function detailStatCellClass(
   highlight?: "success" | "danger" | "default",
 ): string {
   return cn(
-    "px-2.5 py-1.5 transition-colors sm:px-3",
+    "px-3 py-3 transition-colors sm:px-2.5 sm:py-1.5",
     highlight === "success" && "bg-emerald-500/[0.06]",
     highlight === "danger" && "bg-red-500/[0.06]",
   );

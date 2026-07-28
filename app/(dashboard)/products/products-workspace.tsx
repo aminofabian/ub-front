@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, MousePointerClick, PackagePlus } from "lucide-react";
+import { Loader2, MousePointerClick } from "lucide-react";
 
 import { DashboardNotice } from "@/components/dashboard-page-ui";
 import { FormDrawerMessageBanner } from "@/components/form-drawer";
@@ -14,7 +14,6 @@ import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import {
   type ProductDrawerId,
   emptyVariantDraft,
-  panelClass,
 } from "./_types";
 import { useCatalogList } from "./_hooks/useCatalogList";
 import { useProductDetail } from "./_hooks/useProductDetail";
@@ -24,7 +23,7 @@ import { useStorefrontFeatured } from "./_hooks/useStorefrontFeatured";
 import { CatalogListColumn } from "./_components/CatalogListColumn";
 import { ProductDetailPanel } from "./_components/ProductDetailPanel";
 import { ProductHeroHeader } from "./_components/ProductHeroHeader";
-import { ProductMobileFilterBar } from "./_components/ProductMobileFilterBar";
+import { ProductMobileChrome } from "./_components/ProductMobileChrome";
 import { ProductCreateDrawer } from "./_components/ProductCreateDrawer";
 import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
 import { VariantParentPickDrawer } from "./_components/VariantParentPickDrawer";
@@ -368,74 +367,87 @@ export function ProductsWorkspace() {
 
   return (
     <>
-      <div className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col gap-1 overflow-x-hidden px-1.5 pb-2 sm:px-2 sm:pb-3">
-        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-1">
-          <ProductHeroHeader
-            itemTypeCount={catalog.itemTypes.length}
-            attentionStats={[
-              {
-                id: "missingBarcode",
-                count: catalog.catalogStats.missingBarcode,
-                label: "missing barcode",
-                active: catalog.filterNoBarcode,
-              },
-              {
-                id: "noPrice",
-                count: catalog.catalogStats.missingPrice,
-                label: "no price",
-                active: catalog.filterNoPrice,
-              },
-              {
-                id: "zeroStock",
-                count: catalog.catalogStats.zeroStock,
-                label: "zero stock",
-                active: catalog.filterZeroStock,
-              },
-              {
-                id: "lowStock",
-                count: catalog.catalogStats.lowStock,
-                label: "low stock",
-                active: catalog.filterLowStock,
-              },
-              {
-                id: "inactive",
-                count: catalog.catalogStats.inactive,
-                label: "inactive",
-                active: catalog.filterInactiveOnly,
-              },
-            ]}
-            onAttentionToggle={(id) => {
-              if (id === "missingBarcode") {
-                catalog.setFilterNoBarcode((v) => !v);
-              } else if (id === "noPrice") {
-                catalog.setFilterNoPrice((v) => !v);
-              } else if (id === "zeroStock") {
-                catalog.setFilterZeroStock((v) => !v);
-              } else if (id === "lowStock") {
-                catalog.setFilterLowStock((v) => !v);
-              } else {
-                catalog.setFilterInactiveOnly((v) => !v);
+      <div className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col gap-0 overflow-x-hidden lg:gap-1 lg:px-2 lg:pb-3">
+        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0 lg:gap-1">
+          <div className="hidden lg:block">
+            <ProductHeroHeader
+              itemTypeCount={catalog.itemTypes.length}
+              attentionStats={[
+                {
+                  id: "missingBarcode",
+                  count: catalog.catalogStats.missingBarcode,
+                  label: "missing barcode",
+                  active: catalog.filterNoBarcode,
+                },
+                {
+                  id: "noPrice",
+                  count: catalog.catalogStats.missingPrice,
+                  label: "no price",
+                  active: catalog.filterNoPrice,
+                },
+                {
+                  id: "zeroStock",
+                  count: catalog.catalogStats.zeroStock,
+                  label: "zero stock",
+                  active: catalog.filterZeroStock,
+                },
+                {
+                  id: "lowStock",
+                  count: catalog.catalogStats.lowStock,
+                  label: "low stock",
+                  active: catalog.filterLowStock,
+                },
+                {
+                  id: "inactive",
+                  count: catalog.catalogStats.inactive,
+                  label: "inactive",
+                  active: catalog.filterInactiveOnly,
+                },
+              ]}
+              onAttentionToggle={(id) => {
+                if (id === "missingBarcode") {
+                  catalog.setFilterNoBarcode((v) => !v);
+                } else if (id === "noPrice") {
+                  catalog.setFilterNoPrice((v) => !v);
+                } else if (id === "zeroStock") {
+                  catalog.setFilterZeroStock((v) => !v);
+                } else if (id === "lowStock") {
+                  catalog.setFilterLowStock((v) => !v);
+                } else {
+                  catalog.setFilterInactiveOnly((v) => !v);
+                }
+              }}
+              onCreateNew={() => setActiveDrawer("create-parent")}
+              onAddVariant={
+                canCatalogWrite
+                  ? () => setActiveDrawer("pick-variant-parent")
+                  : undefined
               }
-            }}
+              onAddFromCatalog={
+                canGlobalCatalog
+                  ? () => router.push(APP_ROUTES.productsCatalog)
+                  : undefined
+              }
+              canAddFromCatalog={canGlobalCatalog}
+              canAddVariant={canCatalogWrite}
+            />
+          </div>
+          <ProductMobileChrome
+            catalog={catalog}
+            canCreate={catalog.itemTypes.length > 0}
             onCreateNew={() => setActiveDrawer("create-parent")}
-            onAddVariant={
-              canCatalogWrite
-                ? () => setActiveDrawer("pick-variant-parent")
-                : undefined
-            }
             onAddFromCatalog={
               canGlobalCatalog
                 ? () => router.push(APP_ROUTES.productsCatalog)
                 : undefined
             }
             canAddFromCatalog={canGlobalCatalog}
-            canAddVariant={canCatalogWrite}
           />
-          <ProductMobileFilterBar catalog={catalog} />
           <section
             className={cn(
-              panelClass,
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+              "lg:rounded-lg lg:border lg:border-border lg:bg-card",
+              "border-0 bg-transparent",
             )}
           >
             <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-0 overflow-x-hidden p-0 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,min(24rem,30vw))] lg:items-stretch 2xl:grid-cols-[minmax(0,1fr)_minmax(19rem,min(28rem,32vw))]">
@@ -651,18 +663,6 @@ export function ProductsWorkspace() {
         detail={detail}
         detailPanelProps={p}
       />
-
-      {!mobileDetailOpen ? (
-        <button
-          type="button"
-          disabled={catalog.itemTypes.length === 0}
-          onClick={() => setActiveDrawer("create-parent")}
-          className="fixed bottom-[76px] right-4 z-30 lg:hidden flex size-14 items-center justify-center rounded-full shadow-lg bg-foreground text-background active:scale-95 disabled:opacity-40"
-          aria-label="Create product"
-        >
-          <PackagePlus className="size-6" />
-        </button>
-      ) : null}
     </>
   );
 }

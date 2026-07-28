@@ -3,6 +3,7 @@
 import Image from "next/image";
 import {
   Camera,
+  CircleDollarSign,
   Layers,
   Loader2,
   Package,
@@ -450,6 +451,24 @@ export function ProductMobileDetailDrawer({
   detailPanelProps: ComponentProps<typeof ProductDetailPanel>;
 }) {
   const d = detail.detail;
+  const canEdit = detailPanelProps.canCatalogWrite;
+  const canStock = detailPanelProps.canInventoryWrite;
+  const sharedStock = !!d && usesSharedPackageStock(d);
+
+  const focusCommerce = () => {
+    requestAnimationFrame(() => {
+      document
+        .getElementById("product-commerce")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const dockBtn = cn(
+    "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 border border-border bg-background",
+    "text-[10px] font-semibold uppercase tracking-wide text-foreground",
+    "active:bg-muted/70 disabled:opacity-40",
+  );
+
   return (
     <FormDrawer
       open={open}
@@ -457,24 +476,77 @@ export function ProductMobileDetailDrawer({
         if (!o) onClose();
       }}
       banner={banner}
-      title={d?.name ?? ""}
-      description={d?.variantName ?? (d?.sku ? `SKU ${d.sku}` : "")}
-      contextLabel={d?.variantOfItemId ? "Variant SKU" : "Product"}
-      icon={
-        d?.variantOfItemId ? (
-          <Layers className="size-4 text-violet-600" />
-        ) : (
-          <Package className="size-4 text-emerald-600" />
-        )
+      title={d?.name ?? "Product"}
+      description={
+        d?.variantName?.trim() ||
+        (d?.sku ? `SKU ${d.sku}` : "Tap Price or Stock to update")
       }
-      width="wide"
+      contextLabel={d?.variantOfItemId ? "Variant" : "Product"}
+      width="full"
       appearance="sharp"
       headerDensity="compact"
+      footer={
+        d ? (
+          <div className="grid grid-cols-4 gap-1.5 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
+            <button
+              type="button"
+              className={dockBtn}
+              disabled={!canEdit}
+              onClick={() => {
+                detailPanelProps.openQuickEdit("bundlePrice");
+                focusCommerce();
+              }}
+            >
+              <CircleDollarSign className="size-4" aria-hidden />
+              Price
+            </button>
+            <button
+              type="button"
+              className={dockBtn}
+              disabled={
+                sharedStock
+                  ? !canStock || !detailPanelProps.onOpenBaseStock
+                  : !canStock
+              }
+              onClick={() => {
+                if (sharedStock && detailPanelProps.onOpenBaseStock) {
+                  detailPanelProps.onOpenBaseStock();
+                  return;
+                }
+                detailPanelProps.openQuickEdit("stock");
+                focusCommerce();
+              }}
+            >
+              <Package className="size-4" aria-hidden />
+              Stock
+            </button>
+            <button
+              type="button"
+              className={dockBtn}
+              disabled={!canEdit}
+              onClick={() => detailPanelProps.setActiveDrawer("edit-product")}
+            >
+              <PencilLine className="size-4" aria-hidden />
+              Edit
+            </button>
+            <button
+              type="button"
+              className={dockBtn}
+              disabled={!canEdit}
+              onClick={() => detailPanelProps.setActiveDrawer("photos")}
+            >
+              <Camera className="size-4" aria-hidden />
+              Photo
+            </button>
+          </div>
+        ) : undefined
+      }
     >
       {d ? (
         <ProductDetailPanel
           {...detailPanelProps}
           showMobileStickyActions={false}
+          mobileAppLayout
         />
       ) : (
         <div className="flex flex-col items-center justify-center gap-3 py-16">

@@ -33,12 +33,12 @@ export const CATALOG_VARIANT_GROUP_END_GAP_PX = {
 
 export const catalogListShellClass = cn(
   "flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden",
-  "border-y border-r border-border bg-card",
+  "bg-background lg:border-y lg:border-r lg:border-border lg:bg-card",
 );
 
 export const catalogListToolbarClass = cn(
-  "flex flex-wrap items-center justify-between gap-1.5 border-y border-r border-border",
-  "bg-muted/30 px-2 py-1",
+  "flex flex-wrap items-center justify-between gap-1.5",
+  "bg-muted/20 px-3 py-1.5 lg:border-y lg:border-r lg:border-border lg:bg-muted/30 lg:px-2 lg:py-1",
 );
 
 export const catalogListToolbarMetaClass =
@@ -99,7 +99,7 @@ export const catalogListHeaderRowClass = cn(
 /** checkbox · product · stock · sell · category */
 export const catalogListGridClass =
   "grid w-full min-w-0 max-w-full items-stretch gap-0 " +
-  "grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_0px_0px] " +
+  "grid-cols-[2.5rem_minmax(0,1fr)_3.5rem_0px_0px] " +
   "sm:grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_4.25rem_0px] " +
   "xl:grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_4.25rem_4.5rem]";
 
@@ -615,9 +615,9 @@ export function catalogRowHeightPx(
     ? CATALOG_VARIANT_GROUP_END_GAP_PX[density]
     : 0;
   if (density === "dense") {
-    if (kind === "group") return 34 + gap;
-    if (kind === "variant") return 28 + groupEndGap;
-    return 32 + gap;
+    if (kind === "group") return 40 + gap;
+    if (kind === "variant") return 36 + groupEndGap;
+    return 44 + gap;
   }
   if (kind === "group") return 44 + gap;
   if (kind === "variant") return 36 + groupEndGap;

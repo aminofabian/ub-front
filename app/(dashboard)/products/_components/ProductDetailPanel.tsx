@@ -168,6 +168,8 @@ type Props = {
    * (quick actions in the panel already cover those).
    */
   showMobileStickyActions?: boolean;
+  /** Full-screen mobile app layout: tighter hero, no inline action strip. */
+  mobileAppLayout?: boolean;
 };
 
 export function ProductDetailPanel(props: Props) {
@@ -248,6 +250,7 @@ export function ProductDetailPanel(props: Props) {
     onToggleWeighed,
     weighedBusy = false,
     showMobileStickyActions = true,
+    mobileAppLayout = false,
   } = props;
 
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -547,6 +550,7 @@ export function ProductDetailPanel(props: Props) {
       className={cn(
         detailShellClass,
         showMobileStickyActions && "pb-[4.5rem] lg:pb-0",
+        mobileAppLayout && "pb-1",
       )}
     >
       {/* Hero */}
@@ -555,27 +559,44 @@ export function ProductDetailPanel(props: Props) {
           detailHeroClass,
           panelTone.heroGradient,
           panelTone.heroRing,
+          mobileAppLayout && "border-0 bg-transparent p-0 shadow-none ring-0 sm:p-0",
         )}
       >
-        <span
+        {!mobileAppLayout ? (
+          <span
+            className={cn(
+              "pointer-events-none absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full",
+              panelTone.accent,
+            )}
+            aria-hidden
+          />
+        ) : null}
+        <div
           className={cn(
-            "pointer-events-none absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full",
-            panelTone.accent,
+            "flex items-start gap-2",
+            !mobileAppLayout && "pl-2",
+            mobileAppLayout && "gap-3",
           )}
-          aria-hidden
-        />
-        <div className="flex items-start gap-2 pl-2">
+        >
           {isParentish && !thumbUrl ? (
             <span
               className={cn(
-                "flex size-10 shrink-0 items-center justify-center border border-dashed text-sm font-bold tracking-tight sm:size-12",
+                "flex shrink-0 items-center justify-center border border-dashed font-bold tracking-tight",
+                mobileAppLayout
+                  ? "size-14 text-base"
+                  : "size-10 text-sm sm:size-12",
                 panelTone.accentLight,
               )}
             >
               {titleInitial}
             </span>
           ) : (
-            <div className="relative size-10 shrink-0 overflow-hidden border border-border/50 bg-muted sm:size-12">
+            <div
+              className={cn(
+                "relative shrink-0 overflow-hidden border border-border/50 bg-muted",
+                mobileAppLayout ? "size-14" : "size-10 sm:size-12",
+              )}
+            >
               {thumbUrl ? (
                 <Image
                   src={thumbUrl}
@@ -610,11 +631,11 @@ export function ProductDetailPanel(props: Props) {
                   Inactive
                 </span>
               )}
-              {detail.webPublished && (
+              {!mobileAppLayout && detail.webPublished ? (
                 <span className="inline-flex items-center border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-medium text-primary">
                   Online
                 </span>
-              )}
+              ) : null}
               {isStorefrontFeatured && (
                 <span className="inline-flex items-center gap-0.5 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-200">
                   <Star className="size-2.5 fill-current" aria-hidden />
@@ -624,7 +645,7 @@ export function ProductDetailPanel(props: Props) {
               {sharedStock && (
                 <span className="inline-flex items-center gap-0.5 border border-primary/25 bg-primary/8 px-2 py-0.5 text-[10px] font-semibold text-primary">
                   <Boxes className="size-2.5" aria-hidden />
-                  Package SKU
+                  Package
                 </span>
               )}
               {detail.isWeighed === true && (
@@ -634,15 +655,18 @@ export function ProductDetailPanel(props: Props) {
                 </span>
               )}
             </div>
-            <h3
-              className={cn(
-                "text-base font-semibold leading-snug tracking-tight text-foreground sm:text-[15px]",
-                isParentish && "capitalize",
-                displayName.needsNameFix && "text-amber-800 dark:text-amber-300",
-              )}
-            >
-              {heroTitle}
-            </h3>
+            {!mobileAppLayout ? (
+              <h3
+                className={cn(
+                  "text-base font-semibold leading-snug tracking-tight text-foreground sm:text-[15px]",
+                  isParentish && "capitalize",
+                  displayName.needsNameFix &&
+                    "text-amber-800 dark:text-amber-300",
+                )}
+              >
+                {heroTitle}
+              </h3>
+            ) : null}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
               {detail.sku && (
                 <span className="font-mono font-medium text-foreground/90">
@@ -689,6 +713,7 @@ export function ProductDetailPanel(props: Props) {
       </div>
 
       {/* Quick actions */}
+      {!mobileAppLayout ? (
       <div className={cn(detailSellingStripClass, "gap-1.5")}>
         <button
           type="button"
@@ -777,6 +802,7 @@ export function ProductDetailPanel(props: Props) {
           </button>
         ) : null}
       </div>
+      ) : null}
 
       {/* Active package SKU — compact context (not a marketing card) */}
       {sharedStock ? (
@@ -829,7 +855,7 @@ export function ProductDetailPanel(props: Props) {
       ) : null}
 
       {/* Commerce metrics */}
-      <section className={detailSectionClass}>
+      <section id="product-commerce" className={detailSectionClass}>
         <header className={detailSectionHeadClass}>
           <CircleDollarSign
             className="size-3.5 text-muted-foreground/70"
