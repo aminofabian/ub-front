@@ -68,6 +68,7 @@ import {
 import { NewSupplierForm } from "./_components/NewSupplierForm";
 import { SupDrawerFooter, SupMobileSelectionBar } from "./_components/supplier-layout-primitives";
 import { SupplierPageHeader } from "./_components/SupplierPageHeader";
+import { SupplierWorkspaceEmpty } from "./_components/SupplierWorkspaceEmpty";
 import { NewSupplyDrawer } from "../supplies/_components/new-supply-drawer";
 import {
   supFieldLabel,
@@ -149,6 +150,7 @@ export default function SuppliersPage() {
   const [invoiceDrawerOpen, setInvoiceDrawerOpen] = useState(false);
   const [purchaseHistoryKey, setPurchaseHistoryKey] = useState(0);
   const [isXl, setIsXl] = useState(false);
+  const [isLg, setIsLg] = useState(false);
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [catalogDrawerOpen, setCatalogDrawerOpen] = useState(false);
   const [profileEditDrawerOpen, setProfileEditDrawerOpen] = useState(false);
@@ -280,11 +282,19 @@ export default function SuppliersPage() {
   ]);
 
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1280px)");
-    const sync = () => setIsXl(mq.matches);
+    const mqXl = window.matchMedia("(min-width: 1280px)");
+    const mqLg = window.matchMedia("(min-width: 1024px)");
+    const sync = () => {
+      setIsXl(mqXl.matches);
+      setIsLg(mqLg.matches);
+    };
     sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
+    mqXl.addEventListener("change", sync);
+    mqLg.addEventListener("change", sync);
+    return () => {
+      mqXl.removeEventListener("change", sync);
+      mqLg.removeEventListener("change", sync);
+    };
   }, []);
 
   useEffect(() => {
@@ -309,11 +319,14 @@ export default function SuppliersPage() {
   );
 
   useEffect(() => {
-    if (isXl) {
+    if (isLg) {
       setEditDrawerOpen(false);
-      setCatalogDrawerOpen(false);
     }
-  }, [isXl]);
+    if (isXl) {
+      setCatalogDrawerOpen(false);
+      setInvoiceDrawerOpen(false);
+    }
+  }, [isLg, isXl]);
 
   const refreshList = refreshFullDirectory;
 
@@ -741,7 +754,7 @@ export default function SuppliersPage() {
     <div
       className={cn(
         "relative mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-2.5 pb-20",
-        isXl && "h-full min-h-0 max-w-none gap-2 overflow-hidden pb-0",
+        isLg && "h-full min-h-0 max-w-none gap-2 overflow-hidden pb-0",
       )}
     >
       <SupplierPageHeader
@@ -767,27 +780,34 @@ export default function SuppliersPage() {
       <div
         className={cn(
           supWorkspaceShell,
-          isXl ? "min-h-0 flex-1" : undefined,
+          isLg ? "min-h-0 flex-1" : undefined,
         )}
       >
         <div
           className={cn(
             "grid min-h-0",
-            isXl
-              ? "min-h-0 flex-1 grid-cols-[minmax(15rem,18rem)_minmax(17rem,20rem)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden divide-x divide-border/50"
-              : "gap-0",
+            isXl && detail
+              ? "min-h-0 flex-1 grid-cols-[minmax(15rem,18rem)_minmax(17rem,20rem)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
+              : isLg
+                ? "min-h-0 flex-1 grid-cols-[minmax(16rem,min(24rem,38%))_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
+                : "gap-0",
           )}
         >
           <div
             className={cn(
               "flex min-h-0 min-w-0 flex-col",
-              isXl ? "overflow-hidden" : "max-h-[calc(100dvh-11rem)]",
+              isLg
+                ? cn(
+                    "overflow-hidden border-r-2 border-[color-mix(in_srgb,var(--border)_80%,#94a3b8)]",
+                    "bg-[color-mix(in_srgb,#eef2f7_55%,var(--card))] dark:border-border dark:bg-muted/20",
+                  )
+                : "max-h-[min(70dvh,32rem)] sm:max-h-[calc(100dvh-12rem)]",
             )}
           >
-            <div
+              <div
               className={cn(
-                "flex shrink-0 flex-col gap-1.5 border-b border-border bg-[#eef2f7] px-2 py-1.5 dark:bg-muted/25",
-                isXl && "gap-1 px-2 py-1.5",
+                "flex shrink-0 flex-col gap-1.5 border-b border-border bg-[#eef2f7]/80] px-2 py-1.5 dark:bg-muted/25",
+                isLg && "gap-1 px-2 py-1.5",
               )}
             >
               <div className="relative">
@@ -840,7 +860,7 @@ export default function SuppliersPage() {
                   size="sm"
                   className={cn(
                     "shrink-0 rounded-none border border-border bg-background px-1.5 text-muted-foreground hover:text-foreground",
-                    isXl ? "size-7" : "h-7 gap-1 px-2 text-xs",
+                    isLg ? "size-7" : "h-7 gap-1 px-2 text-xs",
                   )}
                   disabled={listLoadingInitial}
                   onClick={() => void refreshFullDirectory()}
@@ -857,7 +877,7 @@ export default function SuppliersPage() {
                     )}
                     aria-hidden
                   />
-                  {!isXl ? (
+                  {!isLg ? (
                     <span>{listLoadingInitial ? "…" : "Refresh"}</span>
                   ) : null}
                 </Button>
@@ -865,7 +885,7 @@ export default function SuppliersPage() {
             </div>
 
             <VirtualizedSupplierList
-              compact={isXl}
+              compact={isLg}
               rows={rows}
               selectedId={selectedId}
               totalLoaded={rows.length}
@@ -881,7 +901,7 @@ export default function SuppliersPage() {
               onLoadMore={loadMoreDirectory}
             />
 
-            {!isXl && detail ? (
+            {!isLg && detail ? (
               <div className="border-t border-border/50 p-3">
                 <SupMobileSelectionBar name={detail.name}>
                   <Button
@@ -934,129 +954,179 @@ export default function SuppliersPage() {
             ) : null}
           </div>
 
-          {isXl ? (
-            <>
-              <aside
-                className={cn(
-                  "flex min-h-0 flex-col overflow-hidden bg-card",
-                )}
-              >
-                <div className={cn(supPanelHeader)}>
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className={supPanelHeaderIcon()}>
-                      <Building2 className="size-3" aria-hidden />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                        Profile
-                      </p>
-                      <p className="truncate text-xs font-semibold leading-tight text-foreground">
-                        {detail?.name ?? "Select a supplier"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
-                  <SupplierEditColumn
-                    variant="sidebar"
-                    detail={detail}
-                    contacts={contacts}
-                    canWrite={canWrite}
-                    selectedInvoiceId={
-                      selectedInvoice?.supplierInvoiceId ?? null
-                    }
-                    onSelectInvoice={handleSelectInvoice}
-                    purchaseHistoryRefreshKey={purchaseHistoryKey}
-                    onEditProfile={
-                      canWrite
-                        ? () => {
-                            setProfileEditDrawerOpen(true);
-                          }
-                        : undefined
-                    }
-                    onAddContact={
-                      canWrite
-                        ? () => {
-                            setAddContactDrawerOpen(true);
-                          }
-                        : undefined
-                    }
-                  />
-                </div>
+          {isLg ? (
+            !detail ? (
+              <aside className="flex min-h-0 flex-col overflow-hidden border-l border-border/60 bg-card">
+                <SupplierWorkspaceEmpty
+                  canWrite={canWrite}
+                  canOpenNewSupply={canOpenNewSupply}
+                  canReadCatalog={canReadCatalog}
+                  totalCount={listTotalElements}
+                  suggestions={rows}
+                  onSelectSupplier={(id) => void onSelectSupplier(id)}
+                  onNewSupplier={() => {
+                    skipCreateDrawerResetAfterCreate.current = false;
+                    setCreateDrawerOpen(true);
+                  }}
+                  onNewSupply={() => setNewSupplyOpen(true)}
+                />
               </aside>
-              <aside className="flex min-h-0 flex-col overflow-hidden bg-card">
-                <div className={cn(supPanelHeader)}>
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    {selectedInvoice ? (
-                      <>
+            ) : (
+              <>
+                <aside
+                  className={cn(
+                    "flex min-h-0 flex-col overflow-hidden bg-card",
+                    !isXl && "border-l border-border/60",
+                  )}
+                >
+                  <div className={cn(supPanelHeader)}>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className={supPanelHeaderIcon()}>
+                        <Building2 className="size-3" aria-hidden />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                          Profile
+                        </p>
+                        <p className="truncate text-xs font-semibold leading-tight text-foreground">
+                          {detail.name}
+                        </p>
+                      </div>
+                      {!isXl && canReadCatalog ? (
                         <Button
                           type="button"
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-7 shrink-0 gap-1 rounded-md px-2 text-xs"
-                          onClick={() => setSelectedInvoice(null)}
+                          className="h-7 shrink-0 gap-1 rounded-none px-2 text-[11px]"
+                          onClick={() => setCatalogDrawerOpen(true)}
                         >
-                          <ChevronLeft className="size-3.5" aria-hidden />
-                          Back
+                          <Link2 className="size-3" aria-hidden />
+                          Catalog
                         </Button>
-                        <span className={supPanelHeaderIcon()}>
-                          <Receipt className="size-3.5" aria-hidden />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                            Invoice
-                          </p>
-                          <p className="truncate text-sm font-semibold leading-tight text-foreground">
-                            {selectedInvoice.invoiceNumber}
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <span className={supPanelHeaderIcon()}>
-                          <Link2 className="size-3.5" aria-hidden />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                            Catalog
-                          </p>
-                          <p className="truncate text-sm font-semibold leading-tight text-foreground">
-                            {detail?.name
-                              ? `Linked products`
-                              : "Select a supplier"}
-                          </p>
-                        </div>
-                      </>
-                    )}
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-                <div className={cn(supPanelBodyFill, "p-0")}>
-                  {selectedInvoice ? (
-                    <SupplierSupplyInvoicePanel
-                      invoiceId={selectedInvoice.supplierInvoiceId}
-                      onUpdated={() =>
-                        setPurchaseHistoryKey((k) => k + 1)
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+                    <SupplierEditColumn
+                      variant="sidebar"
+                      detail={detail}
+                      contacts={contacts}
+                      canWrite={canWrite}
+                      selectedInvoiceId={
+                        selectedInvoice?.supplierInvoiceId ?? null
+                      }
+                      onSelectInvoice={handleSelectInvoice}
+                      purchaseHistoryRefreshKey={purchaseHistoryKey}
+                      onEditProfile={
+                        canWrite
+                          ? () => {
+                              setProfileEditDrawerOpen(true);
+                            }
+                          : undefined
+                      }
+                      onAddContact={
+                        canWrite
+                          ? () => {
+                              setAddContactDrawerOpen(true);
+                            }
+                          : undefined
                       }
                     />
-                  ) : (
-                    <SupplierCatalogColumn
-                      detail={detail}
-                      canReadCatalog={canReadCatalog}
-                      canLinkProducts={canLinkProducts}
-                      itemLinks={itemLinks}
-                      linksBusy={linksBusy}
-                      onRemoveLink={onRemoveLink}
-                      onSetPrimaryLink={onSetPrimaryLink}
-                      onLinkCatalogItems={onLinkCatalogItems}
-                      onRefreshLinks={refreshItemLinks}
-                    />
-                  )}
-                </div>
-              </aside>
-            </>
+                  </div>
+                </aside>
+                {isXl ? (
+                  <aside className="flex min-h-0 flex-col overflow-hidden border-l border-border/60 bg-card">
+                    <div className={cn(supPanelHeader)}>
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                        {selectedInvoice ? (
+                          <>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 shrink-0 gap-1 rounded-md px-2 text-xs"
+                              onClick={() => setSelectedInvoice(null)}
+                            >
+                              <ChevronLeft className="size-3.5" aria-hidden />
+                              Back
+                            </Button>
+                            <span className={supPanelHeaderIcon()}>
+                              <Receipt className="size-3.5" aria-hidden />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                Invoice
+                              </p>
+                              <p className="truncate text-sm font-semibold leading-tight text-foreground">
+                                {selectedInvoice.invoiceNumber}
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className={supPanelHeaderIcon()}>
+                              <Link2 className="size-3.5" aria-hidden />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                Catalog
+                              </p>
+                              <p className="truncate text-sm font-semibold leading-tight text-foreground">
+                                Linked products
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className={cn(supPanelBodyFill, "p-0")}>
+                      {selectedInvoice ? (
+                        <SupplierSupplyInvoicePanel
+                          invoiceId={selectedInvoice.supplierInvoiceId}
+                          onUpdated={() =>
+                            setPurchaseHistoryKey((k) => k + 1)
+                          }
+                        />
+                      ) : (
+                        <SupplierCatalogColumn
+                          detail={detail}
+                          canReadCatalog={canReadCatalog}
+                          canLinkProducts={canLinkProducts}
+                          itemLinks={itemLinks}
+                          linksBusy={linksBusy}
+                          onRemoveLink={onRemoveLink}
+                          onSetPrimaryLink={onSetPrimaryLink}
+                          onLinkCatalogItems={onLinkCatalogItems}
+                          onRefreshLinks={refreshItemLinks}
+                        />
+                      )}
+                    </div>
+                  </aside>
+                ) : null}
+              </>
+            )
           ) : null}
         </div>
       </div>
+
+      {!isLg && !detail ? (
+        <div className="overflow-hidden border border-border bg-card">
+          <SupplierWorkspaceEmpty
+            compact
+            canWrite={canWrite}
+            canOpenNewSupply={canOpenNewSupply}
+            canReadCatalog={canReadCatalog}
+            totalCount={listTotalElements}
+            suggestions={rows}
+            onSelectSupplier={(id) => void onSelectSupplier(id)}
+            onNewSupplier={() => {
+              skipCreateDrawerResetAfterCreate.current = false;
+              setCreateDrawerOpen(true);
+            }}
+            onNewSupply={() => setNewSupplyOpen(true)}
+          />
+        </div>
+      ) : null}
 
       {!isXl ? (
         <>
