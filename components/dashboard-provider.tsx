@@ -124,6 +124,11 @@ type DashboardContextValue = {
   canViewCustomers: boolean;
   canViewMessages: boolean;
   canReplyMessages: boolean;
+  canViewPayroll: boolean;
+  canManagePayroll: boolean;
+  canRunPayroll: boolean;
+  canReadStaffProfile: boolean;
+  canUpdateStaffHr: boolean;
   canManageCustomers: boolean;
   canManageCreditSettings: boolean;
   canReviewPaymentClaims: boolean;
@@ -552,6 +557,26 @@ export function DashboardProvider({
       canReplyMessages: hasPermission(
         effectiveMe?.permissions,
         Permission.MessagesReply,
+      ),
+      canViewPayroll: hasPermission(
+        effectiveMe?.permissions,
+        Permission.PayrollView,
+      ),
+      canManagePayroll: hasPermission(
+        effectiveMe?.permissions,
+        Permission.PayrollManage,
+      ),
+      canRunPayroll: hasPermission(
+        effectiveMe?.permissions,
+        Permission.PayrollRun,
+      ),
+      canReadStaffProfile: hasPermission(
+        effectiveMe?.permissions,
+        Permission.StaffProfileRead,
+      ),
+      canUpdateStaffHr: hasPermission(
+        effectiveMe?.permissions,
+        Permission.StaffHrUpdate,
       ),
       canManageCustomers: hasPermission(
         effectiveMe?.permissions,

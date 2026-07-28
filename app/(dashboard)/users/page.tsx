@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   Hash,
+  IdCard,
   KeyRound,
   Loader2,
   MapPin,
@@ -31,6 +32,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
+import { StaffProfileDrawer } from "@/components/staff/staff-profile-drawer";
 import { Button } from "@/components/ui/button";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { APP_ROUTES } from "@/lib/config";
@@ -460,10 +462,16 @@ export default function UsersPage() {
     >
   >({});
   const [pinRevealed, setPinRevealed] = useState<Record<string, boolean>>({});
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [profileUserLabel, setProfileUserLabel] = useState("");
 
   const isOwner = me?.role?.key === "owner";
   const canCreate = hasPermission(me?.permissions, Permission.UsersCreate);
   const canUpdate = hasPermission(me?.permissions, Permission.UsersUpdate);
+  const canReadStaffProfile = hasPermission(
+    me?.permissions,
+    Permission.StaffProfileRead,
+  );
   const canAssign = hasPermission(me?.permissions, Permission.UsersAssignRole);
   const canDeactivate = hasPermission(
     me?.permissions,
@@ -1736,8 +1744,20 @@ export default function UsersPage() {
                                 </Button>
                               </div>
                             </div>
-                          ) : canUpdate || canDeactivate ? (
+                          ) : canUpdate || canDeactivate || canReadStaffProfile ? (
                             <div className="inline-flex items-center justify-end gap-0.5 rounded-lg border border-border/55 bg-muted/25 p-0.5">
+                              {canReadStaffProfile ? (
+                                <ActionIconButton
+                                  icon={IdCard}
+                                  label={`Staff profile for ${user.email}`}
+                                  onClick={() => {
+                                    setProfileUserId(user.id);
+                                    setProfileUserLabel(
+                                      `${user.name} · ${user.email}`,
+                                    );
+                                  }}
+                                />
+                              ) : null}
                               {canUpdate ? (
                                 <>
                                   <ActionIconButton
@@ -1973,6 +1993,19 @@ export default function UsersPage() {
           </form>
         </FormDrawer>
       ) : null}
+
+      <StaffProfileDrawer
+        open={profileUserId != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setProfileUserId(null);
+            setProfileUserLabel("");
+          }
+        }}
+        userId={profileUserId}
+        userLabel={profileUserLabel}
+        permissions={me?.permissions}
+      />
     </>
   );
 }

@@ -64,6 +64,13 @@ export const Permission = {
   /** Talk to Us inbox */
   MessagesRead: "messages.read",
   MessagesReply: "messages.reply",
+  /** Staff profiles + monthly payroll */
+  StaffProfileRead: "staff.profile.read",
+  StaffHrRead: "staff.hr.read",
+  StaffHrUpdate: "staff.hr.update",
+  PayrollView: "payroll.view",
+  PayrollManage: "payroll.manage",
+  PayrollRun: "payroll.run",
   /** Grocery Checkout */
   GroceryInvoicesCreate: "grocery.invoices.create",
   GroceryInvoicesRead: "grocery.invoices.read",

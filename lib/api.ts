@@ -8963,3 +8963,198 @@ export async function replyToContactMessage(
     body,
   });
 }
+
+// ─── Staff profiles + monthly payroll ───────────────────────────────────────
+
+export type StaffProfilePublicFields = {
+  displayName: string | null;
+  title: string | null;
+  photoUrl: string | null;
+  startDate: string | null;
+  employmentStatus: string;
+};
+
+export type StaffProfilePrivateFields = {
+  phone: string | null;
+  address: string | null;
+  nationalId: string | null;
+  employeeCode: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+  bankDetails: Record<string, unknown> | null;
+  notes: string | null;
+};
+
+export type StaffProfileRecord = {
+  id: string | null;
+  userId: string;
+  branchId: string | null;
+  branchName: string | null;
+  loginName: string | null;
+  roleName: string | null;
+  publicFields: StaffProfilePublicFields;
+  privateFields: StaffProfilePrivateFields | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type SalaryRecord = {
+  id: string;
+  staffProfileId: string;
+  userId: string;
+  amount: number;
+  effectiveFrom: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+export type SalaryAdvanceRecord = {
+  id: string;
+  staffProfileId: string;
+  userId: string;
+  amount: number;
+  advancedOn: string;
+  note: string | null;
+  status: string;
+  repaidInPayslipId: string | null;
+  createdAt: string;
+};
+
+export type PayslipRecord = {
+  id: string;
+  staffProfileId: string;
+  userId: string;
+  displayName: string;
+  periodYear: number;
+  periodMonth: number;
+  baseSalary: number;
+  advancesDeducted: number;
+  otherDeductions: number;
+  netPaid: number;
+  paidAt: string;
+  note: string | null;
+  expenseId: string | null;
+};
+
+export type PayrollRunRow = {
+  userId: string;
+  staffProfileId: string;
+  displayName: string;
+  title: string | null;
+  employmentStatus: string;
+  branchName: string | null;
+  baseSalary: number;
+  advancesOutstanding: number;
+  suggestedNet: number;
+  alreadyPaid: boolean;
+  payslipId: string | null;
+  paidAt: string | null;
+};
+
+export type UpdateStaffProfilePayload = {
+  displayName?: string | null;
+  title?: string | null;
+  photoUrl?: string | null;
+  startDate?: string | null;
+  employmentStatus?: string;
+  phone?: string | null;
+  address?: string | null;
+  nationalId?: string | null;
+  employeeCode?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  bankDetails?: Record<string, unknown> | null;
+  notes?: string | null;
+};
+
+export async function fetchStaffProfiles(): Promise<StaffProfileRecord[]> {
+  return request<StaffProfileRecord[]>(`${API_ROUTES.staff}/profiles`);
+}
+
+export async function fetchStaffProfile(
+  userId: string,
+): Promise<StaffProfileRecord> {
+  return request<StaffProfileRecord>(
+    `${API_ROUTES.staff}/${encodeURIComponent(userId)}/profile`,
+  );
+}
+
+export async function updateStaffProfile(
+  userId: string,
+  body: UpdateStaffProfilePayload,
+): Promise<StaffProfileRecord> {
+  return request<StaffProfileRecord>(
+    `${API_ROUTES.staff}/${encodeURIComponent(userId)}/profile`,
+    { method: "PATCH", body },
+  );
+}
+
+export async function fetchStaffSalaries(
+  userId: string,
+): Promise<SalaryRecord[]> {
+  return request<SalaryRecord[]>(
+    `${API_ROUTES.staff}/${encodeURIComponent(userId)}/salaries`,
+  );
+}
+
+export async function createStaffSalary(
+  userId: string,
+  body: { amount: number; effectiveFrom: string },
+): Promise<SalaryRecord> {
+  return request<SalaryRecord>(
+    `${API_ROUTES.staff}/${encodeURIComponent(userId)}/salaries`,
+    { method: "POST", body },
+  );
+}
+
+export async function fetchStaffAdvances(
+  userId: string,
+): Promise<SalaryAdvanceRecord[]> {
+  return request<SalaryAdvanceRecord[]>(
+    `${API_ROUTES.staff}/${encodeURIComponent(userId)}/advances`,
+  );
+}
+
+export async function createStaffAdvance(
+  userId: string,
+  body: { amount: number; advancedOn: string; note?: string },
+): Promise<SalaryAdvanceRecord> {
+  return request<SalaryAdvanceRecord>(
+    `${API_ROUTES.staff}/${encodeURIComponent(userId)}/advances`,
+    { method: "POST", body },
+  );
+}
+
+export async function fetchStaffPayslips(
+  userId: string,
+): Promise<PayslipRecord[]> {
+  return request<PayslipRecord[]>(
+    `${API_ROUTES.staff}/${encodeURIComponent(userId)}/payslips`,
+  );
+}
+
+export async function fetchPayrollRun(
+  year: number,
+  month: number,
+): Promise<PayrollRunRow[]> {
+  const params = new URLSearchParams({
+    year: String(year),
+    month: String(month),
+  });
+  return request<PayrollRunRow[]>(`${API_ROUTES.payroll}/runs?${params}`);
+}
+
+export async function payStaffPayroll(
+  userId: string,
+  body: {
+    year: number;
+    month: number;
+    otherDeductions?: number;
+    note?: string;
+  },
+): Promise<PayslipRecord> {
+  return request<PayslipRecord>(
+    `${API_ROUTES.payroll}/runs/${encodeURIComponent(userId)}/pay`,
+    { method: "POST", body },
+  );
+}
