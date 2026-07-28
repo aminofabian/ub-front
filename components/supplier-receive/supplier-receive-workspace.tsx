@@ -271,7 +271,7 @@ function ManifestLineTotalInput({
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         }}
         aria-label="Line total"
-        title="Line total — unit cost is calculated from total ÷ qty"
+        title="Line total — updates unit cost as total ÷ qty"
       />
     </label>
   );
@@ -1241,7 +1241,7 @@ function SupplyCartPanel({
                   <div
                     className={cn(
                       "grid gap-1",
-                      canSetSellPrice ? "grid-cols-3" : "grid-cols-2",
+                      canSetSellPrice ? "grid-cols-4" : "grid-cols-3",
                     )}
                   >
                     <label className="space-y-0.5">
@@ -1256,6 +1256,21 @@ function SupplyCartPanel({
                         onChange={(e) =>
                           onPatch(line.itemId, { qtyStr: e.target.value })
                         }
+                      />
+                    </label>
+                    <label className="space-y-0.5">
+                      <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                        Unit
+                      </span>
+                      <input
+                        className={fieldCompact}
+                        inputMode="decimal"
+                        value={line.costStr}
+                        disabled={saving}
+                        onChange={(e) =>
+                          onPatch(line.itemId, { costStr: e.target.value })
+                        }
+                        title="Unit cost — editing this updates total"
                       />
                     </label>
                     <ManifestLineTotalInput
@@ -1289,19 +1304,6 @@ function SupplyCartPanel({
                       </label>
                     ) : null}
                   </div>
-                  <p className="text-right font-mono text-[10px] tabular-nums text-muted-foreground">
-                    Unit{" "}
-                    <span className="font-semibold text-foreground">
-                      {(Number.isFinite(cost) ? cost : 0).toLocaleString(
-                        "en-KE",
-                        {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 4,
-                        },
-                      )}
-                    </span>{" "}
-                    {currency}
-                  </p>
                 </div>
               );
             })
