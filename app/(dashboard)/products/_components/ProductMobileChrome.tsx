@@ -13,9 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
-import {
-  catalogFilterSelectClass,
-} from "./catalog-list-styles";
+import { catalogFilterSelectClass } from "./catalog-list-styles";
 
 type Props = {
   catalog: Pick<
@@ -51,8 +49,8 @@ type Props = {
 };
 
 const CHIP = cn(
-  "inline-flex h-8 shrink-0 items-center gap-1.5 border px-2.5 text-[11px] font-medium transition-colors",
-  "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+  "inline-flex h-7 shrink-0 items-center gap-1 border px-2 text-[10px] font-medium transition-colors",
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 );
 
 function countExtraFilters(catalog: Props["catalog"]): number {
@@ -99,83 +97,72 @@ export function ProductMobileChrome({
   ).filter(([, , , count]) => count > 0);
 
   return (
-    <div className="sticky top-0 z-20 flex shrink-0 flex-col gap-2 border-b border-border bg-background/95 px-3 pb-2.5 pt-2 backdrop-blur-md lg:hidden supports-[backdrop-filter]:bg-background/85">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Catalog
-          </p>
-          <h1 className="truncate font-heading text-lg font-semibold tracking-tight text-foreground">
-            <span className="tabular-nums">
-              {catalog.listTotalElements.toLocaleString()}
-            </span>{" "}
-            products
-          </h1>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          {onAddFromCatalog && canAddFromCatalog ? (
-            <Button
+    <div className="sticky top-0 z-20 flex shrink-0 flex-col gap-1.5 border-b border-border bg-background px-2 py-1.5 lg:hidden">
+      <div className="flex items-center gap-1.5">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <input
+            id="catalog-omni"
+            className={cn(
+              "h-9 w-full border border-border bg-background pl-8 pr-8 text-[13px] shadow-none",
+              "placeholder:text-muted-foreground/50",
+              "focus-visible:border-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/30",
+            )}
+            value={catalog.search}
+            onChange={(e) => catalog.setSearch(e.target.value)}
+            placeholder="Search…"
+            aria-label="Search catalog"
+            enterKeyHint="search"
+            autoCapitalize="off"
+            autoCorrect="off"
+          />
+          {catalog.search ? (
+            <button
               type="button"
-              variant="ghost"
-              size="icon"
-              disabled={!canCreate}
-              onClick={onAddFromCatalog}
-              className="size-9 border border-border bg-card shadow-none"
-              aria-label="Add from library"
+              onClick={() => catalog.setSearch("")}
+              className="absolute right-1.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center text-muted-foreground"
+              aria-label="Clear search"
             >
-              <Library className="size-4" aria-hidden />
-            </Button>
+              <X className="size-3.5" />
+            </button>
           ) : null}
+        </div>
+        <span className="shrink-0 tabular-nums text-[11px] text-muted-foreground">
+          {catalog.listTotalElements.toLocaleString()}
+        </span>
+        {onAddFromCatalog && canAddFromCatalog ? (
           <Button
             type="button"
-            size="sm"
+            variant="ghost"
+            size="icon"
             disabled={!canCreate}
-            onClick={onCreateNew}
-            className="h-9 gap-1.5 rounded-none px-3 text-xs font-semibold shadow-none"
+            onClick={onAddFromCatalog}
+            className="size-9 shrink-0 border border-border shadow-none"
+            aria-label="Add from library"
           >
-            <PackagePlus className="size-3.5" aria-hidden />
-            New
+            <Library className="size-3.5" aria-hidden />
           </Button>
-        </div>
-      </div>
-
-      <div className="relative">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-          aria-hidden
-        />
-        <input
-          id="catalog-omni"
-          className={cn(
-            "h-11 w-full border border-border bg-card pl-9 pr-9 text-sm shadow-none",
-            "placeholder:text-muted-foreground/55",
-            "focus-visible:border-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25",
-          )}
-          value={catalog.search}
-          onChange={(e) => catalog.setSearch(e.target.value)}
-          placeholder="Search name, SKU, or barcode"
-          aria-label="Search catalog"
-          enterKeyHint="search"
-          autoCapitalize="off"
-          autoCorrect="off"
-        />
-        {catalog.search ? (
-          <button
-            type="button"
-            onClick={() => catalog.setSearch("")}
-            className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
-            aria-label="Clear search"
-          >
-            <X className="size-3.5" />
-          </button>
         ) : null}
+        <Button
+          type="button"
+          size="sm"
+          disabled={!canCreate}
+          onClick={onCreateNew}
+          className="h-9 shrink-0 gap-1 rounded-none px-2.5 text-[11px] font-semibold shadow-none"
+        >
+          <PackagePlus className="size-3.5" aria-hidden />
+          New
+        </Button>
       </div>
 
       {searchPending ? (
         <p className="text-[10px] text-muted-foreground">Updating…</p>
       ) : null}
 
-      <div className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-2 flex gap-1 overflow-x-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           type="button"
           onClick={() => setMoreOpen((v) => !v)}
@@ -184,11 +171,11 @@ export function ProductMobileChrome({
             CHIP,
             moreOpen || extraCount > 0
               ? "border-foreground bg-foreground text-background"
-              : "border-border bg-card text-foreground",
+              : "border-border bg-background text-muted-foreground",
           )}
         >
           <SlidersHorizontal className="size-3" aria-hidden />
-          Filters
+          Filter
           {extraCount > 0 ? (
             <span className="tabular-nums opacity-80">{extraCount}</span>
           ) : null}
@@ -213,7 +200,7 @@ export function ProductMobileChrome({
                 CHIP,
                 active
                   ? "border-foreground bg-foreground text-background"
-                  : "border-border/80 bg-card text-muted-foreground",
+                  : "border-border bg-background text-muted-foreground",
               )}
             >
               {label}
@@ -231,11 +218,11 @@ export function ProductMobileChrome({
               CHIP,
               active
                 ? "border-foreground bg-foreground text-background"
-                : "border-border/80 bg-card text-muted-foreground",
+                : "border-border bg-background text-muted-foreground",
             )}
           >
             {label}
-            <span className="tabular-nums opacity-75">
+            <span className="tabular-nums opacity-70">
               {count.toLocaleString()}
             </span>
           </button>
@@ -245,7 +232,10 @@ export function ProductMobileChrome({
           <button
             type="button"
             onClick={catalog.resetFilters}
-            className={cn(CHIP, "border-dashed border-border bg-transparent text-muted-foreground")}
+            className={cn(
+              CHIP,
+              "border-dashed border-border text-muted-foreground",
+            )}
           >
             Clear
           </button>
@@ -253,26 +243,21 @@ export function ProductMobileChrome({
       </div>
 
       {moreOpen ? (
-        <div className="grid grid-cols-1 gap-2 border border-border bg-card p-2">
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Category
-            </span>
-            <select
-              className={cn(catalogFilterSelectClass, "h-10 w-full text-sm")}
-              value={catalog.filterCategoryId}
-              onChange={(e) => catalog.setFilterCategoryId(e.target.value)}
-              aria-label="Filter by category"
-            >
-              <option value="">All categories</option>
-              {catalog.sortedCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                  {!c.active ? " (inactive)" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="grid grid-cols-1 gap-1.5 border border-border bg-background p-1.5">
+          <select
+            className={cn(catalogFilterSelectClass, "h-9 w-full text-[13px]")}
+            value={catalog.filterCategoryId}
+            onChange={(e) => catalog.setFilterCategoryId(e.target.value)}
+            aria-label="Filter by category"
+          >
+            <option value="">All categories</option>
+            {catalog.sortedCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+                {!c.active ? " (inactive)" : ""}
+              </option>
+            ))}
+          </select>
           {catalog.filterCategoryId ? (
             <button
               type="button"
@@ -285,7 +270,7 @@ export function ProductMobileChrome({
                 "w-full justify-center",
                 catalog.includeCategoryDescendants
                   ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-background text-muted-foreground",
+                  : "border-border text-muted-foreground",
               )}
             >
               <ListFilter className="size-3" aria-hidden />

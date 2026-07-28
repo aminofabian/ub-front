@@ -221,11 +221,7 @@ export const VirtualizedCatalogBody = forwardRef<
   return (
     <div className={catalogListShellClass}>
       <div
-        className={cn(
-          catalogListGridClass,
-          catalogListHeaderRowClass,
-          "hidden sm:grid",
-        )}
+        className={cn(catalogListGridClass, catalogListHeaderRowClass)}
         role="row"
         aria-label="Catalog columns"
       >
@@ -252,11 +248,12 @@ export const VirtualizedCatalogBody = forwardRef<
             />
           ) : null}
         </span>
-        <span className={cn(catalogGridCol.product, "border-b-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground")}>
+        <span className={cn(catalogGridCol.product, "border-b text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:border-b-2")}>
           Product
         </span>
-        <span className={cn(catalogListMetricHeaderClass, catalogGridCol.stock, "border-b-2")}>
-          In store
+        <span className={cn(catalogListMetricHeaderClass, catalogGridCol.stock, "border-b sm:border-b-2")}>
+          <span className="sm:hidden">Qty</span>
+          <span className="hidden sm:inline">In store</span>
         </span>
         <span className={cn(catalogListMetricHeaderClass, catalogGridCol.sell, "border-b-2")}>
           Sell
@@ -427,8 +424,8 @@ export const VirtualizedCatalogBody = forwardRef<
                       catalogListGridClass,
                       "group relative min-w-0 max-w-full text-left",
                       density === "dense"
-                        ? "min-h-11 sm:min-h-[2rem]"
-                        : "min-h-12 sm:min-h-[2.25rem]",
+                        ? "min-h-8 sm:min-h-[2rem]"
+                        : "min-h-9 sm:min-h-[2.25rem]",
                       catalogRowHierarchyClass(meta, tone),
                       catalogRowAccentClass(tone, active),
                       catalogRowInteractionClasses(tone, rowInteraction),
@@ -476,17 +473,20 @@ export const VirtualizedCatalogBody = forwardRef<
                       className={cn(
                         catalogListProductCellClass,
                         catalogGridCol.product,
+                        "gap-1.5 sm:gap-2",
                       )}
                     >
                       {!isVariant ? (
-                        <CatalogListThumb
-                          src={listThumb}
-                          titleInitial={titleInitial}
-                          kind={meta.kind}
-                          tone={tone}
-                          isActive={active}
-                          isInactive={row.active === false}
-                        />
+                        <span className="hidden sm:inline-flex">
+                          <CatalogListThumb
+                            src={listThumb}
+                            titleInitial={titleInitial}
+                            kind={meta.kind}
+                            tone={tone}
+                            isActive={active}
+                            isInactive={row.active === false}
+                          />
+                        </span>
                       ) : null}
 
                       <div className="min-w-0 flex-1">
@@ -494,7 +494,7 @@ export const VirtualizedCatalogBody = forwardRef<
                           {nameResolution.needsNameFix ? (
                             <>
                               {nameResolution.label !== CATALOG_FIX_NAME_LABEL ? (
-                                <span className="min-w-0 truncate text-sm font-semibold leading-tight tracking-tight">
+                                <span className="min-w-0 truncate text-[13px] font-medium leading-none tracking-tight sm:text-sm sm:font-semibold sm:leading-tight">
                                   {nameResolution.label}
                                 </span>
                               ) : null}
@@ -502,10 +502,10 @@ export const VirtualizedCatalogBody = forwardRef<
                             </>
                           ) : isVariant && variantTitle?.family ? (
                             <span
-                              className="min-w-0 truncate text-[13px] leading-tight tracking-tight"
+                              className="min-w-0 truncate text-[13px] leading-none tracking-tight sm:leading-tight"
                               title={variantTitle.combined}
                             >
-                              <span className="font-semibold text-foreground">
+                              <span className="font-medium text-foreground sm:font-semibold">
                                 {variantTitle.family}
                               </span>
                               <span
@@ -514,44 +514,44 @@ export const VirtualizedCatalogBody = forwardRef<
                               >
                                 ·
                               </span>
-                              <span className="font-medium text-foreground/90">
+                              <span className="font-normal text-foreground/90 sm:font-medium">
                                 {variantTitle.option}
                               </span>
                             </span>
                           ) : (
                             <span
                               className={cn(
-                                "min-w-0 truncate leading-tight tracking-tight",
+                                "min-w-0 truncate leading-none tracking-tight sm:leading-tight",
                                 isParentSelector
-                                  ? "text-[12px] font-semibold uppercase tracking-wide text-muted-foreground"
+                                  ? "text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-[12px]"
                                   : isVariant
-                                    ? "text-[13px] font-medium text-foreground"
-                                    : "text-sm font-semibold text-foreground",
+                                    ? "text-[13px] font-normal text-foreground sm:font-medium"
+                                    : "text-[13px] font-medium text-foreground sm:text-sm sm:font-semibold",
                               )}
                             >
                               {isVariant ? (variantTitle?.option ?? primaryName) : primaryName}
                             </span>
                           )}
                           {row.packageVariant ? (
-                            <span className="inline-flex shrink-0 items-center gap-0.5 border border-primary/25 bg-primary/8 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-primary">
+                            <span className="hidden shrink-0 items-center gap-0.5 border border-primary/25 bg-primary/8 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">
                               <Boxes className="size-2.5" aria-hidden />
                               Pack
                             </span>
                           ) : null}
                           {isDuplicateName ? (
-                            <span className="inline-flex shrink-0 border border-red-500/30 bg-red-500/10 px-1 py-px text-[9px] font-semibold text-red-800 dark:text-red-300">
+                            <span className="hidden shrink-0 border border-red-500/30 bg-red-500/10 px-1 py-px text-[9px] font-semibold text-red-800 dark:text-red-300 sm:inline-flex">
                               Duplicate
                             </span>
                           ) : null}
                           {row.active === false ? (
-                            <span className="shrink-0 border border-border bg-muted px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground sm:border sm:border-border sm:bg-muted sm:px-1 sm:py-px">
                               Off
                             </span>
                           ) : null}
                         </div>
 
                         {!isParentSelector && (secondaryLine || categoryLabel) ? (
-                          <div className="mt-px flex min-w-0 items-center gap-1.5 truncate text-[10px] text-muted-foreground">
+                          <div className="mt-px hidden min-w-0 items-center gap-1.5 truncate text-[10px] text-muted-foreground sm:flex">
                             {secondaryLine ? (
                               <span
                                 className={cn(
@@ -584,7 +584,7 @@ export const VirtualizedCatalogBody = forwardRef<
                             ) : null}
                           </div>
                         ) : isParentSelector && effectiveVariantCount > 0 ? (
-                          <div className="mt-px truncate text-[10px] text-muted-foreground">
+                          <div className="mt-px hidden truncate text-[10px] text-muted-foreground sm:block">
                             {effectiveVariantCount.toLocaleString()}{" "}
                             {effectiveVariantCount === 1 ? "variant" : "variants"}
                           </div>
@@ -595,7 +595,7 @@ export const VirtualizedCatalogBody = forwardRef<
                     <span className={cn(catalogListMetricCellClass, catalogGridCol.stock)}>
                       {isParentSelector ? (
                         <span
-                          className="whitespace-nowrap text-[10px] tabular-nums text-muted-foreground/50"
+                          className="whitespace-nowrap text-[11px] tabular-nums text-muted-foreground/40"
                           title="In-store stock on variants"
                         >
                           —
@@ -603,15 +603,18 @@ export const VirtualizedCatalogBody = forwardRef<
                       ) : stock.label !== "—" ? (
                         <span
                           className={cn(
-                            "whitespace-nowrap border px-1 py-px text-[10px] font-bold tabular-nums",
+                            "whitespace-nowrap tabular-nums",
+                            "text-[12px] font-semibold",
+                            "sm:border sm:px-1 sm:py-px sm:text-[10px] sm:font-bold",
                             stock.className,
+                            "max-sm:!border-0 max-sm:!bg-transparent max-sm:px-0 max-sm:py-0",
                           )}
                           title={stock.title}
                         >
                           {stock.label}
                         </span>
                       ) : (
-                        <span className="whitespace-nowrap text-[11px] tabular-nums text-muted-foreground/35">
+                        <span className="whitespace-nowrap text-[12px] tabular-nums text-muted-foreground/35">
                           —
                         </span>
                       )}

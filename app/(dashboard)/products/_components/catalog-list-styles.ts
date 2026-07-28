@@ -99,19 +99,19 @@ export const catalogListHeaderRowClass = cn(
 /** checkbox · product · stock · sell · category */
 export const catalogListGridClass =
   "grid w-full min-w-0 max-w-full items-stretch gap-0 " +
-  "grid-cols-[2.5rem_minmax(0,1fr)_3.5rem_0px_0px] " +
+  "grid-cols-[1.75rem_minmax(0,1fr)_2.75rem_0px_0px] " +
   "sm:grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_4.25rem_0px] " +
   "xl:grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_4.25rem_4.5rem]";
 
-const catalogColRowBorder = "border-b border-border";
-const catalogCellPad = "px-2 py-0.5";
-const catalogMetricPad = "px-1 py-0.5";
+const catalogColRowBorder = "border-b border-border/70";
+const catalogCellPad = "px-1.5 py-0 sm:px-2 sm:py-0.5";
+const catalogMetricPad = "px-1 py-0 sm:py-0.5";
 
 /** Whole-row inset for variant SKUs (checkbox through metrics). */
 export function catalogVariantRowIndentClass(
   density: "comfortable" | "dense" = "dense",
 ): string {
-  return density === "dense" ? "pl-4 sm:pl-8" : "pl-8 sm:pl-14";
+  return density === "dense" ? "pl-3 sm:pl-8" : "pl-5 sm:pl-14";
 }
 
 export const catalogGridCol = {
@@ -145,7 +145,7 @@ export function catalogRowAccentClass(
 ): string {
   const beforeBg = tone.accent.replace(/^bg-/, "before:bg-");
   return cn(
-    "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-0 before:w-0.5 before:opacity-0 before:transition-opacity",
+    "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-0 before:w-0.5 before:opacity-0 before:transition-opacity max-sm:before:hidden",
     beforeBg,
     active && "before:opacity-100",
   );
@@ -266,7 +266,7 @@ export function catalogListToolbarFilterCheckboxClass(
 }
 
 export const catalogListProductCellClass =
-  "relative z-[1] flex min-w-0 flex-1 items-center gap-2";
+  "relative z-[1] flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2";
 
 /** Hide cell contents below a breakpoint without removing the grid track. */
 export function catalogListMetricHiddenClass(breakpoint: "sm" | "xl" | "lg"): string {
@@ -359,6 +359,11 @@ export function catalogRowInteractionClasses(
     showChecked && tone.rowChecked,
     showBulk && tone.rowBulk,
     isDetailActive && tone.rowDetailActive,
+    // Phones: flat table rows (override type-tint fills).
+    "max-sm:!bg-transparent max-sm:hover:!bg-muted/40",
+    showChecked && "max-sm:!bg-muted/35",
+    showBulk && "max-sm:!bg-muted/40",
+    isDetailActive && "max-sm:!bg-muted/50",
   );
 }
 
@@ -615,9 +620,9 @@ export function catalogRowHeightPx(
     ? CATALOG_VARIANT_GROUP_END_GAP_PX[density]
     : 0;
   if (density === "dense") {
-    if (kind === "group") return 40 + gap;
-    if (kind === "variant") return 36 + groupEndGap;
-    return 44 + gap;
+    if (kind === "group") return 30 + gap;
+    if (kind === "variant") return 28 + groupEndGap;
+    return 32 + gap;
   }
   if (kind === "group") return 44 + gap;
   if (kind === "variant") return 36 + groupEndGap;
