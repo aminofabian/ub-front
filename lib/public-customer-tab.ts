@@ -14,6 +14,7 @@ export type PublicTabPurchaseRow = {
   status: string;
   creditAmount: number | string;
   grandTotal: number | string;
+  walletCredited?: number | string | null;
   lines: PublicTabPurchaseLine[];
 };
 

@@ -5,6 +5,7 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
@@ -18,6 +19,7 @@ import {
   Smartphone,
   Store,
   Sun,
+  Wallet,
 } from "lucide-react";
 
 import { looksLikeKenyanMobilePath, toKenyanLocal07 } from "@/lib/kenyan-phone";
@@ -180,7 +182,7 @@ function computeTabStats(purchases: PublicTabPurchaseRow[]): TabStats {
   let lastPurchaseAt: string | null = null;
 
   for (const purchase of purchases) {
-    const amount = toNum(purchase.creditAmount);
+    const amount = toNum(purchase.grandTotal) || toNum(purchase.creditAmount);
     totalCredit += amount;
 
     const soldAt = new Date(purchase.soldAt);
@@ -246,6 +248,9 @@ function PurchaseRow({
       : lines.length === 1
         ? lines[0].itemName?.trim() || "Item"
         : `${lines[0].itemName?.trim() || "Item"} +${lines.length - 1}`;
+  const walletCredited = toNum(row.walletCredited);
+  const tabCharged = toNum(row.creditAmount);
+  const displayAmount = toNum(row.grandTotal) || tabCharged;
 
   return (
     <li className="overflow-hidden rounded-xl bg-[var(--tab-bg)]">
@@ -268,10 +273,19 @@ function PurchaseRow({
           <p className="mt-0.5 text-[12px] text-[var(--tab-muted)]">
             {fmtDate(row.soldAt)}
             {row.receiptNo != null ? <span> · #{row.receiptNo}</span> : null}
+            {walletCredited > 0 ? (
+              <span>
+                {" "}
+                · +{fmtMoney(walletCredited, currency)} wallet
+              </span>
+            ) : null}
+            {tabCharged > 0 && walletCredited <= 0 ? (
+              <span> · on tab</span>
+            ) : null}
           </p>
         </div>
         <p className="shrink-0 text-[14px] font-semibold tabular-nums">
-          {fmtMoney(row.creditAmount, currency)}
+          {fmtMoney(displayAmount, currency)}
         </p>
       </button>
 
@@ -383,6 +397,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [portalTheme, setPortalTheme] = useState<PortalTheme>("light");
+  const walletSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -643,22 +658,45 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 : "Your account"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--tab-border)] bg-[var(--tab-card)] text-[var(--tab-fg)] transition active:scale-95"
-            aria-label={
-              portalTheme === "dark"
-                ? "Switch to light theme"
-                : "Switch to dark theme"
-            }
-          >
-            {portalTheme === "dark" ? (
-              <Sun className="size-4" />
-            ) : (
-              <Moon className="size-4" />
-            )}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {!loading && !notFound ? (
+              <button
+                type="button"
+                onClick={() => {
+                  walletSectionRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                  if (purchaseCount > 0) {
+                    setHistoryOpen(true);
+                  }
+                }}
+                className="inline-flex h-10 max-w-[9.5rem] items-center gap-1.5 rounded-full border border-[var(--tab-border)] bg-[var(--tab-card)] px-3 text-[12px] font-semibold text-[var(--tab-fg)] transition active:scale-95"
+                aria-label={`Wallet ${fmtMoney(wallet, currency)}`}
+              >
+                <Wallet className="size-3.5 shrink-0" aria-hidden />
+                <span className="truncate tabular-nums">
+                  {fmtMoney(wallet, currency)}
+                </span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--tab-border)] bg-[var(--tab-card)] text-[var(--tab-fg)] transition active:scale-95"
+              aria-label={
+                portalTheme === "dark"
+                  ? "Switch to light theme"
+                  : "Switch to dark theme"
+              }
+            >
+              {portalTheme === "dark" ? (
+                <Sun className="size-4" />
+              ) : (
+                <Moon className="size-4" />
+              )}
+            </button>
+          </div>
         </header>
 
         {loading ? (
@@ -694,7 +732,11 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         ) : (
           <main className="mt-5 flex flex-1 flex-col gap-3.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
             {/* Balance card */}
-            <section className="rounded-2xl border border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-4">
+            <section
+              ref={walletSectionRef}
+              id="wallet"
+              className="scroll-mt-4 rounded-2xl border border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-4"
+            >
               <p className="text-[13px] text-[var(--tab-muted)]">Balance due</p>
               <p className="mt-1 text-[2rem] font-bold leading-none tracking-tight tabular-nums md:text-[2.25rem]">
                 {fmtMoney(owed, currency)}
@@ -714,7 +756,9 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 </p>
               ) : (
                 <p className="mt-2.5 text-[13px] text-[var(--tab-muted)]">
-                  No purchases on this tab yet
+                  {wallet > 0
+                    ? "Recent visits will show here after your next purchase."
+                    : "No purchases yet"}
                 </p>
               )}
             </section>
