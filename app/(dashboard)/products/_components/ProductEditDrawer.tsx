@@ -218,6 +218,8 @@ export function ProductEditDrawer({
       }}
       banner={banner}
       width="wide"
+      appearance="sharp"
+      headerDensity="compact"
       title={heroTitle}
       description={
         d
@@ -227,11 +229,11 @@ export function ProductEditDrawer({
       contextLabel={sharedStock ? "Package SKU" : isVariant ? "Variant" : "Product"}
       icon={
         sharedStock ? (
-          <Boxes className="size-5 text-primary" aria-hidden />
+          <Boxes className="size-3.5 text-primary" aria-hidden />
         ) : isVariant ? (
-          <Layers className="size-5 text-violet-600" aria-hidden />
+          <Layers className="size-3.5 text-violet-600" aria-hidden />
         ) : (
-          <PencilLine className="size-5 text-primary" aria-hidden />
+          <PencilLine className="size-3.5 text-primary" aria-hidden />
         )
       }
       footer={
@@ -250,7 +252,7 @@ export function ProductEditDrawer({
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-xl"
+              className="h-9"
               onClick={onClose}
             >
               Cancel
@@ -258,7 +260,7 @@ export function ProductEditDrawer({
             <Button
               type="submit"
               form="edit-product-form"
-              className="h-10 rounded-xl shadow-sm"
+              className="h-9 shadow-none"
             >
               Save changes
             </Button>
@@ -273,7 +275,7 @@ export function ProductEditDrawer({
           onSubmit={(e) => void onEditSubmit(e)}
         >
           <div className={productFormDrawerHeroClass}>
-            <div className="relative size-14 shrink-0 overflow-hidden rounded-xl border border-border/50 bg-muted shadow-sm">
+            <div className="relative size-14 shrink-0 overflow-hidden rounded-none border border-border bg-muted shadow-none">
               {thumb ? (
                 <Image src={thumb} alt="" fill className="object-cover" sizes="56px" />
               ) : (
@@ -289,18 +291,18 @@ export function ProductEditDrawer({
               <p className="font-mono text-xs text-muted-foreground">{d.sku}</p>
               <div className="flex flex-wrap gap-1">
                 {sharedStock ? (
-                  <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/25 bg-primary/8 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                  <span className="inline-flex items-center gap-0.5 rounded-none border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-foreground">
                     <Boxes className="size-2.5" aria-hidden />
                     Package
                   </span>
                 ) : null}
                 {isVariant && !sharedStock ? (
-                  <span className="rounded-full border border-violet-500/25 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:text-violet-200">
+                  <span className="rounded-none border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-foreground">
                     Variant
                   </span>
                 ) : null}
                 {d.active === false ? (
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  <span className="rounded-none border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                     Inactive
                   </span>
                 ) : null}
@@ -311,7 +313,7 @@ export function ProductEditDrawer({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-9 shrink-0 gap-1 rounded-lg text-xs"
+                className="h-9 shrink-0 gap-1 text-xs"
                 onClick={onOpenPhotos}
               >
                 <Camera className="size-3.5" aria-hidden />
@@ -434,7 +436,7 @@ export function ProductEditDrawer({
                 onToggle={() => toggleSection("package")}
                 badge={
                   (dr.packageVariant ?? d.packageVariant) ? (
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    <span className="rounded-none border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-foreground">
                       Package mode
                     </span>
                   ) : null
@@ -482,7 +484,7 @@ export function ProductEditDrawer({
                   <label className={productFormToggleCardClass}>
                     <input
                       type="checkbox"
-                      className="mt-0.5 size-4 shrink-0 rounded border-input"
+                      className="mt-0.5 size-4 shrink-0 rounded-none border-input"
                       checked={dr.packageVariant ?? d.packageVariant}
                       onChange={(e) =>
                         detail.setPatchDraft((p) => ({
@@ -575,7 +577,7 @@ export function ProductEditDrawer({
           {openSections.inventory ? (
             <div className={productFormSectionBodyClass}>
               {sharedStock ? (
-                <p className="rounded-lg border border-primary/20 bg-primary/[0.05] px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                <p className="rounded-none border border-border bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
                   Quantity is tracked on the{" "}
                   <span className="font-medium text-foreground">parent product</span>.
                   Each sale deducts{" "}
@@ -657,7 +659,7 @@ export function ProductEditDrawer({
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className="h-9 w-full rounded-lg text-xs sm:w-auto"
+                      className="h-9 w-full text-xs sm:w-auto"
                       disabled={stockSaving}
                       onClick={() => void handleStockIncrease()}
                     >
@@ -684,7 +686,7 @@ export function ProductEditDrawer({
               <label className={productFormToggleCardClass}>
                 <input
                   type="checkbox"
-                  className="size-4 shrink-0 rounded border-input"
+                  className="size-4 shrink-0 rounded-none border-input"
                   checked={dr.active ?? true}
                   onChange={(e) =>
                     detail.setPatchDraft((p) => ({
@@ -701,7 +703,7 @@ export function ProductEditDrawer({
               <label className={productFormToggleCardClass}>
                 <input
                   type="checkbox"
-                  className="size-4 shrink-0 rounded border-input"
+                  className="size-4 shrink-0 rounded-none border-input"
                   checked={dr.webPublished ?? true}
                   onChange={(e) =>
                     detail.setPatchDraft((p) => ({
@@ -733,7 +735,7 @@ export function ProductEditDrawer({
                 <Button
                   type="button"
                   variant="outline"
-                  className="mb-3 h-9 w-full gap-2 rounded-lg text-xs sm:w-auto"
+                  className="mb-3 h-9 w-full gap-2 text-xs sm:w-auto"
                   onClick={onOpenPhotos}
                 >
                   <Camera className="size-3.5" aria-hidden />
@@ -743,7 +745,7 @@ export function ProductEditDrawer({
               <input
                 type="file"
                 accept="image/*"
-                className="w-full text-xs file:mr-2 file:rounded-lg file:border file:bg-background file:px-3 file:py-1.5"
+                className="w-full text-xs file:mr-2 file:rounded-md file:border file:bg-background file:px-3 file:py-1.5"
                 onChange={(e) =>
                   m.setPendingCatalogImage(e.target.files?.[0] ?? null)
                 }
@@ -759,7 +761,7 @@ export function ProductEditDrawer({
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 <input
                   type="checkbox"
-                  className="size-4 rounded border-input"
+                  className="size-4 rounded-none border-input"
                   checked={m.catalogImagePrimary}
                   onChange={(e) => m.setCatalogImagePrimary(e.target.checked)}
                 />
@@ -768,7 +770,7 @@ export function ProductEditDrawer({
               <Button
                 type="button"
                 size="sm"
-                className="h-9 rounded-lg text-xs"
+                className="h-9 text-xs"
                 disabled={m.catalogImageUploadBusy || !m.pendingCatalogImage}
                 onClick={() =>
                   void m.onUploadCatalogImage(new Event("submit") as never)

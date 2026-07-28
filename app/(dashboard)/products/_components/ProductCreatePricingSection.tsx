@@ -4,8 +4,12 @@ import { cn } from "@/lib/utils";
 import type { ParentDraft } from "../_types";
 import { formatAmount } from "../_utils";
 import {
+  productFormFieldClass,
+  productFormHintClass,
   productFormInputClass,
   productFormLabelClass,
+  productFormRequiredClass,
+  productFormSectionTitleClass,
 } from "./product-form-styles";
 
 type Props = {
@@ -22,10 +26,6 @@ type Props = {
   isWeighed?: boolean;
 };
 
-function icClass() {
-  return productFormInputClass;
-}
-
 function Field({
   label,
   required,
@@ -38,16 +38,16 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className={cn("flex flex-col gap-1", productFormLabelClass)}>
-      <span className="flex items-center gap-1 normal-case">
+    <label className={productFormFieldClass}>
+      <span className={cn(productFormLabelClass, "flex items-center gap-1")}>
         {label}
-        {required ? <span className="text-destructive">*</span> : null}
+        {required ? (
+          <span className={productFormRequiredClass} aria-hidden>
+            *
+          </span>
+        ) : null}
       </span>
-      {hint ? (
-        <span className="text-[10px] font-normal normal-case leading-snug text-muted-foreground">
-          {hint}
-        </span>
-      ) : null}
+      {hint ? <span className={productFormHintClass}>{hint}</span> : null}
       {children}
     </label>
   );
@@ -70,11 +70,11 @@ function MarginDisplay({
         ? "text-amber-700 dark:text-amber-400"
         : valid
           ? "text-red-700 dark:text-red-400"
-          : "text-muted-foreground";
+          : "text-foreground/35";
 
   return (
     <div
-      className="flex min-w-[4.5rem] flex-col items-center justify-end gap-0.5 rounded-md border border-border/50 bg-muted/15 px-2 py-1.5 sm:min-h-[4.25rem]"
+      className="flex min-w-[4.5rem] flex-col items-center justify-end gap-1 rounded-none border border-border bg-muted/15 px-2 py-1.5 sm:min-h-[4.25rem]"
       aria-live="polite"
       aria-label={
         valid
@@ -82,18 +82,16 @@ function MarginDisplay({
           : "Margin not available until buy and sell prices are entered"
       }
     >
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        Margin
-      </span>
-      <span className={cn("text-base font-bold tabular-nums leading-none", tone)}>
+      <span className={productFormSectionTitleClass}>Margin</span>
+      <span className={cn("text-base font-semibold tabular-nums leading-none", tone)}>
         {valid ? `${margin!.toFixed(0)}%` : "—"}
       </span>
       {valid ? (
-        <span className="text-[10px] tabular-nums text-muted-foreground">
+        <span className={cn(productFormHintClass, "tabular-nums")}>
           +{curLabel} {formatAmount(marginInfo.profit)}
         </span>
       ) : (
-        <span className="text-[10px] text-muted-foreground/80">per sale</span>
+        <span className={productFormHintClass}>per sale</span>
       )}
     </div>
   );
@@ -113,12 +111,12 @@ export function ProductCreatePricingSection({
 
   return (
     <div className="space-y-2">
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
+      <div className="grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
         <Field label={sellLabel} required hint={sellHint}>
           <input
             type="number"
             inputMode="decimal"
-            className={cn(icClass(), "w-full")}
+            className={cn(productFormInputClass, "w-full")}
             placeholder="0.00"
             value={draft.bundlePrice}
             onChange={(e) => setDraft((p) => ({ ...p, bundlePrice: e.target.value }))}
@@ -132,7 +130,7 @@ export function ProductCreatePricingSection({
           <input
             type="number"
             inputMode="decimal"
-            className={cn(icClass(), "w-full")}
+            className={cn(productFormInputClass, "w-full")}
             placeholder="0.00"
             value={draft.buyingPrice}
             onChange={(e) => setDraft((p) => syncCostsFromBuyingPrice(e.target.value, p))}

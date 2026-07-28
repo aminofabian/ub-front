@@ -91,6 +91,7 @@ export function VariantCreateDrawer({
       }
       icon={<Layers className="size-3.5 text-primary" aria-hidden />}
       width="wide"
+      appearance="sharp"
       headerDensity="compact"
       footer={
         <div className="flex flex-wrap justify-end gap-1.5">

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import {
   FormDrawer,
   FormDrawerFields,
+  FormDrawerSheet,
   type FormDrawerProps,
 } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,6 @@ import {
   productFormSectionClass,
   productFormSectionTitleClass,
   productFormSelectClass,
-  productFormStackClass,
   productFormTextareaClass,
 } from "./product-form-styles";
 import type { ProductDetailApi } from "../_hooks/useProductDetail";
@@ -81,18 +81,19 @@ export function ProductPhotosDrawer({
       banner={banner}
       title="Photo studio"
       contextLabel="Media"
-      icon={<Camera className="size-5 text-primary" />}
+      appearance="sharp"
+      headerDensity="compact"
+      icon={<Camera className="size-3.5 text-primary" />}
     >
       {d && (
-        <div className="space-y-5">
-          <div className="space-y-3 rounded-xl border border-violet-200/60 bg-gradient-to-br from-violet-50/50 via-background to-amber-50/35 p-4">
-            <p className="text-sm font-semibold">Live cover</p>
+        <div className="space-y-3">
+          <div className="space-y-3 rounded-none border border-border bg-muted/15 p-3 shadow-none">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Live cover
+            </p>
             {coverImageUrl(d) ? (
               <div
-                className="relative mx-auto h-44 w-full max-w-sm overflow-hidden rounded-xl border-2 border-background shadow-xl"
-                style={{
-                  boxShadow: `0 18px 42px -16px ${detail.sortedImages.find((i) => i.predominantColorHex)?.predominantColorHex ?? "rgba(99,102,241,0.45)"}`,
-                }}
+                className="relative mx-auto h-44 w-full max-w-sm overflow-hidden rounded-none border border-border shadow-none"
               >
                 <Image
                   src={coverImageUrl(d)!}
@@ -110,17 +111,19 @@ export function ProductPhotosDrawer({
             )}
           </div>
           <form
-            className="space-y-3 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/10 p-4"
+            className="space-y-3 rounded-none border border-dashed border-border bg-muted/10 p-3 shadow-none"
             onSubmit={(e) => {
               e.preventDefault();
               void m.onUploadCatalogImage(e as never);
             }}
           >
-            <p className="text-sm font-medium">Beam a new photo</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Upload
+            </p>
             <input
               type="file"
               accept="image/*"
-              className="max-w-full text-xs file:mr-2 file:rounded file:border file:bg-background file:px-2 file:py-1"
+              className="max-w-full text-xs file:mr-2 file:rounded-md file:border file:bg-background file:px-2 file:py-1"
               onChange={(e) =>
                 m.setPendingCatalogImage(e.target.files?.[0] ?? null)
               }
@@ -134,6 +137,7 @@ export function ProductPhotosDrawer({
             <label className="flex items-center gap-2 text-xs">
               <input
                 type="checkbox"
+                className="size-3.5 rounded-none"
                 checked={m.catalogImagePrimary}
                 onChange={(e) => m.setCatalogImagePrimary(e.target.checked)}
               />{" "}
@@ -150,13 +154,13 @@ export function ProductPhotosDrawer({
           {detail.sortedImages.map((img) => (
             <figure
               key={img.id}
-              className="relative overflow-hidden rounded-lg border bg-background p-2 shadow-sm"
+              className="relative overflow-hidden rounded-none border border-border bg-background p-2 shadow-none"
               style={{
                 borderColor: `${img.predominantColorHex?.trim() ?? "#818cf8"}66`,
               }}
             >
               {galleryImageUrl(img) ? (
-                <div className="relative aspect-square w-full overflow-hidden rounded-md bg-muted">
+                <div className="relative aspect-square w-full overflow-hidden rounded-none bg-muted">
                   <Image
                     src={galleryImageUrl(img)!}
                     alt={img.altText ?? ""}
@@ -166,7 +170,7 @@ export function ProductPhotosDrawer({
                   />
                 </div>
               ) : (
-                <div className="flex aspect-square items-center justify-center rounded-md bg-muted text-[10px]">
+                <div className="flex aspect-square items-center justify-center rounded-none bg-muted text-[10px]">
                   No preview
                 </div>
               )}
@@ -247,7 +251,9 @@ export function ProductQuickEditAllDrawer({
             : "Edit all fields"
       }
       contextLabel="Quick edit"
-      icon={<PencilLine className="size-5 text-primary" />}
+      appearance="sharp"
+      headerDensity="compact"
+      icon={<PencilLine className="size-3.5 text-primary" />}
       footer={
         <div className="flex justify-end gap-2">
           <Button
@@ -262,7 +268,7 @@ export function ProductQuickEditAllDrawer({
             type="submit"
             form="quick-edit-all-form"
             disabled={quick.qeaSaving}
-            className="gap-1.5"
+            className="gap-1.5 shadow-none"
           >
             {quick.qeaSaving ? (
               <Loader2 className="size-3.5 animate-spin" />
@@ -276,13 +282,14 @@ export function ProductQuickEditAllDrawer({
     >
       <form
         id="quick-edit-all-form"
-        className={productFormStackClass}
+        className="space-y-2"
         onSubmit={(e) => {
           e.preventDefault();
           void quick.saveQuickEditAll();
         }}
       >
-        <FormDrawerFields legend="Identity">
+        <FormDrawerSheet>
+        <FormDrawerFields legend="Identity" appearance="sharp" embedded index={1}>
           <F label="Display name" required>
             <input
               className={productFormInputClass}
@@ -310,13 +317,13 @@ export function ProductQuickEditAllDrawer({
           </div>
         </FormDrawerFields>
         {sharedStock ? (
-          <p className="rounded-lg border border-primary/15 bg-primary/[0.04] px-3 py-2 text-xs text-muted-foreground">
+          <p className="border-t border-border bg-muted/15 px-3 py-2 text-xs text-muted-foreground">
             Stock, min level, and reorder live on the base product. Change{" "}
             <span className="font-medium text-foreground">units per package</span>{" "}
             in the full product editor (Package section).
           </p>
         ) : null}
-        <FormDrawerFields legend="Pricing">
+        <FormDrawerFields legend="Pricing" appearance="sharp" embedded index={2}>
           {sharedStock ? (
             <div className={productFormGrid3Class}>
               <F label="Units per package">
@@ -376,7 +383,7 @@ export function ProductQuickEditAllDrawer({
           )}
         </FormDrawerFields>
         {!sharedStock ? (
-          <FormDrawerFields legend="Stock">
+          <FormDrawerFields legend="Stock" appearance="sharp" embedded index={3}>
             <div className={productFormGrid3Class}>
               <F label="Min stock">
                 <input
@@ -405,7 +412,7 @@ export function ProductQuickEditAllDrawer({
             </div>
           </FormDrawerFields>
         ) : null}
-        <FormDrawerFields legend="Description">
+        <FormDrawerFields legend="Description" appearance="sharp" embedded index={4}>
           <F label="Notes">
             <textarea
               className={productFormTextareaClass}
@@ -414,6 +421,7 @@ export function ProductQuickEditAllDrawer({
             />
           </F>
         </FormDrawerFields>
+        </FormDrawerSheet>
       </form>
     </FormDrawer>
   );

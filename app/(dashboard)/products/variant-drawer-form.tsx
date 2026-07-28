@@ -6,16 +6,18 @@ import { Camera, ChevronDown, ChevronRight, Plus, Trash2, Upload, X } from "luci
 
 import { Button } from "@/components/ui/button";
 import { BarcodeScanner } from "@/components/barcode-scanner";
-import { FormDrawerFields } from "@/components/form-drawer";
+import { FormDrawerFields, FormDrawerSheet } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
 import type { BranchRecord, CategoryRecord, SupplierRecord } from "@/lib/api";
 import { type VariantDraft, emptyVariantDraft } from "./_types";
 import { formatAmount, toNumber } from "./_utils";
 import { StockIncreaseFields } from "./_components/StockIncreaseFields";
 import {
+  productFormHintClass,
   productFormInputClass,
   productFormLabelClass,
-  productFormSectionBodyCompactClass,
+  productFormRequiredClass,
+  productFormSectionTitleClass,
   productFormSelectClass,
   productFormTextareaClass,
 } from "./_components/product-form-styles";
@@ -65,10 +67,14 @@ function Label({
   required?: boolean;
 }) {
   return (
-    <label className={cn("flex flex-col gap-1", productFormLabelClass, className)}>
-      <span className="flex items-center gap-1 normal-case">
+    <label className={cn("flex flex-col gap-1.5", className)}>
+      <span className={cn(productFormLabelClass, "flex items-center gap-1")}>
         {label}
-        {required ? <span className="text-destructive">*</span> : null}
+        {required ? (
+          <span className={productFormRequiredClass} aria-hidden>
+            *
+          </span>
+        ) : null}
       </span>
       {children}
     </label>
@@ -84,7 +90,7 @@ function InlineField({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <span className={cn(productFormLabelClass, "w-11 shrink-0 normal-case")}>{label}</span>
+      <span className={cn(productFormLabelClass, "w-12 shrink-0")}>{label}</span>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
@@ -105,7 +111,7 @@ function CompactSectionToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center gap-1.5 rounded-md py-1 text-left text-xs font-medium text-muted-foreground transition hover:bg-muted/30 hover:text-foreground"
+      className="flex w-full items-center gap-1.5 rounded-md border border-transparent px-1.5 py-1.5 text-left text-[12px] font-medium tracking-tight text-foreground/55 transition hover:border-border hover:bg-muted/30 hover:text-foreground"
     >
       {expanded ? (
         <ChevronDown className="size-3.5 shrink-0" aria-hidden />
@@ -132,20 +138,22 @@ function ToggleChip({
       type="button"
       onClick={() => onChange(!checked)}
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition",
+        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition",
         checked
-          ? "border-primary/30 bg-primary/[0.08] text-primary ring-1 ring-primary/10"
-          : "border-border/60 bg-background text-muted-foreground hover:bg-muted/30",
+          ? "border-foreground bg-foreground text-background"
+          : "border-border bg-background text-foreground/55 hover:border-foreground/40 hover:text-foreground",
       )}
     >
       <span
         className={cn(
-          "flex h-3 w-3 items-center justify-center rounded-sm border transition",
-          checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40",
+          "flex size-3 items-center justify-center border transition",
+          checked
+            ? "border-background/40 bg-transparent text-background"
+            : "border-muted-foreground/45 bg-background",
         )}
       >
         {checked ? (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+          <svg width="8" height="8" viewBox="0 0 10 10" fill="none" aria-hidden>
             <path
               d="M2 5L4 7L8 3"
               stroke="currentColor"
@@ -201,7 +209,7 @@ function VariantPricingRow({
         ? "text-amber-700 dark:text-amber-400"
         : marginInfo
           ? "text-red-700 dark:text-red-400"
-          : "text-muted-foreground";
+          : "text-foreground/35";
 
   return (
     <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
@@ -216,21 +224,19 @@ function VariantPricingRow({
         />
       </Label>
       <div
-        className="flex min-w-[4.5rem] flex-col items-center justify-end gap-0.5 rounded-md border border-border/50 bg-muted/15 px-2 py-1.5 sm:min-h-[4.25rem]"
+        className="flex min-w-[4.5rem] flex-col items-center justify-end gap-1 rounded-none border border-border bg-muted/15 px-2 py-1.5 sm:min-h-[4.25rem]"
         aria-live="polite"
       >
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Margin
-        </span>
-        <span className={cn("text-base font-bold tabular-nums leading-none", tone)}>
+        <span className={productFormSectionTitleClass}>Margin</span>
+        <span className={cn("text-base font-semibold tabular-nums leading-none", tone)}>
           {marginInfo ? `${marginInfo.margin.toFixed(0)}%` : "—"}
         </span>
         {marginInfo ? (
-          <span className="text-[10px] tabular-nums text-muted-foreground">
+          <span className={cn(productFormHintClass, "tabular-nums")}>
             +{currencyCode || "KES"} {formatAmount(marginInfo.profit)}
           </span>
         ) : (
-          <span className="text-[10px] text-muted-foreground/80">per sale</span>
+          <span className={productFormHintClass}>per sale</span>
         )}
       </div>
       <Label label={`Buy price${cur}`}>
@@ -301,7 +307,8 @@ function VariantRowFields({
         </div>
       ) : null}
 
-      <FormDrawerFields legend={variantLegend(index, row.variantName)} compact>
+      <FormDrawerSheet>
+      <FormDrawerFields legend={variantLegend(index, row.variantName)} appearance="sharp" embedded index={1}>
         {!parentIsProductGroup ? (
           <ToggleChip
             checked={row.isPackageVariant}
@@ -358,7 +365,7 @@ function VariantRowFields({
         )}
       </FormDrawerFields>
 
-      <FormDrawerFields legend="Barcode & SKU" compact>
+      <FormDrawerFields legend="Barcode & SKU" appearance="sharp" embedded index={2}>
         <div className="grid gap-2 sm:grid-cols-2">
           <Label label="Barcode">
             <div className="flex gap-1.5">
@@ -371,7 +378,7 @@ function VariantRowFields({
               <button
                 type="button"
                 onClick={onScanBarcode}
-                className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input/80 bg-background text-muted-foreground shadow-sm hover:bg-muted"
+                className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground shadow-none hover:bg-muted"
                 aria-label="Scan barcode"
               >
                 <Camera className="size-3.5" aria-hidden />
@@ -422,7 +429,7 @@ function VariantRowFields({
       </FormDrawerFields>
 
       {canInventoryWrite && !row.isPackageVariant ? (
-        <FormDrawerFields legend="Stock" compact>
+        <FormDrawerFields legend="Stock" appearance="sharp" embedded index={3}>
           <StockIncreaseFields
             mode="opening"
             minimal
@@ -440,6 +447,7 @@ function VariantRowFields({
           />
         </FormDrawerFields>
       ) : null}
+      </FormDrawerSheet>
     </div>
   );
 }
@@ -504,7 +512,7 @@ export function VariantDrawerForm({
   return (
     <form id="add-variant-form" className="space-y-2" onSubmit={onSubmit}>
       {parentIsProductGroup && parentCategoryId ? (
-        <div className="rounded-md border border-border/50 bg-muted/15 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+        <div className="rounded-none border border-border bg-muted/15 px-2.5 py-1.5 text-[11px] text-muted-foreground">
           Category:{" "}
           <span className="font-medium text-foreground">
             {parentCategoryName || "Group category"}
@@ -566,13 +574,13 @@ export function VariantDrawerForm({
         onToggle={() => setMoreExpanded((o) => !o)}
         badge={
           hasMoreData ? (
-            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="inline-flex size-1.5 rounded-none bg-foreground" />
           ) : undefined
         }
       />
 
       {moreExpanded ? (
-        <div className={cn(productFormSectionBodyCompactClass, "space-y-3")}>
+        <div className="space-y-3 rounded-none border border-border bg-background p-3 shadow-none">
           {canLinkSupplier ? (
             <div className="space-y-2">
               {canListSuppliers && suppliersForLink.length === 0 ? (
@@ -620,7 +628,7 @@ export function VariantDrawerForm({
                     onChange={(e) =>
                       patchRow(extrasRow, { setPrimarySupplier: e.target.checked })
                     }
-                    className="size-3.5 rounded border-border"
+                    className="size-3.5 rounded-none border-border"
                   />
                   Primary supplier
                 </label>

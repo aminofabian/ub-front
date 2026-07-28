@@ -25,139 +25,128 @@ export type DetailPanelTone = {
   variantRowActive: string;
 };
 
+/** Quiet sheet tones — kind is signaled by badge ink, not candy gradients. */
 export function detailPanelTone(kind: DetailPanelKind): DetailPanelTone {
+  const base = {
+    heroGradient: "bg-muted/20",
+    heroRing: "",
+    accent: "bg-foreground",
+    accentLight:
+      "border-border bg-muted/40 text-foreground/55",
+    statHighlight: "",
+    notice: "border-border bg-muted/20 text-foreground/70",
+    variantRowHover: "hover:bg-muted/30",
+    variantRowActive: "bg-muted/40 ring-1 ring-inset ring-border",
+  } as const;
+
   if (kind === "variant") {
     return {
-      heroGradient:
-        "bg-gradient-to-br from-violet-500/14 via-violet-500/8 to-violet-500/5 dark:from-violet-500/18 dark:via-violet-500/10 dark:to-violet-500/6",
-      heroRing: "ring-violet-500/20",
-      badge:
-        "border-violet-500/30 bg-violet-500/12 text-violet-900 dark:text-violet-100",
-      accent: "bg-violet-500",
-      accentLight:
-        "border-violet-500/30 bg-violet-500/12 text-violet-800 dark:text-violet-200",
-      statHighlight: "ring-violet-500/15",
-      notice:
-        "border-violet-500/25 bg-violet-500/8 text-violet-900 dark:text-violet-100",
-      variantRowHover: "hover:bg-violet-500/8",
-        variantRowActive:
-          "bg-violet-500/12 ring-1 ring-inset ring-violet-500/35",
-      };
-    }
-    if (kind === "group" || kind === "parent") {
-      return {
-        heroGradient:
-          "bg-gradient-to-br from-amber-500/14 via-amber-500/8 to-amber-500/5 dark:from-amber-500/18 dark:via-amber-500/10 dark:to-amber-500/6",
-        heroRing: "ring-amber-500/20",
-        badge:
-          "border-amber-500/30 bg-amber-500/12 text-amber-950 dark:text-amber-100",
-        accent: "bg-amber-500",
-        accentLight:
-          "border-amber-500/30 bg-amber-500/12 text-amber-900 dark:text-amber-100",
-        statHighlight: "ring-amber-500/15",
-        notice:
-          "border-amber-500/25 bg-amber-500/8 text-amber-950 dark:text-amber-100",
-        variantRowHover: "hover:bg-violet-500/8",
-        variantRowActive:
-          "bg-violet-500/12 ring-1 ring-inset ring-violet-500/35",
-      };
-    }
-    return {
-      heroGradient:
-        "bg-gradient-to-br from-emerald-500/14 via-emerald-500/8 to-emerald-500/5 dark:from-emerald-500/18 dark:via-emerald-500/10 dark:to-emerald-500/6",
-      heroRing: "ring-emerald-500/20",
-      badge:
-        "border-emerald-500/30 bg-emerald-500/12 text-emerald-950 dark:text-emerald-100",
-      accent: "bg-emerald-500",
-      accentLight:
-        "border-emerald-500/30 bg-emerald-500/12 text-emerald-900 dark:text-emerald-100",
-      statHighlight: "ring-emerald-500/15",
-      notice:
-        "border-emerald-500/25 bg-emerald-500/8 text-emerald-950 dark:text-emerald-100",
-      variantRowHover: "hover:bg-violet-500/8",
-      variantRowActive:
-        "bg-violet-500/12 ring-1 ring-inset ring-violet-500/35",
+      ...base,
+      badge: "border-border bg-muted/40 text-foreground/70",
     };
   }
+  if (kind === "group" || kind === "parent") {
+    return {
+      ...base,
+      badge: "border-border bg-muted/50 text-foreground/65",
+    };
+  }
+  return {
+    ...base,
+    badge: "border-border bg-muted/40 text-foreground/70",
+  };
+}
 
-export const detailShellClass = "relative flex flex-col gap-2";
+export const detailShellClass =
+  "relative flex flex-col gap-0 divide-y divide-border bg-background shadow-none";
 
 export const detailHeroClass = cn(
-  "relative overflow-hidden border border-border/55 p-2 sm:p-2.5",
+  "relative overflow-hidden rounded-none border-0 bg-muted/15 p-3 shadow-none",
 );
 
-export const detailSectionClass =
-  "overflow-hidden border border-border/55 bg-card dark:bg-card/90";
+export const detailSectionClass = cn(
+  "overflow-hidden rounded-none border-0 bg-background shadow-none",
+);
 
 export const detailSectionHeadClass = cn(
-  "flex items-center gap-1.5 border-b border-border/45 px-3 py-1.5",
-  "bg-muted/30 dark:bg-muted/35",
+  "flex items-center gap-1.5 border-b border-border px-3 py-1.5",
+  "bg-muted/20",
 );
 
 export const detailMetricGridClass =
-  "grid grid-cols-2 gap-px bg-border/45 sm:grid-cols-4";
+  "grid grid-cols-2 gap-px bg-border sm:grid-cols-4";
 
-export const detailMetricCellWrapClass = "bg-background/60";
+export const detailMetricCellWrapClass = "bg-background";
 
 export const detailCollapsibleTriggerClass = cn(
-  "flex w-full items-center gap-2 px-3 py-2 text-left transition-colors",
-  "hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-inset",
+  "flex w-full items-center gap-2 rounded-none px-3 py-2.5 text-left transition-colors",
+  "hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/40",
 );
 
 export const detailPackageCardClass = cn(
-  "relative overflow-hidden border border-primary/25 p-2",
-  "bg-gradient-to-br from-primary/[0.09] via-primary/[0.04] to-transparent",
+  "relative overflow-hidden rounded-none border-0 border-b border-border bg-muted/15 p-2.5 shadow-none",
 );
 
 /** Thin row under Commerce for packages / weight — not a promo card. */
 export const detailSellingStripClass = cn(
-  "flex flex-wrap items-center gap-x-3 gap-y-1.5 border border-border/55 bg-card px-2.5 py-1.5",
+  "flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-none border-0 bg-background px-2.5 py-2 shadow-none",
 );
 
 export const detailStickyBarClass = cn(
-  "fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/95 p-2 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.12)] backdrop-blur-md",
-  "dark:shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.45)] lg:hidden",
+  "fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background p-2 shadow-none",
+  "lg:hidden",
 );
 
-export const detailQuickActionGridClass = "grid grid-cols-2 gap-2 sm:grid-cols-3";
+export const detailQuickActionGridClass = "grid grid-cols-2 gap-1.5 sm:grid-cols-3";
 
+/** Section kickers — quiet uppercase, even ink */
 export const detailSectionLabelClass =
-  "text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/90";
+  "text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40";
 
+/** Metric / field labels */
 export const detailFieldLabelClass =
-  "text-[10px] font-medium uppercase tracking-wide text-muted-foreground";
+  "text-[10px] font-medium uppercase tracking-[0.1em] text-foreground/40";
 
 export const detailFieldValueClass =
-  "text-xs font-medium text-foreground truncate";
+  "text-[12px] font-medium tracking-tight text-foreground truncate";
 
 export const detailFieldRowClass = cn(
   "group flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left",
   "transition-colors duration-150",
-  "hover:bg-muted/40",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-inset",
+  "hover:bg-muted/30",
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/30 focus-visible:ring-inset",
 );
 
 export { productFormInlineEditClass as detailInlineEditClass } from "./product-form-styles";
 
 export const detailActionBtnClass = cn(
-  "inline-flex items-center justify-center border border-border/60 bg-background",
-  "text-muted-foreground transition-colors",
+  "inline-flex items-center justify-center rounded-md border border-border bg-background shadow-none",
+  "text-foreground/55 transition-colors",
   "hover:bg-muted/50 hover:text-foreground",
 );
 
 export const detailActionBtnPrimaryClass = cn(
   detailActionBtnClass,
-  "h-6 gap-1 px-2 text-[10px] font-medium text-foreground",
+  "h-7 gap-1 px-2 text-[11px] font-medium tracking-tight",
 );
 
-export const detailStatValueClass = "mt-px text-xs tabular-nums text-foreground";
+export const detailStatValueClass =
+  "mt-0.5 text-[13px] font-semibold tabular-nums tracking-tight text-foreground";
+
+export const detailMetaClass =
+  "text-[11px] font-medium tracking-tight text-foreground/45";
+
+export const detailBadgeClass = cn(
+  "inline-flex items-center gap-1 rounded-none border border-border bg-muted/40",
+  "px-1.5 py-0.5 text-[10px] font-medium tracking-tight text-foreground/65",
+);
 
 export function detailStatCellClass(
   highlight?: "success" | "danger" | "default",
 ): string {
   return cn(
-    "px-3 py-3 transition-colors sm:px-2.5 sm:py-1.5",
-    highlight === "success" && "bg-emerald-500/[0.06]",
-    highlight === "danger" && "bg-red-500/[0.06]",
+    "px-3 py-2.5 transition-colors sm:px-2.5 sm:py-2",
+    highlight === "success" && "bg-emerald-500/[0.04]",
+    highlight === "danger" && "bg-red-500/[0.04]",
   );
 }

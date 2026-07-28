@@ -33,45 +33,46 @@ export const CATALOG_VARIANT_GROUP_END_GAP_PX = {
 
 export const catalogListShellClass = cn(
   "flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden",
-  "bg-background lg:border-y lg:border-r lg:border-border lg:bg-card",
+  "bg-background",
+  "lg:border lg:border-border lg:bg-card",
 );
 
 export const catalogListToolbarClass = cn(
   "flex flex-wrap items-center justify-between gap-1.5",
-  "bg-muted/20 px-3 py-1.5 lg:border-y lg:border-r lg:border-border lg:bg-muted/30 lg:px-2 lg:py-1",
+  "bg-muted/20 px-3 py-1.5 lg:border-b lg:border-border lg:bg-muted/30 lg:px-2 lg:py-1",
 );
 
 export const catalogListToolbarMetaClass =
   "text-[11px] text-muted-foreground";
 
-/** Left filter column — shares borders with {@link catalogListShellClass}. */
+/** Left filter rail — slim tuner strip beside the sheet. */
 export const catalogFilterColumnClass =
-  "hidden min-h-0 w-[10rem] shrink-0 flex-col lg:flex";
+  "hidden min-h-0 w-[9.25rem] shrink-0 flex-col border-r border-border lg:flex";
 
 export const catalogFilterToolbarClass = cn(
-  "flex shrink-0 items-center justify-between gap-2",
-  "border-y border-l border-r border-border bg-muted/30",
+  "flex shrink-0 items-center justify-between gap-1",
+  "border-b border-border bg-muted/40",
   "px-2 py-1",
 );
 
 export const catalogFilterToolbarTitleClass =
-  "text-[10px] font-semibold uppercase tracking-wider text-muted-foreground";
+  "text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40";
 
 export const catalogFilterBodyClass = cn(
-  "flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden",
-  "border-b border-l border-r border-border bg-card px-2 py-1.5",
+  "flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overflow-x-hidden",
+  "bg-muted/15 px-1.5 py-2",
 );
 
-export const catalogFilterSectionClass = "flex min-w-0 flex-col gap-1";
+export const catalogFilterSectionClass = "flex min-w-0 flex-col gap-1.5";
 
 export const catalogFilterLabelClass =
-  "text-[10px] font-semibold uppercase tracking-wider text-muted-foreground";
+  "px-0.5 text-[11px] font-medium tracking-tight text-foreground/55";
 
 export const catalogFilterInputClass = cn(
-  "h-7 w-full min-w-0 border border-border bg-background px-2 text-xs shadow-none",
-  "placeholder:text-muted-foreground/60",
-  "focus-visible:border-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/30",
-  "disabled:cursor-not-allowed disabled:bg-muted/40 disabled:text-muted-foreground",
+  "h-7 w-full min-w-0 rounded-none border border-border/80 bg-background px-2 text-[12px] text-foreground shadow-none",
+  "placeholder:text-foreground/35",
+  "focus-visible:border-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/25",
+  "disabled:cursor-not-allowed disabled:bg-muted/40 disabled:text-foreground/40",
 );
 
 export const catalogFilterSelectClass = cn(
@@ -80,73 +81,92 @@ export const catalogFilterSelectClass = cn(
 );
 
 export const catalogFilterHintClass =
-  "text-[10px] leading-snug text-muted-foreground";
+  "px-0.5 text-[11px] font-normal leading-snug text-foreground/45";
 
 export const catalogFilterOptionClass =
-  "flex w-full cursor-pointer items-center gap-1.5 text-[11px] leading-tight text-foreground";
+  "flex w-full cursor-pointer items-center gap-1.5 text-[11px] font-medium leading-tight text-foreground/70";
 
 export const catalogFilterOptionCountClass =
-  "ml-auto shrink-0 tabular-nums text-[10px] font-semibold text-muted-foreground";
+  "ml-auto shrink-0 tabular-nums text-[10px] font-medium text-foreground/40";
 
 export const catalogFilterCheckboxClass = cn(
-  "size-3 shrink-0 border border-border accent-foreground",
+  "size-3 shrink-0 rounded-none border border-border accent-foreground",
+);
+
+/** Compact attention / scope toggles in the filter rail. */
+export const catalogFilterToggleClass = cn(
+  "flex h-6 w-full items-center justify-between gap-1 rounded-none px-1.5 text-left text-[11px] font-medium tracking-tight transition-colors",
+  "border border-transparent text-foreground/55 hover:bg-background hover:text-foreground",
+);
+
+export const catalogFilterToggleActiveClass = cn(
+  "border-border bg-background text-foreground shadow-none",
 );
 
 export const catalogListHeaderRowClass = cn(
-  "shrink-0 bg-muted/40 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+  "sticky top-0 z-10 shrink-0",
+  "bg-muted/50 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/40",
+  "border-b border-border",
 );
 
-/** checkbox · product · stock · sell · category */
+/**
+ * Spreadsheet grid — last column has no right border (flush to edge).
+ * mobile — # · Product · Qty · Price
+ * xl+    — + Category
+ */
 export const catalogListGridClass =
   "grid w-full min-w-0 max-w-full items-stretch gap-0 " +
-  "grid-cols-[1.75rem_minmax(0,1fr)_2.75rem_0px_0px] " +
-  "sm:grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_4.25rem_0px] " +
-  "xl:grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_4.25rem_4.5rem]";
+  "grid-cols-[1.5rem_minmax(0,1fr)_2.5rem_3.5rem] " +
+  "sm:grid-cols-[1.65rem_minmax(0,1fr)_3rem_4.25rem_0px] " +
+  "xl:grid-cols-[1.65rem_minmax(0,1fr)_3rem_4.25rem_5.25rem]";
 
-const catalogColRowBorder = "border-b border-border/70";
-const catalogCellPad = "px-1.5 py-0 sm:px-2 sm:py-0.5";
-const catalogMetricPad = "px-1 py-0 sm:py-0.5";
+const sheetV = "border-r border-border/40";
+const sheetH = "border-b border-border/40";
+const catalogCellPad = "px-2 py-0";
+const catalogMetricPad = "px-1 py-0";
 
 /** Whole-row inset for variant SKUs (checkbox through metrics). */
 export function catalogVariantRowIndentClass(
   density: "comfortable" | "dense" = "dense",
 ): string {
-  return density === "dense" ? "pl-3 sm:pl-8" : "pl-5 sm:pl-14";
+  return density === "dense" ? "pl-3 sm:pl-5" : "pl-4 sm:pl-7";
 }
 
 export const catalogGridCol = {
   check: cn(
     "col-start-1 self-stretch",
-    "flex items-center justify-center px-1 py-1",
+    sheetV,
+    sheetH,
+    "flex items-center justify-center bg-muted/25 px-0",
   ),
   product: cn(
     "col-start-2 min-w-0 self-stretch",
-    catalogColRowBorder,
+    sheetV,
+    sheetH,
     catalogCellPad,
     "flex items-center",
   ),
-  stock: cn("col-start-3 self-stretch", catalogColRowBorder),
+  stock: cn("col-start-3 self-stretch", sheetV, sheetH),
   sell: cn(
     "col-start-4 self-stretch",
-    catalogColRowBorder,
-    "max-sm:invisible max-sm:pointer-events-none",
+    sheetH,
+    // Flush last column on mobile/sm — money hugs the edge
+    "bg-muted/[0.12] xl:border-r xl:border-border/40 xl:bg-transparent",
   ),
   category: cn(
     "col-start-5 self-stretch",
-    catalogColRowBorder,
-    "max-xl:invisible max-xl:pointer-events-none",
+    sheetH,
+    "max-xl:invisible max-xl:pointer-events-none max-xl:border-0",
   ),
 } as const;
 
-/** Active-row left accent — pseudo-element so it does not consume a grid column. */
+/** Active-row selection bar. */
 export function catalogRowAccentClass(
-  tone: CatalogRowTone,
+  _tone: CatalogRowTone,
   active: boolean,
 ): string {
-  const beforeBg = tone.accent.replace(/^bg-/, "before:bg-");
   return cn(
-    "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-0 before:w-0.5 before:opacity-0 before:transition-opacity max-sm:before:hidden",
-    beforeBg,
+    "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-[1] before:w-[2px] before:bg-primary before:opacity-0",
     active && "before:opacity-100",
   );
 }
@@ -159,16 +179,22 @@ export const catalogListMetricCellClass = cn(
 
 export const catalogListMetricHeaderClass = cn(
   catalogListMetricCellClass,
-  "justify-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+  "justify-end text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/40",
 );
 
-/** Checkbox cell — variant rows align left inside indented track */
-export function catalogListCheckboxCellClass(isVariant: boolean): string {
-  return cn(
-    "relative z-[1] flex w-full items-center",
-    isVariant ? "justify-start" : "justify-center",
-  );
+/** Row-header / select gutter */
+export function catalogListCheckboxCellClass(_isVariant: boolean): string {
+  return "relative z-[1] flex h-full w-full items-center justify-center";
 }
+
+/** Sheet row handle — tap # to select (Excel-style, no checkbox chrome). */
+export const catalogSheetRowHeaderClass = cn(
+  "flex h-full min-h-[1.75rem] w-full items-center justify-center",
+  "text-[9px] font-medium tabular-nums text-muted-foreground/70",
+  "transition-colors hover:bg-muted/70 hover:text-foreground",
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
+  "active:bg-foreground/10",
+);
 
 /** Left rail — disabled; hierarchy is indent + tone only. */
 export function catalogRowHierarchyClass(
@@ -287,12 +313,12 @@ export function catalogListThumbFrameClass(
   state?: { active?: boolean; inactive?: boolean },
 ): string {
   return cn(
-    "relative block shrink-0 overflow-hidden border border-border bg-muted/70",
+    "relative block shrink-0 overflow-hidden rounded-none border border-border bg-muted/60",
     "transition-[border-color,opacity] duration-150",
-    kind === "group" && "size-6",
-    kind === "variant" && "size-5",
-    kind === "standalone" && "size-6",
-    state?.active && "z-[1] border-primary/40",
+    kind === "group" && "size-5",
+    kind === "variant" && "size-4",
+    kind === "standalone" && "size-5",
+    state?.active && "z-[1] border-foreground/30",
     state?.inactive && "opacity-55 saturate-[0.65]",
   );
 }
@@ -304,8 +330,16 @@ export const catalogListThumbImageClass = cn(
 
 export const catalogListThumbPlaceholderClass = cn(
   "flex h-full w-full items-center justify-center",
-  "bg-gradient-to-br from-muted/90 via-muted/50 to-background/80",
+  "bg-muted/50 text-[10px] font-semibold uppercase tracking-tight text-foreground/40",
 );
+
+/** Quiet sheet category tag — square, even ink (no candy pills). */
+export function catalogListCategoryTagClass(): string {
+  return cn(
+    "inline-block max-w-full truncate rounded-none border border-border bg-muted/30",
+    "px-1 py-px text-[9px] font-medium uppercase tracking-[0.08em] text-foreground/55",
+  );
+}
 
 /** Variant ids under a parent from loaded rows, then item detail when needed. */
 export async function resolveVariantIdsForParent(
@@ -341,29 +375,28 @@ export type CatalogRowTone = {
 };
 
 export function catalogRowInteractionClasses(
-  tone: CatalogRowTone,
+  _tone: CatalogRowTone,
   state: {
     isDetailActive: boolean;
     isBulkSelected: boolean;
     isCheckboxChecked: boolean;
+    zebra?: boolean;
   },
 ): string {
-  const { isDetailActive, isBulkSelected, isCheckboxChecked } = state;
+  const { isDetailActive, isBulkSelected, isCheckboxChecked, zebra } = state;
   const showChecked = isCheckboxChecked && !isDetailActive && !isBulkSelected;
   const showBulk = isBulkSelected && !isDetailActive;
 
   return cn(
-    "cursor-pointer transition-colors duration-100 ease-out",
-    tone.gradient,
-    !isDetailActive && !showBulk && !showChecked && tone.rowHover,
-    showChecked && tone.rowChecked,
-    showBulk && tone.rowBulk,
-    isDetailActive && tone.rowDetailActive,
-    // Phones: flat table rows (override type-tint fills).
-    "max-sm:!bg-transparent max-sm:hover:!bg-muted/40",
-    showChecked && "max-sm:!bg-muted/35",
-    showBulk && "max-sm:!bg-muted/40",
-    isDetailActive && "max-sm:!bg-muted/50",
+    "cursor-pointer transition-colors duration-75",
+    zebra ? "bg-[#fafafa] dark:bg-muted/15" : "bg-background",
+    !isDetailActive &&
+      !showBulk &&
+      !showChecked &&
+      "hover:bg-[#e8f0fe] dark:hover:bg-primary/10",
+    showChecked && "bg-[#e8f0fe] dark:bg-primary/15",
+    showBulk && "bg-[#cfe2ff] dark:bg-primary/20",
+    isDetailActive && "z-[2] bg-[#cfe2ff] dark:bg-primary/25",
   );
 }
 
@@ -620,9 +653,9 @@ export function catalogRowHeightPx(
     ? CATALOG_VARIANT_GROUP_END_GAP_PX[density]
     : 0;
   if (density === "dense") {
-    if (kind === "group") return 30 + gap;
-    if (kind === "variant") return 28 + groupEndGap;
-    return 32 + gap;
+    if (kind === "group") return 28 + gap;
+    if (kind === "variant") return 26 + groupEndGap;
+    return 30 + gap;
   }
   if (kind === "group") return 44 + gap;
   if (kind === "variant") return 36 + groupEndGap;

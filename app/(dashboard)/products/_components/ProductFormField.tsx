@@ -1,7 +1,12 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { productFormFieldClass, productFormLabelClass } from "./product-form-styles";
+import {
+  productFormFieldClass,
+  productFormHintClass,
+  productFormLabelClass,
+  productFormRequiredClass,
+} from "./product-form-styles";
 
 type Props = {
   label: string;
@@ -24,13 +29,14 @@ export function ProductFormField({
     <label htmlFor={htmlFor} className={cn(productFormFieldClass, className)}>
       <span className={productFormLabelClass}>
         {label}
-        {required ? <span className="text-destructive"> *</span> : null}
+        {required ? (
+          <span className={productFormRequiredClass} aria-hidden>
+            {" "}
+            *
+          </span>
+        ) : null}
       </span>
-      {hint ? (
-        <span className="text-[10px] font-normal normal-case leading-snug text-muted-foreground">
-          {hint}
-        </span>
-      ) : null}
+      {hint ? <span className={productFormHintClass}>{hint}</span> : null}
       {children}
     </label>
   );

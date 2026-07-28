@@ -16,15 +16,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BarcodeScanner } from "@/components/barcode-scanner";
-import { FormDrawer, FormDrawerFields, type FormDrawerProps } from "@/components/form-drawer";
+import {
+  FormDrawer,
+  FormDrawerFields,
+  FormDrawerSheet,
+  type FormDrawerProps,
+} from "@/components/form-drawer";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import type { BranchRecord, GlobalProductRecord, ItemTypeRecord } from "@/lib/api";
 import {
+  productFormHintClass,
   productFormInputClass,
   productFormLabelClass,
-  productFormSectionBodyCompactClass,
+  productFormMetaClass,
+  productFormRequiredClass,
+  productFormSectionTitleClass,
 } from "./product-form-styles";
 import { StockIncreaseFields } from "./StockIncreaseFields";
 import { ProductCreatePricingSection } from "./ProductCreatePricingSection";
@@ -115,7 +123,7 @@ function CompactSectionToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center gap-1.5 rounded-md py-1 text-left text-xs font-medium text-muted-foreground transition hover:bg-muted/30 hover:text-foreground"
+      className="flex w-full items-center gap-1.5 rounded-md border border-transparent px-1.5 py-1.5 text-left text-[12px] font-medium tracking-tight text-foreground/55 transition hover:border-border hover:bg-muted/30 hover:text-foreground"
     >
       {expanded ? (
         <ChevronDown className="size-3.5 shrink-0" aria-hidden />
@@ -140,10 +148,14 @@ function Label({
   required?: boolean;
 }) {
   return (
-    <label className={cn("flex flex-col gap-1", productFormLabelClass, className)}>
-      <span className="flex items-center gap-1 normal-case">
+    <label className={cn("flex flex-col gap-1.5", className)}>
+      <span className={cn(productFormLabelClass, "flex items-center gap-1")}>
         {label}
-        {required ? <span className="text-destructive">*</span> : null}
+        {required ? (
+          <span className={productFormRequiredClass} aria-hidden>
+            *
+          </span>
+        ) : null}
       </span>
       {children}
     </label>
@@ -198,7 +210,7 @@ function InlineField({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <span className={cn(productFormLabelClass, "w-11 shrink-0 normal-case")}>{label}</span>
+      <span className={cn(productFormLabelClass, "w-12 shrink-0")}>{label}</span>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
@@ -220,24 +232,33 @@ function ToggleChip({
       type="button"
       onClick={() => onChange(!checked)}
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition",
+        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium tracking-tight transition",
         checked
-          ? "border-primary/30 bg-primary/[0.08] text-primary ring-1 ring-primary/10"
-          : "border-border/60 bg-background text-muted-foreground hover:bg-muted/30",
+          ? "border-foreground bg-foreground text-background"
+          : "border-border bg-background text-foreground/55 hover:border-foreground/40 hover:text-foreground",
       )}
     >
       {Icon && <Icon className="size-3" />}
       <span
         className={cn(
-          "flex h-3 w-3 items-center justify-center rounded-sm border transition",
-          checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40",
+          "flex size-3 items-center justify-center border transition",
+          checked
+            ? "border-background/40 bg-transparent text-background"
+            : "border-muted-foreground/45 bg-background",
         )}
+        aria-hidden
       >
-        {checked && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-            <path d="M2 5L4 7L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        {checked ? (
+          <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+            <path
+              d="M2 5L4 7L8 3"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
-        )}
+        ) : null}
       </span>
       {label}
     </button>
@@ -487,16 +508,17 @@ export function ProductCreateDrawer({
       title={isGroup ? "New product group" : "Add product"}
       contextLabel="Catalog"
       width="wide"
+      appearance="sharp"
       headerDensity="compact"
       icon={<PackagePlus className="size-3.5 text-primary" aria-hidden />}
       footer={
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
+          <label className={cn("inline-flex cursor-pointer items-center gap-1.5", productFormMetaClass)}>
             <input
               type="checkbox"
               checked={keepOpen}
               onChange={(e) => setKeepOpen(e.target.checked)}
-              className="size-3.5 rounded border-border text-primary"
+              className="size-3.5 rounded-none border-border text-primary"
             />
             Keep open
           </label>
@@ -538,8 +560,8 @@ export function ProductCreateDrawer({
     >
       <form id="create-parent-form" className="space-y-2" onSubmit={handleSubmit}>
         {m.parentDraft.globalProductSourceId ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-[11px] text-primary">
-            <Globe2 className="size-3 shrink-0" aria-hidden />
+          <div className="flex flex-wrap items-center gap-2 rounded-none border border-border bg-muted/20 px-2.5 py-1.5 text-[11px] text-foreground">
+            <Globe2 className="size-3 shrink-0 text-primary" aria-hidden />
             <span className="min-w-0 flex-1">
               Linked to shared catalog
               {linkedGlobalLabel ? ` · ${linkedGlobalLabel}` : ""}
@@ -547,7 +569,7 @@ export function ProductCreateDrawer({
             <button
               type="button"
               onClick={unlinkSharedCatalog}
-              className="shrink-0 font-medium underline-offset-2 hover:underline"
+              className="shrink-0 rounded-md font-medium underline-offset-2 hover:underline"
             >
               Unlink
             </button>
@@ -555,13 +577,14 @@ export function ProductCreateDrawer({
         ) : null}
 
         {catalog.itemTypes.length === 0 && (
-          <div className="rounded-md border border-destructive/20 bg-destructive/5 p-2 text-xs text-destructive">
+          <div className="rounded-none border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
             Add departments first (Catalog → Departments).
           </div>
         )}
 
-        <FormDrawerFields legend="Essentials" compact>
-          <div className="inline-flex rounded-md border border-border/60 p-0.5">
+        <FormDrawerSheet>
+        <FormDrawerFields legend="Essentials" appearance="sharp" embedded index={1}>
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-none border border-border bg-border">
             <button
               type="button"
               onClick={() =>
@@ -572,10 +595,10 @@ export function ProductCreateDrawer({
                 }))
               }
               className={cn(
-                "rounded px-2.5 py-1 text-[11px] font-medium transition",
+                "h-8 px-2.5 text-[11px] font-medium tracking-tight transition",
                 !isGroup
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "bg-foreground text-background"
+                  : "bg-background text-foreground/50 hover:text-foreground",
               )}
             >
               Single product
@@ -592,10 +615,10 @@ export function ProductCreateDrawer({
                 setLinkedGlobalLabel(null);
               }}
               className={cn(
-                "rounded px-2.5 py-1 text-[11px] font-medium transition",
+                "h-8 px-2.5 text-[11px] font-medium tracking-tight transition",
                 isGroup
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "bg-foreground text-background"
+                  : "bg-background text-foreground/50 hover:text-foreground",
               )}
             >
               Group
@@ -610,8 +633,8 @@ export function ProductCreateDrawer({
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 className={cn(
-                  "relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-background transition hover:border-primary/40",
-                  previewUrl ? "border-border/50" : "border-dashed border-border/50",
+                  "relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-none border bg-background transition hover:border-foreground/40",
+                  previewUrl ? "border-border" : "border-dashed border-border",
                 )}
                 aria-label="Upload photo"
               >
@@ -734,22 +757,22 @@ export function ProductCreateDrawer({
             </Label>
           )}
           {isGroup ? (
-            <p className="text-[10px] leading-snug text-muted-foreground">
+            <p className={productFormHintClass}>
               Variants added under this group inherit its category.
             </p>
           ) : null}
         </FormDrawerFields>
 
         {!isGroup && showButcherTemplates ? (
-          <div className="flex flex-wrap items-center gap-1.5 px-1">
-            <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-border bg-muted/10 px-3 py-2">
+            <span className={productFormSectionTitleClass}>
               Meat template
             </span>
             {BUTCHER_PRODUCT_TEMPLATES.map((template) => (
               <button
                 key={template.id}
                 type="button"
-                className="rounded-full border border-border/60 bg-muted/30 px-2.5 py-0.5 text-[11px] font-medium text-foreground/90 transition hover:border-primary/40 hover:bg-primary/5"
+                className="rounded-md border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-foreground/90 transition hover:border-foreground/40 hover:bg-muted/40"
                 onClick={() => {
                   const itemTypeId =
                     matchItemTypeIdForTemplate(catalog.itemTypes, template.itemTypeKeyword) ??
@@ -771,7 +794,7 @@ export function ProductCreateDrawer({
 
         {!isGroup ? (
           <>
-            <FormDrawerFields legend="Pricing" compact>
+            <FormDrawerFields legend="Pricing" appearance="sharp" embedded index={2}>
               <ProductCreatePricingSection
                 draft={m.parentDraft}
                 setDraft={m.setParentDraft}
@@ -782,7 +805,7 @@ export function ProductCreateDrawer({
               />
             </FormDrawerFields>
 
-            <FormDrawerFields legend="Barcode & SKU" compact>
+            <FormDrawerFields legend="Barcode & SKU" appearance="sharp" embedded index={3}>
               <div className="grid gap-2 sm:grid-cols-2">
                 <Label className="gap-0.5" label="Barcode">
                   <div className="flex gap-1.5">
@@ -797,14 +820,14 @@ export function ProductCreateDrawer({
                     <button
                       type="button"
                       onClick={() => setScannerOpen(true)}
-                      className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input/80 bg-background text-muted-foreground shadow-sm hover:bg-muted"
+                      className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground shadow-none hover:bg-muted"
                       aria-label="Scan barcode with camera"
                     >
                       <Camera className="size-3.5" aria-hidden />
                     </button>
                   </div>
                 </Label>
-                <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex min-w-0 flex-col gap-1.5">
                   <span className={productFormLabelClass}>SKU</span>
                   <div className="flex gap-1.5">
                     <input
@@ -818,7 +841,7 @@ export function ProductCreateDrawer({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 shrink-0 px-2 text-[10px]"
+                        className="h-8 shrink-0 px-2 font-mono text-[10px] tracking-tight"
                         onClick={() =>
                           m.setParentDraft((p) => ({
                             ...p,
@@ -833,9 +856,9 @@ export function ProductCreateDrawer({
                 </div>
               </div>
               {m.parentDraft.isWeighed ? (
-                <label className={cn("flex flex-col gap-1", productFormLabelClass)}>
-                  <span className="normal-case">Scale PLU</span>
-                  <span className="text-[10px] font-normal normal-case leading-snug text-muted-foreground">
+                <label className="flex flex-col gap-1.5">
+                  <span className={productFormLabelClass}>Scale PLU</span>
+                  <span className={productFormHintClass}>
                     5-digit code on variable-weight labels (e.g. 01234)
                   </span>
                   <input
@@ -855,7 +878,7 @@ export function ProductCreateDrawer({
               ) : null}
             </FormDrawerFields>
 
-            <FormDrawerFields legend="Stock" compact>
+            <FormDrawerFields legend="Stock" appearance="sharp" embedded index={4}>
               <StockIncreaseFields
                 minimal
                 mode="opening"
@@ -876,7 +899,7 @@ export function ProductCreateDrawer({
                 unitCostHint="Defaults from buy price — exact cost from Supplies"
                 className="space-y-2 border-0 bg-transparent p-0 shadow-none ring-0"
               />
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 <ToggleChip
                   checked={m.parentDraft.isStocked}
                   onChange={(v) => m.setParentDraft((p) => ({ ...p, isStocked: v }))}
@@ -902,7 +925,7 @@ export function ProductCreateDrawer({
               </div>
             </FormDrawerFields>
 
-            <FormDrawerFields legend="Selling units" compact>
+            <FormDrawerFields legend="Selling units" appearance="sharp" embedded index={5}>
               <PackageVariantsSection
                 compact
                 showEnableToggle
@@ -921,6 +944,7 @@ export function ProductCreateDrawer({
             </FormDrawerFields>
           </>
         ) : null}
+        </FormDrawerSheet>
 
         <CompactSectionToggle
           label="More options"
@@ -928,12 +952,12 @@ export function ProductCreateDrawer({
           onToggle={toggleMore}
           badge={
             hasMoreData ? (
-              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+              <span className="inline-flex size-1.5 rounded-none bg-foreground" />
             ) : undefined
           }
         />
         {moreExpanded ? (
-          <div className={cn(productFormSectionBodyCompactClass, "space-y-3")}>
+          <div className="space-y-3 rounded-none border border-border bg-background p-3 shadow-none">
             <div className="grid gap-2 sm:grid-cols-2">
               {!isGroup ? (
                 <Label className="gap-0.5" label="Category">

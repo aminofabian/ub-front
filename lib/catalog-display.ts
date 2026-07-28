@@ -22,22 +22,83 @@ export function isInternalCatalogSku(sku: string | null | undefined): boolean {
 export const CATALOG_FIX_NAME_LABEL = "Fix name";
 export const CATALOG_NO_PRICE_LABEL = "No price";
 
-/** Title-case each word for consistent shelf labels; keeps short ALL-CAPS tokens (e.g. SKU). */
+const KEEP_ALL_CAPS = new Set([
+  "SKU",
+  "VAT",
+  "POS",
+  "ID",
+  "TV",
+  "PC",
+  "USB",
+  "LED",
+  "HD",
+  "UHD",
+]);
+
+/** Canonical shelf unit suffix after a quantity (2L, 500ml, 90g). */
+function normalizeUnitSuffix(raw: string): string {
+  const u = raw.toLowerCase();
+  if (u === "l" || u.startsWith("lit")) return "L";
+  if (u === "kg") return "kg";
+  if (u === "g") return "g";
+  return "ml";
+}
+
+/**
+ * Title-case shelf labels for consistent list/detail display.
+ * Does not mutate stored data — display-only.
+ * Also normalizes size tokens: 2Litres → 2L, 350ML → 350ml, 90G → 90g, "2 litre" → 2L.
+ */
 export function normalizeProductDisplayName(name: string): string {
   const t = name.trim().replace(/\s+/g, " ");
   if (!t) return t;
-  return t
-    .split(" ")
-    .map((word) => {
-      if (word.length <= 4 && word === word.toUpperCase() && /[A-Z]/.test(word)) {
-        return word;
-      }
-      if (word === word.toLowerCase() || word === word.toUpperCase()) {
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-      }
-      return word;
-    })
-    .join(" ");
+
+  const parts = t.split(" ");
+  const out: string[] = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    const word = parts[i];
+    const next = parts[i + 1];
+
+    const glued = word.match(
+      /^(\d+(?:[.,]\d+)?)(ml|l|litres?|liters?|kg|g)$/i,
+    );
+    if (glued) {
+      out.push(`${glued[1].replace(",", ".")}${normalizeUnitSuffix(glued[2])}`);
+      continue;
+    }
+
+    if (
+      next &&
+      /^\d+(?:[.,]\d+)?$/.test(word) &&
+      /^(ml|l|litres?|liters?|kg|g)$/i.test(next)
+    ) {
+      out.push(`${word.replace(",", ".")}${normalizeUnitSuffix(next)}`);
+      i += 1;
+      continue;
+    }
+
+    const spacedUnit = word.match(/^(ml|l|litres?|liters?|kg|g)$/i);
+    if (spacedUnit) {
+      out.push(normalizeUnitSuffix(spacedUnit[1]));
+      continue;
+    }
+
+    const upper = word.toUpperCase();
+    if (KEEP_ALL_CAPS.has(upper) && word.length <= 4) {
+      out.push(upper);
+      continue;
+    }
+
+    if (word === word.toLowerCase() || word === word.toUpperCase()) {
+      out.push(word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+      continue;
+    }
+
+    out.push(word);
+  }
+
+  return out.join(" ");
 }
 
 /** True when the stored name is empty, a UUID, or an import placeholder like IMP-{uuid}. */
@@ -62,7 +123,7 @@ export function resolveCatalogCategoryLabel(
 ): string | null {
   const t = name?.trim();
   if (!t || isPlaceholderImportCategory(t)) return null;
-  return t;
+  return normalizeProductDisplayName(t);
 }
 
 export type CatalogNameResolution = {
@@ -73,7 +134,7 @@ export type CatalogNameResolution = {
 function usableLabel(value: string | null | undefined): string | null {
   const t = value?.trim();
   if (!t || isGarbageProductName(t)) return null;
-  return t;
+  return normalizeProductDisplayName(t);
 }
 
 /** Human-readable product title; never surfaces a raw UUID or IMP-{uuid} as the name. */

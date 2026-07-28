@@ -145,7 +145,7 @@ export function ProductNameSuggestions({
   if (!busy && !hasMatches) return null;
 
   return (
-    <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-2">
+    <div className="space-y-2 rounded-none border border-border bg-muted/15 p-2 shadow-none">
       {busy && !hasMatches ? (
         <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Loader2 className="size-3 animate-spin" aria-hidden />
@@ -159,7 +159,7 @@ export function ProductNameSuggestions({
             <Store className="size-3" aria-hidden />
             Already in your catalog
           </h3>
-          <ul className="overflow-hidden rounded-md border border-border/70 bg-background divide-y divide-border/60">
+          <ul className="overflow-hidden rounded-none border border-border bg-background divide-y divide-border">
             {tenantHits.map((hit) => {
               const thumb = itemListThumbnailUrl(hit);
               return (
@@ -199,7 +199,7 @@ export function ProductNameSuggestions({
             <Globe2 className="size-3" aria-hidden />
             Shared catalog
           </h3>
-          <ul className="overflow-hidden rounded-md border border-border/70 bg-background divide-y divide-border/60">
+          <ul className="overflow-hidden rounded-none border border-border bg-background divide-y divide-border">
             {globalHits.map((hit) => {
               const sell = formatPrice(hit.recommendedSellingPrice);
               const already = hit.alreadyImported && hit.adoptedItemId;
@@ -252,7 +252,7 @@ function SuggestionThumb({
   fallback: React.ReactNode;
 }) {
   return (
-    <span className="relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded border border-border bg-muted/60">
+    <span className="relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-none border border-border bg-muted/60">
       {src ? (
         <Image
           src={src}

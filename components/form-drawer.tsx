@@ -153,8 +153,8 @@ export function FormDrawer({
                         // The panel itself must be fully opaque so page text
                         // behind it can never bleed through on browsers
                         // without `backdrop-filter` support.
-                        "border-l border-border/80 bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.03),-24px_0_80px_-20px_rgba(0,0,0,0.12)]",
-                        "dark:border-border/80 dark:bg-background dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),-24px_0_80px_-24px_rgba(0,0,0,0.45)]",
+                        "border-l border-border/80 bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.03),-16px_0_48px_-24px_rgba(0,0,0,0.1)]",
+                        "dark:border-border/80 dark:bg-background dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),-16px_0_48px_-24px_rgba(0,0,0,0.4)]",
                       ),
                   "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
                   "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-full",
@@ -177,27 +177,44 @@ export function FormDrawer({
               : "pr-[env(safe-area-inset-right)]",
           )}
         >
-          {/* Accent rail: business branding hex when set, else theme --primary */}
+          {/* Accent rail — thin when sharp, soft brand bar otherwise */}
           {brandStops ? (
             <div
-              className="pointer-events-none absolute inset-y-0 left-0 w-[5px] opacity-[0.92]"
+              className={cn(
+                "pointer-events-none absolute inset-y-0 left-0 opacity-[0.92]",
+                sharp ? "w-0.5" : "w-[5px]",
+              )}
               style={{
-                background: `linear-gradient(180deg, ${brandStops.from}, ${brandStops.via}, ${brandStops.to})`,
+                background: sharp
+                  ? brandStops.from
+                  : `linear-gradient(180deg, ${brandStops.from}, ${brandStops.via}, ${brandStops.to})`,
               }}
               aria-hidden
             />
           ) : (
             <div
-              className="pointer-events-none absolute inset-y-0 left-0 w-[5px] bg-gradient-to-b from-primary via-primary/75 to-primary/35 opacity-90"
+              className={cn(
+                "pointer-events-none absolute inset-y-0 left-0",
+                sharp
+                  ? "w-0.5 bg-primary"
+                  : "w-[5px] bg-gradient-to-b from-primary via-primary/75 to-primary/35 opacity-90",
+              )}
               aria-hidden
             />
           )}
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-primary-foreground/25 via-transparent to-primary-foreground/15 dark:from-primary-foreground/20 dark:to-transparent"
-            aria-hidden
-          />
+          {!sharp ? (
+            <div
+              className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-primary-foreground/25 via-transparent to-primary-foreground/15 dark:from-primary-foreground/20 dark:to-transparent"
+              aria-hidden
+            />
+          ) : null}
 
-          <div className="relative flex min-h-0 flex-1 flex-col pl-[5px]">
+          <div
+            className={cn(
+              "relative flex min-h-0 flex-1 flex-col",
+              sharp ? "pl-0.5" : "pl-[5px]",
+            )}
+          >
             <header
               className={cn(
                 "relative shrink-0 overflow-hidden border-b border-border",
@@ -258,15 +275,20 @@ export function FormDrawer({
                       <div className="flex min-w-0 items-center gap-2">
                         {contextLabel ? (
                           <>
-                            <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.12em] text-primary">
+                            <span
+                              className={cn(
+                                "shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                                sharp ? "text-foreground/40" : "text-primary",
+                              )}
+                            >
                               {contextLabel}
                             </span>
-                            <span className="text-muted-foreground/40" aria-hidden>
+                            <span className="text-foreground/25" aria-hidden>
                               ·
                             </span>
                           </>
                         ) : null}
-                        <Dialog.Title className="truncate font-heading text-sm font-semibold tracking-tight text-foreground">
+                        <Dialog.Title className="truncate text-[13px] font-semibold tracking-tight text-foreground">
                           {title}
                         </Dialog.Title>
                       </div>
@@ -445,33 +467,60 @@ export function FormDrawer({
   );
 }
 
-/** Group fields inside a drawer with a soft panel — keeps long forms scannable */
+/** Group fields inside a drawer — sharp = sheet blocks; default = soft cards */
 export function FormDrawerFields({
   legend,
   hint,
   compact = false,
+  appearance = "default",
+  embedded = false,
+  index,
   children,
 }: {
   legend: string;
   hint?: React.ReactNode;
   /** Tighter panel for half-width or dense drawers */
   compact?: boolean;
+  /** Square panels, thin borders, no shadow */
+  appearance?: "default" | "sharp";
+  /** Inside a divided sheet stack — no outer border */
+  embedded?: boolean;
+  /** Optional ledger index shown beside sharp legends (e.g. 01) */
+  index?: number | string;
   children: React.ReactNode;
 }) {
+  const sharp = appearance === "sharp";
+  const indexLabel =
+    index == null
+      ? null
+      : typeof index === "number"
+        ? String(index).padStart(2, "0")
+        : index;
+
   return (
     <fieldset
       className={cn(
-        "relative overflow-hidden rounded-xl border border-border/50 bg-card/80",
-        compact
-          ? "space-y-2 p-2.5 shadow-sm"
+        "relative overflow-hidden",
+        sharp || compact
+          ? cn(
+              "space-y-2.5 bg-background shadow-none",
+              embedded
+                ? "rounded-none border-0 p-3"
+                : "rounded-none border border-border p-2.5",
+            )
           : cn(
-              "space-y-3 rounded-2xl bg-gradient-to-br from-card/90 via-background to-muted/15",
-              "p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_1px_2px_rgba(0,0,0,0.04)] sm:p-5",
-              "dark:from-card/35 dark:via-background dark:to-muted/8 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
+              "relative overflow-hidden rounded-xl border border-border/50 bg-card/80",
+              compact
+                ? "space-y-2 p-2.5 shadow-sm"
+                : cn(
+                    "space-y-3 rounded-2xl bg-gradient-to-br from-card/90 via-background to-muted/15",
+                    "p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_1px_2px_rgba(0,0,0,0.04)] sm:p-5",
+                    "dark:from-card/35 dark:via-background dark:to-muted/8 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
+                  ),
             ),
       )}
     >
-      {!compact ? (
+      {!compact && !sharp ? (
         <div
           className="pointer-events-none absolute inset-y-4 left-0 w-px rounded-full bg-gradient-to-b from-primary/0 via-primary/30 to-primary/0"
           aria-hidden
@@ -479,25 +528,66 @@ export function FormDrawerFields({
       ) : null}
       <legend
         className={cn(
-          "block w-full px-0.5 font-heading font-semibold uppercase text-muted-foreground",
-          compact
-            ? "border-b border-border/40 pb-1.5 text-[10px] tracking-[0.12em]"
-            : "border-b border-border/35 pb-3 text-[11px] tracking-[0.14em]",
+          "block w-full border-b px-0.5",
+          sharp || compact
+            ? "border-border pb-2"
+            : "border-border/35 pb-3 font-heading text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
         )}
       >
-        {legend}
+        {sharp || compact ? (
+          <span className="flex items-baseline gap-2">
+            {indexLabel ? (
+              <span className="font-mono text-[10px] font-medium tabular-nums tracking-tight text-foreground/35">
+                {indexLabel}
+              </span>
+            ) : null}
+            <span className="text-[11px] font-semibold tracking-tight text-foreground/70">
+              {legend}
+            </span>
+          </span>
+        ) : (
+          legend
+        )}
       </legend>
       {hint ? (
         <p
           className={cn(
-            "px-0.5 text-muted-foreground/90",
-            compact ? "text-[11px] leading-snug" : "text-xs leading-relaxed",
+            "px-0.5",
+            sharp || compact
+              ? "text-[11px] font-normal leading-snug text-foreground/45"
+              : "text-xs leading-relaxed text-muted-foreground/90",
           )}
         >
           {hint}
         </p>
       ) : null}
-      <div className={cn(compact ? "space-y-2" : "space-y-3 pl-1 pt-1")}>{children}</div>
+      <div
+        className={cn(
+          compact || sharp ? "space-y-2.5" : "space-y-3 pl-1 pt-1",
+        )}
+      >
+        {children}
+      </div>
     </fieldset>
+  );
+}
+
+/** Continuous bordered sheet for stacking {@link FormDrawerFields} with embedded */
+export function FormDrawerSheet({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col divide-y divide-border overflow-hidden rounded-none border border-border bg-background shadow-none",
+        className,
+      )}
+    >
+      {children}
+    </div>
   );
 }

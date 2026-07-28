@@ -65,6 +65,7 @@ import {
   detailPanelKind,
   detailPanelTone,
   detailActionBtnPrimaryClass,
+  detailBadgeClass,
   detailSectionClass,
   detailSectionHeadClass,
   detailSectionLabelClass,
@@ -75,6 +76,7 @@ import {
   detailFieldValueClass,
   detailStickyBarClass,
   detailStatValueClass,
+  detailMetaClass,
 } from "./product-detail-styles";
 
 type Props = {
@@ -438,7 +440,7 @@ export function ProductDetailPanel(props: Props) {
         className={cn(
           detailStatCellClass(highlight),
           detailMetricCellWrapClass,
-          isEditing && "bg-muted/50 ring-1 ring-inset ring-primary/25",
+          isEditing && "bg-muted/40 ring-1 ring-inset ring-border",
         )}
       >
         <p className={detailFieldLabelClass}>{label}</p>
@@ -447,7 +449,7 @@ export function ProductDetailPanel(props: Props) {
             {opts.editContent}
           </div>
         ) : isEditing ? (
-          <p className={cn(detailStatValueClass, "text-sm font-medium text-primary")}>
+          <p className={cn(detailStatValueClass, "text-[12px] font-medium text-foreground/50")}>
             Editing…
           </p>
         ) : (
@@ -464,7 +466,7 @@ export function ProductDetailPanel(props: Props) {
             className={cn(
               "group/stat mt-0.5 w-full text-left",
               opts.canEdit &&
-                "cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+                "cursor-pointer transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/30",
               !opts.canEdit && "cursor-default",
             )}
           >
@@ -472,20 +474,20 @@ export function ProductDetailPanel(props: Props) {
               className={cn(
                 detailStatValueClass,
                 opts.isEmpty
-                  ? "text-xs font-medium text-muted-foreground"
-                  : "text-sm font-semibold",
+                  ? "text-[11px] font-medium text-foreground/35"
+                  : "text-[13px] font-semibold",
                 opts.valueClass,
               )}
             >
               {display}
             </p>
             {opts.hint ? (
-              <p className="mt-0.5 text-[9px] tabular-nums leading-snug text-muted-foreground">
+              <p className="mt-0.5 text-[10px] tabular-nums leading-snug text-foreground/40">
                 {opts.hint}
               </p>
             ) : null}
             {opts.canEdit ? (
-              <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-medium text-primary/80 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/stat:opacity-100 sm:group-focus-visible/stat:opacity-100">
+              <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-medium text-foreground/40 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/stat:opacity-100 sm:group-focus-visible/stat:opacity-100">
                 <Pencil className="size-2.5" aria-hidden />
                 Tap to edit
               </span>
@@ -557,34 +559,22 @@ export function ProductDetailPanel(props: Props) {
       <div
         className={cn(
           detailHeroClass,
-          panelTone.heroGradient,
-          panelTone.heroRing,
-          mobileAppLayout && "border-0 bg-transparent p-0 shadow-none ring-0 sm:p-0",
+          mobileAppLayout && "border-0 bg-transparent p-0 shadow-none sm:p-0",
         )}
       >
-        {!mobileAppLayout ? (
-          <span
-            className={cn(
-              "pointer-events-none absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full",
-              panelTone.accent,
-            )}
-            aria-hidden
-          />
-        ) : null}
         <div
           className={cn(
-            "flex items-start gap-2",
-            !mobileAppLayout && "pl-2",
+            "flex items-start gap-2.5",
             mobileAppLayout && "gap-3",
           )}
         >
           {isParentish && !thumbUrl ? (
             <span
               className={cn(
-                "flex shrink-0 items-center justify-center border border-dashed font-bold tracking-tight",
+                "flex shrink-0 items-center justify-center rounded-none border border-dashed font-semibold tracking-tight",
                 mobileAppLayout
                   ? "size-14 text-base"
-                  : "size-10 text-sm sm:size-12",
+                  : "size-10 text-sm sm:size-11",
                 panelTone.accentLight,
               )}
             >
@@ -593,8 +583,8 @@ export function ProductDetailPanel(props: Props) {
           ) : (
             <div
               className={cn(
-                "relative shrink-0 overflow-hidden border border-border/50 bg-muted",
-                mobileAppLayout ? "size-14" : "size-10 sm:size-12",
+                "relative shrink-0 overflow-hidden rounded-none border border-border bg-muted",
+                mobileAppLayout ? "size-14" : "size-10 sm:size-11",
               )}
             >
               {thumbUrl ? (
@@ -608,48 +598,41 @@ export function ProductDetailPanel(props: Props) {
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <Package
-                    className="size-6 text-muted-foreground/40"
+                    className="size-5 text-foreground/30"
                     aria-hidden
                   />
                 </div>
               )}
             </div>
           )}
-          <div className="min-w-0 flex-1 space-y-1">
+          <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap gap-1">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 border px-2 py-0.5 text-[10px] font-semibold",
-                  panelTone.badge,
-                )}
-              >
+              <span className={cn(detailBadgeClass, panelTone.badge)}>
                 <KindIcon className="size-2.5" aria-hidden />
                 {kindLabel}
               </span>
               {detail.active === false && (
-                <span className="inline-flex items-center border border-destructive/25 bg-destructive/5 px-2 py-0.5 text-[10px] font-medium text-destructive">
+                <span className={cn(detailBadgeClass, "border-destructive/30 text-destructive")}>
                   Inactive
                 </span>
               )}
               {!mobileAppLayout && detail.webPublished ? (
-                <span className="inline-flex items-center border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-medium text-primary">
-                  Online
-                </span>
+                <span className={detailBadgeClass}>Online</span>
               ) : null}
               {isStorefrontFeatured && (
-                <span className="inline-flex items-center gap-0.5 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-200">
+                <span className={detailBadgeClass}>
                   <Star className="size-2.5 fill-current" aria-hidden />
                   Featured
                 </span>
               )}
               {sharedStock && (
-                <span className="inline-flex items-center gap-0.5 border border-primary/25 bg-primary/8 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                <span className={detailBadgeClass}>
                   <Boxes className="size-2.5" aria-hidden />
                   Package
                 </span>
               )}
               {detail.isWeighed === true && (
-                <span className="inline-flex items-center gap-0.5 border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+                <span className={detailBadgeClass}>
                   <Scale className="size-2.5" aria-hidden />
                   By weight
                 </span>
@@ -658,8 +641,7 @@ export function ProductDetailPanel(props: Props) {
             {!mobileAppLayout ? (
               <h3
                 className={cn(
-                  "text-base font-semibold leading-snug tracking-tight text-foreground sm:text-[15px]",
-                  isParentish && "capitalize",
+                  "text-[15px] font-semibold leading-snug tracking-tight text-foreground",
                   displayName.needsNameFix &&
                     "text-amber-800 dark:text-amber-300",
                 )}
@@ -667,41 +649,39 @@ export function ProductDetailPanel(props: Props) {
                 {heroTitle}
               </h3>
             ) : null}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+            <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-0.5", detailMetaClass)}>
               {detail.sku && (
-                <span className="font-mono font-medium text-foreground/90">
+                <span className="font-mono text-[11px] font-medium text-foreground/80">
                   {detail.sku}
                 </span>
               )}
               {detail.barcode && (
-                <span className="font-mono opacity-75">{detail.barcode}</span>
+                <span className="font-mono text-[11px] text-foreground/40">
+                  {detail.barcode}
+                </span>
               )}
               {detail.brand && (
-                <span className="border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-foreground/85">
-                  {detail.brand}
-                </span>
+                <span className={detailBadgeClass}>{detail.brand}</span>
               )}
               {detail.size && (
-                <span className="border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-foreground/85">
-                  {detail.size}
-                </span>
+                <span className={detailBadgeClass}>{detail.size}</span>
               )}
               {detail.variantName && (
-                <span className="font-medium text-violet-700 dark:text-violet-300">
+                <span className="text-[11px] font-medium tracking-tight text-foreground/70">
                   {detail.variantName}
                 </span>
               )}
             </div>
             {isChildVariant && variantParentDisplayName && parentProductId ? (
-              <p className="text-[11px] leading-snug text-muted-foreground">
+              <p className={cn(detailMetaClass, "leading-snug")}>
                 One of{" "}
-                <span className="tabular-nums font-medium text-foreground">
+                <span className="tabular-nums text-foreground/80">
                   {Math.max(variantRows.length, 1)}
                 </span>{" "}
                 SKUs under{" "}
                 <button
                   type="button"
-                  className="font-medium text-primary underline-offset-2 hover:underline"
+                  className="font-medium text-foreground underline-offset-2 hover:underline"
                   onClick={() => selectProduct(parentProductId)}
                 >
                   {variantParentDisplayName}
@@ -809,20 +789,20 @@ export function ProductDetailPanel(props: Props) {
         <div
           className={cn(
             detailPackageCardClass,
-            "flex flex-wrap items-center gap-2 border-violet-500/25 p-2 ring-violet-500/15",
+            "flex flex-wrap items-center gap-2",
           )}
         >
           <Boxes
-            className="size-4 shrink-0 text-violet-600 dark:text-violet-300"
+            className="size-3.5 shrink-0 text-foreground/40"
             aria-hidden
           />
-          <p className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">
-            <span className="font-semibold text-foreground">Package SKU</span>
+          <p className={cn("min-w-0 flex-1 leading-snug", detailMetaClass)}>
+            <span className="font-medium text-foreground/80">Package SKU</span>
             {unitsPerPackage != null ? (
               <>
                 {" "}
                 ·{" "}
-                <span className="tabular-nums font-semibold text-foreground">
+                <span className="tabular-nums text-foreground/80">
                   {unitsPerPackage}
                 </span>{" "}
                 units from {variantParentDisplayName ?? "parent"}
@@ -834,7 +814,7 @@ export function ProductDetailPanel(props: Props) {
               type="button"
               variant="outline"
               size="sm"
-              className="h-7 rounded-md px-2 text-[10px]"
+              className="h-7 px-2 text-[10px] shadow-none"
               onClick={() => setActiveDrawer("edit-product")}
             >
               Edit
@@ -843,7 +823,7 @@ export function ProductDetailPanel(props: Props) {
               <Button
                 type="button"
                 size="sm"
-                className="h-7 gap-1 rounded-md px-2 text-[10px]"
+                className="h-7 gap-1 px-2 text-[10px] shadow-none"
                 onClick={onOpenBaseStock}
               >
                 <PackagePlus className="size-3" aria-hidden />
@@ -858,12 +838,12 @@ export function ProductDetailPanel(props: Props) {
       <section id="product-commerce" className={detailSectionClass}>
         <header className={detailSectionHeadClass}>
           <CircleDollarSign
-            className="size-3.5 text-muted-foreground/70"
+            className="size-3.5 text-foreground/35"
             aria-hidden
           />
           <span className={detailSectionLabelClass}>Commerce</span>
           {stockLow ? (
-            <span className="ml-auto border border-destructive/30 bg-destructive/8 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+            <span className={cn(detailBadgeClass, "ml-auto border-destructive/30 text-destructive")}>
               Low stock
             </span>
           ) : null}
@@ -1090,26 +1070,26 @@ export function ProductDetailPanel(props: Props) {
           {canAddPackageSales || packageVariants.length > 0 ? (
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
               <Boxes
-                className="size-3.5 shrink-0 text-muted-foreground"
+                className="size-3.5 shrink-0 text-foreground/40"
                 aria-hidden
               />
-              <span className="truncate text-[11px] text-muted-foreground">
+              <span className={cn("truncate", detailMetaClass)}>
                 {packageVariants.length > 0 ? (
                   <>
-                    <span className="font-semibold tabular-nums text-foreground">
+                    <span className="tabular-nums text-foreground/80">
                       {packageVariants.length}
                     </span>{" "}
                     package size{packageVariants.length === 1 ? "" : "s"}
                   </>
                 ) : (
-                  <span className="text-muted-foreground">No package sizes</span>
+                  <span>No package sizes</span>
                 )}
               </span>
               {canAddPackageSales && packageVariants.length === 0 ? (
                 <Button
                   type="button"
                   size="sm"
-                  className="ml-auto h-7 shrink-0 gap-1 rounded-md px-2 text-[10px]"
+                  className="ml-auto h-7 shrink-0 gap-1 px-2 text-[10px] shadow-none"
                   onClick={onOpenPackageSales}
                 >
                   <PackagePlus className="size-3" aria-hidden />
@@ -1123,16 +1103,11 @@ export function ProductDetailPanel(props: Props) {
               className={cn(
                 "flex items-center gap-1.5",
                 (canAddPackageSales || packageVariants.length > 0) &&
-                  "border-l border-border/50 pl-3",
+                  "border-l border-border pl-3",
               )}
             >
               <Scale
-                className={cn(
-                  "size-3.5 shrink-0",
-                  detail.isWeighed === true
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-muted-foreground",
-                )}
+                className="size-3.5 shrink-0 text-foreground/40"
                 aria-hidden
               />
               <button
@@ -1140,11 +1115,9 @@ export function ProductDetailPanel(props: Props) {
                 disabled={weighedBusy}
                 onClick={onToggleWeighed}
                 className={cn(
-                  "inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-semibold transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
-                  detail.isWeighed === true
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
-                    : "border-border bg-background text-muted-foreground hover:text-foreground",
+                  detailActionBtnPrimaryClass,
+                  detail.isWeighed === true &&
+                    "border-foreground bg-foreground text-background hover:bg-foreground hover:text-background",
                   weighedBusy && "opacity-60",
                 )}
                 title={
@@ -1195,7 +1168,7 @@ export function ProductDetailPanel(props: Props) {
           onClick={() => setVariantsOpen((o) => !o)}
           aria-expanded={variantsOpen}
         >
-          <Layers className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+          <Layers className="size-3.5 shrink-0 text-foreground/35" aria-hidden />
           <span className={detailSectionLabelClass}>
             {isChildVariant
               ? "Sibling SKUs"
@@ -1204,25 +1177,25 @@ export function ProductDetailPanel(props: Props) {
                 : "SKUs & variants"}
           </span>
           {variantCountLabel ? (
-            <span className="bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-foreground">
+            <span className={cn(detailBadgeClass, "tabular-nums")}>
               {variantCountLabel}
             </span>
           ) : null}
-          <span className="ml-auto">
+          <span className="ml-auto text-foreground/35">
             {variantsOpen ? (
-              <ChevronUp className="size-4 text-muted-foreground" aria-hidden />
+              <ChevronUp className="size-4" aria-hidden />
             ) : (
-              <ChevronDown className="size-4 text-muted-foreground" aria-hidden />
+              <ChevronDown className="size-4" aria-hidden />
             )}
           </span>
         </button>
         {variantsOpen ? (
           <>
             {isChildVariant && variantParentDisplayName ? (
-              <div className="border-t border-border/40 bg-violet-500/[0.04] px-3 py-2">
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
+              <div className="border-t border-border bg-muted/15 px-3 py-2">
+                <p className={cn("leading-relaxed", detailMetaClass)}>
                   More sizes or options for{" "}
-                  <span className="font-medium text-foreground">
+                  <span className="text-foreground/80">
                     {variantParentDisplayName}
                   </span>
                   . New siblings share the same parent in your catalog.
@@ -1232,7 +1205,7 @@ export function ProductDetailPanel(props: Props) {
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="mt-2 h-8 gap-1.5 rounded-lg border-violet-500/25 bg-background text-xs"
+                    className="mt-2 h-8 gap-1.5 text-xs shadow-none"
                     onClick={openAddVariant}
                   >
                     <GitBranchPlus className="size-3.5" aria-hidden />
@@ -1244,12 +1217,12 @@ export function ProductDetailPanel(props: Props) {
             {!isChildVariant &&
             (canCatalogWrite ||
               (canAddPackageSales && packageVariants.length > 0)) ? (
-              <div className="flex flex-wrap gap-2 border-t border-border/40 bg-muted/15 px-3 py-1.5">
+              <div className="flex flex-wrap gap-1.5 border-t border-border bg-muted/10 px-3 py-1.5">
                 {canAddPackageSales && packageVariants.length > 0 ? (
                   <Button
                     type="button"
                     size="sm"
-                    className="h-7 gap-1 rounded-md text-[11px]"
+                    className="h-7 gap-1 text-[11px] shadow-none"
                     onClick={onOpenPackageSales}
                   >
                     <Boxes className="size-3.5" aria-hidden />
@@ -1261,7 +1234,7 @@ export function ProductDetailPanel(props: Props) {
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-7 gap-1 rounded-md text-[11px]"
+                    className="h-7 gap-1 text-[11px] shadow-none"
                     onClick={openAddVariant}
                   >
                     <PackagePlus className="size-3.5" aria-hidden />
@@ -1285,7 +1258,7 @@ export function ProductDetailPanel(props: Props) {
                 </div>
               </div>
             ) : (
-              <div className="divide-y divide-border/40 border-t border-border/40 bg-background/50">
+              <div className="divide-y divide-border border-t border-border bg-background">
                 {variantRows.map((v) => {
                   const vThumb = itemListThumbnailUrl(v);
                   const vSelected = selectedId === v.id;
@@ -1311,7 +1284,7 @@ export function ProductDetailPanel(props: Props) {
                       }
                     }}
                   >
-                    <div className="relative size-6 shrink-0 overflow-hidden border border-border/60 bg-muted">
+                    <div className="relative size-6 shrink-0 overflow-hidden rounded-none border border-border bg-muted">
                       {vThumb ? (
                         <Image
                           src={vThumb}
@@ -1335,7 +1308,7 @@ export function ProductDetailPanel(props: Props) {
                           {v.variantName?.trim() || v.name}
                         </p>
                         {v.packageVariant ? (
-                          <span className="inline-flex shrink-0 items-center gap-0.5 border border-primary/20 bg-primary/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
+                          <span className={cn(detailBadgeClass, "uppercase tracking-[0.08em]")}>
                             <Boxes className="size-2.5" aria-hidden />
                             Pack
                           </span>

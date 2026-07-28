@@ -3,7 +3,11 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { productFormSectionToggleClass } from "./product-form-styles";
+import {
+  productFormHintClass,
+  productFormSectionToggleClass,
+  productFormSectionToggleLabelClass,
+} from "./product-form-styles";
 
 type Props = {
   icon: React.ElementType;
@@ -28,34 +32,26 @@ export function ProductFormSectionToggle({
       onClick={onToggle}
       className={cn(
         productFormSectionToggleClass,
-        expanded
-          ? "border-primary/20 bg-primary/[0.04] ring-1 ring-primary/10"
-          : "border-border/55 bg-muted/20 hover:border-border hover:bg-muted/30",
+        expanded ? "bg-muted/25" : "bg-transparent hover:bg-muted/15",
       )}
       aria-expanded={expanded}
     >
       <div
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors",
-          expanded ? "bg-primary/12 text-primary" : "bg-muted text-muted-foreground",
+          "flex size-9 shrink-0 items-center justify-center rounded-none border border-border transition-colors",
+          expanded ? "bg-foreground text-background" : "bg-muted/40 text-foreground/50",
         )}
       >
         <Icon className="size-4" aria-hidden />
       </div>
       <div className="min-w-0 flex-1 text-left">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold tracking-tight text-foreground">
-            {label}
-          </span>
+          <span className={productFormSectionToggleLabelClass}>{label}</span>
           {badge}
         </div>
-        {hint ? (
-          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-            {hint}
-          </p>
-        ) : null}
+        {hint ? <p className={cn(productFormHintClass, "mt-0.5")}>{hint}</p> : null}
       </div>
-      <div className="shrink-0 text-muted-foreground">
+      <div className="shrink-0 text-foreground/40">
         {expanded ? (
           <ChevronDown className="size-4" aria-hidden />
         ) : (

@@ -481,17 +481,17 @@ export function ProductsWorkspace() {
                 canAddFromCatalog={canGlobalCatalog}
                 />
               </div>
-              <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border/50">
+              <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border">
                 {D ? (
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 sm:p-2.5">
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-0">
                     <ProductDetailPanel {...p} />
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center gap-1.5 px-3 py-6 text-center">
-                    <div className="flex size-8 items-center justify-center border border-dashed border-border bg-muted/50">
-                      <MousePointerClick className="size-3.5 text-muted-foreground" />
+                  <div className="flex flex-col items-center justify-center gap-1.5 px-3 py-8 text-center">
+                    <div className="flex size-8 items-center justify-center rounded-none border border-dashed border-border bg-muted/40">
+                      <MousePointerClick className="size-3.5 text-foreground/35" />
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-[11px] font-medium tracking-tight text-foreground/45">
                       Select a product from the list
                     </p>
                   </div>

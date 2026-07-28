@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   productFormGrid2Class,
+  productFormHintClass,
   productFormInputClass,
   productFormLabelClass,
+  productFormRequiredClass,
+  productFormSectionTitleClass,
 } from "./product-form-styles";
 import { type PackageDraft, emptyPackageDraft } from "../_types";
 
@@ -33,10 +36,14 @@ function Label({
   required?: boolean;
 }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className={productFormLabelClass}>
+    <label className="flex flex-col gap-1.5">
+      <span className={cn(productFormLabelClass, "flex items-center gap-1")}>
         {title}
-        {required ? <span className="text-destructive"> *</span> : null}
+        {required ? (
+          <span className={productFormRequiredClass} aria-hidden>
+            *
+          </span>
+        ) : null}
       </span>
       {children}
     </label>
@@ -75,7 +82,7 @@ export function PackageVariantsSection({
       className={cn(
         showEnableToggle &&
           cn(
-            "rounded-lg border border-border/55 bg-muted/10 p-2.5 shadow-sm ring-1 ring-black/[0.02]",
+            "rounded-none border border-border bg-muted/10 p-2.5 shadow-none",
             compact && "p-2",
           ),
         className,
@@ -85,19 +92,19 @@ export function PackageVariantsSection({
         <label className="flex cursor-pointer items-start gap-2">
           <input
             type="checkbox"
-            className={cn("size-4 rounded border-input", compact ? "mt-0.5" : "mt-1")}
+            className={cn("size-4 rounded-none border-input", compact ? "mt-0.5" : "mt-1")}
             checked={enabled}
             onChange={(e) => onEnabledChange(e.target.checked)}
           />
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <Boxes className="size-3.5 text-primary" />
+            <span className="flex items-center gap-1.5 text-[13px] font-semibold tracking-tight text-foreground">
+              <Boxes className="size-3.5 text-foreground/50" />
               Sell in different units
             </span>
             <span
               className={cn(
-                "mt-0.5 block text-muted-foreground",
-                compact ? "text-[11px] leading-snug" : "text-xs leading-relaxed",
+                productFormHintClass,
+                "mt-0.5 block",
               )}
             >
               {compact
@@ -118,17 +125,17 @@ export function PackageVariantsSection({
           {rows.map((row, index) => (
             <div
               key={index}
-              className="rounded-xl border border-border/50 bg-card/80 p-3 shadow-sm"
+              className="rounded-none border border-border bg-background p-3 shadow-none"
             >
               <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Package {index + 1}
+                <span className={productFormSectionTitleClass}>
+                  Package {String(index + 1).padStart(2, "0")}
                 </span>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 text-xs text-muted-foreground"
+                  className="h-7 gap-1 text-[11px] font-medium text-foreground/50"
                   onClick={() => removeRow(index)}
                 >
                   <Trash2 className="size-3" />
@@ -184,7 +191,7 @@ export function PackageVariantsSection({
                 </Label>
               </div>
               {row.unitsPerPackage.trim() && Number(row.unitsPerPackage) > 0 ? (
-                <p className="mt-2 text-[11px] text-muted-foreground">
+                <p className={cn(productFormHintClass, "mt-2")}>
                   Selling 1× {row.name.trim() || "this package"} deducts{" "}
                   <span className="font-semibold tabular-nums text-foreground">
                     {row.unitsPerPackage}

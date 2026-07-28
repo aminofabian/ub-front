@@ -1,6 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveCatalogVariantListTitle } from "./catalog-display";
+import {
+  normalizeProductDisplayName,
+  resolveCatalogVariantListTitle,
+} from "./catalog-display";
+
+describe("normalizeProductDisplayName", () => {
+  it("title-cases all-lower and all-upper names", () => {
+    expect(normalizeProductDisplayName("coca cola 2 litre")).toBe("Coca Cola 2L");
+    expect(normalizeProductDisplayName("CLUB SODA")).toBe("Club Soda");
+    expect(normalizeProductDisplayName("COCA COLA")).toBe("Coca Cola");
+  });
+
+  it("normalizes glued size units", () => {
+    expect(normalizeProductDisplayName("Pina Colada 350ML")).toBe(
+      "Pina Colada 350ml",
+    );
+    expect(normalizeProductDisplayName("Sprite 2Litres")).toBe("Sprite 2L");
+    expect(normalizeProductDisplayName("Tangawizi 90G")).toBe("Tangawizi 90g");
+    expect(normalizeProductDisplayName("Coca Cola 2L")).toBe("Coca Cola 2L");
+  });
+
+  it("keeps known acronyms", () => {
+    expect(normalizeProductDisplayName("LED TV 32")).toBe("LED TV 32");
+  });
+});
 
 describe("resolveCatalogVariantListTitle", () => {
   it("shows family · option when parent is not in the list (search hits)", () => {

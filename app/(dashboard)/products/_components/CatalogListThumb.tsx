@@ -1,9 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { Package } from "lucide-react";
-
-import { cn } from "@/lib/utils";
 
 import {
   catalogListThumbFrameClass,
@@ -23,16 +20,16 @@ type Props = {
 };
 
 const THUMB_SIZES: Record<CatalogRowKind, string> = {
-  group: "24px",
-  standalone: "24px",
-  variant: "20px",
+  group: "20px",
+  standalone: "20px",
+  variant: "16px",
 };
 
 export function CatalogListThumb({
   src,
   titleInitial,
   kind,
-  tone,
+  tone: _tone,
   isActive,
   isInactive,
 }: Props) {
@@ -46,41 +43,16 @@ export function CatalogListThumb({
       })}
     >
       {src ? (
-        <>
-          <Image
-            src={src}
-            alt=""
-            fill
-            sizes={sizes}
-            className={catalogListThumbImageClass}
-          />
-          <span
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/[0.12] via-transparent to-white/[0.06] mix-blend-normal"
-            aria-hidden
-          />
-        </>
+        <Image
+          src={src}
+          alt=""
+          fill
+          sizes={sizes}
+          className={catalogListThumbImageClass}
+        />
       ) : (
-        <span
-          className={cn(
-            catalogListThumbPlaceholderClass,
-          )}
-        >
-          {kind === "variant" ? (
-            <Package
-              className="size-3.5 text-muted-foreground/40"
-              aria-hidden
-            />
-          ) : (
-            <span
-              className={cn(
-                "flex h-full w-full items-center justify-center border border-dashed font-bold tracking-tight",
-                tone.accentLight,
-                kind === "group" ? "text-sm" : "text-xs",
-              )}
-            >
-              {titleInitial}
-            </span>
-          )}
+        <span className={catalogListThumbPlaceholderClass}>
+          {titleInitial}
         </span>
       )}
     </span>

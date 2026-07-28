@@ -88,12 +88,14 @@ export function VariantParentPickDrawer({
       title="Add variant"
       description="Search for the parent product or group label, then add option SKUs under it."
       contextLabel="Catalog"
-      icon={<Layers className="size-5 text-primary" aria-hidden />}
+      appearance="sharp"
+      headerDensity="compact"
+      icon={<Layers className="size-3.5 text-primary" aria-hidden />}
       width="default"
     >
-      <div className="space-y-4">
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-foreground">
+      <div className="space-y-3">
+        <label className="block space-y-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
             Parent product
           </span>
           <div className="relative">
@@ -108,7 +110,7 @@ export function VariantParentPickDrawer({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name or SKU…"
-              className={cn(dashboardInputClass(busy), "h-10 py-2 pl-9 pr-3")}
+              className={cn(dashboardInputClass(busy), "h-10 rounded-none py-2 pl-9 pr-3 shadow-none")}
             />
           </div>
         </label>
@@ -126,7 +128,7 @@ export function VariantParentPickDrawer({
 
         {hits.length > 0 ? (
           <ul
-            className="max-h-[min(24rem,50vh)] overflow-y-auto rounded-xl border border-border/80 bg-card shadow-sm"
+            className="max-h-[min(24rem,50vh)] overflow-y-auto rounded-none border border-border bg-background shadow-none"
             role="listbox"
             aria-label="Parent products"
           >
