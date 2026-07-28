@@ -130,6 +130,38 @@ export async function fetchSokoMindRouteGuide(
   );
 }
 
+export type PriceRadarRecord = {
+  itemId: string;
+  itemName: string | null;
+  cost: number | string | null;
+  currentSell: number | string | null;
+  ruleSuggestedSell: number | string | null;
+  marginPercent: number | string | null;
+  ruleName: string | null;
+  globalRecommendedBuy: number | string | null;
+  globalRecommendedSell: number | string | null;
+  bandLow: number | string | null;
+  bandMid: number | string | null;
+  bandHigh: number | string | null;
+  stance: string;
+  rationale: string;
+  signals: string[];
+  note: string | null;
+};
+
+export async function fetchPriceRadar(
+  itemId: string,
+  opts?: { supplierId?: string; branchId?: string; unitCost?: number | null },
+): Promise<PriceRadarRecord> {
+  const params = new URLSearchParams({ itemId: itemId.trim() });
+  if (opts?.supplierId?.trim()) params.set("supplierId", opts.supplierId.trim());
+  if (opts?.branchId?.trim()) params.set("branchId", opts.branchId.trim());
+  if (opts?.unitCost != null && Number.isFinite(opts.unitCost) && opts.unitCost > 0) {
+    params.set("unitCost", String(opts.unitCost));
+  }
+  return apiRequest<PriceRadarRecord>(`${API_ROUTES.aiPriceRadar}?${params.toString()}`);
+}
+
 export async function sendSokoMindChat(body: {
   message: string;
   skill?: string;

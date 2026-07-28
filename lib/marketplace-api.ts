@@ -1308,3 +1308,81 @@ export async function rejectMarketplaceProductEdit(
     { method: "POST", body: JSON.stringify({ note: note || undefined }) },
   );
 }
+
+// ─── SokoMind Guide (supplier portal) ─────────────────────────────────
+
+export type SupplierPortalAiStatus = {
+  enabled: boolean;
+  guideEnabled: boolean;
+  brainEnabled: boolean;
+  eyeEnabled: boolean;
+  providerConfigured: boolean;
+  primaryProvider: string;
+  defaultLocale: string;
+};
+
+export type SupplierPortalAiRouteGuide = {
+  surface: string;
+  title: string;
+  summary: string;
+  suggestions: string[];
+};
+
+export type SupplierPortalAiChatResponse = {
+  requestId: string;
+  reply: string;
+  skill: string;
+  surface: string;
+  suggestions: string[];
+  provider: string;
+  model: string;
+  latencyMs: number;
+  toolsUsed?: string[];
+  usedLiveData?: boolean;
+  draftBody?: string | null;
+};
+
+export async function fetchSupplierPortalAiStatus(): Promise<SupplierPortalAiStatus> {
+  return supplierPortalFetch<SupplierPortalAiStatus>(API_ROUTES.supplierPortalAiStatus);
+}
+
+export async function fetchSupplierPortalAiRouteGuide(
+  route: string,
+  surface?: string,
+): Promise<SupplierPortalAiRouteGuide> {
+  const params = new URLSearchParams();
+  if (route) params.set("route", route);
+  if (surface) params.set("surface", surface);
+  const qs = params.toString();
+  return supplierPortalFetch<SupplierPortalAiRouteGuide>(
+    `${API_ROUTES.supplierPortalAiRouteGuide}${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function sendSupplierPortalAiChat(body: {
+  message: string;
+  skill?: string;
+  context?: {
+    surface?: string;
+    route?: string;
+    locale?: string;
+    entities?: Record<string, string>;
+    uiHints?: string[];
+  };
+  history?: { role: "user" | "assistant"; content: string }[];
+}): Promise<SupplierPortalAiChatResponse> {
+  return supplierPortalFetch<SupplierPortalAiChatResponse>(API_ROUTES.supplierPortalAiChat, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function sendSupplierPortalAiFeedback(
+  requestId: string,
+  feedback: "up" | "down",
+): Promise<void> {
+  await supplierPortalFetch(API_ROUTES.supplierPortalAiFeedback, {
+    method: "POST",
+    body: JSON.stringify({ requestId, feedback }),
+  });
+}

@@ -11,6 +11,7 @@ import {
   DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
+import { PriceRadarCard } from "@/components/price-radar-card";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -551,6 +552,13 @@ export default function PricingPage() {
                 ) : null}
               </dl>
             </FormDrawerFields>
+          ) : null}
+          {suggestItemId.trim() ? (
+            <PriceRadarCard
+              className="mt-3"
+              itemId={suggestItemId.trim()}
+              supplierId={suggestSupplierId.trim() || undefined}
+            />
           ) : null}
         </FormDrawer>
       ) : null}

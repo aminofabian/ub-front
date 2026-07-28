@@ -13,6 +13,7 @@ import {
   spEyebrow,
   spShellBg,
 } from "@/components/supplier-portal/supplier-portal-ui";
+import { SupplierPortalSokoMindGuide } from "@/components/supplier-portal/supplier-portal-sokomind-guide";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchSupplierPortalCapabilities,
@@ -243,6 +244,7 @@ export function SupplierPortalShell({ children }: { children: React.ReactNode })
         </header>
         <main className="flex-1 px-3 py-5 sm:px-5 lg:px-7 lg:py-7">{children}</main>
       </div>
+      <SupplierPortalSokoMindGuide />
     </div>
   );
 }
