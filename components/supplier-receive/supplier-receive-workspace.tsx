@@ -206,6 +206,77 @@ function parseNonNeg(raw: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
+/** Unit cost from line total ÷ qty, preferring 2dp when it still reproduces total. */
+function unitCostFromTotal(total: number, qty: number): string {
+  if (!(qty > 0) || !Number.isFinite(total) || total < 0) return "";
+  const unit = total / qty;
+  const u2 = Math.round(unit * 100) / 100;
+  if (Math.abs(u2 * qty - total) < 0.005) return u2.toFixed(2);
+  const u4 = Math.round(unit * 10_000) / 10_000;
+  if (Math.abs(Math.round(u4 * qty * 100) / 100 - total) < 0.005) {
+    return String(u4);
+  }
+  return unit.toFixed(6).replace(/\.?0+$/, "");
+}
+
+function ManifestLineTotalInput({
+  qty,
+  unitCost,
+  disabled,
+  onCommitTotal,
+}: {
+  qty: number;
+  unitCost: number;
+  disabled?: boolean;
+  onCommitTotal: (total: number) => void;
+}) {
+  const derived = Math.round(qty * unitCost * 100) / 100;
+  const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  return (
+    <label className="space-y-0.5">
+      <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        Total
+      </span>
+      <input
+        className={cn(
+          fieldCompact,
+          "bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]",
+        )}
+        inputMode="decimal"
+        disabled={disabled}
+        value={focused ? draft : derived.toFixed(2)}
+        onFocus={() => {
+          setFocused(true);
+          setDraft(derived.toFixed(2));
+        }}
+        onChange={(e) => {
+          const next = e.target.value;
+          setDraft(next);
+          const total = parseNonNeg(next);
+          if (total != null && qty > 0) onCommitTotal(total);
+        }}
+        onBlur={() => {
+          setFocused(false);
+          const total = parseNonNeg(draft);
+          if (total == null) return;
+          if (!(qty > 0)) {
+            toast.error("Enter quantity first");
+            return;
+          }
+          onCommitTotal(total);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        aria-label="Line total"
+        title="Line total — unit cost is calculated from total ÷ qty"
+      />
+    </label>
+  );
+}
+
 function formatStock(n: number | null): string {
   if (n == null) return "—";
   return Number.isInteger(n)
@@ -1139,7 +1210,6 @@ function SupplyCartPanel({
             lines.map((line, index) => {
               const qty = parsePos(line.qtyStr) ?? 0;
               const cost = parseNonNeg(line.costStr) ?? 0;
-              const lineTotal = Math.round(qty * cost * 100) / 100;
               return (
                 <div
                   key={line.itemId}
@@ -1188,23 +1258,20 @@ function SupplyCartPanel({
                         }
                       />
                     </label>
-                    <label className="space-y-0.5">
-                      <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                        Cost
-                      </span>
-                      <input
-                        className={cn(
-                          fieldCompact,
-                          "bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]",
-                        )}
-                        inputMode="decimal"
-                        value={line.costStr}
-                        disabled={saving}
-                        onChange={(e) =>
-                          onPatch(line.itemId, { costStr: e.target.value })
+                    <ManifestLineTotalInput
+                      qty={qty}
+                      unitCost={cost}
+                      disabled={saving}
+                      onCommitTotal={(total) => {
+                        if (!(qty > 0)) {
+                          toast.error("Enter quantity first");
+                          return;
                         }
-                      />
-                    </label>
+                        onPatch(line.itemId, {
+                          costStr: unitCostFromTotal(total, qty),
+                        });
+                      }}
+                    />
                     {canSetSellPrice ? (
                       <label className="space-y-0.5">
                         <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
@@ -1222,13 +1289,18 @@ function SupplyCartPanel({
                       </label>
                     ) : null}
                   </div>
-                  <p className="text-right font-mono text-[11px] font-semibold tabular-nums text-foreground">
-                    {lineTotal.toLocaleString("en-KE", {
-                      minimumFractionDigits: 2,
-                    })}{" "}
-                    <span className="text-[9px] font-normal text-muted-foreground">
-                      {currency}
-                    </span>
+                  <p className="text-right font-mono text-[10px] tabular-nums text-muted-foreground">
+                    Unit{" "}
+                    <span className="font-semibold text-foreground">
+                      {(Number.isFinite(cost) ? cost : 0).toLocaleString(
+                        "en-KE",
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 4,
+                        },
+                      )}
+                    </span>{" "}
+                    {currency}
                   </p>
                 </div>
               );
