@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Banknote, Building2, DoorClosed } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,18 @@ import {
   type DenominationRecord,
   type ShiftRecord,
 } from "@/lib/api";
+import {
+  clearCloseShiftDraft,
+  clearOpenShiftDraft,
+  loadCloseShiftDraft,
+  loadOpenShiftDraft,
+  openShiftDraftHasProgress,
+  closeShiftDraftHasProgress,
+  persistedQuantitiesToRecord,
+  quantitiesRecordToPersisted,
+  saveCloseShiftDraft,
+  saveOpenShiftDraft,
+} from "@/lib/shift-draft-storage";
 import { isPrefillOpeningFromLastCloseEnabled } from "@/lib/shift-settings";
 import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -275,6 +287,8 @@ export function OpenShiftModal({
   const useDenomBreakdown = supportsCashDenominationBreakdown(currency);
   const prefillFromLastClose =
     isPrefillOpeningFromLastCloseEnabled(featureFlags);
+  const businessId = dashboard?.business?.id?.trim() ?? "";
+  const userId = dashboard?.me?.id?.trim() ?? "";
 
   const [branchId, setBranchId] = useState("");
   const [notes, setNotes] = useState("");
@@ -286,33 +300,73 @@ export function OpenShiftModal({
   const [loading, setLoading] = useState(false);
   const [prefillBusy, setPrefillBusy] = useState(false);
   const [prefillHint, setPrefillHint] = useState<string | null>(null);
+  /** When true, skip last-close API prefill — user draft takes priority. */
+  const [skipPrefillFromDraft, setSkipPrefillFromDraft] = useState(false);
+  const skipPersistRef = useRef(true);
 
   const lockedBranch = lockBranchSelectionTo?.trim() ?? "";
 
-  // Reset state when modal opens
+  // Restore draft or reset when modal opens.
   useEffect(() => {
-    if (open) {
-      const initial =
-        lockedBranch && branches.some((b) => b.id === lockedBranch)
-          ? lockedBranch
-          : preferredBranchId?.trim() &&
-              branches.some((b) => b.id === preferredBranchId.trim())
-            ? preferredBranchId.trim()
-            : "";
-      setBranchId(initial);
+    if (!open) return;
+    skipPersistRef.current = true;
+
+    const draft = loadOpenShiftDraft(businessId, userId);
+    const draftHasEntry =
+      draft != null && openShiftDraftHasProgress(draft);
+
+    const lockedOrPreferred =
+      lockedBranch && branches.some((b) => b.id === lockedBranch)
+        ? lockedBranch
+        : preferredBranchId?.trim() &&
+            branches.some((b) => b.id === preferredBranchId.trim())
+          ? preferredBranchId.trim()
+          : "";
+
+    if (draftHasEntry && draft) {
+      const draftBranch =
+        draft.branchId.trim() &&
+        branches.some((b) => b.id === draft.branchId.trim())
+          ? draft.branchId.trim()
+          : "";
+      setBranchId(lockedBranch || draftBranch || lockedOrPreferred);
+      setNotes(draft.notes ?? "");
+      setQuantities({
+        ...createEmptyDenominationQuantities(),
+        ...persistedQuantitiesToRecord(draft.quantities),
+      });
+      setCashTotalStr(draft.cashTotalStr ?? "");
+      setSkipPrefillFromDraft(true);
+      setPrefillHint("Restored your unfinished opening count.");
+    } else {
+      setBranchId(lockedOrPreferred);
       setNotes("");
       setQuantities(createEmptyDenominationQuantities());
       setCashTotalStr("");
-      setError("");
-      setLoading(false);
+      setSkipPrefillFromDraft(false);
       setPrefillHint(null);
-      setPrefillBusy(false);
     }
-  }, [open, preferredBranchId, branches, lockedBranch]);
+
+    setError("");
+    setLoading(false);
+    setPrefillBusy(false);
+
+    // Allow persist after this open-cycle hydrate settles.
+    const t = window.setTimeout(() => {
+      skipPersistRef.current = false;
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [open, preferredBranchId, branches, lockedBranch, businessId, userId]);
 
   // Prefill from last closed shift when admin has enabled the option.
   useEffect(() => {
-    if (!open || !prefillFromLastClose || !branchId || !useDenomBreakdown) {
+    if (
+      !open ||
+      !prefillFromLastClose ||
+      !branchId ||
+      !useDenomBreakdown ||
+      skipPrefillFromDraft
+    ) {
       return;
     }
     let cancelled = false;
@@ -350,7 +404,43 @@ export function OpenShiftModal({
     return () => {
       cancelled = true;
     };
-  }, [open, prefillFromLastClose, branchId, useDenomBreakdown]);
+  }, [
+    open,
+    prefillFromLastClose,
+    branchId,
+    useDenomBreakdown,
+    skipPrefillFromDraft,
+  ]);
+
+  // Persist unfinished opening count while the modal is open.
+  useEffect(() => {
+    if (!open || !businessId || !userId || skipPersistRef.current) {
+      return;
+    }
+    const draft = {
+      v: 1 as const,
+      updatedAt: Date.now(),
+      businessId,
+      userId,
+      branchId,
+      notes,
+      quantities: quantitiesRecordToPersisted(quantities),
+      cashTotalStr,
+    };
+    if (openShiftDraftHasProgress(draft)) {
+      saveOpenShiftDraft(draft);
+    } else {
+      clearOpenShiftDraft(businessId, userId);
+    }
+  }, [
+    open,
+    businessId,
+    userId,
+    branchId,
+    notes,
+    quantities,
+    cashTotalStr,
+  ]);
 
   const totalCash = useMemo(() => {
     if (!useDenomBreakdown) {
@@ -388,6 +478,7 @@ export function OpenShiftModal({
         notes: notes.trim() || null,
         denominations: entries.length > 0 ? entries : undefined,
       });
+      clearOpenShiftDraft(businessId, userId);
       onOpened(shift);
       onClose();
     } catch (e) {
@@ -401,6 +492,8 @@ export function OpenShiftModal({
     quantities,
     totalCash,
     useDenomBreakdown,
+    businessId,
+    userId,
     onOpened,
     onClose,
   ]);
@@ -760,6 +853,11 @@ export function CloseShiftModal({
   const roleKey = dashboard?.me?.role?.key?.trim().toLowerCase() ?? "";
   const canSeeCashVarianceDetail =
     roleKey === "owner" || roleKey === "admin";
+  const businessId = dashboard?.business?.id?.trim() ?? "";
+  const userId = dashboard?.me?.id?.trim() ?? "";
+  const skipPersistRef = useRef(true);
+  const userEditedRef = useRef(false);
+  const [draftRestoredHint, setDraftRestoredHint] = useState(false);
 
   const [quantities, setQuantities] = useState<Record<number, number>>(
     createEmptyDenominationQuantities(),
@@ -770,15 +868,49 @@ export function CloseShiftModal({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const setQuantitiesEdited = useCallback(
+    (next: Record<number, number>) => {
+      userEditedRef.current = true;
+      setQuantities(next);
+    },
+    [],
+  );
+
   useEffect(() => {
-    if (open && shift) {
-      // Pre-fill with opening quantities if no closing count yet
+    if (!open || !shift) return;
+    skipPersistRef.current = true;
+    userEditedRef.current = false;
+
+    const openingTotal =
+      typeof shift.openingCash === "number"
+        ? shift.openingCash
+        : Number(shift.openingCash ?? 0);
+    const openingSnapshot = Number.isFinite(openingTotal) ? openingTotal : 0;
+
+    const draft = loadCloseShiftDraft(
+      businessId,
+      userId,
+      shift.id,
+      openingSnapshot,
+    );
+    const draftHasEntry =
+      draft != null && closeShiftDraftHasProgress(draft);
+
+    if (draftHasEntry && draft) {
+      setQuantities({
+        ...createEmptyDenominationQuantities(),
+        ...persistedQuantitiesToRecord(draft.quantities),
+      });
+      setCashTotalStr(draft.cashTotalStr ?? "");
+      setNotes(draft.notes ?? "");
+      setVarianceReason(draft.varianceReason ?? "");
+      setDraftRestoredHint(true);
+      // Keep draft alive across reopens even if they don't edit again.
+      userEditedRef.current = true;
+    } else {
+      // Pre-fill with opening quantities if no closing draft yet
       const openQty = denomsToQuantities(shift.openingDenominations);
       setQuantities({ ...createEmptyDenominationQuantities(), ...openQty });
-      const openingTotal =
-        typeof shift.openingCash === "number"
-          ? shift.openingCash
-          : Number(shift.openingCash ?? 0);
       setCashTotalStr(
         useDenomBreakdown
           ? ""
@@ -788,10 +920,61 @@ export function CloseShiftModal({
       );
       setNotes("");
       setVarianceReason("");
-      setError("");
-      setLoading(false);
+      setDraftRestoredHint(false);
     }
-  }, [open, shift, useDenomBreakdown]);
+
+    setError("");
+    setLoading(false);
+
+    const t = window.setTimeout(() => {
+      skipPersistRef.current = false;
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [open, shift, useDenomBreakdown, businessId, userId]);
+
+  // Persist unfinished closing count while the modal is open.
+  useEffect(() => {
+    if (
+      !open ||
+      !shift ||
+      !businessId ||
+      !userId ||
+      skipPersistRef.current ||
+      !userEditedRef.current
+    ) {
+      return;
+    }
+    const openingTotal =
+      typeof shift.openingCash === "number"
+        ? shift.openingCash
+        : Number(shift.openingCash ?? 0);
+    const draft = {
+      v: 1 as const,
+      updatedAt: Date.now(),
+      businessId,
+      userId,
+      shiftId: shift.id,
+      openingCashSnapshot: Number.isFinite(openingTotal) ? openingTotal : 0,
+      notes,
+      varianceReason,
+      quantities: quantitiesRecordToPersisted(quantities),
+      cashTotalStr,
+    };
+    if (closeShiftDraftHasProgress(draft)) {
+      saveCloseShiftDraft(draft);
+    } else {
+      clearCloseShiftDraft(businessId, userId, shift.id);
+    }
+  }, [
+    open,
+    shift,
+    businessId,
+    userId,
+    notes,
+    varianceReason,
+    quantities,
+    cashTotalStr,
+  ]);
 
   const totalCash = useMemo(() => {
     if (!useDenomBreakdown) {
@@ -840,6 +1023,7 @@ export function CloseShiftModal({
         varianceReason: varianceReason.trim() || null,
         denominations: entries.length > 0 ? entries : undefined,
       });
+      clearCloseShiftDraft(businessId, userId, shift.id);
       onClosed();
       onClose();
     } catch (e) {
@@ -856,6 +1040,8 @@ export function CloseShiftModal({
     varianceReason,
     showVarianceReason,
     canSeeCashVarianceDetail,
+    businessId,
+    userId,
     onClosed,
     onClose,
   ]);
@@ -931,7 +1117,7 @@ export function CloseShiftModal({
                 <DenominationTable
                   title="Closing Float Count"
                   quantities={quantities}
-                  onChange={setQuantities}
+                  onChange={setQuantitiesEdited}
                 />
               ) : (
                 <div className="space-y-1.5">
@@ -945,7 +1131,10 @@ export function CloseShiftModal({
                     inputMode="decimal"
                     className={dashboardInputClass(false)}
                     value={cashTotalStr}
-                    onChange={(e) => setCashTotalStr(e.target.value)}
+                    onChange={(e) => {
+                      userEditedRef.current = true;
+                      setCashTotalStr(e.target.value);
+                    }}
                     placeholder="0"
                     autoFocus
                   />
@@ -954,6 +1143,11 @@ export function CloseShiftModal({
                   </p>
                 </div>
               )}
+              {draftRestoredHint ? (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Restored your unfinished closing count.
+                </p>
+              ) : null}
             </div>
 
             {/* Variance reason */}
@@ -977,7 +1171,10 @@ export function CloseShiftModal({
                       : "Briefly note what happened with the till count…"
                   }
                   value={varianceReason}
-                  onChange={(e) => setVarianceReason(e.target.value)}
+                  onChange={(e) => {
+                    userEditedRef.current = true;
+                    setVarianceReason(e.target.value);
+                  }}
                   maxLength={500}
                   rows={2}
                 />
@@ -996,7 +1193,10 @@ export function CloseShiftModal({
                 className={dashboardInputClass(loading)}
                 placeholder="Closing notes..."
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={(e) => {
+                  userEditedRef.current = true;
+                  setNotes(e.target.value);
+                }}
                 maxLength={500}
               />
             </div>
