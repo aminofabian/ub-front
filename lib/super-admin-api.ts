@@ -536,6 +536,33 @@ export type SaMarketplaceSupplierRow = {
   contactPhone: string | null;
   username: string | null;
   portalUserCount: number;
+  linkedShopCount?: number;
+  linkedShopNames?: string[];
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  lastPortalLoginAt?: string | null;
+};
+
+export type SaMarketplaceSupplierStats = {
+  total: number;
+  active: number;
+  draft: number;
+  suspended: number;
+  withPortalUsers: number;
+  withLinkedShops: number;
+  needingInvite: number;
+};
+
+export type SaMarketplaceSupplierShopLink = {
+  connectionId: string;
+  businessId: string;
+  businessName: string;
+  businessSlug: string | null;
+  localSupplierId: string;
+  localSupplierName: string;
+  localSupplierStatus: string | null;
+  connectionStatus: string;
+  linkedAt: string;
 };
 
 export type SaMarketplaceSupplierUserRow = {
@@ -561,16 +588,25 @@ export type SaMarketplaceInviteResult = {
   claimUrl: string;
 };
 
+export type SaMarketplaceSupplierPage = {
+  content: SaMarketplaceSupplierRow[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+};
+
 export async function fetchSaMarketplaceSuppliers(params?: {
   q?: string;
   status?: string;
   page?: number;
   size?: number;
-}): Promise<SaMarketplaceSupplierRow[]> {
+  sort?: string;
+}): Promise<SaMarketplaceSupplierPage> {
   const query = new URLSearchParams({
     page: String(params?.page ?? 0),
     size: String(params?.size ?? 50),
-    sort: "name,asc",
+    sort: params?.sort?.trim() || "updatedAt,desc",
   });
   if (params?.q?.trim()) query.set("q", params.q.trim());
   if (params?.status?.trim()) query.set("status", params.status.trim());
@@ -578,7 +614,44 @@ export async function fetchSaMarketplaceSuppliers(params?: {
     `${API_ROUTES.superAdminMarketplaceSuppliers}?${query.toString()}`,
     { method: "GET" },
   );
-  return extractPageContent<SaMarketplaceSupplierRow>(payload);
+  const { extractSpringPageMeta } = await import("@/lib/page-content");
+  const content = extractPageContent<SaMarketplaceSupplierRow>(payload);
+  const meta = extractSpringPageMeta(payload);
+  return {
+    content,
+    totalElements: meta?.totalElements ?? content.length,
+    totalPages: meta?.totalPages ?? 1,
+    number: meta?.number ?? 0,
+    size: meta?.size ?? content.length,
+  };
+}
+
+export async function fetchSaMarketplaceSupplierStats(): Promise<SaMarketplaceSupplierStats> {
+  return saRequest<SaMarketplaceSupplierStats>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/stats`,
+    { method: "GET" },
+  );
+}
+
+export async function fetchSaMarketplaceSupplierShops(
+  supplierId: string,
+): Promise<SaMarketplaceSupplierShopLink[]> {
+  return saRequest<SaMarketplaceSupplierShopLink[]>(
+    `${API_ROUTES.superAdminMarketplaceSuppliers}/${supplierId}/shops`,
+    { method: "GET" },
+  );
+}
+
+export async function createSaMarketplaceSupplier(body: {
+  name: string;
+  description?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+}): Promise<SaMarketplaceSupplierRow> {
+  return saRequest<SaMarketplaceSupplierRow>(API_ROUTES.superAdminMarketplaceSuppliers, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export async function activateSaMarketplaceSupplier(
