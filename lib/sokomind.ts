@@ -33,6 +33,9 @@ export type SokoMindChatResponse = {
   provider: string;
   model: string;
   latencyMs: number;
+  toolsUsed?: string[];
+  usedLiveData?: boolean;
+  draftBody?: string | null;
 };
 
 export type SokoMindRouteGuide = {
@@ -59,7 +62,11 @@ export function surfaceFromPathname(pathname: string): string {
 
 export function buildSokoMindContext(
   pathname: string,
-  opts?: { locale?: string; entities?: Record<string, string>; uiHints?: string[] },
+  opts?: {
+    locale?: string;
+    entities?: Record<string, string>;
+    uiHints?: string[];
+  },
 ): SokoMindContextPacket {
   return {
     surface: surfaceFromPathname(pathname),
@@ -68,6 +75,30 @@ export function buildSokoMindContext(
     entities: opts?.entities,
     uiHints: opts?.uiHints,
   };
+}
+
+/** Pick skill from user text when the client does not force one. */
+export function inferSokoMindSkill(message: string): string {
+  const msg = message.toLowerCase();
+  if (
+    msg.includes("draft") ||
+    msg.includes("compose") ||
+    msg.includes("write a message") ||
+    msg.includes("sms") ||
+    msg.includes("whatsapp")
+  ) {
+    return "draft_message";
+  }
+  if (
+    msg.includes("morning") ||
+    msg.includes("briefing") ||
+    msg.includes("how am i doing") ||
+    msg.includes("today's numbers") ||
+    msg.includes("daily summary")
+  ) {
+    return "morning_briefing";
+  }
+  return "explain_page";
 }
 
 /** POS / till surfaces — Guide stays off to protect scan focus. */

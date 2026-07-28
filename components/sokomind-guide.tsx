@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Loader2, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { Copy, Loader2, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   buildSokoMindContext,
   fetchSokoMindRouteGuide,
   fetchSokoMindStatus,
+  inferSokoMindSkill,
   isSokoMindGuideHiddenRoute,
   sendSokoMindChat,
   sendSokoMindFeedback,
@@ -17,11 +19,19 @@ import {
   type SokoMindStatus,
 } from "@/lib/sokomind";
 
-type ThreadItem = SokoMindChatMessage & { requestId?: string; feedback?: "up" | "down" };
+type ThreadItem = SokoMindChatMessage & {
+  requestId?: string;
+  feedback?: "up" | "down";
+  draftBody?: string | null;
+  usedLiveData?: boolean;
+  toolsUsed?: string[];
+  skill?: string;
+};
 
 export function SokoMindGuide() {
   const pathname = usePathname() || "/";
   const hidden = isSokoMindGuideHiddenRoute(pathname);
+  const { branchId, business } = useDashboard();
 
   const [status, setStatus] = useState<SokoMindStatus | null>(null);
   const [open, setOpen] = useState(false);
@@ -30,6 +40,7 @@ export function SokoMindGuide() {
   const [error, setError] = useState("");
   const [thread, setThread] = useState<ThreadItem[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -58,8 +69,15 @@ export function SokoMindGuide() {
   }, [hidden, status?.guideEnabled]);
 
   const context = useMemo(
-    () => buildSokoMindContext(pathname, { locale: status?.defaultLocale ?? "en-KE" }),
-    [pathname, status?.defaultLocale],
+    () =>
+      buildSokoMindContext(pathname, {
+        locale: status?.defaultLocale ?? "en-KE",
+        entities: {
+          ...(branchId ? { branchId } : {}),
+          ...(business?.name ? { shopName: business.name } : {}),
+        },
+      }),
+    [pathname, status?.defaultLocale, branchId, business?.name],
   );
 
   useEffect(() => {
@@ -82,15 +100,24 @@ export function SokoMindGuide() {
     setInput("");
     try {
       const history = thread.map(({ role, content }) => ({ role, content }));
+      const skill = inferSokoMindSkill(trimmed);
       const res = await sendSokoMindChat({
         message: trimmed,
-        skill: "explain_page",
+        skill,
         context,
         history,
       });
       setThread((prev) => [
         ...prev,
-        { role: "assistant", content: res.reply, requestId: res.requestId },
+        {
+          role: "assistant",
+          content: res.reply,
+          requestId: res.requestId,
+          draftBody: res.draftBody,
+          usedLiveData: res.usedLiveData,
+          toolsUsed: res.toolsUsed,
+          skill: res.skill,
+        },
       ]);
       setSuggestions(res.suggestions ?? []);
     } catch (e) {
@@ -110,6 +137,16 @@ export function SokoMindGuide() {
       );
     } catch {
       // ignore — non-blocking
+    }
+  };
+
+  const copyDraft = async (requestId: string, draft: string) => {
+    try {
+      await navigator.clipboard.writeText(draft);
+      setCopiedId(requestId);
+      window.setTimeout(() => setCopiedId((id) => (id === requestId ? null : id)), 1500);
+    } catch {
+      setError("Could not copy draft.");
     }
   };
 
@@ -170,15 +207,15 @@ export function SokoMindGuide() {
             {thread.length === 0 ? (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Ask about this page. Guide uses page facts only — it will not invent balances
-                  or stock numbers.
+                  Ask about this page, request a morning briefing, or draft a message. Live shop
+                  data is used when relevant — Guide will not invent balances.
                 </p>
                 {(suggestions.length
                   ? suggestions
                   : [
+                      "Give me a morning briefing",
                       "What can I do on this page?",
-                      "Where should I go next?",
-                      "Explain the main actions here",
+                      "Draft a polite payment reminder SMS",
                     ]
                 ).map((s) => (
                   <button
@@ -202,6 +239,32 @@ export function SokoMindGuide() {
                   )}
                 >
                   <p className="whitespace-pre-wrap">{m.content}</p>
+                  {m.role === "assistant" && m.usedLiveData ? (
+                    <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Live data
+                      {m.toolsUsed?.length ? ` · ${m.toolsUsed.join(", ")}` : ""}
+                    </p>
+                  ) : null}
+                  {m.role === "assistant" && m.draftBody ? (
+                    <div className="mt-2 rounded-md border border-dashed bg-background/80 p-2">
+                      <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Draft (review before send)
+                      </p>
+                      <p className="whitespace-pre-wrap text-xs">{m.draftBody}</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 h-7 gap-1 text-xs"
+                        onClick={() =>
+                          m.requestId ? void copyDraft(m.requestId, m.draftBody!) : undefined
+                        }
+                      >
+                        <Copy className="size-3" aria-hidden />
+                        {copiedId === m.requestId ? "Copied" : "Copy draft"}
+                      </Button>
+                    </div>
+                  ) : null}
                   {m.role === "assistant" && m.requestId ? (
                     <div className="mt-1.5 flex gap-1">
                       <button
@@ -256,7 +319,7 @@ export function SokoMindGuide() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about this page…"
+                placeholder="Ask, brief, or draft…"
                 disabled={busy || !status.providerConfigured}
                 className="h-9 flex-1 rounded-md border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
               />
