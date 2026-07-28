@@ -20,6 +20,7 @@ import {
   Package,
   PackagePlus,
   Pencil,
+  Plus,
   Search,
   ShoppingCart,
   Trash2,
@@ -41,6 +42,7 @@ import { Button } from "@/components/ui/button";
 import {
   addItemSupplierLink,
   addPathBLine,
+  addSupplyBatchExpense,
   createPathBSession,
   fetchItemById,
   fetchSupplierById,
@@ -84,6 +86,7 @@ import {
   formatReceiveTillDraftAge,
   loadReceiveTillDraft,
   saveReceiveTillDraft,
+  type SupplyDraftExtraPersisted,
 } from "@/lib/supply-draft-storage";
 import { publicSupplierPortalUrl } from "@/lib/public-supplier-portal";
 import { cn } from "@/lib/utils";
@@ -99,6 +102,32 @@ type SupplyCartLine = {
   seedCost: string;
   seedSell: string;
 };
+
+type ManifestExtra = SupplyDraftExtraPersisted;
+
+const EXTRA_CATEGORIES: { value: string; label: string }[] = [
+  { value: "transport", label: "Shipping" },
+  { value: "interest", label: "Interest" },
+  { value: "handling", label: "Handling" },
+  { value: "customs", label: "Customs" },
+  { value: "storage", label: "Storage" },
+  { value: "other", label: "Other" },
+];
+
+function newExtraKey(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `x-${Date.now()}`;
+}
+
+function emptyManifestExtra(): ManifestExtra {
+  return {
+    key: newExtraKey(),
+    category: "transport",
+    amount: "",
+    desc: "",
+  };
+}
 
 type SupplierReceiveWorkspaceProps = {
   /** Page route segment (`/supplier/[slug]`). Ignored when `supplierId` is set. */
@@ -204,6 +233,15 @@ function parseNonNeg(raw: string): number | null {
   if (!t) return null;
   const n = Number(t);
   return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+function extrasTotalOf(extras: ManifestExtra[]): number {
+  let sum = 0;
+  for (const e of extras) {
+    const n = parseNonNeg(e.amount);
+    if (n != null && n > 0) sum += n;
+  }
+  return Math.round(sum * 100) / 100;
 }
 
 /** Unit cost from line total ÷ qty, preferring 2dp when it still reproduces total. */
@@ -1115,10 +1153,126 @@ function ProductTile({
   );
 }
 
+function ManifestExtrasBlock({
+  extras,
+  currency,
+  saving,
+  onChange,
+}: {
+  extras: ManifestExtra[];
+  currency: string;
+  saving: boolean;
+  onChange: (extras: ManifestExtra[]) => void;
+}) {
+  const total = extrasTotalOf(extras);
+  return (
+    <div className="space-y-1.5 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          Extra costs
+        </p>
+        {total > 0 ? (
+          <p className="font-mono text-[10px] tabular-nums text-muted-foreground">
+            +{total.toLocaleString("en-KE", { minimumFractionDigits: 2 })}{" "}
+            {currency}
+          </p>
+        ) : null}
+      </div>
+      {extras.length === 0 ? (
+        <p className="text-[10px] leading-snug text-muted-foreground">
+          Shipping, interest, handling…
+        </p>
+      ) : (
+        <div className="space-y-1.5">
+          {extras.map((e) => (
+            <div key={e.key} className="space-y-1">
+              <div className="grid grid-cols-[1fr_4.5rem_auto] gap-1">
+                <select
+                  className={cn(fieldCompact, "px-1")}
+                  value={e.category}
+                  disabled={saving}
+                  aria-label="Extra cost category"
+                  onChange={(ev) =>
+                    onChange(
+                      extras.map((x) =>
+                        x.key === e.key
+                          ? { ...x, category: ev.target.value }
+                          : x,
+                      ),
+                    )
+                  }
+                >
+                  {EXTRA_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className={cn(fieldCompact, "text-right")}
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={e.amount}
+                  disabled={saving}
+                  aria-label="Extra cost amount"
+                  onChange={(ev) =>
+                    onChange(
+                      extras.map((x) =>
+                        x.key === e.key
+                          ? { ...x, amount: ev.target.value }
+                          : x,
+                      ),
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  className="flex size-7 items-center justify-center text-destructive/70 hover:text-destructive disabled:opacity-50"
+                  disabled={saving}
+                  aria-label="Remove extra cost"
+                  onClick={() =>
+                    onChange(extras.filter((x) => x.key !== e.key))
+                  }
+                >
+                  <Trash2 className="size-3" />
+                </button>
+              </div>
+              <input
+                className={fieldCompact}
+                placeholder="Note (optional)"
+                value={e.desc}
+                disabled={saving}
+                aria-label="Extra cost note"
+                onChange={(ev) =>
+                  onChange(
+                    extras.map((x) =>
+                      x.key === e.key ? { ...x, desc: ev.target.value } : x,
+                    ),
+                  )
+                }
+              />
+            </div>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground disabled:opacity-50"
+        disabled={saving}
+        onClick={() => onChange([...extras, emptyManifestExtra()])}
+      >
+        <Plus className="size-3" aria-hidden />
+        Add cost
+      </button>
+    </div>
+  );
+}
+
 function SupplyCartPanel({
   supplierName,
   currency,
   lines,
+  extras,
   payable,
   pulse,
   saving,
@@ -1128,12 +1282,14 @@ function SupplyCartPanel({
   onClearDraft,
   onPatch,
   onRemove,
+  onExtrasChange,
   onPost,
   onCloseMobile,
 }: {
   supplierName: string;
   currency: string;
   lines: SupplyCartLine[];
+  extras: ManifestExtra[];
   payable: number;
   pulse: boolean;
   saving: boolean;
@@ -1143,6 +1299,7 @@ function SupplyCartPanel({
   onClearDraft?: () => void;
   onPatch: (itemId: string, patch: Partial<SupplyCartLine>) => void;
   onRemove: (itemId: string) => void;
+  onExtrasChange: (extras: ManifestExtra[]) => void;
   onPost: () => void;
   onCloseMobile?: () => void;
 }) {
@@ -1176,7 +1333,7 @@ function SupplyCartPanel({
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            {lines.length > 0 && onClearDraft ? (
+            {(lines.length > 0 || extras.length > 0) && onClearDraft ? (
               <button
                 type="button"
                 className="h-7 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-destructive"
@@ -1310,6 +1467,13 @@ function SupplyCartPanel({
           )}
         </div>
 
+        <ManifestExtrasBlock
+          extras={extras}
+          currency={currency}
+          saving={saving}
+          onChange={onExtrasChange}
+        />
+
         <div className="shrink-0 space-y-2 border-t-2 border-[var(--pos-ink,#1c1915)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-2.5 py-2.5 dark:border-foreground/80 dark:bg-muted/20">
           <div className="flex items-end justify-between gap-2">
             <div>
@@ -1325,6 +1489,9 @@ function SupplyCartPanel({
             </div>
             <p className="font-mono text-[10px] tabular-nums text-muted-foreground">
               {lines.length} ln
+              {extrasTotalOf(extras) > 0
+                ? ` · ${extras.length} extra`
+                : ""}
             </p>
           </div>
           <Button
@@ -1418,6 +1585,7 @@ export function SupplierReceiveWorkspace({
     Record<string, string>
   >({});
   const [cart, setCart] = useState<SupplyCartLine[]>([]);
+  const [extras, setExtras] = useState<ManifestExtra[]>([]);
   const [saving, setSaving] = useState(false);
   const [pulseCart, setPulseCart] = useState(false);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
@@ -1437,6 +1605,7 @@ export function SupplierReceiveWorkspace({
     supplierName: string;
     branchId: string;
     lines: SupplyCartLine[];
+    extras: ManifestExtra[];
   } | null>(null);
   const draftBusinessId =
     business?.id?.trim() || getSessionTenantId()?.trim() || "";
@@ -1483,6 +1652,7 @@ export function SupplierReceiveWorkspace({
     setSupplier(null);
     setCandidates([]);
     setCart([]);
+    setExtras([]);
     setDraftReady(false);
     setDraftRestoredAt(null);
     setParentFilterId(null);
@@ -1560,11 +1730,20 @@ export function SupplierReceiveWorkspace({
       draftUserId,
       supplier.id,
     );
-    if (draft && draft.lines.length > 0) {
+    const draftExtras = draft?.extras ?? [];
+    const hasLines = Boolean(draft && draft.lines.length > 0);
+    const hasExtras = draftExtras.some(
+      (e) => e.amount.trim() || e.desc.trim() || e.category.trim(),
+    );
+    if (draft && (hasLines || hasExtras)) {
       setCart(draft.lines);
+      setExtras(draftExtras);
       setDraftRestoredAt(draft.updatedAt);
+      const n = draft.lines.length;
       toast.message(
-        `Restored draft · ${draft.lines.length} item${draft.lines.length === 1 ? "" : "s"}`,
+        hasLines
+          ? `Restored draft · ${n} item${n === 1 ? "" : "s"}`
+          : "Restored draft · extra costs",
         {
           description: formatReceiveTillDraftAge(draft.updatedAt),
           duration: 4000,
@@ -1572,6 +1751,7 @@ export function SupplierReceiveWorkspace({
       );
     } else {
       setCart([]);
+      setExtras([]);
       setDraftRestoredAt(null);
     }
     setDraftReady(true);
@@ -1587,8 +1767,9 @@ export function SupplierReceiveWorkspace({
       supplierName: supplier.name,
       branchId: branchId.trim(),
       lines: cart,
+      extras,
     };
-  }, [supplier?.id, supplier?.name, branchId, cart, draftReady]);
+  }, [supplier?.id, supplier?.name, branchId, cart, extras, draftReady]);
 
   // Debounced autosave while editing this till.
   useEffect(() => {
@@ -1603,11 +1784,13 @@ export function SupplierReceiveWorkspace({
         supplierId: supplier.id,
         supplierName: supplier.name,
         lines: cart,
+        extras,
       });
     }, 350);
     return () => window.clearTimeout(timer);
   }, [
     cart,
+    extras,
     draftReady,
     supplier?.id,
     supplier?.name,
@@ -1633,6 +1816,7 @@ export function SupplierReceiveWorkspace({
         supplierId: snap.supplierId,
         supplierName: snap.supplierName,
         lines: snap.lines,
+        extras: snap.extras,
       });
     };
   }, [supplier?.id, draftBusinessId, draftUserId]);
@@ -1780,15 +1964,14 @@ export function SupplierReceiveWorkspace({
     [cart],
   );
 
-  const payable = useMemo(
-    () =>
-      readyLines.reduce((sum, l) => {
-        const qty = parsePos(l.qtyStr) ?? 0;
-        const cost = parseNonNeg(l.costStr) ?? 0;
-        return sum + qty * cost;
-      }, 0),
-    [readyLines],
-  );
+  const payable = useMemo(() => {
+    const linesTotal = readyLines.reduce((sum, l) => {
+      const qty = parsePos(l.qtyStr) ?? 0;
+      const cost = parseNonNeg(l.costStr) ?? 0;
+      return sum + qty * cost;
+    }, 0);
+    return Math.round((linesTotal + extrasTotalOf(extras)) * 100) / 100;
+  }, [readyLines, extras]);
 
   const markAdded = useCallback((itemId: string) => {
     setPulseCart(true);
@@ -1855,6 +2038,7 @@ export function SupplierReceiveWorkspace({
   const clearManifestDraft = useCallback(() => {
     if (!supplier?.id || !draftBusinessId || !draftUserId) {
       setCart([]);
+      setExtras([]);
       setDraftRestoredAt(null);
       return;
     }
@@ -1864,8 +2048,10 @@ export function SupplierReceiveWorkspace({
       supplierName: supplier.name,
       branchId: branchId.trim(),
       lines: [],
+      extras: [],
     };
     setCart([]);
+    setExtras([]);
     setDraftRestoredAt(null);
     toast.message("Draft cleared");
   }, [
@@ -2017,7 +2203,20 @@ export function SupplierReceiveWorkspace({
         synced.push({ line, serverLineId: created.id });
       }
 
-      await postPathBSession(session.id, {
+      const postedExtras = extras
+        .map((e) => {
+          const amount = parseNonNeg(e.amount);
+          if (amount == null || amount <= 0) return null;
+          const category = (e.category.trim() || "other").toLowerCase();
+          return {
+            category,
+            amount,
+            description: e.desc?.trim() || null,
+          };
+        })
+        .filter((e): e is NonNullable<typeof e> => e != null);
+
+      const postResult = await postPathBSession(session.id, {
         lines: synced.map(({ line, serverLineId }) => ({
           lineId: serverLineId,
           itemId: line.itemId,
@@ -2025,6 +2224,21 @@ export function SupplierReceiveWorkspace({
           wastageQty: 0,
         })),
       });
+
+      const sbId = postResult.supplyBatchId?.trim();
+      if (sbId && postedExtras.length > 0) {
+        for (const e of postedExtras) {
+          try {
+            await addSupplyBatchExpense(sbId, {
+              category: e.category,
+              amount: e.amount,
+              description: e.description,
+            });
+          } catch {
+            /* stock already posted; expense is best-effort */
+          }
+        }
+      }
 
       if (canSetSellPrice) {
         const now = new Date().toISOString();
@@ -2066,11 +2280,13 @@ export function SupplierReceiveWorkspace({
         currency,
         receivedAt: new Date().toISOString(),
         lines: postedLines,
+        extras: postedExtras,
         portalUrl: publicSupplierPortalUrl(supplierSlug(supplier)),
       });
 
       setLastInvoice(invoice);
       setCart([]);
+      setExtras([]);
       setMobileCartOpen(false);
       setDraftRestoredAt(null);
       if (draftBusinessId && draftUserId) {
@@ -2081,6 +2297,7 @@ export function SupplierReceiveWorkspace({
         supplierName: supplier.name,
         branchId: bid,
         lines: [],
+        extras: [],
       };
       onPosted?.();
 
@@ -2243,7 +2460,7 @@ export function SupplierReceiveWorkspace({
   }
 
   const draftHint =
-    cart.length > 0
+    cart.length > 0 || extras.length > 0
       ? draftRestoredAt
         ? `Draft restored · ${formatReceiveTillDraftAge(draftRestoredAt)} · saves on this device`
         : "Draft saved on this device"
@@ -2253,6 +2470,7 @@ export function SupplierReceiveWorkspace({
     supplierName: supplier.name,
     currency,
     lines: cart,
+    extras,
     payable,
     pulse: pulseCart,
     saving,
@@ -2262,6 +2480,7 @@ export function SupplierReceiveWorkspace({
     onClearDraft: clearManifestDraft,
     onPatch: patchLine,
     onRemove: removeLine,
+    onExtrasChange: setExtras,
     onPost,
   };
 

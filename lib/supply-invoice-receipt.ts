@@ -11,6 +11,12 @@ export type SupplyInvoiceReceiptLine = {
   sku?: string | null;
 };
 
+export type SupplyInvoiceReceiptExtra = {
+  category: string;
+  amount: number;
+  description?: string | null;
+};
+
 export type SupplyInvoiceReceiptSnapshot = {
   businessName: string;
   logoUrl?: string | null;
@@ -27,6 +33,7 @@ export type SupplyInvoiceReceiptSnapshot = {
   receivedAt: string;
   currency: string;
   lines: SupplyInvoiceReceiptLine[];
+  extras: SupplyInvoiceReceiptExtra[];
   grandTotal: number;
   /** Settlement promise shown on the slip. */
   paymentTerms: string;
@@ -52,6 +59,7 @@ export type BuildSupplyInvoiceReceiptInput = {
   currency: string;
   receivedAt?: string;
   lines: SupplyInvoiceReceiptLine[];
+  extras?: SupplyInvoiceReceiptExtra[];
   portalUrl?: string | null;
 };
 
@@ -152,9 +160,20 @@ export function buildSupplyInvoiceReceiptSnapshot(
       sku: line.sku?.trim() || null,
     };
   });
-  const grandTotal = roundMoney2(
+  const extras = (input.extras ?? [])
+    .map((e) => ({
+      category: e.category.trim().toLowerCase() || "other",
+      amount: roundMoney2(e.amount >= 0 ? e.amount : 0),
+      description: e.description?.trim() || null,
+    }))
+    .filter((e) => e.amount > 0);
+  const linesTotal = roundMoney2(
     lines.reduce((sum, l) => sum + l.lineTotal, 0),
   );
+  const extrasTotal = roundMoney2(
+    extras.reduce((sum, e) => sum + e.amount, 0),
+  );
+  const grandTotal = roundMoney2(linesTotal + extrasTotal);
   const phone = input.branchPhone?.trim() || null;
   const terms = buildSupplyPaymentTerms(phone);
   const receivedAt = input.receivedAt?.trim() || new Date().toISOString();
@@ -175,6 +194,7 @@ export function buildSupplyInvoiceReceiptSnapshot(
     receivedAt,
     currency: input.currency.trim().toUpperCase() || "KES",
     lines,
+    extras,
     grandTotal,
     paymentTerms: terms.paymentTerms,
     contactNote: terms.contactNote,
@@ -222,6 +242,22 @@ export function buildSupplyInvoiceEscPos(
     }
     const detail = `${line.quantity} x ${line.unitCost.toFixed(2)} = ${line.lineTotal.toFixed(2)}`;
     out.push(padLeft(strip(detail), w));
+  }
+
+  if (snapshot.extras.length > 0) {
+    out.push(repeat("-", w));
+    out.push(center("EXTRA COSTS", w));
+    for (const extra of snapshot.extras) {
+      const label = strip(
+        extra.description
+          ? `${extra.category}: ${extra.description}`
+          : extra.category,
+      );
+      for (const row of wrap(label, w)) {
+        out.push(row);
+      }
+      out.push(padLeft(strip(extra.amount.toFixed(2)), w));
+    }
   }
 
   out.push(repeat("-", w));

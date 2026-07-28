@@ -98,6 +98,8 @@ export type ReceiveTillDraftPersisted = {
   supplierId: string;
   supplierName: string;
   lines: ReceiveTillCartLinePersisted[];
+  /** Shipping, interest, handling, etc. — posted as supply-batch expenses. */
+  extras?: SupplyDraftExtraPersisted[];
 };
 
 export type ReceiveTillDraftSummary = {
@@ -373,8 +375,15 @@ export function mergeCashierLinesOntoLinks(
 }
 
 export function receiveTillDraftHasProgress(
-  draft: Pick<ReceiveTillDraftPersisted, "lines">,
+  draft: Pick<ReceiveTillDraftPersisted, "lines" | "extras">,
 ): boolean {
+  if (
+    (draft.extras ?? []).some(
+      (e) => e.amount.trim() || e.desc.trim() || e.category.trim(),
+    )
+  ) {
+    return true;
+  }
   return draft.lines.some(
     (l) =>
       l.qtyStr.trim() ||
@@ -410,7 +419,10 @@ export function loadReceiveTillDraft(
   if (!Array.isArray(draft.lines)) {
     return null;
   }
-  return draft;
+  return {
+    ...draft,
+    extras: Array.isArray(draft.extras) ? draft.extras : [],
+  };
 }
 
 export function saveReceiveTillDraft(
@@ -432,6 +444,7 @@ export function saveReceiveTillDraft(
     userId: uid,
     supplierId: sid,
     supplierName: draft.supplierName.trim() || "Supplier",
+    extras: Array.isArray(draft.extras) ? draft.extras : [],
     v: 1 as const,
     updatedAt: Date.now(),
   } satisfies ReceiveTillDraftPersisted);

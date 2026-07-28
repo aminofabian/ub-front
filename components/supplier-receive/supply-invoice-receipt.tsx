@@ -223,6 +223,32 @@ export function SupplyInvoiceReceipt({
 
         <hr className="pos-receipt-rule" />
 
+        {receipt.extras.length > 0 ? (
+          <section className="space-y-1" aria-label="Extra costs">
+            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Extra costs
+            </p>
+            <ul className="space-y-0.5">
+              {receipt.extras.map((extra, i) => (
+                <li
+                  key={`${extra.category}-${i}`}
+                  className="flex items-baseline justify-between gap-2 text-[11px]"
+                >
+                  <span className="min-w-0 truncate capitalize">
+                    {extra.description
+                      ? `${extra.category} · ${extra.description}`
+                      : extra.category}
+                  </span>
+                  <span className="shrink-0 tabular-nums">
+                    {extra.amount.toFixed(2)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <hr className="pos-receipt-rule" />
+          </section>
+        ) : null}
+
         <section className="pos-receipt-totals space-y-1" aria-label="Amount due">
           <p className="pos-receipt-payment-note">Terms: pay within 48 hours</p>
           <hr className="pos-receipt-rule pos-receipt-rule--totals" aria-hidden />

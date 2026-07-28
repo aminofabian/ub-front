@@ -45,8 +45,33 @@ describe("buildSupplyInvoiceReceiptSnapshot", () => {
     });
     expect(snap.grandTotal).toBe(1350.5);
     expect(snap.currency).toBe("KES");
+    expect(snap.extras).toEqual([]);
     expect(snap.paymentTerms).toMatch(/48 hours/i);
     expect(snap.contactNote).toContain("0700111222");
+  });
+
+  it("adds extra costs into grand total", () => {
+    const snap = buildSupplyInvoiceReceiptSnapshot({
+      businessName: "Palmart",
+      branchName: "Westlands",
+      sessionId: "sess-2",
+      supplierName: "Jamro",
+      currency: "KES",
+      lines: [
+        {
+          description: "Rice",
+          quantity: 10,
+          unitCost: 100,
+          lineTotal: 1000,
+        },
+      ],
+      extras: [
+        { category: "transport", amount: 200, description: "Delivery" },
+        { category: "interest", amount: 50 },
+      ],
+    });
+    expect(snap.grandTotal).toBe(1250);
+    expect(snap.extras).toHaveLength(2);
   });
 });
 
