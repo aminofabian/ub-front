@@ -814,22 +814,43 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           </div>
         ) : (
           <main className="mt-5 flex flex-1 flex-col gap-3.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
-            {/* Balance card */}
+            {/* Balance card — wallet primary when > 0, otherwise balance due */}
             <section
               ref={walletSectionRef}
               id="wallet"
               className="scroll-mt-4 rounded-2xl border border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-4"
             >
-              <p className="text-[13px] text-[var(--tab-muted)]">Balance due</p>
-              <p className="mt-1 text-[2rem] font-bold leading-none tracking-tight tabular-nums md:text-[2.25rem]">
-                {fmtMoney(owed, currency)}
-              </p>
               {wallet > 0 ? (
-                <p className="mt-2.5 text-[13px] font-medium text-[var(--tab-fg)]">
-                  Wallet credit{" "}
-                  <span className="tabular-nums">{fmtMoney(wallet, currency)}</span>
-                </p>
-              ) : null}
+                <>
+                  <p className="text-[13px] text-[var(--tab-muted)]">
+                    Wallet credit
+                  </p>
+                  <p className="mt-1 text-[2rem] font-bold leading-none tracking-tight tabular-nums md:text-[2.25rem]">
+                    {fmtMoney(wallet, currency)}
+                  </p>
+                  <p className="mt-2.5 text-[13px] font-medium text-[var(--tab-fg)]">
+                    Balance due{" "}
+                    <span className="tabular-nums">
+                      {fmtMoney(owed, currency)}
+                    </span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[13px] text-[var(--tab-muted)]">
+                    Balance due
+                  </p>
+                  <p className="mt-1 text-[2rem] font-bold leading-none tracking-tight tabular-nums md:text-[2.25rem]">
+                    {fmtMoney(owed, currency)}
+                  </p>
+                  <p className="mt-2.5 text-[13px] font-medium text-[var(--tab-fg)]">
+                    Wallet credit{" "}
+                    <span className="tabular-nums">
+                      {fmtMoney(wallet, currency)}
+                    </span>
+                  </p>
+                </>
+              )}
               {tabStats.purchaseCount > 0 ? (
                 <p className="mt-2.5 text-[13px] text-[var(--tab-muted)]">
                   {tabStats.purchaseCount} purchase
