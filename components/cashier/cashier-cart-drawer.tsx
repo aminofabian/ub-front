@@ -330,13 +330,27 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     return acc + (Number.isFinite(q) && q > 0 ? q : 0);
   }, 0);
 
-  const walletSplitNum = Number(walletSplitStr.trim());
-  const splitUsesWallet =
-    splitPay && Number.isFinite(walletSplitNum) && walletSplitNum > 0;
+  const walletBalance = selectedCustomer
+    ? Number(selectedCustomer.credit.walletBalance)
+    : NaN;
+  const walletAvail =
+    Number.isFinite(walletBalance) && walletBalance > 0 ? walletBalance : 0;
+  const walletSplitApplied =
+    Number.isFinite(walletSplitNum) && walletSplitNum > 0 ? walletSplitNum : 0;
+  const walletOverAvail =
+    splitPay &&
+    walletSplitApplied > 0 &&
+    (!selectedCustomer || walletSplitApplied > walletAvail + 0.001);
+  const splitUsesWallet = splitPay && walletSplitApplied > 0;
   const customerNeeded =
     (!splitPay && payMethodNeedsCustomer(payMethod)) ||
     creditChangeToWallet ||
     splitUsesWallet;
+  const showCustomerPicker =
+    canLookupCustomers &&
+    ((!splitPay && payMethodNeedsCustomer(payMethod)) ||
+      creditChangeToWallet ||
+      splitPay);
 
   const tenderNum = Number(cashTenderStr.trim());
   const cashChange =
@@ -350,9 +364,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     Number.isFinite(tenderNum);
   const changeDueAmount =
     cashReady && cashChange != null ? Number(cashChange) : 0;
-  const walletBalance = selectedCustomer
-    ? Number(selectedCustomer.credit.walletBalance)
-    : 0;
 
   useEffect(() => {
     if (!open || saleComplete) return;
@@ -370,17 +381,47 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     setCreditChangeToWallet,
   ]);
 
+  // Keep wallet split within the selected customer's available balance.
   useEffect(() => {
-    if (!open || saleComplete || !splitPay || !selectedCustomer) return;
+    if (!open || saleComplete || !splitPay) return;
+    if (!selectedCustomer) {
+      if (walletSplitStr.trim()) {
+        setWalletSplitStr("");
+      }
+      return;
+    }
     const bal = Number(selectedCustomer.credit.walletBalance);
-    if (!Number.isFinite(bal) || bal <= 0) return;
+    const avail = Number.isFinite(bal) && bal > 0 ? bal : 0;
     const current = Number(walletSplitStr.trim());
-    if (Number.isFinite(current) && current > 0) return;
-    const apply = Math.min(bal, grandTotal);
-    setWalletSplitStr(apply.toFixed(2));
-    const remainder = Math.round((grandTotal - apply) * 100) / 100;
-    setCashSplitStr(remainder > 0 ? remainder.toFixed(2) : "0");
-    setMpesaSplitStr("0");
+    if (avail <= 0) {
+      if (walletSplitStr.trim() && walletSplitStr.trim() !== "0") {
+        setWalletSplitStr("");
+      }
+      const c = Number(cashSplitStr.trim()) || 0;
+      const m = Number(mpesaSplitStr.trim()) || 0;
+      if (c <= 0 && m <= 0) {
+        setCashSplitStr(grandTotal.toFixed(2));
+      }
+      return;
+    }
+    const maxApply = Math.min(avail, grandTotal);
+    if (!Number.isFinite(current) || current <= 0) {
+      setWalletSplitStr(maxApply.toFixed(2));
+      const rem = Math.round((grandTotal - maxApply) * 100) / 100;
+      const m = Number(mpesaSplitStr.trim());
+      if (!Number.isFinite(m) || m <= 0) {
+        setCashSplitStr(rem > 0 ? rem.toFixed(2) : "0");
+      }
+      return;
+    }
+    if (current > maxApply + 0.001) {
+      setWalletSplitStr(maxApply.toFixed(2));
+      const rem = Math.round((grandTotal - maxApply) * 100) / 100;
+      const m = Number(mpesaSplitStr.trim());
+      if (!Number.isFinite(m) || m <= 0) {
+        setCashSplitStr(rem > 0 ? rem.toFixed(2) : "0");
+      }
+    }
   }, [
     open,
     saleComplete,
@@ -388,9 +429,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     selectedCustomer,
     grandTotal,
     walletSplitStr,
+    cashSplitStr,
+    mpesaSplitStr,
     setWalletSplitStr,
     setCashSplitStr,
-    setMpesaSplitStr,
   ]);
 
   useEffect(() => {
@@ -402,6 +444,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
       return null;
     }
     if (splitPay) {
+      if (walletOverAvail) {
+        if (!selectedCustomer) {
+          return "Find a customer before applying wallet.";
+        }
+        return `Wallet only has ${walletAvail.toFixed(2)} ${currency}.`;
+      }
       if (splitUsesWallet && !selectedCustomer) {
         return "Find a customer to apply wallet.";
       }
@@ -836,57 +884,80 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   {splitPay ? (
                     <div className="space-y-2.5 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
                       {canLookupCustomers ? (
-                        <label className="space-y-1">
-                          <span className="flex items-center justify-between gap-2 text-[11px] font-medium text-muted-foreground">
-                            <span>Wallet ({currency})</span>
-                            {selectedCustomer &&
-                            Number.isFinite(walletBalance) ? (
-                              <span className="tabular-nums">
-                                avail {walletBalance.toFixed(2)}
+                        <div className="space-y-1.5">
+                          {!selectedCustomer ? (
+                            <p className="text-[11px] text-muted-foreground">
+                              Find the customer below to apply wallet credit.
+                            </p>
+                          ) : walletAvail <= 0 ? (
+                            <p className="rounded-lg bg-muted/50 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+                              No wallet balance — collect cash or M-Pesa.
+                            </p>
+                          ) : (
+                            <label className="space-y-1">
+                              <span className="flex items-center justify-between gap-2 text-[11px] font-medium text-muted-foreground">
+                                <span>Wallet ({currency})</span>
+                                <span className="tabular-nums">
+                                  avail {walletAvail.toFixed(2)}
+                                </span>
                               </span>
-                            ) : null}
-                          </span>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            className={fieldClass(
-                              "h-11 w-full text-right font-semibold tabular-nums",
-                            )}
-                            value={walletSplitStr}
-                            disabled={!online}
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              setWalletSplitStr(raw);
-                              const w = Number(raw.trim());
-                              if (!Number.isFinite(w) || w < 0) return;
-                              const capped =
-                                selectedCustomer && Number.isFinite(walletBalance)
-                                  ? Math.min(w, walletBalance, grandTotal)
-                                  : Math.min(w, grandTotal);
-                              const rem =
-                                Math.round((grandTotal - capped) * 100) / 100;
-                              const m = Number(mpesaSplitStr.trim());
-                              if (!Number.isFinite(m) || m <= 0) {
-                                setCashSplitStr(
-                                  rem > 0 ? rem.toFixed(2) : "0",
-                                );
-                              }
-                            }}
-                            onBlur={() => {
-                              const w = Number(walletSplitStr.trim());
-                              if (!Number.isFinite(w) || w <= 0) {
-                                setWalletSplitStr("");
-                                return;
-                              }
-                              const capped =
-                                selectedCustomer && Number.isFinite(walletBalance)
-                                  ? Math.min(w, walletBalance, grandTotal)
-                                  : Math.min(w, grandTotal);
-                              setWalletSplitStr(capped.toFixed(2));
-                            }}
-                            placeholder="0.00"
-                          />
-                        </label>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                className={fieldClass(
+                                  "h-11 w-full text-right font-semibold tabular-nums",
+                                )}
+                                value={walletSplitStr}
+                                disabled={!online}
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  if (raw.trim() === "" || raw.trim() === ".") {
+                                    setWalletSplitStr(raw);
+                                    return;
+                                  }
+                                  const w = Number(raw.trim());
+                                  if (!Number.isFinite(w) || w < 0) {
+                                    setWalletSplitStr(raw);
+                                    return;
+                                  }
+                                  const capped = Math.min(
+                                    w,
+                                    walletAvail,
+                                    grandTotal,
+                                  );
+                                  setWalletSplitStr(
+                                    capped < w ? capped.toFixed(2) : raw,
+                                  );
+                                  const rem =
+                                    Math.round((grandTotal - capped) * 100) /
+                                    100;
+                                  const m = Number(mpesaSplitStr.trim());
+                                  if (!Number.isFinite(m) || m <= 0) {
+                                    setCashSplitStr(
+                                      rem > 0 ? rem.toFixed(2) : "0",
+                                    );
+                                  }
+                                }}
+                                onBlur={() => {
+                                  const w = Number(walletSplitStr.trim());
+                                  if (!Number.isFinite(w) || w <= 0) {
+                                    setWalletSplitStr("");
+                                    return;
+                                  }
+                                  const capped = Math.min(
+                                    w,
+                                    walletAvail,
+                                    grandTotal,
+                                  );
+                                  setWalletSplitStr(
+                                    capped > 0 ? capped.toFixed(2) : "",
+                                  );
+                                }}
+                                placeholder="0.00"
+                              />
+                            </label>
+                          )}
+                        </div>
                       ) : null}
                       <div className="grid grid-cols-2 gap-2">
                         <label className="space-y-1">
@@ -925,12 +996,27 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         placeholder="M-Pesa reference (optional)"
                       />
                       {(() => {
-                        const w = Number(walletSplitStr.trim()) || 0;
+                        const w =
+                          selectedCustomer && walletAvail > 0
+                            ? Math.min(
+                                Number(walletSplitStr.trim()) || 0,
+                                walletAvail,
+                              )
+                            : 0;
                         const c = Number(cashSplitStr.trim()) || 0;
                         const m = Number(mpesaSplitStr.trim()) || 0;
                         const sum = Math.round((w + c + m) * 100) / 100;
                         const rem =
                           Math.round((grandTotal - sum) * 100) / 100;
+                        if (walletOverAvail) {
+                          return (
+                            <p className="text-[12px] font-medium text-destructive">
+                              {!selectedCustomer
+                                ? "Find a customer before applying wallet"
+                                : `Wallet only has ${walletAvail.toFixed(2)} ${currency}`}
+                            </p>
+                          );
+                        }
                         return (
                           <p
                             className={cn(
@@ -941,7 +1027,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             )}
                           >
                             {Math.abs(rem) <= 0.001
-                              ? "Split covers the total"
+                              ? w > 0
+                                ? `Wallet ${w.toFixed(2)} · collect ${(c + m).toFixed(2)} ${currency}`
+                                : "Split covers the total"
                               : rem > 0
                                 ? `Still need ${rem.toFixed(2)} ${currency}`
                                 : `Over by ${Math.abs(rem).toFixed(2)} ${currency}`}
@@ -951,12 +1039,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     </div>
                   ) : null}
 
-                  {customerNeeded && canLookupCustomers ? (
+                  {showCustomerPicker ? (
                     <div className="space-y-2.5 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         {creditChangeToWallet
                           ? "Credit change to"
-                          : splitUsesWallet
+                          : splitPay
                             ? "Wallet customer"
                             : "Customer"}
                       </p>
