@@ -163,6 +163,11 @@ type Props = {
   /** Toggle catalog `isWeighed` (sell by kg at the till). */
   onToggleWeighed?: () => void;
   weighedBusy?: boolean;
+  /**
+   * Mobile sticky Edit/Photos bar. Off inside the mobile detail drawer
+   * (quick actions in the panel already cover those).
+   */
+  showMobileStickyActions?: boolean;
 };
 
 export function ProductDetailPanel(props: Props) {
@@ -242,6 +247,7 @@ export function ProductDetailPanel(props: Props) {
     onToggleFeatured,
     onToggleWeighed,
     weighedBusy = false,
+    showMobileStickyActions = true,
   } = props;
 
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -537,7 +543,12 @@ export function ProductDetailPanel(props: Props) {
       : null;
 
   return (
-    <div className={detailShellClass}>
+    <div
+      className={cn(
+        detailShellClass,
+        showMobileStickyActions && "pb-[4.5rem] lg:pb-0",
+      )}
+    >
       {/* Hero */}
       <div
         className={cn(
@@ -553,25 +564,25 @@ export function ProductDetailPanel(props: Props) {
           )}
           aria-hidden
         />
-        <div className="flex items-start gap-3 pl-2">
+        <div className="flex items-start gap-2 pl-2">
           {isParentish && !thumbUrl ? (
             <span
               className={cn(
-                "flex size-12 shrink-0 items-center justify-center border border-dashed text-base font-bold tracking-tight shadow-sm ring-1 ring-black/[0.04] sm:size-14",
+                "flex size-10 shrink-0 items-center justify-center border border-dashed text-sm font-bold tracking-tight sm:size-12",
                 panelTone.accentLight,
               )}
             >
               {titleInitial}
             </span>
           ) : (
-            <div className="relative size-12 shrink-0 overflow-hidden border border-border/50 bg-muted shadow-sm ring-1 ring-black/[0.04] sm:size-14">
+            <div className="relative size-10 shrink-0 overflow-hidden border border-border/50 bg-muted sm:size-12">
               {thumbUrl ? (
                 <Image
                   src={thumbUrl}
                   alt=""
                   fill
                   className="object-cover"
-                  sizes="56px"
+                  sizes="48px"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
@@ -583,7 +594,7 @@ export function ProductDetailPanel(props: Props) {
               )}
             </div>
           )}
-          <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap gap-1">
               <span
                 className={cn(
@@ -1259,7 +1270,7 @@ export function ProductDetailPanel(props: Props) {
                         role="button"
                         tabIndex={0}
                         className={cn(
-                          "flex cursor-pointer items-center gap-2.5 px-3 py-2.5 transition-colors",
+                          "flex cursor-pointer items-center gap-2 px-2.5 py-1.5 transition-colors",
                           !vSelected && panelTone.variantRowHover,
                           vSelected && panelTone.variantRowActive,
                           editing && "bg-muted/20",
@@ -1274,19 +1285,19 @@ export function ProductDetailPanel(props: Props) {
                       }
                     }}
                   >
-                    <div className="relative size-7 shrink-0 overflow-hidden border border-border/60 bg-muted">
+                    <div className="relative size-6 shrink-0 overflow-hidden border border-border/60 bg-muted">
                       {vThumb ? (
                         <Image
                           src={vThumb}
                           alt=""
-                          width={28}
-                          height={28}
+                          width={24}
+                          height={24}
                           className="object-cover"
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
                           <Package
-                            className="size-3.5 text-muted-foreground/40"
+                            className="size-3 text-muted-foreground/40"
                             aria-hidden
                           />
                         </div>
@@ -1324,7 +1335,7 @@ export function ProductDetailPanel(props: Props) {
                     {canCatalogWrite && (
                       <button
                         type="button"
-                        className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground transition-colors hover:text-foreground"
+                        className="flex size-6 shrink-0 items-center justify-center border border-border/60 bg-background text-muted-foreground transition-colors hover:text-foreground"
                         onClick={(e) => startVariantRowEdit(v, e)}
                         aria-label={`Edit ${v.variantName?.trim() || v.name}`}
                       >
@@ -1716,6 +1727,7 @@ export function ProductDetailPanel(props: Props) {
       <ProductItemTimeline itemId={detail.id} />
 
       {/* Mobile sticky actions */}
+      {showMobileStickyActions ? (
       <div className={detailStickyBarClass}>
         <div className="mx-auto flex max-w-lg gap-2">
           <Button
@@ -1758,6 +1770,7 @@ export function ProductDetailPanel(props: Props) {
           )}
         </div>
       </div>
+      ) : null}
 
       {scannerOpen && (
         <BarcodeScanner

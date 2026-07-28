@@ -652,14 +652,17 @@ export function ProductsWorkspace() {
         detailPanelProps={p}
       />
 
-      <button
-        type="button"
-        disabled={catalog.itemTypes.length === 0}
-        onClick={() => setActiveDrawer("create-parent")}
-        className="fixed bottom-[76px] right-4 z-30 lg:hidden flex size-14 items-center justify-center rounded-full shadow-lg bg-foreground text-background active:scale-95 disabled:opacity-40"
-      >
-        <PackagePlus className="size-6" />
-      </button>
+      {!mobileDetailOpen ? (
+        <button
+          type="button"
+          disabled={catalog.itemTypes.length === 0}
+          onClick={() => setActiveDrawer("create-parent")}
+          className="fixed bottom-[76px] right-4 z-30 lg:hidden flex size-14 items-center justify-center rounded-full shadow-lg bg-foreground text-background active:scale-95 disabled:opacity-40"
+          aria-label="Create product"
+        >
+          <PackagePlus className="size-6" />
+        </button>
+      ) : null}
     </>
   );
 }

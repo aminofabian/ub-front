@@ -40,58 +40,58 @@ export function detailPanelTone(kind: DetailPanelKind): DetailPanelTone {
       notice:
         "border-violet-500/25 bg-violet-500/8 text-violet-900 dark:text-violet-100",
       variantRowHover: "hover:bg-violet-500/8",
-      variantRowActive:
-        "bg-violet-500/12 ring-1 ring-inset ring-violet-500/35 shadow-sm",
-    };
-  }
-  if (kind === "group" || kind === "parent") {
+        variantRowActive:
+          "bg-violet-500/12 ring-1 ring-inset ring-violet-500/35",
+      };
+    }
+    if (kind === "group" || kind === "parent") {
+      return {
+        heroGradient:
+          "bg-gradient-to-br from-amber-500/14 via-amber-500/8 to-amber-500/5 dark:from-amber-500/18 dark:via-amber-500/10 dark:to-amber-500/6",
+        heroRing: "ring-amber-500/20",
+        badge:
+          "border-amber-500/30 bg-amber-500/12 text-amber-950 dark:text-amber-100",
+        accent: "bg-amber-500",
+        accentLight:
+          "border-amber-500/30 bg-amber-500/12 text-amber-900 dark:text-amber-100",
+        statHighlight: "ring-amber-500/15",
+        notice:
+          "border-amber-500/25 bg-amber-500/8 text-amber-950 dark:text-amber-100",
+        variantRowHover: "hover:bg-violet-500/8",
+        variantRowActive:
+          "bg-violet-500/12 ring-1 ring-inset ring-violet-500/35",
+      };
+    }
     return {
       heroGradient:
-        "bg-gradient-to-br from-amber-500/14 via-amber-500/8 to-amber-500/5 dark:from-amber-500/18 dark:via-amber-500/10 dark:to-amber-500/6",
-      heroRing: "ring-amber-500/20",
+        "bg-gradient-to-br from-emerald-500/14 via-emerald-500/8 to-emerald-500/5 dark:from-emerald-500/18 dark:via-emerald-500/10 dark:to-emerald-500/6",
+      heroRing: "ring-emerald-500/20",
       badge:
-        "border-amber-500/30 bg-amber-500/12 text-amber-950 dark:text-amber-100",
-      accent: "bg-amber-500",
+        "border-emerald-500/30 bg-emerald-500/12 text-emerald-950 dark:text-emerald-100",
+      accent: "bg-emerald-500",
       accentLight:
-        "border-amber-500/30 bg-amber-500/12 text-amber-900 dark:text-amber-100",
-      statHighlight: "ring-amber-500/15",
+        "border-emerald-500/30 bg-emerald-500/12 text-emerald-900 dark:text-emerald-100",
+      statHighlight: "ring-emerald-500/15",
       notice:
-        "border-amber-500/25 bg-amber-500/8 text-amber-950 dark:text-amber-100",
+        "border-emerald-500/25 bg-emerald-500/8 text-emerald-950 dark:text-emerald-100",
       variantRowHover: "hover:bg-violet-500/8",
       variantRowActive:
-        "bg-violet-500/12 ring-1 ring-inset ring-violet-500/35 shadow-sm",
+        "bg-violet-500/12 ring-1 ring-inset ring-violet-500/35",
     };
   }
-  return {
-    heroGradient:
-      "bg-gradient-to-br from-emerald-500/14 via-emerald-500/8 to-emerald-500/5 dark:from-emerald-500/18 dark:via-emerald-500/10 dark:to-emerald-500/6",
-    heroRing: "ring-emerald-500/20",
-    badge:
-      "border-emerald-500/30 bg-emerald-500/12 text-emerald-950 dark:text-emerald-100",
-    accent: "bg-emerald-500",
-    accentLight:
-      "border-emerald-500/30 bg-emerald-500/12 text-emerald-900 dark:text-emerald-100",
-    statHighlight: "ring-emerald-500/15",
-    notice:
-      "border-emerald-500/25 bg-emerald-500/8 text-emerald-950 dark:text-emerald-100",
-    variantRowHover: "hover:bg-violet-500/8",
-    variantRowActive:
-      "bg-violet-500/12 ring-1 ring-inset ring-violet-500/35 shadow-sm",
-  };
-}
 
-export const detailShellClass = "relative flex flex-col gap-2 pb-[4.5rem] lg:pb-0";
+export const detailShellClass = "relative flex flex-col gap-2";
 
 export const detailHeroClass = cn(
-  "relative overflow-hidden border border-border/55 p-2 shadow-sm ring-1 ring-inset sm:p-2.5",
+  "relative overflow-hidden border border-border/55 p-2 sm:p-2.5",
 );
 
 export const detailSectionClass =
-  "overflow-hidden border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/50 dark:ring-white/[0.04]";
+  "overflow-hidden border border-border/55 bg-card dark:bg-card/90";
 
 export const detailSectionHeadClass = cn(
   "flex items-center gap-1.5 border-b border-border/45 px-3 py-1.5",
-  "bg-[linear-gradient(180deg,oklch(0.97_0.003_90),oklch(0.99_0.001_90))] dark:bg-muted/35",
+  "bg-muted/30 dark:bg-muted/35",
 );
 
 export const detailMetricGridClass =
@@ -105,15 +105,13 @@ export const detailCollapsibleTriggerClass = cn(
 );
 
 export const detailPackageCardClass = cn(
-  "relative overflow-hidden border border-primary/25 p-2.5 shadow-sm",
+  "relative overflow-hidden border border-primary/25 p-2",
   "bg-gradient-to-br from-primary/[0.09] via-primary/[0.04] to-transparent",
-  "ring-1 ring-inset ring-primary/15",
 );
 
 /** Thin row under Commerce for packages / weight — not a promo card. */
 export const detailSellingStripClass = cn(
   "flex flex-wrap items-center gap-x-3 gap-y-1.5 border border-border/55 bg-card px-2.5 py-1.5",
-  "shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
 );
 
 export const detailStickyBarClass = cn(
@@ -133,19 +131,18 @@ export const detailFieldValueClass =
   "text-xs font-medium text-foreground truncate";
 
 export const detailFieldRowClass = cn(
-  "group flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left",
-  "transition-[background-color,box-shadow] duration-150",
-  "hover:bg-muted/40 hover:shadow-[inset_0_0_0_1px_rgba(0,0,0,0.03)]",
-  "dark:hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]",
+  "group flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left",
+  "transition-colors duration-150",
+  "hover:bg-muted/40",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-inset",
 );
 
 export { productFormInlineEditClass as detailInlineEditClass } from "./product-form-styles";
 
 export const detailActionBtnClass = cn(
-  "inline-flex items-center justify-center rounded-lg border border-border/60 bg-background shadow-sm",
-  "text-muted-foreground transition-[background-color,color,box-shadow,ring-color]",
-  "hover:bg-muted/50 hover:text-foreground hover:ring-1 hover:ring-border/70",
+  "inline-flex items-center justify-center border border-border/60 bg-background",
+  "text-muted-foreground transition-colors",
+  "hover:bg-muted/50 hover:text-foreground",
 );
 
 export const detailActionBtnPrimaryClass = cn(
@@ -159,7 +156,7 @@ export function detailStatCellClass(
   highlight?: "success" | "danger" | "default",
 ): string {
   return cn(
-    "px-2.5 py-2.5 transition-colors sm:px-3",
+    "px-2.5 py-1.5 transition-colors sm:px-3",
     highlight === "success" && "bg-emerald-500/[0.06]",
     highlight === "danger" && "bg-red-500/[0.06]",
   );

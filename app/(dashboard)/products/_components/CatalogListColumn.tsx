@@ -217,7 +217,7 @@ export function CatalogListColumn({
                     <span className="tabular-nums font-semibold text-foreground">
                       {count.toLocaleString()}
                     </span>
-                    <span>{label}</span>
+                    <span className="hidden sm:inline">{label}</span>
                   </span>
                 );
               })}
@@ -226,7 +226,7 @@ export function CatalogListColumn({
         </div>
       )}
 
-      <div className="relative min-h-0 flex-1 overflow-hidden pr-4">
+      <div className="relative min-h-0 flex-1 overflow-hidden pr-5">
         <VirtualizedCatalogBody
           ref={listBodyRef}
           rows={catalog.displayRows}

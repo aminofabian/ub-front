@@ -71,7 +71,7 @@ export function ProductHeroHeader({
 
         {visibleAttention.length > 0 ? (
           <div
-            className="flex min-w-0 flex-wrap items-center gap-0.5"
+            className="hidden min-w-0 flex-wrap items-center gap-0.5 lg:flex"
             role="group"
             aria-label="Needs attention filters"
           >

@@ -462,15 +462,20 @@ export function ProductMobileDetailDrawer({
       contextLabel={d?.variantOfItemId ? "Variant SKU" : "Product"}
       icon={
         d?.variantOfItemId ? (
-          <Layers className="size-5 text-violet-600" />
+          <Layers className="size-4 text-violet-600" />
         ) : (
-          <Package className="size-5 text-emerald-600" />
+          <Package className="size-4 text-emerald-600" />
         )
       }
       width="wide"
+      appearance="sharp"
+      headerDensity="compact"
     >
       {d ? (
-        <ProductDetailPanel {...detailPanelProps} />
+        <ProductDetailPanel
+          {...detailPanelProps}
+          showMobileStickyActions={false}
+        />
       ) : (
         <div className="flex flex-col items-center justify-center gap-3 py-16">
           <Loader2 className="size-8 animate-spin text-primary" />

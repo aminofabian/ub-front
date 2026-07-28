@@ -73,7 +73,6 @@ export function useCatalogList(
   const [variantIdsByParentId, setVariantIdsByParentId] = useState<
     Record<string, string[]>
   >({});
-  const [listDensity, setListDensity] = useState<"comfortable" | "dense">("dense");
   const [message, setMessage] = useState("");
   const [rowTypeFilter, setRowTypeFilter] = useState<
     Set<CatalogListDisplayType>
@@ -487,7 +486,6 @@ export function useCatalogList(
     filterZeroStock, setFilterZeroStock,
     filterLowStock, setFilterLowStock,
     rowSelection, setRowSelection, onToggleRowSelect, variantIdsByParent,
-    listDensity, setListDensity,
     message, setMessage,
     loadCategoriesAndTypes, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, jumpToLetter, resetFilters,
   };

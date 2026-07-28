@@ -111,7 +111,7 @@ const catalogMetricPad = "px-1 py-0.5";
 export function catalogVariantRowIndentClass(
   density: "comfortable" | "dense" = "dense",
 ): string {
-  return density === "dense" ? "pl-8" : "pl-14";
+  return density === "dense" ? "pl-4 sm:pl-8" : "pl-8 sm:pl-14";
 }
 
 export const catalogGridCol = {
