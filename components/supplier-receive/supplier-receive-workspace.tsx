@@ -189,8 +189,8 @@ function parentRailClass(active: boolean, hasImage: boolean): string {
   if (hasImage) {
     return cn(
       PARENT_RAIL_BASE,
-      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_60%,transparent)]",
-      "dark:border-border/40",
+      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] bg-[color-mix(in_srgb,var(--card)_70%,transparent)]",
+      "dark:border-border/50",
       active &&
         "border-[var(--pos-primary)] shadow-[inset_0_0_0_2px_var(--pos-primary)]",
     );
@@ -202,10 +202,11 @@ function parentRailClass(active: boolean, hasImage: boolean): string {
       )
     : cn(
         PARENT_RAIL_BASE,
-        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-1",
-        "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] text-[var(--pos-ink,#1c1915)]",
-        "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,var(--card))]",
-        "dark:border-border/40 dark:bg-card dark:text-foreground",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-1",
+        "bg-[color-mix(in_srgb,var(--card)_55%,transparent)] text-[var(--pos-ink,#1c1915)]",
+        "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
+        "hover:bg-[color-mix(in_srgb,var(--card)_78%,transparent)]",
+        "dark:border-border/50 dark:bg-background/40 dark:text-foreground",
       );
 }
 
@@ -2493,7 +2494,36 @@ export function SupplierReceiveWorkspace({
       style={brandTheme as CSSProperties}
     >
       <div className="flex h-full min-h-0 flex-1 items-stretch overflow-hidden">
-        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] dark:border-border/40">
+        {showParentRail ? (
+          <aside
+            className={cn(
+              "hidden min-h-0 w-[6.75rem] shrink-0 flex-col lg:flex xl:w-[7.5rem]",
+              "border-r-2 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)]",
+              "bg-[color-mix(in_srgb,var(--pos-paper,#e8e0d4)_88%,var(--pos-primary)_6%)]",
+              "shadow-[inset_-6px_0_12px_-10px_color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
+              "dark:border-border dark:bg-muted/35 dark:shadow-none",
+            )}
+          >
+            <div className={PARENT_RAIL_HEADER}>Parent</div>
+            <nav
+              aria-label="Filter by parent product"
+              className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1"
+            >
+              {parentOptions.map((parent) => (
+                <ParentFolderButton
+                  key={parent.id ?? "all"}
+                  parent={parent}
+                  active={parentFilterId === parent.id}
+                  canEditPhoto={editCatalogLive}
+                  onSelect={() => setParentFilterId(parent.id)}
+                  onPhotoUploaded={onParentPhotoUploaded}
+                />
+              ))}
+            </nav>
+          </aside>
+        ) : null}
+
+        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_96%,transparent)] dark:border-border/40 dark:bg-background">
           <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2 pb-1.5 pt-1.5 dark:border-border/40 sm:px-3">
             <span
               aria-hidden
@@ -2620,7 +2650,14 @@ export function SupplierReceiveWorkspace({
           </div>
 
           {showParentRail ? (
-            <div className="flex gap-1 overflow-x-auto border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] p-1 scrollbar-none dark:border-border/40 dark:bg-muted/20 lg:hidden">
+            <div
+              className={cn(
+                "flex gap-1 overflow-x-auto border-b-2 p-1.5 scrollbar-none lg:hidden",
+                "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
+                "bg-[color-mix(in_srgb,var(--pos-paper,#e8e0d4)_88%,var(--pos-primary)_6%)]",
+                "dark:border-border dark:bg-muted/35",
+              )}
+            >
               {parentOptions.map((parent) => (
                 <ParentFolderButton
                   key={parent.id ?? "all"}
@@ -2732,27 +2769,6 @@ export function SupplierReceiveWorkspace({
             )}
           </div>
         </div>
-
-        {showParentRail ? (
-          <aside className="hidden min-h-0 w-[6.5rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] dark:border-border/40 dark:bg-muted/20 lg:flex xl:w-[7.25rem]">
-            <div className={PARENT_RAIL_HEADER}>Parent</div>
-            <nav
-              aria-label="Filter by parent product"
-              className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-0.5"
-            >
-              {parentOptions.map((parent) => (
-                <ParentFolderButton
-                  key={parent.id ?? "all"}
-                  parent={parent}
-                  active={parentFilterId === parent.id}
-                  canEditPhoto={editCatalogLive}
-                  onSelect={() => setParentFilterId(parent.id)}
-                  onPhotoUploaded={onParentPhotoUploaded}
-                />
-              ))}
-            </nav>
-          </aside>
-        ) : null}
 
         <div className="hidden h-full min-h-0 lg:flex">
           <SupplyCartPanel {...cartPanelProps} />
