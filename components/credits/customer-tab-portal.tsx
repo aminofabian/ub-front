@@ -583,7 +583,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     Number.isFinite(walletAmountNum) && walletAmountNum >= 1;
   const walletTopUpDisabled = walletBusy || walletPromptSent;
   const showPay = owed > 0 && !loading && !notFound && mounted;
-  const showWalletTopUp = !loading && !notFound && mounted;
+  const showWalletTopUp = !loading && !notFound && mounted && owed <= 0;
   const purchaseCount = tab?.purchases?.length ?? 0;
   const tabStats = useMemo(
     () => computeTabStats(tab?.purchases ?? []),
@@ -752,7 +752,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {!loading && !notFound ? (
+            {showWalletTopUp ? (
               <button
                 type="button"
                 onClick={focusWalletTopUp}
