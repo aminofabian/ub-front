@@ -19,6 +19,7 @@ export const APP_ROUTES = {
   superAdminBusinesses: "/super-admin/businesses",
   superAdminSettings: "/super-admin/settings",
   superAdminPlatformIntegrations: "/super-admin/platform/integrations",
+  superAdminPlatformSokoMind: "/super-admin/platform/sokomind",
   superAdminPlatformSupplierPortal: "/super-admin/platform/supplier-portal",
   superAdminPlatformMarketplaceSuppliers: "/super-admin/platform/marketplace-suppliers",
   superAdminPlatformPayments: "/super-admin/payments/platform",
@@ -202,6 +203,7 @@ export const API_ROUTES = {
   superAdminPlatformPaymentGateways:
     "/api/v1/super-admin/payments/platform-gateways",
   superAdminPlatformIntegrations: "/api/v1/super-admin/platform/integrations",
+  superAdminPlatformSokoMind: "/api/v1/super-admin/platform/sokomind",
   superAdminPlatformSupplierPortal: "/api/v1/super-admin/platform/supplier-portal",
   superAdminMarketplaceSuppliers: "/api/v1/super-admin/marketplace/suppliers",
   superAdminGlobalCatalog: "/api/v1/super-admin/global-catalog",

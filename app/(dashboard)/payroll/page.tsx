@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Banknote, Loader2, Wallet } from "lucide-react";
+import { Banknote, Loader2, Pencil, Wallet } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   createStaffAdvance,
+  createStaffSalary,
   fetchPayrollRun,
   payStaffPayroll,
   type PayrollRunRow,
@@ -68,6 +69,21 @@ export default function PayrollPage() {
   const [advanceNote, setAdvanceNote] = useState("");
   const [advanceSaving, setAdvanceSaving] = useState(false);
 
+  const [salaryOpen, setSalaryOpen] = useState(false);
+  const [salaryUserId, setSalaryUserId] = useState<string | null>(null);
+  const [salaryName, setSalaryName] = useState("");
+  const [salaryCurrent, setSalaryCurrent] = useState(0);
+  const [salaryAmount, setSalaryAmount] = useState("");
+  const [salaryFrom, setSalaryFrom] = useState(
+    () => new Date().toISOString().slice(0, 10),
+  );
+  const [salarySaving, setSalarySaving] = useState(false);
+
+  const missingSalaryCount = useMemo(
+    () => rows.filter((r) => Number(r.baseSalary) <= 0).length,
+    [rows],
+  );
+
   const load = useCallback(async () => {
     if (!canViewPayroll) return;
     setLoading(true);
@@ -94,8 +110,11 @@ export default function PayrollPage() {
     if (row.baseSalary <= 0) {
       setFeedback({
         kind: "error",
-        text: `${row.displayName} has no salary for this period.`,
+        text: `${row.displayName} has no salary yet. Set a salary first.`,
       });
+      if (canManagePayroll) {
+        openSalary(row);
+      }
       return;
     }
     setPayingId(row.userId);
@@ -124,6 +143,17 @@ export default function PayrollPage() {
     setAdvanceDate(new Date().toISOString().slice(0, 10));
     setAdvanceNote("");
     setAdvanceOpen(true);
+  }
+
+  function openSalary(row: PayrollRunRow) {
+    setSalaryUserId(row.userId);
+    setSalaryName(row.displayName);
+    setSalaryCurrent(Number(row.baseSalary) || 0);
+    setSalaryAmount(
+      row.baseSalary > 0 ? String(Number(row.baseSalary)) : "",
+    );
+    setSalaryFrom(new Date().toISOString().slice(0, 10));
+    setSalaryOpen(true);
   }
 
   async function onSaveAdvance() {
@@ -156,6 +186,39 @@ export default function PayrollPage() {
     }
   }
 
+  async function onSaveSalary() {
+    if (!salaryUserId || !canManagePayroll) return;
+    const amount = Number(salaryAmount);
+    if (!Number.isFinite(amount) || amount <= 0 || !salaryFrom) {
+      setFeedback({
+        kind: "error",
+        text: "Enter a valid monthly amount and effective date.",
+      });
+      return;
+    }
+    setSalarySaving(true);
+    setFeedback(null);
+    try {
+      await createStaffSalary(salaryUserId, {
+        amount,
+        effectiveFrom: salaryFrom,
+      });
+      setSalaryOpen(false);
+      setFeedback({
+        kind: "success",
+        text: `Salary set for ${salaryName}.`,
+      });
+      await load();
+    } catch (err) {
+      setFeedback({
+        kind: "error",
+        text: err instanceof Error ? err.message : "Failed to set salary",
+      });
+    } finally {
+      setSalarySaving(false);
+    }
+  }
+
   if (dashLoading) {
     return null;
   }
@@ -174,7 +237,7 @@ export default function PayrollPage() {
         icon={Banknote}
         eyebrow="Organization"
         title="Payroll"
-        description={`Monthly pay run for ${monthLabel(year, month)}. Net = salary − advances (oldest first) − other deductions.`}
+        description={`Monthly pay run for ${monthLabel(year, month)}. Set each person’s salary, log advances, then mark paid.`}
       />
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -210,6 +273,14 @@ export default function PayrollPage() {
         <div className="mb-4">
           <DashboardFeedback kind={feedback.kind} text={feedback.text} />
         </div>
+      ) : null}
+
+      {!loading && !error && missingSalaryCount > 0 && canManagePayroll ? (
+        <p className="mb-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+          {missingSalaryCount} staff {missingSalaryCount === 1 ? "has" : "have"}{" "}
+          no monthly salary yet. Use <strong>Set salary</strong> on each row
+          before marking paid.
+        </p>
       ) : null}
 
       {loading ? (
@@ -261,7 +332,13 @@ export default function PayrollPage() {
                         {row.branchName ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
-                        {money(row.baseSalary)}
+                        {row.baseSalary > 0 ? (
+                          money(row.baseSalary)
+                        ) : (
+                          <span className="text-amber-700 dark:text-amber-300">
+                            Not set
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
                         {money(row.advancesOutstanding)}
@@ -283,16 +360,30 @@ export default function PayrollPage() {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap justify-end gap-1.5">
                           {canManagePayroll ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-7 gap-1 px-2 text-xs"
-                              onClick={() => openAdvance(row)}
-                            >
-                              <Wallet className="size-3" aria-hidden />
-                              Advance
-                            </Button>
+                            <>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={
+                                  row.baseSalary > 0 ? "outline" : "default"
+                                }
+                                className="h-7 gap-1 px-2 text-xs"
+                                onClick={() => openSalary(row)}
+                              >
+                                <Pencil className="size-3" aria-hidden />
+                                {row.baseSalary > 0 ? "Salary" : "Set salary"}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-7 gap-1 px-2 text-xs"
+                                onClick={() => openAdvance(row)}
+                              >
+                                <Wallet className="size-3" aria-hidden />
+                                Advance
+                              </Button>
+                            </>
                           ) : null}
                           {canRunPayroll && !row.alreadyPaid ? (
                             <Button
@@ -321,6 +412,74 @@ export default function PayrollPage() {
           </div>
         </section>
       )}
+
+      <FormDrawer
+        open={salaryOpen}
+        onOpenChange={setSalaryOpen}
+        title={salaryCurrent > 0 ? "Update salary" : "Set monthly salary"}
+        description={salaryName}
+        contextLabel="Payroll"
+        icon={<Banknote className="size-5 text-primary" aria-hidden />}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSalaryOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={salarySaving}
+              onClick={() => void onSaveSalary()}
+            >
+              {salarySaving ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                "Save salary"
+              )}
+            </Button>
+          </div>
+        }
+      >
+        <FormDrawerFields
+          legend="Monthly amount"
+          hint="Raises add a new record with an effective date — previous amounts stay in history."
+        >
+          <div className="grid gap-3">
+            {salaryCurrent > 0 ? (
+              <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                Current base: {money(salaryCurrent)}
+              </p>
+            ) : null}
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+              Amount
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                className={dashboardInputClass()}
+                value={salaryAmount}
+                onChange={(e) => setSalaryAmount(e.target.value)}
+                autoFocus
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+              Effective from
+              <input
+                type="date"
+                className={dashboardInputClass()}
+                value={salaryFrom}
+                onChange={(e) => setSalaryFrom(e.target.value)}
+              />
+            </label>
+          </div>
+        </FormDrawerFields>
+      </FormDrawer>
 
       <FormDrawer
         open={advanceOpen}

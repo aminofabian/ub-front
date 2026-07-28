@@ -446,6 +446,81 @@ export async function updatePlatformIntegrations(
   });
 }
 
+export type SokoMindSettingsRecord = {
+  sokomindEnabled: boolean;
+  guideEnabled: boolean;
+  brainEnabled: boolean;
+  eyeEnabled: boolean;
+  primaryProvider: string;
+  defaultLocale: string;
+  hasOpenaiApiKey: boolean;
+  openaiBaseUrl: string;
+  openaiMiniModel: string;
+  openaiSmartModel: string;
+  openaiVisionModel: string;
+  hasAnthropicApiKey: boolean;
+  anthropicBaseUrl: string;
+  anthropicMiniModel: string;
+  anthropicSmartModel: string;
+  hasDeepseekApiKey: boolean;
+  deepseekBaseUrl: string;
+  deepseekHost: string;
+  deepseekModel: string;
+  industryCompareEnabled: boolean;
+  industryCompareMinTwins: number;
+  dailyTokenBudgetPerTenant: number | null;
+  maxToolCallsPerRequest: number;
+  systemPromptExtra: string | null;
+  envOpenaiConfigured: boolean;
+  envAnthropicConfigured: boolean;
+  envDeepseekConfigured: boolean;
+  secretsReadable: boolean;
+  secretsError: string | null;
+  encryptionEphemeral: boolean;
+  updatedAt: string | null;
+};
+
+export type UpdateSokoMindSettingsPayload = Partial<{
+  sokomindEnabled: boolean;
+  guideEnabled: boolean;
+  brainEnabled: boolean;
+  eyeEnabled: boolean;
+  primaryProvider: string;
+  defaultLocale: string;
+  openaiApiKey: string | null;
+  openaiBaseUrl: string | null;
+  openaiMiniModel: string | null;
+  openaiSmartModel: string | null;
+  openaiVisionModel: string | null;
+  anthropicApiKey: string | null;
+  anthropicBaseUrl: string | null;
+  anthropicMiniModel: string | null;
+  anthropicSmartModel: string | null;
+  deepseekApiKey: string | null;
+  deepseekBaseUrl: string | null;
+  deepseekHost: string | null;
+  deepseekModel: string | null;
+  industryCompareEnabled: boolean;
+  industryCompareMinTwins: number;
+  dailyTokenBudgetPerTenant: number | null;
+  clearDailyTokenBudget: boolean;
+  maxToolCallsPerRequest: number;
+  systemPromptExtra: string | null;
+}>;
+
+export async function fetchSokoMindSettings(): Promise<SokoMindSettingsRecord> {
+  return saRequest<SokoMindSettingsRecord>(API_ROUTES.superAdminPlatformSokoMind);
+}
+
+export async function updateSokoMindSettings(
+  body: UpdateSokoMindSettingsPayload,
+): Promise<SokoMindSettingsRecord> {
+  return saRequest<SokoMindSettingsRecord>(API_ROUTES.superAdminPlatformSokoMind, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
 export type SupplierPortalSettingsRecord = {
   portalEnabled: boolean;
   allowSelfClaim: boolean;
