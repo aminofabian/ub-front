@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, MousePointerClick } from "lucide-react";
 
 import { DashboardNotice } from "@/components/dashboard-page-ui";
-import { FormDrawerMessageBanner } from "@/components/form-drawer";
+import { FormDrawerMessageBanner, catalogMessageBannerTone } from "@/components/form-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
@@ -253,15 +253,19 @@ export function ProductsWorkspace() {
       quick.quickEditAllOpen ||
       (mobileDetailOpen && !isLg)
     );
+  const catalogBanner = (text: string) => (
+    <FormDrawerMessageBanner
+      text={text}
+      tone={catalogMessageBannerTone(text)}
+    />
+  );
   const quickEditDrawerBanner =
     quick.quickEditAllOpen && (quick.qeaError || catalog.message.trim()) ? (
       <div className="flex flex-col gap-2">
         {quick.qeaError ? (
           <FormDrawerMessageBanner text={quick.qeaError} />
         ) : null}
-        {catalog.message.trim() ? (
-          <FormDrawerMessageBanner text={catalog.message} />
-        ) : null}
+        {catalog.message.trim() ? catalogBanner(catalog.message) : null}
       </div>
     ) : undefined;
   const p = {
@@ -521,7 +525,7 @@ export function ProductsWorkspace() {
         onClose={() => setActiveDrawer(null)}
         banner={
           activeDrawer === "create-parent" && catalog.message.trim() ? (
-            <FormDrawerMessageBanner text={catalog.message} />
+            catalogBanner(catalog.message)
           ) : undefined
         }
         catalog={catalog}
@@ -542,7 +546,7 @@ export function ProductsWorkspace() {
         onClose={() => setActiveDrawer(null)}
         banner={
           activeDrawer === "edit-product" && catalog.message.trim() ? (
-            <FormDrawerMessageBanner text={catalog.message} />
+            catalogBanner(catalog.message)
           ) : undefined
         }
         detail={detail}
@@ -560,7 +564,7 @@ export function ProductsWorkspace() {
         onClose={() => setActiveDrawer(null)}
         banner={
           activeDrawer === "photos" && catalog.message.trim() ? (
-            <FormDrawerMessageBanner text={catalog.message} />
+            catalogBanner(catalog.message)
           ) : undefined
         }
         detail={detail}
@@ -573,7 +577,7 @@ export function ProductsWorkspace() {
           onClose={() => setActiveDrawer(null)}
           banner={
             activeDrawer === "add-variant" && catalog.message.trim() ? (
-              <FormDrawerMessageBanner text={catalog.message} />
+              catalogBanner(catalog.message)
             ) : undefined
           }
           parentDisplayName={variantDrawerParentName}
@@ -657,7 +661,7 @@ export function ProductsWorkspace() {
         onClose={() => setMobileDetailOpen(false)}
         banner={
           mobileDetailOpen && !isLg && catalog.message.trim() ? (
-            <FormDrawerMessageBanner text={catalog.message} />
+            catalogBanner(catalog.message)
           ) : undefined
         }
         detail={detail}

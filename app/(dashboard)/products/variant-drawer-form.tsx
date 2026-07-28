@@ -16,6 +16,7 @@ import {
   productFormHintClass,
   productFormInputClass,
   productFormLabelClass,
+  productFormMetaClass,
   productFormRequiredClass,
   productFormSectionTitleClass,
   productFormSelectClass,
@@ -378,14 +379,14 @@ function VariantRowFields({
               <button
                 type="button"
                 onClick={onScanBarcode}
-                className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground shadow-none hover:bg-muted"
+                className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground/50 shadow-none hover:bg-muted"
                 aria-label="Scan barcode"
               >
                 <Camera className="size-3.5" aria-hidden />
               </button>
             </div>
           </Label>
-          <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <span className={productFormLabelClass}>SKU</span>
             <div className="flex gap-1.5">
               <input
@@ -399,7 +400,7 @@ function VariantRowFields({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 shrink-0 px-2 text-[10px]"
+                  className="h-8 shrink-0 px-2 font-mono text-[10px] tracking-tight shadow-none"
                   onClick={() => onPatch({ sku: suggestedNextSku })}
                 >
                   {suggestedNextSku}
@@ -512,12 +513,12 @@ export function VariantDrawerForm({
   return (
     <form id="add-variant-form" className="space-y-2" onSubmit={onSubmit}>
       {parentIsProductGroup && parentCategoryId ? (
-        <div className="rounded-none border border-border bg-muted/15 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+        <div className={cn("rounded-none border border-border bg-muted/15 px-2.5 py-1.5", productFormMetaClass)}>
           Category:{" "}
-          <span className="font-medium text-foreground">
+          <span className="text-foreground/80">
             {parentCategoryName || "Group category"}
           </span>
-          <span className="text-muted-foreground/80"> — applied to new variants</span>
+          <span className="text-foreground/40"> — applied to new variants</span>
         </div>
       ) : null}
 
@@ -543,7 +544,7 @@ export function VariantDrawerForm({
           type="button"
           variant="outline"
           size="sm"
-          className="h-8 gap-1.5 text-xs"
+          className="h-8 gap-1.5 text-xs shadow-none"
           onClick={addVariantDraftRow}
         >
           <Plus className="size-3.5" aria-hidden />
@@ -552,7 +553,7 @@ export function VariantDrawerForm({
       </div>
 
       {variantDraftRows.length > 1 ? (
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <div className={cn("flex flex-wrap items-center gap-2", productFormMetaClass)}>
           <span>More options for</span>
           <select
             className={cn(productFormSelectClass, "h-8 max-w-[12rem] text-xs")}

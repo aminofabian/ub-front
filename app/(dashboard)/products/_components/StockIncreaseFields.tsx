@@ -69,11 +69,11 @@ function PreviewStat({
 }) {
   return (
     <span className={productFormPreviewClass}>
-      <span className="text-muted-foreground/80">{label}</span>{" "}
+      <span className="text-foreground/45">{label}</span>{" "}
       <span
         className={cn(
           "font-medium tabular-nums",
-          strong ? "text-foreground" : "text-foreground/90",
+          strong ? "text-foreground" : "text-foreground/80",
         )}
       >
         {value}

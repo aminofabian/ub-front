@@ -37,41 +37,70 @@ export type FormDrawerProps = {
   onboardingTarget?: OnboardingTargetId;
 };
 
-/** Compact destructive alert for plain-string messages (API / validation). */
+/** Compact alert for drawer banners — sharp by default for sheet drawers. */
 export function FormDrawerMessageBanner({
   text,
-  sharp,
+  sharp = true,
+  tone = "danger",
 }: {
   text: string;
   sharp?: boolean;
+  /** danger = errors; notice = success / guidance (e.g. group created) */
+  tone?: "danger" | "notice";
 }) {
   const t = text.trim();
   if (!t) return null;
+  const isNotice = tone === "notice";
   return (
     <div
       role="alert"
       className={cn(
-        "flex items-start gap-3 border border-destructive/35 px-3.5 py-3 text-sm text-destructive",
-        sharp
-          ? "rounded-none bg-destructive/[0.06] shadow-none dark:bg-destructive/10"
-          : cn(
-              "rounded-xl shadow-sm",
-              "bg-gradient-to-br from-destructive/[0.08] via-destructive/[0.04] to-transparent",
-              "dark:border-destructive/30 dark:from-destructive/15 dark:via-destructive/8",
-            ),
+        "flex items-start gap-2.5 border px-3 py-2.5 text-[13px] leading-snug",
+        sharp ? "rounded-none shadow-none" : "rounded-xl shadow-sm",
+        isNotice
+          ? "border-border bg-muted/30 text-foreground/80"
+          : sharp
+            ? "border-destructive/35 bg-destructive/[0.06] text-destructive dark:bg-destructive/10"
+            : cn(
+                "border-destructive/35 text-destructive",
+                "bg-gradient-to-br from-destructive/[0.08] via-destructive/[0.04] to-transparent",
+                "dark:border-destructive/30 dark:from-destructive/15 dark:via-destructive/8",
+              ),
       )}
     >
       <span
         className={cn(
-          "flex size-8 shrink-0 items-center justify-center bg-destructive/10 text-destructive dark:bg-destructive/20",
+          "flex size-7 shrink-0 items-center justify-center",
           sharp ? "rounded-none" : "rounded-lg",
+          isNotice
+            ? "bg-muted text-foreground/50"
+            : "bg-destructive/10 text-destructive dark:bg-destructive/20",
         )}
       >
-        <AlertCircle className="size-4" aria-hidden />
+        <AlertCircle className="size-3.5" aria-hidden />
       </span>
-      <p className="min-w-0 flex-1 pt-0.5 whitespace-pre-wrap leading-relaxed">{t}</p>
+      <p className="min-w-0 flex-1 pt-0.5 whitespace-pre-wrap font-medium tracking-tight">
+        {t}
+      </p>
     </div>
   );
+}
+
+/** Pick banner tone from a catalog status string. */
+export function catalogMessageBannerTone(
+  text: string,
+): "danger" | "notice" {
+  const t = text.trim().toLowerCase();
+  if (!t) return "danger";
+  if (
+    /error|fail|invalid|required|unable|denied|forbidden|conflict/.test(t)
+  ) {
+    return "danger";
+  }
+  if (/created|saved|updated|added|success|linked|uploaded/.test(t)) {
+    return "notice";
+  }
+  return "danger";
 }
 
 /**
@@ -307,7 +336,7 @@ export function FormDrawer({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="size-7 shrink-0 rounded-sm border border-border bg-background text-muted-foreground shadow-none hover:bg-muted/70 hover:text-foreground"
+                        className="size-7 shrink-0 rounded-md border border-border bg-background text-foreground/50 shadow-none hover:bg-muted/70 hover:text-foreground"
                         aria-label="Close panel"
                       >
                         <X className="size-3.5" strokeWidth={2} />
@@ -417,7 +446,12 @@ export function FormDrawer({
                       ),
                 )}
               >
-                {banner}
+                {sharp && React.isValidElement(banner)
+                  ? React.cloneElement(
+                      banner as React.ReactElement<{ sharp?: boolean }>,
+                      { sharp: true },
+                    )
+                  : banner}
               </div>
             ) : null}
 

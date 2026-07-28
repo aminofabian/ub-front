@@ -89,7 +89,7 @@ export function VariantCreateDrawer({
             ? "Parent group"
             : "Parent product"
       }
-      icon={<Layers className="size-3.5 text-primary" aria-hidden />}
+      icon={<Layers className="size-3.5 text-foreground/50" aria-hidden />}
       width="wide"
       appearance="sharp"
       headerDensity="compact"
@@ -99,7 +99,7 @@ export function VariantCreateDrawer({
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 px-2.5 text-xs"
+            className="h-8 px-2.5 text-xs shadow-none"
             onClick={onClose}
             disabled={m.variantCreateBusy}
           >
@@ -110,7 +110,7 @@ export function VariantCreateDrawer({
             form="add-variant-form"
             size="sm"
             disabled={m.variantCreateBusy || variantCreateSubmitCount === 0}
-            className="h-8 gap-1.5 px-2.5 text-xs"
+            className="h-8 gap-1.5 px-2.5 text-xs shadow-none"
           >
             {m.variantCreateBusy ? (
               <>
