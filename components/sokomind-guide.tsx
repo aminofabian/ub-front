@@ -57,6 +57,11 @@ export function SokoMindGuide() {
     return () => window.removeEventListener("keydown", onKey);
   }, [hidden, status?.guideEnabled]);
 
+  const context = useMemo(
+    () => buildSokoMindContext(pathname, { locale: status?.defaultLocale ?? "en-KE" }),
+    [pathname, status?.defaultLocale],
+  );
+
   useEffect(() => {
     setThread([]);
     setSuggestions([]);
@@ -67,11 +72,6 @@ export function SokoMindGuide() {
       .then((g) => setSuggestions(g.suggestions ?? []))
       .catch(() => setSuggestions([]));
   }, [pathname, hidden, status?.guideEnabled, context.surface]);
-
-  const context = useMemo(
-    () => buildSokoMindContext(pathname, { locale: status?.defaultLocale ?? "en-KE" }),
-    [pathname, status?.defaultLocale],
-  );
 
   const ask = async (message: string) => {
     const trimmed = message.trim();
