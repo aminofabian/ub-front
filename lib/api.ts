@@ -8613,6 +8613,8 @@ export type CreditSaleReminderSettingsRecord = {
   hasSmsTextsmsApiKey: boolean;
   secretsReadable: boolean;
   secretsReadError: string | null;
+  /** Default true: remote invoice STK success auto-pays. */
+  remoteInvoiceStkAutoSettle?: boolean;
 };
 
 export type UpdateCreditSaleReminderSettingsPayload = {
@@ -8638,6 +8640,7 @@ export type UpdateCreditSaleReminderSettingsPayload = {
   smsTextsmsApiKey?: string | null;
   smsTextsmsShortcode?: string | null;
   smsTextsmsApiUrl?: string | null;
+  remoteInvoiceStkAutoSettle?: boolean | null;
 };
 
 export async function fetchCreditSaleReminderSettings(): Promise<CreditSaleReminderSettingsRecord> {

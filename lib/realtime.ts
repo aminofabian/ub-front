@@ -67,6 +67,7 @@ export type RealtimeEventType =
   | "grocery.invoice.paid"
   | "grocery.invoice.cancelled"
   | "grocery.invoice.expired"
+  | "grocery.invoice.stk"
   | "catch-up.overflow"
   | "error"
   | "ping";
@@ -119,6 +120,7 @@ export interface RealtimeClientOptions {
   onGroceryInvoicePaid?: FrameHandler;
   onGroceryInvoiceCancelled?: FrameHandler;
   onGroceryInvoiceExpired?: FrameHandler;
+  onGroceryInvoiceStk?: FrameHandler;
   onError?: ErrorHandler;
   onConnectionStateChange?: ConnectionStateHandler;
 }
@@ -150,6 +152,7 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "grocery.invoice.paid": "onGroceryInvoicePaid",
   "grocery.invoice.cancelled": "onGroceryInvoiceCancelled",
   "grocery.invoice.expired": "onGroceryInvoiceExpired",
+  "grocery.invoice.stk": "onGroceryInvoiceStk",
 };
 
 // ── WS URL Resolution ──
@@ -280,6 +283,7 @@ export type RealtimeListenerOptions = Pick<
   | "onGroceryInvoicePaid"
   | "onGroceryInvoiceCancelled"
   | "onGroceryInvoiceExpired"
+  | "onGroceryInvoiceStk"
   | "onError"
   | "onConnectionStateChange"
 >;
@@ -300,6 +304,7 @@ const LISTENER_HANDLER_KEYS = [
   "onGroceryInvoicePaid",
   "onGroceryInvoiceCancelled",
   "onGroceryInvoiceExpired",
+  "onGroceryInvoiceStk",
   "onError",
   "onConnectionStateChange",
 ] as const satisfies readonly (keyof RealtimeListenerOptions)[];

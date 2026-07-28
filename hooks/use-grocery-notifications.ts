@@ -127,6 +127,30 @@ export function useGroceryNotifications() {
       onGroceryInvoiceUnlocked: (frame: RealtimeFrame) => {
         dispatchGroceryInvoiceEvent("unlocked", frame.data);
       },
+
+      onGroceryInvoiceStk: (frame: RealtimeFrame) => {
+        if (shownEventIds.current.has(frame.eventId)) return;
+        shownEventIds.current.add(frame.eventId);
+        const d = frame.data;
+        dispatchGroceryInvoiceEvent("stk", d);
+        const barcode = String(d.barcodeCode ?? "");
+        const status = String(d.stkStatus ?? "").toUpperCase();
+        if (status === "SUCCESS" || status === "COMPLETED") {
+          toast.success(`M-Pesa confirmed for ${barcode}`, {
+            description: "Remote bill STK succeeded",
+            duration: 6_000,
+          });
+        } else if (
+          status === "FAILED" ||
+          status === "CANCELLED" ||
+          status === "TIMEOUT"
+        ) {
+          toast.error(`STK failed for ${barcode}`, {
+            description: "Resend from Pending invoices if needed",
+            duration: 6_000,
+          });
+        }
+      },
     });
 
     return () => {

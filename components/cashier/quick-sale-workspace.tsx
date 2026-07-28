@@ -68,6 +68,7 @@ import {
   isSaleOutboxSupported,
 } from "@/lib/sale-outbox";
 import {
+  createGroceryInvoice,
   lookupGroceryInvoiceByBarcode,
   lockGroceryInvoice,
   payGroceryInvoice,
@@ -144,11 +145,14 @@ import {
   saveMirroredCarts,
 } from "@/lib/pos-draft-store";
 
-function payMethodNeedsCustomer(method: SalePaymentMethod): boolean {
+function payMethodNeedsCustomer(
+  method: SalePaymentMethod | "remote_bill",
+): boolean {
   return (
     method === "customer_credit" ||
     method === "customer_wallet" ||
-    method === "loyalty_redeem"
+    method === "loyalty_redeem" ||
+    method === "remote_bill"
   );
 }
 
@@ -268,6 +272,10 @@ export function QuickSaleWorkspace({
   const canManageCustomers = hasPermission(
     me?.permissions,
     Permission.CreditsCustomersWrite,
+  );
+  const canCreateRemoteBill = hasPermission(
+    me?.permissions,
+    Permission.GroceryInvoicesCreate,
   );
   const canVoid =
     hasPermission(me?.permissions, Permission.SalesVoidAny) ||
@@ -735,7 +743,7 @@ export function QuickSaleWorkspace({
   }, []);
 
   const setPayMethod = useCallback(
-    (m: SalePaymentMethod) => updateActiveCart({ payMethod: m }),
+    (m: SalePaymentMethod | "remote_bill") => updateActiveCart({ payMethod: m }),
     [updateActiveCart],
   );
   const setMpesaRef = useCallback(
@@ -1754,6 +1762,13 @@ export function QuickSaleWorkspace({
       }
       return true;
     }
+    if (payMethod === "remote_bill") {
+      return (
+        online &&
+        isValidCustomerPhone(customerPhoneQuery) &&
+        !splitPay
+      );
+    }
     if (payMethodNeedsCustomer(payMethod)) {
       if (!selectedCustomer) {
         return false;
@@ -2265,6 +2280,68 @@ export function QuickSaleWorkspace({
       return;
     }
 
+    // ── Remote / delivery bill: create grocery invoice + SMS + STK ──
+    if (payMethod === "remote_bill") {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setError("Sending a remote bill requires an online connection.");
+        setNotice("");
+        return;
+      }
+      const phoneErr = customerPhoneValidationMessage(customerPhoneQuery);
+      if (phoneErr) {
+        setError(phoneErr);
+        setNotice("");
+        return;
+      }
+      if (activeCart.groceryInvoiceId) {
+        setError("This cart is already a grocery invoice — pay it normally.");
+        setNotice("");
+        return;
+      }
+      setLoading(true);
+      setError("");
+      setNotice("");
+      const soldCartId = activeCartId;
+      try {
+        const invoice = await createGroceryInvoice({
+          branchId: bid,
+          lines: payloadLines.map((l) => ({
+            itemId: l.itemId,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+          })),
+          remote: true,
+          customerPhone: customerPhoneQuery.trim(),
+          customerId: selectedCustomer?.id,
+        });
+        recordSaleLines(
+          business?.id ?? null,
+          lines.map((line) => ({
+            item: line.item,
+            qty: parseQty(line.quantity) ?? 1,
+          })),
+        );
+        refreshTopProducts();
+        clearCartAfterSale(soldCartId);
+        setPendingSalesRefreshKey((k) => k + 1);
+        setInvoiceRefreshKey((k) => k + 1);
+        const stkOk =
+          String(invoice.lastStkStatus ?? "").toUpperCase() === "PENDING";
+        setNotice(
+          stkOk
+            ? `Bill ${invoice.barcodeCode} sent — M-Pesa prompt on ${invoice.customerPhone ?? customerPhoneQuery.trim()}.`
+            : `Bill ${invoice.barcodeCode} created for ${invoice.customerPhone ?? customerPhoneQuery.trim()}. Resend STK from Pending if needed.`,
+        );
+      } catch (e) {
+        setError(
+          e instanceof Error ? e.message : "Could not send remote bill.",
+        );
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     const offlineEarly = typeof navigator !== "undefined" && !navigator.onLine;
     if (
       offlineEarly &&
@@ -2411,7 +2488,7 @@ export function QuickSaleWorkspace({
       payments.push({ method: "cash", amount: cashTendered });
     } else {
       payments.push({
-        method: payMethod,
+        method: payMethod as SalePaymentMethod,
         amount: grandTotal,
         reference:
           payMethod === "mpesa_manual" ? mpesaRef.trim() || null : null,
@@ -3254,6 +3331,7 @@ export function QuickSaleWorkspace({
           onStkPush,
           canLookupCustomers,
           canManageCustomers,
+          canCreateRemoteBill,
           customerPhoneQuery,
           setCustomerPhoneQuery,
           customerHits,

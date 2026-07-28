@@ -38,6 +38,8 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
   } | null>(null);
 
   const [enabled, setEnabled] = useState(false);
+  const [remoteInvoiceStkAutoSettle, setRemoteInvoiceStkAutoSettle] =
+    useState(true);
   const [paymentUrl, setPaymentUrl] = useState("");
   const [rapidApiKey, setRapidApiKey] = useState("");
   const [rapidApiHost, setRapidApiHost] = useState("");
@@ -76,6 +78,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       const data = await fetchCreditSaleReminderSettings();
       setSettings(data);
       setEnabled(data.enabled);
+      setRemoteInvoiceStkAutoSettle(data.remoteInvoiceStkAutoSettle !== false);
       setPaymentUrl(data.paymentAccountUrl);
       setRapidApiHost(data.rapidApiHost ?? "");
       setRapidApiLookupUrl(data.rapidApiLookupUrl ?? "");
@@ -151,6 +154,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       const body: Parameters<typeof updateCreditSaleReminderSettings>[0] = {
         enabled,
         paymentAccountUrl: paymentUrl.trim(),
+        remoteInvoiceStkAutoSettle,
         rapidApiHost: rapidApiHost.trim() || null,
         rapidApiLookupUrl: rapidApiLookupUrl.trim() || null,
         rapidApiPhoneField: rapidApiPhoneField.trim() || null,
@@ -256,6 +260,25 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
             disabled={!canEdit}
           />
           <span>Send reminders after credit (tab) sales</span>
+        </label>
+
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 rounded border-border"
+            checked={remoteInvoiceStkAutoSettle}
+            onChange={(e) => setRemoteInvoiceStkAutoSettle(e.target.checked)}
+            disabled={!canEdit}
+          />
+          <span>
+            <span className="block font-medium">
+              Auto-complete remote bills when M-Pesa STK succeeds
+            </span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              On by default. Turn off if cashiers must confirm payment on the
+              till before clearing a remote / delivery bill.
+            </span>
+          </span>
         </label>
 
         <label className="flex flex-col gap-1.5">
@@ -385,6 +408,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                       const updated = await updateCreditSaleReminderSettings({
                         enabled,
                         paymentAccountUrl: paymentUrl.trim(),
+                        remoteInvoiceStkAutoSettle,
                         whatsappMetaAccessToken: "",
                         whatsappMetaPhoneNumberId: "",
                       });

@@ -261,6 +261,7 @@ export type CashierPosLayoutProps = {
     | "setCreditChangeToWallet"
     | "canLookupCustomers"
     | "canManageCustomers"
+    | "canCreateRemoteBill"
     | "customerPhoneQuery"
     | "setCustomerPhoneQuery"
     | "customerHits"

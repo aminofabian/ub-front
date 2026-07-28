@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   Gift,
+  Send,
   ShoppingBag,
   Smartphone,
   Trash2,
@@ -65,11 +66,14 @@ type CartLineLike = {
   item: ItemSummaryRecord;
 };
 
-function payMethodNeedsCustomer(method: SalePaymentMethod): boolean {
+function payMethodNeedsCustomer(
+  method: SalePaymentMethod | "remote_bill",
+): boolean {
   return (
     method === "customer_credit" ||
     method === "customer_wallet" ||
-    method === "loyalty_redeem"
+    method === "loyalty_redeem" ||
+    method === "remote_bill"
   );
 }
 
@@ -102,8 +106,8 @@ export type CashierCartDrawerProps = {
   weighedToggleBusyItemId?: string | null;
   onToggleWeighed?: (lineKey: string) => void;
 
-  payMethod: SalePaymentMethod;
-  setPayMethod: (m: SalePaymentMethod) => void;
+  payMethod: SalePaymentMethod | "remote_bill";
+  setPayMethod: (m: SalePaymentMethod | "remote_bill") => void;
   mpesaRef: string;
   setMpesaRef: (s: string) => void;
   splitPay: boolean;
@@ -123,6 +127,8 @@ export type CashierCartDrawerProps = {
 
   canLookupCustomers: boolean;
   canManageCustomers: boolean;
+  /** Create remote grocery invoices (Send bill). */
+  canCreateRemoteBill?: boolean;
   customerPhoneQuery: string;
   setCustomerPhoneQuery: (s: string) => void;
   customerHits: CustomerRecord[];
@@ -276,6 +282,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     setCreditChangeToWallet,
     canLookupCustomers,
     canManageCustomers,
+    canCreateRemoteBill = false,
     customerPhoneQuery,
     setCustomerPhoneQuery,
     customerHits,
@@ -348,10 +355,11 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     creditChangeToWallet ||
     splitUsesWallet;
   const showCustomerPicker =
-    canLookupCustomers &&
-    ((!splitPay && payMethodNeedsCustomer(payMethod)) ||
-      creditChangeToWallet ||
-      splitPay);
+    (canLookupCustomers &&
+      ((!splitPay && payMethodNeedsCustomer(payMethod)) ||
+        creditChangeToWallet ||
+        splitPay)) ||
+    payMethod === "remote_bill";
 
   const tenderNum = Number(cashTenderStr.trim());
   const cashChange =
@@ -461,6 +469,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
         return "Find a customer to credit change to wallet.";
       }
       return "Cash received is still short of the total.";
+    }
+    if (payMethod === "remote_bill") {
+      if (!isValidCustomerPhone(customerPhoneQuery)) {
+        return "Enter a valid customer phone to send the bill.";
+      }
+      return "Finish payment details to complete.";
     }
     if (customerNeeded && !selectedCustomer) {
       return "Pick a customer to continue.";
@@ -584,6 +598,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           disabled={
                             payMethod === "customer_credit" ||
                             payMethod === "loyalty_redeem" ||
+                            payMethod === "remote_bill" ||
                             creditChangeToWallet
                           }
                           onChange={(e) => {
@@ -591,7 +606,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             if (
                               next &&
                               (payMethod === "customer_credit" ||
-                                payMethod === "loyalty_redeem")
+                                payMethod === "loyalty_redeem" ||
+                                payMethod === "remote_bill")
                             ) {
                               return;
                             }
@@ -627,6 +643,20 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           icon={<Smartphone className="size-3.5" aria-hidden />}
                           label="M-Pesa"
                           hint="STK prompt"
+                        />
+                      ) : null}
+                      {canCreateRemoteBill ? (
+                        <PayMethodTile
+                          active={payMethod === "remote_bill"}
+                          disabled={!online}
+                          onClick={() => {
+                            setSplitPay(false);
+                            setCreditChangeToWallet(false);
+                            setPayMethod("remote_bill");
+                          }}
+                          icon={<Send className="size-3.5" aria-hidden />}
+                          label="Send bill"
+                          hint="Delivery / remote"
                         />
                       ) : null}
                       {canLookupCustomers ? (
@@ -1045,9 +1075,11 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         {creditChangeToWallet
                           ? "Credit change to"
-                          : splitPay
-                            ? "Wallet customer"
-                            : "Customer"}
+                          : payMethod === "remote_bill"
+                            ? "Send bill to"
+                            : splitPay
+                              ? "Wallet customer"
+                              : "Customer"}
                       </p>
                       <div className="flex items-center gap-2">
                         <input
@@ -1442,7 +1474,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
               ) : canCompleteSale ? (
                 <p className="mb-2 flex items-center justify-center gap-1.5 text-[12px] font-semibold text-emerald-700 dark:text-emerald-300">
                   <Check className="size-3.5" strokeWidth={3} aria-hidden />
-                  Ready to record this sale
+                  {payMethod === "remote_bill"
+                    ? "Ready to send bill + M-Pesa prompt"
+                    : "Ready to record this sale"}
                 </p>
               ) : null}
               <Button
@@ -1468,8 +1502,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 onClick={onComplete}
               >
                 {loading
-                  ? "Recording…"
-                  : `Complete · ${grandTotal.toFixed(2)} ${currency.trim()}`}
+                  ? payMethod === "remote_bill"
+                    ? "Sending…"
+                    : "Recording…"
+                  : payMethod === "remote_bill"
+                    ? `Send bill · ${grandTotal.toFixed(2)} ${currency.trim()}`
+                    : `Complete · ${grandTotal.toFixed(2)} ${currency.trim()}`}
               </Button>
             </div>
           </>

@@ -22,6 +22,9 @@ export type CreateGroceryInvoiceRequest = {
   branchId: string;
   lines: GroceryInvoiceLineRequest[];
   notes?: string;
+  remote?: boolean;
+  customerPhone?: string;
+  customerId?: string;
 };
 
 export type GroceryInvoiceLineResponse = {
@@ -60,6 +63,11 @@ export type GroceryInvoiceResponse = {
   lockedByName?: string;
   lockedAt?: string;
   lockExpiresAt?: string;
+  remote?: boolean;
+  customerPhone?: string | null;
+  customerId?: string | null;
+  lastStkStatus?: string | null;
+  lastStkAt?: string | null;
 };
 
 export type GroceryInvoiceSummaryResponse = {
@@ -72,6 +80,13 @@ export type GroceryInvoiceSummaryResponse = {
   createdByName: string;
   createdAt: string;
   expiresAt: string;
+  lockedBy?: string | null;
+  lockedByName?: string | null;
+  remote?: boolean;
+  customerPhone?: string | null;
+  customerId?: string | null;
+  lastStkStatus?: string | null;
+  lastStkAt?: string | null;
 };
 
 export type GroceryInvoiceListResponse = {
@@ -250,6 +265,27 @@ export async function payGroceryInvoice(
   return groceryRequest<PayGroceryInvoiceResponse>(
     `${GROCERY_BASE}/${encodeURIComponent(id)}/pay`,
     { method: "POST", body, idempotencyKey },
+  );
+}
+
+export type RemoteInvoiceStkResponse = {
+  invoiceId: string;
+  checkoutRequestId: string | null;
+  status: string;
+  message: string | null;
+  accepted: boolean;
+};
+
+/**
+ * Resend M-Pesa STK for a remote grocery invoice.
+ * POST /api/v1/grocery/invoices/:id/stk
+ */
+export async function resendRemoteInvoiceStk(
+  id: string,
+): Promise<RemoteInvoiceStkResponse> {
+  return groceryRequest<RemoteInvoiceStkResponse>(
+    `${GROCERY_BASE}/${encodeURIComponent(id)}/stk`,
+    { method: "POST" },
   );
 }
 
