@@ -27,6 +27,7 @@ import {
   fetchPublicCustomerTab,
   fetchPublicTabStkStatus,
   initiatePublicTabStk,
+  initiatePublicWalletStk,
   submitPublicTabManualPayment,
   type PublicCustomerTab,
   type PublicTabPurchaseRow,
@@ -398,6 +399,14 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [mounted, setMounted] = useState(false);
   const [portalTheme, setPortalTheme] = useState<PortalTheme>("light");
   const walletSectionRef = useRef<HTMLElement | null>(null);
+  const walletTopUpRef = useRef<HTMLElement | null>(null);
+  const [walletAmount, setWalletAmount] = useState("500");
+  const [walletBusy, setWalletBusy] = useState(false);
+  const [walletPromptSent, setWalletPromptSent] = useState(false);
+  const [walletIntentId, setWalletIntentId] = useState<string | null>(null);
+  const [walletStatusMsg, setWalletStatusMsg] = useState<string | null>(null);
+  const [walletPaid, setWalletPaid] = useState(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -497,6 +506,37 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   }, [intentId, promptSent, paid, phone, reload]);
 
   useEffect(() => {
+    if (!walletIntentId || !walletPromptSent || walletPaid) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const st = await fetchPublicTabStkStatus(phone, walletIntentId);
+        if (cancelled) return;
+        if (st.status === "fulfilled") {
+          setWalletPaid(true);
+          setWalletStatusMsg("Wallet topped up — asante!");
+          setWalletPromptSent(false);
+          void reload();
+          return;
+        }
+        if (st.status === "failed") {
+          setWalletStatusMsg("Top-up didn’t go through. Try again.");
+          setWalletPromptSent(false);
+          setWalletIntentId(null);
+        }
+      } catch {
+        /* keep polling */
+      }
+    };
+    const id = window.setInterval(() => void tick(), 2500);
+    void tick();
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [walletIntentId, walletPromptSent, walletPaid, phone, reload]);
+
+  useEffect(() => {
     if (!manualSubmitted || manualCleared) return;
     let cancelled = false;
     const tick = async () => {
@@ -538,7 +578,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const amountNum = Number.parseFloat(amount);
   const amountValid =
     Number.isFinite(amountNum) && amountNum > 0 && amountNum <= owed + 0.001;
+  const walletAmountNum = Number.parseFloat(walletAmount);
+  const walletAmountValid =
+    Number.isFinite(walletAmountNum) && walletAmountNum >= 1;
+  const walletTopUpDisabled = walletBusy || walletPromptSent;
   const showPay = owed > 0 && !loading && !notFound && mounted;
+  const showWalletTopUp = !loading && !notFound && mounted;
   const purchaseCount = tab?.purchases?.length ?? 0;
   const tabStats = useMemo(
     () => computeTabStats(tab?.purchases ?? []),
@@ -622,6 +667,54 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     setError(null);
   }
 
+  async function onWalletTopUp() {
+    setWalletError(null);
+    setWalletStatusMsg(null);
+    setWalletPaid(false);
+    if (!looksLikeKenyanMobilePath(payPhone)) {
+      setWalletError("Enter a valid M-Pesa number e.g. 0712345678.");
+      setEditingPhone(true);
+      return;
+    }
+    if (!walletAmountValid) {
+      setWalletError("Enter how much to add to your wallet.");
+      return;
+    }
+    setWalletBusy(true);
+    try {
+      const normalizedPay = toKenyanLocal07(payPhone) || payPhone.trim();
+      const res = await initiatePublicWalletStk(
+        phone,
+        walletAmountNum,
+        newIdempotencyKey(),
+        normalizedPay,
+      );
+      setWalletIntentId(res.intentId);
+      setWalletPromptSent(true);
+      setWalletPaid(false);
+      setEditingPhone(false);
+      setWalletStatusMsg(`Check ${normalizedPay} and enter your M-Pesa PIN.`);
+    } catch (e) {
+      setWalletError(
+        e instanceof Error ? e.message : "Could not send M-Pesa prompt.",
+      );
+    } finally {
+      setWalletBusy(false);
+    }
+  }
+
+  function pickWalletAmount(n: number) {
+    setWalletAmount(String(Math.round(n * 100) / 100));
+    setWalletError(null);
+  }
+
+  function focusWalletTopUp() {
+    walletTopUpRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+
   return (
     <div
       className="min-h-[100dvh] antialiased touch-manipulation"
@@ -662,22 +755,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             {!loading && !notFound ? (
               <button
                 type="button"
-                onClick={() => {
-                  walletSectionRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                  });
-                  if (purchaseCount > 0) {
-                    setHistoryOpen(true);
-                  }
-                }}
-                className="inline-flex h-10 max-w-[9.5rem] items-center gap-1.5 rounded-full border border-[var(--tab-border)] bg-[var(--tab-card)] px-3 text-[12px] font-semibold text-[var(--tab-fg)] transition active:scale-95"
-                aria-label={`Wallet ${fmtMoney(wallet, currency)}`}
+                onClick={focusWalletTopUp}
+                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-[var(--tab-border)] bg-[var(--tab-card)] px-3 text-[12px] font-semibold text-[var(--tab-fg)] transition active:scale-95"
+                aria-label={`Top up wallet · ${fmtMoney(wallet, currency)}`}
               >
                 <Wallet className="size-3.5 shrink-0" aria-hidden />
-                <span className="truncate tabular-nums">
-                  {fmtMoney(wallet, currency)}
-                </span>
+                <span className="whitespace-nowrap">Top up</span>
               </button>
             ) : null}
             <button
@@ -802,6 +885,126 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   ? `Nothing owed — wallet ${fmtMoney(wallet, currency)} ready for your next visit.`
                   : "All settled — nothing owed."}
               </div>
+            ) : null}
+
+            {showWalletTopUp ? (
+              <section
+                ref={walletTopUpRef}
+                id="wallet-top-up"
+                className="scroll-mt-4 space-y-3 rounded-2xl border border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="text-[15px] font-bold tracking-tight">
+                      Top up wallet
+                    </h2>
+                    <p className="mt-0.5 text-[13px] text-[var(--tab-muted)]">
+                      Add M-Pesa credit for your next visit · now{" "}
+                      <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+                        {fmtMoney(wallet, currency)}
+                      </span>
+                    </p>
+                  </div>
+                  <Wallet
+                    className="size-5 shrink-0 text-[var(--tab-muted)]"
+                    strokeWidth={1.75}
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {[100, 200, 500, 1000].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      disabled={walletTopUpDisabled}
+                      onClick={() => pickWalletAmount(n)}
+                      className={cn(
+                        "rounded-xl border px-3 py-2 text-[13px] font-semibold tabular-nums transition active:scale-95 disabled:opacity-40",
+                        Math.abs(walletAmountNum - n) < 0.001
+                          ? "border-[var(--tab-fg)] bg-[var(--tab-bg)]"
+                          : "border-[var(--tab-border)] bg-[var(--tab-input)]",
+                      )}
+                    >
+                      {fmtMoney(n, currency)}
+                    </button>
+                  ))}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor={`${fieldIdPrefix}-wallet-amount`}
+                    className="mb-1.5 block text-[13px] text-[var(--tab-muted)]"
+                  >
+                    Amount to add
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-medium text-[var(--tab-muted)]">
+                      {resolveCurrencyCode(currency) === "KES"
+                        ? "Ksh"
+                        : resolveCurrencyCode(currency)}
+                    </span>
+                    <input
+                      id={`${fieldIdPrefix}-wallet-amount`}
+                      type="number"
+                      inputMode="decimal"
+                      min={1}
+                      step="1"
+                      value={walletAmount}
+                      onChange={(e) => {
+                        setWalletAmount(e.target.value);
+                        setWalletError(null);
+                      }}
+                      disabled={walletTopUpDisabled}
+                      className="w-full rounded-2xl border border-[var(--tab-border)] bg-[var(--tab-input)] py-3.5 pl-12 pr-3.5 text-[18px] font-semibold tabular-nums outline-none focus:border-[var(--tab-fg)] disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={
+                    walletTopUpDisabled || !walletAmountValid || !phoneOk
+                  }
+                  onClick={() => void onWalletTopUp()}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[15px] font-bold transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-45"
+                  style={{
+                    backgroundColor: "var(--tab-cta-bg)",
+                    color: "var(--tab-cta-fg)",
+                  }}
+                >
+                  {walletBusy ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Sending prompt…
+                    </>
+                  ) : walletPromptSent ? (
+                    "Waiting for M-Pesa…"
+                  ) : (
+                    <>
+                      <Smartphone className="size-4" />
+                      Top up with M-Pesa
+                    </>
+                  )}
+                </button>
+
+                {walletStatusMsg ? (
+                  <p
+                    className={cn(
+                      "text-[13px] font-medium",
+                      walletPaid
+                        ? "text-emerald-700 dark:text-emerald-300"
+                        : "text-[var(--tab-muted)]",
+                    )}
+                  >
+                    {walletStatusMsg}
+                  </p>
+                ) : null}
+                {walletError ? (
+                  <p className="text-[13px] font-medium text-red-500" role="alert">
+                    {walletError}
+                  </p>
+                ) : null}
+              </section>
             ) : null}
 
             {/* Pay section */}
