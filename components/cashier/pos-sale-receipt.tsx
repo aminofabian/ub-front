@@ -242,11 +242,32 @@ export function PosSaleReceipt({
                 label="Received"
                 value={formatReceiptMoney(receipt.cashReceived, receipt.currency)}
               />
-              <ReceiptMoney
-                label="Change"
-                value={formatReceiptMoney(receipt.changeGiven ?? 0, receipt.currency)}
-              />
+              {receipt.walletCredited != null && receipt.walletCredited > 0 ? (
+                <ReceiptMoney
+                  label="To wallet"
+                  value={formatReceiptMoney(
+                    receipt.walletCredited,
+                    receipt.currency,
+                  )}
+                />
+              ) : (
+                <ReceiptMoney
+                  label="Change"
+                  value={formatReceiptMoney(
+                    receipt.changeGiven ?? 0,
+                    receipt.currency,
+                  )}
+                />
+              )}
             </>
+          ) : receipt.walletCredited != null && receipt.walletCredited > 0 ? (
+            <ReceiptMoney
+              label="To wallet"
+              value={formatReceiptMoney(
+                receipt.walletCredited,
+                receipt.currency,
+              )}
+            />
           ) : null}
         </section>
 

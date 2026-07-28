@@ -23,6 +23,7 @@ export type PublicCustomerTab = {
   shopName: string;
   currency: string;
   balanceOwed: number | string;
+  walletBalance?: number | string | null;
   purchases: PublicTabPurchaseRow[];
 };
 

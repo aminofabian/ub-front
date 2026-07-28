@@ -114,8 +114,12 @@ export type CashierCartDrawerProps = {
   setMpesaSplitStr: (s: string) => void;
   splitMpesaRef: string;
   setSplitMpesaRef: (s: string) => void;
+  walletSplitStr: string;
+  setWalletSplitStr: (s: string) => void;
   cashTenderStr: string;
   setCashTenderStr: (s: string) => void;
+  creditChangeToWallet: boolean;
+  setCreditChangeToWallet: (b: boolean) => void;
 
   canLookupCustomers: boolean;
   canManageCustomers: boolean;
@@ -264,8 +268,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     setMpesaSplitStr,
     splitMpesaRef,
     setSplitMpesaRef,
+    walletSplitStr,
+    setWalletSplitStr,
     cashTenderStr,
     setCashTenderStr,
+    creditChangeToWallet,
+    setCreditChangeToWallet,
     canLookupCustomers,
     canManageCustomers,
     customerPhoneQuery,
@@ -322,7 +330,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     return acc + (Number.isFinite(q) && q > 0 ? q : 0);
   }, 0);
 
-  const customerNeeded = !splitPay && payMethodNeedsCustomer(payMethod);
+  const walletSplitNum = Number(walletSplitStr.trim());
+  const splitUsesWallet =
+    splitPay && Number.isFinite(walletSplitNum) && walletSplitNum > 0;
+  const customerNeeded =
+    (!splitPay && payMethodNeedsCustomer(payMethod)) ||
+    creditChangeToWallet ||
+    splitUsesWallet;
 
   const tenderNum = Number(cashTenderStr.trim());
   const cashChange =
@@ -334,13 +348,50 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     payMethod === "cash" &&
     cashChange != null &&
     Number.isFinite(tenderNum);
+  const changeDueAmount =
+    cashReady && cashChange != null ? Number(cashChange) : 0;
+  const walletBalance = selectedCustomer
+    ? Number(selectedCustomer.credit.walletBalance)
+    : 0;
 
   useEffect(() => {
     if (!open || saleComplete) return;
     if (splitPay || payMethod !== "cash") return;
     if (grandTotal <= 0) return;
     setCashTenderStr(grandTotal.toFixed(2));
-  }, [open, saleComplete, splitPay, payMethod, grandTotal, setCashTenderStr]);
+    setCreditChangeToWallet(false);
+  }, [
+    open,
+    saleComplete,
+    splitPay,
+    payMethod,
+    grandTotal,
+    setCashTenderStr,
+    setCreditChangeToWallet,
+  ]);
+
+  useEffect(() => {
+    if (!open || saleComplete || !splitPay || !selectedCustomer) return;
+    const bal = Number(selectedCustomer.credit.walletBalance);
+    if (!Number.isFinite(bal) || bal <= 0) return;
+    const current = Number(walletSplitStr.trim());
+    if (Number.isFinite(current) && current > 0) return;
+    const apply = Math.min(bal, grandTotal);
+    setWalletSplitStr(apply.toFixed(2));
+    const remainder = Math.round((grandTotal - apply) * 100) / 100;
+    setCashSplitStr(remainder > 0 ? remainder.toFixed(2) : "0");
+    setMpesaSplitStr("0");
+  }, [
+    open,
+    saleComplete,
+    splitPay,
+    selectedCustomer,
+    grandTotal,
+    walletSplitStr,
+    setWalletSplitStr,
+    setCashSplitStr,
+    setMpesaSplitStr,
+  ]);
 
   useEffect(() => {
     if (open) setLinesOpen(false);
@@ -351,9 +402,15 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
       return null;
     }
     if (splitPay) {
+      if (splitUsesWallet && !selectedCustomer) {
+        return "Find a customer to apply wallet.";
+      }
       return "Split amounts must add up to the total.";
     }
     if (payMethod === "cash") {
+      if (creditChangeToWallet && !selectedCustomer) {
+        return "Find a customer to credit change to wallet.";
+      }
       return "Cash received is still short of the total.";
     }
     if (customerNeeded && !selectedCustomer) {
@@ -448,9 +505,11 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   className="!text-[12px] tracking-[0.14em] text-muted-foreground/70"
                 />
               </div>
-              {cashReady && Number(cashChange) > 0 ? (
+              {cashReady && changeDueAmount > 0 ? (
                 <p className="relative mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-200">
-                  Change due {cashChange} {currency}
+                  {creditChangeToWallet
+                    ? `Credit ${cashChange} ${currency} to wallet`
+                    : `Change due ${cashChange} ${currency}`}
                 </p>
               ) : cashReady ? (
                 <p className="relative mt-2 inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)] px-2.5 py-1 text-[11px] font-semibold text-[var(--pos-primary)]">
@@ -473,11 +532,27 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           type="checkbox"
                           className="size-3.5 rounded border-border/60 accent-[var(--pos-primary)]"
                           checked={splitPay}
-                          disabled={payMethodNeedsCustomer(payMethod)}
+                          disabled={
+                            payMethod === "customer_credit" ||
+                            payMethod === "loyalty_redeem" ||
+                            creditChangeToWallet
+                          }
                           onChange={(e) => {
                             const next = e.target.checked;
-                            if (next && payMethodNeedsCustomer(payMethod)) {
+                            if (
+                              next &&
+                              (payMethod === "customer_credit" ||
+                                payMethod === "loyalty_redeem")
+                            ) {
+                              return;
+                            }
+                            if (next && payMethod === "customer_wallet") {
+                              // Keep wallet as part of the split mix.
+                            } else if (next && payMethodNeedsCustomer(payMethod)) {
                               setPayMethod("cash");
+                            }
+                            if (next) {
+                              setCreditChangeToWallet(false);
                             }
                             setSplitPay(next);
                           }}
@@ -510,6 +585,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           active={payMethod === "customer_credit"}
                           onClick={() => {
                             setSplitPay(false);
+                            setCreditChangeToWallet(false);
                             setPayMethod("customer_credit");
                           }}
                           icon={<UserRound className="size-3.5" aria-hidden />}
@@ -523,6 +599,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           disabled={!online}
                           onClick={() => {
                             setSplitPay(false);
+                            setCreditChangeToWallet(false);
                             setPayMethod("customer_wallet");
                           }}
                           icon={<Wallet className="size-3.5" aria-hidden />}
@@ -536,6 +613,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           disabled={!online}
                           onClick={() => {
                             setSplitPay(false);
+                            setCreditChangeToWallet(false);
                             setPayMethod("loyalty_redeem");
                           }}
                           icon={<Gift className="size-3.5" aria-hidden />}
@@ -596,9 +674,45 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         {cashReady
                           ? Number(cashChange) === 0
                             ? "Exact — tap Complete below"
-                            : `Give back ${cashChange} ${currency}`
+                            : creditChangeToWallet
+                              ? `Park ${cashChange} ${currency} on their wallet`
+                              : `Give back ${cashChange} ${currency}`
                           : "Tap Exact total, or pick a note amount"}
                       </p>
+                      {cashReady && changeDueAmount > 0 && canLookupCustomers ? (
+                        <label
+                          className={cn(
+                            "flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 text-[12px]",
+                            creditChangeToWallet
+                              ? "border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                              : "border-border/55 bg-background",
+                            !online && "cursor-not-allowed opacity-50",
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 size-3.5 rounded border-border/60 accent-[var(--pos-primary)]"
+                            checked={creditChangeToWallet}
+                            disabled={!online}
+                            onChange={(e) => {
+                              const next = e.target.checked;
+                              setCreditChangeToWallet(next);
+                              if (next) {
+                                setSplitPay(false);
+                              }
+                            }}
+                          />
+                          <span className="min-w-0">
+                            <span className="font-semibold text-foreground">
+                              Credit change to wallet
+                            </span>
+                            <span className="mt-0.5 block text-muted-foreground">
+                              Keep the note — park {cashChange} {currency} on
+                              their phone for next time
+                            </span>
+                          </span>
+                        </label>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -721,6 +835,59 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
 
                   {splitPay ? (
                     <div className="space-y-2.5 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
+                      {canLookupCustomers ? (
+                        <label className="space-y-1">
+                          <span className="flex items-center justify-between gap-2 text-[11px] font-medium text-muted-foreground">
+                            <span>Wallet ({currency})</span>
+                            {selectedCustomer &&
+                            Number.isFinite(walletBalance) ? (
+                              <span className="tabular-nums">
+                                avail {walletBalance.toFixed(2)}
+                              </span>
+                            ) : null}
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className={fieldClass(
+                              "h-11 w-full text-right font-semibold tabular-nums",
+                            )}
+                            value={walletSplitStr}
+                            disabled={!online}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              setWalletSplitStr(raw);
+                              const w = Number(raw.trim());
+                              if (!Number.isFinite(w) || w < 0) return;
+                              const capped =
+                                selectedCustomer && Number.isFinite(walletBalance)
+                                  ? Math.min(w, walletBalance, grandTotal)
+                                  : Math.min(w, grandTotal);
+                              const rem =
+                                Math.round((grandTotal - capped) * 100) / 100;
+                              const m = Number(mpesaSplitStr.trim());
+                              if (!Number.isFinite(m) || m <= 0) {
+                                setCashSplitStr(
+                                  rem > 0 ? rem.toFixed(2) : "0",
+                                );
+                              }
+                            }}
+                            onBlur={() => {
+                              const w = Number(walletSplitStr.trim());
+                              if (!Number.isFinite(w) || w <= 0) {
+                                setWalletSplitStr("");
+                                return;
+                              }
+                              const capped =
+                                selectedCustomer && Number.isFinite(walletBalance)
+                                  ? Math.min(w, walletBalance, grandTotal)
+                                  : Math.min(w, grandTotal);
+                              setWalletSplitStr(capped.toFixed(2));
+                            }}
+                            placeholder="0.00"
+                          />
+                        </label>
+                      ) : null}
                       <div className="grid grid-cols-2 gap-2">
                         <label className="space-y-1">
                           <span className="text-[11px] font-medium text-muted-foreground">
@@ -757,13 +924,41 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         onChange={(e) => setSplitMpesaRef(e.target.value)}
                         placeholder="M-Pesa reference (optional)"
                       />
+                      {(() => {
+                        const w = Number(walletSplitStr.trim()) || 0;
+                        const c = Number(cashSplitStr.trim()) || 0;
+                        const m = Number(mpesaSplitStr.trim()) || 0;
+                        const sum = Math.round((w + c + m) * 100) / 100;
+                        const rem =
+                          Math.round((grandTotal - sum) * 100) / 100;
+                        return (
+                          <p
+                            className={cn(
+                              "text-[12px] font-medium",
+                              Math.abs(rem) <= 0.001
+                                ? "text-emerald-700 dark:text-emerald-300"
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            {Math.abs(rem) <= 0.001
+                              ? "Split covers the total"
+                              : rem > 0
+                                ? `Still need ${rem.toFixed(2)} ${currency}`
+                                : `Over by ${Math.abs(rem).toFixed(2)} ${currency}`}
+                          </p>
+                        );
+                      })()}
                     </div>
                   ) : null}
 
                   {customerNeeded && canLookupCustomers ? (
                     <div className="space-y-2.5 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                        Customer
+                        {creditChangeToWallet
+                          ? "Credit change to"
+                          : splitUsesWallet
+                            ? "Wallet customer"
+                            : "Customer"}
                       </p>
                       <div className="flex items-center gap-2">
                         <input
@@ -788,7 +983,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           disabled={
                             !online ||
                             customerSearchBusy ||
-                            (payMethod === "customer_credit" &&
+                            ((payMethod === "customer_credit" ||
+                              creditChangeToWallet) &&
                               !isValidCustomerPhone(customerPhoneQuery))
                           }
                           onClick={onSearchCustomers}
@@ -796,7 +992,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           {customerSearchBusy ? "…" : "Find"}
                         </Button>
                       </div>
-                      {payMethod === "customer_credit" &&
+                      {(payMethod === "customer_credit" ||
+                        creditChangeToWallet) &&
                       customerPhoneQuery.trim() &&
                       !isValidCustomerPhone(customerPhoneQuery) ? (
                         <p className="text-[11px] text-destructive">
@@ -829,19 +1026,25 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           ))}
                         </ul>
                       ) : null}
-                      {payMethod === "customer_credit" &&
+                      {(payMethod === "customer_credit" ||
+                        creditChangeToWallet) &&
                       customerNoPhoneMatch &&
                       !selectedCustomer &&
                       isValidCustomerPhone(customerPhoneQuery) ? (
                         <div className="space-y-3 rounded-xl border border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_7%,transparent)] p-3.5">
                           <div className="space-y-1">
                             <p className="text-[13px] font-semibold tracking-tight text-foreground">
-                              New number — verify before credit
+                              {creditChangeToWallet
+                                ? "New number — verify before wallet credit"
+                                : "New number — verify before credit"}
                             </p>
                             <p className="text-[12px] leading-snug text-muted-foreground">
                               A 4-digit code will be sent to this phone by SMS
                               or WhatsApp. The customer must read it aloud so
-                              you can confirm the number before opening a tab.
+                              you can confirm the number
+                              {creditChangeToWallet
+                                ? " before parking change on their wallet."
+                                : " before opening a tab."}
                             </p>
                           </div>
                           {canManageCustomers ? (
@@ -932,7 +1135,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   >
                                     {customerRegisterBusy
                                       ? "Verifying…"
-                                      : "Verify & open tab"}
+                                      : creditChangeToWallet
+                                        ? "Verify & credit wallet"
+                                        : "Verify & open tab"}
                                   </Button>
                                   <Button
                                     type="button"

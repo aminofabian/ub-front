@@ -678,7 +678,9 @@ export function QuickSaleWorkspace({
   const cashSplitStr = activeCart.cashSplitStr;
   const mpesaSplitStr = activeCart.mpesaSplitStr;
   const splitMpesaRef = activeCart.splitMpesaRef;
+  const walletSplitStr = activeCart.walletSplitStr ?? "";
   const cashTenderStr = activeCart.cashTenderStr;
+  const creditChangeToWallet = activeCart.creditChangeToWallet ?? false;
   const stkPushStatus = activeCart.stkPushStatus;
   const stkPushError = activeCart.stkPushError;
   const stkPushCheckoutId = activeCart.stkPushCheckoutId;
@@ -781,8 +783,16 @@ export function QuickSaleWorkspace({
     (s: string) => updateActiveCart({ splitMpesaRef: s }),
     [updateActiveCart],
   );
+  const setWalletSplitStr = useCallback(
+    (s: string) => updateActiveCart({ walletSplitStr: s }),
+    [updateActiveCart],
+  );
   const setCashTenderStr = useCallback(
     (s: string) => updateActiveCart({ cashTenderStr: s }),
+    [updateActiveCart],
+  );
+  const setCreditChangeToWallet = useCallback(
+    (b: boolean) => updateActiveCart({ creditChangeToWallet: b }),
     [updateActiveCart],
   );
   const setStkAreaCode = useCallback(
@@ -1126,7 +1136,7 @@ export function QuickSaleWorkspace({
       setCustomerHits([]);
       return;
     }
-    if (payMethod === "customer_credit") {
+    if (payMethod === "customer_credit" || creditChangeToWallet) {
       const phoneErr = customerPhoneValidationMessage(q);
       if (phoneErr) {
         setError(phoneErr);
@@ -1164,6 +1174,7 @@ export function QuickSaleWorkspace({
     customerPhoneQuery,
     online,
     payMethod,
+    creditChangeToWallet,
     resetPhoneVerification,
     setCustomerHits,
     updateActiveCart,
@@ -1717,16 +1728,31 @@ export function QuickSaleWorkspace({
       return false;
     }
     if (splitPay) {
-      const c = parseMoney(cashSplitStr);
-      const m = parseMoney(mpesaSplitStr);
-      if (c == null || m == null || c <= 0 || m <= 0) {
-        return false;
+      const w = parseMoney(walletSplitStr) ?? 0;
+      const c = parseMoney(cashSplitStr) ?? 0;
+      const m = parseMoney(mpesaSplitStr) ?? 0;
+      if (w < 0 || c < 0 || m < 0) return false;
+      if (w <= 0 && c <= 0 && m <= 0) return false;
+      if (w > 0 && !selectedCustomer) return false;
+      if (selectedCustomer && w > 0) {
+        const bal = Number(selectedCustomer.credit.walletBalance);
+        if (Number.isFinite(bal) && w > bal + 0.001) return false;
       }
-      return Math.abs(roundMoney2(c + m) - grandTotal) <= 0.001;
+      const positiveParts = [w, c, m].filter((n) => n > 0).length;
+      if (positiveParts < 1) return false;
+      // Classic cash+M-Pesa still needs both; wallet+one other is enough.
+      if (w <= 0 && (c <= 0 || m <= 0)) return false;
+      return Math.abs(roundMoney2(w + c + m) - grandTotal) <= 0.001;
     }
     if (payMethod === "cash") {
       const tender = parseMoney(cashTenderStr.trim());
-      return tender != null && tender >= grandTotal;
+      if (tender == null || tender < grandTotal) return false;
+      if (creditChangeToWallet) {
+        if (tender <= grandTotal) return false;
+        if (!selectedCustomer) return false;
+        if (!online) return false;
+      }
+      return true;
     }
     if (payMethodNeedsCustomer(payMethod)) {
       if (!selectedCustomer) {
@@ -1746,10 +1772,13 @@ export function QuickSaleWorkspace({
     splitPay,
     cashSplitStr,
     mpesaSplitStr,
+    walletSplitStr,
     payMethod,
     cashTenderStr,
+    creditChangeToWallet,
     selectedCustomer,
     customerPhoneQuery,
+    online,
   ]);
 
   const capCartQuantity = useCallback(
@@ -2237,15 +2266,24 @@ export function QuickSaleWorkspace({
     }
 
     const offlineEarly = typeof navigator !== "undefined" && !navigator.onLine;
-    if (offlineEarly && payMethodNeedsCustomer(payMethod)) {
+    if (
+      offlineEarly &&
+      (payMethodNeedsCustomer(payMethod) ||
+        creditChangeToWallet ||
+        (splitPay && (parseMoney(walletSplitStr) ?? 0) > 0))
+    ) {
       setError(
         "Store wallet, loyalty redemption, and customer tab require an online connection.",
       );
       setNotice("");
       return;
     }
-    if (!splitPay && payMethodNeedsCustomer(payMethod)) {
-      if (payMethod === "customer_credit") {
+    if (
+      (!splitPay && payMethodNeedsCustomer(payMethod)) ||
+      creditChangeToWallet ||
+      (splitPay && (parseMoney(walletSplitStr) ?? 0) > 0)
+    ) {
+      if (payMethod === "customer_credit" || creditChangeToWallet) {
         const phoneErr = customerPhoneValidationMessage(customerPhoneQuery);
         if (phoneErr) {
           setError(phoneErr);
@@ -2254,7 +2292,11 @@ export function QuickSaleWorkspace({
         }
       }
       if (!selectedCustomer) {
-        setError("Find and select a customer for this payment type.");
+        setError(
+          creditChangeToWallet
+            ? "Find and select a customer to credit change to their wallet."
+            : "Find and select a customer for this payment type.",
+        );
         setNotice("");
         return;
       }
@@ -2293,17 +2335,47 @@ export function QuickSaleWorkspace({
         setNotice("");
         return;
       }
-      cashTendered = tender;
-    }
-    if (splitPay) {
-      const c = parseMoney(cashSplitStr);
-      const m = parseMoney(mpesaSplitStr);
-      if (c == null || m == null || c <= 0 || m <= 0) {
-        setError("Split tender needs positive cash and M-Pesa amounts.");
+      if (creditChangeToWallet && tender <= grandTotal) {
+        setError("Credit to wallet needs change — receive more than the total.");
         setNotice("");
         return;
       }
-      const sum = roundMoney2(c + m);
+      cashTendered = tender;
+    }
+    if (splitPay) {
+      const w = parseMoney(walletSplitStr) ?? 0;
+      const c = parseMoney(cashSplitStr) ?? 0;
+      const m = parseMoney(mpesaSplitStr) ?? 0;
+      if (w < 0 || c < 0 || m < 0) {
+        setError("Split amounts cannot be negative.");
+        setNotice("");
+        return;
+      }
+      if (w <= 0 && (c <= 0 || m <= 0)) {
+        setError(
+          w > 0
+            ? "Add cash or M-Pesa for the remaining balance."
+            : "Split tender needs positive cash and M-Pesa amounts (or include wallet).",
+        );
+        setNotice("");
+        return;
+      }
+      if (w > 0 && !linkedCustomer) {
+        setError("Find and select a customer to apply wallet.");
+        setNotice("");
+        return;
+      }
+      if (w > 0 && linkedCustomer) {
+        const bal = Number(linkedCustomer.credit.walletBalance);
+        if (Number.isFinite(bal) && w > bal + 0.001) {
+          setError(
+            `Wallet amount (${w.toFixed(2)}) exceeds balance (${bal.toFixed(2)}).`,
+          );
+          setNotice("");
+          return;
+        }
+      }
+      const sum = roundMoney2(w + c + m);
       if (Math.abs(sum - grandTotal) > 0.001) {
         setError(
           `Split amounts (${sum.toFixed(2)}) must equal cart total (${grandTotal.toFixed(2)}).`,
@@ -2313,23 +2385,38 @@ export function QuickSaleWorkspace({
       }
     }
 
-    const payments = splitPay
-      ? [
-          { method: "cash" as const, amount: parseMoney(cashSplitStr)! },
-          {
-            method: "mpesa_manual" as const,
-            amount: parseMoney(mpesaSplitStr)!,
-            reference: splitMpesaRef.trim() || null,
-          },
-        ]
-      : [
-          {
-            method: payMethod,
-            amount: grandTotal,
-            reference:
-              payMethod === "mpesa_manual" ? mpesaRef.trim() || null : null,
-          },
-        ];
+    const payments: PostSalePayload["payments"] = [];
+    if (splitPay) {
+      const w = parseMoney(walletSplitStr) ?? 0;
+      const c = parseMoney(cashSplitStr) ?? 0;
+      const m = parseMoney(mpesaSplitStr) ?? 0;
+      if (w > 0) {
+        payments.push({ method: "customer_wallet", amount: w });
+      }
+      if (c > 0) {
+        payments.push({ method: "cash", amount: c });
+      }
+      if (m > 0) {
+        payments.push({
+          method: "mpesa_manual",
+          amount: m,
+          reference: splitMpesaRef.trim() || null,
+        });
+      }
+    } else if (
+      creditChangeToWallet &&
+      payMethod === "cash" &&
+      cashTendered != null
+    ) {
+      payments.push({ method: "cash", amount: cashTendered });
+    } else {
+      payments.push({
+        method: payMethod,
+        amount: grandTotal,
+        reference:
+          payMethod === "mpesa_manual" ? mpesaRef.trim() || null : null,
+      });
+    }
 
     const idem = nextIdempotencyKey();
     const salePayload: PostSalePayload = {
@@ -2338,7 +2425,10 @@ export function QuickSaleWorkspace({
       lines: payloadLines,
       payments,
       clientSoldAt: new Date().toISOString(),
-      ...(cashTendered != null ? { cashReceived: cashTendered } : {}),
+      // Only persist physical change when we are giving cash back (not wallet credit).
+      ...(cashTendered != null && !creditChangeToWallet
+        ? { cashReceived: cashTendered }
+        : {}),
     };
 
     const linesSnapshot = lines.map((line) => ({
@@ -2436,6 +2526,21 @@ export function QuickSaleWorkspace({
     try {
       // ── Grocery invoice payment path ─────────────────────────────────
       if (activeCart.groceryInvoiceId) {
+        if (creditChangeToWallet) {
+          setLoading(false);
+          setError(
+            "Grocery invoices cannot credit change to wallet — give cash change instead.",
+          );
+          return;
+        }
+        const walletPart = splitPay ? (parseMoney(walletSplitStr) ?? 0) : 0;
+        if (walletPart > 0) {
+          setLoading(false);
+          setError(
+            "Grocery invoices can only be paid with cash, M-Pesa, or split (no wallet).",
+          );
+          return;
+        }
         const allowedMethods = new Set(["cash", "mpesa_manual"]);
         const isAllowedMethod = splitPay || allowedMethods.has(payMethod);
         if (!isAllowedMethod) {
@@ -2747,7 +2852,9 @@ export function QuickSaleWorkspace({
     cashSplitStr,
     mpesaSplitStr,
     splitMpesaRef,
+    walletSplitStr,
     cashTenderStr,
+    creditChangeToWallet,
     selectedCustomer,
     business,
     branches,
@@ -2763,6 +2870,9 @@ export function QuickSaleWorkspace({
     posDraftOfflineMirror,
     updateCartById,
     customerPhoneQuery,
+    online,
+    stkAreaCode,
+    stkPhone,
   ]);
 
   const onVoidLastSale = useCallback(async () => {
@@ -3129,8 +3239,12 @@ export function QuickSaleWorkspace({
           setMpesaSplitStr,
           splitMpesaRef,
           setSplitMpesaRef,
+          walletSplitStr,
+          setWalletSplitStr,
           cashTenderStr,
           setCashTenderStr,
+          creditChangeToWallet,
+          setCreditChangeToWallet,
           stkAreaCode,
           setStkAreaCode,
           stkPhone,

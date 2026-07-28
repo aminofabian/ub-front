@@ -38,8 +38,12 @@ export type CartSession = {
   cashSplitStr: string;
   mpesaSplitStr: string;
   splitMpesaRef: string;
+  /** Wallet portion when split includes store credit. */
+  walletSplitStr: string;
   /** Amount customer handed over (cash checkout). */
   cashTenderStr: string;
+  /** When true, cash overpay is credited to the customer's wallet instead of change. */
+  creditChangeToWallet: boolean;
   /** Grocery invoice id when this cart was loaded from a GI-* barcode. */
   groceryInvoiceId?: string;
   /** Grocery invoice barcode when this cart was loaded from a GI-* barcode. */
@@ -148,7 +152,9 @@ export function createEmptyCartSession(): CartSession {
     cashSplitStr: "",
     mpesaSplitStr: "",
     splitMpesaRef: "",
+    walletSplitStr: "",
     cashTenderStr: "",
+    creditChangeToWallet: false,
     stkPushStatus: "idle",
     stkPushCheckoutId: "",
     stkPushError: "",

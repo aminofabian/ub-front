@@ -40,6 +40,8 @@ export type PosReceiptSnapshot = {
   /** Set when the sale included a cash tender (full cash or split). */
   cashReceived?: number | null;
   changeGiven?: number | null;
+  /** Cash overpay parked on the customer wallet (instead of physical change). */
+  walletCredited?: number | null;
   customerName?: string | null;
   voided: boolean;
 };
@@ -152,8 +154,16 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
 
   let cashReceived: number | null = null;
   let changeGiven: number | null = null;
+  let walletCredited: number | null = null;
   const persistedCash = sale.cashReceived != null ? toNumber(sale.cashReceived) : null;
-  if (isFullCash) {
+  const paymentSum = roundMoney2(
+    payments.reduce((acc, p) => acc + p.amount, 0),
+  );
+  const overpay = roundMoney2(paymentSum - grandTotal);
+  if (overpay > 0.001 && sale.customerId) {
+    walletCredited = overpay;
+  }
+  if (isFullCash && walletCredited == null) {
     const tender =
       persistedCash != null && persistedCash >= grandTotal
         ? persistedCash
@@ -164,6 +174,9 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
       cashReceived = roundMoney2(tender);
       changeGiven = roundMoney2(tender - grandTotal);
     }
+  } else if (isFullCash && walletCredited != null) {
+    const cashPay = payments[0]?.amount ?? 0;
+    cashReceived = roundMoney2(cashPay);
   }
 
   const servedBy =
@@ -192,6 +205,7 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
     grandTotal,
     cashReceived,
     changeGiven,
+    walletCredited,
     customerName: input.customerName ?? null,
     voided,
   };

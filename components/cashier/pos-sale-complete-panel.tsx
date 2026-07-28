@@ -154,10 +154,36 @@ export function PosSaleCompletePanel({
                 <SummaryRow label="Received">
                   {formatReceiptMoney(receipt.cashReceived, receipt.currency)}
                 </SummaryRow>
-                <SummaryRow label="Change" valueClassName="font-semibold text-[var(--pos-primary)]">
-                  {formatReceiptMoney(receipt.changeGiven ?? 0, receipt.currency)}
-                </SummaryRow>
+                {receipt.walletCredited != null && receipt.walletCredited > 0 ? (
+                  <SummaryRow
+                    label="To wallet"
+                    valueClassName="font-semibold text-[var(--pos-primary)]"
+                  >
+                    {formatReceiptMoney(
+                      receipt.walletCredited,
+                      receipt.currency,
+                    )}
+                  </SummaryRow>
+                ) : (
+                  <SummaryRow
+                    label="Change"
+                    valueClassName="font-semibold text-[var(--pos-primary)]"
+                  >
+                    {formatReceiptMoney(
+                      receipt.changeGiven ?? 0,
+                      receipt.currency,
+                    )}
+                  </SummaryRow>
+                )}
               </>
+            ) : receipt.walletCredited != null &&
+              receipt.walletCredited > 0 ? (
+              <SummaryRow
+                label="To wallet"
+                valueClassName="font-semibold text-[var(--pos-primary)]"
+              >
+                {formatReceiptMoney(receipt.walletCredited, receipt.currency)}
+              </SummaryRow>
             ) : null}
           </ul>
         </section>

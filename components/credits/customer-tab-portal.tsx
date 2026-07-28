@@ -514,6 +514,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   }, [manualSubmitted, manualCleared, manualBalanceAtSubmit, tab?.balanceOwed]);
 
   const owed = toNum(tab?.balanceOwed);
+  const wallet = toNum(tab?.walletBalance);
   const currency = tab?.currency || "KES";
   const displayShop = tab?.shopName || shopName;
   const firstName = tab?.customerName?.trim().split(/\s+/)[0] || null;
@@ -638,8 +639,8 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </h1>
             <p className="truncate text-[13px] text-[var(--tab-muted)]">
               {firstName && !loading && !notFound
-                ? `${firstName}'s tab`
-                : "Your tab"}
+                ? `${firstName}'s account`
+                : "Your account"}
             </p>
           </div>
           <button
@@ -698,6 +699,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               <p className="mt-1 text-[2rem] font-bold leading-none tracking-tight tabular-nums md:text-[2.25rem]">
                 {fmtMoney(owed, currency)}
               </p>
+              {wallet > 0 ? (
+                <p className="mt-2.5 text-[13px] font-medium text-[var(--tab-fg)]">
+                  Wallet credit{" "}
+                  <span className="tabular-nums">{fmtMoney(wallet, currency)}</span>
+                </p>
+              ) : null}
               {tabStats.purchaseCount > 0 ? (
                 <p className="mt-2.5 text-[13px] text-[var(--tab-muted)]">
                   {tabStats.purchaseCount} purchase
@@ -747,7 +754,9 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 }}
               >
                 <CheckCircle2 className="size-4 shrink-0" />
-                All settled — nothing owed.
+                {wallet > 0
+                  ? `Nothing owed — wallet ${fmtMoney(wallet, currency)} ready for your next visit.`
+                  : "All settled — nothing owed."}
               </div>
             ) : null}
 
