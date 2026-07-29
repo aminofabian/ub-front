@@ -3,21 +3,30 @@ import { describe, expect, it } from "bun:test";
 import { filterShopperTypes } from "@/components/storefront/shop-type-filters";
 
 describe("filterShopperTypes", () => {
-  it("hides lone Retail / Grocery catch-all types", () => {
+  it("keeps catch-all store types such as Retail Shop", () => {
     expect(
       filterShopperTypes([
         { id: "1", label: "Retail Shop", itemCount: 1210 },
-      ]),
-    ).toEqual([]);
+      ]).map((t) => t.label),
+    ).toEqual(["Retail Shop"]);
   });
 
-  it("keeps product-family types and drops generic ones", () => {
+  it("keeps every named type in order", () => {
     expect(
       filterShopperTypes([
         { id: "1", label: "retail", itemCount: 100 },
         { id: "2", label: "Cereals", itemCount: 25 },
         { id: "3", label: "spices", itemCount: 40 },
       ]).map((t) => t.label),
-    ).toEqual(["Cereals", "spices"]);
+    ).toEqual(["retail", "Cereals", "spices"]);
+  });
+
+  it("drops types with a blank label", () => {
+    expect(
+      filterShopperTypes([
+        { id: "1", label: "  ", itemCount: 5 },
+        { id: "2", label: "Drinks", itemCount: 5 },
+      ]).map((t) => t.label),
+    ).toEqual(["Drinks"]);
   });
 });

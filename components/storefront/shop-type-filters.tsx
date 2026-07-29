@@ -30,9 +30,6 @@ const ICON_BY_KEYWORD: Array<{ test: RegExp; icon: LucideIcon }> = [
   { test: /spice|season/i, icon: Sparkles },
 ];
 
-/** Catch-all store labels that aren't useful as shopper "types". */
-const GENERIC_TYPE_LABEL = /^(retail(\s+shop)?|grocery|general|all(\s+products)?)$/i;
-
 function pickIcon(label: string): LucideIcon {
   for (const m of ICON_BY_KEYWORD) {
     if (m.test.test(label)) return m.icon;
@@ -56,19 +53,11 @@ function titleCaseLabel(label: string): string {
     .join(" ");
 }
 
-function isGenericType(label: string): boolean {
-  return GENERIC_TYPE_LABEL.test(label.trim());
-}
-
-/** Prefer real product families; drop lone Retail/Grocery catch-alls. */
+/** Every type the catalog API returns is shown; it already drops empty and unpublished ones. */
 export function filterShopperTypes(
   types: PublicCatalogType[],
 ): PublicCatalogType[] {
-  const meaningful = types.filter((t) => !isGenericType(t.label));
-  if (meaningful.length > 0) {
-    return meaningful;
-  }
-  return [];
+  return types.filter((t) => t.label.trim().length > 0);
 }
 
 export function ShopTypeFilters({
