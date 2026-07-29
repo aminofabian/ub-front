@@ -23,11 +23,11 @@ import {
   upsertWebCartLine,
 } from "@/lib/web-cart";
 
-/** Whole-unit quantity from API (may arrive as decimal). */
+/** Cart quantity from API — preserves up to 3 decimals for weighed SKUs. */
 export function cartLineQuantity(qty: number): number {
   const n = Number(qty);
   if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.round(n));
+  return Math.max(0, Math.round(n * 1000) / 1000);
 }
 
 export function findCartLine(cart: PublicWebCart | null, itemId: string) {

@@ -32,6 +32,8 @@ export function mergeVariantOptions(
     price: item.price,
     qtyOnHand: item.qtyOnHand,
     onlinePurchaseMode: item.onlinePurchaseMode,
+    weighed: item.weighed,
+    unitType: item.unitType,
   };
   const byId = new Map<string, PublicCatalogVariant>();
   byId.set(current.id, current);

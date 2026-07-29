@@ -112,10 +112,10 @@ export function ShopHeroMart({
       className="hidden overflow-hidden rounded-[4px] text-white shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-black/10 md:block"
       style={{ backgroundColor: heroBg }}
     >
-      <div className="grid min-h-[280px] grid-cols-[minmax(0,1fr)_1.1fr] lg:min-h-[320px]">
+      <div className="grid min-h-[168px] grid-cols-[minmax(0,1fr)_1.15fr] lg:min-h-[188px]">
         {/* Copy */}
-        <div className="relative z-10 flex flex-col justify-center gap-3.5 px-6 py-7 lg:gap-4 lg:px-8 lg:py-9">
-          <div className="inline-flex w-fit items-center gap-2 rounded-[3px] border border-white/18 bg-white/[0.08] px-2.5 py-1">
+        <div className="relative z-10 flex flex-col justify-center gap-2 px-5 py-4 lg:gap-2.5 lg:px-6 lg:py-5">
+          <div className="inline-flex w-fit items-center gap-2 rounded-[3px] border border-white/18 bg-white/[0.08] px-2 py-0.5">
             <span
               className="size-1.5 shrink-0 rounded-[1px]"
               style={{
@@ -123,28 +123,28 @@ export function ShopHeroMart({
               }}
               aria-hidden
             />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/72">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/72">
               {title}
               {area ? ` · ${area}` : ""}
             </span>
           </div>
 
-          <h1 className="font-heading text-[1.85rem] font-semibold leading-[1.1] tracking-[-0.025em] lg:text-[2.35rem]">
+          <h1 className="font-heading text-[1.35rem] font-semibold leading-[1.12] tracking-[-0.025em] lg:text-[1.65rem]">
             <span className="block text-white">{headline}</span>
-            <span className="mt-1 block font-heading text-[1.35rem] font-medium italic tracking-[-0.01em] text-white/70 lg:text-[1.55rem]">
+            <span className="mt-0.5 block font-heading text-[1.05rem] font-medium italic tracking-[-0.01em] text-white/70 lg:text-[1.15rem]">
               {subhead}
             </span>
           </h1>
 
-          <p className="max-w-md text-[13px] leading-relaxed text-white/58 lg:text-[14px]">
+          <p className="max-w-md text-[12px] leading-snug text-white/55 line-clamp-2">
             {body}
           </p>
 
-          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
             <Link
               href="#shop-catalog"
               className={cn(
-                "inline-flex h-10 items-center gap-1.5 rounded-[3px] px-5 text-[13px] font-semibold shadow-sm transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98]",
+                "inline-flex h-8 items-center gap-1.5 rounded-[3px] px-3.5 text-[12px] font-semibold shadow-sm transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98]",
                 !accent && !primary && "bg-sky-400 text-slate-900",
               )}
               style={heroCtaStyle(primary, accent)}
@@ -157,7 +157,7 @@ export function ShopHeroMart({
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-10 items-center gap-1.5 rounded-[3px] border border-white/22 bg-white/[0.06] px-4 text-[13px] font-semibold text-white transition-colors hover:border-white/35 hover:bg-white/10"
+                className="inline-flex h-8 items-center gap-1.5 rounded-[3px] border border-white/22 bg-white/[0.06] px-3 text-[12px] font-semibold text-white transition-colors hover:border-white/35 hover:bg-white/10"
               >
                 <MessageCircle className="size-3.5" aria-hidden />
                 WhatsApp
@@ -291,7 +291,7 @@ function ShopWindowIllustration({
   branchHint: string | null | undefined;
 }) {
   return (
-    <div className="relative flex h-full min-h-[168px] items-center justify-center bg-black/15">
+    <div className="relative flex h-full min-h-[140px] items-center justify-center bg-black/15">
       <div
         className="pointer-events-none absolute inset-0 opacity-30"
         style={

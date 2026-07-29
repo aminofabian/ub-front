@@ -16,10 +16,10 @@ import { shopItemPathFromCard } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import {
   catalogStockStatus,
+  formatCartQty,
   formatCatalogVariantSubtitle,
   formatDisplayPrice,
   hasCatalogPrice,
-  isStorefrontInStoreOnly,
 } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
@@ -52,12 +52,13 @@ function InCartQtyBadge({ itemId }: { itemId: string }) {
   const cartLine = findCartLine(cartCtx?.cart ?? null, itemId);
   const qty = cartLine ? cartLineQuantity(cartLine.quantity) : 0;
   if (qty <= 0) return null;
+  const label = formatCartQty(qty);
   return (
     <span
-      className="absolute left-0 top-0 z-20 flex size-6 items-center justify-center bg-primary text-[11px] font-bold tabular-nums leading-none text-primary-foreground shadow-sm"
-      aria-label={`${qty} in cart`}
+      className="absolute left-0 top-0 z-20 flex min-w-6 items-center justify-center bg-primary px-1 text-[11px] font-bold tabular-nums leading-none text-primary-foreground shadow-sm"
+      aria-label={`${label} in cart`}
     >
-      {qty > 99 ? "99+" : qty}
+      {qty > 99 ? "99+" : label}
     </span>
   );
 }
@@ -132,7 +133,6 @@ export default function ShopProductGrid({
         const priceLabel = hasPrice
           ? formatDisplayPrice(currency, item.price)
           : null;
-        const inStoreOnly = isStorefrontInStoreOnly(item.onlinePurchaseMode);
 
         return (
           <li
@@ -161,7 +161,7 @@ export default function ShopProductGrid({
                   <ProductImagePlaceholder name={item.name} />
                 )}
 
-                {slug && hasPrice && !inStoreOnly ? (
+                {slug && hasPrice ? (
                   <InCartQtyBadge itemId={item.id} />
                 ) : null}
               </Link>
@@ -186,7 +186,7 @@ export default function ShopProductGrid({
                     </p>
                   )}
 
-                  {slug && hasPrice && !inStoreOnly ? (
+                  {slug && hasPrice ? (
                     <ShopQuickAddButton
                       slug={slug}
                       itemId={item.id}
@@ -194,10 +194,6 @@ export default function ShopProductGrid({
                       variant="card"
                       maxQty={item.qtyOnHand}
                     />
-                  ) : inStoreOnly ? (
-                    <span className="max-w-[7.5rem] text-right text-[10px] font-semibold leading-tight text-[var(--storefront-ink-muted,#5c6560)]">
-                      Available in store only
-                    </span>
                   ) : !hasPrice ? (
                     <Link
                       href={shopItemPathFromCard(item)}

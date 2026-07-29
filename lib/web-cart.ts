@@ -17,6 +17,8 @@ export type PublicWebCartLine = {
   quantity: number;
   unitPrice: number | null;
   lineTotal: number | null;
+  weighed?: boolean | null;
+  unitType?: string | null;
 };
 
 export type PublicWebCart = {

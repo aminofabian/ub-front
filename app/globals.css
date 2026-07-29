@@ -684,25 +684,31 @@
 
 .storefront-browse .storefront-section-title {
     font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
-    font-size: 1.625rem;
+    font-size: 1.125rem;
     font-weight: 600;
     letter-spacing: -0.02em;
-    line-height: 1.15;
+    line-height: 1.2;
     color: var(--storefront-ink);
 }
 
+@media (min-width: 640px) {
+    .storefront-browse .storefront-section-title {
+        font-size: 1.25rem;
+    }
+}
+
 .storefront-browse .storefront-section-eyebrow {
-    font-size: 0.625rem;
+    font-size: 0.5625rem;
     font-weight: 650;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--storefront-ink-quiet);
 }
 
 .storefront-browse .storefront-section-lede {
-    margin-top: 0.25rem;
-    font-size: 0.8125rem;
-    line-height: 1.45;
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
     color: var(--storefront-ink-muted);
 }
 

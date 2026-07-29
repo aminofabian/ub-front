@@ -57,42 +57,42 @@ function AisleCard({
     <Link
       href={href}
       className={cn(
-        "group relative flex w-[6.75rem] shrink-0 snap-start flex-col overflow-hidden rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] transition-[border-color,box-shadow,transform] duration-200",
-        "hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:shadow-[0_4px_14px_-6px_rgba(20,24,22,0.14)] sm:w-[7.75rem]",
+        "group relative flex w-[5.75rem] shrink-0 snap-start flex-col overflow-hidden rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] transition-[border-color,box-shadow,transform] duration-200",
+        "hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:shadow-[0_4px_14px_-6px_rgba(20,24,22,0.14)] sm:w-[6.25rem]",
       )}
     >
       <span
-        className="relative flex h-[4.25rem] items-center justify-center sm:h-[4.75rem]"
+        className="relative flex h-11 items-center justify-center sm:h-12"
         style={{
           background: `linear-gradient(165deg, color-mix(in srgb, ${color} 14%, transparent) 0%, transparent 72%)`,
         }}
       >
         {customIconSrc ? (
-          <span className="relative size-10 overflow-hidden rounded-[3px] ring-1 ring-black/[0.06] sm:size-11">
+          <span className="relative size-7 overflow-hidden rounded-[3px] ring-1 ring-black/[0.06] sm:size-8">
             <Image
               src={customIconSrc}
               alt=""
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-105"
-              sizes="44px"
+              sizes="32px"
               unoptimized
             />
           </span>
         ) : (
           <span
-            className="flex size-10 items-center justify-center rounded-[3px] bg-white shadow-[0_1px_3px_rgba(20,24,22,0.08)] ring-1 ring-black/[0.05] transition-transform duration-300 group-hover:scale-105 sm:size-11"
+            className="flex size-7 items-center justify-center rounded-[3px] bg-white shadow-[0_1px_3px_rgba(20,24,22,0.08)] ring-1 ring-black/[0.05] transition-transform duration-300 group-hover:scale-105 sm:size-8"
             style={{ color }}
           >
-            <Icon className="size-5 sm:size-[1.35rem]" strokeWidth={1.75} aria-hidden />
+            <Icon className="size-3.5 sm:size-4" strokeWidth={1.75} aria-hidden />
           </span>
         )}
       </span>
-      <span className="flex flex-1 flex-col gap-0.5 border-t border-[var(--storefront-rule,#e4e6e4)] px-2.5 py-2">
-        <span className="line-clamp-2 text-[12px] font-semibold leading-tight text-[var(--storefront-ink,#141816)] sm:text-[13px]">
+      <span className="flex flex-1 flex-col gap-px border-t border-[var(--storefront-rule,#e4e6e4)] px-1.5 py-1.5">
+        <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-[var(--storefront-ink,#141816)] sm:text-[12px]">
           {label}
         </span>
         {typeof itemCount === "number" && itemCount >= 0 ? (
-          <span className="text-[10px] tabular-nums text-[var(--storefront-ink-quiet,#8a928c)]">
+          <span className="text-[9px] tabular-nums text-[var(--storefront-ink-quiet,#8a928c)]">
             {itemCount} {itemCount === 1 ? "item" : "items"}
           </span>
         ) : null}
@@ -125,7 +125,7 @@ export function ShopAisleSlider({
     <div className="relative -mx-1 px-1" aria-label="Shop by aisle">
       <div
         className={cn(
-          "flex snap-x snap-mandatory gap-2 overflow-x-auto pb-2 sm:gap-2.5",
+          "flex snap-x snap-mandatory gap-1.5 overflow-x-auto pb-1 sm:gap-2",
           "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
         )}
       >

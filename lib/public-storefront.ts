@@ -17,8 +17,12 @@ export type PublicCatalogItemCard = {
   qtyOnHand?: number | null;
   /** Latest buying price across all suppliers (most recent effectiveFrom). */
   buyingPrice?: number | null;
-  /** web_cart | in_store_only — weighed butcher cuts are in-store only (P5). */
+  /** web_cart — weighed SKUs are sellable; use {@link weighed} for fractional qty. */
   onlinePurchaseMode?: string | null;
+  /** When true, shoppers may order fractional quantities. */
+  weighed?: boolean | null;
+  /** Sale unit label (e.g. kg, each). */
+  unitType?: string | null;
 };
 
 export type PublicDeliveryArea = {
@@ -68,6 +72,8 @@ export type PublicCatalogVariant = {
   price: number | null;
   qtyOnHand?: number | null;
   onlinePurchaseMode?: string | null;
+  weighed?: boolean | null;
+  unitType?: string | null;
 };
 
 export type PublicBarcodeLookup = {
@@ -103,6 +109,8 @@ export type PublicCatalogItemDetail = {
   images: PublicItemImage[];
   variants: PublicCatalogVariant[];
   onlinePurchaseMode?: string | null;
+  weighed?: boolean | null;
+  unitType?: string | null;
 };
 
 export const STOREFRONT_ONLINE_IN_STORE_ONLY = "in_store_only";
@@ -111,6 +119,20 @@ export function isStorefrontInStoreOnly(
   mode: string | null | undefined,
 ): boolean {
   return (mode ?? "").toLowerCase() === STOREFRONT_ONLINE_IN_STORE_ONLY;
+}
+
+export function isStorefrontWeighedItem(item: {
+  weighed?: boolean | null;
+}): boolean {
+  return Boolean(item.weighed);
+}
+
+/** Format a cart/catalog qty for display (keeps up to 3 decimals for weight). */
+export function formatCartQty(qty: number | null | undefined): string {
+  const n = Number(qty);
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  const rounded = Math.round(n * 1000) / 1000;
+  return String(rounded);
 }
 
 export type PublicCatalogListPayload = {

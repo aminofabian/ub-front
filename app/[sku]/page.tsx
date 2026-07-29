@@ -19,7 +19,7 @@ import {
   formatDisplayPrice,
   formatStoreQty,
   hasCatalogPrice,
-  isStorefrontInStoreOnly,
+  isStorefrontWeighedItem,
 } from "@/lib/public-storefront";
 import {
   shopItemPathFromCard,
@@ -126,7 +126,7 @@ export default async function ShopItemPage({ params }: PageProps) {
 
   const variantOptions = mergeVariantOptions(item);
   const hasMultipleOptions = variantOptions.length > 1;
-  const inStoreOnly = isStorefrontInStoreOnly(item.onlinePurchaseMode);
+  const weighed = isStorefrontWeighedItem(item);
   const showPrice = hasCatalogPrice(item.price);
   const stockLabel = formatStoreQty(item.qtyOnHand);
   const hero = item.images[0];
@@ -233,13 +233,13 @@ export default async function ShopItemPage({ params }: PageProps) {
                 </p>
               ) : null}
 
-              {showPrice && !inStoreOnly ? (
-                <ShopAddToCart slug={slug} itemId={item.id} className="mt-5" />
-              ) : inStoreOnly ? (
+              {showPrice ? (
                 <ShopAddToCart
                   slug={slug}
                   itemId={item.id}
-                  inStoreOnly
+                  weighed={weighed}
+                  unitType={item.unitType}
+                  maxQty={item.qtyOnHand}
                   className="mt-5"
                 />
               ) : (
@@ -293,7 +293,9 @@ export default async function ShopItemPage({ params }: PageProps) {
             <ShopAddToCart
               slug={slug}
               itemId={item.id}
-              inStoreOnly={inStoreOnly}
+              weighed={weighed}
+              unitType={item.unitType}
+              maxQty={item.qtyOnHand}
               compact
               className="!mt-0 !border-0 !bg-transparent !p-0"
             />

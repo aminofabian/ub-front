@@ -11,7 +11,6 @@ import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import {
   catalogStockStatus,
   formatDisplayPrice,
-  isStorefrontInStoreOnly,
 } from "@/lib/public-storefront";
 
 export function ShopSidebarTopPicksLive({
@@ -51,7 +50,6 @@ export function ShopSidebarTopPicksLive({
             ? `${item.name} ${item.variantName}`
             : item.name;
           const price = formatDisplayPrice(currency, item.price);
-          const inStoreOnly = isStorefrontInStoreOnly(item.onlinePurchaseMode);
 
           return (
             <li key={item.id} className="flex items-center gap-2.5 py-2">
@@ -85,23 +83,16 @@ export function ShopSidebarTopPicksLive({
                   <span className="text-[13px] font-bold tabular-nums text-foreground">
                     {price}
                   </span>
-                  {inStoreOnly ? (
-                    <span className="text-[10px] font-medium text-muted-foreground/70">
-                      Available in store only
-                    </span>
-                  ) : null}
                 </div>
               </div>
-              {!inStoreOnly ? (
-                <ShopQuickAddButton
-                  slug={slug}
-                  itemId={item.id}
-                  ariaLabel={`Add ${title} to basket`}
-                  accentHex={accent}
-                  size="sm"
-                  variant="icon"
-                />
-              ) : null}
+              <ShopQuickAddButton
+                slug={slug}
+                itemId={item.id}
+                ariaLabel={`Add ${title} to basket`}
+                accentHex={accent}
+                size="sm"
+                variant="icon"
+              />
             </li>
           );
         })}

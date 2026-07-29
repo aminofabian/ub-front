@@ -22,12 +22,9 @@ export function ShopAisleGrid({
 
   return (
     <section className="min-w-0">
-      <div className="mb-3.5">
+      <div className="mb-1.5 flex items-baseline gap-2">
+        <h2 className="storefront-section-title">Shop by aisle</h2>
         <p className="storefront-section-eyebrow">Browse</p>
-        <h2 className="storefront-section-title mt-0.5">Shop by aisle</h2>
-        <p className="storefront-section-lede">
-          Walk the store from your screen — pick an aisle to browse.
-        </p>
       </div>
       <ShopAisleSlider
         categories={aisles}

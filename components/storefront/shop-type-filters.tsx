@@ -99,15 +99,13 @@ export function ShopTypeFilters({
 
   return (
     <section aria-label="Shop by type" className="min-w-0">
-      <div className="mb-3">
+      <div className="mb-1.5 flex items-baseline gap-2">
+        <h2 className="storefront-section-title">Shop by type</h2>
         <p className="storefront-section-eyebrow">Departments</p>
-        <h2 className="storefront-section-title mt-0.5 text-[1.375rem] sm:text-[1.625rem]">
-          Shop by type
-        </h2>
       </div>
       <div
         className={cn(
-          "flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1",
+          "flex snap-x snap-mandatory gap-1.5 overflow-x-auto pb-0.5",
           "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
         )}
         role="group"
@@ -131,7 +129,7 @@ export function ShopTypeFilters({
               scroll={false}
               aria-current={selected ? "true" : undefined}
               className={cn(
-                "flex shrink-0 snap-start items-center gap-2.5 rounded-[3px] border px-2.5 py-2 transition-[border-color,background-color,box-shadow] duration-150 sm:gap-3 sm:px-3 sm:py-2.5",
+                "flex shrink-0 snap-start items-center gap-2 rounded-[3px] border px-2 py-1.5 transition-[border-color,background-color,box-shadow] duration-150",
                 selected
                   ? "border-primary/30 bg-primary/[0.07] shadow-[0_1px_0_color-mix(in_srgb,var(--primary)_12%,transparent)]"
                   : "border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] hover:border-[var(--storefront-card-border-hover,#c8cdc8)]",
@@ -139,7 +137,7 @@ export function ShopTypeFilters({
             >
               <span
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-[3px] sm:size-9",
+                  "flex size-6 shrink-0 items-center justify-center rounded-[3px]",
                   selected ? "bg-primary/12" : "bg-[var(--storefront-paper,#f4f5f4)]",
                 )}
                 style={
@@ -151,19 +149,19 @@ export function ShopTypeFilters({
                 }
               >
                 {customIconSrc ? (
-                  <span className="relative size-4 sm:size-[17px]">
+                  <span className="relative size-3.5">
                     <Image
                       src={customIconSrc}
                       alt=""
                       fill
                       className="object-contain"
-                      sizes="17px"
+                      sizes="14px"
                       unoptimized
                     />
                   </span>
                 ) : (
                   <Icon
-                    className="size-4 sm:size-[17px]"
+                    className="size-3.5"
                     strokeWidth={1.75}
                     aria-hidden
                     style={
@@ -173,10 +171,10 @@ export function ShopTypeFilters({
                 )}
               </span>
               <div className="min-w-0 pr-0.5">
-                <p className="truncate text-[12px] font-semibold leading-tight text-[var(--storefront-ink,#141816)] sm:text-[13px]">
+                <p className="truncate text-[12px] font-semibold leading-tight text-[var(--storefront-ink,#141816)]">
                   {label}
                 </p>
-                <p className="text-[10px] leading-snug text-[var(--storefront-ink-quiet,#8a928c)] sm:text-[11px]">
+                <p className="text-[10px] leading-snug text-[var(--storefront-ink-quiet,#8a928c)]">
                   {itemCountLabel(type.itemCount ?? 0)}
                 </p>
               </div>

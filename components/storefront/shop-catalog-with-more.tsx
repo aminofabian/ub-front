@@ -326,12 +326,11 @@ export default function ShopCatalogWithMore({
   const atEnd = !next && items.length > 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       {/* Section header */}
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--storefront-rule)] pb-3">
-        <div className="min-w-0 flex-1">
-          <p className="storefront-section-eyebrow">Catalog</p>
-          <h2 className="storefront-section-title mt-0.5">
+      <div className="flex flex-wrap items-end justify-between gap-2 border-b border-[var(--storefront-rule)] pb-2">
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <h2 className="storefront-section-title">
             {categoryHeading
               ? categoryHeading
               : filtered && q?.trim()
@@ -340,6 +339,7 @@ export default function ShopCatalogWithMore({
                   ? "Filtered results"
                   : "All products"}
           </h2>
+          <p className="storefront-section-eyebrow">Catalog</p>
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
           <label className="sr-only" htmlFor="shop-catalog-sort">

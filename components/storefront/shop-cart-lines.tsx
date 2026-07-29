@@ -6,7 +6,7 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { shopItemPath } from "@/lib/config";
-import { formatDisplayPrice } from "@/lib/public-storefront";
+import { formatCartQty, formatDisplayPrice } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 import type { PublicWebCart } from "@/lib/web-cart";
 
@@ -17,6 +17,10 @@ type Props = {
   compact?: boolean;
   busyItemId?: string | null;
 };
+
+function roundQty(n: number): number {
+  return Math.round(n * 1000) / 1000;
+}
 
 export function ShopCartLines({
   cart,
@@ -31,9 +35,13 @@ export function ShopCartLines({
         const title = line.variantName
           ? `${line.name} · ${line.variantName}`
           : line.name;
-        const unit = formatDisplayPrice(cart.currency, line.unitPrice);
+        const unitPrice = formatDisplayPrice(cart.currency, line.unitPrice);
         const lineTotal = formatDisplayPrice(cart.currency, line.lineTotal);
         const busy = busyItemId === line.itemId;
+        const weighed = Boolean(line.weighed);
+        const step = weighed ? 0.1 : 1;
+        const unitLabel = (line.unitType ?? "").trim();
+        const qtyLabel = formatCartQty(line.quantity);
 
         return (
           <li
@@ -71,7 +79,10 @@ export function ShopCartLines({
               >
                 {title}
               </Link>
-              <p className="mt-0.5 text-xs text-muted-foreground">{unit} each</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {unitPrice}
+                {weighed && unitLabel ? ` / ${unitLabel}` : " each"}
+              </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <div
                   className="inline-flex items-center rounded-xl border border-border bg-background shadow-xs"
@@ -84,17 +95,20 @@ export function ShopCartLines({
                     className="size-8 rounded-l-xl px-0"
                     disabled={busy}
                     aria-label="Decrease quantity"
-                    onClick={() =>
-                      void onChangeQty(
-                        line.itemId,
-                        line.quantity > 1 ? line.quantity - 1 : 0,
-                      )
-                    }
+                    onClick={() => {
+                      const next = roundQty(line.quantity - step);
+                      void onChangeQty(line.itemId, next > 0 ? next : 0);
+                    }}
                   >
                     <Minus className="size-3.5" aria-hidden />
                   </Button>
-                  <span className="min-w-8 px-1 text-center text-sm font-semibold tabular-nums">
-                    {line.quantity}
+                  <span className="min-w-10 px-1 text-center text-sm font-semibold tabular-nums">
+                    {qtyLabel}
+                    {weighed && unitLabel ? (
+                      <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">
+                        {unitLabel}
+                      </span>
+                    ) : null}
                   </span>
                   <Button
                     type="button"
@@ -103,7 +117,9 @@ export function ShopCartLines({
                     className="size-8 rounded-r-xl px-0"
                     disabled={busy}
                     aria-label="Increase quantity"
-                    onClick={() => void onChangeQty(line.itemId, line.quantity + 1)}
+                    onClick={() =>
+                      void onChangeQty(line.itemId, roundQty(line.quantity + step))
+                    }
                   >
                     <Plus className="size-3.5" aria-hidden />
                   </Button>

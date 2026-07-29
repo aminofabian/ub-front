@@ -157,10 +157,10 @@ export async function StorefrontCatalogHome({
 
   return (
     <div className="min-w-0">
-      <div className="mx-auto max-w-7xl px-3 pb-16 pt-3 sm:px-6 sm:pb-24 sm:pt-5 md:pt-6">
-        <div className="grid gap-5 lg:grid-cols-12 lg:items-start lg:gap-8">
+      <div className="mx-auto max-w-7xl px-3 pb-16 pt-2 sm:px-6 sm:pb-24 sm:pt-3">
+        <div className="grid gap-4 lg:grid-cols-12 lg:items-start lg:gap-6">
           {/* Main content */}
-          <main className="min-w-0 space-y-5 sm:space-y-6 lg:col-span-9">
+          <main className="min-w-0 space-y-3.5 sm:space-y-4 lg:col-span-9">
             <ShopHeroMart
               title={heroTitle}
               tagline={announcement}
