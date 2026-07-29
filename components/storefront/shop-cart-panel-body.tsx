@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type KeyboardEvent } from "react";
 import { ArrowRight, Check, ChevronRight, ShoppingBag, Sparkles, Truck, X } from "lucide-react";
 
 import { ShopCartLinesScroll } from "@/components/storefront/shop-cart-lines-scroll";
@@ -46,9 +46,11 @@ function focusedSubtotal(cart: PublicWebCart, itemId: string): number | null {
 type Props = {
   onClose: () => void;
   compactHeader?: boolean;
+  /** Desktop float: expand into the full slide-over drawer. */
+  onExpand?: () => void;
 };
 
-export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
+export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
   const router = useRouter();
   const isMd = useMediaMd();
   const {
@@ -133,7 +135,26 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
             : "bg-linear-to-b from-[color-mix(in_srgb,var(--primary)_7%,transparent)] to-transparent px-5 pb-4 pt-5",
         )}
       >
-        <div className="flex min-w-0 items-center gap-2.5">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-2.5",
+            onExpand && "rounded-lg outline-none transition-colors hover:bg-muted/40",
+          )}
+          {...(onExpand
+            ? {
+                role: "button",
+                tabIndex: 0,
+                onClick: onExpand,
+                onKeyDown: (e: KeyboardEvent) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onExpand();
+                  }
+                },
+                "aria-label": "Open full cart",
+              }
+            : {})}
+        >
           <span
             className={cn(
               "flex shrink-0 items-center justify-center rounded-xl",
@@ -161,8 +182,15 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
                   : itemCount > 0
                     ? `${itemCount} ${itemCount === 1 ? "item" : "items"}`
                     : "Nothing added yet"}
+              {onExpand ? " · Open cart" : ""}
             </p>
           </div>
+          {onExpand ? (
+            <ChevronRight
+              className="ml-auto size-4 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
+          ) : null}
         </div>
         <button
           type="button"
@@ -199,7 +227,7 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
               {focusMode && otherLineCount > 0 ? (
                 <button
                   type="button"
-                  onClick={showAllCartItems}
+                  onClick={onExpand ?? showAllCartItems}
                   className="mx-3.5 mt-3 flex w-[calc(100%-1.75rem)] items-center justify-between gap-2 rounded-xl border border-dashed border-primary/35 bg-primary/5 px-3 py-2 text-left transition-colors hover:bg-primary/10"
                 >
                   <span className="text-xs font-medium text-foreground">
@@ -267,17 +295,27 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
                     Waiting on branch pricing for one or more items.
                   </p>
                 )}
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="h-9 w-full rounded-xl text-xs"
-                  onClick={onClose}
-                >
-                  <Link href={APP_ROUTES.shopCart}>
-                    {focusMode ? "View full cart" : "View full cart"}
-                  </Link>
-                </Button>
+                {onExpand ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-full rounded-xl text-xs"
+                    onClick={onExpand}
+                  >
+                    View full cart
+                  </Button>
+                ) : (
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-full rounded-xl text-xs"
+                    onClick={onClose}
+                  >
+                    <Link href={APP_ROUTES.shopCart}>View full cart</Link>
+                  </Button>
+                )}
               </div>
               <p className="mt-2 flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
                 <Sparkles className="size-2.5" aria-hidden />

@@ -58,7 +58,7 @@ type ShopCartContextValue = {
   setLineQty: (itemId: string, quantity: number) => Promise<void>;
   changeQty: (itemId: string, nextQty: number) => Promise<void>;
   removeLine: (itemId: string) => Promise<void>;
-  /** Open cart focused on the product just added (mobile-friendly). */
+  /** Open compact float focused on the product just added. */
   notifyAdded: (itemId: string) => void;
 };
 

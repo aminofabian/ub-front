@@ -21,13 +21,22 @@ function ShopCartDesktopDrawer() {
   );
 }
 
-/** Desktop slide-out (md+); mobile uses floating panel. */
+/**
+ * After add-to-cart: compact floating card (all breakpoints).
+ * Full slide-over drawer: desktop only, after the user expands the float
+ * (or opens cart from the header).
+ */
 export function ShopCartDrawer() {
   const isMd = useMediaMd();
+  const { drawerOpen, cartViewMode } = useShopCart();
 
-  if (isMd) {
-    return <ShopCartDesktopDrawer />;
+  if (!drawerOpen) {
+    return null;
   }
 
-  return <ShopCartMobileFloat />;
+  if (!isMd || cartViewMode === "focus") {
+    return <ShopCartMobileFloat />;
+  }
+
+  return <ShopCartDesktopDrawer />;
 }
