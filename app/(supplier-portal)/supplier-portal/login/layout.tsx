@@ -19,9 +19,5 @@ export default function SupplierPortalAuthLayout({
     }
   }, [router]);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-background to-muted/30 dark:from-slate-950 dark:via-background">
-      {children}
-    </div>
-  );
+  return <>{children}</>;
 }

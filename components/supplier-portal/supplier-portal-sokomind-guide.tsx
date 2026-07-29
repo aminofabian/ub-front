@@ -125,8 +125,9 @@ export function SupplierPortalSokoMindGuide() {
         title="SokoMind Guide (⌘J)"
         onClick={() => setOpen(true)}
         className={cn(
-          "fixed bottom-5 right-4 z-40 flex size-12 items-center justify-center rounded-full",
-          "bg-[var(--pos-ink,#1c1915)] text-[#faf8f4] shadow-lg transition hover:scale-105",
+          "fixed right-4 z-40 flex size-12 items-center justify-center rounded-full",
+          "bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-5",
+          "bg-[var(--pos-ink,#1c1915)] text-[#faf8f4] shadow-lg transition hover:scale-105 active:scale-95",
           open && "pointer-events-none opacity-0",
         )}
       >
@@ -136,7 +137,8 @@ export function SupplierPortalSokoMindGuide() {
       {open ? (
         <div
           className={cn(
-            "fixed bottom-5 right-4 z-50 flex h-[min(70vh,32rem)] w-[min(100vw-2rem,22rem)] flex-col",
+            "fixed inset-x-3 z-50 flex h-[min(72dvh,34rem)] flex-col sm:inset-x-auto sm:right-4 sm:w-[min(100vw-2rem,22rem)]",
+            "bottom-[calc(4.5rem+env(safe-area-inset-bottom))] lg:bottom-5",
             "overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
             "bg-[#faf8f4] shadow-2xl",
           )}

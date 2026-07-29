@@ -3,6 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  ChevronRight,
+  ClipboardList,
+  MessageSquare,
+  Package,
+  Store,
+  Truck,
+  Wallet,
+} from "lucide-react";
 
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
 import {
@@ -14,6 +23,8 @@ import {
   spMetric,
   spPage,
   spPanel,
+  spQuickAction,
+  spRise,
   spSerifTitle,
 } from "@/components/supplier-portal/supplier-portal-ui";
 import { APP_ROUTES } from "@/lib/config";
@@ -66,6 +77,13 @@ function formatStamp(d: Date): string {
   } catch {
     return d.toISOString();
   }
+}
+
+function greetingFor(d: Date): string {
+  const h = d.getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }
 
 export default function SupplierPortalOverviewPage() {
@@ -133,10 +151,120 @@ export default function SupplierPortalOverviewPage() {
     return `${hub.shopCount} connected`;
   }, [hub]);
 
+  const quickActions = useMemo(
+    () => [
+      { href: APP_ROUTES.supplierPortalOrders, label: "Orders", icon: ClipboardList },
+      { href: APP_ROUTES.supplierPortalCatalog, label: "Catalogue", icon: Package },
+      { href: APP_ROUTES.supplierPortalShops, label: "Shops", icon: Store },
+      { href: APP_ROUTES.supplierPortalDeliveries, label: "Deliveries", icon: Truck },
+      ...(canViewMoney
+        ? [{ href: APP_ROUTES.supplierPortalPayments, label: "Payments", icon: Wallet }]
+        : [{ href: APP_ROUTES.supplierPortalMessages, label: "Messages", icon: MessageSquare }]),
+    ],
+    [canViewMoney],
+  );
+
   return (
     <SupplierPortalShell>
-      <div className={cn(spPage, "space-y-5")}>
-        <header className="flex flex-wrap items-end justify-between gap-3">
+      <div className={cn(spPage, "space-y-4 sm:space-y-5")}>
+        {/* Mobile app home hero */}
+        <section className={cn(spRise, "lg:hidden")}>
+          <p className={spEyebrow}>{now ? formatStamp(now) : "\u00a0"}</p>
+          <h1 className="mt-2 font-[family-name:var(--font-heading)] text-[2.35rem] leading-[0.95] font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
+            Kiosk
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {now ? greetingFor(now) : "Welcome"}
+            {canViewMoney
+              ? " — balances and activity across your shops."
+              : " — orders and catalogue for your supplier account."}
+          </p>
+
+          {canViewMoney ? (
+            <Link
+              href={APP_ROUTES.supplierPortalPayments}
+              className={cn(
+                "mt-4 block overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+                "bg-[linear-gradient(145deg,var(--pos-primary,#0f766e)_0%,#0b5f59_55%,#134e4a_100%)]",
+                "px-4 py-4 text-white shadow-[0_10px_28px_rgba(15,118,110,0.28)]",
+                "active:scale-[0.99] transition-transform",
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">
+                    Outstanding
+                  </p>
+                  <p className="mt-1.5 font-[family-name:var(--font-heading)] text-[2rem] leading-none font-semibold tabular-nums">
+                    {hub ? money(hub.totals.owed, currency) : "—"}
+                  </p>
+                  <p className="mt-2 text-xs text-white/75">
+                    {hub
+                      ? `Across ${hub.shopCount} shop${hub.shopCount === 1 ? "" : "s"}`
+                      : "Loading…"}
+                  </p>
+                </div>
+                <span className="mt-1 border border-white/25 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider">
+                  View
+                </span>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-3">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/60">
+                    Today
+                  </p>
+                  <p className="mt-0.5 text-sm font-semibold tabular-nums">
+                    {hub ? money(todayCollections, currency) : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/60">
+                    Paid all-time
+                  </p>
+                  <p className="mt-0.5 text-sm font-semibold tabular-nums">
+                    {hub ? money(hub.totals.paid, currency) : "—"}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          ) : (
+            <Link
+              href={APP_ROUTES.supplierPortalOrders}
+              className={cn(
+                "mt-4 flex items-center justify-between gap-3 border",
+                "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+                "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] px-4 py-3.5 active:scale-[0.99]",
+              )}
+            >
+              <div>
+                <p className={spEyebrow}>Pending orders</p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+                  {pendingOrders}
+                </p>
+              </div>
+              <ChevronRight className="size-5 text-muted-foreground" />
+            </Link>
+          )}
+
+          <div className="-mx-3 mt-4 flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory">
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Link key={action.href} href={action.href} className={spQuickAction}>
+                  <span className="flex size-9 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)]">
+                    <Icon className="size-4" aria-hidden />
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--pos-ink,#1c1915)]">
+                    {action.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Desktop header */}
+        <header className="hidden flex-wrap items-end justify-between gap-3 lg:flex">
           <div>
             <p className={spEyebrow}>portal · overview → activity</p>
             <h2 className={cn(spSerifTitle, "mt-1")}>Dashboard</h2>
@@ -155,8 +283,9 @@ export default function SupplierPortalOverviewPage() {
           <p className="border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
         ) : null}
 
+        {/* Desktop money grid */}
         {canViewMoney ? (
-          <section className={spPanel}>
+          <section className={cn(spPanel, "hidden lg:block")}>
             <div className={mktPosHeader}>
               <span>1 · Money</span>
               <span>{hub?.shopCount ?? 0}</span>
@@ -186,12 +315,56 @@ export default function SupplierPortalOverviewPage() {
           </section>
         ) : null}
 
+        {/* Needs attention — list on mobile, grid on desktop */}
         <section className={spPanel}>
           <div className={mktPosHeader}>
-            <span>2 · Needs attention</span>
+            <span className="lg:hidden">Needs attention</span>
+            <span className="hidden lg:inline">2 · Needs attention</span>
             <span>{pendingOrders}</span>
           </div>
-          <div className="grid gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2 lg:grid-cols-3">
+
+          <div className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] lg:hidden">
+            <AttentionRow
+              label="Pending orders"
+              value={String(pendingOrders)}
+              hint={
+                staleOrders > 0
+                  ? `${staleOrders} awaiting confirmation > 24h`
+                  : pendingOrders > 0
+                    ? "Respond to keep shops moving"
+                    : "You're caught up"
+              }
+              href={APP_ROUTES.supplierPortalOrders}
+              accent={pendingOrders > 0}
+            />
+            {canViewMoney ? (
+              <AttentionRow
+                label="Partial balances"
+                value={hub ? money(hub.totals.pending, currency) : "—"}
+                hint={
+                  partialShopCount > 0
+                    ? `${partialShopCount} shop${partialShopCount === 1 ? "" : "s"} with part payment`
+                    : "No partial balances"
+                }
+                href={APP_ROUTES.supplierPortalInvoices}
+              />
+            ) : (
+              <AttentionRow
+                label="Catalogue"
+                value="Manage"
+                hint="Products you supply"
+                href={APP_ROUTES.supplierPortalCatalog}
+              />
+            )}
+            <AttentionRow
+              label="Total shops"
+              value={hub ? String(hub.shopCount) : "—"}
+              hint={shopsHint}
+              href={APP_ROUTES.supplierPortalShops}
+            />
+          </div>
+
+          <div className="hidden gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2 lg:grid lg:grid-cols-3">
             <MetricCard
               label="Pending orders"
               value={String(pendingOrders)}
@@ -235,12 +408,38 @@ export default function SupplierPortalOverviewPage() {
         {hub && hub.shops.length > 0 ? (
           <section className={spPanel}>
             <div className={mktPosHeader}>
-              <span>3 · Shops</span>
+              <span className="lg:hidden">Your shops</span>
+              <span className="hidden lg:inline">3 · Shops</span>
               <Link href={APP_ROUTES.supplierPortalShops} className="hover:underline">
                 View all →
               </Link>
             </div>
-            <div className="grid gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2">
+
+            <div className="-mx-px flex gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory lg:hidden">
+              {hub.shops.slice(0, 6).map((shop) => (
+                <Link
+                  key={shop.localSupplierId}
+                  href={`${APP_ROUTES.supplierPortalShops}/${shop.localSupplierId}`}
+                  className={cn(
+                    "w-[11.5rem] shrink-0 snap-start border",
+                    "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+                    "bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)] p-3 active:scale-[0.98]",
+                  )}
+                >
+                  <p className="truncate text-sm font-medium text-[var(--pos-ink,#1c1915)]">
+                    {shop.shopName}
+                  </p>
+                  <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    Outstanding
+                  </p>
+                  <p className="mt-0.5 text-base font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+                    {money(shop.owed, currency)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+
+            <div className="hidden gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2 lg:grid">
               {hub.shops.slice(0, 4).map((shop) => (
                 <Link
                   key={shop.localSupplierId}
@@ -259,7 +458,12 @@ export default function SupplierPortalOverviewPage() {
         ) : null}
 
         {emptyShops ? (
-          <div className={cn(spPanel, "flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between")}>
+          <div
+            className={cn(
+              spPanel,
+              "flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between",
+            )}
+          >
             <div>
               <p className="font-semibold text-[var(--pos-ink,#1c1915)]">No shops linked yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -273,6 +477,45 @@ export default function SupplierPortalOverviewPage() {
         ) : null}
       </div>
     </SupplierPortalShell>
+  );
+}
+
+function AttentionRow({
+  label,
+  value,
+  hint,
+  href,
+  accent,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  href: string;
+  accent?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 px-3.5 py-3.5 active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className={spEyebrow}>{label}</p>
+          <p
+            className={cn(
+              "text-lg font-semibold tabular-nums",
+              accent
+                ? "text-[var(--pos-primary,#0f766e)]"
+                : "text-[var(--pos-ink,#1c1915)]",
+            )}
+          >
+            {value}
+          </p>
+        </div>
+        <p className="mt-0.5 truncate text-sm text-muted-foreground">{hint}</p>
+      </div>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground/70" aria-hidden />
+    </Link>
   );
 }
 
