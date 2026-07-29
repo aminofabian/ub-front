@@ -77,7 +77,7 @@ export default function ShopCatalogWithMore({
   typeId,
   departmentId,
   categoryHeading,
-  categoryPathSlug,
+  categoryPathSlug: _categoryPathSlug,
   accentHex,
 }: {
   slug: string;
@@ -326,36 +326,22 @@ export default function ShopCatalogWithMore({
   const atEnd = !next && items.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Section header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--storefront-rule)] pb-3">
         <div className="min-w-0 flex-1">
-          {categoryHeading ? (
-            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-              <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
-                {categoryHeading}
-                {departmentId ? " (department filter)" : null}
-              </h2>
-              {categoryPathSlug ? (
-                <span
-                  className="truncate font-mono text-[10px] font-normal normal-case tracking-normal text-muted-foreground/55"
-                  title={`URL: ${APP_ROUTES.shop}/c/${categoryPathSlug}`}
-                >
-                  /{categoryPathSlug}
-                </span>
-              ) : null}
-            </div>
-          ) : (
-            <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
-              {filtered && q?.trim()
-                ? `Results for "${q.trim()}"`
+          <p className="storefront-section-eyebrow">Catalog</p>
+          <h2 className="storefront-section-title mt-0.5">
+            {categoryHeading
+              ? categoryHeading
+              : filtered && q?.trim()
+                ? `Results for “${q.trim()}”`
                 : filtered
                   ? "Filtered results"
-                  : "All Products"}
-            </h2>
-          )}
+                  : "All products"}
+          </h2>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2.5">
           <label className="sr-only" htmlFor="shop-catalog-sort">
             Sort products
           </label>
@@ -363,14 +349,14 @@ export default function ShopCatalogWithMore({
             id="shop-catalog-sort"
             value={sort}
             onChange={(e) => setSort(e.target.value as CatalogSort)}
-            className="h-7 rounded-md border border-border/60 bg-background px-2 text-[11px] font-medium text-foreground shadow-sm outline-none transition-colors hover:border-border focus-visible:ring-2 focus-visible:ring-primary/30"
+            className="h-8 rounded-[3px] border border-[var(--storefront-card-border)] bg-[var(--storefront-paper-elevated)] px-2.5 text-[11px] font-medium text-[var(--storefront-ink)] outline-none transition-colors hover:border-[var(--storefront-card-border-hover)] focus-visible:ring-2 focus-visible:ring-primary/25"
           >
             <option value="default">Featured</option>
             <option value="name_asc">Name A–Z</option>
             <option value="price_asc">Price: low to high</option>
             <option value="price_desc">Price: high to low</option>
           </select>
-          <span className="text-[11px] font-medium tabular-nums text-muted-foreground/50">
+          <span className="text-[11px] font-medium tabular-nums text-[var(--storefront-ink-quiet)]">
             {totalCount > items.length
               ? `${items.length} of ${totalCount}`
               : `${items.length} ${items.length === 1 ? "item" : "items"}`}

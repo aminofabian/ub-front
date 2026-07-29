@@ -68,7 +68,6 @@ export function filterShopperTypes(
   if (meaningful.length > 0) {
     return meaningful;
   }
-  // Only generic types exist — hide the section rather than show "Retail".
   return [];
 }
 
@@ -99,18 +98,17 @@ export function ShopTypeFilters({
       : undefined;
 
   return (
-    <section aria-label="Shop by type">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
-        Shop by type
-      </h2>
+    <section aria-label="Shop by type" className="min-w-0">
+      <div className="mb-3">
+        <p className="storefront-section-eyebrow">Departments</p>
+        <h2 className="storefront-section-title mt-0.5 text-[1.375rem] sm:text-[1.625rem]">
+          Shop by type
+        </h2>
+      </div>
       <div
         className={cn(
-          "grid gap-2 rounded-lg border border-border/50 bg-card p-2.5 shadow-[0_1px_0_rgba(0,0,0,0.03),0_2px_10px_-4px_rgba(0,0,0,0.06)] sm:gap-2.5 sm:p-3",
-          visibleTypes.length <= 2
-            ? "grid-cols-2"
-            : visibleTypes.length === 3
-              ? "grid-cols-3"
-              : "grid-cols-2 sm:grid-cols-4",
+          "flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1",
+          "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
         )}
         role="group"
         aria-label="Filter by type"
@@ -133,34 +131,40 @@ export function ShopTypeFilters({
               scroll={false}
               aria-current={selected ? "true" : undefined}
               className={cn(
-                "flex min-w-0 items-center gap-2.5 rounded-md px-1 py-1.5 transition-colors sm:gap-3 sm:px-1.5",
+                "flex shrink-0 snap-start items-center gap-2.5 rounded-[3px] border px-2.5 py-2 transition-[border-color,background-color,box-shadow] duration-150 sm:gap-3 sm:px-3 sm:py-2.5",
                 selected
-                  ? "bg-primary/8 ring-1 ring-primary/20"
-                  : "hover:bg-muted/40",
+                  ? "border-primary/30 bg-primary/[0.07] shadow-[0_1px_0_color-mix(in_srgb,var(--primary)_12%,transparent)]"
+                  : "border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] hover:border-[var(--storefront-card-border-hover,#c8cdc8)]",
               )}
             >
               <span
-                className="flex size-8 shrink-0 items-center justify-center rounded-md sm:size-9"
-                style={{
-                  backgroundColor: primary
-                    ? `color-mix(in srgb, ${primary} 10%, transparent)`
-                    : "color-mix(in srgb, var(--primary) 10%, transparent)",
-                }}
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center rounded-[3px] sm:size-9",
+                  selected ? "bg-primary/12" : "bg-[var(--storefront-paper,#f4f5f4)]",
+                )}
+                style={
+                  !selected && primary
+                    ? {
+                        backgroundColor: `color-mix(in srgb, ${primary} 9%, transparent)`,
+                      }
+                    : undefined
+                }
               >
                 {customIconSrc ? (
-                  <span className="relative size-4 sm:size-[18px]">
+                  <span className="relative size-4 sm:size-[17px]">
                     <Image
                       src={customIconSrc}
                       alt=""
                       fill
                       className="object-contain"
-                      sizes="18px"
+                      sizes="17px"
                       unoptimized
                     />
                   </span>
                 ) : (
                   <Icon
-                    className="size-4 sm:size-[18px]"
+                    className="size-4 sm:size-[17px]"
+                    strokeWidth={1.75}
                     aria-hidden
                     style={
                       primary ? { color: primary } : { color: "var(--primary)" }
@@ -168,17 +172,18 @@ export function ShopTypeFilters({
                   />
                 )}
               </span>
-              <div className="min-w-0">
-                <p className="truncate text-[11px] font-semibold leading-tight text-foreground sm:text-xs">
+              <div className="min-w-0 pr-0.5">
+                <p className="truncate text-[12px] font-semibold leading-tight text-[var(--storefront-ink,#141816)] sm:text-[13px]">
                   {label}
                 </p>
-                <p className="text-[10px] leading-snug text-muted-foreground/70 sm:text-[11px]">
+                <p className="text-[10px] leading-snug text-[var(--storefront-ink-quiet,#8a928c)] sm:text-[11px]">
                   {itemCountLabel(type.itemCount ?? 0)}
                 </p>
               </div>
             </Link>
           );
         })}
+        <div className="w-2 shrink-0" aria-hidden />
       </div>
     </section>
   );

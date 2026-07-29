@@ -24,10 +24,10 @@ import {
 import { cn } from "@/lib/utils";
 
 const CARD_SHELL =
-  "group relative flex h-full flex-col overflow-hidden rounded-[2px] border border-[#e5e5e5] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-[border-color,box-shadow] duration-150 hover:border-[#d4d4d4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)]";
+  "group relative flex h-full flex-col overflow-hidden rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] shadow-[0_1px_2px_rgba(20,24,22,0.04)] transition-[border-color,box-shadow] duration-200 hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:shadow-[0_2px_10px_-4px_rgba(20,24,22,0.1)]";
 
 const IMAGE_WELL =
-  "relative block aspect-square w-full overflow-hidden bg-white";
+  "relative block aspect-square w-full overflow-hidden bg-[linear-gradient(180deg,#fafbfa_0%,#f3f5f3_100%)]";
 
 function isOutOfStockItem(item: PublicCatalogItemCard): boolean {
   return catalogStockStatus(item.qtyOnHand) === "out_of_stock";
@@ -38,7 +38,7 @@ function ProductImagePlaceholder({ name }: { name: string }) {
   return (
     <div className="flex h-full items-center justify-center">
       <span
-        className="flex size-10 items-center justify-center border border-[#e5e5e5] bg-[#fafafa] text-sm font-semibold tracking-tight text-muted-foreground/40"
+        className="flex size-10 items-center justify-center border border-[var(--storefront-card-border,#e2e5e2)] bg-white text-sm font-semibold tracking-tight text-[var(--storefront-ink-quiet,#8a928c)]"
         aria-hidden
       >
         {initial}
@@ -54,7 +54,7 @@ function InCartQtyBadge({ itemId }: { itemId: string }) {
   if (qty <= 0) return null;
   return (
     <span
-      className="absolute left-0 top-0 z-20 flex size-6 items-center justify-center bg-[#1a7a5c] text-[11px] font-bold tabular-nums leading-none text-white"
+      className="absolute left-0 top-0 z-20 flex size-6 items-center justify-center bg-primary text-[11px] font-bold tabular-nums leading-none text-primary-foreground shadow-sm"
       aria-label={`${qty} in cart`}
     >
       {qty > 99 ? "99+" : qty}
@@ -95,19 +95,21 @@ export default function ShopProductGrid({
   if (visibleItems.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-20 text-center">
-        <div className="flex size-14 items-center justify-center border border-[#e5e5e5] bg-[#fafafa] text-muted-foreground/50">
+        <div className="flex size-14 items-center justify-center border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] text-[var(--storefront-ink-quiet,#8a928c)]">
           <PackageSearch className="size-6" aria-hidden />
         </div>
         <div>
-          <p className="text-base font-semibold text-foreground">No products found</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-base font-semibold text-[var(--storefront-ink,#141816)]">
+            No products found
+          </p>
+          <p className="mt-1 text-sm text-[var(--storefront-ink-muted,#5c6560)]">
             {filtered
               ? "Try adjusting your search or browse all products."
               : "Check back soon for new arrivals."}
           </p>
         </div>
         {filtered && clearHref ? (
-          <Button asChild variant="outline" size="sm" className="mt-2">
+          <Button asChild variant="outline" size="sm" className="mt-2 rounded-[3px]">
             <Link href={clearHref}>View all products</Link>
           </Button>
         ) : null}
@@ -118,7 +120,7 @@ export default function ShopProductGrid({
   const animateFrom = newFromIndex ?? 0;
 
   return (
-    <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-3 xl:grid-cols-5">
+    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:grid-cols-4 lg:gap-3 xl:grid-cols-5">
       {visibleItems.map((item, index) => {
         const isNew = index >= animateFrom;
         const variantSubtitle = formatCatalogVariantSubtitle(item.variantName);
@@ -139,7 +141,7 @@ export default function ShopProductGrid({
             style={
               isNew
                 ? {
-                    animationDelay: `${Math.min((index - animateFrom) * 40, 600)}ms`,
+                    animationDelay: `${Math.min((index - animateFrom) * 35, 520)}ms`,
                   }
                 : undefined
             }
@@ -151,7 +153,7 @@ export default function ShopProductGrid({
                     src={item.imageUrl}
                     alt=""
                     fill
-                    className="object-contain p-3 sm:p-4"
+                    className="object-contain p-3 transition-transform duration-300 ease-out group-hover:scale-[1.04] sm:p-3.5"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                     unoptimized
                   />
@@ -164,10 +166,10 @@ export default function ShopProductGrid({
                 ) : null}
               </Link>
 
-              <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-2.5 pb-2.5 pt-1.5 sm:px-3 sm:pb-3 sm:pt-2">
+              <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
                 <Link
                   href={shopItemPathFromCard(item)}
-                  className="line-clamp-3 min-h-[3.75rem] text-[13px] font-bold leading-snug tracking-tight text-[#1a1a1a] transition-colors hover:text-primary"
+                  className="line-clamp-3 min-h-[3.75rem] text-[13px] font-semibold leading-snug tracking-tight text-[var(--storefront-ink,#141816)] transition-colors hover:text-primary"
                   title={title}
                 >
                   {title}
@@ -175,7 +177,7 @@ export default function ShopProductGrid({
 
                 <div className="mt-auto flex items-center justify-between gap-2">
                   {priceLabel ? (
-                    <p className="shrink-0 text-[13px] font-bold tabular-nums tracking-tight text-[#1a1a1a]">
+                    <p className="shrink-0 text-[13px] font-bold tabular-nums tracking-tight text-[var(--storefront-ink,#141816)]">
                       {priceLabel}
                     </p>
                   ) : (
@@ -193,13 +195,13 @@ export default function ShopProductGrid({
                       maxQty={item.qtyOnHand}
                     />
                   ) : inStoreOnly ? (
-                    <span className="max-w-[7.5rem] text-right text-[10px] font-semibold leading-tight text-[#64748b]">
+                    <span className="max-w-[7.5rem] text-right text-[10px] font-semibold leading-tight text-[var(--storefront-ink-muted,#5c6560)]">
                       Available in store only
                     </span>
                   ) : !hasPrice ? (
                     <Link
                       href={shopItemPathFromCard(item)}
-                      className="inline-flex h-7 shrink-0 items-center justify-center border border-[#d4d4d4] px-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#525252] transition-colors hover:border-[#a3a3a3] hover:text-[#1a1a1a]"
+                      className="inline-flex h-7 shrink-0 items-center justify-center border border-[var(--storefront-card-border,#e2e5e2)] px-2.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:text-[var(--storefront-ink,#141816)]"
                     >
                       Options
                     </Link>

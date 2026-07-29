@@ -198,7 +198,7 @@ export function ShopQuickAddButton({
 
   if (variant === "card") {
     const cardStep =
-      "inline-flex size-7 shrink-0 items-center justify-center text-[#525252] transition-colors duration-100 hover:bg-black/[0.04] hover:text-[#1a1a1a] active:scale-95 disabled:pointer-events-none disabled:opacity-30";
+      "inline-flex size-7 shrink-0 items-center justify-center text-[var(--storefront-ink-muted,#5c6560)] transition-colors duration-100 hover:bg-black/[0.04] hover:text-[var(--storefront-ink,#141816)] active:scale-95 disabled:pointer-events-none disabled:opacity-30";
 
     return (
       <div
@@ -210,7 +210,7 @@ export function ShopQuickAddButton({
         {inCart ? (
           <div
             className={cn(
-              "flex h-7 items-center border border-[#d4d4d4] bg-[#f5f5f5]",
+              "flex h-7 items-center border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper,#f4f5f4)]",
               justAdded && "animate-shop-cart-added",
             )}
           >
@@ -228,7 +228,7 @@ export function ShopQuickAddButton({
             </button>
             <span
               key={`card-cart-${qtyBump}`}
-              className="min-w-6 px-0.5 text-center text-[13px] font-bold tabular-nums leading-none text-[#1a1a1a] animate-shop-qty-pop"
+              className="min-w-6 px-0.5 text-center text-[13px] font-bold tabular-nums leading-none text-[var(--storefront-ink,#141816)] animate-shop-qty-pop"
               aria-live="polite"
             >
               {inCartQty}
@@ -256,13 +256,13 @@ export function ShopQuickAddButton({
               void addOne();
             }}
             className={cn(
-              "inline-flex h-7 items-center gap-1 border border-[#d4d4d4] bg-white px-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#525252] transition-colors duration-100",
-              "hover:border-[#a3a3a3] hover:text-[#1a1a1a] active:scale-[0.98] disabled:opacity-60",
-              justAdded && "animate-shop-cart-added",
+              "inline-flex h-7 items-center gap-1 border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] px-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--storefront-ink-muted,#5c6560)] transition-colors duration-100",
+              "hover:border-primary/40 hover:text-primary active:scale-[0.98] disabled:opacity-60",
+              justAdded && "animate-shop-cart-added border-primary/35 text-primary",
             )}
           >
             {busy ? (
-              <span className="size-3 animate-spin rounded-full border-2 border-[#d4d4d4] border-t-[#525252]" />
+              <span className="size-3 animate-spin rounded-full border-2 border-[var(--storefront-card-border,#e2e5e2)] border-t-[var(--storefront-ink-muted,#5c6560)]" />
             ) : justAdded ? (
               <Check className="size-3 stroke-[2.5]" aria-hidden />
             ) : (

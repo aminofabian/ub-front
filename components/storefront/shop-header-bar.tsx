@@ -46,9 +46,9 @@ export function ShopHeaderBar({
   primaryHex: string | null;
 }) {
   return (
-    <div className="border-b border-border/40 bg-card/90 backdrop-blur-sm">
-      <div className="mx-auto max-w-7xl px-3 py-1.5 sm:px-6 sm:py-2">
-        <div className="flex flex-col gap-1.5 lg:grid lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-4">
+    <div className="border-b border-[var(--storefront-rule,#e4e6e4)] bg-[var(--storefront-paper-elevated,#fff)]/95 backdrop-blur-md">
+      <div className="mx-auto max-w-7xl px-3 py-2 sm:px-6 sm:py-2.5">
+        <div className="flex flex-col gap-2 lg:grid lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-5">
           <div className="flex items-center gap-2 lg:contents">
             <TenantLogo
               brand={headerTitle}
@@ -79,7 +79,7 @@ export function ShopHeaderBar({
               ) : null}
               <Link
                 href={APP_ROUTES.shopAccount}
-                className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                className="inline-flex size-9 items-center justify-center rounded-[3px] text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:bg-[var(--storefront-paper,#f4f5f4)] hover:text-[var(--storefront-ink,#141816)]"
                 aria-label="Account"
               >
                 <UserRound className="size-4.5" aria-hidden />
@@ -94,7 +94,7 @@ export function ShopHeaderBar({
             <Suspense
               fallback={
                 <div
-                  className="h-9 animate-pulse rounded-xl bg-muted/50 sm:h-10"
+                  className="h-9 animate-pulse rounded-[3px] bg-[var(--storefront-paper,#f4f5f4)] sm:h-10"
                   aria-hidden
                 />
               }
@@ -103,17 +103,15 @@ export function ShopHeaderBar({
             </Suspense>
           </div>
 
-          <div className="hidden shrink-0 items-center justify-end gap-2 sm:gap-3 lg:flex">
+          <div className="hidden shrink-0 items-center justify-end gap-1.5 sm:gap-2 lg:flex">
             <Link
               href={APP_ROUTES.shopAccount}
-              className="group inline-flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-muted/50 hover:text-foreground"
+              className="group inline-flex items-center gap-1.5 rounded-[3px] px-2 py-1.5 text-sm font-medium text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:bg-[var(--storefront-paper,#f4f5f4)] hover:text-[var(--storefront-ink,#141816)]"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/30 transition-colors group-hover:bg-muted/60">
-                <UserRound className="h-4 w-4" aria-hidden />
+              <span className="flex size-8 items-center justify-center rounded-[3px] bg-[var(--storefront-paper,#f4f5f4)] transition-colors group-hover:bg-[var(--storefront-rule,#e4e6e4)]">
+                <UserRound className="size-4" aria-hidden />
               </span>
-              <span className="hidden whitespace-nowrap sm:inline">
-                Account
-              </span>
+              <span className="hidden whitespace-nowrap sm:inline">Account</span>
             </Link>
             {slug ? <ShopCartTrigger accentHex={primaryHex} /> : null}
           </div>

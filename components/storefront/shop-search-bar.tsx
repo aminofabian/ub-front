@@ -35,7 +35,7 @@ export default function ShopSearchBar({
       <form
         action={formAction}
         method="get"
-        className="group relative flex h-9 items-stretch overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.04] transition-shadow focus-within:border-primary/30 focus-within:shadow-md sm:h-10"
+        className="group relative flex h-9 items-stretch overflow-hidden rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper,#f4f5f4)] transition-[border-color,box-shadow] focus-within:border-primary/35 focus-within:bg-white focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_12%,transparent)] sm:h-10"
         role="search"
       >
         <label className="sr-only" htmlFor={inputId}>
@@ -43,7 +43,7 @@ export default function ShopSearchBar({
         </label>
         <div className="relative flex flex-1 items-center">
           <Search
-            className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-muted-foreground/70"
+            className="pointer-events-none absolute left-3 size-3.5 text-[var(--storefront-ink-quiet,#8a928c)]"
             aria-hidden
           />
           <input
@@ -52,7 +52,7 @@ export default function ShopSearchBar({
             type="search"
             defaultValue={defaultQuery ?? ""}
             placeholder="Search products…"
-            className="h-full w-full border-0 bg-transparent pl-9 pr-2 text-sm outline-none placeholder:text-muted-foreground/70 focus-visible:ring-0 sm:placeholder:text-muted-foreground/70"
+            className="h-full w-full border-0 bg-transparent pl-9 pr-2 text-sm text-[var(--storefront-ink,#141816)] outline-none placeholder:text-[var(--storefront-ink-quiet,#8a928c)] focus-visible:ring-0"
           />
         </div>
         {categoryId ? <input type="hidden" name="categoryId" value={categoryId} /> : null}
@@ -68,7 +68,7 @@ export default function ShopSearchBar({
           )}
           style={validAccent ? { backgroundColor: validAccent, color: "#fff" } : undefined}
         >
-          <Search className="h-4 w-4" aria-hidden />
+          <Search className="size-4" aria-hidden />
         </button>
       </form>
     );

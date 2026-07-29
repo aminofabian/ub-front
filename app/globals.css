@@ -624,7 +624,7 @@
 @keyframes fade-in-up {
     from {
         opacity: 0;
-        transform: translateY(16px);
+        transform: translateY(12px);
     }
     to {
         opacity: 1;
@@ -642,7 +642,7 @@
 }
 
 .animate-fade-in-up {
-    animation: fade-in-up 0.5s ease-out both;
+    animation: fade-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .animate-shimmer {
@@ -654,6 +654,72 @@
     );
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
+}
+
+/* Neighborhood mart — storefront browse tokens */
+.storefront-browse {
+    --storefront-paper: #f4f5f4;
+    --storefront-paper-elevated: #ffffff;
+    --storefront-rule: #e4e6e4;
+    --storefront-ink: #141816;
+    --storefront-ink-muted: #5c6560;
+    --storefront-ink-quiet: #8a928c;
+    --storefront-card-border: #e2e5e2;
+    --storefront-card-border-hover: #c8cdc8;
+    background-color: var(--storefront-paper);
+    color: var(--storefront-ink);
+}
+
+.dark .storefront-browse {
+    --storefront-paper: oklch(0.16 0.01 145);
+    --storefront-paper-elevated: oklch(0.2 0.01 145);
+    --storefront-rule: oklch(0.28 0.01 145);
+    --storefront-ink: oklch(0.95 0.01 145);
+    --storefront-ink-muted: oklch(0.72 0.015 145);
+    --storefront-ink-quiet: oklch(0.58 0.015 145);
+    --storefront-card-border: oklch(0.3 0.01 145);
+    --storefront-card-border-hover: oklch(0.4 0.015 145);
+    background-color: var(--background);
+}
+
+.storefront-browse .storefront-section-title {
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-size: 1.625rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--storefront-ink);
+}
+
+.storefront-browse .storefront-section-eyebrow {
+    font-size: 0.625rem;
+    font-weight: 650;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--storefront-ink-quiet);
+}
+
+.storefront-browse .storefront-section-lede {
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--storefront-ink-muted);
+}
+
+.storefront-browse .storefront-aisle-fade {
+    background: linear-gradient(
+        to left,
+        var(--storefront-paper) 0%,
+        transparent 100%
+    );
+}
+
+.dark .storefront-browse .storefront-aisle-fade {
+    background: linear-gradient(
+        to left,
+        var(--background) 0%,
+        transparent 100%
+    );
 }
 
 /* Super-admin promote job progress bar */

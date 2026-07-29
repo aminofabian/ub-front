@@ -123,6 +123,7 @@ export function ShopStorefrontChrome({
 
   return (
     <ShopCartProvider slug={slug}>
+      <div className="storefront-browse flex min-h-0 flex-1 flex-col bg-[var(--storefront-paper)]">
       {!compactChrome ? (
         <>
           <ShopUtilityBar
@@ -167,6 +168,7 @@ export function ShopStorefrontChrome({
         accentHex={accentHex}
       />
       <FloatingCartButton accentHex={accentHex} />
+      </div>
     </ShopCartProvider>
   );
 }

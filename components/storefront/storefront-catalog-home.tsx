@@ -156,11 +156,11 @@ export async function StorefrontCatalogHome({
     featured[0]?.imageUrl || storefront?.featured?.[0]?.imageUrl || null;
 
   return (
-    <div className="bg-[oklch(0.985_0.002_90)] dark:bg-background">
-      <div className="mx-auto max-w-7xl px-4 pb-20 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
-        <div className="grid gap-6 lg:grid-cols-12 lg:gap-7 lg:items-start">
+    <div className="min-w-0">
+      <div className="mx-auto max-w-7xl px-3 pb-16 pt-3 sm:px-6 sm:pb-24 sm:pt-5 md:pt-6">
+        <div className="grid gap-5 lg:grid-cols-12 lg:items-start lg:gap-8">
           {/* Main content */}
-          <main className="min-w-0 space-y-3 sm:space-y-4 lg:col-span-9">
+          <main className="min-w-0 space-y-5 sm:space-y-6 lg:col-span-9">
             <ShopHeroMart
               title={heroTitle}
               tagline={announcement}
@@ -183,7 +183,7 @@ export async function StorefrontCatalogHome({
               accentHex={accentHex}
             />
 
-            <section id="shop-catalog" className="scroll-mt-24">
+            <section id="shop-catalog" className="scroll-mt-24 pt-1">
               <ShopCatalogWithMore
                 key={`${q ?? ""}\0${categoryId ?? ""}\0${resolvedTypeId ?? ""}\0${categoryPathSlug ?? ""}`}
                 slug={slug}
@@ -202,7 +202,7 @@ export async function StorefrontCatalogHome({
           </main>
 
           {/* Sidebar */}
-          <aside className="lg:col-span-3">
+          <aside className="hidden lg:col-span-3 lg:block">
             <div className="lg:sticky lg:top-24">
               <ShopSidebarWidgets
                 slug={slug}

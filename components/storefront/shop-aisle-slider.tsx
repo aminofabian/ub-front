@@ -57,51 +57,42 @@ function AisleCard({
     <Link
       href={href}
       className={cn(
-        "group relative flex w-[7.25rem] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-border/70 hover:shadow-md sm:w-[8.25rem]",
+        "group relative flex w-[6.75rem] shrink-0 snap-start flex-col overflow-hidden rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] transition-[border-color,box-shadow,transform] duration-200",
+        "hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:shadow-[0_4px_14px_-6px_rgba(20,24,22,0.14)] sm:w-[7.75rem]",
       )}
     >
       <span
-        className="relative flex h-16 items-center justify-center sm:h-[4.75rem]"
+        className="relative flex h-[4.25rem] items-center justify-center sm:h-[4.75rem]"
         style={{
-          background: `linear-gradient(160deg, ${color}22 0%, ${color}0a 55%, transparent 100%)`,
+          background: `linear-gradient(165deg, color-mix(in srgb, ${color} 14%, transparent) 0%, transparent 72%)`,
         }}
       >
-        <span
-          className="pointer-events-none absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 20%, currentColor 1px, transparent 1.5px)",
-            backgroundSize: "10px 10px",
-            color,
-          }}
-          aria-hidden
-        />
         {customIconSrc ? (
-          <span className="relative h-10 w-10 overflow-hidden rounded-lg shadow-sm ring-1 ring-black/5 sm:h-11 sm:w-11">
+          <span className="relative size-10 overflow-hidden rounded-[3px] ring-1 ring-black/[0.06] sm:size-11">
             <Image
               src={customIconSrc}
               alt=""
               fill
-              className="object-cover"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
               sizes="44px"
               unoptimized
             />
           </span>
         ) : (
           <span
-            className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/90 shadow-sm ring-1 ring-black/5 transition-transform duration-300 group-hover:scale-105 sm:h-11 sm:w-11"
+            className="flex size-10 items-center justify-center rounded-[3px] bg-white shadow-[0_1px_3px_rgba(20,24,22,0.08)] ring-1 ring-black/[0.05] transition-transform duration-300 group-hover:scale-105 sm:size-11"
             style={{ color }}
           >
-            <Icon className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden />
+            <Icon className="size-5 sm:size-[1.35rem]" strokeWidth={1.75} aria-hidden />
           </span>
         )}
       </span>
-      <span className="flex flex-1 flex-col gap-0.5 px-2.5 py-2.5">
-        <span className="line-clamp-2 text-[12px] font-semibold leading-tight text-foreground sm:text-[13px]">
+      <span className="flex flex-1 flex-col gap-0.5 border-t border-[var(--storefront-rule,#e4e6e4)] px-2.5 py-2">
+        <span className="line-clamp-2 text-[12px] font-semibold leading-tight text-[var(--storefront-ink,#141816)] sm:text-[13px]">
           {label}
         </span>
         {typeof itemCount === "number" && itemCount >= 0 ? (
-          <span className="text-[10px] tabular-nums text-muted-foreground/70">
+          <span className="text-[10px] tabular-nums text-[var(--storefront-ink-quiet,#8a928c)]">
             {itemCount} {itemCount === 1 ? "item" : "items"}
           </span>
         ) : null}
@@ -131,12 +122,11 @@ export function ShopAisleSlider({
   if (categories.length === 0) return null;
 
   return (
-    <div className="relative" aria-label="Shop by aisle">
+    <div className="relative -mx-1 px-1" aria-label="Shop by aisle">
       <div
         className={cn(
-          "flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 sm:gap-3",
-          "[scrollbar-width:thin] [-ms-overflow-style:auto]",
-          "[&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border",
+          "flex snap-x snap-mandatory gap-2 overflow-x-auto pb-2 sm:gap-2.5",
+          "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
         )}
       >
         {categories.map((c, i) => {
@@ -159,11 +149,10 @@ export function ShopAisleSlider({
             />
           );
         })}
-        {/* Trailing spacer so the last card isn't flush-clipped */}
-        <div className="w-1 shrink-0 snap-end" aria-hidden />
+        <div className="w-6 shrink-0 snap-end sm:w-8" aria-hidden />
       </div>
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[oklch(0.985_0.002_90)] to-transparent dark:from-background"
+        className="storefront-aisle-fade pointer-events-none absolute inset-y-0 right-0 w-10 sm:w-14"
         aria-hidden
       />
     </div>

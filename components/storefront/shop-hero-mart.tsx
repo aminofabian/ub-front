@@ -109,41 +109,42 @@ export function ShopHeroMart({
 
   return (
     <section
-      className="hidden overflow-hidden rounded-lg text-white shadow-[0_2px_16px_-4px_rgba(0,0,0,0.18)] ring-1 ring-black/5 md:block"
+      className="hidden overflow-hidden rounded-[4px] text-white shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-black/10 md:block"
       style={{ backgroundColor: heroBg }}
     >
-      <div className="flex flex-col sm:grid sm:min-h-[248px] sm:grid-cols-[minmax(0,1fr)_1.05fr]">
+      <div className="grid min-h-[280px] grid-cols-[minmax(0,1fr)_1.1fr] lg:min-h-[320px]">
         {/* Copy */}
-        <div className="relative z-10 flex flex-col justify-center gap-3 px-4 py-5 sm:gap-3.5 sm:px-6 sm:py-6 lg:px-7 lg:py-7">
-          <div className="inline-flex w-fit items-center gap-2 rounded-md border border-white/15 bg-white/[0.07] px-2.5 py-1">
+        <div className="relative z-10 flex flex-col justify-center gap-3.5 px-6 py-7 lg:gap-4 lg:px-8 lg:py-9">
+          <div className="inline-flex w-fit items-center gap-2 rounded-[3px] border border-white/18 bg-white/[0.08] px-2.5 py-1">
             <span
-              className="size-1.5 shrink-0 rounded-full"
+              className="size-1.5 shrink-0 rounded-[1px]"
               style={{
                 backgroundColor: accent ?? primary ?? "#38bdf8",
               }}
               aria-hidden
             />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/72">
               {title}
+              {area ? ` · ${area}` : ""}
             </span>
           </div>
 
-          <h1 className="font-heading text-[1.65rem] font-semibold leading-[1.12] tracking-[-0.02em] sm:text-[1.85rem] lg:text-[2.15rem]">
+          <h1 className="font-heading text-[1.85rem] font-semibold leading-[1.1] tracking-[-0.025em] lg:text-[2.35rem]">
             <span className="block text-white">{headline}</span>
-            <span className="block font-heading font-medium italic text-white/75">
+            <span className="mt-1 block font-heading text-[1.35rem] font-medium italic tracking-[-0.01em] text-white/70 lg:text-[1.55rem]">
               {subhead}
             </span>
           </h1>
 
-          <p className="max-w-md text-[12px] leading-relaxed text-white/60 sm:text-[13px]">
+          <p className="max-w-md text-[13px] leading-relaxed text-white/58 lg:text-[14px]">
             {body}
           </p>
 
-          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
             <Link
               href="#shop-catalog"
               className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-md px-4 text-[12px] font-semibold shadow-sm transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98] sm:h-10 sm:px-5 sm:text-[13px]",
+                "inline-flex h-10 items-center gap-1.5 rounded-[3px] px-5 text-[13px] font-semibold shadow-sm transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98]",
                 !accent && !primary && "bg-sky-400 text-slate-900",
               )}
               style={heroCtaStyle(primary, accent)}
@@ -156,7 +157,7 @@ export function ShopHeroMart({
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-white/20 bg-white/[0.06] px-4 text-[12px] font-semibold text-white transition-colors hover:border-white/30 hover:bg-white/10 sm:h-10 sm:px-5 sm:text-[13px]"
+                className="inline-flex h-10 items-center gap-1.5 rounded-[3px] border border-white/22 bg-white/[0.06] px-4 text-[13px] font-semibold text-white transition-colors hover:border-white/35 hover:bg-white/10"
               >
                 <MessageCircle className="size-3.5" aria-hidden />
                 WhatsApp
@@ -167,7 +168,7 @@ export function ShopHeroMart({
 
         {/* Media */}
         <div
-          className="group relative aspect-[16/10] min-h-[168px] w-full overflow-hidden sm:aspect-auto sm:min-h-0"
+          className="group relative min-h-0 w-full overflow-hidden"
           onTouchStart={(e) => setTouchStart(e.touches[0].clientX)}
           onTouchEnd={(e) => {
             if (touchStart === null || !banners) return;
@@ -197,8 +198,8 @@ export function ShopHeroMart({
                     alt={`Banner ${i + 1}`}
                     fill
                     priority={i === 0}
-                    sizes="(max-width: 640px) 100vw, 50vw"
-                    className="object-cover"
+                    sizes="50vw"
+                    className="object-cover scale-[1.02]"
                     unoptimized
                   />
                 </div>
@@ -208,7 +209,7 @@ export function ShopHeroMart({
                 <>
                   <button
                     type="button"
-                    className="absolute left-2 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-md bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/55 sm:left-3 sm:size-9"
+                    className="absolute left-3 top-1/2 z-20 flex size-9 -translate-y-1/2 items-center justify-center rounded-[3px] bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/55"
                     onClick={goPrev}
                     aria-label="Previous banner"
                   >
@@ -216,13 +217,13 @@ export function ShopHeroMart({
                   </button>
                   <button
                     type="button"
-                    className="absolute right-2 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-md bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/55 sm:right-3 sm:size-9"
+                    className="absolute right-3 top-1/2 z-20 flex size-9 -translate-y-1/2 items-center justify-center rounded-[3px] bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/55"
                     onClick={goNext}
                     aria-label="Next banner"
                   >
                     <ChevronRight className="size-4" aria-hidden />
                   </button>
-                  <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
+                  <div className="absolute bottom-3.5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
                     {banners.map((_, i) => (
                       <button
                         key={i}
@@ -247,8 +248,8 @@ export function ShopHeroMart({
               alt=""
               fill
               priority
-              sizes="(max-width: 640px) 100vw, 50vw"
-              className="object-cover"
+              sizes="50vw"
+              className="object-cover scale-[1.02]"
               unoptimized
             />
           ) : (
@@ -260,20 +261,16 @@ export function ShopHeroMart({
             />
           )}
 
+          {/* Soft seam: primary panel bleeds into the photo */}
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-black/30 to-transparent sm:hidden"
-            aria-hidden
-          />
-          {/* Soft seam: primary panel bleeds into the photo instead of a hard cut */}
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[28%] sm:block"
+            className="pointer-events-none absolute inset-y-0 left-0 w-[32%]"
             style={{
-              background: `linear-gradient(90deg, ${fadeEdge} 0%, color-mix(in srgb, ${fadeEdge} 72%, transparent) 42%, transparent 100%)`,
+              background: `linear-gradient(90deg, ${fadeEdge} 0%, color-mix(in srgb, ${fadeEdge} 68%, transparent) 48%, transparent 100%)`,
             }}
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 hidden w-[10%] bg-gradient-to-r from-black/20 to-transparent sm:block"
+            className="pointer-events-none absolute inset-y-0 left-0 w-[12%] bg-gradient-to-r from-black/25 to-transparent"
             aria-hidden
           />
         </div>

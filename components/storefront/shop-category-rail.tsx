@@ -187,8 +187,8 @@ function ShopByAisleMenu({
         )}
         onMouseLeave={() => setHoveredRootId(undefined)}
       >
-        <div className="flex w-[min(calc(100vw-2rem),58rem)] max-h-[min(75vh,28rem)] overflow-hidden rounded-xl border border-border/40 bg-white shadow-2xl shadow-black/5 ring-1 ring-black/5">
-          <aside className="w-[11.5rem] shrink-0 overflow-y-auto border-r border-border/50 bg-muted/40 sm:w-[13rem]">
+        <div className="flex w-[min(calc(100vw-2rem),58rem)] max-h-[min(75vh,28rem)] overflow-hidden rounded-[4px] border border-[var(--storefront-card-border,#e2e5e2)] bg-white shadow-[0_24px_48px_-20px_rgba(20,24,22,0.35)]">
+          <aside className="w-[11.5rem] shrink-0 overflow-y-auto border-r border-[var(--storefront-rule,#e4e6e4)] bg-[var(--storefront-paper,#f4f5f4)] sm:w-[13rem]">
             <ul role="menu">
               <li role="none">
                 <Link
@@ -196,7 +196,7 @@ function ShopByAisleMenu({
                   role="menuitem"
                   onMouseEnter={() => setHoveredRootId(null)}
                   className={cn(
-                    "flex items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium text-foreground transition",
+                    "flex items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium text-[var(--storefront-ink,#141816)] transition",
                     hoveredRootId === null && "bg-white shadow-sm",
                     hoveredRootId !== null && "hover:bg-white/80",
                   )}
@@ -225,15 +225,15 @@ function ShopByAisleMenu({
                       className={cn(
                         "flex items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium transition",
                         isActive
-                          ? "bg-white text-foreground shadow-sm"
-                          : "text-foreground/85 hover:bg-white/80",
+                          ? "bg-white text-[var(--storefront-ink,#141816)] shadow-sm"
+                          : "text-[var(--storefront-ink,#141816)]/85 hover:bg-white/80",
                         branchActive && !isActive && "font-semibold",
                       )}
                     >
                       <span className="truncate">{root.name}</span>
                       {hasChildren ? (
                         <ChevronRight
-                          className="h-4 w-4 shrink-0 text-muted-foreground"
+                          className="size-4 shrink-0 text-[var(--storefront-ink-quiet,#8a928c)]"
                           aria-hidden
                         />
                       ) : null}
@@ -318,17 +318,16 @@ export function ShopCategoryRail({
 
   return (
     <div
-      className={cn("text-white shadow-sm", !primary && "bg-primary")}
+      className={cn("text-white", !primary && "bg-primary")}
       style={
         primary
           ? {
               backgroundColor: primary,
-              boxShadow: `0 2px 16px ${primary}22`,
             }
           : undefined
       }
     >
-      <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 sm:px-6">
+      <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-3 sm:px-6">
         <ShopByAisleMenu
           roots={roots}
           childrenByParent={childrenByParent}
@@ -338,7 +337,7 @@ export function ShopCategoryRail({
         />
 
         <nav
-          className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1.5 sm:flex"
+          className="hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto py-1.5 sm:flex"
           aria-label="Popular aisles"
         >
           {quickLinks.map((c) => {
@@ -352,10 +351,10 @@ export function ShopCategoryRail({
                 key={c.id}
                 href={shopListPath({ categoryPathSlug: seg, q })}
                 className={cn(
-                  "shrink-0 truncate rounded-md px-2.5 py-1 text-[12px] font-medium transition",
+                  "shrink-0 truncate rounded-[3px] px-2.5 py-1 text-[12px] font-medium tracking-tight transition",
                   active
                     ? "bg-white/18 text-white"
-                    : "text-white/80 hover:bg-white/10 hover:text-white",
+                    : "text-white/78 hover:bg-white/10 hover:text-white",
                 )}
                 title={c.name}
               >
@@ -367,9 +366,9 @@ export function ShopCategoryRail({
 
         <Link
           href={`${APP_ROUTES.shop}#shop-catalog`}
-          className="ml-auto inline-flex shrink-0 items-center gap-1.5 self-center whitespace-nowrap rounded-md bg-white/12 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-white/18"
+          className="ml-auto inline-flex shrink-0 items-center gap-1.5 self-center whitespace-nowrap rounded-[3px] bg-white/12 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-white/18"
         >
-          <Tag className="h-3.5 w-3.5 opacity-90" aria-hidden />
+          <Tag className="size-3.5 opacity-90" aria-hidden />
           <span>Deals</span>
         </Link>
       </div>

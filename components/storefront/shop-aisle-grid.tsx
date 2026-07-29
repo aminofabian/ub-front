@@ -21,16 +21,13 @@ export function ShopAisleGrid({
   if (aisles.length === 0) return null;
 
   return (
-    <section>
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <div>
-          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
-            Shop by Aisle
-          </h2>
-          <p className="mt-1 text-[12px] text-muted-foreground/80">
-            Walk the store from your screen — pick an aisle to browse.
-          </p>
-        </div>
+    <section className="min-w-0">
+      <div className="mb-3.5">
+        <p className="storefront-section-eyebrow">Browse</p>
+        <h2 className="storefront-section-title mt-0.5">Shop by aisle</h2>
+        <p className="storefront-section-lede">
+          Walk the store from your screen — pick an aisle to browse.
+        </p>
       </div>
       <ShopAisleSlider
         categories={aisles}
