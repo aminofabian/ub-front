@@ -188,6 +188,11 @@ export function GatewayConfigForm({
             Production
           </label>
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Sandbox and Production have different Client ID / Secret pairs. Switching
+          environment requires re-entering Client ID, Client Secret, and API Key from
+          that environment&apos;s Applications page.
+        </p>
       </FormDrawerFields>
 
       {gatewayType === "KOPOKOPO" && (
