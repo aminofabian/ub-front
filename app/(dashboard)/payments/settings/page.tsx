@@ -522,11 +522,13 @@ export default function PaymentGatewaySettingsPage() {
                               );
                               if (fail.length === 0) {
                                 toast.success(
-                                  `Webhook subscriptions active for ${ok} till(s).`,
+                                  `Webhook subscriptions active for ${ok} till(s). Callback: ${result.webhookUrl}`,
+                                  { duration: 12_000 },
                                 );
                               } else {
                                 toast.error(
                                   `Subscribed ${ok}/${result.subscriptions.length}. ${fail.map((f) => `${f.tillNumber}: ${f.errorMessage}`).join("; ")}`,
+                                  { duration: 15_000 },
                                 );
                               }
                               await reload();
