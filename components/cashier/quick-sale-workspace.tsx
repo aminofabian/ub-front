@@ -2260,11 +2260,8 @@ export function QuickSaleWorkspace({
       ? buildStkPhoneNumber(stkAreaCode, stkPhone)
       : "";
     const awaitKey = `${grandTotal.toFixed(2)}|${phone}`;
-    if (
-      tillAwaitKeyRef.current === awaitKey &&
-      stkPushStatus === "awaiting_till" &&
-      stkPushCheckoutId?.startsWith("till-await-")
-    ) {
+    // Skip re-register for the same amount/phone (success or soft-fail while KopoKopo inactive).
+    if (tillAwaitKeyRef.current === awaitKey) {
       return;
     }
 
@@ -2281,7 +2278,12 @@ export function QuickSaleWorkspace({
             },
             nextIdempotencyKey(),
           );
-          if (cancelled || !result.accepted || !result.checkoutRequestId) {
+          if (cancelled) {
+            return;
+          }
+          if (!result.accepted || !result.checkoutRequestId) {
+            // Remember this amount/phone so we don't spam till-await while KopoKopo is inactive.
+            tillAwaitKeyRef.current = awaitKey;
             return;
           }
           tillAwaitKeyRef.current = awaitKey;
@@ -2293,6 +2295,9 @@ export function QuickSaleWorkspace({
           });
         } catch {
           /* STK path still available; webhook await is best-effort */
+          if (!cancelled) {
+            tillAwaitKeyRef.current = awaitKey;
+          }
         }
       })();
     }, 500);

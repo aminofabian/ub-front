@@ -8583,6 +8583,8 @@ export async function registerPosTillAwait(
     method: "POST",
     body,
     idempotencyKey,
+    // Best-effort: missing ACTIVE KopoKopo must not toast-spam the cashier (STK still works).
+    toast: false,
   });
 }
 
