@@ -49,7 +49,7 @@ export function GatewayConfigForm({
     credentialSettings?.tillNumber ?? "",
   );
   const [webhookTillNumbers, setWebhookTillNumbers] = useState(
-    credentialSettings?.webhookTillNumbers ?? "3020127,3502582",
+    credentialSettings?.webhookTillNumbers ?? "",
   );
   const [secretKey, setSecretKey] = useState("");
   const [publicKey, setPublicKey] = useState("");

@@ -3004,6 +3004,7 @@ export function QuickSaleWorkspace({
   // Auto-complete the sale once M-Pesa is gateway-verified (STK or till webhook).
   useEffect(() => {
     if (stkPushStatus !== "confirmed") {
+      autoCompleteMpesaRef.current = null;
       return;
     }
     if (payMethod !== "mpesa_manual" || splitPay) {
@@ -3027,6 +3028,20 @@ export function QuickSaleWorkspace({
     loading,
     onComplete,
   ]);
+
+  // If auto-complete failed (cart still open + error), unlock so it can retry.
+  useEffect(() => {
+    if (!error.trim() || stkPushStatus !== "confirmed") {
+      return;
+    }
+    if (autoCompleteMpesaRef.current == null) {
+      return;
+    }
+    const t = window.setTimeout(() => {
+      autoCompleteMpesaRef.current = null;
+    }, 1500);
+    return () => window.clearTimeout(t);
+  }, [error, stkPushStatus]);
 
   const onVoidLastSale = useCallback(async () => {
     if (!lastSale || isSaleVoided(lastSale) || !canVoid) {
