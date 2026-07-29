@@ -752,7 +752,11 @@ export function QuickSaleWorkspace({
   const applyStkConfirmed = useCallback(
     (checkoutId: string, receipt: string) => {
       notifyStkPaymentConfirmed(checkoutId);
+      // Till/STK verify wins even if Cash (or another method) was still selected —
+      // switch to M-Pesa so auto-complete records the sale against the receipt.
       updateActiveCart({
+        payMethod: "mpesa_manual",
+        splitPay: false,
         stkPushStatus: "confirmed",
         stkPushError: "",
         mpesaRef: receipt,
@@ -2237,13 +2241,17 @@ export function QuickSaleWorkspace({
     applyStkConfirmed,
   ]);
 
-  // Direct till pay: open a buygoods await whenever M-Pesa is selected (no STK required).
+  // Direct till pay: listen for buygoods as soon as checkout has a total —
+  // even if Cash (or Tab/Wallet/Loyalty) is still selected. Remote bills skip.
   useEffect(() => {
-    if (!online || splitPay || payMethod !== "mpesa_manual") {
+    const inStoreCheckout =
+      online &&
+      !splitPay &&
+      payMethod !== "remote_bill" &&
+      lines.length > 0 &&
+      grandTotal > 0;
+    if (!inStoreCheckout) {
       tillAwaitKeyRef.current = null;
-      return;
-    }
-    if (lines.length === 0 || grandTotal <= 0) {
       return;
     }
     if (
@@ -2291,6 +2299,7 @@ export function QuickSaleWorkspace({
             stkPushStatus: "awaiting_till",
             stkPushCheckoutId: result.checkoutRequestId,
             stkPushError: "",
+            // Keep any existing mpesaRef only if already confirmed; otherwise clear.
             mpesaRef: "",
           });
         } catch {

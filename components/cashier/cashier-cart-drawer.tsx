@@ -627,6 +627,15 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     ) : null}
                   </div>
 
+                  {!splitPay &&
+                  stkPushStatus === "awaiting_till" &&
+                  payMethod !== "mpesa_manual" ? (
+                    <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+                      Listening for M-Pesa till payment… If the customer pays
+                      Buy Goods now, this sale completes automatically.
+                    </p>
+                  ) : null}
+
                   {!splitPay ? (
                     <div className="grid grid-cols-2 gap-2">
                       <PayMethodTile
