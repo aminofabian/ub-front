@@ -57,42 +57,43 @@ function AisleCard({
     <Link
       href={href}
       className={cn(
-        "group relative flex w-[5.75rem] shrink-0 snap-start flex-col overflow-hidden rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] transition-[border-color,box-shadow,transform] duration-200",
-        "hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:shadow-[0_4px_14px_-6px_rgba(20,24,22,0.14)] sm:w-[6.25rem]",
+        "group relative h-[5.75rem] w-[5.75rem] shrink-0 snap-start overflow-hidden rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] transition-[border-color,box-shadow,transform] duration-200",
+        "hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:shadow-[0_4px_14px_-6px_rgba(20,24,22,0.2)] sm:h-[6.25rem] sm:w-[6.25rem]",
       )}
+      style={{
+        background: `linear-gradient(145deg, color-mix(in srgb, ${color} 24%, white) 0%, color-mix(in srgb, ${color} 62%, white) 100%)`,
+      }}
     >
+      {customIconSrc ? (
+        <Image
+          src={customIconSrc}
+          alt=""
+          fill
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          sizes="(max-width: 640px) 92px, 100px"
+          unoptimized
+        />
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center pb-4 text-white/90">
+          <Icon
+            className="size-8 drop-shadow-sm transition-transform duration-300 group-hover:scale-105 sm:size-9"
+            strokeWidth={1.5}
+            aria-hidden
+          />
+        </span>
+      )}
+
       <span
-        className="relative flex h-11 items-center justify-center sm:h-12"
-        style={{
-          background: `linear-gradient(165deg, color-mix(in srgb, ${color} 14%, transparent) 0%, transparent 72%)`,
-        }}
-      >
-        {customIconSrc ? (
-          <span className="relative size-7 overflow-hidden rounded-[3px] ring-1 ring-black/[0.06] sm:size-8">
-            <Image
-              src={customIconSrc}
-              alt=""
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              sizes="32px"
-              unoptimized
-            />
-          </span>
-        ) : (
-          <span
-            className="flex size-7 items-center justify-center rounded-[3px] bg-white shadow-[0_1px_3px_rgba(20,24,22,0.08)] ring-1 ring-black/[0.05] transition-transform duration-300 group-hover:scale-105 sm:size-8"
-            style={{ color }}
-          >
-            <Icon className="size-3.5 sm:size-4" strokeWidth={1.75} aria-hidden />
-          </span>
-        )}
-      </span>
-      <span className="flex flex-1 flex-col gap-px border-t border-[var(--storefront-rule,#e4e6e4)] px-1.5 py-1.5">
-        <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-[var(--storefront-ink,#141816)] sm:text-[12px]">
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
+        aria-hidden
+      />
+
+      <span className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-px px-1.5 pb-1.5 pt-5 text-white">
+        <span className="line-clamp-2 text-[11px] font-semibold uppercase leading-tight tracking-wide drop-shadow-sm sm:text-[12px]">
           {label}
         </span>
         {typeof itemCount === "number" && itemCount >= 0 ? (
-          <span className="text-[9px] tabular-nums text-[var(--storefront-ink-quiet,#8a928c)]">
+          <span className="text-[9px] tabular-nums text-white/75 drop-shadow-sm">
             {itemCount} {itemCount === 1 ? "item" : "items"}
           </span>
         ) : null}
