@@ -15,21 +15,21 @@ import { KioskLogoMark, type KioskLogoMarkProps } from "./kiosk-logo-mark";
 const LOCKUP = {
   sm: {
     mark: 36,
-    hostH: 40,
+    hostH: 120,
     word: "text-[16px]",
     pill: "text-[9px] px-1.5 py-[3px]",
     gap: "gap-3",
   },
   md: {
     mark: 44,
-    hostH: 48,
+    hostH: 144,
     word: "text-[1.2rem]",
     pill: "text-[10px] px-1.5 py-[3px]",
     gap: "gap-3.5",
   },
   lg: {
     mark: 52,
-    hostH: 56,
+    hostH: 168,
     word: "text-[1.45rem]",
     pill: "text-[11px] px-2 py-[4px]",
     gap: "gap-4",
@@ -167,7 +167,7 @@ function HostLogoImage({
       width={width}
       height={height}
       className={cn("kiosk-logo-host block h-auto w-auto object-contain", className)}
-      style={{ height, width: "auto", maxWidth: "min(100%, 14rem)" }}
+      style={{ height, width: "auto", maxWidth: "min(100%, 42rem)" }}
       draggable={false}
     />
   );

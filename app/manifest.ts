@@ -1,9 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import {
-  PLATFORM_APP_ICON_SRC,
-  PLATFORM_FAVICON_SRC,
-} from "@/lib/platform-brand-assets";
+import { PLATFORM_APP_ICON_SRC } from "@/lib/platform-brand-assets";
 
 const THEME_COLOR = "#28A745";
 const BACKGROUND_COLOR = "#fafafa";
@@ -18,7 +15,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Kiosk POS — Point of Sale & Storefront",
     short_name: "Kiosk",
     description:
-      "All-in-one POS with storefront, cashier counter, barcode scanning, and inventory management. Ring up sales, manage stock, and run your store — online and in-person.",
+      "Run your Kenyan shop on Kiosk.ke — barcode POS, M-Pesa at the counter, offline sales when the network drops, and an online storefront. Free to start.",
     start_url: "/cashier",
     scope: "/",
     display: "standalone",
@@ -39,12 +36,6 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
         sizes: "512x512",
         purpose: "maskable",
-      },
-      {
-        src: PLATFORM_FAVICON_SRC,
-        type: "image/png",
-        sizes: "32x32",
-        purpose: "any",
       },
     ],
   };

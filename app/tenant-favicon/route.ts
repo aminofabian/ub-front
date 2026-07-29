@@ -21,7 +21,7 @@ function svgResponse(svg: string): NextResponse {
 }
 
 async function platformFaviconResponse(): Promise<NextResponse> {
-  const bytes = await readFile(join(process.cwd(), "public/favi.png"));
+  const bytes = await readFile(join(process.cwd(), "public/app-icon.png"));
   return new NextResponse(bytes, {
     headers: {
       "Content-Type": "image/png",

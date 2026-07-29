@@ -4,7 +4,7 @@ import { join } from "node:path";
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-/** PWA / Apple touch icon — platform app icon asset. */
+/** PWA / Apple touch icon — same as platform app icon. */
 export default async function AppleIcon() {
   const bytes = await readFile(join(process.cwd(), "public/app-icon.png"));
   return new Response(bytes, {

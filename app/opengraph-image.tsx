@@ -5,7 +5,11 @@ import {
   platformAppIconDataUrl,
   platformOgBackground,
 } from "@/lib/platform-mark-og";
-import { PLATFORM_TITLE } from "@/lib/platform-seo";
+import {
+  PLATFORM_OG_DESCRIPTION,
+  PLATFORM_TAGLINE,
+  PLATFORM_TITLE,
+} from "@/lib/platform-seo";
 
 export const alt = PLATFORM_TITLE;
 export const size = { width: 1200, height: 630 };
@@ -29,38 +33,54 @@ export default async function OpenGraphImage() {
             'Georgia, "Times New Roman", ui-serif, serif',
         }}
       >
-        <PlatformMarkOg markSize={200} showWordmark markSrc={markSrc} />
+        <PlatformMarkOg markSize={220} showWordmark={false} markSrc={markSrc} />
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            marginLeft: 56,
-            maxWidth: 520,
+            marginLeft: 48,
+            maxWidth: 640,
           }}
         >
           <div
             style={{
-              fontSize: 28,
-              fontWeight: 500,
-              letterSpacing: "0.14em",
-              color: "#7d8f80",
+              fontSize: 22,
+              fontWeight: 600,
+              letterSpacing: "0.16em",
+              color: "#45D078",
               textTransform: "uppercase",
-              marginBottom: 16,
-            }}
-          >
-            Point of sale · storefront · cashier
-          </div>
-          <div
-            style={{
-              fontSize: 36,
-              fontWeight: 400,
-              color: "#b8c4ba",
-              lineHeight: 1.45,
+              marginBottom: 18,
               fontFamily:
                 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
             }}
           >
-            Scan barcodes, take M-Pesa, keep selling when the network drops.
+            {PLATFORM_TAGLINE}
+          </div>
+          <div
+            style={{
+              fontSize: 52,
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "#f4f7f4",
+              lineHeight: 1.1,
+              marginBottom: 22,
+              fontFamily:
+                'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+            }}
+          >
+            Kiosk.ke
+          </div>
+          <div
+            style={{
+              fontSize: 30,
+              fontWeight: 400,
+              color: "#b8c4ba",
+              lineHeight: 1.4,
+              fontFamily:
+                'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+            }}
+          >
+            {PLATFORM_OG_DESCRIPTION}
           </div>
         </div>
       </div>

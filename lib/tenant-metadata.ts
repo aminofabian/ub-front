@@ -26,11 +26,11 @@ const BRAND_THEME_COLOR = PLATFORM_THEME_COLOR;
 /** Platform favicon + home-screen / PWA app icon. */
 const PLATFORM_ICONS: Metadata["icons"] = {
   icon: [
-    { url: PLATFORM_FAVICON_SRC, type: "image/png" },
-    { url: "/icon", type: "image/png", sizes: "32x32" },
+    { url: PLATFORM_FAVICON_SRC, type: "image/png", sizes: "512x512" },
+    { url: "/icon", type: "image/png", sizes: "512x512" },
   ],
-  apple: [{ url: PLATFORM_APP_ICON_SRC, type: "image/png", sizes: "180x180" }],
-  shortcut: [{ url: PLATFORM_FAVICON_SRC, type: "image/png" }],
+  apple: [{ url: PLATFORM_APP_ICON_SRC, type: "image/png", sizes: "512x512" }],
+  shortcut: [{ url: PLATFORM_FAVICON_SRC, type: "image/png", sizes: "512x512" }],
 };
 
 function isHex3or6(s: string): boolean {
@@ -108,12 +108,21 @@ export function metadataFromTenantAndHost(
       description: PLATFORM_DESCRIPTION,
       siteName: PLATFORM_SITE_NAME,
       locale: "en_KE",
+      images: [
+        {
+          url: "/opengraph-image",
+          width: 1200,
+          height: 630,
+          alt: PLATFORM_TITLE,
+        },
+      ],
       ...(metadataBase ? { url: metadataBase.href } : {}),
     },
     twitter: {
       card: "summary_large_image",
       title: PLATFORM_TITLE,
       description: PLATFORM_DESCRIPTION,
+      images: ["/twitter-image"],
     },
     robots: {
       index: true,

@@ -4,11 +4,11 @@ import { join } from "node:path";
 import { buildTenantFaviconSvg } from "@/lib/tenant-favicon-mark";
 import { resolveTenantContext } from "@/lib/storefront-slug";
 
-export const size = { width: 32, height: 32 };
+export const size = { width: 512, height: 512 };
 export const contentType = "image/png";
 
 async function platformFaviconResponse(): Promise<Response> {
-  const bytes = await readFile(join(process.cwd(), "public/favi.png"));
+  const bytes = await readFile(join(process.cwd(), "public/app-icon.png"));
   return new Response(bytes, {
     headers: {
       "Content-Type": "image/png",

@@ -1,7 +1,7 @@
 {
   "name": "Kiosk POS — Point of Sale & Storefront",
   "short_name": "Kiosk",
-  "description": "Point of sale for shop counters in Kenya — barcode scan, M-Pesa, offline sales, and your storefront.",
+  "description": "Run your Kenyan shop on Kiosk.ke — barcode POS, M-Pesa at the counter, offline sales when the network drops, and an online storefront. Free to start.",
   "start_url": "/cashier",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -19,12 +19,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "/favi.png",
-      "sizes": "32x32",
-      "type": "image/png",
-      "purpose": "any"
     }
   ],
   "categories": ["business", "productivity", "shopping"],

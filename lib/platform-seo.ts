@@ -4,11 +4,21 @@ import "server-only";
 export const PLATFORM_SITE_NAME = "Kiosk";
 
 export const PLATFORM_TITLE =
-  "Kiosk — Point of Sale, Storefront & Cashier";
+  "Kiosk.ke — Point of Sale, Storefront & Cashier";
 
-/** ~155 chars — aligned with landing copy; avoids repeating the domain in-body. */
+/** Short line for OG/Twitter image eyebrow. */
+export const PLATFORM_TAGLINE = "Point of sale · storefront · cashier";
+
+/**
+ * ~155 chars for search snippets + social cards.
+ * Matches landing hero: scan, M-Pesa, offline, storefront.
+ */
 export const PLATFORM_DESCRIPTION =
-  "Point of sale for shop counters in Kenya — scan barcodes, take M-Pesa, sell offline when the network drops, and run your kiosk.ke storefront. Free to start.";
+  "Run your Kenyan shop on Kiosk.ke — barcode POS, M-Pesa at the counter, offline sales when the network drops, and an online storefront. Free to start.";
+
+/** One-line blurb used on the styled Open Graph / Twitter image. */
+export const PLATFORM_OG_DESCRIPTION =
+  "Scan barcodes, take M-Pesa, keep selling when the network drops.";
 
 export const PLATFORM_KEYWORDS = [
   "POS Kenya",
@@ -52,4 +62,4 @@ export function platformOrganizationJsonLd(siteUrl: string) {
 export const HELP_CENTER_PATH = "/help";
 
 export const HELP_CENTER_DESCRIPTION =
-  "Kiosk help for shop owners and online shoppers in Kenya — till setup, M-Pesa, inventory, orders, and delivery.";
+  "Kiosk.ke help for shop owners and online shoppers in Kenya — till setup, M-Pesa, inventory, orders, and delivery.";
