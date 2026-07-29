@@ -2615,6 +2615,30 @@ export async function deleteItemType(id: string): Promise<void> {
   });
 }
 
+/** Uploads a custom department/type tile image and returns the Cloudinary HTTPS URL. */
+export async function uploadItemTypeIcon(
+  itemTypeId: string,
+  file: File,
+  businessId: string,
+): Promise<string> {
+  const id = itemTypeId.trim();
+  const bid = businessId.trim();
+  if (!id) {
+    throw new Error("Item type id is required.");
+  }
+  if (!bid) {
+    throw new Error("Business id is required.");
+  }
+  const folder = `ub/${bid}/item-types/${id}`;
+  const sig = await getCloudinarySignature(folder);
+  const result = await uploadToCloudinary(file, sig);
+  const url = result.secure_url?.trim();
+  if (!url) {
+    throw new Error("Upload succeeded but no image URL was returned.");
+  }
+  return url;
+}
+
 export async function fetchCategories(): Promise<CategoryRecord[]> {
   return request<CategoryRecord[]>(API_ROUTES.categories);
 }

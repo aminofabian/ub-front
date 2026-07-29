@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import {
   Building2,
@@ -39,10 +40,11 @@ import {
   createItemType,
   updateItemType,
   deleteItemType,
+  uploadItemTypeIcon,
 } from "@/lib/api";
 import { buildPendingSectionCreates } from "@/lib/item-type-suggestions";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { cn } from "@/lib/utils";
+import { categoryIconImageUrl, cn } from "@/lib/utils";
 
 import { ExtraSectionNames } from "./_components/extra-section-names";
 import { SectionSuggestions } from "./_components/section-suggestions";
@@ -71,8 +73,9 @@ type ConfirmDelete = {
 
 export default function ItemTypesPage() {
   const searchParams = useSearchParams();
-  const { me } = useDashboard();
+  const { me, business } = useDashboard();
   const canWrite = hasPermission(me?.permissions, Permission.CatalogItemsWrite);
+  const businessId = business?.id?.trim() ?? "";
 
   // data
   const [rows, setRows] = useState<ItemTypeRecord[]>([]);
@@ -521,7 +524,22 @@ export default function ItemTypesPage() {
                         {row.label}
                       </td>
                       <td className="px-5 py-4 text-muted-foreground sm:px-6">
-                        {row.icon || "\u2014"}
+                        {categoryIconImageUrl(row.icon) ? (
+                          <span className="relative inline-block size-8 overflow-hidden rounded border border-border/60 bg-muted">
+                            <Image
+                              src={categoryIconImageUrl(row.icon)!}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              sizes="32px"
+                              unoptimized
+                            />
+                          </span>
+                        ) : row.icon ? (
+                          <span className="font-mono text-xs">{row.icon}</span>
+                        ) : (
+                          "\u2014"
+                        )}
                       </td>
                       <td className="px-5 py-4 sm:px-6">
                         {row.color ? (
@@ -679,10 +697,11 @@ export default function ItemTypesPage() {
       </FormDrawer>
 
       {/* Edit drawer */}
-      {editId ? (
+      {editId && rows.some((r) => r.id === editId) ? (
         <EditItemTypeDrawer
           key={editId}
           row={rows.find((r) => r.id === editId)!}
+          businessId={businessId}
           onClose={closeEdit}
           onSave={handleUpdate}
           busy={editBusy}
@@ -728,12 +747,14 @@ export default function ItemTypesPage() {
 
 function EditItemTypeDrawer({
   row,
+  businessId,
   onClose,
   onSave,
   busy,
   feedback,
 }: {
   row: ItemTypeRecord;
+  businessId: string;
   onClose: () => void;
   onSave: (
     e: React.FormEvent<HTMLFormElement>,
@@ -746,13 +767,37 @@ function EditItemTypeDrawer({
   const [draft, setDraft] = useState<EditDraft>({
     key: row.key,
     label: row.label,
-    icon: row.icon,
+    icon: row.icon ?? "",
     color: row.color,
     sortOrder: row.sortOrder,
     active: row.active,
     isDefault: row.isDefault,
   });
   const [open, setOpen] = useState(true);
+  const [iconUploading, setIconUploading] = useState(false);
+  const [iconError, setIconError] = useState<string | null>(null);
+
+  const iconPreview = categoryIconImageUrl(draft.icon);
+
+  const handleIconFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (!businessId) {
+      setIconError("Business is not loaded yet. Try again in a moment.");
+      return;
+    }
+    setIconUploading(true);
+    setIconError(null);
+    try {
+      const url = await uploadItemTypeIcon(row.id, file, businessId);
+      setDraft((p) => ({ ...p, icon: url }));
+    } catch (err) {
+      setIconError(
+        err instanceof Error ? err.message : "Icon upload failed.",
+      );
+    } finally {
+      setIconUploading(false);
+    }
+  };
 
   return (
     <FormDrawer
@@ -779,7 +824,11 @@ function EditItemTypeDrawer({
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="edit-item-type-form" disabled={busy}>
+          <Button
+            type="submit"
+            form="edit-item-type-form"
+            disabled={busy || iconUploading}
+          >
             {busy ? "Saving…" : "Save"}
           </Button>
         </div>
@@ -808,6 +857,73 @@ function EditItemTypeDrawer({
             aria-label="Department short code"
           />
         </label>
+
+        <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <p className="text-xs font-medium text-muted-foreground">
+            Custom icon
+          </p>
+          <p className={dashboardHintClass()}>
+            Shown on the storefront type filters. Upload an image or paste an
+            HTTPS URL.
+          </p>
+          {iconPreview ? (
+            <span className="relative block size-14 overflow-hidden rounded-md border border-border/60 bg-muted">
+              <Image
+                src={iconPreview}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="56px"
+                unoptimized
+              />
+            </span>
+          ) : null}
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            Upload image
+            <input
+              type="file"
+              accept="image/*"
+              disabled={iconUploading || busy}
+              className="max-w-full text-xs file:mr-2 file:rounded file:border file:bg-background file:px-2 file:py-1"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                void handleIconFile(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          {iconUploading ? (
+            <p className="text-xs text-muted-foreground">Uploading…</p>
+          ) : null}
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            Or image URL
+            <input
+              className={dashboardInputClass()}
+              value={draft.icon ?? ""}
+              onChange={(e) =>
+                setDraft((p) => ({ ...p, icon: e.target.value }))
+              }
+              placeholder="https://…"
+              aria-label="Department icon URL"
+            />
+          </label>
+          {(draft.icon ?? "").trim() ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-xs text-muted-foreground"
+              disabled={iconUploading || busy}
+              onClick={() => setDraft((p) => ({ ...p, icon: "" }))}
+            >
+              Clear icon
+            </Button>
+          ) : null}
+          {iconError ? (
+            <p className="text-xs text-destructive">{iconError}</p>
+          ) : null}
+        </div>
+
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
