@@ -334,6 +334,19 @@ export default function PaymentGatewaySettingsPage() {
           </div>
         ) : (
           <ul className="divide-y divide-border/60">
+            {configs.some(
+              (c) =>
+                c.gatewayType === "KOPOKOPO" && c.status !== "ACTIVE",
+            ) ? (
+              <li className="bg-amber-50/80 px-5 py-3 text-sm text-amber-950 sm:px-6 dark:bg-amber-950/30 dark:text-amber-100">
+                KopoKopo must be <strong>ACTIVE</strong> for STK and till
+                webhooks. Your KopoKopo row is not active — click{" "}
+                <strong>Test</strong> (fix credentials if it fails), then{" "}
+                <strong>Activate</strong>, then <strong>Till webhooks</strong>.
+                The Manual “Mpesa Till” row only shows a till on receipts; it
+                does not receive payments.
+              </li>
+            ) : null}
             {configs.map((config) => {
               const busy = rowBusyId === config.id;
               const api = !isManualGateway(config);
@@ -392,13 +405,36 @@ export default function PaymentGatewaySettingsPage() {
                         size="sm"
                         className="gap-1"
                         disabled={busy}
-                        onClick={() =>
-                          void runRowAction(
-                            config.id,
-                            () => testGatewayConnection(config.id),
-                            "Connection test completed.",
-                          )
-                        }
+                        onClick={() => {
+                          void (async () => {
+                            setRowBusyId(config.id);
+                            try {
+                              const result = await testGatewayConnection(
+                                config.id,
+                              );
+                              if (result.success) {
+                                toast.success(
+                                  "Connection OK — click Activate, then Till webhooks.",
+                                );
+                              } else {
+                                toast.error(
+                                  result.errorMessage ||
+                                    result.errorCode ||
+                                    "KopoKopo connection failed. Check Client ID, Secret, API Key, and environment.",
+                                );
+                              }
+                              await reload();
+                            } catch (e) {
+                              toast.error(
+                                e instanceof Error
+                                  ? e.message
+                                  : "Connection test failed.",
+                              );
+                            } finally {
+                              setRowBusyId(null);
+                            }
+                          })();
+                        }}
                       >
                         <Zap className="size-3.5" aria-hidden />
                         Test
