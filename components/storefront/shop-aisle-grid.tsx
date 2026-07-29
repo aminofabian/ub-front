@@ -21,11 +21,7 @@ export function ShopAisleGrid({
   if (aisles.length === 0) return null;
 
   return (
-    <section className="min-w-0">
-      <div className="mb-1.5 flex items-baseline gap-2">
-        <h2 className="storefront-section-title">Shop by aisle</h2>
-        <p className="storefront-section-eyebrow">Browse</p>
-      </div>
+    <section className="min-w-0" aria-label="Shop by aisle">
       <ShopAisleSlider
         categories={aisles}
         primaryHex={primaryHex}

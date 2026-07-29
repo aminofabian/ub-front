@@ -115,20 +115,6 @@ export function ShopHeroMart({
       <div className="grid min-h-[168px] grid-cols-[minmax(0,1fr)_1.15fr] lg:min-h-[188px]">
         {/* Copy */}
         <div className="relative z-10 flex flex-col justify-center gap-2 px-5 py-4 lg:gap-2.5 lg:px-6 lg:py-5">
-          <div className="inline-flex w-fit items-center gap-2 rounded-[3px] border border-white/18 bg-white/[0.08] px-2 py-0.5">
-            <span
-              className="size-1.5 shrink-0 rounded-[1px]"
-              style={{
-                backgroundColor: accent ?? primary ?? "#38bdf8",
-              }}
-              aria-hidden
-            />
-            <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/72">
-              {title}
-              {area ? ` · ${area}` : ""}
-            </span>
-          </div>
-
           <h1 className="font-heading text-[1.35rem] font-semibold leading-[1.12] tracking-[-0.025em] lg:text-[1.65rem]">
             <span className="block text-white">{headline}</span>
             <span className="mt-0.5 block font-heading text-[1.05rem] font-medium italic tracking-[-0.01em] text-white/70 lg:text-[1.15rem]">

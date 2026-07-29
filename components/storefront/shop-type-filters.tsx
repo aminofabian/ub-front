@@ -99,10 +99,6 @@ export function ShopTypeFilters({
 
   return (
     <section aria-label="Shop by type" className="min-w-0">
-      <div className="mb-1.5 flex items-baseline gap-2">
-        <h2 className="storefront-section-title">Shop by type</h2>
-        <p className="storefront-section-eyebrow">Departments</p>
-      </div>
       <div
         className={cn(
           "flex snap-x snap-mandatory gap-1.5 overflow-x-auto pb-0.5",

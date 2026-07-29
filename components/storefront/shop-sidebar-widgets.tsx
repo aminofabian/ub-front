@@ -75,9 +75,6 @@ function FeaturedCard({
     >
       <div className="px-4 pb-3 pt-4">
         <p className="text-sm font-bold text-white">Featured picks</p>
-        <p className="mt-0.5 text-[11px] text-white/55">
-          Staff favorites from this catalog
-        </p>
       </div>
       <div className="grid grid-cols-4 gap-1.5 px-4">
         {reminders.map((t) => {
