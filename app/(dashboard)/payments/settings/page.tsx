@@ -352,7 +352,9 @@ export default function PaymentGatewaySettingsPage() {
               const api = !isManualGateway(config);
               const name = gatewayDisplayName(config, available);
               const canTest =
-                api && canWrite && ["DRAFT", "ERROR", "TESTED"].includes(config.status);
+                api &&
+                canWrite &&
+                ["DRAFT", "ERROR", "TESTED", "ACTIVE"].includes(config.status);
               const canActivate =
                 canWrite &&
                 (isManualGateway(config)
@@ -414,7 +416,9 @@ export default function PaymentGatewaySettingsPage() {
                               );
                               if (result.success) {
                                 toast.success(
-                                  "Connection OK — click Activate, then Till webhooks.",
+                                  config.status === "ACTIVE"
+                                    ? "Connection OK — gateway is ACTIVE."
+                                    : "Connection OK — click Activate, then Till webhooks.",
                                 );
                               } else {
                                 toast.error(

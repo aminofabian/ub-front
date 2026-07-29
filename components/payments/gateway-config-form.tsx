@@ -117,7 +117,12 @@ export function GatewayConfigForm({
       if (!hasTill) {
         return "Till number is required for M-Pesa STK Push.";
       }
-      if (!clientId.trim() || !clientSecret.trim() || !apiKey.trim()) {
+      // When editing and stored values couldn't be prefetched, blanks mean "keep current".
+      const mustHaveSecrets = !isEdit || credentialsUnreadable || credentialSettings != null;
+      if (
+        mustHaveSecrets &&
+        (!clientId.trim() || !clientSecret.trim() || !apiKey.trim())
+      ) {
         return "Client ID, Client Secret, and API Key are required.";
       }
     }
@@ -208,10 +213,9 @@ export function GatewayConfigForm({
               className={secretInputClass}
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
-              required
+              required={!isEdit}
               autoComplete="off"
               spellCheck={false}
-              readOnly={credentialsUnreadable}
             />
           </FormDrawerFields>
           <FormDrawerFields
@@ -223,10 +227,9 @@ export function GatewayConfigForm({
               className={secretInputClass}
               value={clientSecret}
               onChange={(e) => setClientSecret(e.target.value)}
-              required
+              required={!isEdit}
               autoComplete="off"
               spellCheck={false}
-              readOnly={credentialsUnreadable}
             />
           </FormDrawerFields>
           <FormDrawerFields
@@ -238,10 +241,9 @@ export function GatewayConfigForm({
               className={secretInputClass}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              required
+              required={!isEdit}
               autoComplete="off"
               spellCheck={false}
-              readOnly={credentialsUnreadable}
             />
           </FormDrawerFields>
           <FormDrawerFields
