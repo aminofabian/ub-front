@@ -22,6 +22,7 @@ function tx(
     lineCount: 1,
     total: 100,
     profit: 20,
+    mpesaVerified: false,
     lines: [
       {
         saleId: partial.saleId,

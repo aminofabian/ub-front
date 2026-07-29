@@ -8,6 +8,7 @@ type PosEventHandlers = {
   onStockDepleted?: (frame: RealtimeFrame) => void;
   onPriceChanged?: (frame: RealtimeFrame) => void;
   onPaymentConfirmed?: (frame: RealtimeFrame) => void;
+  onStkPaymentSettled?: (frame: RealtimeFrame) => void;
 };
 
 /**
@@ -31,6 +32,9 @@ export function usePosEvents(handlers: PosEventHandlers) {
       },
       onPaymentConfirmed: (frame) => {
         if (!stopped) handlersRef.current.onPaymentConfirmed?.(frame);
+      },
+      onStkPaymentSettled: (frame) => {
+        if (!stopped) handlersRef.current.onStkPaymentSettled?.(frame);
       },
     });
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  BadgeCheck,
   ChevronDown,
   ChevronRight,
   Download,
@@ -253,6 +254,15 @@ function TransactionRow({
                   ? "Refunded"
                   : "Completed"}
             </span>
+            {tx.mpesaVerified && !refunded ? (
+              <span
+                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-sky-50 text-sky-800"
+                title="M-Pesa confirmed by KopoKopo webhook"
+              >
+                <BadgeCheck className="size-3" aria-hidden />
+                Verified
+              </span>
+            ) : null}
             <span className="text-[11px] text-muted-foreground">
               {formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime })}
             </span>

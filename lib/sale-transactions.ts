@@ -14,6 +14,8 @@ export type SaleTransaction = {
   total: number;
   profit: number;
   lines: RecentSaleRow[];
+  /** True when any line reports gateway-verified M-Pesa. */
+  mpesaVerified: boolean;
 };
 
 function toNum(n: number | string | null | undefined): number {
@@ -58,10 +60,14 @@ export function groupLinesIntoTransactions(
         total: 0,
         profit: 0,
         lines: [],
+        mpesaVerified: Boolean(row.mpesaVerified),
       };
       map.set(row.saleId, tx);
     }
     tx.lines.push(row);
+    if (row.mpesaVerified) {
+      tx.mpesaVerified = true;
+    }
     tx.lineCount += 1;
     const refunded = isRefunded(row.status);
     const lineTotal = toNum(row.lineTotal);

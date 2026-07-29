@@ -13,6 +13,7 @@ import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { usePosEvents } from "@/hooks/use-pos-events";
 import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { useFeatureFlag } from "@/components/providers/tenant-provider";
 import {
@@ -722,6 +723,11 @@ export function QuickSaleWorkspace({
     useState(0);
   const stkConfirmedToastKey = useRef<string | null>(null);
   const lastStkLinkedPhoneRef = useRef<string | null>(null);
+  const stkPushCheckoutIdRef = useRef(stkPushCheckoutId);
+  const stkPushStatusRef = useRef(stkPushStatus);
+  const autoCompleteMpesaRef = useRef<string | null>(null);
+  stkPushCheckoutIdRef.current = stkPushCheckoutId;
+  stkPushStatusRef.current = stkPushStatus;
 
   const resetPhoneVerification = useCallback(() => {
     setPhoneVerificationSent(false);
@@ -736,11 +742,50 @@ export function QuickSaleWorkspace({
       return;
     }
     stkConfirmedToastKey.current = key;
-    toast.success("M-Pesa payment received", {
-      description: "Payment confirmed — you can complete the sale.",
-      duration: 10_000,
+    toast.success("M-Pesa payment verified", {
+      description: "Completing the sale automatically…",
+      duration: 8_000,
     });
   }, []);
+
+  const applyStkConfirmed = useCallback(
+    (checkoutId: string, receipt: string) => {
+      notifyStkPaymentConfirmed(checkoutId);
+      updateActiveCart({
+        stkPushStatus: "confirmed",
+        stkPushError: "",
+        mpesaRef: receipt,
+      });
+    },
+    [notifyStkPaymentConfirmed, updateActiveCart],
+  );
+
+  usePosEvents({
+    onStkPaymentSettled: (frame) => {
+      const data = frame.data as {
+        checkoutRequestId?: string;
+        success?: boolean;
+        gatewayTransactionId?: string;
+        contextType?: string;
+      };
+      if (!data?.success || data.contextType !== "POS_PAYMENT") {
+        return;
+      }
+      const checkout = (data.checkoutRequestId ?? "").trim();
+      const receipt = (data.gatewayTransactionId ?? "").trim();
+      if (!checkout || !receipt) {
+        return;
+      }
+      if (stkPushCheckoutIdRef.current !== checkout) {
+        return;
+      }
+      const status = stkPushStatusRef.current;
+      if (status !== "sent" && status !== "sending") {
+        return;
+      }
+      applyStkConfirmed(checkout, receipt);
+    },
+  });
 
   const setPayMethod = useCallback(
     (m: SalePaymentMethod | "remote_bill") => updateActiveCart({ payMethod: m }),
@@ -2156,12 +2201,7 @@ export function QuickSaleWorkspace({
             // Backend should only report success with an M-Pesa receipt; keep waiting.
             return;
           }
-          notifyStkPaymentConfirmed(stkPushCheckoutId);
-          updateActiveCart({
-            stkPushStatus: "confirmed",
-            stkPushError: "",
-            mpesaRef: receipt,
-          });
+          applyStkConfirmed(stkPushCheckoutId, receipt);
         } else if (status.failed) {
           updateActiveCart({
             stkPushStatus: "failed",
@@ -2185,7 +2225,7 @@ export function QuickSaleWorkspace({
     stkPushCheckoutId,
     online,
     updateActiveCart,
-    notifyStkPaymentConfirmed,
+    applyStkConfirmed,
   ]);
 
   const onRetryOutbox = useCallback(async () => {
@@ -2959,6 +2999,33 @@ export function QuickSaleWorkspace({
     online,
     stkAreaCode,
     stkPhone,
+  ]);
+
+  // Auto-complete the sale once M-Pesa is gateway-verified (STK or till webhook).
+  useEffect(() => {
+    if (stkPushStatus !== "confirmed") {
+      return;
+    }
+    if (payMethod !== "mpesa_manual" || splitPay) {
+      return;
+    }
+    const ref = mpesaRef.trim();
+    if (!ref || !canCompleteSale || loading) {
+      return;
+    }
+    if (autoCompleteMpesaRef.current === ref) {
+      return;
+    }
+    autoCompleteMpesaRef.current = ref;
+    void onComplete({ skipBranchConfirm: true });
+  }, [
+    stkPushStatus,
+    mpesaRef,
+    payMethod,
+    splitPay,
+    canCompleteSale,
+    loading,
+    onComplete,
   ]);
 
   const onVoidLastSale = useCallback(async () => {

@@ -8,6 +8,7 @@ import {
   Plus,
   RefreshCw,
   Trash2,
+  Webhook,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ import {
   fetchGatewayConfigs,
   fetchGatewayCredentialSettings,
   type DisplayInstructionRecord,
+  subscribeGatewayWebhookTills,
   testGatewayConnection,
   updateGatewayConfig,
   type AvailableGatewayRecord,
@@ -433,6 +435,75 @@ export default function PaymentGatewaySettingsPage() {
                         }
                       >
                         Deactivate
+                      </Button>
+                    ) : null}
+                    {canWrite &&
+                    config.gatewayType === "KOPOKOPO" &&
+                    config.status === "ACTIVE" ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        disabled={busy}
+                        title="Subscribe buygoods webhooks for configured tills"
+                        onClick={() => {
+                          void (async () => {
+                            setRowBusyId(config.id);
+                            try {
+                              let tills = ["3020127", "3502582"];
+                              try {
+                                const settings =
+                                  await fetchGatewayCredentialSettings(
+                                    config.id,
+                                  );
+                                const fromCreds = [
+                                  settings.tillNumber,
+                                  ...(settings.webhookTillNumbers ?? "")
+                                    .split(/[,\s]+/)
+                                    .map((t) => t.trim()),
+                                ].filter((t): t is string => Boolean(t));
+                                if (fromCreds.length > 0) {
+                                  tills = [...new Set(fromCreds)];
+                                }
+                              } catch {
+                                /* use defaults */
+                              }
+                              const result =
+                                await subscribeGatewayWebhookTills(
+                                  config.id,
+                                  tills,
+                                );
+                              const ok = result.subscriptions.filter(
+                                (s) => s.success,
+                              ).length;
+                              const fail = result.subscriptions.filter(
+                                (s) => !s.success,
+                              );
+                              if (fail.length === 0) {
+                                toast.success(
+                                  `Webhook subscriptions active for ${ok} till(s).`,
+                                );
+                              } else {
+                                toast.error(
+                                  `Subscribed ${ok}/${result.subscriptions.length}. ${fail.map((f) => `${f.tillNumber}: ${f.errorMessage}`).join("; ")}`,
+                                );
+                              }
+                              await reload();
+                            } catch (e) {
+                              toast.error(
+                                e instanceof Error
+                                  ? e.message
+                                  : "Could not subscribe webhooks.",
+                              );
+                            } finally {
+                              setRowBusyId(null);
+                            }
+                          })();
+                        }}
+                      >
+                        <Webhook className="size-3.5" aria-hidden />
+                        Till webhooks
                       </Button>
                     ) : null}
                     {canWrite ? (

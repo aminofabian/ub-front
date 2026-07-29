@@ -899,8 +899,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             <div className="min-w-0 text-[12px] text-emerald-950 dark:text-emerald-50">
                               <p className="font-semibold">M-Pesa confirmed</p>
                               <p className="opacity-90">
-                                {currency} {grandTotal.toFixed(2)} — complete
-                                below
+                                {currency} {grandTotal.toFixed(2)} — completing
+                                sale…
                               </p>
                             </div>
                           </div>

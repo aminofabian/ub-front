@@ -4450,6 +4450,8 @@ export type RecentSaleRow = {
   lineTotal: number | string;
   profit: number | string;
   status: string;
+  /** True when M-Pesa was confirmed via KopoKopo webhook/STK. */
+  mpesaVerified?: boolean | null;
 };
 
 export async function fetchRecentSales(
@@ -8839,6 +8841,7 @@ export type CreateGatewayConfigPayload = {
 export type GatewayCredentialSettingsRecord = {
   environment: string;
   tillNumber: string | null;
+  webhookTillNumbers?: string | null;
   shortcode: string | null;
   shortcodeType: string | null;
   hasClientId: boolean;
@@ -8930,6 +8933,33 @@ export async function deactivateGateway(
   return request<GatewayConfigRecord>(
     `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/deactivate`,
     { method: "POST" },
+  );
+}
+
+export type WebhookSubscriptionItemRecord = {
+  tillNumber: string;
+  success: boolean;
+  locationUrl: string | null;
+  errorMessage: string | null;
+};
+
+export type SubscribeWebhookTillsResult = {
+  webhookUrl: string;
+  eventType: string;
+  subscriptions: WebhookSubscriptionItemRecord[];
+};
+
+/** Register KopoKopo buygoods webhook subscriptions for the given tills. */
+export async function subscribeGatewayWebhookTills(
+  id: string,
+  tillNumbers?: string[],
+): Promise<SubscribeWebhookTillsResult> {
+  return request<SubscribeWebhookTillsResult>(
+    `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/webhook-subscriptions`,
+    {
+      method: "POST",
+      body: tillNumbers?.length ? { tillNumbers } : {},
+    },
   );
 }
 

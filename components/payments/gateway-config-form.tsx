@@ -48,6 +48,9 @@ export function GatewayConfigForm({
   const [tillNumber, setTillNumber] = useState(
     credentialSettings?.tillNumber ?? "",
   );
+  const [webhookTillNumbers, setWebhookTillNumbers] = useState(
+    credentialSettings?.webhookTillNumbers ?? "3020127,3502582",
+  );
   const [secretKey, setSecretKey] = useState("");
   const [publicKey, setPublicKey] = useState("");
   const [consumerKey, setConsumerKey] = useState("");
@@ -75,6 +78,7 @@ export function GatewayConfigForm({
       put("clientSecret", clientSecret);
       put("apiKey", apiKey);
       put("tillNumber", tillNumber);
+      put("webhookTillNumbers", webhookTillNumbers);
     } else if (gatewayType === "PAYSTACK") {
       put("secretKey", secretKey);
       put("publicKey", publicKey);
@@ -255,6 +259,19 @@ export function GatewayConfigForm({
               value={tillNumber}
               onChange={(e) => setTillNumber(e.target.value)}
               required
+            />
+          </FormDrawerFields>
+          <FormDrawerFields
+            legend="Webhook tills"
+            hint="Extra till numbers (comma-separated) to subscribe for buygoods webhooks — e.g. 3020127,3502582."
+          >
+            <input
+              type="text"
+              inputMode="numeric"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder="3020127,3502582"
+              value={webhookTillNumbers}
+              onChange={(e) => setWebhookTillNumbers(e.target.value)}
             />
           </FormDrawerFields>
         </>
