@@ -8574,6 +8574,18 @@ export async function fetchPosStkPushStatus(
   );
 }
 
+/** Cashier waits for a direct Buy Goods till payment (no STK prompt). */
+export async function registerPosTillAwait(
+  body: { amount: number | string; phoneNumber?: string | null },
+  idempotencyKey: string,
+): Promise<{ accepted: boolean; checkoutRequestId: string | null; message: string }> {
+  return request("/api/v1/payments/mpesa/stk/till-await", {
+    method: "POST",
+    body,
+    idempotencyKey,
+  });
+}
+
 export async function simulateMpesaStkComplete(body: {
   businessId: string;
   intentId: string;

@@ -802,8 +802,16 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
 
                   {!splitPay && payMethod === "mpesa_manual" ? (
                     <div className="space-y-2.5 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
-                      {stkPushStatus === "idle" || stkPushStatus === "failed" ? (
+                      {stkPushStatus === "idle" ||
+                      stkPushStatus === "failed" ||
+                      stkPushStatus === "awaiting_till" ? (
                         <>
+                          {stkPushStatus === "awaiting_till" ? (
+                            <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+                              Listening for till payment… Customer can pay Buy
+                              Goods now (or send an STK prompt below).
+                            </p>
+                          ) : null}
                           {stkPushStatus === "failed" ? (
                             <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
                               {stkPushError || "STK Push failed"}

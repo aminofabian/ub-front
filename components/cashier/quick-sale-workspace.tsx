@@ -726,6 +726,7 @@ export function QuickSaleWorkspace({
   const stkPushCheckoutIdRef = useRef(stkPushCheckoutId);
   const stkPushStatusRef = useRef(stkPushStatus);
   const autoCompleteMpesaRef = useRef<string | null>(null);
+  const tillAwaitKeyRef = useRef<string | null>(null);
   stkPushCheckoutIdRef.current = stkPushCheckoutId;
   stkPushStatusRef.current = stkPushStatus;
 
@@ -780,7 +781,11 @@ export function QuickSaleWorkspace({
         return;
       }
       const status = stkPushStatusRef.current;
-      if (status !== "sent" && status !== "sending") {
+      if (
+        status !== "sent" &&
+        status !== "sending" &&
+        status !== "awaiting_till"
+      ) {
         return;
       }
       applyStkConfirmed(checkout, receipt);
@@ -2185,7 +2190,11 @@ export function QuickSaleWorkspace({
   );
 
   useEffect(() => {
-    if (stkPushStatus !== "sent" || !stkPushCheckoutId?.trim() || !online) {
+    if (
+      (stkPushStatus !== "sent" && stkPushStatus !== "awaiting_till") ||
+      !stkPushCheckoutId?.trim() ||
+      !online
+    ) {
       return;
     }
     let cancelled = false;
@@ -2226,6 +2235,82 @@ export function QuickSaleWorkspace({
     online,
     updateActiveCart,
     applyStkConfirmed,
+  ]);
+
+  // Direct till pay: open a buygoods await whenever M-Pesa is selected (no STK required).
+  useEffect(() => {
+    if (!online || splitPay || payMethod !== "mpesa_manual") {
+      tillAwaitKeyRef.current = null;
+      return;
+    }
+    if (lines.length === 0 || grandTotal <= 0) {
+      return;
+    }
+    if (
+      stkPushStatus === "sending" ||
+      stkPushStatus === "confirmed" ||
+      (stkPushStatus === "sent" &&
+        !!stkPushCheckoutId &&
+        !stkPushCheckoutId.startsWith("till-await-"))
+    ) {
+      return;
+    }
+
+    const phone = isStkPhoneValid(stkAreaCode, stkPhone)
+      ? buildStkPhoneNumber(stkAreaCode, stkPhone)
+      : "";
+    const awaitKey = `${grandTotal.toFixed(2)}|${phone}`;
+    if (
+      tillAwaitKeyRef.current === awaitKey &&
+      stkPushStatus === "awaiting_till" &&
+      stkPushCheckoutId?.startsWith("till-await-")
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const { nextIdempotencyKey } = await import("@/lib/idempotency-key");
+          const { registerPosTillAwait } = await import("@/lib/api");
+          const result = await registerPosTillAwait(
+            {
+              amount: grandTotal,
+              phoneNumber: phone || null,
+            },
+            nextIdempotencyKey(),
+          );
+          if (cancelled || !result.accepted || !result.checkoutRequestId) {
+            return;
+          }
+          tillAwaitKeyRef.current = awaitKey;
+          updateActiveCart({
+            stkPushStatus: "awaiting_till",
+            stkPushCheckoutId: result.checkoutRequestId,
+            stkPushError: "",
+            mpesaRef: "",
+          });
+        } catch {
+          /* STK path still available; webhook await is best-effort */
+        }
+      })();
+    }, 500);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    online,
+    splitPay,
+    payMethod,
+    lines.length,
+    grandTotal,
+    stkAreaCode,
+    stkPhone,
+    stkPushStatus,
+    stkPushCheckoutId,
+    updateActiveCart,
   ]);
 
   const onRetryOutbox = useCallback(async () => {
