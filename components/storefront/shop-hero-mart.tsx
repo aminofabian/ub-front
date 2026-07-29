@@ -109,7 +109,7 @@ export function ShopHeroMart({
 
   return (
     <section
-      className="overflow-hidden rounded-lg text-white shadow-[0_2px_16px_-4px_rgba(0,0,0,0.18)] ring-1 ring-black/5"
+      className="hidden overflow-hidden rounded-lg text-white shadow-[0_2px_16px_-4px_rgba(0,0,0,0.18)] ring-1 ring-black/5 md:block"
       style={{ backgroundColor: heroBg }}
     >
       <div className="flex flex-col sm:grid sm:min-h-[248px] sm:grid-cols-[minmax(0,1fr)_1.05fr]">

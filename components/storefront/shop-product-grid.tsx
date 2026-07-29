@@ -3,6 +3,7 @@
 import { PackageSearch } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo } from "react";
 
 import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-button";
 import { Button } from "@/components/ui/button";
@@ -28,27 +29,8 @@ const CARD_SHELL =
 const IMAGE_WELL =
   "relative block aspect-square w-full overflow-hidden bg-white";
 
-function stockBadge(qty: number | null | undefined): {
-  label: string;
-  className: string;
-  show: boolean;
-} {
-  const status = catalogStockStatus(qty);
-  if (!status || status === "in_stock") {
-    return { label: "", className: "", show: false };
-  }
-  if (status === "out_of_stock") {
-    return {
-      label: "Out of stock",
-      className: "bg-destructive text-destructive-foreground",
-      show: true,
-    };
-  }
-  return {
-    label: "Low stock",
-    className: "bg-amber-500 text-white",
-    show: true,
-  };
+function isOutOfStockItem(item: PublicCatalogItemCard): boolean {
+  return catalogStockStatus(item.qtyOnHand) === "out_of_stock";
 }
 
 function ProductImagePlaceholder({ name }: { name: string }) {
@@ -105,7 +87,12 @@ export default function ShopProductGrid({
   accentHex?: string | null;
   newFromIndex?: number;
 }) {
-  if (items.length === 0) {
+  const visibleItems = useMemo(
+    () => items.filter((item) => !isOutOfStockItem(item)),
+    [items],
+  );
+
+  if (visibleItems.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-20 text-center">
         <div className="flex size-14 items-center justify-center border border-[#e5e5e5] bg-[#fafafa] text-muted-foreground/50">
@@ -132,7 +119,7 @@ export default function ShopProductGrid({
 
   return (
     <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-3 xl:grid-cols-5">
-      {items.map((item, index) => {
+      {visibleItems.map((item, index) => {
         const isNew = index >= animateFrom;
         const variantSubtitle = formatCatalogVariantSubtitle(item.variantName);
         const title = productTitle(item.name, variantSubtitle);
@@ -143,8 +130,6 @@ export default function ShopProductGrid({
         const priceLabel = hasPrice
           ? formatDisplayPrice(currency, item.price)
           : null;
-        const badge = stockBadge(item.qtyOnHand);
-        const isOutOfStock = catalogStockStatus(item.qtyOnHand) === "out_of_stock";
         const inStoreOnly = isStorefrontInStoreOnly(item.onlinePurchaseMode);
 
         return (
@@ -159,7 +144,7 @@ export default function ShopProductGrid({
                 : undefined
             }
           >
-            <article className={cn(CARD_SHELL, isOutOfStock && "opacity-60")}>
+            <article className={CARD_SHELL}>
               <Link href={shopItemPathFromCard(item)} className={IMAGE_WELL} aria-label={ariaTitle}>
                 {item.imageUrl ? (
                   <Image
@@ -174,23 +159,8 @@ export default function ShopProductGrid({
                   <ProductImagePlaceholder name={item.name} />
                 )}
 
-                {slug && !isOutOfStock && hasPrice && !inStoreOnly ? (
+                {slug && hasPrice && !inStoreOnly ? (
                   <InCartQtyBadge itemId={item.id} />
-                ) : null}
-
-                {badge.show ? (
-                  <span
-                    className={cn(
-                      "absolute right-0 top-0 z-10 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.06em]",
-                      badge.className,
-                    )}
-                  >
-                    {badge.label}
-                  </span>
-                ) : inStoreOnly ? (
-                  <span className="absolute right-0 top-0 z-10 bg-sky-700 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.06em] text-white">
-                    In store
-                  </span>
                 ) : null}
               </Link>
 
@@ -214,7 +184,7 @@ export default function ShopProductGrid({
                     </p>
                   )}
 
-                  {slug && !isOutOfStock && hasPrice && !inStoreOnly ? (
+                  {slug && hasPrice && !inStoreOnly ? (
                     <ShopQuickAddButton
                       slug={slug}
                       itemId={item.id}
@@ -222,6 +192,10 @@ export default function ShopProductGrid({
                       variant="card"
                       maxQty={item.qtyOnHand}
                     />
+                  ) : inStoreOnly ? (
+                    <span className="max-w-[7.5rem] text-right text-[10px] font-semibold leading-tight text-[#64748b]">
+                      Available in store only
+                    </span>
                   ) : !hasPrice ? (
                     <Link
                       href={shopItemPathFromCard(item)}

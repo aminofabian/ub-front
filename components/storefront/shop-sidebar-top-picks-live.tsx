@@ -2,13 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-button";
 import { useStorefrontCatalogSync } from "@/hooks/use-storefront-catalog-sync";
 import { shopItemPathFromCard } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
-import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
+import {
+  catalogStockStatus,
+  formatDisplayPrice,
+  isStorefrontInStoreOnly,
+} from "@/lib/public-storefront";
 
 export function ShopSidebarTopPicksLive({
   picks: initialPicks,
@@ -29,7 +33,12 @@ export function ShopSidebarTopPicksLive({
     setItems: setPicks,
   });
 
-  if (picks.length === 0) {
+  const visiblePicks = useMemo(
+    () => picks.filter((item) => catalogStockStatus(item.qtyOnHand) !== "out_of_stock"),
+    [picks],
+  );
+
+  if (visiblePicks.length === 0) {
     return null;
   }
 
@@ -37,12 +46,12 @@ export function ShopSidebarTopPicksLive({
     <aside className="rounded-xl border border-border/40 bg-card p-4">
       <p className="text-xs font-semibold text-foreground">Top Picks</p>
       <ul className="mt-2.5 divide-y divide-border/30">
-        {picks.map((item) => {
+        {visiblePicks.map((item) => {
           const title = item.variantName
             ? `${item.name} ${item.variantName}`
             : item.name;
           const price = formatDisplayPrice(currency, item.price);
-          const stock = formatStoreQty(item.qtyOnHand);
+          const inStoreOnly = isStorefrontInStoreOnly(item.onlinePurchaseMode);
 
           return (
             <li key={item.id} className="flex items-center gap-2.5 py-2">
@@ -76,21 +85,23 @@ export function ShopSidebarTopPicksLive({
                   <span className="text-[13px] font-bold tabular-nums text-foreground">
                     {price}
                   </span>
-                  {stock ? (
-                    <span className="text-[10px] text-muted-foreground/50">
-                      {stock}
+                  {inStoreOnly ? (
+                    <span className="text-[10px] font-medium text-muted-foreground/70">
+                      Available in store only
                     </span>
                   ) : null}
                 </div>
               </div>
-              <ShopQuickAddButton
-                slug={slug}
-                itemId={item.id}
-                ariaLabel={`Add ${title} to basket`}
-                accentHex={accent}
-                size="sm"
-                variant="icon"
-              />
+              {!inStoreOnly ? (
+                <ShopQuickAddButton
+                  slug={slug}
+                  itemId={item.id}
+                  ariaLabel={`Add ${title} to basket`}
+                  accentHex={accent}
+                  size="sm"
+                  variant="icon"
+                />
+              ) : null}
             </li>
           );
         })}
