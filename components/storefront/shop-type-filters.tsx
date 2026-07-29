@@ -122,7 +122,7 @@ export function ShopTypeFilters({
             >
               <span
                 className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-[3px]",
+                  "flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[3px]",
                   selected ? "bg-primary/12" : "bg-[var(--storefront-paper,#f4f5f4)]",
                 )}
                 style={
@@ -134,20 +134,20 @@ export function ShopTypeFilters({
                 }
               >
                 {customIconSrc ? (
-                  <span className="relative size-[18px]">
+                  <span className="relative size-8">
                     <Image
                       src={customIconSrc}
                       alt=""
                       fill
                       className="object-contain"
-                      sizes="18px"
+                      sizes="32px"
                       unoptimized
                     />
                   </span>
                 ) : (
                   <Icon
-                    className="size-[18px]"
-                    strokeWidth={1.75}
+                    className="size-6"
+                    strokeWidth={2}
                     aria-hidden
                     style={
                       primary ? { color: primary } : { color: "var(--primary)" }
