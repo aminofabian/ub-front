@@ -3,6 +3,7 @@ import type {
   MarketplaceCatalogProductPreview,
   MarketplaceSupplierDetail,
 } from "@/lib/marketplace-api";
+import { marketplaceWholesaleSupplierDescription } from "@/lib/supplier-passport-seo";
 
 const ID_MARKER = "--";
 
@@ -127,18 +128,7 @@ export function findMarketplaceProduct(
 export function marketplaceSupplierDescription(
   detail: MarketplaceSupplierDetail,
 ): string {
-  const parts = [
-    detail.description?.trim(),
-    detail.location ? `Located in ${detail.location}.` : null,
-    detail.products.length
-      ? `${detail.products.length} product${detail.products.length === 1 ? "" : "s"} listed.`
-      : null,
-    detail.listedBy ? `Listed by ${detail.listedBy}.` : null,
-  ].filter(Boolean);
-  return (
-    parts.join(" ").slice(0, 160) ||
-    `Browse products from ${detail.name} on Kiosk Marketplace.`
-  );
+  return marketplaceWholesaleSupplierDescription(detail);
 }
 
 export function marketplaceProductDescription(
@@ -146,12 +136,16 @@ export function marketplaceProductDescription(
   product: MarketplaceCatalogProductPreview,
 ): string {
   const parts = [
-    product.categoryName ? `${product.categoryName} from ${detail.name}.` : null,
-    detail.location ? `Supplier in ${detail.location}.` : null,
+    product.categoryName
+      ? `Wholesale ${product.categoryName.toLowerCase()} from ${detail.name}.`
+      : `Wholesale ${product.name} from ${detail.name}.`,
+    detail.location || detail.deliveryRegions[0]
+      ? `Supplier covering ${detail.deliveryRegions[0] || detail.location}.`
+      : null,
     [product.barcode, product.sku].filter(Boolean).join(" · ") || null,
   ].filter(Boolean);
   return (
     parts.join(" ").slice(0, 160) ||
-    `${product.name} from ${detail.name} on Kiosk Marketplace.`
+    `Order wholesale ${product.name} from ${detail.name} on Kiosk.`
   );
 }

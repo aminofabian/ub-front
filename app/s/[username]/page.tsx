@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
+import { MarketplaceSeoSummary } from "@/app/marketplace/_components/marketplace-json-ld";
 import { GlobalSupplierHubView } from "@/components/supplier-portal/global-supplier-hub";
 import { PublicSupplierPortalView } from "@/components/supplier-portal/public-supplier-portal";
 import {
   isPlatformApexHost,
   PLATFORM_DOMAIN,
 } from "@/lib/config";
+import { resolveGlobalSupplierStorefront } from "@/lib/global-supplier-hub";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
 import {
   getRequestHostname,
@@ -13,6 +15,13 @@ import {
   resolveTenantContext,
 } from "@/lib/storefront-slug";
 import { fetchPublicStorefront } from "@/lib/public-storefront";
+import {
+  resolveSupplierDisplayName,
+  supplierPassportDescription,
+  supplierPassportJsonLd,
+  supplierPassportMetadata,
+  supplierPassportTitle,
+} from "@/lib/supplier-passport-seo";
 
 type PageProps = { params: Promise<{ username: string }> };
 
@@ -27,6 +36,24 @@ function isBarePlatformApex(hostname: string | null): boolean {
   if (h === "palmart.co.ke" || h === "www.palmart.co.ke") return true;
   if (isPlatformApexHost(h)) return true;
   return false;
+}
+
+function SupplierPassportJsonLd({
+  username,
+  displayName,
+  detail,
+}: {
+  username: string;
+  displayName?: string | null;
+  detail: Parameters<typeof supplierPassportJsonLd>[0]["detail"];
+}) {
+  const data = supplierPassportJsonLd({ username, displayName, detail });
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
 }
 
 export async function generateMetadata({
@@ -55,9 +82,18 @@ export async function generateMetadata({
 
   const hostname = await getRequestHostname();
   if (isBarePlatformApex(hostname)) {
+    const storefront = await resolveGlobalSupplierStorefront(decoded);
+    if (storefront.detail || storefront.hub) {
+      return supplierPassportMetadata({
+        username: storefront.hub?.username || decoded,
+        displayName: storefront.hub?.displayName || storefront.detail?.name,
+        detail: storefront.detail,
+      });
+    }
+    const fallbackName = decoded.replace(/-/g, " ");
     return {
-      title: `@${decoded} · Supplier passport · ${PLATFORM_DOMAIN}`,
-      description: `Cross-shop supply passport for @${decoded} on Kiosk.`,
+      title: `${fallbackName} — Wholesale Supplier Passport | Kiosk`,
+      description: `Looking for ${fallbackName}? Browse wholesale suppliers on Kiosk.ke — pack prices, delivery coverage, and catalogues for Kenyan shops.`,
       robots: { index: false, follow: false },
     };
   }
@@ -99,7 +135,41 @@ export default async function PublicSupplierPortalPage({ params }: PageProps) {
 
   const hostname = await getRequestHostname();
   if (isBarePlatformApex(hostname)) {
-    return <GlobalSupplierHubView username={decoded} />;
+    const storefront = await resolveGlobalSupplierStorefront(decoded);
+    const seoUsername = storefront.hub?.username || decoded;
+    const displayName =
+      storefront.hub?.displayName || storefront.detail?.name || null;
+    const seoInput = {
+      username: seoUsername,
+      displayName,
+      detail: storefront.detail,
+    };
+
+    return (
+      <>
+        {storefront.detail || storefront.hub ? (
+          <>
+            <SupplierPassportJsonLd
+              username={seoUsername}
+              displayName={displayName}
+              detail={storefront.detail}
+            />
+            <MarketplaceSeoSummary
+              title={supplierPassportTitle(seoInput)}
+              description={supplierPassportDescription(seoInput)}
+            />
+            {/* Extra crawler-visible product / area cues beyond the meta description */}
+            <div className="sr-only">
+              <p>
+                {resolveSupplierDisplayName(seoInput)} is a wholesale supplier
+                on Kiosk.ke.
+              </p>
+            </div>
+          </>
+        ) : null}
+        <GlobalSupplierHubView username={decoded} />
+      </>
+    );
   }
 
   // Unknown host with no tenant — still try the public shop portal UI.

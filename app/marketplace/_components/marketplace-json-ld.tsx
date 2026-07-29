@@ -7,6 +7,7 @@ import {
   marketplaceProductPath,
   marketplaceSupplierPath,
 } from "@/lib/marketplace-url";
+import { supplierPassportJsonLd } from "@/lib/supplier-passport-seo";
 import { formatMoney } from "@/lib/utils";
 
 const BASE = APP_BASE_URL.replace(/\/+$/, "");
@@ -16,15 +17,14 @@ export function MarketplaceSupplierJsonLd({
 }: {
   detail: MarketplaceSupplierDetail;
 }) {
+  const passport = supplierPassportJsonLd({
+    username: detail.slug?.split("--")[0] || detail.name,
+    displayName: detail.name,
+    detail,
+  });
   const data = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: detail.name,
+    ...passport,
     url: `${BASE}${marketplaceSupplierPath(detail)}`,
-    ...(detail.location ? { address: { "@type": "PostalAddress", addressLocality: detail.location } } : {}),
-    ...(detail.contactPhone ? { telephone: detail.contactPhone } : {}),
-    ...(detail.contactEmail ? { email: detail.contactEmail } : {}),
-    ...(detail.description ? { description: detail.description } : {}),
   };
 
   return (

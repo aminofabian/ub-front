@@ -8,6 +8,10 @@ import {
   marketplaceSupplierPath,
   marketplaceSupplierSlugIsCanonical,
 } from "@/lib/marketplace-url";
+import {
+  marketplaceWholesaleSupplierTitle,
+  supplierPassportKeywords,
+} from "@/lib/supplier-passport-seo";
 
 import { MarketplaceOrderWorkspace } from "../../_components/marketplace-order-panel";
 import {
@@ -34,22 +38,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const canonical = `${base}${marketplaceSupplierPath(detail)}`;
-  const title = `${detail.name} · Marketplace · Kiosk`;
+  const title = marketplaceWholesaleSupplierTitle(detail);
   const description = marketplaceSupplierDescription(detail);
 
   return {
     title,
     description,
+    keywords: supplierPassportKeywords({
+      username: detail.slug?.split("--")[0] || detail.name,
+      displayName: detail.name,
+      detail,
+    }),
     alternates: { canonical },
     openGraph: {
-      title: `${detail.name} · Kiosk Marketplace`,
+      title,
       description,
       url: canonical,
+      siteName: "Kiosk",
       type: "website",
+      locale: "en_KE",
     },
     twitter: {
-      card: "summary",
-      title: `${detail.name} · Kiosk Marketplace`,
+      card: "summary_large_image",
+      title,
       description,
     },
     robots: { index: true, follow: true },
