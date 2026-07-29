@@ -83,6 +83,21 @@ function normalizeHex(color: string | null | undefined): string | null {
   return null;
 }
 
+/**
+ * Cloudinary's trim effect removes empty/solid-color padding around uploaded
+ * logos. This keeps a padded source image from looking tiny in the header.
+ */
+function displayLogoUrl(url: string): string {
+  if (
+    !url.includes("res.cloudinary.com/") ||
+    !url.includes("/image/upload/") ||
+    url.includes("/image/upload/e_trim/")
+  ) {
+    return url;
+  }
+  return url.replace("/image/upload/", "/image/upload/e_trim/");
+}
+
 function TenantFavicon({
   src,
   px,
@@ -203,7 +218,8 @@ export function TenantLogo({
   kioskFallback,
 }: TenantLogoProps) {
   const primary = normalizeHex(primaryColor);
-  const logo = logoUrl?.trim() || null;
+  const rawLogo = logoUrl?.trim() || null;
+  const logo = rawLogo ? displayLogoUrl(rawLogo) : null;
   const favicon = faviconUrl?.trim() || null;
 
   if (variant === "auth-watermark") {
@@ -318,6 +334,9 @@ export function TenantLogo({
           "w-auto object-contain",
           SIZES[s].logoMaxH,
           SIZES[s].logoMaxW,
+          s === "sm" && "h-10",
+          s === "md" && "h-12",
+          s === "lg" && "h-14",
           s === "lg" && "sm:max-h-16 sm:max-w-[16rem]",
         )}
       />
