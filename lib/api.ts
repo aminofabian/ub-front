@@ -8851,7 +8851,7 @@ export type CreateGatewayConfigPayload = {
   displayInstructionsJson?: string;
 };
 
-/** Non-secret credential fields returned for gateway edit forms. */
+/** Credential fields returned for gateway edit forms (includes decrypted secrets). */
 export type GatewayCredentialSettingsRecord = {
   environment: string;
   tillNumber: string | null;
@@ -8866,6 +8866,14 @@ export type GatewayCredentialSettingsRecord = {
   hasConsumerKey: boolean;
   hasConsumerSecret: boolean;
   hasPasskey: boolean;
+  clientId?: string | null;
+  clientSecret?: string | null;
+  apiKey?: string | null;
+  secretKey?: string | null;
+  publicKey?: string | null;
+  consumerKey?: string | null;
+  consumerSecret?: string | null;
+  passkey?: string | null;
   credentialsReadable: boolean;
   readError: string | null;
 };

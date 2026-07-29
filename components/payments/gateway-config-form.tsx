@@ -42,27 +42,31 @@ export function GatewayConfigForm({
   const [environment, setEnvironment] = useState(
     credentialSettings?.environment ?? "sandbox",
   );
-  const [clientId, setClientId] = useState("");
-  const [clientSecret, setClientSecret] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [clientId, setClientId] = useState(credentialSettings?.clientId ?? "");
+  const [clientSecret, setClientSecret] = useState(
+    credentialSettings?.clientSecret ?? "",
+  );
+  const [apiKey, setApiKey] = useState(credentialSettings?.apiKey ?? "");
   const [tillNumber, setTillNumber] = useState(
     credentialSettings?.tillNumber ?? "",
   );
   const [webhookTillNumbers, setWebhookTillNumbers] = useState(
     credentialSettings?.webhookTillNumbers ?? "",
   );
-  const [secretKey, setSecretKey] = useState("");
-  const [publicKey, setPublicKey] = useState("");
-  const [consumerKey, setConsumerKey] = useState("");
-  const [consumerSecret, setConsumerSecret] = useState("");
-  const [passkey, setPasskey] = useState("");
+  const [secretKey, setSecretKey] = useState(credentialSettings?.secretKey ?? "");
+  const [publicKey, setPublicKey] = useState(credentialSettings?.publicKey ?? "");
+  const [consumerKey, setConsumerKey] = useState(
+    credentialSettings?.consumerKey ?? "",
+  );
+  const [consumerSecret, setConsumerSecret] = useState(
+    credentialSettings?.consumerSecret ?? "",
+  );
+  const [passkey, setPasskey] = useState(credentialSettings?.passkey ?? "");
   const [shortcode, setShortcode] = useState(credentialSettings?.shortcode ?? "");
   const [shortcodeType, setShortcodeType] = useState(
     credentialSettings?.shortcodeType ?? "paybill",
   );
   const [formError, setFormError] = useState("");
-
-  const secretPlaceholder = isEdit ? "Leave blank to keep current" : undefined;
 
   const buildPayload = (): CreateGatewayConfigPayload => {
     const creds: Record<string, string> = { environment };
@@ -113,18 +117,8 @@ export function GatewayConfigForm({
       if (!hasTill) {
         return "Till number is required for M-Pesa STK Push.";
       }
-      if (!isEdit || credentialsUnreadable) {
-        if (!clientId.trim() || !clientSecret.trim() || !apiKey.trim()) {
-          return "Client ID, Client Secret, and API Key are required.";
-        }
-      } else if (
-        !credentialSettings?.hasClientId ||
-        !credentialSettings?.hasClientSecret ||
-        !credentialSettings?.hasApiKey
-      ) {
-        if (!clientId.trim() || !clientSecret.trim() || !apiKey.trim()) {
-          return "Re-enter Client ID, Client Secret, and API Key (one or more are missing on file).";
-        }
+      if (!clientId.trim() || !clientSecret.trim() || !apiKey.trim()) {
+        return "Client ID, Client Secret, and API Key are required.";
       }
     }
     return null;
@@ -141,8 +135,11 @@ export function GatewayConfigForm({
     await onSave(buildPayload());
   };
 
+  const secretInputClass =
+    "w-full rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm shadow-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
       {credentialSettings?.readError ? (
         <p className="rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
           {credentialSettings.readError}
@@ -162,6 +159,7 @@ export function GatewayConfigForm({
           placeholder={displayName}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
+          autoComplete="off"
         />
       </FormDrawerFields>
 
@@ -190,70 +188,60 @@ export function GatewayConfigForm({
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
           Sandbox and Production have different Client ID / Secret pairs. Switching
-          environment requires re-entering Client ID, Client Secret, and API Key from
-          that environment&apos;s Applications page.
+          environment requires credentials from that environment&apos;s Applications
+          page.
         </p>
       </FormDrawerFields>
 
       {gatewayType === "KOPOKOPO" && (
         <>
           <FormDrawerFields
-            legend={`Client ID${isEdit ? "" : " *"}`}
+            legend="Client ID *"
             hint={
-              credentialsUnreadable
-                ? "Re-enter from your KopoKopo Applications page (not the API Key)."
-                : isEdit && credentialSettings?.hasClientId
-                  ? "Already saved. Leave blank unless replacing."
-                  : environment === "production"
-                    ? "Application key from https://app.kopokopo.com/applications"
-                    : "Application key from https://sandbox.kopokopo.com/applications"
+              environment === "production"
+                ? "Application key from https://app.kopokopo.com/applications (not the API Key)."
+                : "Application key from https://sandbox.kopokopo.com/applications (not the API Key)."
             }
           >
             <input
-              type="password"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder={credentialsUnreadable ? "Required" : secretPlaceholder}
+              type="text"
+              className={secretInputClass}
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
-              required={!isEdit || credentialsUnreadable}
+              required
+              autoComplete="off"
+              spellCheck={false}
+              readOnly={credentialsUnreadable}
             />
           </FormDrawerFields>
           <FormDrawerFields
-            legend={`Client Secret${isEdit ? "" : " *"}`}
-            hint={
-              credentialsUnreadable
-                ? "Application secret from the same Applications page as Client ID."
-                : isEdit && credentialSettings?.hasClientSecret
-                  ? "Already saved. Leave blank unless replacing."
-                  : "Must match the selected environment (Sandbox vs Production)."
-            }
+            legend="Client Secret *"
+            hint="Application secret from the same Applications page as Client ID. Used for OAuth."
           >
             <input
-              type="password"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder={credentialsUnreadable ? "Required" : secretPlaceholder}
+              type="text"
+              className={secretInputClass}
               value={clientSecret}
               onChange={(e) => setClientSecret(e.target.value)}
-              required={!isEdit || credentialsUnreadable}
+              required
+              autoComplete="off"
+              spellCheck={false}
+              readOnly={credentialsUnreadable}
             />
           </FormDrawerFields>
           <FormDrawerFields
-            legend={`API Key${isEdit ? "" : " *"}`}
-            hint={
-              credentialsUnreadable
-                ? "Separate from Client ID — used for webhooks, not OAuth."
-                : isEdit && credentialSettings?.hasApiKey
-                  ? "Already saved. Leave blank unless replacing."
-                  : "Separate from Client ID — used for webhooks, not OAuth."
-            }
+            legend="API Key *"
+            hint="Separate from Client ID — used for webhook HMAC, not OAuth."
           >
             <input
-              type="password"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder={credentialsUnreadable ? "Required" : secretPlaceholder}
+              type="text"
+              className={secretInputClass}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              required={!isEdit || credentialsUnreadable}
+              required
+              autoComplete="off"
+              spellCheck={false}
+              readOnly={credentialsUnreadable}
             />
           </FormDrawerFields>
           <FormDrawerFields
@@ -268,6 +256,7 @@ export function GatewayConfigForm({
               value={tillNumber}
               onChange={(e) => setTillNumber(e.target.value.replace(/[^\d]/g, ""))}
               required
+              autoComplete="off"
             />
           </FormDrawerFields>
           <FormDrawerFields
@@ -280,6 +269,7 @@ export function GatewayConfigForm({
               placeholder="3020127,3502582"
               value={webhookTillNumbers}
               onChange={(e) => setWebhookTillNumbers(e.target.value)}
+              autoComplete="off"
             />
           </FormDrawerFields>
         </>
@@ -287,24 +277,26 @@ export function GatewayConfigForm({
 
       {gatewayType === "PAYSTACK" && (
         <>
-          <FormDrawerFields legend={`Secret Key${isEdit ? "" : " *"}`}>
+          <FormDrawerFields legend="Secret Key *">
             <input
-              type="password"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder={secretPlaceholder}
+              type="text"
+              className={secretInputClass}
               value={secretKey}
               onChange={(e) => setSecretKey(e.target.value)}
-              required={!isEdit}
+              required={!isEdit || !credentialSettings?.hasSecretKey}
+              autoComplete="off"
+              spellCheck={false}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend={`Public Key${isEdit ? "" : " *"}`}>
+          <FormDrawerFields legend="Public Key *">
             <input
-              type="password"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder={secretPlaceholder}
+              type="text"
+              className={secretInputClass}
               value={publicKey}
               onChange={(e) => setPublicKey(e.target.value)}
-              required={!isEdit}
+              required={!isEdit || !credentialSettings?.hasPublicKey}
+              autoComplete="off"
+              spellCheck={false}
             />
           </FormDrawerFields>
         </>
@@ -312,34 +304,37 @@ export function GatewayConfigForm({
 
       {gatewayType === "DARAJA" && (
         <>
-          <FormDrawerFields legend={`Consumer Key${isEdit ? "" : " *"}`}>
+          <FormDrawerFields legend="Consumer Key *">
             <input
-              type="password"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder={secretPlaceholder}
+              type="text"
+              className={secretInputClass}
               value={consumerKey}
               onChange={(e) => setConsumerKey(e.target.value)}
-              required={!isEdit}
+              required={!isEdit || !credentialSettings?.hasConsumerKey}
+              autoComplete="off"
+              spellCheck={false}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend={`Consumer Secret${isEdit ? "" : " *"}`}>
+          <FormDrawerFields legend="Consumer Secret *">
             <input
-              type="password"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder={secretPlaceholder}
+              type="text"
+              className={secretInputClass}
               value={consumerSecret}
               onChange={(e) => setConsumerSecret(e.target.value)}
-              required={!isEdit}
+              required={!isEdit || !credentialSettings?.hasConsumerSecret}
+              autoComplete="off"
+              spellCheck={false}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend={`Passkey${isEdit ? "" : " *"}`}>
+          <FormDrawerFields legend="Passkey *">
             <input
-              type="password"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder={secretPlaceholder}
+              type="text"
+              className={secretInputClass}
               value={passkey}
               onChange={(e) => setPasskey(e.target.value)}
-              required={!isEdit}
+              required={!isEdit || !credentialSettings?.hasPasskey}
+              autoComplete="off"
+              spellCheck={false}
             />
           </FormDrawerFields>
           <FormDrawerFields legend="Shortcode type">
@@ -372,6 +367,7 @@ export function GatewayConfigForm({
               value={shortcode}
               onChange={(e) => setShortcode(e.target.value)}
               required={!isEdit}
+              autoComplete="off"
             />
           </FormDrawerFields>
         </>
@@ -379,24 +375,26 @@ export function GatewayConfigForm({
 
       {gatewayType === "PESAPAL" && (
         <>
-          <FormDrawerFields legend={`Consumer Key${isEdit ? "" : " *"}`}>
+          <FormDrawerFields legend="Consumer Key *">
             <input
-              type="password"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder={secretPlaceholder}
+              type="text"
+              className={secretInputClass}
               value={consumerKey}
               onChange={(e) => setConsumerKey(e.target.value)}
-              required={!isEdit}
+              required={!isEdit || !credentialSettings?.hasConsumerKey}
+              autoComplete="off"
+              spellCheck={false}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend={`Consumer Secret${isEdit ? "" : " *"}`}>
+          <FormDrawerFields legend="Consumer Secret *">
             <input
-              type="password"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder={secretPlaceholder}
+              type="text"
+              className={secretInputClass}
               value={consumerSecret}
               onChange={(e) => setConsumerSecret(e.target.value)}
-              required={!isEdit}
+              required={!isEdit || !credentialSettings?.hasConsumerSecret}
+              autoComplete="off"
+              spellCheck={false}
             />
           </FormDrawerFields>
         </>
