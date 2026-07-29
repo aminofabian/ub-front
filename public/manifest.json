@@ -9,27 +9,21 @@
   "background_color": "#0f1410",
   "icons": [
     {
-      "src": "/apple-icon",
-      "sizes": "180x180",
+      "src": "/app-icon.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/apple-icon",
-      "sizes": "180x180",
+      "src": "/app-icon.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/kiosk-mark.svg",
+      "src": "/favi.png",
       "sizes": "32x32",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/cashier-icon.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     }
   ],

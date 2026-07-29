@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 
 import {
   PlatformMarkOg,
+  platformAppIconDataUrl,
   platformOgBackground,
 } from "@/lib/platform-mark-og";
 import { PLATFORM_TITLE } from "@/lib/platform-seo";
@@ -10,7 +11,9 @@ export const alt = PLATFORM_TITLE;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OpenGraphImage() {
+export default async function OpenGraphImage() {
+  const markSrc = await platformAppIconDataUrl();
+
   return new ImageResponse(
     (
       <div
@@ -26,7 +29,7 @@ export default function OpenGraphImage() {
             'Georgia, "Times New Roman", ui-serif, serif',
         }}
       >
-        <PlatformMarkOg markSize={200} showWordmark />
+        <PlatformMarkOg markSize={200} showWordmark markSrc={markSrc} />
         <div
           style={{
             display: "flex",

@@ -1,19 +1,27 @@
-import {
-  buildTenantFaviconSvg,
-  PLATFORM_FAVICON_SVG,
-} from "@/lib/tenant-favicon-mark";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
+import { buildTenantFaviconSvg } from "@/lib/tenant-favicon-mark";
 import { resolveTenantContext } from "@/lib/storefront-slug";
 
 export const size = { width: 32, height: 32 };
-export const contentType = "image/svg+xml";
+export const contentType = "image/png";
+
+async function platformFaviconResponse(): Promise<Response> {
+  const bytes = await readFile(join(process.cwd(), "public/favi.png"));
+  return new Response(bytes, {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+    },
+  });
+}
 
 export default async function Icon() {
   const tenant = await resolveTenantContext();
 
   if (!tenant) {
-    return new Response(PLATFORM_FAVICON_SVG, {
-      headers: { "Content-Type": "image/svg+xml; charset=utf-8" },
-    });
+    return platformFaviconResponse();
   }
 
   const uploaded = tenant.branding.faviconUrl?.trim();

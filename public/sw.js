@@ -1,7 +1,7 @@
 // Phase 9 Slice 5: PWA service worker — caches the app shell and serves
 // stale-while-revalidate for API calls when offline.
 
-const CACHE_VERSION = "palmart-v4";
+const CACHE_VERSION = "palmart-v5";
 const STATIC_CACHE = `palmart-static-${CACHE_VERSION}`;
 const API_CACHE = `palmart-api-${CACHE_VERSION}`;
 
@@ -9,8 +9,9 @@ const STATIC_ASSETS = [
   "/",
   "/cashier",
   "/manifest.json",
-  "/kiosk-mark.svg",
-  "/cashier-icon.svg",
+  "/favi.png",
+  "/app-icon.png",
+  "/kiosklogoo.png",
 ];
 
 // ── Install: pre-cache the app shell ────────────────────────────────
@@ -127,8 +128,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || "Palmart", {
       body: data.body || "",
-      icon: "/kiosk-mark.svg",
-      badge: "/kiosk-mark.svg",
+      icon: "/app-icon.png",
+      badge: "/favi.png",
       data: { url: data.url || "/" },
       tag: "palmart-notification",
     })

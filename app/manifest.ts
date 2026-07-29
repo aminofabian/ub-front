@@ -1,5 +1,10 @@
 import type { MetadataRoute } from "next";
 
+import {
+  PLATFORM_APP_ICON_SRC,
+  PLATFORM_FAVICON_SRC,
+} from "@/lib/platform-brand-assets";
+
 const THEME_COLOR = "#28A745";
 const BACKGROUND_COLOR = "#fafafa";
 
@@ -24,20 +29,20 @@ export default function manifest(): MetadataRoute.Manifest {
     screenshots: [],
     icons: [
       {
-        src: "/apple-icon",
+        src: PLATFORM_APP_ICON_SRC,
         type: "image/png",
-        sizes: "180x180",
+        sizes: "512x512",
         purpose: "any",
       },
       {
-        src: "/apple-icon",
+        src: PLATFORM_APP_ICON_SRC,
         type: "image/png",
-        sizes: "180x180",
+        sizes: "512x512",
         purpose: "maskable",
       },
       {
-        src: "/kiosk-mark.svg",
-        type: "image/svg+xml",
+        src: PLATFORM_FAVICON_SRC,
+        type: "image/png",
         sizes: "32x32",
         purpose: "any",
       },

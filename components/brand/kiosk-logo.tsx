@@ -3,6 +3,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import {
+  PLATFORM_HOST_LOGO_ASPECT,
+  PLATFORM_HOST_LOGO_SRC,
+} from "@/lib/platform-brand-assets";
 import { PLATFORM_DOMAIN } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -11,18 +15,21 @@ import { KioskLogoMark, type KioskLogoMarkProps } from "./kiosk-logo-mark";
 const LOCKUP = {
   sm: {
     mark: 36,
+    hostH: 40,
     word: "text-[16px]",
     pill: "text-[9px] px-1.5 py-[3px]",
     gap: "gap-3",
   },
   md: {
     mark: 44,
+    hostH: 48,
     word: "text-[1.2rem]",
     pill: "text-[10px] px-1.5 py-[3px]",
     gap: "gap-3.5",
   },
   lg: {
     mark: 52,
+    hostH: 56,
     word: "text-[1.45rem]",
     pill: "text-[11px] px-2 py-[4px]",
     gap: "gap-4",
@@ -144,6 +151,28 @@ function PremiumBadge({
   );
 }
 
+function HostLogoImage({
+  height,
+  className,
+}: {
+  height: number;
+  className?: string;
+}) {
+  const width = Math.round(height * PLATFORM_HOST_LOGO_ASPECT);
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={PLATFORM_HOST_LOGO_SRC}
+      alt="Kiosk.ke"
+      width={width}
+      height={height}
+      className={cn("kiosk-logo-host block h-auto w-auto object-contain", className)}
+      style={{ height, width: "auto", maxWidth: "min(100%, 14rem)" }}
+      draggable={false}
+    />
+  );
+}
+
 function LogoContent({
   size,
   variant,
@@ -171,12 +200,37 @@ function LogoContent({
   const sub = (tagline ?? PLATFORM_DOMAIN).toUpperCase();
   const isPlatformName = name === "KIOSK";
   const showKe = showDomain !== false && isPlatformName;
-  const { mark, gap } = LOCKUP[s];
+  const { mark, hostH, gap } = LOCKUP[s];
 
   const taglineColor =
     variant === "landing"
       ? "text-[var(--kiosk-text-dim)]"
       : "text-muted-foreground";
+
+  // Default platform brand uses the full host lockup PNG (icon + Kiosk.ke).
+  if (isPlatformName) {
+    const host = (
+      <span className="inline-flex flex-col items-start">
+        <HostLogoImage height={hostH} className={markClassName} />
+        {showTagline ? (
+          <span
+            className={cn(
+              "mt-2.5 font-sans font-medium uppercase",
+              TAGLINE_CLASS[s],
+              taglineColor,
+            )}
+          >
+            {sub}
+          </span>
+        ) : null}
+      </span>
+    );
+
+    if (layout === "badge") {
+      return <PremiumBadge variant={variant}>{host}</PremiumBadge>;
+    }
+    return host;
+  }
 
   const lockup = (
     <span
@@ -266,7 +320,7 @@ function LogoShell({
   return <span className={shellClass}>{children}</span>;
 }
 
-/** Full Kiosk logo — premium monogram lockup with optional glass badge. */
+/** Full Kiosk logo — host lockup PNG, or mark + custom wordmark. */
 export function KioskLogo({
   size = "md",
   variant = "default",

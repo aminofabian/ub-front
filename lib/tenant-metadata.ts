@@ -3,6 +3,10 @@ import "server-only";
 import type { Metadata } from "next";
 
 import {
+  PLATFORM_APP_ICON_SRC,
+  PLATFORM_FAVICON_SRC,
+} from "@/lib/platform-brand-assets";
+import {
   PLATFORM_DESCRIPTION,
   PLATFORM_KEYWORDS,
   PLATFORM_SITE_NAME,
@@ -19,14 +23,14 @@ import { resolveTenantFaviconHref } from "@/lib/tenant-favicon-path";
 
 const BRAND_THEME_COLOR = PLATFORM_THEME_COLOR;
 
-/** Crawlable PNG favicon (Google prefers ≥48px); SVG from `/icon` for browsers. */
+/** Platform favicon + home-screen / PWA app icon. */
 const PLATFORM_ICONS: Metadata["icons"] = {
   icon: [
-    { url: "/icon", type: "image/svg+xml" },
-    { url: "/apple-icon", type: "image/png", sizes: "180x180" },
+    { url: PLATFORM_FAVICON_SRC, type: "image/png" },
+    { url: "/icon", type: "image/png", sizes: "32x32" },
   ],
-  apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
-  shortcut: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+  apple: [{ url: PLATFORM_APP_ICON_SRC, type: "image/png", sizes: "180x180" }],
+  shortcut: [{ url: PLATFORM_FAVICON_SRC, type: "image/png" }],
 };
 
 function isHex3or6(s: string): boolean {

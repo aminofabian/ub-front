@@ -1,26 +1,16 @@
-import { ImageResponse } from "next/og";
-
-import { PlatformMarkOg } from "@/lib/platform-mark-og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-export default function AppleIcon() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "transparent",
-        }}
-      >
-        <PlatformMarkOg markSize={156} />
-      </div>
-    ),
-    { ...size },
-  );
+/** PWA / Apple touch icon — platform app icon asset. */
+export default async function AppleIcon() {
+  const bytes = await readFile(join(process.cwd(), "public/app-icon.png"));
+  return new Response(bytes, {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+    },
+  });
 }

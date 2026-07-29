@@ -1,6 +1,8 @@
 "use client";
 
-import { PlatformLogoMarkSvg } from "@/components/brand/platform-logo-mark-svg";
+import {
+  PLATFORM_FAVICON_SRC,
+} from "@/lib/platform-brand-assets";
 import { cn } from "@/lib/utils";
 
 const SIZE_PX = { sm: 36, md: 44, lg: 52 } as const;
@@ -14,7 +16,7 @@ export type KioskLogoMarkProps = {
 };
 
 /**
- * Kiosk platform logomark — same SVG as favicon, OG image, and PWA icons.
+ * Kiosk platform logomark — same artwork as the platform favicon.
  */
 export function KioskLogoMark({
   size = "md",
@@ -38,16 +40,21 @@ export function KioskLogoMark({
   return (
     <span
       className={cn(
-        "kiosk-logo-mark relative inline-flex shrink-0 overflow-hidden rounded-none",
+        "kiosk-logo-mark relative inline-flex shrink-0 overflow-hidden rounded-none bg-black",
         !plain && !isLanding && "ring-1 ring-inset ring-white/20",
         shellClass,
         className,
       )}
       style={{ width: px, height: px }}
     >
-      <PlatformLogoMarkSvg
-        className="h-full w-full [&>svg]:h-full [&>svg]:w-full"
-        label=""
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={PLATFORM_FAVICON_SRC}
+        alt=""
+        width={px}
+        height={px}
+        className="h-full w-full object-contain"
+        draggable={false}
       />
     </span>
   );

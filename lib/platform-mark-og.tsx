@@ -1,6 +1,7 @@
-/** Layout primitives for `next/og` — uses the canonical SVG mark via data URL. */
+/** Layout primitives for `next/og` — uses the platform app icon PNG. */
 
-import { platformLogoMarkDataUrl } from "@/lib/platform-logo-mark";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 const LANDING_BG =
   "linear-gradient(145deg, #0f1410 0%, #1a221c 48%, #0d120e 100%)";
@@ -9,20 +10,25 @@ type PlatformMarkOgProps = {
   /** Mark tile size in px (square). */
   markSize: number;
   showWordmark?: boolean;
+  /** Data URL or absolute URL for the mark image. */
+  markSrc: string;
 };
 
 export function platformOgBackground(): string {
   return LANDING_BG;
 }
 
+/** Load `public/app-icon.png` as a data URL for `next/og` ImageResponse. */
+export async function platformAppIconDataUrl(): Promise<string> {
+  const bytes = await readFile(join(process.cwd(), "public/app-icon.png"));
+  return `data:image/png;base64,${bytes.toString("base64")}`;
+}
+
 export function PlatformMarkOg({
   markSize,
   showWordmark = false,
+  markSrc,
 }: PlatformMarkOgProps) {
-  const markSrc = platformLogoMarkDataUrl(
-    showWordmark ? "kiosk-og-lockup" : "kiosk-og-mark",
-  );
-
   return (
     <div
       style={{
@@ -51,7 +57,12 @@ export function PlatformMarkOg({
           alt=""
           width={markSize}
           height={markSize}
-          style={{ width: markSize, height: markSize, display: "block" }}
+          style={{
+            width: markSize,
+            height: markSize,
+            display: "block",
+            objectFit: "cover",
+          }}
         />
       </div>
       {showWordmark ? (

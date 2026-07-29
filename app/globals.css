@@ -3565,6 +3565,12 @@ body:has(.landing-page) {
         align-items: center;
     }
 
+    .landing-page .landing-nav-brand .kiosk-logo-host {
+        height: 2.25rem !important;
+        width: auto !important;
+        max-width: min(100%, 11rem) !important;
+    }
+
     .landing-page .landing-nav-brand .kiosk-logo-mark {
         width: 2rem !important;
         height: 2rem !important;

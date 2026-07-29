@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 
 import {
   PlatformMarkOg,
+  platformAppIconDataUrl,
   platformOgBackground,
 } from "@/lib/platform-mark-og";
 import { PLATFORM_TITLE } from "@/lib/platform-seo";
@@ -10,7 +11,9 @@ export const alt = PLATFORM_TITLE;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function TwitterImage() {
+export default async function TwitterImage() {
+  const markSrc = await platformAppIconDataUrl();
+
   return new ImageResponse(
     (
       <div
@@ -23,7 +26,7 @@ export default function TwitterImage() {
           background: platformOgBackground(),
         }}
       >
-        <PlatformMarkOg markSize={240} showWordmark />
+        <PlatformMarkOg markSize={240} showWordmark markSrc={markSrc} />
       </div>
     ),
     { ...size },
