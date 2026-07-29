@@ -4627,6 +4627,8 @@ export type PaymentLedgerRow = {
   cashierName: string;
   customerName: string;
   saleGrandTotal: number | string;
+  /** Gateway/STK receipt present on this tender. */
+  mpesaVerified?: boolean | null;
 };
 
 /**

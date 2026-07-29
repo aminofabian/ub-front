@@ -4,12 +4,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Flag,
   Loader2,
   RefreshCw,
   Search,
+  ShieldAlert,
+  ShieldCheck,
 } from "lucide-react";
 
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
@@ -43,14 +46,59 @@ type MarkFilter = "all" | "unreviewed" | "flagged" | "reviewed";
 
 type MethodChipId = "cash" | "mpesa" | "card" | "credit" | "wallet" | "loyalty";
 
-const METHOD_CHIPS: { id: MethodChipId; label: string; short: string }[] = [
-  { id: "cash", label: "Cash", short: "Cash" },
-  { id: "mpesa", label: "M-Pesa", short: "M-Pesa" },
-  { id: "card", label: "Card", short: "Card" },
-  { id: "credit", label: "Credit", short: "Credit" },
-  { id: "wallet", label: "Wallet", short: "Wallet" },
-  { id: "loyalty", label: "Loyalty", short: "Loyalty" },
+const METHOD_CHIPS: {
+  id: MethodChipId;
+  label: string;
+  short: string;
+  bar: string;
+  chip: string;
+}[] = [
+  {
+    id: "cash",
+    label: "Cash",
+    short: "Cash",
+    bar: "bg-emerald-600",
+    chip: "text-emerald-800 bg-emerald-50",
+  },
+  {
+    id: "mpesa",
+    label: "M-Pesa",
+    short: "M-Pesa",
+    bar: "bg-teal-600",
+    chip: "text-teal-800 bg-teal-50",
+  },
+  {
+    id: "credit",
+    label: "Credit",
+    short: "Credit",
+    bar: "bg-amber-600",
+    chip: "text-amber-900 bg-amber-50",
+  },
+  {
+    id: "card",
+    label: "Card",
+    short: "Card",
+    bar: "bg-slate-600",
+    chip: "text-slate-800 bg-slate-100",
+  },
+  {
+    id: "wallet",
+    label: "Wallet",
+    short: "Wallet",
+    bar: "bg-sky-600",
+    chip: "text-sky-900 bg-sky-50",
+  },
+  {
+    id: "loyalty",
+    label: "Loyalty",
+    short: "Loyalty",
+    bar: "bg-rose-600",
+    chip: "text-rose-900 bg-rose-50",
+  },
 ];
+
+/** Primary filters the user asked for — always shown when present. */
+const PRIMARY_CHIPS: MethodChipId[] = ["cash", "mpesa", "credit"];
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -67,13 +115,17 @@ function fmtKes(n: number | string | null | undefined): string {
   }).format(v);
 }
 
-/** Compact amount without currency symbol for dense rows. */
 function fmtAmt(n: number | string | null | undefined): string {
   const v = toNum(n);
   return new Intl.NumberFormat("en-KE", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(v);
+}
+
+function pctOf(part: number, whole: number): number {
+  if (whole <= 0) return 0;
+  return Math.round((part / whole) * 1000) / 10;
 }
 
 function todayIsoLocal(): string {
@@ -132,23 +184,16 @@ function hourKey(iso: string): string {
 
 function methodAccent(method: string): { bar: string; chip: string } {
   const cats = salePaymentCategories(method, method);
-  if (cats.has("cash")) {
-    return { bar: "bg-emerald-600", chip: "text-emerald-800 bg-emerald-50" };
-  }
-  if (cats.has("mpesa")) {
-    return { bar: "bg-teal-600", chip: "text-teal-800 bg-teal-50" };
-  }
-  if (cats.has("credit")) {
-    return { bar: "bg-amber-600", chip: "text-amber-900 bg-amber-50" };
-  }
-  if (cats.has("wallet")) {
-    return { bar: "bg-sky-600", chip: "text-sky-900 bg-sky-50" };
-  }
-  if (cats.has("loyalty")) {
-    return { bar: "bg-rose-600", chip: "text-rose-900 bg-rose-50" };
-  }
-  if (method.toLowerCase().includes("card")) {
-    return { bar: "bg-slate-600", chip: "text-slate-800 bg-slate-100" };
+  for (const chip of METHOD_CHIPS) {
+    if (chip.id === "card") {
+      if (method.trim().toLowerCase() === "card") {
+        return { bar: chip.bar, chip: chip.chip };
+      }
+      continue;
+    }
+    if (cats.has(chip.id)) {
+      return { bar: chip.bar, chip: chip.chip };
+    }
   }
   return { bar: "bg-stone-500", chip: "text-stone-800 bg-stone-100" };
 }
@@ -158,6 +203,14 @@ function matchesMethodChip(method: string, chip: MethodChipId): boolean {
     return method.trim().toLowerCase() === "card";
   }
   return salePaymentCategories(method, method).has(chip);
+}
+
+function isMpesaRow(row: PaymentLedgerRow): boolean {
+  return matchesMethodChip(row.method, "mpesa");
+}
+
+function isMpesaVerified(row: PaymentLedgerRow): boolean {
+  return Boolean(row.mpesaVerified);
 }
 
 function receiptLabel(row: PaymentLedgerRow): string {
@@ -179,14 +232,6 @@ function rowSearchBlob(row: PaymentLedgerRow): string {
     .toLowerCase();
 }
 
-function methodFilterValue(chip: MethodChipId): string {
-  if (chip === "mpesa") return "mpesa_manual";
-  if (chip === "credit") return "customer_credit";
-  if (chip === "wallet") return "customer_wallet";
-  if (chip === "loyalty") return "loyalty_redeem";
-  return chip;
-}
-
 export function DayLedgerPage() {
   const { business, canViewSalesIntelligence } = useDashboard();
   const { branchId } = useSessionBranch();
@@ -205,9 +250,11 @@ export function DayLedgerPage() {
   const [search, setSearch] = useState("");
   const [marks, setMarks] = useState<PaymentLedgerMarksMap>({});
   const [noteDraftId, setNoteDraftId] = useState<string | null>(null);
+  const [showUnverifiedList, setShowUnverifiedList] = useState(false);
 
   useEffect(() => {
     setMarks(loadPaymentLedgerMarks(businessId, day));
+    setShowUnverifiedList(false);
   }, [businessId, day]);
 
   const persistMarks = useCallback(
@@ -287,6 +334,16 @@ export function DayLedgerPage() {
     [rows],
   );
 
+  const mpesaRows = useMemo(() => rows.filter(isMpesaRow), [rows]);
+  const unverifiedMpesa = useMemo(
+    () => mpesaRows.filter((r) => !isMpesaVerified(r)),
+    [mpesaRows],
+  );
+  const unverifiedMpesaTotal = useMemo(
+    () => unverifiedMpesa.reduce((s, r) => s + toNum(r.amount), 0),
+    [unverifiedMpesa],
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((row) => {
@@ -347,10 +404,15 @@ export function DayLedgerPage() {
     [filtered],
   );
 
-  const visibleChips = useMemo(
-    () => METHOD_CHIPS.filter((c) => chipTotals[c.id].count > 0),
-    [chipTotals],
-  );
+  const mixChips = useMemo(() => {
+    const primary = METHOD_CHIPS.filter(
+      (c) => PRIMARY_CHIPS.includes(c.id) && chipTotals[c.id].count > 0,
+    );
+    const rest = METHOD_CHIPS.filter(
+      (c) => !PRIMARY_CHIPS.includes(c.id) && chipTotals[c.id].count > 0,
+    );
+    return [...primary, ...rest];
+  }, [chipTotals]);
 
   const toggleMethod = (id: MethodChipId) => {
     setMethodFilters((prev) => {
@@ -359,6 +421,13 @@ export function DayLedgerPage() {
       else next.add(id);
       return next;
     });
+  };
+
+  const selectOnlyMethod = (id: MethodChipId) => {
+    setMethodFilters(new Set([id]));
+    if (id === "mpesa" && unverifiedMpesa.length > 0) {
+      setShowUnverifiedList(true);
+    }
   };
 
   const markAllVisibleReviewed = () => {
@@ -388,7 +457,6 @@ export function DayLedgerPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-3 pb-16">
-      {/* Compact header + day nav */}
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -471,55 +539,273 @@ export function DayLedgerPage() {
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-      {/* Method pills — only methods with activity */}
-      {visibleChips.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5">
-          {visibleChips.map((chip) => {
-            const stats = chipTotals[chip.id];
-            const selected = methodFilters.has(chip.id);
-            const accent = methodAccent(methodFilterValue(chip.id));
-            return (
-              <button
-                key={chip.id}
-                type="button"
-                onClick={() => toggleMethod(chip.id)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors",
-                  selected
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border/70 bg-card text-foreground hover:border-foreground/25",
-                )}
-              >
-                <span
+      {/* Ledger mix — share of day by tender */}
+      {rows.length > 0 ? (
+        <section className="rounded-xl border border-border/60 bg-card p-3 shadow-sm">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Tender mix
+            </p>
+            <p className="text-[11px] tabular-nums text-muted-foreground">
+              {fmtKes(grandTotal)} total
+            </p>
+          </div>
+
+          <div
+            className="flex h-2.5 overflow-hidden rounded-full bg-muted"
+            role="img"
+            aria-label="Payment method mix"
+          >
+            {mixChips.map((chip) => {
+              const share = pctOf(chipTotals[chip.id].total, grandTotal);
+              if (share <= 0) return null;
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  title={`${chip.label} ${share}%`}
+                  onClick={() => selectOnlyMethod(chip.id)}
                   className={cn(
-                    "size-1.5 rounded-full",
-                    selected ? "bg-background/80" : accent.bar,
+                    "h-full min-w-[2px] transition-opacity hover:opacity-90",
+                    chip.bar,
+                    methodFilters.size > 0 &&
+                      !methodFilters.has(chip.id) &&
+                      "opacity-30",
                   )}
-                  aria-hidden
+                  style={{ width: `${share}%` }}
                 />
-                <span className="font-medium">{chip.short}</span>
-                <span
+              );
+            })}
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {PRIMARY_CHIPS.map((id) => {
+              const chip = METHOD_CHIPS.find((c) => c.id === id)!;
+              const stats = chipTotals[id];
+              const share = pctOf(stats.total, grandTotal);
+              const selected = methodFilters.has(id);
+              const inactive =
+                methodFilters.size > 0 && !selected && stats.count === 0;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  disabled={stats.count === 0}
+                  onClick={() => toggleMethod(id)}
                   className={cn(
-                    "tabular-nums",
-                    selected ? "text-background/75" : "text-muted-foreground",
+                    "rounded-lg border px-3 py-2.5 text-left transition-colors",
+                    stats.count === 0
+                      ? "cursor-not-allowed border-border/40 bg-muted/30 opacity-50"
+                      : selected
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border/70 bg-background hover:border-foreground/30",
+                    inactive && "opacity-60",
                   )}
                 >
-                  {fmtAmt(stats.total)}
-                  <span className="opacity-60"> · {stats.count}</span>
-                </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1.5 text-sm font-semibold">
+                      <span
+                        className={cn(
+                          "size-2 rounded-full",
+                          selected ? "bg-background/80" : chip.bar,
+                        )}
+                        aria-hidden
+                      />
+                      {chip.label}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-sm font-bold tabular-nums",
+                        selected ? "text-background" : "text-foreground",
+                      )}
+                    >
+                      {share}%
+                    </span>
+                  </div>
+                  <p
+                    className={cn(
+                      "mt-1 text-[11px] tabular-nums",
+                      selected ? "text-background/75" : "text-muted-foreground",
+                    )}
+                  >
+                    {fmtKes(stats.total)} · {stats.count} payment
+                    {stats.count === 1 ? "" : "s"}
+                  </p>
+                  {id === "mpesa" && stats.count > 0 ? (
+                    <p
+                      className={cn(
+                        "mt-1.5 text-[11px] font-medium",
+                        selected
+                          ? unverifiedMpesa.length > 0
+                            ? "text-amber-200"
+                            : "text-emerald-200"
+                          : unverifiedMpesa.length > 0
+                            ? "text-amber-800"
+                            : "text-emerald-800",
+                      )}
+                    >
+                      {unverifiedMpesa.length === 0
+                        ? `${mpesaRows.length} verified`
+                        : `${unverifiedMpesa.length} of ${mpesaRows.length} unverified`}
+                    </p>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Secondary methods */}
+          {METHOD_CHIPS.some(
+            (c) => !PRIMARY_CHIPS.includes(c.id) && chipTotals[c.id].count > 0,
+          ) ? (
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+              {METHOD_CHIPS.filter(
+                (c) =>
+                  !PRIMARY_CHIPS.includes(c.id) && chipTotals[c.id].count > 0,
+              ).map((chip) => {
+                const stats = chipTotals[chip.id];
+                const share = pctOf(stats.total, grandTotal);
+                const selected = methodFilters.has(chip.id);
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => toggleMethod(chip.id)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors",
+                      selected
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border/70 bg-background text-foreground hover:border-foreground/25",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "size-1.5 rounded-full",
+                        selected ? "bg-background/80" : chip.bar,
+                      )}
+                      aria-hidden
+                    />
+                    <span className="font-medium">{chip.short}</span>
+                    <span
+                      className={cn(
+                        "tabular-nums",
+                        selected ? "text-background/75" : "text-muted-foreground",
+                      )}
+                    >
+                      {share}% · {fmtAmt(stats.total)}
+                    </span>
+                  </button>
+                );
+              })}
+              {methodFilters.size > 0 ? (
+                <button
+                  type="button"
+                  className="px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+                  onClick={() => setMethodFilters(new Set())}
+                >
+                  Clear filters
+                </button>
+              ) : null}
+            </div>
+          ) : methodFilters.size > 0 ? (
+            <div className="mt-2">
+              <button
+                type="button"
+                className="text-[11px] text-muted-foreground hover:text-foreground"
+                onClick={() => setMethodFilters(new Set())}
+              >
+                Clear filters
               </button>
-            );
-          })}
-          {methodFilters.size > 0 ? (
-            <button
-              type="button"
-              className="px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
-              onClick={() => setMethodFilters(new Set())}
-            >
-              Clear
-            </button>
+            </div>
           ) : null}
-        </div>
+
+          {/* Unverified M-Pesa reveal */}
+          {mpesaRows.length > 0 ? (
+            <div className="mt-3 border-t border-border/50 pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (unverifiedMpesa.length === 0) return;
+                  setShowUnverifiedList((v) => !v);
+                  if (!methodFilters.has("mpesa")) {
+                    setMethodFilters(new Set(["mpesa"]));
+                  }
+                }}
+                disabled={unverifiedMpesa.length === 0}
+                className={cn(
+                  "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-colors",
+                  unverifiedMpesa.length === 0
+                    ? "cursor-default border-emerald-200/80 bg-emerald-50/60"
+                    : "border-amber-200 bg-amber-50/70 hover:bg-amber-50",
+                )}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  {unverifiedMpesa.length === 0 ? (
+                    <ShieldCheck className="size-4 shrink-0 text-emerald-700" />
+                  ) : (
+                    <ShieldAlert className="size-4 shrink-0 text-amber-700" />
+                  )}
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-foreground">
+                      {unverifiedMpesa.length === 0
+                        ? "All M-Pesa payments verified"
+                        : `${unverifiedMpesa.length} unverified M-Pesa payment${unverifiedMpesa.length === 1 ? "" : "s"}`}
+                    </span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      {unverifiedMpesa.length === 0
+                        ? "Gateway receipt on every M-Pesa tender today."
+                        : `${fmtKes(unverifiedMpesaTotal)} without gateway verification — tap to list them.`}
+                    </span>
+                  </span>
+                </span>
+                {unverifiedMpesa.length > 0 ? (
+                  <ChevronDown
+                    className={cn(
+                      "size-4 shrink-0 text-amber-800 transition-transform",
+                      showUnverifiedList && "rotate-180",
+                    )}
+                  />
+                ) : null}
+              </button>
+
+              {showUnverifiedList && unverifiedMpesa.length > 0 ? (
+                <ul className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-amber-200/80 bg-background">
+                  {unverifiedMpesa.map((row) => (
+                    <li
+                      key={row.paymentId}
+                      className="flex items-center gap-2 border-b border-border/30 px-3 py-2 text-xs last:border-0"
+                    >
+                      <span className="w-[4.25rem] shrink-0 font-mono tabular-nums text-muted-foreground">
+                        {formatTime(row.soldAt)}
+                      </span>
+                      <span className="w-[5.5rem] shrink-0 text-right font-semibold tabular-nums">
+                        {fmtAmt(row.amount)}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                        {[
+                          receiptLabel(row),
+                          row.cashierName?.trim() || null,
+                          row.customerName?.trim() || null,
+                          row.reference?.trim()
+                            ? `ref ${row.reference.trim()}`
+                            : "no ref",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                      <Link
+                        href={`${APP_ROUTES.salesTransactions}?q=${encodeURIComponent(receiptLabel(row))}`}
+                        className="shrink-0 text-[11px] font-medium text-teal-800 hover:underline"
+                      >
+                        Open
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
       ) : null}
 
       {/* Toolbar: progress + search + status filters */}
@@ -597,6 +883,17 @@ export function DayLedgerPage() {
             </span>
             {filtered.length !== rows.length ? ` / ${rows.length}` : ""}{" "}
             payments · {fmtKes(filteredTotal)}
+            {methodFilters.size > 0 ? (
+              <span className="ml-1 text-foreground/70">
+                ·{" "}
+                {[...methodFilters]
+                  .map(
+                    (id) =>
+                      METHOD_CHIPS.find((c) => c.id === id)?.short ?? id,
+                  )
+                  .join(", ")}
+              </span>
+            ) : null}
           </p>
           <Link
             href={APP_ROUTES.salesTransactions}
@@ -645,6 +942,9 @@ export function DayLedgerPage() {
                         .toLowerCase()
                         .includes("refund");
                       const noteOpen = noteDraftId === row.paymentId;
+                      const mpesa = isMpesaRow(row);
+                      const verified = mpesa && isMpesaVerified(row);
+                      const unverified = mpesa && !isMpesaVerified(row);
                       const meta = [
                         receiptLabel(row),
                         row.cashierName?.trim() || null,
@@ -664,6 +964,7 @@ export function DayLedgerPage() {
                             "group relative border-b border-border/30 last:border-0",
                             mark.reviewed && "bg-emerald-50/35",
                             mark.flagged && !mark.reviewed && "bg-amber-50/40",
+                            unverified && !mark.reviewed && "bg-amber-50/25",
                           )}
                         >
                           <span
@@ -720,6 +1021,25 @@ export function DayLedgerPage() {
                             >
                               {formatPaymentMethodLabel(row.method)}
                             </span>
+
+                            {verified ? (
+                              <span
+                                className="inline-flex shrink-0 items-center gap-0.5 rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-semibold uppercase text-emerald-800"
+                                title="Gateway verified"
+                              >
+                                <ShieldCheck className="size-2.5" />
+                                Verified
+                              </span>
+                            ) : null}
+                            {unverified ? (
+                              <span
+                                className="inline-flex shrink-0 items-center gap-0.5 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-semibold uppercase text-amber-900"
+                                title="No gateway receipt"
+                              >
+                                <ShieldAlert className="size-2.5" />
+                                Unverified
+                              </span>
+                            ) : null}
 
                             {refunded ? (
                               <span className="shrink-0 rounded bg-destructive/10 px-1 py-0.5 text-[9px] font-semibold uppercase text-destructive">
