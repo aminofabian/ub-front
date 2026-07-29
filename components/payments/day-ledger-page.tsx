@@ -793,12 +793,17 @@ export function DayLedgerPage() {
                           .filter(Boolean)
                           .join(" · ")}
                       </span>
-                      <Link
-                        href={`${APP_ROUTES.salesTransactions}?q=${encodeURIComponent(receiptLabel(row))}`}
+                      <button
+                        type="button"
                         className="shrink-0 text-[11px] font-medium text-teal-800 hover:underline"
+                        onClick={() => {
+                          setMethodFilters(new Set(["mpesa"]));
+                          setSearch(receiptLabel(row));
+                          setShowUnverifiedList(false);
+                        }}
                       >
-                        Open
-                      </Link>
+                        Find
+                      </button>
                     </li>
                   ))}
                 </ul>
