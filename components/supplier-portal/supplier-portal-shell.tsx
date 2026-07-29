@@ -400,18 +400,8 @@ function MobileTabBar({
               className={cn(spTabItem, active && spTabItemActive)}
               aria-current={active ? "page" : undefined}
             >
-              <span
-                className={cn(
-                  "relative flex size-8 items-center justify-center transition-transform",
-                  active && "scale-105",
-                )}
-              >
-                {active ? (
-                  <span className="absolute inset-x-1.5 -top-1 h-0.5 bg-[var(--pos-primary,#0f766e)]" />
-                ) : null}
-                <Icon className="size-[1.15rem]" strokeWidth={active ? 2.4 : 1.9} aria-hidden />
-              </span>
-              {tab.label}
+              <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} aria-hidden />
+              <span className="capitalize">{tab.label}</span>
             </Link>
           );
         })}
@@ -425,17 +415,12 @@ function MobileTabBar({
           aria-expanded={moreActive}
           aria-label="More"
         >
-          <span className="relative flex size-8 items-center justify-center">
-            {(moreActive || !primaryActive) ? (
-              <span className="absolute inset-x-1.5 -top-1 h-0.5 bg-[var(--pos-primary,#0f766e)]" />
-            ) : null}
-            <Ellipsis
-              className="size-[1.15rem]"
-              strokeWidth={moreActive || !primaryActive ? 2.4 : 1.9}
-              aria-hidden
-            />
-          </span>
-          More
+          <Ellipsis
+            className="size-5"
+            strokeWidth={moreActive || !primaryActive ? 2.25 : 1.75}
+            aria-hidden
+          />
+          <span className="capitalize">More</span>
         </button>
       </div>
     </nav>
@@ -467,25 +452,30 @@ export function SupplierPortalShell({ children }: { children: React.ReactNode })
 
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col lg:min-h-screen">
         <header className={cn(spAppHeader, "lg:hidden")}>
-          <div className="flex items-center gap-3 px-3.5 pb-2.5">
-            <KioskLogo size="sm" href={APP_ROUTES.supplierPortalOverview} />
-            <div className="min-w-0 flex-1">
-              <p className="font-[family-name:var(--font-heading)] truncate text-[1.35rem] leading-none font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
-                Kiosk
+          <div className="flex items-center gap-3 px-4 pb-2.5">
+            <KioskLogo
+              size="sm"
+              plain
+              href={APP_ROUTES.supplierPortalOverview}
+              className="min-w-0"
+            />
+            <div className="flex-1" />
+            {pathname !== APP_ROUTES.supplierPortalOverview ? (
+              <p className={cn(spEyebrow, "truncate text-[var(--pos-ink,#1c1915)]")}>
+                {pageTitle}
               </p>
-              <p className={cn(spEyebrow, "mt-1 truncate")}>{pageTitle}</p>
-            </div>
+            ) : null}
             <Link
               href={APP_ROUTES.supplierPortalProfile}
               aria-label="Profile"
-              className="flex size-10 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] text-[var(--pos-ink,#1c1915)] active:scale-95"
+              className="flex size-9 items-center justify-center text-[var(--pos-ink,#1c1915)] active:opacity-60"
             >
-              <UserRound className="size-4" />
+              <UserRound className="size-[1.15rem]" strokeWidth={1.75} />
             </Link>
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-4 sm:px-5 sm:py-5 lg:px-7 lg:py-7">
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-5 sm:py-5 lg:px-7 lg:py-7">
           {children}
         </main>
 

@@ -3,15 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  ChevronRight,
-  ClipboardList,
-  MessageSquare,
-  Package,
-  Store,
-  Truck,
-  Wallet,
-} from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
 import {
@@ -23,7 +15,6 @@ import {
   spMetric,
   spPage,
   spPanel,
-  spQuickAction,
   spRise,
   spSerifTitle,
 } from "@/components/supplier-portal/supplier-portal-ui";
@@ -145,83 +136,64 @@ export default function SupplierPortalOverviewPage() {
 
   const currency = hub?.currency ?? "KES";
   const emptyShops = loaded && (!hub || hub.shopCount === 0);
+  const partialPending = canViewMoney ? toNum(hub?.totals.pending) : 0;
+  const hasAttention = pendingOrders > 0 || partialPending > 0;
 
   const shopsHint = useMemo(() => {
     if (!hub) return "Connected storefronts";
     return `${hub.shopCount} connected`;
   }, [hub]);
 
-  const quickActions = useMemo(
-    () => [
-      { href: APP_ROUTES.supplierPortalOrders, label: "Orders", icon: ClipboardList },
-      { href: APP_ROUTES.supplierPortalCatalog, label: "Catalogue", icon: Package },
-      { href: APP_ROUTES.supplierPortalShops, label: "Shops", icon: Store },
-      { href: APP_ROUTES.supplierPortalDeliveries, label: "Deliveries", icon: Truck },
-      ...(canViewMoney
-        ? [{ href: APP_ROUTES.supplierPortalPayments, label: "Payments", icon: Wallet }]
-        : [{ href: APP_ROUTES.supplierPortalMessages, label: "Messages", icon: MessageSquare }]),
-    ],
-    [canViewMoney],
-  );
-
   return (
     <SupplierPortalShell>
-      <div className={cn(spPage, "space-y-4 sm:space-y-5")}>
-        {/* Mobile app home hero */}
-        <section className={cn(spRise, "lg:hidden")}>
-          <p className={spEyebrow}>{now ? formatStamp(now) : "\u00a0"}</p>
-          <h1 className="mt-2 font-[family-name:var(--font-heading)] text-[2.35rem] leading-[0.95] font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
-            Kiosk
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {now ? greetingFor(now) : "Welcome"}
-            {canViewMoney
-              ? " — balances and activity across your shops."
-              : " — orders and catalogue for your supplier account."}
-          </p>
+      <div className={cn(spPage, "space-y-5 sm:space-y-5")}>
+        {/* Mobile home — one clear composition */}
+        <section className={cn(spRise, "space-y-5 lg:hidden")}>
+          <div>
+            <p className="text-[13px] text-muted-foreground">
+              {now ? formatStamp(now) : "\u00a0"}
+            </p>
+            <h1 className="mt-1 font-[family-name:var(--font-heading)] text-[2.15rem] leading-[1.05] font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
+              {now ? greetingFor(now) : "Welcome"}
+            </h1>
+            <p className="mt-1.5 text-[15px] leading-snug text-muted-foreground">
+              {canViewMoney
+                ? "What you are owed across your shops."
+                : "Orders waiting for you today."}
+            </p>
+          </div>
 
           {canViewMoney ? (
             <Link
               href={APP_ROUTES.supplierPortalPayments}
               className={cn(
-                "mt-4 block overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-                "bg-[linear-gradient(145deg,var(--pos-primary,#0f766e)_0%,#0b5f59_55%,#134e4a_100%)]",
-                "px-4 py-4 text-white shadow-[0_10px_28px_rgba(15,118,110,0.28)]",
-                "active:scale-[0.99] transition-transform",
+                "block overflow-hidden",
+                "bg-[linear-gradient(160deg,var(--pos-primary,#0f766e)_0%,#0d6a63_48%,#0a524c_100%)]",
+                "px-5 py-5 text-white",
+                "active:brightness-95 transition-[filter]",
               )}
             >
-              <div className="flex items-start justify-between gap-3">
+              <p className="text-[11px] font-medium tracking-[0.04em] text-white/70">
+                Outstanding
+              </p>
+              <p className="mt-2 font-[family-name:var(--font-heading)] text-[2.35rem] leading-none font-semibold tabular-nums tracking-tight">
+                {hub ? money(hub.totals.owed, currency) : "—"}
+              </p>
+              <p className="mt-2 text-[13px] text-white/70">
+                {hub
+                  ? `${hub.shopCount} shop${hub.shopCount === 1 ? "" : "s"} · tap for payments`
+                  : "Loading…"}
+              </p>
+              <div className="mt-5 flex gap-6 border-t border-white/15 pt-4">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">
-                    Outstanding
-                  </p>
-                  <p className="mt-1.5 font-[family-name:var(--font-heading)] text-[2rem] leading-none font-semibold tabular-nums">
-                    {hub ? money(hub.totals.owed, currency) : "—"}
-                  </p>
-                  <p className="mt-2 text-xs text-white/75">
-                    {hub
-                      ? `Across ${hub.shopCount} shop${hub.shopCount === 1 ? "" : "s"}`
-                      : "Loading…"}
-                  </p>
-                </div>
-                <span className="mt-1 border border-white/25 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider">
-                  View
-                </span>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-3">
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/60">
-                    Today
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold tabular-nums">
+                  <p className="text-[11px] text-white/55">Today</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tabular-nums">
                     {hub ? money(todayCollections, currency) : "—"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/60">
-                    Paid all-time
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold tabular-nums">
+                  <p className="text-[11px] text-white/55">Paid all-time</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tabular-nums">
                     {hub ? money(hub.totals.paid, currency) : "—"}
                   </p>
                 </div>
@@ -231,36 +203,94 @@ export default function SupplierPortalOverviewPage() {
             <Link
               href={APP_ROUTES.supplierPortalOrders}
               className={cn(
-                "mt-4 flex items-center justify-between gap-3 border",
-                "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-                "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] px-4 py-3.5 active:scale-[0.99]",
+                "flex items-center justify-between gap-3",
+                "bg-[linear-gradient(160deg,var(--pos-primary,#0f766e)_0%,#0d6a63_48%,#0a524c_100%)]",
+                "px-5 py-5 text-white active:brightness-95",
               )}
             >
               <div>
-                <p className={spEyebrow}>Pending orders</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+                <p className="text-[11px] font-medium text-white/70">Pending orders</p>
+                <p className="mt-1.5 font-[family-name:var(--font-heading)] text-[2.35rem] leading-none font-semibold tabular-nums">
                   {pendingOrders}
                 </p>
               </div>
-              <ChevronRight className="size-5 text-muted-foreground" />
+              <ChevronRight className="size-5 text-white/60" />
             </Link>
           )}
 
-          <div className="-mx-3 mt-4 flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <Link key={action.href} href={action.href} className={spQuickAction}>
-                  <span className="flex size-9 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)]">
-                    <Icon className="size-4" aria-hidden />
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--pos-ink,#1c1915)]">
-                    {action.label}
-                  </span>
+          {hasAttention ? (
+            <div className="space-y-1">
+              <p className="px-0.5 text-[13px] font-medium text-[var(--pos-ink,#1c1915)]">
+                Needs you
+              </p>
+              <div className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] border-y border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
+                {pendingOrders > 0 ? (
+                  <AttentionRow
+                    label="Pending orders"
+                    value={String(pendingOrders)}
+                    hint={
+                      staleOrders > 0
+                        ? `${staleOrders} waiting over 24h`
+                        : "Respond to keep shops moving"
+                    }
+                    href={APP_ROUTES.supplierPortalOrders}
+                    accent
+                  />
+                ) : null}
+                {partialPending > 0 ? (
+                  <AttentionRow
+                    label="Partial balances"
+                    value={money(partialPending, currency)}
+                    hint={`${partialShopCount} shop${partialShopCount === 1 ? "" : "s"} part-paid`}
+                    href={APP_ROUTES.supplierPortalInvoices}
+                    accent
+                  />
+                ) : null}
+              </div>
+            </div>
+          ) : loaded ? (
+            <div className="flex items-center gap-2.5 py-1 text-[14px] text-muted-foreground">
+              <span className="flex size-6 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)] text-[var(--pos-primary,#0f766e)]">
+                <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
+              </span>
+              You&apos;re caught up — nothing waiting.
+            </div>
+          ) : null}
+
+          {hub && hub.shops.length > 0 ? (
+            <div className="space-y-1">
+              <div className="flex items-baseline justify-between gap-3 px-0.5">
+                <p className="text-[13px] font-medium text-[var(--pos-ink,#1c1915)]">Shops</p>
+                <Link
+                  href={APP_ROUTES.supplierPortalShops}
+                  className="text-[13px] text-[var(--pos-primary,#0f766e)]"
+                >
+                  See all
                 </Link>
-              );
-            })}
-          </div>
+              </div>
+              <div className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] border-y border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
+                {hub.shops.slice(0, 4).map((shop) => (
+                  <Link
+                    key={shop.localSupplierId}
+                    href={`${APP_ROUTES.supplierPortalShops}/${shop.localSupplierId}`}
+                    className="flex min-h-14 items-center gap-3 py-3 active:opacity-70"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[15px] font-medium text-[var(--pos-ink,#1c1915)]">
+                        {shop.shopName}
+                      </p>
+                      {canViewMoney ? (
+                        <p className="mt-0.5 text-[13px] text-muted-foreground tabular-nums">
+                          Outstanding {money(shop.owed, currency)}
+                        </p>
+                      ) : null}
+                    </div>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         {/* Desktop header */}
@@ -283,7 +313,6 @@ export default function SupplierPortalOverviewPage() {
           <p className="border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
         ) : null}
 
-        {/* Desktop money grid */}
         {canViewMoney ? (
           <section className={cn(spPanel, "hidden lg:block")}>
             <div className={mktPosHeader}>
@@ -315,56 +344,12 @@ export default function SupplierPortalOverviewPage() {
           </section>
         ) : null}
 
-        {/* Needs attention — list on mobile, grid on desktop */}
-        <section className={spPanel}>
+        <section className={cn(spPanel, "hidden lg:block")}>
           <div className={mktPosHeader}>
-            <span className="lg:hidden">Needs attention</span>
-            <span className="hidden lg:inline">2 · Needs attention</span>
+            <span>2 · Needs attention</span>
             <span>{pendingOrders}</span>
           </div>
-
-          <div className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] lg:hidden">
-            <AttentionRow
-              label="Pending orders"
-              value={String(pendingOrders)}
-              hint={
-                staleOrders > 0
-                  ? `${staleOrders} awaiting confirmation > 24h`
-                  : pendingOrders > 0
-                    ? "Respond to keep shops moving"
-                    : "You're caught up"
-              }
-              href={APP_ROUTES.supplierPortalOrders}
-              accent={pendingOrders > 0}
-            />
-            {canViewMoney ? (
-              <AttentionRow
-                label="Partial balances"
-                value={hub ? money(hub.totals.pending, currency) : "—"}
-                hint={
-                  partialShopCount > 0
-                    ? `${partialShopCount} shop${partialShopCount === 1 ? "" : "s"} with part payment`
-                    : "No partial balances"
-                }
-                href={APP_ROUTES.supplierPortalInvoices}
-              />
-            ) : (
-              <AttentionRow
-                label="Catalogue"
-                value="Manage"
-                hint="Products you supply"
-                href={APP_ROUTES.supplierPortalCatalog}
-              />
-            )}
-            <AttentionRow
-              label="Total shops"
-              value={hub ? String(hub.shopCount) : "—"}
-              hint={shopsHint}
-              href={APP_ROUTES.supplierPortalShops}
-            />
-          </div>
-
-          <div className="hidden gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2 lg:grid lg:grid-cols-3">
+          <div className="grid gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2 lg:grid-cols-3">
             <MetricCard
               label="Pending orders"
               value={String(pendingOrders)}
@@ -406,40 +391,14 @@ export default function SupplierPortalOverviewPage() {
         </section>
 
         {hub && hub.shops.length > 0 ? (
-          <section className={spPanel}>
+          <section className={cn(spPanel, "hidden lg:block")}>
             <div className={mktPosHeader}>
-              <span className="lg:hidden">Your shops</span>
-              <span className="hidden lg:inline">3 · Shops</span>
+              <span>3 · Shops</span>
               <Link href={APP_ROUTES.supplierPortalShops} className="hover:underline">
                 View all →
               </Link>
             </div>
-
-            <div className="-mx-px flex gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory lg:hidden">
-              {hub.shops.slice(0, 6).map((shop) => (
-                <Link
-                  key={shop.localSupplierId}
-                  href={`${APP_ROUTES.supplierPortalShops}/${shop.localSupplierId}`}
-                  className={cn(
-                    "w-[11.5rem] shrink-0 snap-start border",
-                    "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
-                    "bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)] p-3 active:scale-[0.98]",
-                  )}
-                >
-                  <p className="truncate text-sm font-medium text-[var(--pos-ink,#1c1915)]">
-                    {shop.shopName}
-                  </p>
-                  <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                    Outstanding
-                  </p>
-                  <p className="mt-0.5 text-base font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
-                    {money(shop.owed, currency)}
-                  </p>
-                </Link>
-              ))}
-            </div>
-
-            <div className="hidden gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2 lg:grid">
+            <div className="grid gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2">
               {hub.shops.slice(0, 4).map((shop) => (
                 <Link
                   key={shop.localSupplierId}
@@ -496,14 +455,14 @@ function AttentionRow({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-3.5 py-3.5 active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]"
+      className="flex min-h-14 items-center gap-3 py-3.5 active:opacity-70"
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <p className={spEyebrow}>{label}</p>
+          <p className="text-[15px] font-medium text-[var(--pos-ink,#1c1915)]">{label}</p>
           <p
             className={cn(
-              "text-lg font-semibold tabular-nums",
+              "text-[15px] font-semibold tabular-nums",
               accent
                 ? "text-[var(--pos-primary,#0f766e)]"
                 : "text-[var(--pos-ink,#1c1915)]",
@@ -512,9 +471,9 @@ function AttentionRow({
             {value}
           </p>
         </div>
-        <p className="mt-0.5 truncate text-sm text-muted-foreground">{hint}</p>
+        <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{hint}</p>
       </div>
-      <ChevronRight className="size-4 shrink-0 text-muted-foreground/70" aria-hidden />
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
     </Link>
   );
 }

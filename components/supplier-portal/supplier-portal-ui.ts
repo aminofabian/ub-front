@@ -49,24 +49,13 @@ export const spBtnGhost =
   "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] hover:text-[var(--pos-ink,#1c1915)] " +
   "disabled:pointer-events-none disabled:opacity-50";
 
-/** Mobile app chrome — bottom tab + sheet surfaces */
-export const spAppHeader =
-  "sticky top-0 z-30 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] " +
-  "bg-[color-mix(in_srgb,#faf8f4_86%,transparent)] pt-[max(0.5rem,env(safe-area-inset-top))] " +
-  "backdrop-blur-xl supports-[backdrop-filter]:bg-[color-mix(in_srgb,#faf8f4_72%,transparent)]";
-
-export const spTabBar =
-  "shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] " +
-  "bg-[color-mix(in_srgb,#faf8f4_94%,transparent)] pb-[max(0.35rem,env(safe-area-inset-bottom))] " +
-  "backdrop-blur-xl supports-[backdrop-filter]:bg-[color-mix(in_srgb,#faf8f4_82%,transparent)]";
-
 export const spTabItem =
-  "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 px-1 " +
-  "text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground " +
+  "flex min-h-[3.25rem] flex-1 flex-col items-center justify-center gap-0.5 px-1 " +
+  "text-[10px] font-medium tracking-wide text-muted-foreground " +
   "transition-colors active:scale-95 touch-manipulation";
 
 export const spTabItemActive =
-  "text-[var(--pos-primary,#0f766e)]";
+  "text-[var(--pos-primary,#0f766e)] font-semibold";
 
 export const spQuickAction =
   "inline-flex min-w-[4.75rem] snap-start flex-col items-center gap-2 " +
@@ -76,3 +65,13 @@ export const spQuickAction =
 
 export const spRise =
   "animate-[sp-card-in_0.45s_cubic-bezier(0.22,1,0.36,1)_both]";
+
+export const spAppHeader =
+  "sticky top-0 z-30 " +
+  "bg-[color-mix(in_srgb,#faf8f4_78%,transparent)] pt-[max(0.4rem,env(safe-area-inset-top))] " +
+  "backdrop-blur-xl supports-[backdrop-filter]:bg-[color-mix(in_srgb,#faf8f4_62%,transparent)]";
+
+export const spTabBar =
+  "shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] " +
+  "bg-[color-mix(in_srgb,#faf8f4_96%,transparent)] pb-[max(0.25rem,env(safe-area-inset-bottom))] " +
+  "backdrop-blur-xl supports-[backdrop-filter]:bg-[color-mix(in_srgb,#faf8f4_88%,transparent)]";
