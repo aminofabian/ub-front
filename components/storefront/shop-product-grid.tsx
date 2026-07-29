@@ -167,7 +167,7 @@ export default function ShopProductGrid({
               <div className="flex min-h-0 flex-1 flex-col gap-2 px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
                 <Link
                   href={shopItemPathFromCard(item)}
-                  className="text-[13px] font-semibold leading-snug tracking-tight text-[var(--storefront-ink,#141816)] transition-colors hover:text-primary"
+                  className="text-[13px] font-medium leading-snug tracking-tight text-[var(--storefront-ink,#141816)] transition-colors hover:text-primary"
                   title={title}
                 >
                   {title}
