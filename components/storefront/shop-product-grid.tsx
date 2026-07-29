@@ -6,6 +6,11 @@ import Link from "next/link";
 
 import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-button";
 import { Button } from "@/components/ui/button";
+import {
+  cartLineQuantity,
+  findCartLine,
+  useShopCartOptional,
+} from "@/hooks/use-shop-cart";
 import { shopItemPathFromCard } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import {
@@ -18,10 +23,10 @@ import {
 import { cn } from "@/lib/utils";
 
 const CARD_SHELL =
-  "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/50 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03),0_6px_18px_-8px_rgba(0,0,0,0.1)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-border/80 hover:shadow-[0_2px_6px_rgba(0,0,0,0.04),0_14px_28px_-10px_rgba(0,0,0,0.14)]";
+  "group relative flex h-full flex-col overflow-hidden rounded-[2px] border border-[#e5e5e5] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-[border-color,box-shadow] duration-150 hover:border-[#d4d4d4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)]";
 
 const IMAGE_WELL =
-  "relative block aspect-[4/3] w-full overflow-hidden bg-[linear-gradient(165deg,oklch(0.975_0.003_95)_0%,oklch(0.955_0.005_95)_100%)] dark:bg-[linear-gradient(165deg,oklch(0.22_0.01_95)_0%,oklch(0.18_0.01_95)_100%)]";
+  "relative block aspect-square w-full overflow-hidden bg-white";
 
 function stockBadge(qty: number | null | undefined): {
   label: string;
@@ -35,15 +40,13 @@ function stockBadge(qty: number | null | undefined): {
   if (status === "out_of_stock") {
     return {
       label: "Out of stock",
-      className:
-        "border-destructive/25 bg-destructive/95 text-destructive-foreground shadow-sm",
+      className: "bg-destructive text-destructive-foreground",
       show: true,
     };
   }
   return {
     label: "Low stock",
-    className:
-      "border-amber-600/20 bg-amber-50 text-amber-900 shadow-sm dark:border-amber-400/30 dark:bg-amber-400/15 dark:text-amber-100",
+    className: "bg-amber-500 text-white",
     show: true,
   };
 }
@@ -53,13 +56,36 @@ function ProductImagePlaceholder({ name }: { name: string }) {
   return (
     <div className="flex h-full items-center justify-center">
       <span
-        className="flex size-11 items-center justify-center rounded-lg border border-border/50 bg-background/80 text-base font-semibold tracking-tight text-muted-foreground/35 shadow-sm backdrop-blur-sm"
+        className="flex size-10 items-center justify-center border border-[#e5e5e5] bg-[#fafafa] text-sm font-semibold tracking-tight text-muted-foreground/40"
         aria-hidden
       >
         {initial}
       </span>
     </div>
   );
+}
+
+function InCartQtyBadge({ itemId }: { itemId: string }) {
+  const cartCtx = useShopCartOptional();
+  const cartLine = findCartLine(cartCtx?.cart ?? null, itemId);
+  const qty = cartLine ? cartLineQuantity(cartLine.quantity) : 0;
+  if (qty <= 0) return null;
+  return (
+    <span
+      className="absolute left-0 top-0 z-20 flex size-6 items-center justify-center bg-[#1a7a5c] text-[11px] font-bold tabular-nums leading-none text-white"
+      aria-label={`${qty} in cart`}
+    >
+      {qty > 99 ? "99+" : qty}
+    </span>
+  );
+}
+
+function productTitle(
+  name: string,
+  variantSubtitle: string | null,
+): string {
+  if (!variantSubtitle) return name;
+  return `${name} · ${variantSubtitle}`;
 }
 
 export default function ShopProductGrid({
@@ -82,7 +108,7 @@ export default function ShopProductGrid({
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-20 text-center">
-        <div className="flex size-14 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground/50">
+        <div className="flex size-14 items-center justify-center border border-[#e5e5e5] bg-[#fafafa] text-muted-foreground/50">
           <PackageSearch className="size-6" aria-hidden />
         </div>
         <div>
@@ -105,12 +131,14 @@ export default function ShopProductGrid({
   const animateFrom = newFromIndex ?? 0;
 
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5">
+    <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-3 xl:grid-cols-5">
       {items.map((item, index) => {
         const isNew = index >= animateFrom;
         const variantSubtitle = formatCatalogVariantSubtitle(item.variantName);
-        const title = item.name;
-        const ariaTitle = variantSubtitle ? `${title} — ${variantSubtitle}` : title;
+        const title = productTitle(item.name, variantSubtitle);
+        const ariaTitle = variantSubtitle
+          ? `${item.name} — ${variantSubtitle}`
+          : item.name;
         const hasPrice = hasCatalogPrice(item.price);
         const priceLabel = hasPrice
           ? formatDisplayPrice(currency, item.price)
@@ -138,7 +166,7 @@ export default function ShopProductGrid({
                     src={item.imageUrl}
                     alt=""
                     fill
-                    className="object-contain p-1.5 transition-transform duration-300 ease-out group-hover:scale-[1.03] sm:p-2"
+                    className="object-contain p-3 sm:p-4"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                     unoptimized
                   />
@@ -146,49 +174,42 @@ export default function ShopProductGrid({
                   <ProductImagePlaceholder name={item.name} />
                 )}
 
+                {slug && !isOutOfStock && hasPrice && !inStoreOnly ? (
+                  <InCartQtyBadge itemId={item.id} />
+                ) : null}
+
                 {badge.show ? (
                   <span
                     className={cn(
-                      "absolute left-1.5 top-1.5 z-10 rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.08em] backdrop-blur-[2px]",
+                      "absolute right-0 top-0 z-10 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.06em]",
                       badge.className,
                     )}
                   >
                     {badge.label}
                   </span>
                 ) : inStoreOnly ? (
-                  <span className="absolute left-1.5 top-1.5 z-10 rounded-md border border-sky-700/20 bg-sky-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.08em] text-sky-900 shadow-sm backdrop-blur-[2px] dark:border-sky-400/30 dark:bg-sky-400/15 dark:text-sky-100">
+                  <span className="absolute right-0 top-0 z-10 bg-sky-700 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.06em] text-white">
                     In store
                   </span>
                 ) : null}
               </Link>
 
-              <div className="flex min-h-0 flex-1 flex-col px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3 sm:pt-2.5">
-                <div className="flex min-h-[3.25rem] flex-col gap-0.5 sm:min-h-[3.4rem]">
-                  <Link
-                    href={shopItemPathFromCard(item)}
-                    className="line-clamp-2 min-h-[2.5rem] text-[13px] font-medium leading-snug tracking-tight text-foreground transition-colors hover:text-primary"
-                    title={title}
-                  >
-                    {title}
-                  </Link>
-                  <p
-                    className={cn(
-                      "line-clamp-1 text-[11px] leading-snug text-muted-foreground",
-                      !variantSubtitle && "invisible",
-                    )}
-                    title={variantSubtitle ?? undefined}
-                  >
-                    {variantSubtitle ?? "\u00a0"}
-                  </p>
-                </div>
+              <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-2.5 pb-2.5 pt-1.5 sm:px-3 sm:pb-3 sm:pt-2">
+                <Link
+                  href={shopItemPathFromCard(item)}
+                  className="line-clamp-2 min-h-[2.5rem] text-[13px] font-bold leading-snug tracking-tight text-[#1a1a1a] transition-colors hover:text-primary"
+                  title={title}
+                >
+                  {title}
+                </Link>
 
-                <div className="mt-auto flex flex-col gap-2 border-t border-border/40 pt-2">
+                <div className="mt-auto flex items-center justify-between gap-2">
                   {priceLabel ? (
-                    <p className="text-[13px] font-semibold tabular-nums tracking-tight text-foreground">
+                    <p className="shrink-0 text-[13px] font-bold tabular-nums tracking-tight text-[#1a1a1a]">
                       {priceLabel}
                     </p>
                   ) : (
-                    <p className="invisible text-[13px] font-semibold" aria-hidden>
+                    <p className="invisible shrink-0 text-[13px] font-bold" aria-hidden>
                       —
                     </p>
                   )}
@@ -200,17 +221,16 @@ export default function ShopProductGrid({
                       ariaLabel={`Add ${ariaTitle} to basket`}
                       variant="card"
                       maxQty={item.qtyOnHand}
-                      className="w-full"
                     />
                   ) : !hasPrice ? (
                     <Link
                       href={shopItemPathFromCard(item)}
-                      className="inline-flex h-9 w-full items-center justify-center rounded-full bg-primary/8 text-[12px] font-semibold tracking-tight text-primary ring-1 ring-primary/15 transition-colors hover:bg-primary/12"
+                      className="inline-flex h-7 shrink-0 items-center justify-center border border-[#d4d4d4] px-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#525252] transition-colors hover:border-[#a3a3a3] hover:text-[#1a1a1a]"
                     >
-                      View options
+                      Options
                     </Link>
                   ) : (
-                    <div className="h-9" aria-hidden />
+                    <div className="h-7 w-16" aria-hidden />
                   )}
                 </div>
               </div>
