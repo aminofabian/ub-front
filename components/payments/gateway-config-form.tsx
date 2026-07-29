@@ -103,6 +103,10 @@ export function GatewayConfigForm({
 
   const validate = (): string | null => {
     if (gatewayType === "KOPOKOPO") {
+      const till = tillNumber.trim() || credentialSettings?.tillNumber?.trim() || "";
+      if (till.includes(",") || till.includes(" ")) {
+        return "Till number must be a single till (digits only). Put extra tills under Webhook tills.";
+      }
       const hasTill =
         tillNumber.trim() !== "" ||
         Boolean(credentialSettings?.tillNumber?.trim());
@@ -249,25 +253,24 @@ export function GatewayConfigForm({
           </FormDrawerFields>
           <FormDrawerFields
             legend="Till number *"
-            hint="M-Pesa till for STK Push (from your KopoKopo dashboard). Required for storefront checkout."
+            hint="Single M-Pesa till for STK Push (from your KopoKopo dashboard). One number only."
           >
             <input
               type="text"
               inputMode="numeric"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-              placeholder="e.g. 123456"
+              placeholder="e.g. 3502582"
               value={tillNumber}
-              onChange={(e) => setTillNumber(e.target.value)}
+              onChange={(e) => setTillNumber(e.target.value.replace(/[^\d]/g, ""))}
               required
             />
           </FormDrawerFields>
           <FormDrawerFields
             legend="Webhook tills"
-            hint="Extra till numbers (comma-separated) to subscribe for buygoods webhooks — e.g. 3020127,3502582."
+            hint="All tills that should fire buygoods webhooks (comma-separated). After save, click Till webhooks on the ACTIVE KopoKopo row."
           >
             <input
               type="text"
-              inputMode="numeric"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
               placeholder="3020127,3502582"
               value={webhookTillNumbers}

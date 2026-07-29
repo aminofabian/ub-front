@@ -458,11 +458,15 @@ export default function PaymentGatewaySettingsPage() {
                                     config.id,
                                   );
                                 const fromCreds = [
-                                  settings.tillNumber,
-                                  ...(settings.webhookTillNumbers ?? "")
-                                    .split(/[,\s]+/)
-                                    .map((t) => t.trim()),
-                                ].filter((t): t is string => Boolean(t));
+                                  ...(settings.tillNumber ?? "").split(
+                                    /[,\s]+/,
+                                  ),
+                                  ...(settings.webhookTillNumbers ?? "").split(
+                                    /[,\s]+/,
+                                  ),
+                                ]
+                                  .map((t) => t.trim())
+                                  .filter((t) => /^\d{5,12}$/.test(t));
                                 if (fromCreds.length > 0) {
                                   tills = [...new Set(fromCreds)];
                                 }

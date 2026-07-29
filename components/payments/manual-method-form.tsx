@@ -47,6 +47,8 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
     parseInitialField(initial?.displayInstructionsJson, "instructions"),
   );
 
+  const [formError, setFormError] = useState("");
+
   const buildPayload = (): CreateGatewayConfigPayload => {
     const display: Record<string, string> = {
       type: methodType,
@@ -82,11 +84,27 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (methodType === "till") {
+      const till = tillNumber.trim();
+      if (!/^\d{5,12}$/.test(till)) {
+        setFormError(
+          "Enter a single till number (digits only). For KopoKopo webhook activation, use the KopoKopo gateway — not Manual.",
+        );
+        return;
+      }
+    }
+    setFormError("");
     await onSave(buildPayload());
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {formError ? (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {formError}
+        </p>
+      ) : null}
+
       <FormDrawerFields legend="Method type">
         <div className="flex gap-2">
           {(["till", "paybill", "bank_account"] as ManualType[]).map((t) => (
@@ -118,13 +136,18 @@ export function ManualMethodForm({ onSave, onCancel, saving, initial }: Props) {
       </FormDrawerFields>
 
       {methodType === "till" && (
-        <FormDrawerFields legend="Till number *" hint="The M-Pesa Buy Goods till number.">
+        <FormDrawerFields
+          legend="Till number *"
+          hint="One Buy Goods till for display on receipts / checkout only. This does not activate KopoKopo webhooks — use an ACTIVE KopoKopo gateway + Till webhooks for that."
+        >
           <input
             type="text"
+            inputMode="numeric"
+            pattern="[0-9]+"
             className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-            placeholder="5123456"
+            placeholder="e.g. 3502582"
             value={tillNumber}
-            onChange={(e) => setTillNumber(e.target.value)}
+            onChange={(e) => setTillNumber(e.target.value.replace(/[^\d]/g, ""))}
             required
           />
         </FormDrawerFields>
