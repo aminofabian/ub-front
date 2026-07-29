@@ -37,6 +37,7 @@ import {
   SupplyTableSkeleton,
 } from "../../supplies/_components/new-supply-drawer-ui";
 
+import { joinProductNameParts } from "@/lib/catalog-display";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { sortCatalogRowsParentFirst } from "../../products/_components/catalog-list-styles";
 import { SupEmptyState, SupSection } from "./supplier-layout-primitives";
@@ -1077,10 +1078,11 @@ export function SupplierCatalogColumn({
                             className="truncate pl-4 text-[10px] text-muted-foreground"
                             title={`Parent product: ${row.parentItemName.trim()}`}
                           >
-                            Parent · {row.parentItemName.trim()}
-                            {row.variantName?.trim()
-                              ? ` · ${row.variantName.trim()}`
-                              : ""}
+                            Parent ·{" "}
+                            {joinProductNameParts(
+                              row.parentItemName,
+                              row.variantName,
+                            )}
                           </p>
                         ) : null}
                       </div>

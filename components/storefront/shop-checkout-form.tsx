@@ -80,6 +80,7 @@ import {
 } from "@/lib/api";
 import { useClientHasSession } from "@/hooks/use-client-session";
 import { getSessionTokens } from "@/lib/auth";
+import { joinProductNameParts } from "@/lib/catalog-display";
 import { APP_ROUTES } from "@/lib/config";
 import {
   formatDisplayPrice,
@@ -1410,7 +1411,9 @@ export default function ShopCheckoutForm({
                 className="flex items-start justify-between gap-3 border-b border-border/60 py-2 last:border-0"
               >
                 <span className="min-w-0 font-medium text-foreground">
-                  {line.variantName ? `${line.name} · ${line.variantName}` : line.name}
+                  {line.variantName
+                    ? joinProductNameParts(line.name, line.variantName)
+                    : line.name}
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">Qty {line.quantity}</span>
               </li>

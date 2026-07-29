@@ -1,8 +1,10 @@
 import type { ItemSummaryRecord } from "@/lib/api";
 import {
   CATALOG_FIX_NAME_LABEL,
+  joinProductNameParts,
   looksLikeUuid,
   resolveCatalogItemName,
+  withProductCode,
 } from "@/lib/catalog-display";
 
 /** Import / legacy rows sometimes store placeholder text instead of a real option label. */
@@ -19,7 +21,7 @@ export function isGenericVariantLabel(raw: string | undefined): boolean {
 /** Title for POS lists: parent name plus option label when this row is a variant SKU. */
 export function cashierItemPrimaryLabel(row: ItemSummaryRecord): string {
   const { primary, option } = cashierItemTitleParts(row);
-  return option ? `${primary} · ${option}` : primary;
+  return option ? joinProductNameParts(primary, option) : primary;
 }
 
 /**
@@ -139,17 +141,17 @@ function enrichWeakProductName(name: string, row: ItemSummaryRecord): string {
       /^(\d+)\s*[·•]\s*(\d+(?:\.\d+)?\s*(?:kg|g|ml|l|pcs?)?)\s*$/i,
     );
   if (family && numericPlusSize?.[1] && numericPlusSize[2]) {
-    return `${family} ${numericPlusSize[1]} · ${numericPlusSize[2].trim()}`;
+    return `${family} ${numericPlusSize[1]} ${numericPlusSize[2].trim()}`;
   }
   if (family && /^\d+$/.test(trimmed)) {
     const unit = size || humanizeSkuSuffix(row.sku);
-    return unit ? `${family} ${trimmed} · ${unit}` : `${family} ${trimmed}`;
+    return unit ? `${family} ${trimmed} ${unit}` : `${family} ${trimmed}`;
   }
   if (brand && size) {
     return `${brand} ${size}`;
   }
   if (family && /^\d+\s*for\s*\d+/i.test(trimmed)) {
-    return `${family} · ${trimmed}`;
+    return `${family} ${trimmed}`;
   }
   if (family) {
     return family;
@@ -157,10 +159,10 @@ function enrichWeakProductName(name: string, row: ItemSummaryRecord): string {
   // Last resort: never leave cashiers with a bare code + size as the title.
   if (/^\d+$/.test(trimmed)) {
     const unit = size || humanizeSkuSuffix(row.sku);
-    return unit ? `Item ${trimmed} · ${unit}` : `Item ${trimmed}`;
+    return unit ? `Item ${trimmed} ${unit}` : `Item ${trimmed}`;
   }
   if (numericPlusSize?.[1] && numericPlusSize[2]) {
-    return `Item ${numericPlusSize[1]} · ${numericPlusSize[2].trim()}`;
+    return `Item ${numericPlusSize[1]} ${numericPlusSize[2].trim()}`;
   }
   return name;
 }
@@ -269,10 +271,10 @@ export function itemCatalogDisplayTitle(row: ItemSummaryRecord): string {
   }
   const option = row.variantName?.trim();
   if (option && !isGenericVariantLabel(option) && !looksLikeUuid(option)) {
-    return `${name} · ${option}`;
+    return joinProductNameParts(name, option);
   }
   const sku = row.sku?.trim();
-  return sku && !looksLikeUuid(sku) ? `${name} · ${sku}` : name;
+  return sku && !looksLikeUuid(sku) ? withProductCode(name, sku) : name;
 }
 
 /** Barcode-mirror / import-placeholder SKUs — not shown on POS; prefer availability instead. */

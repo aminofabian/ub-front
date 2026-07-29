@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { PublicStorefrontPayload } from "@/lib/public-storefront";
 import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
+import { joinProductNameParts } from "@/lib/catalog-display";
 import { APP_ROUTES, shopItemPathFromCard } from "@/lib/config";
 
 export default function ShopWindow({ data }: { data: PublicStorefrontPayload }) {
@@ -52,7 +53,7 @@ export default function ShopWindow({ data }: { data: PublicStorefrontPayload }) 
           {featured.map((item) => {
             const href = shopItemPathFromCard(item);
             const title = item.variantName
-              ? `${item.name} · ${item.variantName}`
+              ? joinProductNameParts(item.name, item.variantName)
               : item.name;
             const priceLabel = formatDisplayPrice(data.currency, item.price);
             const stockLabel = formatStoreQty(item.qtyOnHand);

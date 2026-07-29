@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 
+import { joinProductNameParts } from "@/lib/catalog-display";
 import { shopItemPathFromCard } from "@/lib/shop-item-url";
 import type {
   PublicCatalogItemDetail,
@@ -80,7 +81,7 @@ export function ShopItemVariantPicker({
           const selected = v.id === item.id;
           const label = variantLabel(v);
           const title = v.variantName
-            ? `${v.name} · ${v.variantName}`
+            ? joinProductNameParts(v.name, v.variantName)
             : v.name;
           const priceLabel = hasCatalogPrice(v.price)
             ? formatDisplayPrice(item.currency, v.price)

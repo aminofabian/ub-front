@@ -12,6 +12,7 @@ import {
   findCartLine,
   useShopCartOptional,
 } from "@/hooks/use-shop-cart";
+import { joinProductNameParts } from "@/lib/catalog-display";
 import { shopItemPathFromCard } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import {
@@ -67,8 +68,7 @@ function productTitle(
   name: string,
   variantSubtitle: string | null,
 ): string {
-  if (!variantSubtitle) return name;
-  return `${name} · ${variantSubtitle}`;
+  return joinProductNameParts(name, variantSubtitle);
 }
 
 export default function ShopProductGrid({
@@ -126,9 +126,7 @@ export default function ShopProductGrid({
         const isNew = index >= animateFrom;
         const variantSubtitle = formatCatalogVariantSubtitle(item.variantName);
         const title = productTitle(item.name, variantSubtitle);
-        const ariaTitle = variantSubtitle
-          ? `${item.name} — ${variantSubtitle}`
-          : item.name;
+        const ariaTitle = title;
         const hasPrice = hasCatalogPrice(item.price);
         const priceLabel = hasPrice
           ? formatDisplayPrice(currency, item.price)

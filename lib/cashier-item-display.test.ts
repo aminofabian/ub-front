@@ -135,8 +135,8 @@ describe("cashier labels", () => {
       variantName: "Single",
       variantOfItemId: "p",
     };
-    expect(cashierItemPrimaryLabel(tray)).toBe("Eggs · Tray of 30");
-    expect(cashierItemPrimaryLabel(single)).toBe("Eggs · Single");
+    expect(cashierItemPrimaryLabel(tray)).toBe("Eggs Tray of 30");
+    expect(cashierItemPrimaryLabel(single)).toBe("Eggs Single");
   });
 
   it("enriches weak promo and numeric names from SKU family", () => {
@@ -146,21 +146,21 @@ describe("cashier labels", () => {
         name: "3 for 20",
         sku: "TOMATO-10002-3-FOR-20",
       }),
-    ).toBe("Tomatoes · 3 for 20");
+    ).toBe("Tomatoes 3 For 20");
     expect(
       cashierItemPrimaryLabel({
         id: "f",
         name: "210",
         sku: "FLOURS-10001-1KG",
       }),
-    ).toBe("Flour 210 · 1kg");
+    ).toBe("Flour 210 1kg");
     expect(
       cashierItemPrimaryLabel({
         id: "f2",
         name: "210 1kg",
         sku: "FLOURS-10001-1KG",
       }),
-    ).toBe("Flour 210 · 1kg");
+    ).toBe("Flour 210 1kg");
     expect(
       cashierItemPrimaryLabel({
         id: "f3",
@@ -169,7 +169,7 @@ describe("cashier labels", () => {
         size: "1kg",
         categoryName: "Soap",
       }),
-    ).toBe("Soap 210 · 1kg");
+    ).toBe("Soap 210 1kg");
     expect(
       cashierItemPrimaryLabel({
         id: "f4",
@@ -177,7 +177,7 @@ describe("cashier labels", () => {
         sku: "X-9",
         size: "1kg",
       }),
-    ).toBe("Item 210 · 1kg");
+    ).toBe("Item 210 1kg");
   });
 
   it("never appends SKU to cart suffix", () => {

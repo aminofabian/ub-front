@@ -11,6 +11,7 @@ import {
   mergeVariantOptions,
   ShopItemVariantPicker,
 } from "@/components/storefront/shop-item-variant-picker";
+import { joinProductNameParts } from "@/lib/catalog-display";
 import { APP_BASE_URL, APP_ROUTES } from "@/lib/config";
 import { looksLikeKenyanMobilePath, toKenyanLocal07 } from "@/lib/kenyan-phone";
 import {
@@ -70,7 +71,7 @@ export async function generateMetadata({
   if (!item)
     return { title: `Product · ${shopLabel}`, alternates: { canonical } };
   const heading = item.variantName
-    ? `${item.name} · ${item.variantName}`
+    ? joinProductNameParts(item.name, item.variantName)
     : item.name;
   const pricePart = hasCatalogPrice(item.price)
     ? formatDisplayPrice(item.currency, item.price)

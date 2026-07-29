@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { joinProductNameParts } from "@/lib/catalog-display";
 import { shopItemPath } from "@/lib/config";
 import { formatCartQty, formatDisplayPrice } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ export function ShopCartLines({
     <ul className={cn("space-y-3", compact && "space-y-2")}>
       {cart.lines.map((line) => {
         const title = line.variantName
-          ? `${line.name} · ${line.variantName}`
+          ? joinProductNameParts(line.name, line.variantName)
           : line.name;
         const unitPrice = formatDisplayPrice(cart.currency, line.unitPrice);
         const lineTotal = formatDisplayPrice(cart.currency, line.lineTotal);

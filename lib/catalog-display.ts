@@ -131,6 +131,61 @@ export type CatalogNameResolution = {
   needsNameFix: boolean;
 };
 
+/** Collective words that read as noise once a family name is folded into a product title. */
+const FAMILY_FILLER_WORDS = new Set([
+  "product",
+  "products",
+  "brand",
+  "brands",
+  "range",
+  "collection",
+]);
+
+function trimFamilyFiller(family: string): string {
+  const words = family.split(" ");
+  if (words.length < 2) return family;
+  return FAMILY_FILLER_WORDS.has(words[words.length - 1].toLowerCase())
+    ? words.slice(0, -1).join(" ")
+    : family;
+}
+
+function containsPhrase(haystack: string, needle: string): boolean {
+  if (haystack === needle) return true;
+  return (
+    haystack.startsWith(`${needle} `) ||
+    haystack.endsWith(` ${needle}`) ||
+    haystack.includes(` ${needle} `)
+  );
+}
+
+/**
+ * Reads a family and an option label as a single product title:
+ * "Velvex Products" + "Scouring Powder Lavender Fragrance 1Kg"
+ * → "Velvex Scouring Powder Lavender Fragrance 1Kg".
+ *
+ * Drops whichever part already contains the other so brands and pack sizes are never repeated.
+ */
+export function joinProductNameParts(
+  family: string | null | undefined,
+  option: string | null | undefined,
+): string {
+  const opt = option?.trim().replace(/\s+/g, " ") ?? "";
+  const fam = trimFamilyFiller(family?.trim().replace(/\s+/g, " ") ?? "");
+  if (!fam) return opt;
+  if (!opt) return fam;
+
+  const famLower = fam.toLowerCase();
+  const optLower = opt.toLowerCase();
+  if (containsPhrase(optLower, famLower)) return opt;
+  if (containsPhrase(famLower, optLower)) return fam;
+  return `${fam} ${opt}`;
+}
+
+/** Appends a code (SKU / barcode) that identifies a row but isn't part of the product's name. */
+export function withProductCode(name: string, code: string): string {
+  return `${name} (${code})`;
+}
+
 function usableLabel(value: string | null | undefined): string | null {
   const t = value?.trim();
   if (!t || isGarbageProductName(t)) return null;
@@ -238,7 +293,7 @@ export type CatalogVariantListTitle = {
   family: string | null;
   /** Option / pack label (e.g. "Single 60 Sticks"). */
   option: string;
-  /** Screen-reader / combined title: "Rhino Kubwa · Single 60 Sticks". */
+  /** Screen-reader / combined title: "Rhino Kubwa Single 60 Sticks". */
   combined: string;
   needsNameFix: boolean;
 };
@@ -252,7 +307,7 @@ function labelsMatch(a: string, b: string): boolean {
  *
  * When the parent row is already on screen (browse), keep the compact option-only
  * title under the parent. When the parent is missing (typical search hit), surface
- * the family name so "Single 60 Sticks" becomes "Rhino Kubwa · Single 60 Sticks".
+ * the family name so "Single 60 Sticks" becomes "Rhino Kubwa Single 60 Sticks".
  */
 export function resolveCatalogVariantListTitle(
   row: {
@@ -318,7 +373,7 @@ export function resolveCatalogVariantListTitle(
   return {
     family,
     option,
-    combined: `${family} · ${option}`,
+    combined: joinProductNameParts(family, option),
     needsNameFix: optionRes.needsNameFix,
   };
 }

@@ -9,6 +9,7 @@ import { ShopCartLinesScroll } from "@/components/storefront/shop-cart-lines-scr
 import { Button } from "@/components/ui/button";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { useShopCart } from "@/hooks/use-shop-cart";
+import { joinProductNameParts } from "@/lib/catalog-display";
 import { APP_ROUTES } from "@/lib/config";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
@@ -116,7 +117,7 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
   const focusedLine = focusMode && cart ? cart.lines.find((l) => l.itemId === focusItemId) : null;
   const focusedTitle = focusedLine
     ? focusedLine.variantName
-      ? `${focusedLine.name} · ${focusedLine.variantName}`
+      ? joinProductNameParts(focusedLine.name, focusedLine.variantName)
       : focusedLine.name
     : null;
 

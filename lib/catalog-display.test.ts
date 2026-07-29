@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  joinProductNameParts,
   normalizeProductDisplayName,
   resolveCatalogVariantListTitle,
 } from "./catalog-display";
@@ -26,8 +27,40 @@ describe("normalizeProductDisplayName", () => {
   });
 });
 
+describe("joinProductNameParts", () => {
+  it("reads family and option as one name", () => {
+    expect(
+      joinProductNameParts("Velvex Products", "Scouring Powder Lavender Fragrance 1Kg"),
+    ).toBe("Velvex Scouring Powder Lavender Fragrance 1Kg");
+    expect(joinProductNameParts("Velvex Scouring Powder", "1Kg")).toBe(
+      "Velvex Scouring Powder 1Kg",
+    );
+  });
+
+  it("never repeats a part the other already contains", () => {
+    expect(joinProductNameParts("Velvex Tissue White 8Pack", "Tissue White 8Pack")).toBe(
+      "Velvex Tissue White 8Pack",
+    );
+    expect(joinProductNameParts("Velvex", "Velvex Tissue 4Pack")).toBe(
+      "Velvex Tissue 4Pack",
+    );
+  });
+
+  it("keeps a family whose last word only looks like filler", () => {
+    expect(joinProductNameParts("Rhino", "Single 60 Sticks")).toBe(
+      "Rhino Single 60 Sticks",
+    );
+    expect(joinProductNameParts("Products", "Assorted 1Kg")).toBe("Products Assorted 1Kg");
+  });
+
+  it("handles a missing part", () => {
+    expect(joinProductNameParts("Velvex Tissue", null)).toBe("Velvex Tissue");
+    expect(joinProductNameParts(null, "Tissue 4Pack")).toBe("Tissue 4Pack");
+  });
+});
+
 describe("resolveCatalogVariantListTitle", () => {
-  it("shows family · option when parent is not in the list (search hits)", () => {
+  it("shows family plus option when parent is not in the list (search hits)", () => {
     const title = resolveCatalogVariantListTitle({
       name: "Rhino Kubwa",
       sku: "MATCHE-10003-SINGLE-60-STICKS",
@@ -35,7 +68,7 @@ describe("resolveCatalogVariantListTitle", () => {
     });
     expect(title.family).toBe("Rhino Kubwa");
     expect(title.option).toBe("Single 60 Sticks");
-    expect(title.combined).toBe("Rhino Kubwa · Single 60 Sticks");
+    expect(title.combined).toBe("Rhino Kubwa Single 60 Sticks");
   });
 
   it("keeps option-only title when parent row is already on screen", () => {
@@ -62,7 +95,7 @@ describe("resolveCatalogVariantListTitle", () => {
       brand: "Rhino Kubwa",
     });
     expect(title.family).toBe("Rhino Kubwa");
-    expect(title.combined).toBe("Rhino Kubwa · Single 60 Sticks");
+    expect(title.combined).toBe("Rhino Kubwa Single 60 Sticks");
   });
 
   it("peels a repeated option suffix off a long name", () => {
@@ -71,6 +104,6 @@ describe("resolveCatalogVariantListTitle", () => {
       variantName: "Single 60 Sticks",
     });
     expect(title.family).toBe("Rhino Kubwa");
-    expect(title.combined).toBe("Rhino Kubwa · Single 60 Sticks");
+    expect(title.combined).toBe("Rhino Kubwa Single 60 Sticks");
   });
 });
