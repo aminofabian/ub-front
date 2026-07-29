@@ -1,6 +1,6 @@
 import { API_ROUTES, apiUrl } from "@/lib/config";
 import { buildRequestHeaders } from "@/lib/api";
-import { getProblemTitle } from "@/lib/problem";
+import { getProblemTitle, isSessionRelatedProblem } from "@/lib/problem";
 import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
 import { getSessionTokens } from "@/lib/auth";
 import {
@@ -8,6 +8,7 @@ import {
   getSupplierPortalAccessToken,
   setSupplierPortalAccessToken,
   setSupplierPortalSessionId,
+  signOutSupplierPortalAndRedirectToLogin,
 } from "@/lib/supplier-portal-session";
 import type { ItemsPageResult } from "@/lib/api";
 
@@ -314,6 +315,7 @@ async function supplierPortalFetch<T>(
 ): Promise<T> {
   const token = getSupplierPortalAccessToken();
   if (!token) {
+    signOutSupplierPortalAndRedirectToLogin("missing access token");
     throw new Error("Supplier session expired. Sign in again.");
   }
   const method = (init.method ?? "GET").toUpperCase();
@@ -337,6 +339,9 @@ async function supplierPortalFetch<T>(
   }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (isSessionRelatedProblem(response.status, payload)) {
+      signOutSupplierPortalAndRedirectToLogin(getProblemTitle(payload));
+    }
     throw new Error(getProblemTitle(payload));
   }
   return payload as T;
@@ -1031,6 +1036,7 @@ export async function downloadSupplierPortalStatement(opts: {
 }): Promise<void> {
   const token = getSupplierPortalAccessToken();
   if (!token) {
+    signOutSupplierPortalAndRedirectToLogin("missing access token");
     throw new Error("Sign in required");
   }
   const params = new URLSearchParams({
@@ -1044,6 +1050,9 @@ export async function downloadSupplierPortalStatement(opts: {
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
+    if (isSessionRelatedProblem(response.status, payload)) {
+      signOutSupplierPortalAndRedirectToLogin(getProblemTitle(payload));
+    }
     throw new Error(getProblemTitle(payload) || "Download failed");
   }
   const blob = await response.blob();
@@ -1252,6 +1261,7 @@ export async function downloadSupplierPortalReport(
 ): Promise<void> {
   const token = getSupplierPortalAccessToken();
   if (!token) {
+    signOutSupplierPortalAndRedirectToLogin("missing access token");
     throw new Error("Sign in required");
   }
   const response = await fetch(
@@ -1260,6 +1270,9 @@ export async function downloadSupplierPortalReport(
   );
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
+    if (isSessionRelatedProblem(response.status, payload)) {
+      signOutSupplierPortalAndRedirectToLogin(getProblemTitle(payload));
+    }
     throw new Error(getProblemTitle(payload) || "Download failed");
   }
   const blob = await response.blob();

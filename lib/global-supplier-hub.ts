@@ -5,8 +5,10 @@ import {
   type MarketplaceSupplierDetail,
   type MarketplaceSupplierSearchRow,
 } from "@/lib/marketplace-api";
+import { isSessionRelatedProblem } from "@/lib/problem";
 import {
   getSupplierPortalAccessToken,
+  signOutSupplierPortalAndRedirectToLogin,
 } from "@/lib/supplier-portal-session";
 import type { PublicSupplierSupplyRow } from "@/lib/public-supplier-portal";
 
@@ -60,14 +62,22 @@ export type GlobalSupplierStorefront = {
   source: "claimed" | "directory" | null;
 };
 
-async function readJson<T>(res: Response): Promise<T> {
+async function readJson<T>(
+  res: Response,
+  options?: { supplierAuth?: boolean },
+): Promise<T> {
   if (!res.ok) {
+    let body: unknown = {};
     let detail = res.statusText;
     try {
-      const body = (await res.json()) as { detail?: string; title?: string };
-      detail = body.detail || body.title || detail;
+      body = await res.json();
+      const problem = body as { detail?: string; title?: string };
+      detail = problem.detail || problem.title || detail;
     } catch {
       /* ignore */
+    }
+    if (options?.supplierAuth && isSessionRelatedProblem(res.status, body)) {
+      signOutSupplierPortalAndRedirectToLogin(detail || "session expired");
     }
     throw new Error(detail || `Request failed (${res.status})`);
   }
@@ -192,6 +202,7 @@ export async function fetchHubShopSupplies(
 ): Promise<GlobalHubShopDetail> {
   const token = getSupplierPortalAccessToken();
   if (!token) {
+    signOutSupplierPortalAndRedirectToLogin("missing access token");
     throw new Error("Sign in required");
   }
   const res = await fetch(
@@ -206,7 +217,7 @@ export async function fetchHubShopSupplies(
       cache: "no-store",
     },
   );
-  return readJson<GlobalHubShopDetail>(res);
+  return readJson<GlobalHubShopDetail>(res, { supplierAuth: true });
 }
 
 export async function submitHubShopComplaint(
@@ -215,6 +226,7 @@ export async function submitHubShopComplaint(
 ): Promise<void> {
   const token = getSupplierPortalAccessToken();
   if (!token) {
+    signOutSupplierPortalAndRedirectToLogin("missing access token");
     throw new Error("Sign in required");
   }
   const res = await fetch(
@@ -234,5 +246,5 @@ export async function submitHubShopComplaint(
       }),
     },
   );
-  await readJson<{ ok: boolean }>(res);
+  await readJson<{ ok: boolean }>(res, { supplierAuth: true });
 }
