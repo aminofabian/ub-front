@@ -127,15 +127,25 @@ export function CashierShell({ children }: CashierShellProps) {
           "dark:border-border/50 dark:bg-background/90",
         )}
       >
-        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 px-3 py-1.5 sm:px-4">
-          <div className="flex min-w-0 flex-col">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="pos-market-section-label truncate text-[1.05rem] leading-none sm:text-lg">
-                {loading ? "Loading…" : business?.name?.trim() || "Cashier"}
-              </span>
+        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2 sm:px-4 xl:flex-nowrap">
+          <div className="flex min-w-0 shrink-0 flex-col gap-1">
+            <span className="pos-market-section-label truncate text-[1.05rem] leading-none sm:text-lg">
+              {loading ? "Loading…" : business?.name?.trim() || "Cashier"}
+            </span>
+            <div className="flex min-w-0 items-center gap-2">
+              {(cashierName && !loading) || tillLabel ? (
+                <p
+                  className="max-w-52 truncate text-[11px] font-medium text-muted-foreground"
+                  title={[cashierName, tillLabel].filter(Boolean).join(" · ")}
+                >
+                  {[cashierName && !loading ? cashierName : null, tillLabel]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              ) : null}
               <span
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                  "inline-flex shrink-0 items-center gap-1.5 border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]",
                   online
                     ? "border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] text-[var(--pos-primary)]"
                     : "border-amber-700/25 bg-amber-100/80 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100",
@@ -152,17 +162,9 @@ export function CashierShell({ children }: CashierShellProps) {
               </span>
               <RealtimeConnectionIndicator />
             </div>
-            {(cashierName && !loading) || tillLabel ? (
-              <p
-                className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground"
-                title={[cashierName, tillLabel].filter(Boolean).join(" · ")}
-              >
-                {[cashierName && !loading ? cashierName : null, tillLabel]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-            ) : null}
-            <div className="mt-1 flex flex-wrap items-center gap-2">
+          </div>
+
+          <div className="order-3 flex w-full flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2 xl:order-none xl:w-auto xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
               {branchLockedRole ? (
                 currentBranch ? (
                   <span
@@ -228,9 +230,9 @@ export function CashierShell({ children }: CashierShellProps) {
                   </>
                 )}
               </select>
-            </div>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-x-1 gap-y-1">
+
+          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-x-1 gap-y-1">
             {canManageCashierCapabilities ? (
               <>
                 <Button
