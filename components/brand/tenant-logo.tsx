@@ -275,11 +275,13 @@ export function TenantLogo({
   }
 
   if (variant === "sidebar-mark") {
-    const inner = logo ? (
+    const inner = favicon ? (
+      <TenantFavicon src={favicon} px={40} />
+    ) : logo ? (
       <TenantLogoImage
         src={logo}
         alt={brand}
-        className="h-10 w-auto max-w-[9rem] object-contain object-left"
+        className="max-h-10 max-w-10 object-contain object-center"
       />
     ) : (
       <TenantMonogramMark
@@ -296,7 +298,16 @@ export function TenantLogo({
         </Link>
       );
     }
-    return <span className={cn("inline-flex shrink-0", className)}>{inner}</span>;
+    return (
+      <span
+        className={cn(
+          "inline-flex size-full max-h-11 max-w-11 shrink-0 items-center justify-center overflow-hidden",
+          className,
+        )}
+      >
+        {inner}
+      </span>
+    );
   }
 
   if (variant === "footer") {

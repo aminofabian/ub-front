@@ -54,6 +54,7 @@ export type DesktopNavSection = {
   title: string;
   shortLabel: string;
   blurb?: string;
+  hidePanelHeading?: boolean;
   icon: LucideIcon;
   entryHref: string;
   items: readonly DesktopNavItem[];
@@ -381,7 +382,9 @@ function SubNavPanel({
           "flex border-b border-border/50",
           compact
             ? "flex-col items-center gap-1 px-1.5 py-3"
-            : "items-start justify-between gap-2 px-4 py-[0.9rem]",
+            : section.hidePanelHeading
+              ? "justify-end px-2 py-2"
+              : "items-start justify-between gap-2 px-4 py-[0.9rem]",
         )}
       >
         {compact ? (
@@ -396,22 +399,27 @@ function SubNavPanel({
           </button>
         ) : (
           <>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold tracking-tight text-foreground">
-                {section.title}
-              </p>
-              {section.blurb ? (
-                <p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
-                  {section.blurb}
+            {!section.hidePanelHeading ? (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold tracking-tight text-foreground">
+                  {section.title}
                 </p>
-              ) : null}
-            </div>
+                {section.blurb ? (
+                  <p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
+                    {section.blurb}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={onCollapse}
               title="Collapse to icons"
               aria-label="Collapse to icons"
-              className="-mr-1 mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
+              className={cn(
+                "flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/30",
+                !section.hidePanelHeading && "-mr-1 mt-0.5",
+              )}
             >
               <PanelLeftClose className="size-4" strokeWidth={1.75} aria-hidden />
             </button>

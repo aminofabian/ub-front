@@ -76,6 +76,7 @@ type NavSection = {
   title: string;
   shortLabel: string;
   blurb: string;
+  hidePanelHeading?: boolean;
   icon: LucideIcon;
   /** Default route when tapping the section in the icon rail. */
   entryHref: string;
@@ -97,6 +98,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     title: "Organization",
     shortLabel: "Setup",
     blurb: "Identity, access, and locations",
+    hidePanelHeading: true,
     icon: Building2,
     entryHref: APP_ROUTES.business,
     items: [
