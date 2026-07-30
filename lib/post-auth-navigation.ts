@@ -56,8 +56,13 @@ async function syncSlugAndNavigate(
     return;
   }
 
+  // Prefer platform subdomain for cross-host handoff (Gap G: shared refresh
+  // cookie on .kiosk.ke cannot follow a bounce onto a bought custom primary).
+  // Login already on the custom primary still stays put via the match above.
   const shopBase =
-    hostDerivedShopUrl(primaryHost) || (slug ? slugDerivedShopUrl(slug) : "");
+    (slug ? slugDerivedShopUrl(slug) : "") ||
+    hostDerivedShopUrl(primaryHost) ||
+    "";
   const targetOrigin = shopBase
     ? new URL(shopBase).origin
     : window.location.origin;

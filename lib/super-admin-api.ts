@@ -521,6 +521,138 @@ export async function updateSokoMindSettings(
   });
 }
 
+export type PlatformDomainSettingsRecord = {
+  hasHostafricaApiKey: boolean;
+  hostafricaApiBaseUrl: string;
+  hostafricaCurrency: string;
+  hostafricaKenyanTlds: string;
+  hostafricaBillingStubEnabled: boolean;
+  hostafricaRegistrantDefaults?: Record<string, string> | null;
+  hasPalmartStkCredentials: boolean;
+  palmartStkTillNumber: string;
+  hasVercelToken: boolean;
+  vercelTeamId: string;
+  vercelProjectId: string;
+  vercelApiBaseUrl: string;
+  domainOrderSyncEnabled: boolean;
+  domainOrderSyncFixedDelayMs: number;
+  domainOrderSyncInitialDelayMs: number;
+  envHostafricaConfigured: boolean;
+  envVercelConfigured: boolean;
+  secretsReadable: boolean;
+  secretsError: string | null;
+  encryptionEphemeral: boolean;
+  updatedAt: string | null;
+};
+
+export type UpdatePlatformDomainSettingsPayload = Partial<{
+  hostafricaApiKey: string;
+  hostafricaApiBaseUrl: string;
+  hostafricaCurrency: string;
+  hostafricaKenyanTlds: string;
+  hostafricaBillingStubEnabled: boolean;
+  hostafricaRegistrantDefaults: Record<string, string>;
+  palmartStkClientId: string;
+  palmartStkClientSecret: string;
+  palmartStkApiKey: string;
+  palmartStkTillNumber: string;
+  palmartStkEnvironment: string;
+  clearPalmartStkCredentials: boolean;
+  vercelToken: string;
+  vercelTeamId: string;
+  vercelProjectId: string;
+  vercelApiBaseUrl: string;
+  domainOrderSyncEnabled: boolean;
+  domainOrderSyncFixedDelayMs: number;
+  domainOrderSyncInitialDelayMs: number;
+}>;
+
+export async function fetchPlatformDomainSettings(): Promise<PlatformDomainSettingsRecord> {
+  return saRequest<PlatformDomainSettingsRecord>(API_ROUTES.superAdminPlatformDomains);
+}
+
+export async function updatePlatformDomainSettings(
+  body: UpdatePlatformDomainSettingsPayload,
+): Promise<PlatformDomainSettingsRecord> {
+  return saRequest<PlatformDomainSettingsRecord>(API_ROUTES.superAdminPlatformDomains, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export type SaDomainOrderRecord = {
+  id: string;
+  businessId: string;
+  businessName?: string | null;
+  businessSlug?: string | null;
+  fqdn: string;
+  status: string;
+  nsStatus?: string | null;
+  priceCents?: number | null;
+  currency?: string | null;
+  registerUrl?: string | null;
+  hostafricaDomainId?: string | null;
+  vercelZoneReady: boolean;
+  domainMappingId?: string | null;
+  intendedNameservers?: string[];
+  dnsInstructions?: Record<string, unknown> | null;
+  lastError?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+export async function fetchSaDomainOrders(status?: string): Promise<SaDomainOrderRecord[]> {
+  const q = status?.trim() ? `?status=${encodeURIComponent(status.trim())}` : "";
+  return saRequest<SaDomainOrderRecord[]>(`${API_ROUTES.superAdminPlatformDomainOrders}${q}`);
+}
+
+export async function syncSaDomainOrder(orderId: string): Promise<SaDomainOrderRecord> {
+  return saRequest<SaDomainOrderRecord>(
+    `${API_ROUTES.superAdminPlatformDomainOrders}/${encodeURIComponent(orderId)}/sync`,
+    { method: "POST" },
+  );
+}
+
+export async function markSaDomainOrderPaid(orderId: string): Promise<SaDomainOrderRecord> {
+  return saRequest<SaDomainOrderRecord>(
+    `${API_ROUTES.superAdminPlatformDomainOrders}/${encodeURIComponent(orderId)}/mark-paid`,
+    { method: "POST" },
+  );
+}
+
+export async function markSaDomainOrderNsActive(orderId: string): Promise<SaDomainOrderRecord> {
+  return saRequest<SaDomainOrderRecord>(
+    `${API_ROUTES.superAdminPlatformDomainOrders}/${encodeURIComponent(orderId)}/mark-ns-active`,
+    { method: "POST" },
+  );
+}
+
+export async function refreshSaDomainOrderRegisterUrl(orderId: string): Promise<SaDomainOrderRecord> {
+  return saRequest<SaDomainOrderRecord>(
+    `${API_ROUTES.superAdminPlatformDomainOrders}/${encodeURIComponent(orderId)}/refresh-register-url`,
+    { method: "POST" },
+  );
+}
+
+export async function attachSaDomainOrderHostafrica(
+  orderId: string,
+  hostafricaDomainId: string,
+): Promise<SaDomainOrderRecord> {
+  return saRequest<SaDomainOrderRecord>(
+    `${API_ROUTES.superAdminPlatformDomainOrders}/${encodeURIComponent(orderId)}/attach-hostafrica`,
+    {
+      method: "POST",
+      body: JSON.stringify({ hostafricaDomainId }),
+    },
+  );
+}
+
+export async function syncSaOpenDomainOrders(): Promise<{ advanced: number }> {
+  return saRequest<{ advanced: number }>(`${API_ROUTES.superAdminPlatformDomainOrders}/sync-open`, {
+    method: "POST",
+  });
+}
+
 export type SupplierPortalSettingsRecord = {
   portalEnabled: boolean;
   allowSelfClaim: boolean;

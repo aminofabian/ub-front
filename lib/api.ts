@@ -2488,9 +2488,63 @@ export type DomainRecord = {
   domain: string;
   primary: boolean;
   active: boolean;
+  status?: "pending" | "verifying" | "active" | "failed" | string;
+  source?: "platform_subdomain" | "manual_connect" | "hostafrica_purchase" | string;
+  zoneSource?: "vercel" | "external" | string | null;
+  verifiedAt?: string | null;
+  dnsInstructions?: Record<string, unknown> | null;
+  lastError?: string | null;
+};
+
+export type DomainQuote = {
+  domain: string;
+  available: boolean;
+  status?: string | null;
+  priceCents?: number | null;
+  currency?: string | null;
+  periodYears?: number | null;
+  premium?: boolean;
+  requiresAdditionalInfo?: boolean;
+};
+
+export type DomainSearchResult = {
+  query: string;
+  currency?: string | null;
+  results: DomainQuote[];
+  suggestions: string[];
+  warning?: string | null;
+};
+
+export type DomainOrder = {
+  id: string;
+  businessId: string;
+  businessName?: string | null;
+  businessSlug?: string | null;
+  fqdn: string;
+  status: string;
+  nsStatus?: string | null;
+  priceCents?: number | null;
+  currency?: string | null;
+  registerUrl?: string | null;
+  hostafricaDomainId?: string | null;
+  vercelZoneReady: boolean;
+  domainMappingId?: string | null;
+  intendedNameservers?: string[];
+  dnsInstructions?: Record<string, unknown> | null;
+  lastError?: string | null;
+  merchantMessage?: string | null;
+  paidAt?: string | null;
+  paymentCheckoutId?: string | null;
+  paymentTxnId?: string | null;
+  payerPhone?: string | null;
+  lastStkStatus?: string | null;
+  paymentAvailable?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 const MY_DOMAINS_PATH = "/api/v1/businesses/me/domains";
+const MY_DOMAIN_ORDERS_PATH = "/api/v1/businesses/me/domain-orders";
 const MY_MOBILE_PATH = "/api/v1/businesses/me/mobile";
 
 export async function fetchMyMobileConfig(): Promise<MyMobileConfigResponse> {
@@ -2528,6 +2582,57 @@ export async function setMyPrimaryDomain(
   return request<DomainRecord>(
     `${MY_DOMAINS_PATH}/${encodeURIComponent(domainId.trim())}/primary`,
     { method: "POST" },
+  );
+}
+
+export async function verifyMyDomain(domainId: string): Promise<DomainRecord> {
+  return request<DomainRecord>(
+    `${MY_DOMAINS_PATH}/${encodeURIComponent(domainId.trim())}/verify`,
+    { method: "POST" },
+  );
+}
+
+export async function searchDomainQuotes(query: string): Promise<DomainSearchResult> {
+  return request<DomainSearchResult>(`${MY_DOMAIN_ORDERS_PATH}/search`, {
+    method: "POST",
+    body: { query },
+  });
+}
+
+export async function fetchMyDomainOrders(): Promise<DomainOrder[]> {
+  return request<DomainOrder[]>(MY_DOMAIN_ORDERS_PATH);
+}
+
+export async function createDomainOrder(fqdn: string): Promise<DomainOrder> {
+  return request<DomainOrder>(MY_DOMAIN_ORDERS_PATH, {
+    method: "POST",
+    body: { fqdn },
+  });
+}
+
+export async function syncDomainOrder(orderId: string): Promise<DomainOrder> {
+  return request<DomainOrder>(
+    `${MY_DOMAIN_ORDERS_PATH}/${encodeURIComponent(orderId.trim())}/sync`,
+    { method: "POST" },
+  );
+}
+
+export type PayDomainOrderResult = {
+  orderId: string;
+  checkoutRequestId?: string | null;
+  status: string;
+  message: string;
+  accepted: boolean;
+  order: DomainOrder;
+};
+
+export async function payDomainOrder(orderId: string, phoneNumber: string): Promise<PayDomainOrderResult> {
+  return request<PayDomainOrderResult>(
+    `${MY_DOMAIN_ORDERS_PATH}/${encodeURIComponent(orderId.trim())}/pay`,
+    {
+      method: "POST",
+      body: JSON.stringify({ phoneNumber }),
+    },
   );
 }
 
