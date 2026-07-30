@@ -18,6 +18,7 @@ import {
   DEFAULT_POS_DRAFTS,
   DEFAULT_SHIFT_SETTINGS,
   DEFAULT_STOREFRONT,
+  DEFAULT_TILL_LISTEN,
   defaultCatalogBranchId,
   parseFeaturedLines,
   type CashierCapabilitiesForm,
@@ -26,6 +27,7 @@ import {
   type PosDraftsForm,
   type ShiftSettingsForm,
   type StorefrontForm,
+  type TillListenSettings,
 } from "@/components/business/business-settings-types";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
@@ -63,6 +65,8 @@ export function useBusinessSettingsEditor() {
   const [shiftSettings, setShiftSettings] = useState<ShiftSettingsForm>(
     DEFAULT_SHIFT_SETTINGS,
   );
+  const [tillListen, setTillListen] =
+    useState<TillListenSettings>(DEFAULT_TILL_LISTEN);
   const [feedback, setFeedback] = useState<BusinessSettingsFeedback | null>(
     null,
   );
@@ -97,6 +101,7 @@ export function useBusinessSettingsEditor() {
         setPosDrafts(next.posDrafts);
         setCashierCapabilities(next.cashierCapabilities);
         setShiftSettings(next.shiftSettings);
+        setTillListen(next.tillListen);
       })
       .catch((error) => {
         if (hydratedFromBootstrap.current) {
@@ -126,6 +131,7 @@ export function useBusinessSettingsEditor() {
       setPosDrafts(next.posDrafts);
       setCashierCapabilities(next.cashierCapabilities);
       setShiftSettings(next.shiftSettings);
+      setTillListen(next.tillListen);
     }
     void load();
   }, [load, bootstrapBusiness]);
@@ -178,6 +184,7 @@ export function useBusinessSettingsEditor() {
     setPosDrafts(next.posDrafts);
     setCashierCapabilities(next.cashierCapabilities);
     setShiftSettings(next.shiftSettings);
+    setTillListen(next.tillListen);
   }, [effectiveSnapshot, branches]);
 
   const removeDeliveryArea = useCallback(
@@ -370,6 +377,12 @@ export function useBusinessSettingsEditor() {
             posCashierAddPhoto: cashierCapabilities.addPhoto,
             shiftsPrefillOpeningFromLastClose:
               shiftSettings.prefillOpeningFromLastClose,
+            tillListen: {
+              checkout: tillListen.checkout,
+              openCart: tillListen.openCart,
+              mpesaSelected: tillListen.mpesaSelected,
+              storefront: tillListen.storefront,
+            },
           };
         }
 
@@ -385,6 +398,7 @@ export function useBusinessSettingsEditor() {
         setPosDrafts(applied.posDrafts);
         setCashierCapabilities(applied.cashierCapabilities);
         setShiftSettings(applied.shiftSettings);
+        setTillListen(applied.tillListen);
         setFeedback({
           kind: "success",
           text:
@@ -417,6 +431,7 @@ export function useBusinessSettingsEditor() {
       router,
       shiftSettings,
       storefront,
+      tillListen,
     ],
   );
 
@@ -442,6 +457,8 @@ export function useBusinessSettingsEditor() {
     setCashierCapabilities,
     shiftSettings,
     setShiftSettings,
+    tillListen,
+    setTillListen,
     feedback,
     setFeedback,
     loadFailed,

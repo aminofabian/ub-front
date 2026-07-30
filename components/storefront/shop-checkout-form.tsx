@@ -22,6 +22,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { useShopTillListen } from "@/hooks/use-shop-till-listen";
+
 import { CheckoutDetailsSubSteps } from "@/components/storefront/checkout-details-substeps";
 import { CheckoutProgressSteps } from "@/components/storefront/checkout-progress-steps";
 import { CheckoutStepHint } from "@/components/storefront/checkout-step-hint";
@@ -481,6 +483,7 @@ export default function ShopCheckoutForm({
   const [paymentOptions, setPaymentOptions] = useState<PublicCheckoutPaymentOptions>({
     manual: [],
     online: [],
+    tillListenEnabled: true,
   });
   const [paymentOptionsReady, setPaymentOptionsReady] = useState(false);
   const [stkBusy, setStkBusy] = useState(false);
@@ -509,6 +512,15 @@ export default function ShopCheckoutForm({
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("mpesa");
   const [orderPaymentMethod, setOrderPaymentMethod] =
     useState<CheckoutPaymentMethod | null>(null);
+
+  const checkoutAmount = cart?.subtotal != null ? Number(cart.subtotal) : 0;
+  const tillListen = useShopTillListen({
+    slug,
+    active: !done && checkoutAmount > 0 && paymentMethod === "mpesa",
+    amount: checkoutAmount,
+    phoneNumber: customerPhone.trim() || null,
+  });
+
   const [shippingLocked, setShippingLocked] = useState(false);
   const [isEditingShipping, setIsEditingShipping] = useState(false);
   const [deliveryEditOpen, setDeliveryEditOpen] = useState(false);
@@ -2271,7 +2283,20 @@ export default function ShopCheckoutForm({
               Loading payment methods…
             </div>
           ) : hasOnlinePay || payOnDeliveryAvailable ? (
-            <ShopCheckoutPaymentSection
+            <>
+              {tillListen.confirmed ? (
+                <p className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] font-medium text-emerald-900">
+                  Till payment received
+                  {tillListen.receipt ? ` · ${tillListen.receipt}` : ""}. Place
+                  your order to finish.
+                </p>
+              ) : tillListen.listening && activePaymentMethod === "mpesa" ? (
+                <p className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] font-medium text-sky-900">
+                  Listening for M-Pesa Buy Goods… Pay the till for {totalLabel}{" "}
+                  and we&apos;ll confirm automatically.
+                </p>
+              ) : null}
+              <ShopCheckoutPaymentSection
               manual={paymentOptions.manual}
               online={paymentOptions.online}
               defaultAreaCode={areaCode}
@@ -2285,6 +2310,7 @@ export default function ShopCheckoutForm({
               }
               orderPlaced={false}
             />
+            </>
           ) : null}
         </section>
         ) : null}

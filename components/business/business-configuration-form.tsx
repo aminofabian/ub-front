@@ -10,6 +10,7 @@ import {
   Moon,
   Save,
   ShoppingCart,
+  Smartphone,
   Sun,
   Truck,
   Users,
@@ -36,6 +37,7 @@ import {
   type InventoryForm,
   type PosDraftsForm,
   type ShiftSettingsForm,
+  type TillListenSettings,
 } from "@/components/business/business-settings-types";
 import { Button } from "@/components/ui/button";
 import type { BranchRecord } from "@/lib/api";
@@ -207,6 +209,8 @@ export function BusinessConfigurationForm({
   setCashierCapabilities,
   shiftSettings,
   setShiftSettings,
+  tillListen,
+  setTillListen,
   activeBranches,
   defaultBranchId,
   isSaving,
@@ -224,6 +228,8 @@ export function BusinessConfigurationForm({
   >;
   shiftSettings: ShiftSettingsForm;
   setShiftSettings: React.Dispatch<React.SetStateAction<ShiftSettingsForm>>;
+  tillListen: TillListenSettings;
+  setTillListen: React.Dispatch<React.SetStateAction<TillListenSettings>>;
   activeBranches: BranchRecord[];
   defaultBranchId: string | null;
   isSaving: boolean;
@@ -790,6 +796,65 @@ export function BusinessConfigurationForm({
               />
             </div>
           </details>
+        </PolicyPanel>
+      ) : null}
+
+      {visibleIds.has("settings-till-listen") ? (
+        <PolicyPanel
+          id="settings-till-listen"
+          eyebrow="Till · M-Pesa"
+          title="When to listen for till payments"
+          hint="Buy Goods webhooks can auto-confirm sales. Default is checkout only — turn on earlier surfaces if cashiers pay before opening pay."
+          accent="sky"
+        >
+          <div className="grid gap-2.5 lg:grid-cols-2">
+            <PolicySwitch
+              checked={tillListen.checkout}
+              onChange={(checked) =>
+                setTillListen((previous) => ({
+                  ...previous,
+                  checkout: checked,
+                }))
+              }
+              icon={<ShoppingCart className="size-4" aria-hidden />}
+              title="On checkout / pay"
+              description="Start listening when the cashier opens the pay drawer (recommended default)."
+            />
+            <PolicySwitch
+              checked={tillListen.openCart}
+              onChange={(checked) =>
+                setTillListen((previous) => ({
+                  ...previous,
+                  openCart: checked,
+                }))
+              }
+              title="On open cart tab"
+              description="Listen as soon as a cart tab has a total — even before Checkout."
+            />
+            <PolicySwitch
+              checked={tillListen.mpesaSelected}
+              onChange={(checked) =>
+                setTillListen((previous) => ({
+                  ...previous,
+                  mpesaSelected: checked,
+                }))
+              }
+              icon={<Smartphone className="size-4" aria-hidden />}
+              title="When M-Pesa is selected"
+              description="Also listen when the cashier picks the M-Pesa tender on pay."
+            />
+            <PolicySwitch
+              checked={tillListen.storefront}
+              onChange={(checked) =>
+                setTillListen((previous) => ({
+                  ...previous,
+                  storefront: checked,
+                }))
+              }
+              title="On storefront cart & checkout"
+              description="Listen while shoppers preview the cart and on the checkout payment step."
+            />
+          </div>
         </PolicyPanel>
       ) : null}
 

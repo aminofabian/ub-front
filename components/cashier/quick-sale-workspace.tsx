@@ -55,6 +55,10 @@ import {
 } from "@/lib/stk-phone";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import {
+  shouldListenOnPos,
+  tillListenFromFlags,
+} from "@/lib/till-listen-settings";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { allowNegativeStockForSales } from "@/lib/inventory-access";
 import {
@@ -283,6 +287,11 @@ export function QuickSaleWorkspace({
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
   const allowNegativeStock = allowNegativeStockForSales(business);
   const featureFlags = useFeatureFlags();
+  const tillListenSettings = useMemo(
+    () => tillListenFromFlags(featureFlags),
+    [featureFlags],
+  );
+  const [checkoutDrawerOpen, setCheckoutDrawerOpen] = useState(false);
   const priceEditFlagEnabled =
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.priceEdit] === true;
   const createProductFlagEnabled =
@@ -2241,17 +2250,33 @@ export function QuickSaleWorkspace({
     applyStkConfirmed,
   ]);
 
-  // Direct till pay: listen for buygoods as soon as checkout has a total —
-  // even if Cash (or Tab/Wallet/Loyalty) is still selected. Remote bills skip.
+  // Direct till pay: register buygoods await only when admin-configured surfaces are active.
+  // Default = checkout/pay drawer. Optional = open cart tab, or M-Pesa tender selected.
   useEffect(() => {
+    const hasOpenCartTotal = lines.length > 0 && grandTotal > 0;
+    const listen = shouldListenOnPos(tillListenSettings, {
+      checkoutDrawerOpen,
+      hasOpenCartTotal,
+      mpesaSelected: !splitPay && payMethod === "mpesa_manual",
+    });
     const inStoreCheckout =
       online &&
       !splitPay &&
       payMethod !== "remote_bill" &&
-      lines.length > 0 &&
-      grandTotal > 0;
+      hasOpenCartTotal &&
+      listen;
     if (!inStoreCheckout) {
       tillAwaitKeyRef.current = null;
+      if (
+        stkPushStatus === "awaiting_till" &&
+        stkPushCheckoutId?.startsWith("till-await-")
+      ) {
+        updateActiveCart({
+          stkPushStatus: "idle",
+          stkPushCheckoutId: "",
+          stkPushError: "",
+        });
+      }
       return;
     }
     if (
@@ -2325,6 +2350,8 @@ export function QuickSaleWorkspace({
     stkPushStatus,
     stkPushCheckoutId,
     updateActiveCart,
+    tillListenSettings,
+    checkoutDrawerOpen,
   ]);
 
   const onRetryOutbox = useCallback(async () => {
@@ -3377,6 +3404,7 @@ export function QuickSaleWorkspace({
         </div>
       </div>
       <CashierPosLayout
+        onCheckoutDrawerOpenChange={setCheckoutDrawerOpen}
         pageTitle={heading}
         embeddedInDashboard={!isCashier}
         checkoutCompletedKey={checkoutCompletedKey}

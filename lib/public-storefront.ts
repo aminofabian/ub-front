@@ -832,6 +832,8 @@ export type PublicOnlinePaymentMethod = {
 export type PublicCheckoutPaymentOptions = {
   manual: PublicPaymentInstruction[];
   online: PublicOnlinePaymentMethod[];
+  /** When true (default), cart + checkout listen for Buy Goods till payments. */
+  tillListenEnabled?: boolean;
 };
 
 export type PublicWebStkPushResult = {

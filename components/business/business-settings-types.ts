@@ -2,6 +2,11 @@ import type { BusinessRecord } from "@/lib/api";
 import { POS_DRAFT_FLAGS } from "@/lib/pos-draft-api";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { SHIFT_SETTINGS_FLAGS } from "@/lib/shift-settings";
+import {
+  DEFAULT_TILL_LISTEN,
+  tillListenFromFlags,
+  type TillListenSettings,
+} from "@/lib/till-listen-settings";
 import type { BranchRecord } from "@/lib/api";
 
 export const MAX_FEATURED = 12;
@@ -165,6 +170,15 @@ export function posDraftsFromRecord(b: BusinessRecord | null): PosDraftsForm {
   };
 }
 
+export function tillListenSettingsFromRecord(
+  b: BusinessRecord | null,
+): TillListenSettings {
+  return tillListenFromFlags(b?.featureFlags);
+}
+
+export { DEFAULT_TILL_LISTEN };
+export type { TillListenSettings };
+
 export function defaultCatalogBranchId(
   branches: BranchRecord[],
   currentId: string,
@@ -315,6 +329,7 @@ export function applyBusinessSnapshot(
   posDrafts: PosDraftsForm;
   cashierCapabilities: CashierCapabilitiesForm;
   shiftSettings: ShiftSettingsForm;
+  tillListen: TillListenSettings;
 } {
   return {
     editable: {
@@ -327,5 +342,6 @@ export function applyBusinessSnapshot(
     posDrafts: posDraftsFromRecord(payload),
     cashierCapabilities: cashierCapabilitiesFromRecord(payload),
     shiftSettings: shiftSettingsFromRecord(payload),
+    tillListen: tillListenSettingsFromRecord(payload),
   };
 }

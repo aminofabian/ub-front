@@ -179,7 +179,7 @@ export async function fetchPublicCheckoutPaymentOptionsBrowser(
 ): Promise<PublicCheckoutPaymentOptions> {
   const s = sanitizeStorefrontSlug(slug);
   if (!s) {
-    return { manual: [], online: [] };
+    return { manual: [], online: [], tillListenEnabled: true };
   }
   try {
     const res = await fetch(
@@ -189,11 +189,105 @@ export async function fetchPublicCheckoutPaymentOptionsBrowser(
       { headers: { Accept: "application/json" }, cache: "no-store" },
     );
     if (!res.ok) {
-      return { manual: [], online: [] };
+      return { manual: [], online: [], tillListenEnabled: true };
     }
-    return (await res.json()) as PublicCheckoutPaymentOptions;
+    const body = (await res.json()) as PublicCheckoutPaymentOptions;
+    return {
+      manual: body.manual ?? [],
+      online: body.online ?? [],
+      tillListenEnabled: body.tillListenEnabled !== false,
+    };
   } catch {
-    return { manual: [], online: [] };
+    return { manual: [], online: [], tillListenEnabled: true };
+  }
+}
+
+export async function registerPublicTillAwait(
+  slug: string,
+  body: { amount: number | string; phoneNumber?: string | null },
+): Promise<{
+  accepted: boolean;
+  listenEnabled: boolean;
+  checkoutRequestId: string | null;
+  message: string;
+}> {
+  const s = sanitizeStorefrontSlug(slug);
+  if (!s) {
+    return {
+      accepted: false,
+      listenEnabled: false,
+      checkoutRequestId: null,
+      message: "Missing store",
+    };
+  }
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/businesses/${encodeURIComponent(s)}/payments/till-await`,
+    ),
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount: body.amount,
+        phoneNumber: body.phoneNumber ?? null,
+      }),
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    return {
+      accepted: false,
+      listenEnabled: true,
+      checkoutRequestId: null,
+      message: "Could not start till listen",
+    };
+  }
+  return (await res.json()) as {
+    accepted: boolean;
+    listenEnabled: boolean;
+    checkoutRequestId: string | null;
+    message: string;
+  };
+}
+
+export async function fetchPublicTillAwaitStatus(
+  slug: string,
+  checkoutRequestId: string,
+): Promise<{
+  status: string;
+  checkoutRequestId: string | null;
+  gatewayTransactionId: string | null;
+  failureReason: string | null;
+  success: boolean;
+  failed: boolean;
+  pending: boolean;
+} | null> {
+  const s = sanitizeStorefrontSlug(slug);
+  const id = checkoutRequestId.trim();
+  if (!s || !id) return null;
+  try {
+    const q = new URLSearchParams({ checkoutRequestId: id });
+    const res = await fetch(
+      apiUrl(
+        `/api/v1/public/businesses/${encodeURIComponent(s)}/payments/till-await/status?${q}`,
+      ),
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as {
+      status: string;
+      checkoutRequestId: string | null;
+      gatewayTransactionId: string | null;
+      failureReason: string | null;
+      success: boolean;
+      failed: boolean;
+      pending: boolean;
+    };
+  } catch {
+    return null;
   }
 }
 

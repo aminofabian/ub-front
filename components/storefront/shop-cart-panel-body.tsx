@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type KeyboardEvent } from "react";
-import { ArrowRight, Check, ChevronRight, ShoppingBag, Sparkles, Truck, X } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Truck, X } from "lucide-react";
 
 import { ShopCartLinesScroll } from "@/components/storefront/shop-cart-lines-scroll";
 import { Button } from "@/components/ui/button";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { useShopCart } from "@/hooks/use-shop-cart";
+import { useShopTillListen } from "@/hooks/use-shop-till-listen";
 import { joinProductNameParts } from "@/lib/catalog-display";
 import { APP_ROUTES } from "@/lib/config";
 import { formatDisplayPrice } from "@/lib/public-storefront";
@@ -55,6 +56,7 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
   const router = useRouter();
   const isMd = useMediaMd();
   const {
+    slug,
     cart,
     loading,
     error,
@@ -66,9 +68,17 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
     cartViewMode,
     showAllCartItems,
     openCheckout,
+    drawerOpen,
   } = useShopCart();
 
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
+
+  const cartAmount = cart?.subtotal != null ? Number(cart.subtotal) : 0;
+  const tillListen = useShopTillListen({
+    slug,
+    active: drawerOpen && cartAmount > 0,
+    amount: cartAmount,
+  });
 
   const focusMode =
     compactHeader && cartViewMode === "focus" && focusItemId != null && focusItemId !== "";
@@ -276,6 +286,25 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
                   : "border-border/60 bg-linear-to-t from-muted/35 to-muted/10 px-5 py-4",
               )}
             >
+              {tillListen.confirmed ? (
+                <p className="mb-2 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-[11px] font-medium text-emerald-900">
+                  <ShieldCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                  <span>
+                    Till payment received
+                    {tillListen.receipt ? ` · ${tillListen.receipt}` : ""}. Continue
+                    to checkout to place your order.
+                  </span>
+                </p>
+              ) : tillListen.listening ? (
+                <p className="mb-2 flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-2 text-[11px] font-medium text-sky-900">
+                  <Smartphone className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                  <span>
+                    Listening for M-Pesa Buy Goods… Pay the till for{" "}
+                    {formatDisplayPrice(cartAmount)} and we&apos;ll confirm
+                    automatically.
+                  </span>
+                </p>
+              ) : null}
               <div className="flex items-center gap-2 rounded-[3px] border border-primary/20 bg-primary/[0.06] px-2.5 py-1.5 text-[11px] font-medium text-[var(--storefront-ink,#141816)]">
                 <Truck className="size-3 shrink-0 text-primary" aria-hidden />
                 <span className="truncate">

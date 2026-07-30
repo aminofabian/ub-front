@@ -133,8 +133,19 @@ export default function BusinessConfigurationPage() {
       editor.cashierCapabilities.addPhoto,
       editor.posDrafts.enabled,
       editor.posDrafts.uiVisible,
+      editor.tillListen.checkout,
+      editor.tillListen.openCart,
+      editor.tillListen.mpesaSelected,
+      editor.tillListen.storefront,
     ].filter(Boolean).length;
-  }, [workspace, editor.inventory, editor.shiftSettings, editor.cashierCapabilities, editor.posDrafts]);
+  }, [
+    workspace,
+    editor.inventory,
+    editor.shiftSettings,
+    editor.cashierCapabilities,
+    editor.posDrafts,
+    editor.tillListen,
+  ]);
 
   if (!editor.canManageBusinessSettings) {
     return (
@@ -498,6 +509,8 @@ export default function BusinessConfigurationPage() {
             setCashierCapabilities={editor.setCashierCapabilities}
             shiftSettings={editor.shiftSettings}
             setShiftSettings={editor.setShiftSettings}
+            tillListen={editor.tillListen}
+            setTillListen={editor.setTillListen}
             activeBranches={editor.activeBranches}
             defaultBranchId={
               editor.storefront.catalogBranchId ||

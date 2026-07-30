@@ -124,6 +124,8 @@ export type CashierPosLayoutProps = {
   pageTitle?: string;
   /** Changes after a successful auto-print; closes checkout for the next sale. */
   checkoutCompletedKey?: number;
+  /** Notifies when the pay / checkout drawer opens or closes (till listen). */
+  onCheckoutDrawerOpenChange?: (open: boolean) => void;
   /** When true, lifts fixed cart controls above the dashboard mobile bottom nav. */
   embeddedInDashboard?: boolean;
   /** Brand CSS variables on the layout root (POS primary colors). */
@@ -838,6 +840,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const {
     pageTitle = "Point of sale",
     checkoutCompletedKey = 0,
+    onCheckoutDrawerOpenChange,
     embeddedInDashboard = false,
     brandTheme,
     online,
@@ -905,6 +908,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [pickedItem, setPickedItem] = useState<ItemSummaryRecord | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const setCheckoutDrawerOpen = useCallback(
+    (open: boolean) => {
+      setDrawerOpen(open);
+      onCheckoutDrawerOpenChange?.(open);
+    },
+    [onCheckoutDrawerOpenChange],
+  );
   const [pulseCart, setPulseCart] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
@@ -1039,7 +1050,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       setJustAddedId((cur) => (cur === itemId ? null : cur));
     }, 700);
     if (!isLg) {
-      setDrawerOpen(true);
+      setCheckoutDrawerOpen(true);
     } else {
       // Keep the wedge / keyboard ready for the next scan.
       window.requestAnimationFrame(() => focusSearch(true));
@@ -1084,13 +1095,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
 
   useEffect(() => {
     if (cart.error) {
-      setDrawerOpen(true);
+      setCheckoutDrawerOpen(true);
     }
   }, [cart.error]);
 
   useEffect(() => {
     if (checkoutCompletedKey > 0) {
-      setDrawerOpen(false);
+      setCheckoutDrawerOpen(false);
       window.requestAnimationFrame(() => focusSearch(true));
     }
   }, [checkoutCompletedKey, focusSearch]);
@@ -1937,7 +1948,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           weighedToggleBusyItemId={weighedToggleBusyItemId}
           removeLine={cart.removeLine}
           updateLine={cart.updateLine}
-          onCheckout={() => setDrawerOpen(true)}
+          onCheckout={() => setCheckoutDrawerOpen(true)}
           onEditPrice={(key) => setEditPriceKey(key)}
           onToggleWeighed={onToggleWeighed}
           className={cn(
@@ -1966,7 +1977,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               type="button"
               onClick={() => {
                 if (!isActive) onSwitchCart(tab.id);
-                setDrawerOpen(true);
+                setCheckoutDrawerOpen(true);
               }}
               className={cn(
                 "flex items-center gap-2.5 rounded-2xl px-3.5 py-2 shadow-lg transition-all duration-200",
@@ -2153,7 +2164,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       <CashierCartDrawer
         open={drawerOpen}
         onOpenChange={(open) => {
-          setDrawerOpen(open);
+          setCheckoutDrawerOpen(open);
           if (
             !open &&
             cart.lastSale != null &&

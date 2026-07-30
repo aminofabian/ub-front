@@ -40,6 +40,12 @@ export const BUSINESS_CONFIGURATION_NAV: BusinessSettingsNavItem[] = [
     group: "Till",
     icon: MonitorSmartphone,
   },
+  {
+    id: "settings-till-listen",
+    label: "M-Pesa listen",
+    group: "Till",
+    icon: ShoppingCart,
+  },
 ];
 
 /** @deprecated Prefer BUSINESS_PROFILE_NAV / BUSINESS_CONFIGURATION_NAV */
@@ -69,7 +75,7 @@ export const CONFIGURATION_WORKSPACES: {
   {
     id: "till",
     label: "Till & POS",
-    blurb: "Shifts, cashier powers, drafts, and trusted devices",
+    blurb: "Shifts, cashier powers, M-Pesa listen, drafts, and trusted devices",
     groups: ["Till"],
   },
 ];

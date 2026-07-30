@@ -962,6 +962,12 @@ export type FeatureFlagsPatchPayload = {
   posCashierWeighedToggle?: boolean;
   posCashierAddPhoto?: boolean;
   shiftsPrefillOpeningFromLastClose?: boolean;
+  tillListen?: {
+    checkout?: boolean;
+    openCart?: boolean;
+    mpesaSelected?: boolean;
+    storefront?: boolean;
+  };
 };
 
 export type PatchBusinessPayload = {
