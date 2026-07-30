@@ -120,6 +120,7 @@ export function SalesFeedFilters({
   channelFilter,
   onChannelFilterChange,
   showChannelFilter = true,
+  compact = false,
 }: {
   datePreset: SalesDatePreset;
   onDatePresetChange: (id: SalesDatePreset) => void;
@@ -134,6 +135,7 @@ export function SalesFeedFilters({
   channelFilter: ChannelFilter;
   onChannelFilterChange: (id: ChannelFilter) => void;
   showChannelFilter?: boolean;
+  compact?: boolean;
 }) {
   const showTender =
     channelFilter === "all" || channelFilter === "walk_in";
@@ -150,8 +152,20 @@ export function SalesFeedFilters({
   };
 
   return (
-    <div className="rounded-xl border border-border/70 bg-card shadow-sm">
-      <div className="flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-border/40 px-2.5 py-1.5">
+    <div
+      className={cn(
+        "border border-border/70 bg-card shadow-sm",
+        compact
+          ? "flex flex-wrap items-center gap-x-3 rounded-lg px-2"
+          : "rounded-xl",
+      )}
+    >
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-border/40 px-2.5 py-1.5",
+          compact && "border-b-0 px-0 py-1",
+        )}
+      >
         <FilterCluster label="When">
           <div role="group" aria-label="Period">
             <div className="flex flex-wrap items-center gap-0.5">
@@ -172,7 +186,10 @@ export function SalesFeedFilters({
           <button
             type="button"
             onClick={clearExtra}
-            className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+              !compact && "ml-auto",
+            )}
             title="Clear filters"
           >
             <X className="size-3" aria-hidden />
@@ -182,7 +199,12 @@ export function SalesFeedFilters({
       </div>
 
       {datePreset === "custom" ? (
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/40 bg-muted/20 px-2.5 py-1.5">
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2 border-b border-border/40 bg-muted/20 px-2.5 py-1.5",
+            compact && "border-b-0 bg-transparent px-0 py-1",
+          )}
+        >
           <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             From
             <input
@@ -204,7 +226,12 @@ export function SalesFeedFilters({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-2.5 py-1.5">
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-x-4 gap-y-1.5 px-2.5 py-1.5",
+          compact && "px-0 py-1",
+        )}
+      >
         {showChannelFilter ? (
           <FilterCluster label="Channel">
             <div role="group" aria-label="Channel">

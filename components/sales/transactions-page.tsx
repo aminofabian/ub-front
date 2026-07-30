@@ -152,11 +152,11 @@ function Metric({
   hint?: string;
 }) {
   return (
-    <div className="min-w-0 px-4 py-2.5">
-      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+    <div className="min-w-0 px-3 py-1.5">
+      <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </p>
-      <p className="truncate text-base font-semibold tabular-nums tracking-tight text-foreground">
+      <p className="truncate text-sm font-semibold tabular-nums tracking-tight text-foreground">
         {value}
       </p>
       {hint ? (
@@ -716,14 +716,13 @@ export function TransactionsPage() {
     <div className={cn(DASHBOARD_MAX, "space-y-3")}>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Sales
-          </p>
-          <h1 className="font-sans text-xl font-bold tracking-tight text-foreground">
-            Transactions
-          </h1>
-          <ActiveScopeSubtitle className="mt-0.5 text-xs text-muted-foreground" />
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <h1 className="font-sans text-lg font-bold tracking-tight text-foreground">
+              Transactions
+            </h1>
+            <ActiveScopeSubtitle className="text-[11px] text-muted-foreground" />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
             {statusLine || "Receipts for the selected period."}
           </p>
         </div>
@@ -850,6 +849,7 @@ export function TransactionsPage() {
           channelFilter={channelFilter}
           onChannelFilterChange={setChannelFilter}
           showChannelFilter={canViewWebOrders}
+          compact
         />
 
         {feedFiltered && filtered.length !== transactions.length ? (
@@ -878,7 +878,7 @@ export function TransactionsPage() {
               : "No transactions in this period."}
         </div>
       ) : (
-        <section className={SURFACE} aria-label="Transactions">
+        <section className={cn(SURFACE, "rounded-none")} aria-label="Transactions">
           <div
             className={cn(
               DASHBOARD_TABLE_HEAD,
