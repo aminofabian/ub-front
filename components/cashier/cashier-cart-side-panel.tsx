@@ -40,6 +40,8 @@ type CashierCartSidePanelProps = {
   allowPriceEdit?: boolean;
   allowWeighedToggle?: boolean;
   weighedToggleBusyItemId?: string | null;
+  /** Buy Goods till-await is active for this cart. */
+  tillListening?: boolean;
   removeLine: (key: string) => void;
   updateLine: (
     key: string,
@@ -69,6 +71,7 @@ export function CashierCartSidePanel({
   allowPriceEdit = false,
   allowWeighedToggle = false,
   weighedToggleBusyItemId = null,
+  tillListening = false,
   removeLine,
   updateLine,
   onCheckout,
@@ -199,6 +202,11 @@ export function CashierCartSidePanel({
         </div>
 
         <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3 py-2.5 dark:border-border/40">
+          {tillListening ? (
+            <p className="mb-2 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+              Listening for M-Pesa till payment…
+            </p>
+          ) : null}
           <div className="mb-2 flex items-end gap-2">
             <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Total

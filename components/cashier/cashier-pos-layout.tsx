@@ -124,8 +124,9 @@ export type CashierPosLayoutProps = {
   pageTitle?: string;
   /** Changes after a successful auto-print; closes checkout for the next sale. */
   checkoutCompletedKey?: number;
-  /** Notifies when the pay / checkout drawer opens or closes (till listen). */
-  onCheckoutDrawerOpenChange?: (open: boolean) => void;
+  /** Controlled pay / checkout drawer (till listen + layout share one source of truth). */
+  checkoutDrawerOpen: boolean;
+  onCheckoutDrawerOpenChange: (open: boolean) => void;
   /** When true, lifts fixed cart controls above the dashboard mobile bottom nav. */
   embeddedInDashboard?: boolean;
   /** Brand CSS variables on the layout root (POS primary colors). */
@@ -840,6 +841,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const {
     pageTitle = "Point of sale",
     checkoutCompletedKey = 0,
+    checkoutDrawerOpen,
     onCheckoutDrawerOpenChange,
     embeddedInDashboard = false,
     brandTheme,
@@ -907,15 +909,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
 
   const [pickedItem, setPickedItem] = useState<ItemSummaryRecord | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const setCheckoutDrawerOpen = useCallback(
     (open: boolean) => {
-      setDrawerOpen(open);
-      onCheckoutDrawerOpenChange?.(open);
+      onCheckoutDrawerOpenChange(open);
     },
     [onCheckoutDrawerOpenChange],
   );
+  const drawerOpen = checkoutDrawerOpen;
   const [pulseCart, setPulseCart] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
@@ -1946,6 +1947,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           allowPriceEdit={allowPriceEdit}
           allowWeighedToggle={allowWeighedToggle}
           weighedToggleBusyItemId={weighedToggleBusyItemId}
+          tillListening={cart.stkPushStatus === "awaiting_till"}
           removeLine={cart.removeLine}
           updateLine={cart.updateLine}
           onCheckout={() => setCheckoutDrawerOpen(true)}

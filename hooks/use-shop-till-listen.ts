@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
-  fetchPublicCheckoutPaymentOptionsBrowser,
   fetchPublicTillAwaitStatus,
   registerPublicTillAwait,
 } from "@/lib/public-storefront-client";
@@ -19,6 +18,9 @@ export type ShopTillListenState = {
 /**
  * Registers a Buy Goods till-await while the storefront cart/checkout surface
  * is open, and polls until a gateway receipt arrives.
+ *
+ * In-flight registrations still apply if the amount/phone is still desired
+ * after a React effect cleanup (avoids lost listens from remounts / Strict Mode).
  */
 export function useShopTillListen(opts: {
   slug: string;
@@ -33,38 +35,59 @@ export function useShopTillListen(opts: {
   const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(
     null,
   );
+  const [retryTick, setRetryTick] = useState(0);
   const keyRef = useRef<string | null>(null);
+  const desiredRef = useRef<{ active: boolean; key: string }>({
+    active: false,
+    key: "",
+  });
   const toastKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!active || !slug.trim() || !(amount > 0)) {
+    const phone = phoneNumber?.trim() || "";
+    const awaitKey =
+      active && slug.trim() && amount > 0
+        ? `${amount.toFixed(2)}|${phone}`
+        : "";
+    desiredRef.current = { active: Boolean(awaitKey), key: awaitKey };
+
+    if (!awaitKey) {
       keyRef.current = null;
       setListening(false);
       setCheckoutRequestId(null);
       return;
     }
 
-    let cancelled = false;
-    const phone = phoneNumber?.trim() || "";
-    const awaitKey = `${amount.toFixed(2)}|${phone}`;
-    if (keyRef.current === awaitKey && checkoutRequestId) {
+    // Already registered (or soft-fail backoff) for this amount/phone.
+    if (keyRef.current === awaitKey) {
       return;
     }
 
+    setConfirmed(false);
+    setReceipt("");
+
     const timer = window.setTimeout(() => {
       void (async () => {
-        const opts = await fetchPublicCheckoutPaymentOptionsBrowser(slug);
-        if (cancelled || opts.tillListenEnabled === false) {
-          return;
-        }
         const result = await registerPublicTillAwait(slug, {
           amount,
           phoneNumber: phone || null,
         });
-        if (cancelled) return;
+        const desired = desiredRef.current;
+        if (!desired.active || desired.key !== awaitKey) {
+          return;
+        }
         if (!result.accepted || !result.checkoutRequestId) {
           keyRef.current = awaitKey;
           setListening(false);
+          window.setTimeout(() => {
+            if (
+              desiredRef.current.key === awaitKey &&
+              keyRef.current === awaitKey
+            ) {
+              keyRef.current = null;
+              setRetryTick((n) => n + 1);
+            }
+          }, 15_000);
           return;
         }
         keyRef.current = awaitKey;
@@ -73,14 +96,12 @@ export function useShopTillListen(opts: {
         setConfirmed(false);
         setReceipt("");
       })();
-    }, 600);
+    }, 400);
 
     return () => {
-      cancelled = true;
       window.clearTimeout(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-register on amount/phone/active
-  }, [active, slug, amount, phoneNumber]);
+  }, [active, slug, amount, phoneNumber, retryTick]);
 
   useEffect(() => {
     if (!listening || !checkoutRequestId || !slug.trim()) return;
@@ -104,6 +125,8 @@ export function useShopTillListen(opts: {
         }
       } else if (status.failed) {
         setListening(false);
+        keyRef.current = null;
+        setRetryTick((n) => n + 1);
       }
     };
     const interval = window.setInterval(() => void poll(), 4000);

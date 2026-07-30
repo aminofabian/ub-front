@@ -736,6 +736,10 @@ export function QuickSaleWorkspace({
   const stkPushStatusRef = useRef(stkPushStatus);
   const autoCompleteMpesaRef = useRef<string | null>(null);
   const tillAwaitKeyRef = useRef<string | null>(null);
+  const tillListenDesiredRef = useRef<{ listen: boolean; key: string }>({
+    listen: false,
+    key: "",
+  });
   stkPushCheckoutIdRef.current = stkPushCheckoutId;
   stkPushStatusRef.current = stkPushStatus;
 
@@ -2252,19 +2256,45 @@ export function QuickSaleWorkspace({
 
   // Direct till pay: register buygoods await only when admin-configured surfaces are active.
   // Default = checkout/pay drawer. Optional = open cart tab, or M-Pesa tender selected.
+  // In-flight POSTs still apply if the amount/phone is still desired after effect cleanup
+  // (avoids lost listens from Strict Mode / rapid cart updates).
+  const tillListenCheckout = tillListenSettings.checkout;
+  const tillListenOpenCart = tillListenSettings.openCart;
+  const tillListenMpesa = tillListenSettings.mpesaSelected;
+  const [tillListenRetryTick, setTillListenRetryTick] = useState(0);
   useEffect(() => {
     const hasOpenCartTotal = lines.length > 0 && grandTotal > 0;
-    const listen = shouldListenOnPos(tillListenSettings, {
-      checkoutDrawerOpen,
-      hasOpenCartTotal,
-      mpesaSelected: !splitPay && payMethod === "mpesa_manual",
-    });
+    const listen = shouldListenOnPos(
+      {
+        checkout: tillListenCheckout,
+        openCart: tillListenOpenCart,
+        mpesaSelected: tillListenMpesa,
+        storefront: true,
+      },
+      {
+        checkoutDrawerOpen,
+        hasOpenCartTotal,
+        mpesaSelected: !splitPay && payMethod === "mpesa_manual",
+      },
+    );
     const inStoreCheckout =
       online &&
       !splitPay &&
       payMethod !== "remote_bill" &&
       hasOpenCartTotal &&
       listen;
+
+    const phone = isStkPhoneValid(stkAreaCode, stkPhone)
+      ? buildStkPhoneNumber(stkAreaCode, stkPhone)
+      : "";
+    const awaitKey = inStoreCheckout
+      ? `${grandTotal.toFixed(2)}|${phone}`
+      : "";
+    tillListenDesiredRef.current = {
+      listen: inStoreCheckout,
+      key: awaitKey,
+    };
+
     if (!inStoreCheckout) {
       tillAwaitKeyRef.current = null;
       if (
@@ -2289,16 +2319,23 @@ export function QuickSaleWorkspace({
       return;
     }
 
-    const phone = isStkPhoneValid(stkAreaCode, stkPhone)
-      ? buildStkPhoneNumber(stkAreaCode, stkPhone)
-      : "";
-    const awaitKey = `${grandTotal.toFixed(2)}|${phone}`;
-    // Skip re-register for the same amount/phone (success or soft-fail while KopoKopo inactive).
-    if (tillAwaitKeyRef.current === awaitKey) {
+    // Already listening for this amount/phone — do not re-POST.
+    if (
+      tillAwaitKeyRef.current === awaitKey &&
+      stkPushStatus === "awaiting_till" &&
+      stkPushCheckoutId?.startsWith("till-await-")
+    ) {
       return;
     }
 
-    let cancelled = false;
+    // Soft-fail backoff marker (same key, not yet awaiting).
+    if (
+      tillAwaitKeyRef.current === awaitKey &&
+      stkPushStatus !== "awaiting_till"
+    ) {
+      return;
+    }
+
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
@@ -2311,12 +2348,21 @@ export function QuickSaleWorkspace({
             },
             nextIdempotencyKey(),
           );
-          if (cancelled) {
+          const desired = tillListenDesiredRef.current;
+          if (!desired.listen || desired.key !== awaitKey) {
             return;
           }
           if (!result.accepted || !result.checkoutRequestId) {
-            // Remember this amount/phone so we don't spam till-await while KopoKopo is inactive.
             tillAwaitKeyRef.current = awaitKey;
+            window.setTimeout(() => {
+              if (
+                tillListenDesiredRef.current.key === awaitKey &&
+                tillAwaitKeyRef.current === awaitKey
+              ) {
+                tillAwaitKeyRef.current = null;
+                setTillListenRetryTick((n) => n + 1);
+              }
+            }, 15_000);
             return;
           }
           tillAwaitKeyRef.current = awaitKey;
@@ -2324,19 +2370,24 @@ export function QuickSaleWorkspace({
             stkPushStatus: "awaiting_till",
             stkPushCheckoutId: result.checkoutRequestId,
             stkPushError: "",
-            // Keep any existing mpesaRef only if already confirmed; otherwise clear.
             mpesaRef: "",
           });
         } catch {
           /* STK path still available; webhook await is best-effort */
-          if (!cancelled) {
-            tillAwaitKeyRef.current = awaitKey;
-          }
+          tillAwaitKeyRef.current = awaitKey;
+          window.setTimeout(() => {
+            if (
+              tillListenDesiredRef.current.key === awaitKey &&
+              tillAwaitKeyRef.current === awaitKey
+            ) {
+              tillAwaitKeyRef.current = null;
+              setTillListenRetryTick((n) => n + 1);
+            }
+          }, 8_000);
         }
       })();
-    }, 500);
+    }, 400);
     return () => {
-      cancelled = true;
       window.clearTimeout(timer);
     };
   }, [
@@ -2350,8 +2401,11 @@ export function QuickSaleWorkspace({
     stkPushStatus,
     stkPushCheckoutId,
     updateActiveCart,
-    tillListenSettings,
+    tillListenCheckout,
+    tillListenOpenCart,
+    tillListenMpesa,
     checkoutDrawerOpen,
+    tillListenRetryTick,
   ]);
 
   const onRetryOutbox = useCallback(async () => {
@@ -3404,6 +3458,7 @@ export function QuickSaleWorkspace({
         </div>
       </div>
       <CashierPosLayout
+        checkoutDrawerOpen={checkoutDrawerOpen}
         onCheckoutDrawerOpenChange={setCheckoutDrawerOpen}
         pageTitle={heading}
         embeddedInDashboard={!isCashier}

@@ -516,7 +516,10 @@ export default function ShopCheckoutForm({
   const checkoutAmount = cart?.subtotal != null ? Number(cart.subtotal) : 0;
   const tillListen = useShopTillListen({
     slug,
-    active: !done && checkoutAmount > 0 && paymentMethod === "mpesa",
+    active:
+      !done &&
+      checkoutAmount > 0 &&
+      paymentOptions.tillListenEnabled !== false,
     amount: checkoutAmount,
     phoneNumber: customerPhone.trim() || null,
   });
@@ -2290,7 +2293,7 @@ export default function ShopCheckoutForm({
                   {tillListen.receipt ? ` · ${tillListen.receipt}` : ""}. Place
                   your order to finish.
                 </p>
-              ) : tillListen.listening && activePaymentMethod === "mpesa" ? (
+              ) : tillListen.listening ? (
                 <p className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] font-medium text-sky-900">
                   Listening for M-Pesa Buy Goods… Pay the till for {totalLabel}{" "}
                   and we&apos;ll confirm automatically.
