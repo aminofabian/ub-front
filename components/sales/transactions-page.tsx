@@ -152,15 +152,15 @@ function Metric({
   hint?: string;
 }) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 px-4 py-2.5">
       <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-0.5 truncate text-xl font-semibold tabular-nums tracking-tight text-foreground">
+      <p className="truncate text-base font-semibold tabular-nums tracking-tight text-foreground">
         {value}
       </p>
       {hint ? (
-        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{hint}</p>
+        <p className="truncate text-[10px] text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );
@@ -194,6 +194,19 @@ function TransactionRow({
     status !== "voided" &&
     !status.includes("void");
   const meta = saleMetaParts(tx);
+  const payment = formatSalePaymentDisplay(tx.paymentMethod, tx.paymentMethods);
+  const person =
+    (isOnline ? tx.customerName : tx.cashierName || tx.customerName)?.trim() || "—";
+  const statusLabel = isOnline
+    ? formatChannelLabel(tx.channel)
+    : refunded
+      ? "Refunded"
+      : "Completed";
+  const statusClass = isOnline
+    ? "bg-indigo-50 text-indigo-800"
+    : refunded
+      ? "bg-destructive/10 text-destructive"
+      : "bg-emerald-50 text-emerald-800";
 
   const onDownloadReceipt = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -223,7 +236,7 @@ function TransactionRow({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-start gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-muted/30 sm:px-5"
+        className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-muted/40 md:hidden"
         aria-expanded={expanded}
       >
         <span className="mt-0.5 text-muted-foreground">
@@ -241,18 +254,10 @@ function TransactionRow({
             <span
               className={cn(
                 "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                isOnline
-                  ? "bg-indigo-50 text-indigo-800"
-                  : refunded
-                    ? "bg-destructive/10 text-destructive"
-                    : "bg-emerald-50 text-emerald-800",
+                statusClass,
               )}
             >
-              {isOnline
-                ? formatChannelLabel(tx.channel)
-                : refunded
-                  ? "Refunded"
-                  : "Completed"}
+              {statusLabel}
             </span>
             {tx.mpesaVerified && !refunded ? (
               <span
@@ -292,8 +297,63 @@ function TransactionRow({
         </div>
       </button>
 
+      <button
+        type="button"
+        onClick={onToggle}
+        className="hidden w-full grid-cols-[2rem_7rem_8rem_minmax(12rem,1.8fr)_minmax(8rem,1fr)_7rem_7rem_8rem] items-center text-left text-xs transition-colors hover:bg-muted/40 md:grid"
+        aria-expanded={expanded}
+      >
+        <span className="flex h-10 items-center justify-center text-muted-foreground">
+          {expanded ? (
+            <ChevronDown className="size-3.5" aria-hidden />
+          ) : (
+            <ChevronRight className="size-3.5" aria-hidden />
+          )}
+        </span>
+        <span className="truncate pr-3 font-mono text-[11px] font-semibold tracking-wide text-foreground/75">
+          #{txDisplayNo(tx)}
+        </span>
+        <span className="truncate pr-3 tabular-nums text-muted-foreground">
+          {formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime })}
+        </span>
+        <span className="min-w-0 truncate pr-4 font-medium text-foreground/90">
+          {itemPreview(tx)}
+          <span className="ml-1.5 font-normal text-muted-foreground">
+            · {tx.lineCount}
+          </span>
+        </span>
+        <span className="truncate pr-3 text-muted-foreground" title={person}>
+          {person}
+        </span>
+        <span className="truncate pr-3 text-muted-foreground" title={payment}>
+          {payment}
+        </span>
+        <span>
+          <span
+            className={cn(
+              "inline-flex max-w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+              statusClass,
+            )}
+          >
+            {tx.mpesaVerified && !refunded ? (
+              <BadgeCheck className="size-3 shrink-0" aria-hidden />
+            ) : null}
+            {statusLabel}
+          </span>
+        </span>
+        <span
+          className={cn(
+            "pr-4 text-right text-[13px] font-semibold tabular-nums tracking-tight",
+            refunded ? "text-[#C47A5A]" : "text-foreground",
+          )}
+        >
+          {refunded && tx.total > 0 ? "−" : ""}
+          {fmtKes(Math.abs(tx.total))}
+        </span>
+      </button>
+
       {expanded ? (
-        <div className="border-t border-border/25 bg-muted/10 px-4 py-2 sm:px-5 sm:pl-11">
+        <div className="border-t border-border/25 bg-muted/15 px-4 py-2 md:pl-11 md:pr-4">
           <ul className="space-y-0.5">
             {tx.lines.map((line, i) => {
               const lineRefunded = isRefunded(line.status);
@@ -653,17 +713,17 @@ export function TransactionsPage() {
     .join(" · ");
 
   return (
-    <div className={cn(DASHBOARD_MAX, "space-y-5")}>
-      <header className="flex flex-wrap items-start justify-between gap-3">
+    <div className={cn(DASHBOARD_MAX, "space-y-3")}>
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Sales
           </p>
-          <h1 className="mt-0.5 font-sans text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          <h1 className="font-sans text-xl font-bold tracking-tight text-foreground">
             Transactions
           </h1>
           <ActiveScopeSubtitle className="mt-0.5 text-xs text-muted-foreground" />
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             {statusLine || "Receipts for the selected period."}
           </p>
         </div>
@@ -705,7 +765,10 @@ export function TransactionsPage() {
       {dateRange && !error && !loading ? (
         <section
           aria-label="Period summary"
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          className={cn(
+            SURFACE,
+            "grid divide-y divide-border/50 overflow-hidden sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4",
+          )}
         >
           <Metric label="Revenue" value={fmtKes(summary.revenue)} />
           <Metric
@@ -739,7 +802,7 @@ export function TransactionsPage() {
         </section>
       ) : null}
 
-      <section className="space-y-2.5" aria-label="Filters">
+      <section className="space-y-2" aria-label="Filters">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
             <Search
@@ -819,7 +882,7 @@ export function TransactionsPage() {
           <div
             className={cn(
               DASHBOARD_TABLE_HEAD,
-              "flex flex-wrap items-center justify-between gap-2",
+              "flex flex-wrap items-center justify-between gap-2 px-4 py-2.5",
             )}
           >
             <div>
@@ -843,6 +906,16 @@ export function TransactionsPage() {
               <FileDown className="size-3.5" aria-hidden />
               {pdfLoading ? "Preparing…" : "Download PDF"}
             </Button>
+          </div>
+          <div className="hidden grid-cols-[2rem_7rem_8rem_minmax(12rem,1.8fr)_minmax(8rem,1fr)_7rem_7rem_8rem] items-center border-b border-border/50 bg-muted/20 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground md:grid">
+            <span aria-hidden />
+            <span className="py-1.5 pr-3">Receipt</span>
+            <span className="py-1.5 pr-3">Time</span>
+            <span className="py-1.5 pr-4">Items</span>
+            <span className="py-1.5 pr-3">Customer / staff</span>
+            <span className="py-1.5 pr-3">Payment</span>
+            <span className="py-1.5">Status</span>
+            <span className="py-1.5 pr-4 text-right">Total</span>
           </div>
           {filtered.map((tx) => (
             <TransactionRow
