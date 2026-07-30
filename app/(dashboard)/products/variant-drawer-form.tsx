@@ -172,14 +172,17 @@ function ToggleChip({
 
 function syncCostsFromBuy(buyRaw: string, prev: VariantDraft): VariantDraft {
   const buy = toNumber(buyRaw);
-  if (buy == null) return { ...prev, defaultCostPrice: buyRaw };
+  if (buy == null) {
+    return { ...prev, defaultCostPrice: buyRaw, openingUnitCost: "" };
+  }
   const packQty = Math.max(1, toNumber(prev.bundleQty) ?? 1);
   const perUnit = buy / packQty;
   const perUnitStr = Number.isFinite(perUnit) ? String(perUnit) : "";
   return {
     ...prev,
     defaultCostPrice: buyRaw,
-    openingUnitCost: prev.openingUnitCost.trim() ? prev.openingUnitCost : perUnitStr,
+    // Stock unit cost mirrors buy price — no separate field in the drawer.
+    openingUnitCost: perUnitStr,
   };
 }
 
@@ -254,9 +257,8 @@ function VariantPricingRow({
   );
 }
 
-function variantLegend(index: number, variantName: string): string {
-  const name = variantName.trim();
-  return name || `Variant ${index + 1}`;
+function variantLegend(index: number): string {
+  return `Variant ${index + 1}`;
 }
 
 function VariantRowFields({
@@ -309,7 +311,7 @@ function VariantRowFields({
       ) : null}
 
       <FormDrawerSheet>
-      <FormDrawerFields legend={variantLegend(index, row.variantName)} appearance="sharp" embedded index={1}>
+      <FormDrawerFields legend={variantLegend(index)} appearance="sharp" embedded index={1}>
         {!parentIsProductGroup ? (
           <ToggleChip
             checked={row.isPackageVariant}
@@ -434,6 +436,7 @@ function VariantRowFields({
           <StockIncreaseFields
             mode="opening"
             minimal
+            hideUnitCostInput
             branches={branches}
             branchId={row.openingBranchId}
             onBranchIdChange={(id) => onPatch({ openingBranchId: id })}
@@ -442,8 +445,6 @@ function VariantRowFields({
             unitCost={row.openingUnitCost}
             onUnitCostChange={(v) => onPatch({ openingUnitCost: v })}
             currentUnitCost={costPerUnit}
-            unitCostLabel="Unit cost (optional)"
-            unitCostHint="Defaults from buy price"
             className="space-y-2 border-0 bg-transparent p-0 shadow-none ring-0"
           />
         </FormDrawerFields>
