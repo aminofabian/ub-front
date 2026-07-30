@@ -1866,13 +1866,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       type="button"
                       disabled={!online}
                       className={cn(
-                        "flex shrink-0 flex-col items-stretch border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-card text-left transition-colors duration-150",
+                        "group relative shrink-0 overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-card text-left transition-colors duration-150",
                         "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] disabled:opacity-50",
                         "focus-visible:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
                         "dark:border-border/40 dark:bg-card",
                         compactShelf
-                          ? "w-[5.25rem] gap-1 p-1.5"
-                          : "w-[6.5rem] gap-1.5 p-2",
+                          ? "h-[5.25rem] w-[5.25rem]"
+                          : "h-[6.5rem] w-[6.5rem]",
                       )}
                       onClick={() => {
                         if (!online) return;
@@ -1885,8 +1885,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     >
                       <span
                         className={cn(
-                          "relative flex w-full items-center justify-center overflow-hidden",
-                          compactShelf ? "h-9" : "h-12",
+                          "absolute inset-0 flex items-center justify-center overflow-hidden",
                           !thumb && `bg-gradient-to-br ${kioskPlaceholderWashClass(node.name)}`,
                         )}
                       >
@@ -1896,7 +1895,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                             alt=""
                             width={52}
                             height={48}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                             unoptimized
                           />
                         ) : (
@@ -1911,20 +1910,29 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                         )}
                       </span>
                       <span
+                        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent"
+                        aria-hidden
+                      />
+                      <span
                         className={cn(
-                          "line-clamp-2 w-full font-semibold leading-[1.15] text-[var(--pos-ink,#1c1915)] dark:text-foreground",
-                          compactShelf
-                            ? "min-h-[1.7rem] text-[10px]"
-                            : "min-h-[2.1rem] text-[11px]",
+                          "absolute inset-x-0 bottom-0 z-10 flex flex-col px-1.5 pb-1.5 pt-5 text-white",
+                          compactShelf ? "gap-px" : "gap-0.5",
                         )}
                       >
-                        {node.name}
-                      </span>
-                      {countLabel ? (
-                        <span className="text-[9px] font-medium uppercase tracking-wide tabular-nums text-muted-foreground">
-                          {countLabel}
+                        <span
+                          className={cn(
+                            "line-clamp-2 w-full font-semibold uppercase leading-[1.15] tracking-wide drop-shadow-sm",
+                            compactShelf ? "text-[10px]" : "text-[11px]",
+                          )}
+                        >
+                          {node.name}
                         </span>
-                      ) : null}
+                        {countLabel ? (
+                          <span className="text-[9px] font-medium uppercase tracking-wide tabular-nums text-white/75 drop-shadow-sm">
+                            {countLabel}
+                          </span>
+                        ) : null}
+                      </span>
                     </button>
                     </div>
                   );
