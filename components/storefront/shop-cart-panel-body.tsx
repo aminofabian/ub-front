@@ -300,8 +300,11 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
                   <Smartphone className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                   <span>
                     Listening for M-Pesa Buy Goods… Pay the till for{" "}
-                    {formatDisplayPrice(cartAmount)} and we&apos;ll confirm
-                    automatically.
+                    {formatDisplayPrice(
+                      displayCart.currency,
+                      cartAmount,
+                    )}{" "}
+                    and we&apos;ll confirm automatically.
                   </span>
                 </p>
               ) : null}
