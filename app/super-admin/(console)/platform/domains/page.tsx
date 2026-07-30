@@ -226,6 +226,7 @@ export default function SuperAdminPlatformDomainsPage() {
 
   const clearSecret = (field: "hostafricaApiKey" | "vercelToken" | "palmartStk", label: string) => {
     showThemedConfirmToast({
+      id: `clear-domain-${field}`,
       title: `Clear ${label}?`,
       description:
         field === "palmartStk"

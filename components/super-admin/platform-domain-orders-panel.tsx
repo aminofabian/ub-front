@@ -117,6 +117,7 @@ export function PlatformDomainOrdersPanel() {
 
   const onMarkPaid = (row: SaDomainOrderRecord) => {
     showThemedConfirmToast({
+      id: `domain-order-mark-paid-${row.id}`,
       title: `Mark ${row.fqdn} paid?`,
       description: "Moves awaiting payment → registering. Use until Palmart wallet billing is wired.",
       confirmLabel: "Mark paid",
