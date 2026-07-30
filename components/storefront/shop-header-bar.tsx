@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { UserRound } from "lucide-react";
+import { LogIn, UserRound } from "lucide-react";
 import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
@@ -9,8 +9,45 @@ import { TenantLogo } from "@/components/brand/tenant-logo";
 import { GetTheAppDialog } from "@/components/storefront/get-the-app-dialog";
 import ShopSearchBar from "@/components/storefront/shop-search-bar";
 import { ShopCartTrigger } from "@/components/storefront/shop-cart-trigger";
+import {
+  useClientHasSession,
+  useClientSessionReady,
+} from "@/hooks/use-client-session";
 import { APP_ROUTES } from "@/lib/config";
 import { activeStorefrontCategorySlugFromPathname } from "@/lib/shop-url";
+
+const loginHref = `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`;
+
+function AccountNavLink({
+  className,
+  iconClassName,
+  showLabel,
+}: {
+  className: string;
+  iconClassName?: string;
+  showLabel?: boolean;
+}) {
+  const ready = useClientSessionReady();
+  const signedIn = useClientHasSession();
+  const href = ready && signedIn ? APP_ROUTES.shopAccount : loginHref;
+  const label = !ready ? "Account" : signedIn ? "Account" : "Sign in";
+  const Icon = ready && !signedIn ? LogIn : UserRound;
+
+  return (
+    <Link href={href} className={className} aria-label={label}>
+      {showLabel ? (
+        <>
+          <span className="flex size-8 items-center justify-center rounded-[3px] bg-[var(--storefront-paper,#f4f5f4)] transition-colors group-hover:bg-[var(--storefront-rule,#e4e6e4)]">
+            <Icon className="size-4" aria-hidden />
+          </span>
+          <span className="hidden whitespace-nowrap sm:inline">{label}</span>
+        </>
+      ) : (
+        <Icon className={iconClassName ?? "size-4.5"} aria-hidden />
+      )}
+    </Link>
+  );
+}
 
 function SearchFields({ primaryHex }: { primaryHex: string | null }) {
   const pathname = usePathname();
@@ -77,13 +114,9 @@ export function ShopHeaderBar({
                   triggerVariant="icon"
                 />
               ) : null}
-              <Link
-                href={APP_ROUTES.shopAccount}
+              <AccountNavLink
                 className="inline-flex size-9 items-center justify-center rounded-[3px] text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:bg-[var(--storefront-paper,#f4f5f4)] hover:text-[var(--storefront-ink,#141816)]"
-                aria-label="Account"
-              >
-                <UserRound className="size-4.5" aria-hidden />
-              </Link>
+              />
               {slug ? (
                 <ShopCartTrigger accentHex={primaryHex} compact className="px-1" />
               ) : null}
@@ -104,15 +137,10 @@ export function ShopHeaderBar({
           </div>
 
           <div className="hidden shrink-0 items-center justify-end gap-1.5 sm:gap-2 lg:flex">
-            <Link
-              href={APP_ROUTES.shopAccount}
+            <AccountNavLink
+              showLabel
               className="group inline-flex items-center gap-1.5 rounded-[3px] px-2 py-1.5 text-sm font-medium text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:bg-[var(--storefront-paper,#f4f5f4)] hover:text-[var(--storefront-ink,#141816)]"
-            >
-              <span className="flex size-8 items-center justify-center rounded-[3px] bg-[var(--storefront-paper,#f4f5f4)] transition-colors group-hover:bg-[var(--storefront-rule,#e4e6e4)]">
-                <UserRound className="size-4" aria-hidden />
-              </span>
-              <span className="hidden whitespace-nowrap sm:inline">Account</span>
-            </Link>
+            />
             {slug ? <ShopCartTrigger accentHex={primaryHex} /> : null}
           </div>
         </div>

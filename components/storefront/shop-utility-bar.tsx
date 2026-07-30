@@ -1,19 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
 import { GetTheAppDialog } from "@/components/storefront/get-the-app-dialog";
+import {
+  useClientHasSession,
+  useClientSessionReady,
+} from "@/hooks/use-client-session";
 import { logoutRemote } from "@/lib/api";
-import { clearSessionTokens, getSessionTokens } from "@/lib/auth";
+import { clearSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
-
-function readSignedIn(): boolean {
-  return getSessionTokens() != null;
-}
 
 export function ShopUtilityBar({
   slug,
@@ -28,29 +28,13 @@ export function ShopUtilityBar({
   locationHint?: string | null;
   className?: string;
 }) {
-  const [signedIn, setSignedIn] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const ready = useClientSessionReady();
+  const signedIn = useClientHasSession();
   const [talkOpen, setTalkOpen] = useState(false);
-
-  const sync = useCallback(() => {
-    setSignedIn(readSignedIn());
-  }, []);
-
-  useEffect(() => {
-    setMounted(true);
-    sync();
-    window.addEventListener("storage", sync);
-    window.addEventListener("focus", sync);
-    return () => {
-      window.removeEventListener("storage", sync);
-      window.removeEventListener("focus", sync);
-    };
-  }, [sync]);
 
   const onSignOut = useCallback(async () => {
     await logoutRemote().catch(() => {});
     clearSessionTokens();
-    setSignedIn(false);
     window.location.reload();
   }, []);
 
@@ -119,10 +103,19 @@ export function ShopUtilityBar({
               </span>
             </>
           ) : null}
-          {!mounted ? (
+          {!ready ? (
             <span className="rounded-md px-2 py-0.5 opacity-60">…</span>
           ) : signedIn ? (
             <>
+              <Link
+                href={APP_ROUTES.shopAccount}
+                className="rounded-md px-2 py-0.5 transition hover:bg-white/10"
+              >
+                Account
+              </Link>
+              <span className="text-white/25 select-none" aria-hidden>
+                ·
+              </span>
               <Link
                 href={APP_ROUTES.business}
                 className="rounded-md px-2 py-0.5 transition hover:bg-white/10"
@@ -142,7 +135,7 @@ export function ShopUtilityBar({
             </>
           ) : (
             <Link
-              href={APP_ROUTES.login}
+              href={`${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`}
               className="rounded-md px-2 py-0.5 font-semibold transition hover:bg-white/10"
             >
               Sign in
