@@ -117,8 +117,7 @@ const DRAWOUT_STATUS_BADGE: Record<string, string> = {
 const NUM = "font-mono tabular-nums";
 
 /** Soft raised surface shared across the board's panels. */
-const CARD =
-  "border border-border/60 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]";
+const CARD = "border border-border/60 bg-card shadow-sm";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -276,7 +275,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+        "inline-flex items-center gap-1.5 border px-2 py-0.5 text-[11px] font-semibold",
         statusBadgeClass(status),
       )}
     >
@@ -325,7 +324,7 @@ function PanelEmptyState({
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-      <span className="flex size-12 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground/70 shadow-sm">
+      <span className="flex size-12 items-center justify-center border border-border/60 bg-muted/40 text-muted-foreground/70 shadow-sm">
         <Icon className="size-5" aria-hidden />
       </span>
       <div className="space-y-1">
@@ -389,7 +388,7 @@ function NoteBlock({
   return (
     <div
       className={cn(
-        "space-y-1.5 rounded-xl border p-3",
+        "space-y-1.5 border p-3",
         flag
           ? "border-amber-500/30 bg-amber-500/[0.06]"
           : "border-border/60 bg-muted/15",
@@ -440,7 +439,7 @@ function KpiCard({
   dotClassName?: string | null;
 }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] transition-shadow hover:shadow-md dark:ring-white/[0.04]">
+    <div className="border border-border/60 bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between gap-2">
         <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
           {label}
@@ -498,9 +497,9 @@ function ShiftRow({
       onClick={onSelect}
       aria-pressed={isSelected}
       className={cn(
-        "group relative w-full overflow-hidden rounded-xl border text-left transition-all duration-150",
+        "group relative w-full overflow-hidden border text-left transition-all duration-150",
         isSelected
-          ? "border-primary/40 bg-primary/[0.05] shadow-sm ring-1 ring-primary/20"
+          ? "border-primary/40 bg-primary/[0.05] shadow-sm"
           : "border-border/60 bg-card hover:border-border hover:bg-muted/30 hover:shadow-sm",
         compact && "p-2.5",
       )}
@@ -520,7 +519,7 @@ function ShiftRow({
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <span
             className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 font-sans text-[11px] font-bold tracking-tight text-foreground",
+              "flex size-9 shrink-0 items-center justify-center border border-border/60 bg-muted/40 font-sans text-[11px] font-bold tracking-tight text-foreground",
             )}
             aria-hidden
           >
@@ -562,7 +561,7 @@ function ShiftRow({
             <span className="ml-auto" aria-hidden />
             <span
               className={cn(
-                "inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-medium",
+                "inline-flex shrink-0 items-center gap-1 border px-1.5 py-0.5 font-medium",
                 NUM,
                 varianceBgColor(v),
                 needsReview && "text-red-700 dark:text-red-300",
@@ -606,7 +605,7 @@ function DenomStackList({
 
   return (
     <div className={CARD}>
-      <div className="flex items-center justify-between rounded-t-xl border-b border-border/50 bg-muted/25 px-3 py-2">
+      <div className="flex items-center justify-between border-b border-border/50 bg-muted/25 px-3 py-2">
         <SectionLabel icon={Layers} text={title} />
         <span className={cn("text-sm font-bold text-foreground", NUM)}>
           {moneyStr(total)}
@@ -670,7 +669,7 @@ function DenominationComparison({
 
   return (
     <div className="space-y-3">
-      <div className={cn(DASHBOARD_TABLE_SURFACE, "overflow-hidden rounded-xl")}>
+      <div className={cn(DASHBOARD_TABLE_SURFACE, "overflow-hidden")}>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -793,7 +792,7 @@ function DenominationComparison({
       </div>
 
       {showReconciliation ? (
-        <div className={cn(CARD, "rounded-xl p-3.5")}>
+        <div className={cn(CARD, "p-3.5")}>
           <div className="mb-2 flex items-center gap-1.5">
             <Scale className="size-3.5 text-muted-foreground/70" aria-hidden />
             <h5 className="font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70">
@@ -874,7 +873,7 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
 
   return (
     <div className="space-y-3">
-      <div className={cn(DASHBOARD_TABLE_SURFACE, "overflow-hidden rounded-xl")}>
+      <div className={cn(DASHBOARD_TABLE_SURFACE, "overflow-hidden")}>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -945,7 +944,7 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
                   <td className="px-3 py-2 text-center sm:px-4">
                     <span
                       className={cn(
-                        "inline-block rounded-md border px-1.5 py-0.5 text-[10px] font-medium",
+                        "inline-block border px-1.5 py-0.5 text-[10px] font-medium",
                         DRAWOUT_STATUS_BADGE[d.status] || "",
                       )}
                     >
@@ -968,7 +967,7 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
       </div>
 
       {/* Totals */}
-      <dl className={cn(CARD, "space-y-1 rounded-xl p-3.5 text-xs")}>
+      <dl className={cn(CARD, "space-y-1 p-3.5 text-xs")}>
         {approvedTotal > 0 && (
           <LeaderRow
             label="Approved drawouts"
@@ -1087,7 +1086,7 @@ function ShiftDetail({
     <div className="flex h-full flex-col">
       {/* Segmented tab bar */}
       <div className="border-b border-border/50 p-2">
-        <div className="flex gap-1 rounded-lg border border-border/50 bg-muted/20 p-1">
+        <div className="flex gap-1 border border-border/50 bg-muted/20 p-1">
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
             const active = activeTab === tab.id;
@@ -1098,9 +1097,9 @@ function ShiftDetail({
                 onClick={() => setActiveTab(tab.id)}
                 aria-pressed={active}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
+                  "flex flex-1 items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
                   active
-                    ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
+                    ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -1153,7 +1152,7 @@ function ShiftDetail({
 
             {/* Cash movement */}
             {cashMovement != null ? (
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3.5 py-2.5">
+              <div className="flex items-center justify-between gap-2 border border-border/60 bg-muted/20 px-3.5 py-2.5">
                 <div className="min-w-0">
                   <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
                     Cash movement
@@ -1228,7 +1227,7 @@ function ShiftDetail({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8 w-full gap-1.5 text-xs"
+                className="h-8 w-full gap-1.5 rounded-none text-xs"
                 onClick={() => setEditOpeningOpen(true)}
               >
                 <Pencil className="size-3" aria-hidden />
@@ -1246,7 +1245,7 @@ function ShiftDetail({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-7 gap-1.5 px-2 text-xs"
+                  className="h-7 gap-1.5 rounded-none px-2 text-xs"
                   onClick={() => setEditOpeningOpen(true)}
                 >
                   <Pencil className="size-3" aria-hidden />
@@ -1599,7 +1598,7 @@ export default function ShiftsPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="shadow-sm"
+                className="rounded-none shadow-sm"
                 onClick={() => setDrawoutModal(true)}
               >
                 <HandCoins className="size-4" aria-hidden />
@@ -1608,6 +1607,7 @@ export default function ShiftsPage() {
               <Button
                 type="button"
                 variant="destructive"
+                className="rounded-none"
                 onClick={() => setCloseModal(true)}
               >
                 Close shift
@@ -1615,7 +1615,7 @@ export default function ShiftsPage() {
             </>
           ) : null}
           {canOpen ? (
-            <Button type="button" className="shadow-sm" onClick={() => setOpenModal(true)}>
+            <Button type="button" className="rounded-none shadow-sm" onClick={() => setOpenModal(true)}>
               Open shift
             </Button>
           ) : null}
@@ -1629,7 +1629,7 @@ export default function ShiftsPage() {
             <Link
               key={href}
               href={href}
-              className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              className="inline-flex items-center gap-1.5 px-1.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <Icon className="size-3.5" aria-hidden />
               {label}
@@ -1650,8 +1650,7 @@ export default function ShiftsPage() {
         <section
           aria-label="Open shift"
           className={cn(
-            "relative flex flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden rounded-xl border border-emerald-500/25 bg-emerald-500/[0.05] px-4 py-3",
-            "ring-1 ring-inset ring-emerald-500/10",
+            "relative flex flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden border border-emerald-500/25 bg-emerald-500/[0.05] px-4 py-3",
           )}
         >
           <span className="absolute inset-y-0 left-0 w-0.5 bg-emerald-500" aria-hidden />
@@ -1684,6 +1683,7 @@ export default function ShiftsPage() {
                   type="button"
                   size="sm"
                   variant="outline"
+                  className="rounded-none"
                   onClick={() => setDrawoutModal(true)}
                 >
                   New drawout
@@ -1692,6 +1692,7 @@ export default function ShiftsPage() {
                   type="button"
                   size="sm"
                   variant="destructive"
+                  className="rounded-none"
                   onClick={() => setCloseModal(true)}
                 >
                   Close shift
@@ -1707,18 +1708,18 @@ export default function ShiftsPage() {
         {/* Board rail */}
         <section
           aria-label="Shift board"
-          className={cn(CARD, "flex min-h-[24rem] flex-col overflow-hidden rounded-xl md:min-h-0")}
+          className={cn(CARD, "flex min-h-[24rem] flex-col overflow-hidden md:min-h-0")}
         >
           {/* Rail toolbar */}
           <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2.5">
             <div className="flex min-w-0 items-center gap-2">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-primary">
+              <span className="flex size-7 shrink-0 items-center justify-center border border-border/60 bg-muted/40 text-primary">
                 <Layers className="size-3.5" aria-hidden />
               </span>
               <h2 className="truncate text-sm font-semibold tracking-tight text-foreground">
                 Board
               </h2>
-              <span className="inline-flex min-w-5 items-center justify-center rounded-md border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+              <span className="inline-flex min-w-5 items-center justify-center border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
                 {totalCount}
               </span>
             </div>
@@ -1730,7 +1731,7 @@ export default function ShiftsPage() {
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <input
-                className={cn(dashboardInputClass(loading), "rounded-lg pl-8 text-sm")}
+                className={cn(dashboardInputClass(loading), "rounded-none pl-8 text-sm")}
                 placeholder="Search cashier or branch…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -1739,7 +1740,7 @@ export default function ShiftsPage() {
             </div>
             <div className="flex gap-1.5">
               <select
-                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-lg text-xs")}
+                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-none text-xs")}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 aria-label="Filter by status"
@@ -1751,7 +1752,7 @@ export default function ShiftsPage() {
                 ))}
               </select>
               <select
-                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-lg text-xs")}
+                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-none text-xs")}
                 value={branchFilter}
                 disabled={isBranchLockedRole}
                 onChange={(e) => setBranchFilter(e.target.value)}
@@ -1800,6 +1801,7 @@ export default function ShiftsPage() {
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="rounded-none"
                   disabled={loading}
                   onClick={() => loadShifts(page + 1, true)}
                 >
@@ -1813,12 +1815,12 @@ export default function ShiftsPage() {
         {/* Detail pane */}
         <section
           aria-label="Shift details"
-          className={cn(CARD, "hidden min-h-0 flex-col overflow-hidden rounded-xl md:flex")}
+          className={cn(CARD, "hidden min-h-0 flex-col overflow-hidden md:flex")}
         >
           {selectedShift ? (
             <div className="flex items-center gap-3 border-b border-border/50 px-4 py-2.5">
               <span
-                className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 font-sans text-[11px] font-bold tracking-tight text-foreground"
+                className="flex size-9 shrink-0 items-center justify-center border border-border/60 bg-muted/40 font-sans text-[11px] font-bold tracking-tight text-foreground"
                 aria-hidden
               >
                 {initials(selectedShift.cashierName)}
@@ -1863,7 +1865,7 @@ export default function ShiftsPage() {
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <input
-              className={cn(dashboardInputClass(loading), "rounded-lg pl-8 text-sm")}
+              className={cn(dashboardInputClass(loading), "rounded-none pl-8 text-sm")}
               placeholder="Search…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -1874,7 +1876,7 @@ export default function ShiftsPage() {
             <Button
               size="sm"
               type="button"
-              className="shrink-0 shadow-sm"
+              className="shrink-0 rounded-none shadow-sm"
               onClick={() => setOpenModal(true)}
             >
               Open
@@ -1883,7 +1885,7 @@ export default function ShiftsPage() {
         </div>
         <div className="flex gap-1.5">
           <select
-            className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-lg text-xs")}
+            className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-none text-xs")}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             aria-label="Filter by status"
@@ -1895,7 +1897,7 @@ export default function ShiftsPage() {
             ))}
           </select>
           <select
-            className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-lg text-xs")}
+            className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-none text-xs")}
             value={branchFilter}
             disabled={isBranchLockedRole}
             onChange={(e) => setBranchFilter(e.target.value)}
@@ -1932,7 +1934,7 @@ export default function ShiftsPage() {
           ) : null}
         </div>
         {selectedShiftId ? (
-          <div className={cn(CARD, "overflow-hidden rounded-xl")}>
+          <div className={cn(CARD, "overflow-hidden")}>
             <div className="mb-1 flex items-center justify-between border-b border-border/50 px-3 py-2">
               <h3 className="text-sm font-semibold tracking-tight text-foreground">
                 Shift details
@@ -1941,7 +1943,7 @@ export default function ShiftsPage() {
                 type="button"
                 onClick={() => setSelectedShiftId(null)}
                 aria-label="Close shift details"
-                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <X className="size-4" />
               </button>
