@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { sectionLabelPillClass } from "./landing-styles";
 
 type LandingSectionHeaderProps = {
-  index: string;
+  index?: string;
   label: string;
   title: ReactNode;
   description?: string;
@@ -24,7 +24,9 @@ export function LandingSectionHeader({
   return (
     <header className={cn("landing-section-header", className)}>
       <div className="landing-section-header-meta mb-5 flex flex-wrap items-center gap-3 sm:mb-6">
-        <span className="landing-section-index">{index}</span>
+        {index ? (
+          <span className="landing-section-index">{index}</span>
+        ) : null}
         <span className={sectionLabelPillClass}>{label}</span>
       </div>
       <h2

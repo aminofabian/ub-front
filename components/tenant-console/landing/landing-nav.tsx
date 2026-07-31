@@ -7,11 +7,11 @@ import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { href: "#features", label: "Features", code: "01" },
-  { href: "#how", label: "How it works", code: "02" },
-  { href: "#pricing", label: "Pricing", code: "03" },
-  { href: "#stories", label: "Stories", code: "04" },
-  { href: "/blog", label: "Blog", code: "05" },
+  { href: "#features", label: "Features" },
+  { href: "#how", label: "How it works" },
+  { href: "#pricing", label: "Pricing" },
+  { href: "#stories", label: "Stories" },
+  { href: "/blog", label: "Blog" },
 ] as const;
 
 type LandingNavProps = {
@@ -73,9 +73,6 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
           <div className="landing-nav-links hidden md:flex" aria-label="Primary">
             {NAV_LINKS.map((link) => (
               <a key={link.href} href={link.href} className="landing-nav-link">
-                <span className="landing-nav-link-code" aria-hidden>
-                  {link.code}
-                </span>
                 <span className="landing-nav-link-label">{link.label}</span>
               </a>
             ))}
@@ -145,7 +142,6 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
                 className="landing-nav-drawer-link"
                 onClick={closeMenu}
               >
-                <span className="landing-nav-link-code">{link.code}</span>
                 <span>{link.label}</span>
               </a>
             ))}

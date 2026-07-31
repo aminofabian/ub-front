@@ -6,22 +6,18 @@ import { goldCtaClass, ghostCtaClass } from "./landing-styles";
 
 const PILLARS = [
   {
-    code: "01",
     title: "Sell faster at the counter",
     body: "Barcode scan, M-Pesa STK, cash, and split pay — checkout that keeps moving when the network drops.",
   },
   {
-    code: "02",
     title: "Know your stock in real time",
     body: "One count across every branch and your online shop. Low-stock alerts before you run out.",
   },
   {
-    code: "03",
     title: "Open an online storefront",
     body: "Your branded shop live in minutes. Same prices, same inventory, M-Pesa at checkout.",
   },
   {
-    code: "04",
     title: "Run every branch from one place",
     body: "Staff roles, shifts, suppliers, and transfers — one dashboard for every location.",
   },
@@ -37,7 +33,6 @@ export function LandingFeatures({ onCreateShop }: LandingFeaturesProps) {
     <section id="features" className="section-reveal convert-section">
       <div className="convert-inner">
         <header className="convert-head">
-          <p className="convert-kicker">Built for Kenyan shops</p>
           <h2 className="convert-title">
             Everything you need to sell today.
             <span> Nothing you don’t.</span>
@@ -66,10 +61,7 @@ export function LandingFeatures({ onCreateShop }: LandingFeaturesProps) {
 
         <ol className="convert-pillars">
           {PILLARS.map((pillar) => (
-            <li key={pillar.code} className="convert-pillar">
-              <span className="convert-pillar-code" aria-hidden>
-                {pillar.code}
-              </span>
+            <li key={pillar.title} className="convert-pillar">
               <h3 className="convert-pillar-title">{pillar.title}</h3>
               <p className="convert-pillar-body">{pillar.body}</p>
             </li>

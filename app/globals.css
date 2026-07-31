@@ -1152,9 +1152,7 @@
     .landing-page .kiosk-logo-badge-ring,
     .landing-page .kiosk-logo-rule,
     .landing-page .landing-footer-till-track,
-    .landing-page .landing-footer-barcode,
-    .landing-page .landing-hero-eyebrow,
-    .landing-page .landing-hero-eyebrow-stub {
+    .landing-page .landing-footer-barcode {
         animation: none;
         transform: none;
     }
@@ -2218,126 +2216,7 @@ body:has(.landing-page) {
     opacity: 1;
 }
 
-.landing-page .landing-hero-eyebrow {
-    position: relative;
-    display: inline-flex;
-    align-items: stretch;
-    max-width: 100%;
-    background: color-mix(in srgb, var(--kiosk-elevated) 88%, #f0ebe3);
-    box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.9) inset,
-        0 10px 28px -18px rgba(20, 20, 18, 0.28),
-        0 0 0 1px color-mix(in srgb, var(--kiosk-text) 8%, transparent);
-    clip-path: polygon(
-        0 0,
-        calc(100% - 12px) 0,
-        100% 12px,
-        100% 100%,
-        0 100%
-    );
-    transform: rotate(-0.8deg);
-    transform-origin: left center;
-    animation: hero-eyebrow-settle 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
 
-.landing-page .landing-hero-eyebrow-stub {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    padding: 0.55rem 0.7rem;
-    background: color-mix(in srgb, var(--kiosk-gold) 10%, transparent);
-    border-right: none;
-}
-
-.landing-page .landing-hero-eyebrow-scan {
-    display: inline-flex;
-    align-items: flex-end;
-    gap: 1.5px;
-    height: 0.95rem;
-}
-
-.landing-page .landing-hero-eyebrow-scan span {
-    display: block;
-    width: 1.5px;
-    background: var(--kiosk-text);
-    opacity: 0.78;
-}
-
-.landing-page .landing-hero-eyebrow-scan span:nth-child(1) { height: 55%; width: 1px; }
-.landing-page .landing-hero-eyebrow-scan span:nth-child(2) { height: 100%; width: 2.5px; }
-.landing-page .landing-hero-eyebrow-scan span:nth-child(3) { height: 70%; }
-.landing-page .landing-hero-eyebrow-scan span:nth-child(4) { height: 100%; width: 1px; }
-.landing-page .landing-hero-eyebrow-scan span:nth-child(5) { height: 85%; width: 2px; }
-.landing-page .landing-hero-eyebrow-scan span:nth-child(6) { height: 45%; }
-.landing-page .landing-hero-eyebrow-scan span:nth-child(7) { height: 100%; width: 2.5px; }
-
-.landing-page .landing-hero-eyebrow-code {
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--kiosk-gold);
-}
-
-.landing-page .landing-hero-eyebrow-perf {
-    width: 10px;
-    flex-shrink: 0;
-    background-color: transparent;
-    background-image: radial-gradient(
-        circle at 0 50%,
-        transparent 3.5px,
-        color-mix(in srgb, var(--kiosk-text) 14%, transparent) 3.6px,
-        color-mix(in srgb, var(--kiosk-text) 14%, transparent) 4px,
-        transparent 4.1px
-    );
-    background-size: 10px 11px;
-    background-repeat: repeat-y;
-    background-position: left center;
-    border-left: 1px dashed color-mix(in srgb, var(--kiosk-text) 16%, transparent);
-    border-right: 1px dashed color-mix(in srgb, var(--kiosk-text) 16%, transparent);
-}
-
-.landing-page .landing-hero-eyebrow-copy {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.15rem;
-    padding: 0.55rem 1.15rem 0.55rem 0.85rem;
-}
-
-.landing-page .landing-hero-eyebrow-line {
-    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
-    font-size: clamp(0.95rem, 2.4vw, 1.15rem);
-    font-weight: 600;
-    font-style: italic;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
-    color: var(--kiosk-text);
-    text-wrap: balance;
-}
-
-.landing-page .landing-hero-eyebrow-sub {
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--kiosk-text-faint);
-}
-
-@keyframes hero-eyebrow-settle {
-    from {
-        opacity: 0;
-        transform: rotate(-2.4deg) translateY(6px);
-    }
-    to {
-        opacity: 1;
-        transform: rotate(-0.8deg) translateY(0);
-    }
-}
 
 .landing-page .landing-hero-stat {
     display: flex;
@@ -3699,46 +3578,6 @@ body:has(.landing-page) {
 
     .landing-page .landing-hero {
         justify-content: flex-start;
-    }
-
-    .landing-page .landing-hero-eyebrow {
-        display: flex;
-        width: fit-content;
-        max-width: min(100%, 20.5rem);
-        transform: rotate(-0.4deg);
-    }
-
-    .landing-page .landing-hero-eyebrow-stub {
-        padding: 0.45rem 0.55rem;
-        gap: 0.25rem;
-    }
-
-    .landing-page .landing-hero-eyebrow-scan {
-        height: 0.8rem;
-    }
-
-    .landing-page .landing-hero-eyebrow-code {
-        font-size: 8px;
-        letter-spacing: 0.18em;
-    }
-
-    .landing-page .landing-hero-eyebrow-perf {
-        width: 8px;
-        background-size: 8px 10px;
-    }
-
-    .landing-page .landing-hero-eyebrow-copy {
-        padding: 0.45rem 0.85rem 0.45rem 0.7rem;
-        gap: 0.1rem;
-    }
-
-    .landing-page .landing-hero-eyebrow-line {
-        font-size: 0.9rem;
-    }
-
-    .landing-page .landing-hero-eyebrow-sub {
-        font-size: 8px;
-        letter-spacing: 0.12em;
     }
 
     .landing-page .landing-hero-stats-row {

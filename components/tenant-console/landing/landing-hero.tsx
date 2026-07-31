@@ -65,23 +65,7 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
         </button>
       </div>
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[1] opacity-40 max-md:opacity-25"
-        style={{
-          backgroundImage: `repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 11px,
-            var(--kiosk-grid-line) 11px,
-            var(--kiosk-grid-line) 12px
-          )`,
-          maskImage:
-            "linear-gradient(90deg, var(--kiosk-bg) 0%, transparent 55%)",
-          WebkitMaskImage:
-            "linear-gradient(90deg, var(--kiosk-bg) 0%, transparent 55%)",
-        }}
-      />
+
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1280px] flex-1 flex-col justify-center">
         <div className="flex flex-col gap-6 sm:gap-14 lg:grid lg:grid-cols-12 lg:items-center lg:gap-x-14 xl:gap-x-20">
@@ -91,41 +75,11 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
               className="absolute -left-1 top-0 hidden h-full w-px bg-gradient-to-b from-transparent via-[var(--kiosk-gold)]/35 to-transparent lg:-left-4 lg:block"
             />
 
-            <p className="landing-reveal landing-hero-eyebrow mb-4 max-w-full sm:mb-8">
-              <span className="landing-hero-eyebrow-stub" aria-hidden>
-                <span className="landing-hero-eyebrow-scan">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </span>
-                <span className="landing-hero-eyebrow-code">Till</span>
-              </span>
-              <span className="landing-hero-eyebrow-perf" aria-hidden />
-              <span className="landing-hero-eyebrow-copy min-w-0">
-                <span className="landing-hero-eyebrow-line">
-                  Built at the counter
-                </span>
-                <span className="landing-hero-eyebrow-sub">
-                  for shop owners in Kenya
-                </span>
-              </span>
-            </p>
-
-            <h1 className="landing-reveal landing-reveal-delay-1 mb-3 font-heading text-[clamp(1.9rem,8.4vw,4rem)] leading-[1.05] tracking-[-0.04em] text-[var(--kiosk-text)] sm:mb-7">
+            <h1 className="landing-reveal landing-reveal-delay-1 mb-3 font-heading text-[clamp(1.9rem,8.4vw,4rem)] leading-[1.05] tracking-[-0.03em] text-[var(--kiosk-text)] sm:mb-7">
               The POS
               <br />
-              <span className="relative mt-0.5 inline-block sm:mt-1">
-                <span className="bg-gradient-to-r from-[#20863B] via-[var(--kiosk-gold)] to-[#32B85A] bg-clip-text text-transparent">
-                  that works as hard as you do.
-                </span>
-                <span
-                  aria-hidden
-                  className="absolute -bottom-1.5 left-0 h-px w-full max-w-[12rem] bg-gradient-to-r from-[var(--kiosk-gold)]/70 to-transparent sm:-bottom-2 sm:max-w-[14rem]"
-                />
+              <span className="relative mt-0.5 inline-block font-semibold text-[var(--kiosk-gold)] sm:mt-1">
+                that works as hard as you do.
               </span>
             </h1>
 

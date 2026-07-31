@@ -10,17 +10,16 @@ import { PLATFORM_DOMAIN } from "@/lib/config";
 import { goldCtaClass } from "./landing-styles";
 
 const TILL_STRIP = [
-  { code: "01", label: "Barcode scan" },
-  { code: "02", label: "M-Pesa STK" },
-  { code: "03", label: "Offline sales" },
-  { code: "04", label: "One stock count" },
-  { code: "05", label: "Multi-branch" },
-  { code: "06", label: "Receipt print" },
+  { label: "Barcode scan" },
+  { label: "M-Pesa STK" },
+  { label: "Offline sales" },
+  { label: "One stock count" },
+  { label: "Multi-branch" },
+  { label: "Receipt print" },
 ] as const;
 
 const FOOTER_COLS = [
   {
-    code: "01",
     label: "Product",
     links: [
       { label: "Features", href: "/#features" },
@@ -32,7 +31,6 @@ const FOOTER_COLS = [
     ],
   },
   {
-    code: "02",
     label: "Company",
     links: [
       { label: "About", href: "#" },
@@ -42,7 +40,6 @@ const FOOTER_COLS = [
     ],
   },
   {
-    code: "03",
     label: "Support",
     links: [
       { label: "Help", href: "/help" },
@@ -100,10 +97,9 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
         <div className="landing-footer-till-track flex w-max items-center">
           {tillDoubled.map((item, i) => (
             <span
-              key={`${item.code}-${i}`}
+              key={`${item.label}-${i}`}
               className="landing-footer-till-item"
             >
-              <span className="landing-footer-till-code">{item.code}</span>
               <span className="landing-footer-till-label">{item.label}</span>
             </span>
           ))}
@@ -152,9 +148,6 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
                     <h4 className="font-heading text-xl font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
                       {col.label}
                     </h4>
-                    <span className="font-mono text-[10px] tabular-nums tracking-[0.14em] text-[var(--kiosk-text-faint)]">
-                      {col.code}
-                    </span>
                   </div>
                   <ul className="flex flex-col">
                     {col.links.map((link) => {

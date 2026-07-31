@@ -12,7 +12,7 @@ export function LandingCta({ onCreateShop, onTalkToUs }: LandingCtaProps) {
     <section className={`section-reveal ${landingSectionClass}`}>
       <div className="mx-auto max-w-[720px] px-1">
         <div className="landing-cta-panel relative z-10 text-center">
-          <p className="relative z-[1] mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--kiosk-gold)]">
+          <p className="relative z-[1] mb-3 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--kiosk-gold)]">
             Ready when you are
           </p>
           <h2 className="relative z-[1] mb-4 font-heading text-[clamp(28px,7vw,52px)] leading-[1.08] tracking-[-0.03em] text-[var(--kiosk-text)]">

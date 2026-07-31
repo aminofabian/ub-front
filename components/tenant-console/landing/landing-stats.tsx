@@ -112,7 +112,7 @@ export function LandingStats() {
       <div className="relative z-10 mx-auto max-w-[1100px]">
         <div className="mb-10 flex flex-col gap-4 sm:mb-12 sm:flex-row sm:items-end sm:justify-between sm:gap-10">
           <div>
-            <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--kiosk-gold)]">
+            <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--kiosk-gold)]">
               One platform · four pillars
             </p>
             <h2 className="font-heading text-[clamp(26px,5vw,44px)] leading-[1.12] tracking-[-0.02em] text-[var(--kiosk-text)]">
@@ -149,7 +149,7 @@ export function LandingStats() {
           </nav>
 
           <div className="landing-pillar-panel">
-            <p className="landing-pillar-panel-kicker">{pillar.index} · {pillar.name}</p>
+            <p className="landing-pillar-panel-kicker">{pillar.name}</p>
             <h3 className="landing-pillar-panel-title">{pillar.summary}</h3>
             <ul className="landing-pillar-details">
               {pillar.details.map((d) => (

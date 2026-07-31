@@ -36,7 +36,7 @@ export function LandingHowItWorks() {
     >
       <div className="relative mx-auto max-w-[1100px]">
         <LandingSectionHeader
-          index="02"
+          index="01"
           label="Getting started"
           title="Set up in an afternoon. Run it for years."
           description="Three deliberate steps — no consultants, no six-week rollout."

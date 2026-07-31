@@ -12,7 +12,6 @@ import {
 type PlanFeature = { qty: string; label: string };
 
 type Plan = {
-  code: string;
   name: string;
   price: string;
   unit?: string;
@@ -27,7 +26,6 @@ type Plan = {
 
 const PLANS: readonly Plan[] = [
   {
-    code: "Plan 01",
     name: "Free",
     price: "Free",
     blurb: "Try the till with a small catalog. No credit card required.",
@@ -42,7 +40,6 @@ const PLANS: readonly Plan[] = [
     cta: "Start free",
   },
   {
-    code: "Plan 02",
     name: "Starter",
     price: "KES 300",
     unit: "/ mo",
@@ -58,7 +55,6 @@ const PLANS: readonly Plan[] = [
     cta: "Start your shop",
   },
   {
-    code: "Plan 03",
     name: "Business",
     price: "KES 800",
     unit: "/ mo",
@@ -76,7 +72,6 @@ const PLANS: readonly Plan[] = [
     cta: "Start your shop",
   },
   {
-    code: "Plan 04",
     name: "Growth",
     price: "KES 1,500",
     unit: "/ mo",
@@ -92,7 +87,6 @@ const PLANS: readonly Plan[] = [
     cta: "Start your shop",
   },
   {
-    code: "Plan 05",
     name: "Enterprise",
     price: "KES 3,000+",
     unit: "/ mo · custom",
@@ -123,7 +117,6 @@ type PlanCardProps = {
 
 function PlanCard({ plan, onCreateShop, onTalkToUs }: PlanCardProps) {
   const {
-    code,
     name,
     price,
     unit,
@@ -150,7 +143,6 @@ function PlanCard({ plan, onCreateShop, onTalkToUs }: PlanCardProps) {
       <header className="landing-plan-head">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="landing-plan-code">{code}</p>
             <h3 className="landing-plan-name">{name}</h3>
           </div>
           {mark ? (
@@ -211,7 +203,6 @@ export function LandingPricing({ onCreateShop, onTalkToUs }: LandingPricingProps
     >
       <div className="relative mx-auto max-w-[1200px]">
         <LandingSectionHeader
-          index="04"
           label="Pricing"
           title="Simple pricing. No surprises."
           description="Start free with 300 products and one cashier. Upgrade when your catalog or team grows."
@@ -222,7 +213,7 @@ export function LandingPricing({ onCreateShop, onTalkToUs }: LandingPricingProps
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 xl:gap-3">
           {PLANS.map((plan) => (
             <PlanCard
-              key={plan.code}
+              key={plan.name}
               plan={plan}
               onCreateShop={onCreateShop}
               onTalkToUs={onTalkToUs}
