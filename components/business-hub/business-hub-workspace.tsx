@@ -35,6 +35,7 @@ import { StockHealthPanel } from "@/components/business-hub/stock-health-panel";
 import { TopMoversPanel } from "@/components/business-hub/top-movers-panel";
 import { useBusinessHubRealtime } from "@/hooks/use-business-hub-realtime";
 import { useOptionalRealtime } from "@/components/realtime-provider";
+import { playCashierChime } from "@/lib/cashier-chime";
 import { APP_ROUTES } from "@/lib/config";
 import { isButcherPosEnabled } from "@/lib/butcher-feature";
 import {
@@ -366,6 +367,9 @@ export function BusinessHubWorkspace() {
       void load();
     },
     onLiveEvent: markLiveEvent,
+    onSaleCompleted: () => {
+      playCashierChime("order");
+    },
   });
 
   const realtime = useOptionalRealtime();

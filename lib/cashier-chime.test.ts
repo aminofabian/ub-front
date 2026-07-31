@@ -42,8 +42,10 @@ describe("playCashierChime", () => {
       }),
       createGain: jest.fn(() => gainMock),
       close: jest.fn(),
+      resume: jest.fn(() => Promise.resolve()),
       currentTime: 1.5,
       destination: {},
+      state: "running",
     };
     global.AudioContext = jest.fn(() => audioCtxMock) as unknown as typeof AudioContext;
   });
