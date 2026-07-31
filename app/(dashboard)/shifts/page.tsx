@@ -1863,7 +1863,7 @@ export default function ShiftsPage() {
         {/* Panels */}
         <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* ─── Column 1: Shift List (~28%) ────────────────────────── */}
-        <div className="flex w-[28%] min-w-[260px] flex-shrink-0 flex-col border-r border-border/50">
+        <div className="flex min-w-[190px] max-w-[320px] flex-[1.12] flex-col border-r border-border/50">
           <PanelHeader
             icon={ListChecks}
             title="Shift List"
@@ -1960,8 +1960,8 @@ export default function ShiftsPage() {
           </div>
         </div>
 
-        {/* ─── Column 2: Analytics (~35%) ──────────────────────────── */}
-        <div className="hidden w-[35%] min-w-[300px] flex-shrink-0 border-r border-border/50 lg:flex lg:flex-col">
+        {/* ─── Column 2: Analytics (~34%) ─────────────────────────── */}
+        <div className="hidden min-w-[230px] max-w-[380px] flex-[1.34] border-r border-border/50 lg:flex lg:flex-col">
           <PanelHeader icon={Calculator} title="Analytics" />
           <div className="flex-1 overflow-y-auto">
             <AnalyticsPanel
@@ -1971,8 +1971,8 @@ export default function ShiftsPage() {
           </div>
         </div>
 
-        {/* ─── Column 3: Detail Tabs (~37%) ────────────────────────── */}
-        <div className="flex flex-1 flex-col">
+        {/* ─── Column 3: Detail Tabs (~38%) ────────────────────────── */}
+        <div className="flex min-w-[270px] flex-[1.54] flex-col">
           {selectedShift ? (
             <div className="flex items-center gap-2.5 border-b border-border/50 bg-muted/25 px-4 py-2">
               <span
