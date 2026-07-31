@@ -224,7 +224,7 @@ export function DashboardPageHero({
   children,
 }: {
   icon: LucideIcon;
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description: ReactNode;
   compact?: boolean;
@@ -237,13 +237,15 @@ export function DashboardPageHero({
     return (
       <header className="flex flex-wrap items-start gap-x-4 gap-y-3 sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/50 text-foreground shadow-sm">
+          <span className="flex size-10 shrink-0 items-center justify-center border border-border/60 bg-muted/50 text-foreground shadow-sm">
             <Icon className="size-[18px]" aria-hidden />
           </span>
           <div className="min-w-0">
-            <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              {eyebrow}
-            </span>
+            {eyebrow ? (
+              <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {eyebrow}
+              </span>
+            ) : null}
             <h1 className="text-xl font-bold leading-tight tracking-tight text-foreground sm:text-2xl">
               {title}
             </h1>
@@ -264,12 +266,14 @@ export function DashboardPageHero({
     <header className="space-y-8 border-b border-border/50 pb-10">
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl border border-border/60 bg-muted/50 text-foreground shadow-sm">
+          <span className="flex size-10 items-center justify-center border border-border/60 bg-muted/50 text-foreground shadow-sm">
             <Icon className="size-[18px]" aria-hidden />
           </span>
-          <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            {eyebrow}
-          </span>
+          {eyebrow ? (
+            <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {eyebrow}
+            </span>
+          ) : null}
         </div>
         <div className="space-y-3">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-[2rem] sm:leading-tight">

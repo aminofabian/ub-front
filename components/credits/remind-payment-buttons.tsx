@@ -83,7 +83,7 @@ export function RemindPaymentButtons({
         type="button"
         size="sm"
         variant="outline"
-        className="h-8 gap-1 px-2"
+        className="h-8 gap-1 rounded-none px-2"
         disabled={disabled || busy != null}
         title="Remind via WhatsApp, falling back to SMS"
         onClick={() => void send("auto")}
@@ -100,7 +100,7 @@ export function RemindPaymentButtons({
         size="sm"
         variant="ghost"
         className={cn(
-          "h-8 px-2 text-muted-foreground",
+          "h-8 rounded-none px-2 text-muted-foreground",
           "hover:text-emerald-700 dark:hover:text-emerald-300",
         )}
         disabled={disabled || busy != null}
@@ -119,7 +119,7 @@ export function RemindPaymentButtons({
         size="sm"
         variant="ghost"
         className={cn(
-          "h-8 px-2 text-muted-foreground",
+          "h-8 rounded-none px-2 text-muted-foreground",
           "hover:text-sky-700 dark:hover:text-sky-300",
         )}
         disabled={disabled || busy != null}

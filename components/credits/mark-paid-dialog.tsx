@@ -107,7 +107,7 @@ export function MarkPaidDialog({
         </DialogHeader>
 
         <div className="space-y-4 px-5 py-4">
-          <div className="rounded-xl bg-muted/40 px-4 py-3 text-center">
+          <div className="bg-muted/40 px-4 py-3 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Owed now
             </p>
@@ -122,7 +122,7 @@ export function MarkPaidDialog({
           </div>
 
           <div
-            className="grid grid-cols-2 gap-1 rounded-lg bg-muted/50 p-1"
+            className="grid grid-cols-2 gap-1 bg-muted/50 p-1"
             role="group"
             aria-label="Payment amount"
           >
@@ -130,7 +130,7 @@ export function MarkPaidDialog({
               type="button"
               onClick={() => setMode("full")}
               className={cn(
-                "rounded-md px-2 py-1.5 text-xs font-semibold transition-colors",
+                "px-2 py-1.5 text-xs font-semibold transition-colors",
                 mode === "full"
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -142,7 +142,7 @@ export function MarkPaidDialog({
               type="button"
               onClick={() => setMode("partial")}
               className={cn(
-                "rounded-md px-2 py-1.5 text-xs font-semibold transition-colors",
+                "px-2 py-1.5 text-xs font-semibold transition-colors",
                 mode === "partial"
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -155,7 +155,7 @@ export function MarkPaidDialog({
           <label className="block space-y-1.5">
             <span className="text-xs font-medium text-foreground">Amount</span>
             <input
-              className={dashboardInputClass()}
+              className={cn(dashboardInputClass(), "rounded-none")}
               type="number"
               min="0.01"
               step="0.01"
@@ -168,7 +168,7 @@ export function MarkPaidDialog({
           </label>
 
           <div
-            className="grid grid-cols-2 gap-1 rounded-lg bg-muted/50 p-1"
+            className="grid grid-cols-2 gap-1 bg-muted/50 p-1"
             role="group"
             aria-label="Payment channel"
           >
@@ -176,7 +176,7 @@ export function MarkPaidDialog({
               type="button"
               onClick={() => setChannel("cash")}
               className={cn(
-                "inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors",
+                "inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-semibold transition-colors",
                 channel === "cash"
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -189,7 +189,7 @@ export function MarkPaidDialog({
               type="button"
               onClick={() => setChannel("mpesa")}
               className={cn(
-                "inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors",
+                "inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-semibold transition-colors",
                 channel === "mpesa"
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -208,7 +208,7 @@ export function MarkPaidDialog({
               </span>
             </span>
             <input
-              className={dashboardInputClass()}
+              className={cn(dashboardInputClass(), "rounded-none")}
               placeholder={
                 channel === "mpesa" ? "M-Pesa code" : "Receipt / note"
               }

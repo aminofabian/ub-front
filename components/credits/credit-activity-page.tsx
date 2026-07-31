@@ -330,13 +330,12 @@ export function CreditActivityPage() {
         <DashboardPageHero
           compact
           icon={CreditCard}
-          eyebrow="Credit & tabs"
           title="On tab"
           description="Charged this period, collected payments, and what’s still owed."
         />
         <div className="flex flex-wrap items-center gap-2">
           {canViewCustomers ? (
-            <Button asChild size="sm" variant="outline">
+            <Button asChild size="sm" variant="outline" className="rounded-none">
               <Link href={APP_ROUTES.customers}>
                 <Users className="size-3.5" aria-hidden />
                 Directory
@@ -347,6 +346,7 @@ export function CreditActivityPage() {
             type="button"
             size="sm"
             variant="outline"
+            className="rounded-none"
             disabled={
               listLoading || refreshing || tabsLoading || summaryLoading
             }
@@ -381,7 +381,7 @@ export function CreditActivityPage() {
               title={hint}
               onClick={() => setPeriod(id)}
               className={cn(
-                "inline-flex flex-col items-start rounded-lg px-3 py-1.5 text-left transition-colors",
+                "inline-flex flex-col items-start px-3 py-1.5 text-left transition-colors",
                 active
                   ? "bg-foreground text-background"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -404,15 +404,7 @@ export function CreditActivityPage() {
         </span>
       </div>
 
-      <section className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-[#1c1917] via-[#292524] to-[#1c1917] px-5 py-6 text-[#fafaf9] shadow-sm sm:px-7 sm:py-7">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 20%, #fbbf24 0%, transparent 45%), radial-gradient(circle at 80% 0%, #34d399 0%, transparent 40%)",
-          }}
-          aria-hidden
-        />
+      <section className="relative overflow-hidden border border-stone-800/60 bg-gradient-to-br from-[#1c1917] via-[#292524] to-[#1c1917] px-5 py-6 text-[#fafaf9] shadow-sm sm:px-7 sm:py-7">
         <div className="relative space-y-6">
           <div className="grid gap-5 sm:grid-cols-3 sm:gap-6">
             <div>
@@ -487,7 +479,7 @@ export function CreditActivityPage() {
                 {hours.map((value, hour) => (
                   <div
                     key={hour}
-                    className="flex-1 rounded-sm bg-amber-400/80 transition-[height]"
+                    className="flex-1 bg-amber-400/80 transition-[height]"
                     style={{
                       height: `${Math.max(8, (value / maxHour) * 100)}%`,
                       opacity: value > 0 ? 0.35 + (value / maxHour) * 0.65 : 0.12,
@@ -509,7 +501,7 @@ export function CreditActivityPage() {
       </section>
 
       {canViewCustomers ? (
-        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+        <section className="overflow-hidden border border-border/80 bg-card shadow-sm">
             <div className="flex flex-wrap items-end justify-between gap-2 border-b border-border/60 bg-muted/25 px-4 py-3 sm:px-5">
             <div>
               <h2 className="text-sm font-semibold text-foreground">
@@ -579,7 +571,7 @@ export function CreditActivityPage() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="shrink-0"
+                          className="shrink-0 rounded-none"
                           onClick={() => {
                             setFeedback(null);
                             setPayTarget(tab);
@@ -598,7 +590,7 @@ export function CreditActivityPage() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(16rem,1fr)]">
-        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+        <section className="overflow-hidden border border-border/80 bg-card shadow-sm">
           <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/25 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
             <div className="relative min-w-0 flex-1">
               <Search
@@ -606,7 +598,7 @@ export function CreditActivityPage() {
                 aria-hidden
               />
               <input
-                className={cn(dashboardInputClass(), "pl-9")}
+                className={cn(dashboardInputClass(), "rounded-none pl-9")}
                 placeholder="Find name, till, or receipt…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -669,7 +661,7 @@ export function CreditActivityPage() {
         </section>
 
         <aside className="space-y-4">
-          <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+          <section className="overflow-hidden border border-border/80 bg-card shadow-sm">
             <div className="border-b border-border/60 bg-muted/25 px-4 py-3 sm:px-5">
               <h2 className="text-sm font-semibold text-foreground">
                 Who charged
@@ -716,7 +708,7 @@ export function CreditActivityPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-4 sm:px-5">
+          <section className="border border-dashed border-border/70 bg-muted/20 px-4 py-4 sm:px-5">
             <p className="text-sm font-medium text-foreground">
               Clearing debt
             </p>
