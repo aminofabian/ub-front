@@ -94,9 +94,17 @@ export function OnboardingTourCard({
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
-          Setup guide
-        </p>
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <Sparkles className="size-3.5 text-primary" aria-hidden />
+          <span>
+            Step {stepNumber} of {totalSteps}
+            {step.optional ? (
+              <span className="ml-1.5 rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                Optional
+              </span>
+            ) : null}
+          </span>
+        </div>
         <button
           type="button"
           onClick={onSkipTour}
@@ -105,18 +113,6 @@ export function OnboardingTourCard({
           Skip tour
           <X className="size-3.5" aria-hidden />
         </button>
-      </div>
-
-      <div className="mt-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <Sparkles className="size-3.5 text-primary" aria-hidden />
-        <span>
-          Step {stepNumber} of {totalSteps}
-          {step.optional ? (
-            <span className="ml-1.5 rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide">
-              Optional
-            </span>
-          ) : null}
-        </span>
       </div>
 
       <h2

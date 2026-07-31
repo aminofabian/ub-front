@@ -912,14 +912,11 @@ export function OnboardingQuestionnaire({
                           <Package className="size-5" aria-hidden />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] font-medium uppercase tracking-wide text-[#0F766E]">
-                            Suggested for your shop
-                          </p>
                           <p className="mt-0.5 text-base font-semibold text-[#134E4A]">
                             {suggestedPack.name}
                           </p>
                           <p className="mt-1 text-xs text-[#0F766E]/80">
-                            {suggestedPack.productCount} products
+                            Suggested for your shop · {suggestedPack.productCount} products
                             {suggestedPack.samplePriceLabel
                               ? ` · ${suggestedPack.samplePriceLabel}`
                               : ""}
