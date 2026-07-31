@@ -111,7 +111,7 @@ import {
   type RecentTick,
 } from "@/lib/business-hub/ticks-from-transactions";
 
-const SUPPLY_DISPLAY_LIMIT = 12;
+const SUPPLY_DISPLAY_LIMIT = 24;
 
 export function BusinessHubWorkspace() {
   const {
