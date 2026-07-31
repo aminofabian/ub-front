@@ -5,10 +5,15 @@
  * Collects the newest Tauri bundle per (os, arch) from:
  *   - desktop/src-tauri/target/release/bundle/**        (fresh `cargo tauri build`)
  *   - desktop/src-tauri/target/<triple>/release/bundle/** (targeted builds)
- *   - desktop/*.dmg / *.msi / *.exe / *.AppImage / *.deb  (committed artifacts)
+ *   - desktop/*.dmg / *.msi / *.exe / *.AppImage / *.deb  (local artifacts)
  *
  * Copies each with a normalized, URL-safe name and writes manifest.json,
  * which /download and the landing page read at runtime.
+ *
+ * Files ≥ 95 MB exceed GitHub's push limit and are gitignored. For production
+ * hosting set DESKTOP_DOWNLOAD_BASE_URL to a Releases / CDN prefix so the
+ * manifest's `url` field points there (e.g.
+ * https://github.com/org/repo/releases/download/desktop-v0.0.1).
  *
  * Run: node scripts/publish-desktop-downloads.mjs
  *      (or `bun run pack:desktop-downloads`)
@@ -33,6 +38,9 @@ const REPO = join(FRONTEND, "..");
 const DESKTOP = join(REPO, "desktop");
 const OUT = join(FRONTEND, "public", "downloads", "desktop");
 const MANIFEST = join(OUT, "manifest.json");
+
+/** Soft ceiling matching GitHub's hard 100 MB blob limit (with headroom). */
+const GIT_SAFE_BYTES = 95 * 1024 * 1024;
 
 const INSTALLER_EXTS = new Set([".dmg", ".msi", ".exe", ".appimage", ".deb"]);
 
@@ -96,7 +104,7 @@ function collectCandidates() {
     }
   }
 
-  // Committed artifacts sitting directly in desktop/ (e.g. a checked-in DMG).
+  // Local artifacts sitting directly in desktop/ (e.g. a built NSIS installer).
   if (existsSync(DESKTOP)) {
     for (const entry of readdirSync(DESKTOP, { withFileTypes: true })) {
       if (
@@ -114,6 +122,10 @@ function collectCandidates() {
 function main() {
   const version = tauriVersion();
   const candidates = collectCandidates();
+  const baseUrl = (process.env.DESKTOP_DOWNLOAD_BASE_URL || "").replace(
+    /\/$/,
+    "",
+  );
 
   if (candidates.length === 0) {
     console.error(
@@ -141,6 +153,7 @@ function main() {
 
   const platforms = [];
   const keepNames = new Set(["manifest.json"]);
+  const tooLarge = [];
 
   for (const [key, cand] of [...byPlatform.entries()].sort()) {
     const outName = `kiosk-desktop-${version}-${key}${cand.ext === ".appimage" ? ".AppImage" : cand.ext}`;
@@ -148,15 +161,23 @@ function main() {
     copyFileSync(cand.file, outPath);
     keepNames.add(outName);
     const sizeBytes = statSync(outPath).size;
-    platforms.push({
+    const entry = {
       id: key,
       os: cand.os,
       arch: cand.arch,
       label: PLATFORM_LABELS[key] ?? key,
       file: outName,
       sizeBytes,
-    });
-    console.log(`Published ${outName} (${(sizeBytes / 1024 / 1024).toFixed(1)} MB) from ${cand.file}`);
+    };
+    if (baseUrl) {
+      entry.url = `${baseUrl}/${outName}`;
+    }
+    platforms.push(entry);
+    const mb = (sizeBytes / 1024 / 1024).toFixed(1);
+    console.log(`Published ${outName} (${mb} MB) from ${cand.file}`);
+    if (sizeBytes >= GIT_SAFE_BYTES) {
+      tooLarge.push({ outName, mb });
+    }
   }
 
   // Remove stale installers from previous versions.
@@ -181,6 +202,29 @@ function main() {
     ) + "\n",
   );
   console.log(`Wrote ${MANIFEST}`);
+
+  if (tooLarge.length > 0) {
+    console.warn("");
+    console.warn(
+      "⚠ These installers are ≥ 95 MB and must NOT be committed to git",
+    );
+    console.warn("  (GitHub rejects blobs over 100 MB). They are gitignored.");
+    for (const f of tooLarge) {
+      console.warn(`  - ${f.outName} (${f.mb} MB)`);
+    }
+    console.warn("");
+    console.warn("  Host them via GitHub Releases / CDN, then republish with:");
+    console.warn(
+      "    DESKTOP_DOWNLOAD_BASE_URL=https://github.com/<org>/<repo>/releases/download/<tag> \\",
+    );
+    console.warn("      bun run pack:desktop-downloads");
+    if (!baseUrl) {
+      console.warn("");
+      console.warn(
+        "  Manifest currently points at /downloads/desktop/… (local/dev only).",
+      );
+    }
+  }
 }
 
 main();

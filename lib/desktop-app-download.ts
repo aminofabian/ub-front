@@ -18,6 +18,11 @@ export type DesktopAppPlatform = {
   /** Filename relative to /downloads/desktop/ */
   file: string;
   sizeBytes: number;
+  /**
+   * Absolute download URL when the binary is hosted outside this repo
+   * (GitHub Releases / CDN). Prefer this over `/downloads/desktop/{file}`.
+   */
+  url?: string | null;
 };
 
 export type DesktopAppManifest = {
@@ -32,6 +37,7 @@ export const DESKTOP_APP_DOWNLOADS_BASE = "/downloads/desktop";
 export const DESKTOP_APP_MANIFEST_URL = `${DESKTOP_APP_DOWNLOADS_BASE}/manifest.json`;
 
 export function desktopAppInstallerUrl(platform: DesktopAppPlatform): string {
+  if (platform.url) return platform.url;
   return `${DESKTOP_APP_DOWNLOADS_BASE}/${platform.file}`;
 }
 

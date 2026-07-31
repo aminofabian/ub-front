@@ -44,3 +44,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Large desktop / mobile installers exceed GitHub's 100 MB limit.
+# Stage them locally with `bun run pack:desktop-downloads` /
+# `bun run pack:mobile-downloads`, then host via GitHub Releases / CDN.
+# Keep `manifest.json` (and small stub DMGs under the limit) in git.
+public/downloads/desktop/*.exe
+public/downloads/desktop/*.msi
+public/downloads/desktop/*.AppImage
+public/downloads/desktop/*.deb
+public/downloads/mobile/*.apk
+public/downloads/mobile/*.aab
