@@ -87,7 +87,7 @@ export function ProductHeroHeader({
                     : `Filter: ${stat.label}`
                 }
                 className={cn(
-                  "inline-flex h-5 items-center gap-0.5 border px-1 text-[10px] transition-colors",
+                  "inline-flex h-6 items-center gap-1 border px-1.5 text-[10px] transition-colors",
                   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   stat.active
                     ? "border-foreground bg-foreground text-background"
