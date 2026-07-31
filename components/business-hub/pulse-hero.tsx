@@ -50,7 +50,7 @@ export function PulseHero({
       <div className="relative grid gap-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="flex flex-col justify-center gap-2 border-b border-[#E6E1D8] px-4 py-3.5 lg:border-b-0 lg:border-r">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
+            <p className={cn("text-[10px] font-semibold uppercase tracking-[0.1em]", HUB_MUTED)}>
               {eyebrow}
             </p>
             <span className="text-[#D4CBB8]" aria-hidden>

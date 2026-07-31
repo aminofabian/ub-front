@@ -24,24 +24,9 @@ export function BusinessHubEmptyState({
       )}
       aria-label="No sales yet"
     >
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[#141414]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-8 top-0 h-full w-40 opacity-40"
-        style={{
-          background:
-            "repeating-linear-gradient(-12deg, transparent, transparent 10px, rgba(176,141,72,0.12) 10px, rgba(176,141,72,0.12) 11px)",
-        }}
-        aria-hidden
-      />
       <div className="relative mx-auto max-w-lg text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B08D48]">
-          Quiet ledger
-        </p>
         <p
-          className="mt-2 text-2xl font-medium tracking-tight text-[#141414]"
+          className="text-2xl font-medium tracking-tight text-[#141414]"
           style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
         >
           No sales {label} yet

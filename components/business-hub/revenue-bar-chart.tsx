@@ -73,7 +73,6 @@ export function RevenueBarChart({
       <div className="space-y-0">
         <div className="border-b border-[#E6E1D8] px-4 py-2.5">
           <HubSectionLabel
-            index="02"
             title={title}
             meta={
               stats.activeDays > 0

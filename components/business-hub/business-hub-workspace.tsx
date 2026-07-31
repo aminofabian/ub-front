@@ -967,7 +967,7 @@ export function BusinessHubWorkspace() {
               ) : null}
 
               <PulseHero
-                eyebrow={isToday ? "01 · Today's pulse" : "01 · This week's pulse"}
+                eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
                 revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
                 revenue={money(revenue)}
                 headline={headline}
