@@ -6,17 +6,16 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
-  ArrowRight,
   Banknote,
   Building2,
   Calculator,
+  ChevronRight,
   ClipboardList,
   Clock,
   Coins,
   FileText,
   HandCoins,
   Layers,
-  ListChecks,
   MapPin,
   Pencil,
   Receipt,
@@ -27,7 +26,6 @@ import {
 } from "lucide-react";
 
 import {
-  DASHBOARD_SECTION_SURFACE,
   DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
@@ -71,14 +69,38 @@ import {
   DRAWOUT_CATEGORIES,
 } from "@/components/shifts/shift-action-modals";
 
-
+/* ═══════════════════════════════════════════════════════════════════════════
+ * THE SHIFTS BOARD — direction contract
+ *
+ * THESIS: one time-ranked departure board for the till. Shifts are rows on a
+ *   fixed grid — cashier, branch, opened, float, variance — restyled by state,
+ *   and the live shift is the board's "now" row. Refuses the three-panel
+ *   console (list | analytics | details) that crushes content at laptop width.
+ *
+ * OWN-WORLD: the dashboard's quiet paper surface; rows as departure-board
+ *   entries with a 2px state rail and fixed tabular columns; one accent
+ *   (primary) for selection and the live strip; ledger figures in mono.
+ *
+ * STORY: the manager scans the board, sees what is live, picks a row, and the
+ *   detail pane gives the full cash story — overview, counts, drawouts —
+ *   without a single element feeling cut off.
+ *
+ * FIRST VIEWPORT: page header with actions; the open-shift "Now" banner; then
+ *   the board: a list rail (~22rem) and a detail pane filling the rest.
+ *
+ * FORM: split-flap concourse grammar (challenger) fused into the dashboard's
+ *   Operate world; grounded candidate 5; seed 5d7b883e.
+ *
+ * FINISH: unreviewed and undocumented is unfinished; this build ends with the
+ *   finish review, the verdict, and DESIGN.md.
+ * ═══════════════════════════════════════════════════════════════════════════ */
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All" },
-  { value: "open", label: "🟢 Open" },
-  { value: "suspended", label: "🟡 Suspended" },
-  { value: "closed", label: "🔴 Closed" },
-  { value: "reconciled", label: "🔵 Reconciled" },
+  { value: "", label: "All shifts" },
+  { value: "open", label: "Open" },
+  { value: "suspended", label: "Suspended" },
+  { value: "closed", label: "Closed" },
+  { value: "reconciled", label: "Reconciled" },
 ] as const;
 
 const DRAWOUT_STATUS_BADGE: Record<string, string> = {
@@ -91,17 +113,14 @@ const DRAWOUT_STATUS_BADGE: Record<string, string> = {
   EXPIRED: "bg-gray-500/15 text-gray-700 dark:text-gray-300 border-gray-500/20",
 };
 
-
-/** Ledger convention: money is rendered in monospace tabular figures. */
+/** Ledger convention: money renders in monospace tabular figures. */
 const NUM = "font-mono tabular-nums";
 
-/** Unified card surface shared across all three console panels. */
+/** Soft raised surface shared across the board's panels. */
 const CARD =
-  "border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]";
+  "border border-border/60 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]";
 
-
-// ─── Helpers ─────────────────────────────────────────────────────────────
-
+// ─── Helpers ───────────────────────────────────────────────────────────────
 
 function moneyStrCompact(v: number | string | null | undefined): string {
   if (v == null) return "—";
@@ -138,7 +157,6 @@ function fmtShortDate(iso: string | null | undefined): string {
   }
 }
 
-
 function varianceBgColor(v: number | string | null | undefined): string {
   if (v == null) return "";
   const n = typeof v === "number" ? v : Number(v);
@@ -157,9 +175,9 @@ function toNum(v: number | string | null | undefined): number | null {
 }
 
 /**
- * Net cash movement (Closing − Opening) is directional, NOT a reconciliation
- * variance, so it must not reuse the red/amber severity scale. Zero is muted;
- * inflow and outflow get subtle, neutral directional cues for scanning.
+ * Net cash movement (Closing − Opening) is directional, not a variance, so it
+ * never reuses the red/amber severity scale. Zero is muted; inflow and outflow
+ * get subtle, neutral directional cues for scanning.
  */
 function changeColor(v: number | null | undefined): string {
   if (v == null || v === 0) return "text-muted-foreground";
@@ -202,7 +220,7 @@ function statusLabel(status: string): string {
   }
 }
 
-/** Severity dot hue for a variance figure — shared with the legend + badges. */
+/** Severity dot hue for a variance figure — shared with the legend. */
 function varianceDot(v: number | null | undefined): string | null {
   if (v == null) return null;
   const abs = Math.abs(v);
@@ -211,7 +229,7 @@ function varianceDot(v: number | null | undefined): string | null {
   return "bg-red-500";
 }
 
-/** Status dot hue — shared vocabulary with the variance legend. */
+/** Status dot hue — the board's row-state vocabulary. */
 function statusDotClass(status: string): string {
   switch (status) {
     case "open":
@@ -227,15 +245,38 @@ function statusDotClass(status: string): string {
   }
 }
 
+/** Status rail hue — the 2px left rail on board rows and banners. */
+function statusRailClass(status: string): string {
+  switch (status) {
+    case "open":
+      return "bg-emerald-500";
+    case "suspended":
+      return "bg-amber-500";
+    case "closed":
+      return "bg-red-500";
+    case "reconciled":
+      return "bg-blue-500";
+    default:
+      return "bg-border";
+  }
+}
 
-// ─── Sub-components ──────────────────────────────────────────────────────
+/** Two-letter monogram for a cashier, e.g. "John Doe" → "JD". */
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// ─── Shared atoms ──────────────────────────────────────────────────────────
 
 /** Variant badge for shift status. */
 function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-none border px-2 py-0.5 text-[11px] font-semibold",
+        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold",
         statusBadgeClass(status),
       )}
     >
@@ -248,15 +289,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-/** Two-letter monogram for a cashier, e.g. "John Doe" → "JD". */
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-/** Compact key explaining the variance colour scale (reconciliation semantics). */
+/** Compact key explaining the variance colour scale. */
 function VarianceLegend({ className }: { className?: string }) {
   const items = [
     { dot: "bg-emerald-500", label: "Balanced" },
@@ -280,7 +313,7 @@ function VarianceLegend({ className }: { className?: string }) {
   );
 }
 
-/** Centered empty / prompt state for the analytics + detail panes. */
+/** Centered empty / prompt state for a pane. */
 function PanelEmptyState({
   icon: Icon,
   title,
@@ -292,7 +325,7 @@ function PanelEmptyState({
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-      <span className="flex size-12 items-center justify-center rounded-none border border-border/60 bg-muted/40 text-muted-foreground/70 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+      <span className="flex size-12 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground/70 shadow-sm">
         <Icon className="size-5" aria-hidden />
       </span>
       <div className="space-y-1">
@@ -356,7 +389,7 @@ function NoteBlock({
   return (
     <div
       className={cn(
-        "space-y-1 border p-2.5",
+        "space-y-1.5 rounded-xl border p-3",
         flag
           ? "border-amber-500/30 bg-amber-500/[0.06]"
           : "border-border/60 bg-muted/15",
@@ -381,36 +414,114 @@ function NoteBlock({
   );
 }
 
-/** Shift card shown in Column 1 list. */
-function ShiftCard({
+/** Small uppercase section heading with a leading icon. */
+function SectionLabel({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
+  return (
+    <h4 className="flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
+      <Icon className="size-3.5 text-foreground/45" aria-hidden />
+      {text}
+    </h4>
+  );
+}
+
+// ─── KPI card ──────────────────────────────────────────────────────────────
+
+function KpiCard({
+  label,
+  value,
+  icon: Icon,
+  valueClassName,
+  dotClassName,
+}: {
+  label: string;
+  value: string;
+  icon?: LucideIcon;
+  valueClassName?: string;
+  dotClassName?: string | null;
+}) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] transition-shadow hover:shadow-md dark:ring-white/[0.04]">
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
+          {label}
+        </p>
+        {dotClassName ? (
+          <span
+            className={cn("size-2 shrink-0 rounded-full", dotClassName)}
+            aria-hidden
+          />
+        ) : Icon ? (
+          <Icon
+            className="size-3.5 shrink-0 text-foreground/40"
+            aria-hidden
+          />
+        ) : null}
+      </div>
+      <p
+        className={cn(
+          "mt-1.5 text-lg font-bold leading-tight tracking-tight sm:text-xl",
+          NUM,
+          valueClassName || "text-foreground",
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+// ─── Board row (departure-board grammar) ───────────────────────────────────
+
+/**
+ * One shift as a row on the board. Fixed columns that never move; the 2px
+ * status rail and dot carry the row's state; the variance chip signals the
+ * close-out. Selected rows lift with a primary rail and soft fill.
+ */
+function ShiftRow({
   shift,
   isSelected,
   onSelect,
+  compact = false,
 }: {
   shift: ShiftListItem;
   isSelected: boolean;
   onSelect: () => void;
+  compact?: boolean;
 }) {
   const v = shift.variance;
   const varNum = v != null ? (typeof v === "number" ? v : Number(v)) : null;
+  const needsReview = varNum != null && Math.abs(varNum) >= VARIANCE_THRESHOLD_RED;
 
   return (
     <button
       type="button"
       onClick={onSelect}
+      aria-pressed={isSelected}
       className={cn(
-        "group relative w-full overflow-hidden rounded-none border p-2.5 text-left transition-all duration-200",
-        "hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/40 hover:shadow-md",
+        "group relative w-full overflow-hidden rounded-xl border text-left transition-all duration-150",
         isSelected
-          ? "border-primary/40 bg-primary/[0.04] shadow-sm ring-1 ring-primary/20"
-          : "border-border/70 bg-card ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
+          ? "border-primary/40 bg-primary/[0.05] shadow-sm ring-1 ring-primary/20"
+          : "border-border/60 bg-card hover:border-border hover:bg-muted/30 hover:shadow-sm",
+        compact && "p-2.5",
       )}
     >
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+      <span
+        className={cn(
+          "absolute inset-y-0 left-0 w-0.5 transition-opacity duration-150",
+          isSelected
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-60",
+          statusRailClass(shift.status),
+        )}
+        aria-hidden
+      />
+
+      <div className={cn("flex items-start justify-between gap-2", compact ? "" : "p-3")}>
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <span
-            className="flex size-8 shrink-0 items-center justify-center rounded-none border border-border/60 bg-muted/50 font-sans text-[11px] font-bold tracking-tight text-foreground shadow-sm"
+            className={cn(
+              "flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 font-sans text-[11px] font-bold tracking-tight text-foreground",
+            )}
             aria-hidden
           >
             {initials(shift.cashierName)}
@@ -419,79 +530,119 @@ function ShiftCard({
             <span className="block truncate text-sm font-semibold text-foreground">
               {shift.cashierName}
             </span>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {shift.branchName}
-            </p>
+            <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
+              <MapPin className="size-3 shrink-0" aria-hidden />
+              <span className="truncate">{shift.branchName}</span>
+            </span>
           </div>
         </div>
         <StatusBadge status={shift.status} />
       </div>
 
-      {/* Details row */}
-      <div className="mt-2 flex items-center gap-2 text-xs">
-        <span className="shrink-0 text-muted-foreground">
-          {fmtShortDate(shift.openedAt)}
+      <div
+        className={cn(
+          "flex items-center gap-2 text-xs",
+          compact ? "mt-2" : "mt-2.5 px-3",
+        )}
+      >
+        <span className="inline-flex shrink-0 items-center gap-1 text-muted-foreground">
+          <Clock className="size-3" aria-hidden />
+          <span className={NUM}>{fmtShortDate(shift.openedAt)}</span>
         </span>
-        <div
-          className="flex min-h-[1em] min-w-8 flex-1 items-center"
-          aria-hidden
-        >
-          <div className="h-0 w-full border-b border-dotted border-muted-foreground/35" />
-        </div>
-        <span className="inline-flex shrink-0 items-baseline gap-0.5 tabular-nums">
+        <span className="h-3 w-px bg-border/70" aria-hidden />
+        <span className="inline-flex shrink-0 items-baseline gap-0.5 text-muted-foreground">
+          <span>Float</span>
           <span className={cn("font-medium text-foreground", NUM)}>
             {moneyStrCompact(shift.openingFloat)}
           </span>
-          <span className="text-[6px] font-normal uppercase leading-none tracking-[0.16em] text-muted-foreground/45 sm:text-[7px]">
-            KES
-          </span>
         </span>
-      </div>
 
-      {/* Variance */}
-      {varNum !== null ? (
-        <div
-          className={cn(
-            "mt-1 flex items-center justify-between rounded-none border px-2 py-1 text-xs",
-            varianceBgColor(v),
-          )}
-        >
-          <span className="flex items-center gap-1 text-muted-foreground">
-            {Math.abs(varNum) >= VARIANCE_THRESHOLD_RED && (
-              <AlertTriangle
-                className="size-3 text-red-600 dark:text-red-400"
-                aria-label="Large variance — needs review"
-              />
-            )}
-            {Math.abs(varNum) >= VARIANCE_THRESHOLD_RED ? "Needs review" : "Variance"}
-          </span>
-          <span className={cn("font-semibold", NUM, varianceColor(v))}>
-            {v != null ? `${varNum >= 0 ? "+" : ""}${moneyStrCompact(v)}` : "—"}
-          </span>
-        </div>
-      ) : shift.status === "open" ? (
-        <div className="mt-1 flex items-center gap-2 rounded-none border border-dashed px-2 py-1 text-xs">
-          <span className="shrink-0 text-muted-foreground">Float</span>
-          <div
-            className="flex min-h-[1em] min-w-8 flex-1 items-center"
-            aria-hidden
-          >
-            <div className="h-0 w-full border-b border-dotted border-muted-foreground/35" />
-          </div>
-          <span className="inline-flex shrink-0 items-baseline gap-0.5 tabular-nums text-foreground">
-            <span className={cn("font-medium", NUM)}>
-              {moneyStrCompact(shift.openingFloat)}
+        {varNum !== null ? (
+          <>
+            <span className="ml-auto" aria-hidden />
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-medium",
+                NUM,
+                varianceBgColor(v),
+                needsReview && "text-red-700 dark:text-red-300",
+              )}
+            >
+              {needsReview ? (
+                <AlertTriangle className="size-3 text-red-600 dark:text-red-400" aria-label="Needs review" />
+              ) : null}
+              {varNum >= 0 ? "+" : ""}
+              {moneyStrCompact(v)}
             </span>
-            <span className="text-[6px] font-normal uppercase leading-none tracking-[0.16em] text-muted-foreground/45 sm:text-[7px]">
-              KES
-            </span>
-          </span>
-        </div>
-      ) : null}
+          </>
+        ) : shift.status === "open" ? (
+          <>
+            <span className="ml-auto" aria-hidden />
+            <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" aria-hidden />
+          </>
+        ) : null}
+      </div>
     </button>
   );
 }
 
+// ─── Denominations ─────────────────────────────────────────────────────────
+
+/** Denomination list rendered as a clean ledger card. */
+function DenomStackList({
+  title,
+  denoms,
+  total,
+}: {
+  title: string;
+  denoms: DenominationRecord[];
+  total: number;
+}) {
+  const qtyMap = denomsToQuantities(denoms);
+  const rows = KES_DENOMINATIONS.map((d) => ({
+    d,
+    qty: qtyMap[d.value] || 0,
+  })).filter((r) => r.qty > 0);
+
+  return (
+    <div className={CARD}>
+      <div className="flex items-center justify-between rounded-t-xl border-b border-border/50 bg-muted/25 px-3 py-2">
+        <SectionLabel icon={Layers} text={title} />
+        <span className={cn("text-sm font-bold text-foreground", NUM)}>
+          {moneyStr(total)}
+        </span>
+      </div>
+      <div className="divide-y divide-border/30">
+        {rows.map(({ d, qty }) => {
+          const amount = d.value * qty;
+          return (
+            <div
+              key={d.value}
+              className="flex items-center justify-between px-3 py-1.5 text-xs transition-colors hover:bg-muted/20"
+            >
+              <span className="flex items-center gap-1.5">
+                {d.type === "NOTE" ? (
+                  <Banknote className="size-3 text-foreground/40" aria-hidden />
+                ) : (
+                  <Coins className="size-3 text-foreground/40" aria-hidden />
+                )}
+                <span className={cn("font-medium text-muted-foreground", NUM)}>
+                  {d.value.toLocaleString("en-KE")}
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground/70">
+                  × {qty}
+                </span>
+              </span>
+              <span className={cn("font-semibold text-foreground", NUM)}>
+                {moneyStr(amount)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /** Denomination comparison view (opening vs closing). */
 function DenominationComparison({
@@ -503,151 +654,146 @@ function DenominationComparison({
 }: {
   openingDenoms: DenominationRecord[];
   closingDenoms: DenominationRecord[];
-  expectedClosingCash?: number | string | null;
-  countedClosingCash?: number | string | null;
-  closingVariance?: number | string | null;
+  expectedClosingCash: number | string | null;
+  countedClosingCash: number | string | null;
+  closingVariance: number | string | null;
 }) {
   const openQty = denomsToQuantities(openingDenoms);
   const closeQty = denomsToQuantities(closingDenoms);
   const openTotal = denomTotal(openingDenoms);
   const closeTotal = denomTotal(closingDenoms);
   const netChange = closeTotal - openTotal;
-
   const expected = toNum(expectedClosingCash);
   const counted = toNum(countedClosingCash);
-  // Prefer the server-provided variance; fall back to counted − expected.
-  const variance =
-    toNum(closingVariance) ??
-    (counted != null && expected != null ? counted - expected : null);
-  const showReconciliation =
-    expected != null || counted != null || variance != null;
+  const variance = toNum(closingVariance);
+  const showReconciliation = expected != null || counted != null || variance != null;
 
   return (
-    <div className="space-y-2">
-      <div className={cn(DASHBOARD_TABLE_SURFACE, "rounded-none")}>
+    <div className="space-y-3">
+      <div className={cn(DASHBOARD_TABLE_SURFACE, "overflow-hidden rounded-xl")}>
         <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-border/50 bg-muted/25">
-              <th
-                scope="col"
-                className="px-2.5 py-2 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-3"
-              >
-                Denom
-                <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/60">
-                  (KES)
-                </span>
-              </th>
-              <th
-                scope="col"
-                className="px-2.5 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-3"
-              >
-                Opening
-                <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/55">
-                  qty · total
-                </span>
-              </th>
-              <th
-                scope="col"
-                className="px-2.5 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-3"
-              >
-                Closing
-                <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/55">
-                  qty · total
-                </span>
-              </th>
-              <th
-                scope="col"
-                title="Net cash movement during the shift (Closing − Opening)"
-                className="px-2.5 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-3"
-              >
-                Change
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/40">
-            {KES_DENOMINATIONS.map((d) => {
-              const oQty = openQty[d.value] || 0;
-              const cQty = closeQty[d.value] || 0;
-              const oTotal = d.value * oQty;
-              const cTotal = d.value * cQty;
-              const change = cTotal - oTotal;
-              const hasData = oQty > 0 || cQty > 0;
-              if (!hasData) return null;
-              return (
-                <tr key={d.value} className="transition-colors hover:bg-muted/25">
-                  <td className="px-2.5 py-1.5 font-medium font-mono tabular-nums sm:px-3">
-                    {d.value.toLocaleString("en-KE")}
-                  </td>
-                  <td className="whitespace-nowrap px-2.5 py-1.5 text-right sm:px-3">
-                    <span className="font-mono tabular-nums text-muted-foreground">
-                      {oQty}
-                    </span>
-                    <span className="mx-1 text-muted-foreground/40">·</span>
-                    <span className="font-mono tabular-nums text-foreground">
-                      {moneyStr(oTotal)}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-2.5 py-1.5 text-right sm:px-3">
-                    <span className="font-mono tabular-nums text-muted-foreground">
-                      {cQty}
-                    </span>
-                    <span className="mx-1 text-muted-foreground/40">·</span>
-                    <span className="font-mono tabular-nums text-foreground">
-                      {moneyStr(cTotal)}
-                    </span>
-                  </td>
-                  <td
-                    className={cn(
-                      "px-2.5 py-1.5 text-right font-medium font-mono tabular-nums sm:px-3",
-                      changeColor(change),
-                    )}
-                  >
-                    {signedMoney(change)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot className="border-t border-border/50 bg-muted/30 font-semibold">
-            <tr>
-              <td className="px-2.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-3">
-                Total
-              </td>
-              <td className="whitespace-nowrap px-2.5 py-2 text-right sm:px-3">
-                <span className="font-mono tabular-nums text-muted-foreground">
-                  {Object.values(openQty).reduce((a, b) => a + b, 0)}
-                </span>
-                <span className="mx-1 text-muted-foreground/40">·</span>
-                <span className="font-mono tabular-nums text-foreground">
-                  {moneyStr(openTotal)}
-                </span>
-              </td>
-              <td className="whitespace-nowrap px-2.5 py-2 text-right sm:px-3">
-                <span className="font-mono tabular-nums text-muted-foreground">
-                  {Object.values(closeQty).reduce((a, b) => a + b, 0)}
-                </span>
-                <span className="mx-1 text-muted-foreground/40">·</span>
-                <span className="font-mono tabular-nums text-foreground">
-                  {moneyStr(closeTotal)}
-                </span>
-              </td>
-              <td
-                className={cn(
-                  "px-2.5 py-2 text-right font-mono tabular-nums sm:px-3",
-                  changeColor(netChange),
-                )}
-              >
-                {signedMoney(netChange)}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border/50 bg-muted/25">
+                <th
+                  scope="col"
+                  className="px-3 py-2 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                >
+                  Denom
+                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/60">
+                    (KES)
+                  </span>
+                </th>
+                <th
+                  scope="col"
+                  className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                >
+                  Opening
+                  <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/55">
+                    qty · total
+                  </span>
+                </th>
+                <th
+                  scope="col"
+                  className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                >
+                  Closing
+                  <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/55">
+                    qty · total
+                  </span>
+                </th>
+                <th
+                  scope="col"
+                  title="Net cash movement during the shift (Closing − Opening)"
+                  className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                >
+                  Change
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {KES_DENOMINATIONS.map((d) => {
+                const oQty = openQty[d.value] || 0;
+                const cQty = closeQty[d.value] || 0;
+                const oTotal = d.value * oQty;
+                const cTotal = d.value * cQty;
+                const change = cTotal - oTotal;
+                const hasData = oQty > 0 || cQty > 0;
+                if (!hasData) return null;
+                return (
+                  <tr key={d.value} className="transition-colors hover:bg-muted/25">
+                    <td className="px-3 py-1.5 font-medium font-mono tabular-nums sm:px-4">
+                      {d.value.toLocaleString("en-KE")}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-right sm:px-4">
+                      <span className="font-mono tabular-nums text-muted-foreground">
+                        {oQty}
+                      </span>
+                      <span className="mx-1 text-muted-foreground/40">·</span>
+                      <span className="font-mono tabular-nums text-foreground">
+                        {moneyStr(oTotal)}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-right sm:px-4">
+                      <span className="font-mono tabular-nums text-muted-foreground">
+                        {cQty}
+                      </span>
+                      <span className="mx-1 text-muted-foreground/40">·</span>
+                      <span className="font-mono tabular-nums text-foreground">
+                        {moneyStr(cTotal)}
+                      </span>
+                    </td>
+                    <td
+                      className={cn(
+                        "px-3 py-1.5 text-right font-medium font-mono tabular-nums sm:px-4",
+                        changeColor(change),
+                      )}
+                    >
+                      {signedMoney(change)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot className="border-t border-border/50 bg-muted/30 font-semibold">
+              <tr>
+                <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4">
+                  Total
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-right sm:px-4">
+                  <span className="font-mono tabular-nums text-muted-foreground">
+                    {Object.values(openQty).reduce((a, b) => a + b, 0)}
+                  </span>
+                  <span className="mx-1 text-muted-foreground/40">·</span>
+                  <span className="font-mono tabular-nums text-foreground">
+                    {moneyStr(openTotal)}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-right sm:px-4">
+                  <span className="font-mono tabular-nums text-muted-foreground">
+                    {Object.values(closeQty).reduce((a, b) => a + b, 0)}
+                  </span>
+                  <span className="mx-1 text-muted-foreground/40">·</span>
+                  <span className="font-mono tabular-nums text-foreground">
+                    {moneyStr(closeTotal)}
+                  </span>
+                </td>
+                <td
+                  className={cn(
+                    "px-3 py-2 text-right font-mono tabular-nums sm:px-4",
+                    changeColor(netChange),
+                  )}
+                >
+                  {signedMoney(netChange)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
 
-      {showReconciliation && (
-        <div className={cn(CARD, "p-2.5")}>
+      {showReconciliation ? (
+        <div className={cn(CARD, "rounded-xl p-3.5")}>
           <div className="mb-2 flex items-center gap-1.5">
             <Scale className="size-3.5 text-muted-foreground/70" aria-hidden />
             <h5 className="font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70">
@@ -688,15 +834,12 @@ function DenominationComparison({
             above is Closing − Opening (cash movement), not variance.
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 
-// ─── Open Shift Modal ─────────────────────────────────────────────────────
-
-
-// ─── Drawout list sub-component ───────────────────────────────────────────
+// ─── Drawouts ──────────────────────────────────────────────────────────────
 
 function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
   if (drawouts.length === 0) {
@@ -731,7 +874,7 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
 
   return (
     <div className="space-y-3">
-      <div className={cn(DASHBOARD_TABLE_SURFACE, "rounded-none")}>
+      <div className={cn(DASHBOARD_TABLE_SURFACE, "overflow-hidden rounded-xl")}>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -800,32 +943,32 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
                     {moneyStr(d.amount)}
                   </td>
                   <td className="px-3 py-2 text-center sm:px-4">
-                  <span
-                    className={cn(
-                      "inline-block rounded-none border px-1.5 py-0.5 text-[10px] font-medium",
-                      DRAWOUT_STATUS_BADGE[d.status] || "",
-                    )}
-                  >
-                    {d.status === "PENDING_APPROVAL"
-                      ? "Pending"
-                      : d.status === "APPROVED"
-                        ? "Done"
-                        : d.status === "REJECTED"
-                          ? "Rejected"
-                          : d.status === "VOIDED"
-                            ? "Voided"
-                            : d.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    <span
+                      className={cn(
+                        "inline-block rounded-md border px-1.5 py-0.5 text-[10px] font-medium",
+                        DRAWOUT_STATUS_BADGE[d.status] || "",
+                      )}
+                    >
+                      {d.status === "PENDING_APPROVAL"
+                        ? "Pending"
+                        : d.status === "APPROVED"
+                          ? "Done"
+                          : d.status === "REJECTED"
+                            ? "Rejected"
+                            : d.status === "VOIDED"
+                              ? "Voided"
+                              : d.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
       {/* Totals */}
-      <dl className={cn(CARD, "space-y-1 p-3 text-xs")}>
+      <dl className={cn(CARD, "space-y-1 rounded-xl p-3.5 text-xs")}>
         {approvedTotal > 0 && (
           <LeaderRow
             label="Approved drawouts"
@@ -852,142 +995,9 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
   );
 }
 
-// ─── KPI Card ─────────────────────────────────────────────────────────────
+// ─── Detail pane ───────────────────────────────────────────────────────────
 
-function KpiCard({
-  label,
-  value,
-  icon: Icon,
-  valueClassName,
-  dotClassName,
-}: {
-  label: string;
-  value: string;
-  icon?: LucideIcon;
-  valueClassName?: string;
-  dotClassName?: string | null;
-}) {
-  return (
-    <div className="group relative overflow-hidden border border-border/70 bg-gradient-to-b from-card to-muted/25 p-2 shadow-sm ring-1 ring-black/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:ring-white/[0.04]">
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
-          {label}
-        </p>
-        {dotClassName ? (
-          <span
-            className={cn("size-2 shrink-0 rounded-full", dotClassName)}
-            aria-hidden
-          />
-        ) : Icon ? (
-          <Icon
-            className="size-3.5 shrink-0 text-foreground/40"
-            aria-hidden
-          />
-        ) : null}
-      </div>
-      <p
-        className={cn(
-          "mt-1.5 text-base font-bold leading-tight tracking-tight sm:text-lg",
-          NUM,
-          valueClassName || "text-foreground",
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
-/** Numbered header for a console panel — reads as a workflow step (01 → 03). */
-function PanelHeader({
-  icon: Icon,
-  title,
-  meta,
-}: {
-  icon: LucideIcon;
-  title: string;
-  meta?: ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-2 border-b border-border/50 bg-muted/25 px-4 py-2">
-      <Icon className="size-4 text-foreground/45" aria-hidden />
-      <h3 className="text-sm font-semibold tracking-tight text-foreground">
-        {title}
-      </h3>
-      {meta ? <div className="ml-auto flex items-center">{meta}</div> : null}
-    </div>
-  );
-}
-
-/** Small uppercase section heading with a leading icon chip. */
-function SectionLabel({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
-  return (
-    <h4 className="flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
-      <Icon className="size-3.5 text-foreground/45" aria-hidden />
-      {text}
-    </h4>
-  );
-}
-
-/** Denomination list rendered as a clean ledger card. */
-function DenomStackList({
-  title,
-  denoms,
-  total,
-}: {
-  title: string;
-  denoms: DenominationRecord[];
-  total: number;
-}) {
-  const qtyMap = denomsToQuantities(denoms);
-  const rows = KES_DENOMINATIONS.map((d) => ({
-    d,
-    qty: qtyMap[d.value] || 0,
-  })).filter((r) => r.qty > 0);
-
-  return (
-    <div className={CARD}>
-      <div className="flex items-center justify-between border-b border-border/50 bg-muted/25 px-2.5 py-1.5">
-        <SectionLabel icon={Layers} text={title} />
-        <span className={cn("text-sm font-bold text-foreground", NUM)}>
-          {moneyStr(total)}
-        </span>
-      </div>
-      <div className="divide-y divide-border/30">
-        {rows.map(({ d, qty }) => {
-          const amount = d.value * qty;
-          return (
-            <div
-              key={d.value}
-              className="flex items-center justify-between px-2.5 py-1 text-xs transition-colors hover:bg-muted/20"
-            >
-              <span className="flex items-center gap-1.5">
-                {d.type === "NOTE" ? (
-                  <Banknote className="size-3 text-foreground/40" aria-hidden />
-                ) : (
-                  <Coins className="size-3 text-foreground/40" aria-hidden />
-                )}
-                <span className={cn("font-medium text-muted-foreground", NUM)}>
-                  {d.value.toLocaleString("en-KE")}
-                </span>
-                <span className="text-[10px] font-medium text-muted-foreground/70">
-                  × {qty}
-                </span>
-              </span>
-              <span className={cn("font-semibold text-foreground", NUM)}>
-                {moneyStr(amount)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Shift Detail Panel (Column 3) ────────────────────────────────────────
-
-function DetailTabs({
+function ShiftDetail({
   shiftId,
   canUpdateOpening,
   onOpeningUpdated,
@@ -997,7 +1007,7 @@ function DetailTabs({
   onOpeningUpdated?: () => void;
 }) {
   const [detail, setDetail] = useState<ShiftRecord | null>(null);
-  const [activeTab, setActiveTab] = useState("denominations");
+  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [drawouts, setDrawouts] = useState<DrawoutRecord[]>([]);
@@ -1047,7 +1057,7 @@ function DetailTabs({
       <PanelEmptyState
         icon={ClipboardList}
         title="No shift selected"
-        hint="Choose a shift to inspect its denomination breakdown, summary and drawouts."
+        hint="Choose a shift on the board to inspect its overview, counts and drawouts."
       />
     );
   }
@@ -1058,27 +1068,26 @@ function DetailTabs({
 
   const openingDenoms = detail.openingDenominations || [];
   const closingDenoms = detail.closingDenominations || [];
-  const summaryVariance = toNum(detail.closingVariance);
-  const summaryOpening = toNum(detail.openingCash);
-  const summaryExpected = toNum(detail.expectedClosingCash);
-  const summaryCashMovement =
-    summaryOpening != null && summaryExpected != null
-      ? summaryExpected - summaryOpening
-      : null;
+  const opening = toNum(detail.openingCash);
+  const expected = toNum(detail.expectedClosingCash);
+  const counted = toNum(detail.countedClosingCash);
+  const variance = toNum(detail.closingVariance);
+  const cashMovement =
+    opening != null && expected != null ? expected - opening : null;
   const isOpenShift = detail.status === "open";
   const showEditOpening = Boolean(canUpdateOpening && isOpenShift);
 
   const tabs = [
-    { id: "denominations", label: "Denominations", icon: Layers },
-    { id: "summary", label: "Summary", icon: ClipboardList },
-    { id: "expenses", label: "Drawouts", icon: HandCoins },
+    { id: "overview", label: "Overview", icon: ClipboardList },
+    { id: "counts", label: "Counts", icon: Layers },
+    { id: "drawouts", label: "Drawouts", icon: HandCoins },
   ];
 
   return (
     <div className="flex h-full flex-col">
-      {/* Tab bar — segmented control */}
-      <div className="border-b border-border/50 bg-muted/20 p-1.5">
-        <div className="flex gap-1 rounded-none border border-border/50 bg-background/60 p-1">
+      {/* Segmented tab bar */}
+      <div className="border-b border-border/50 p-2">
+        <div className="flex gap-1 rounded-lg border border-border/50 bg-muted/20 p-1">
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
             const active = activeTab === tab.id;
@@ -1087,8 +1096,9 @@ function DetailTabs({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
+                aria-pressed={active}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 rounded-none px-2.5 py-1 text-xs font-medium transition-all duration-150",
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
                   active
                     ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
                     : "text-muted-foreground hover:text-foreground",
@@ -1109,8 +1119,126 @@ function DetailTabs({
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto p-2.5">
-        {activeTab === "denominations" && (
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+        {activeTab === "overview" && (
+          <div className="space-y-4">
+            {/* Cash KPIs */}
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
+              <KpiCard
+                label="Opening Float"
+                value={moneyStr(detail.openingCash)}
+                icon={Wallet}
+              />
+              <KpiCard
+                label="Expected Cash"
+                value={expected != null ? moneyStr(expected) : "—"}
+                icon={Calculator}
+              />
+              <KpiCard
+                label="Counted Cash"
+                value={counted != null ? moneyStr(counted) : "—"}
+                icon={Coins}
+                valueClassName={
+                  counted != null ? "text-foreground" : "text-muted-foreground"
+                }
+              />
+              <KpiCard
+                label="Variance"
+                value={variance != null ? signedMoney(variance) : "—"}
+                icon={Scale}
+                dotClassName={varianceDot(variance)}
+                valueClassName={varianceColor(variance)}
+              />
+            </div>
+
+            {/* Cash movement */}
+            {cashMovement != null ? (
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3.5 py-2.5">
+                <div className="min-w-0">
+                  <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
+                    Cash movement
+                  </p>
+                  <p className="truncate text-[10px] text-muted-foreground">
+                    Expected − Opening
+                  </p>
+                </div>
+                <p className={cn("shrink-0 text-sm font-semibold", NUM, changeColor(cashMovement))}>
+                  {signedMoney(cashMovement)}
+                </p>
+              </div>
+            ) : null}
+
+            {/* Timeline */}
+            <div className="space-y-2">
+              <SectionLabel icon={Clock} text="Timeline" />
+              <div className="relative space-y-2 pl-1 text-xs">
+                <span
+                  className="absolute bottom-1.5 left-[4px] top-1.5 w-px bg-border"
+                  aria-hidden
+                />
+                <div className="relative flex items-center gap-2.5">
+                  <span className="z-10 size-2 rounded-full bg-emerald-500 ring-2 ring-background" />
+                  <span className="text-muted-foreground">Opened</span>
+                  <span className={cn("ml-auto font-medium text-foreground", NUM)}>
+                    {fmtShortDate(detail.openedAt)}
+                  </span>
+                </div>
+                {detail.closedAt ? (
+                  <div className="relative flex items-center gap-2.5">
+                    <span className="z-10 size-2 rounded-full bg-red-500 ring-2 ring-background" />
+                    <span className="text-muted-foreground">Closed</span>
+                    <span className={cn("ml-auto font-medium text-foreground", NUM)}>
+                      {fmtShortDate(detail.closedAt)}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Notes */}
+            {detail.varianceReason ? (
+              <NoteBlock
+                icon={AlertTriangle}
+                label="Variance reason"
+                text={detail.varianceReason}
+                tone={variance ? "flag" : "default"}
+              />
+            ) : null}
+            {detail.openingNotes || detail.closingNotes ? (
+              <div className="space-y-2">
+                {detail.openingNotes ? (
+                  <NoteBlock
+                    icon={FileText}
+                    label="Opening notes"
+                    text={detail.openingNotes}
+                  />
+                ) : null}
+                {detail.closingNotes ? (
+                  <NoteBlock
+                    icon={FileText}
+                    label="Closing notes"
+                    text={detail.closingNotes}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+
+            {showEditOpening ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 w-full gap-1.5 text-xs"
+                onClick={() => setEditOpeningOpen(true)}
+              >
+                <Pencil className="size-3" aria-hidden />
+                Edit opening float
+              </Button>
+            ) : null}
+          </div>
+        )}
+
+        {activeTab === "counts" && (
           <div className="space-y-3">
             {showEditOpening ? (
               <div className="flex items-center justify-end">
@@ -1118,7 +1246,7 @@ function DetailTabs({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-7 gap-1.5 rounded-none px-2 text-xs"
+                  className="h-7 gap-1.5 px-2 text-xs"
                   onClick={() => setEditOpeningOpen(true)}
                 >
                   <Pencil className="size-3" aria-hidden />
@@ -1151,151 +1279,13 @@ function DetailTabs({
           </div>
         )}
 
-        {activeTab === "expenses" && (
+        {activeTab === "drawouts" && (
           <div>
             {drawoutsLoading ? (
               <DashboardLoading label="Loading drawouts..." />
             ) : (
               <DrawoutList drawouts={drawouts} />
             )}
-          </div>
-        )}
-
-        {activeTab === "summary" && (
-          <div className="space-y-3">
-            {/* Shift metadata */}
-            <section className="space-y-1.5">
-              <SectionLabel icon={ClipboardList} text="Shift" />
-              <dl className="space-y-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">Status</dt>
-                  <StatusBadge status={detail.status} />
-                </div>
-                <LeaderRow
-                  label="Shift ID"
-                  value={`${detail.id.slice(0, 8)}…`}
-                />
-                <LeaderRow
-                  label="Opened by"
-                  value={detail.openedByName || "—"}
-                  valueClassName="font-sans"
-                />
-                <LeaderRow label="Opened" value={fmtDate(detail.openedAt)} />
-                <LeaderRow label="Closed" value={fmtDate(detail.closedAt)} />
-              </dl>
-            </section>
-
-            {/* Cash reconciliation */}
-            <section className="space-y-1.5">
-              <SectionLabel icon={Scale} text="Cash Reconciliation" />
-              <dl className="space-y-1 text-xs">
-                <LeaderRow
-                  label="Opening float"
-                  value={moneyStr(detail.openingCash)}
-                />
-                <LeaderRow
-                  label="Expected"
-                  value={moneyStr(detail.expectedClosingCash)}
-                />
-                {summaryCashMovement != null ? (
-                  <div className="flex items-baseline gap-2">
-                    <dt
-                      className="shrink-0 text-muted-foreground"
-                      title="Expected − Opening float (sales, drawouts, paid-ins)"
-                    >
-                      Cash movement
-                    </dt>
-                    <span
-                      className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-border/60"
-                      aria-hidden
-                    />
-                    <dd
-                      className={cn(
-                        "shrink-0 font-medium",
-                        NUM,
-                        changeColor(summaryCashMovement),
-                      )}
-                    >
-                      {signedMoney(summaryCashMovement)}
-                    </dd>
-                  </div>
-                ) : null}
-                <LeaderRow
-                  label="Counted"
-                  value={moneyStr(detail.countedClosingCash)}
-                />
-                <div className="flex items-baseline gap-2 border-t border-dashed border-border/60 pt-2">
-                  <dt className="flex shrink-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-foreground">
-                    {varianceDot(summaryVariance) ? (
-                      <span
-                        className={cn(
-                          "size-1.5 rounded-full",
-                          varianceDot(summaryVariance),
-                        )}
-                        aria-hidden
-                      />
-                    ) : null}
-                    Variance
-                  </dt>
-                  <span
-                    className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-border/60"
-                    aria-hidden
-                  />
-                  <dd
-                    className={cn(
-                      "shrink-0 text-sm font-bold",
-                      NUM,
-                      varianceColor(detail.closingVariance),
-                    )}
-                  >
-                    {summaryVariance != null
-                      ? signedMoney(summaryVariance)
-                      : "—"}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-
-            {detail.varianceReason && (
-              <NoteBlock
-                icon={AlertTriangle}
-                label="Variance reason"
-                text={detail.varianceReason}
-                tone={summaryVariance ? "flag" : "default"}
-              />
-            )}
-
-            {(detail.openingNotes || detail.closingNotes) && (
-              <div className="space-y-2">
-                {detail.openingNotes && (
-                  <NoteBlock
-                    icon={FileText}
-                    label="Opening notes"
-                    text={detail.openingNotes}
-                  />
-                )}
-                {detail.closingNotes && (
-                  <NoteBlock
-                    icon={FileText}
-                    label="Closing notes"
-                    text={detail.closingNotes}
-                  />
-                )}
-              </div>
-            )}
-
-            {showEditOpening ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 w-full gap-1.5 rounded-none text-xs"
-                onClick={() => setEditOpeningOpen(true)}
-              >
-                <Pencil className="size-3" aria-hidden />
-                Edit opening float
-              </Button>
-            ) : null}
           </div>
         )}
       </div>
@@ -1313,157 +1303,7 @@ function DetailTabs({
   );
 }
 
-// ─── Analytics Panel (Column 2) ───────────────────────────────────────────
-
-function AnalyticsPanel({
-  shiftId,
-  refreshKey = 0,
-}: {
-  shiftId: string | null;
-  refreshKey?: number;
-}) {
-  const [detail, setDetail] = useState<ShiftRecord | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!shiftId) {
-      setDetail(null);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    fetchShiftDetail(shiftId)
-      .then((d) => {
-        if (!cancelled) setDetail(d);
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [shiftId, refreshKey]);
-
-  if (!shiftId) {
-    return (
-      <PanelEmptyState
-        icon={Scale}
-        title="No shift selected"
-        hint="Pick a shift from the list to see its float, variance and cash movement."
-      />
-    );
-  }
-
-  if (loading) return <DashboardLoading label="Loading analytics..." />;
-  if (!detail) return null;
-
-  const openingDenoms = detail.openingDenominations || [];
-  const closingDenoms = detail.closingDenominations || [];
-  const openTotal = denomTotal(openingDenoms);
-  const closeTotal = denomTotal(closingDenoms);
-  const opening = toNum(detail.openingCash);
-  const expected = toNum(detail.expectedClosingCash);
-  const counted = toNum(detail.countedClosingCash);
-  const variance = toNum(detail.closingVariance);
-  const cashMovement =
-    opening != null && expected != null ? expected - opening : null;
-
-  return (
-    <div className="space-y-3 p-2.5">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-1.5">
-        <KpiCard
-          label="Opening Float"
-          value={moneyStr(detail.openingCash)}
-          icon={Wallet}
-        />
-        <KpiCard
-          label="Expected Cash"
-          value={expected != null ? moneyStr(expected) : "—"}
-          icon={Calculator}
-        />
-      </div>
-      {cashMovement != null ? (
-        <div className="flex items-center justify-between gap-2 border border-border/70 bg-muted/20 px-2.5 py-2">
-          <div className="min-w-0">
-            <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
-              Cash movement
-            </p>
-            <p className="truncate text-[10px] text-muted-foreground">
-              Expected − Opening
-            </p>
-          </div>
-          <p className={cn("shrink-0 text-sm font-semibold", NUM, changeColor(cashMovement))}>
-            {signedMoney(cashMovement)}
-          </p>
-        </div>
-      ) : null}
-      <div className="grid grid-cols-2 gap-1.5">
-        <KpiCard
-          label="Counted Cash"
-          value={counted != null ? moneyStr(counted) : "—"}
-          icon={Coins}
-          valueClassName={
-            counted != null ? "text-foreground" : "text-muted-foreground"
-          }
-        />
-        <KpiCard
-          label="Variance"
-          value={variance != null ? signedMoney(variance) : "—"}
-          icon={Scale}
-          dotClassName={varianceDot(variance)}
-          valueClassName={varianceColor(variance)}
-        />
-      </div>
-
-      {/* Denomination Breakdowns */}
-      {openingDenoms.length > 0 && (
-        <DenomStackList
-          title="Opening Counts"
-          denoms={openingDenoms}
-          total={openTotal}
-        />
-      )}
-      {closingDenoms.length > 0 && (
-        <DenomStackList
-          title="Closing Counts"
-          denoms={closingDenoms}
-          total={closeTotal}
-        />
-      )}
-
-      {/* Timeline */}
-      <div className="space-y-2">
-        <SectionLabel icon={Clock} text="Timeline" />
-        <div className="relative space-y-2 pl-1 text-xs">
-          <span
-            className="absolute bottom-1.5 left-[4px] top-1.5 w-px bg-border"
-            aria-hidden
-          />
-          <div className="relative flex items-center gap-2.5">
-            <span className="z-10 size-2 rounded-full bg-emerald-500 ring-2 ring-background" />
-            <span className="text-muted-foreground">Opened</span>
-            <span className={cn("ml-auto font-medium text-foreground", NUM)}>
-              {fmtShortDate(detail.openedAt)}
-            </span>
-          </div>
-          {detail.closedAt && (
-            <div className="relative flex items-center gap-2.5">
-              <span className="z-10 size-2 rounded-full bg-red-500 ring-2 ring-background" />
-              <span className="text-muted-foreground">Closed</span>
-              <span className={cn("ml-auto font-medium text-foreground", NUM)}>
-                {fmtShortDate(detail.closedAt)}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────
+// ─── Main page ─────────────────────────────────────────────────────────────
 
 export default function ShiftsPage() {
   const { me } = useDashboard();
@@ -1578,7 +1418,7 @@ export default function ShiftsPage() {
     );
   }, [shifts, search]);
 
-  // Current open shift for quick action
+  // Current open shift for the board's "now" row
   const [currentOpenShift, setCurrentOpenShift] = useState<ShiftRecord | null>(
     null,
   );
@@ -1730,108 +1570,73 @@ export default function ShiftsPage() {
 
   const selectedShift = shifts.find((s) => s.id === selectedShiftId);
 
+  const quickLinks = [
+    ...(isBranchLockedRole
+      ? []
+      : [{ href: APP_ROUTES.branches, label: "Branches", icon: MapPin }]),
+    roleKey === "cashier"
+      ? { href: APP_ROUTES.cashier, label: "Cashier", icon: Receipt }
+      : { href: APP_ROUTES.salesQuick, label: "Quick sale", icon: Receipt },
+    ...(roleKey === "cashier"
+      ? []
+      : [{ href: APP_ROUTES.business, label: "Business", icon: Building2 }]),
+  ];
+
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[1440px] flex-col gap-6 px-4 pb-16 sm:px-6">
-      <section className={cn(DASHBOARD_SECTION_SURFACE, "rounded-none p-4 sm:p-5")}>
-        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-          {/* Identity */}
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center border border-border/60 bg-muted/50 text-foreground shadow-sm">
-              <Clock className="size-[18px]" aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70">
-                Operations
-              </span>
-              <h1 className="text-2xl font-bold leading-tight tracking-tight text-foreground">
-                Shifts
-              </h1>
-              <ActiveScopeSubtitle className="mt-0.5 text-xs" />
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2">
-            {currentOpenShift && canClose ? (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="shadow-sm"
-                  onClick={() => setDrawoutModal(true)}
-                >
-                  New Drawout
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => setCloseModal(true)}
-                >
-                  Close Shift
-                </Button>
-              </>
-            ) : null}
-            {canOpen ? (
-              <Button type="button" className="shadow-sm" onClick={() => setOpenModal(true)}>
-                Open Shift
-              </Button>
-            ) : null}
-          </div>
+    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[1440px] flex-col gap-4 px-4 pb-16 sm:px-6 sm:gap-5">
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="font-heading text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-[1.75rem]">
+            Shifts
+          </h1>
+          <ActiveScopeSubtitle className="mt-1 text-xs" />
         </div>
 
-        {/* Quick links */}
-        <div className="mt-3 flex flex-col gap-3 border-t border-border/50 pt-3 lg:flex-row lg:items-center lg:justify-end">
-          <div className="flex flex-wrap gap-2 lg:shrink-0">
-            {[
-              ...(isBranchLockedRole
-                ? []
-                : [
-                    {
-                      href: APP_ROUTES.branches,
-                      label: "Branches",
-                      icon: MapPin,
-                    },
-                  ]),
-              roleKey === "cashier"
-                ? {
-                    href: APP_ROUTES.cashier,
-                    label: "Cashier",
-                    icon: Receipt,
-                  }
-                : {
-                    href: APP_ROUTES.salesQuick,
-                    label: "Quick sale",
-                    icon: Receipt,
-                  },
-              ...(roleKey === "cashier"
-                ? []
-                : [
-                    {
-                      href: APP_ROUTES.business,
-                      label: "Business",
-                      icon: Building2,
-                    },
-                  ]),
-            ].map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="inline-flex items-center gap-1.5 border border-border/60 bg-card/90 px-2.5 py-1.5 text-xs font-semibold tracking-tight text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-card hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        <div className="flex flex-wrap items-center gap-2">
+          {currentOpenShift && canClose ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="shadow-sm"
+                onClick={() => setDrawoutModal(true)}
               >
-                <Icon
-                  className="size-3.5 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                {label}
-                <ArrowRight
-                  className="size-3 shrink-0 text-muted-foreground opacity-60"
-                  aria-hidden
-                />
-              </Link>
-            ))}
-          </div>
+                <HandCoins className="size-4" aria-hidden />
+                New drawout
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setCloseModal(true)}
+              >
+                Close shift
+              </Button>
+            </>
+          ) : null}
+          {canOpen ? (
+            <Button type="button" className="shadow-sm" onClick={() => setOpenModal(true)}>
+              Open shift
+            </Button>
+          ) : null}
         </div>
-      </section>
+      </header>
+
+      {/* ── Board toolbar links ───────────────────────────────── */}
+      {quickLinks.length > 0 ? (
+        <nav aria-label="Related pages" className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+          {quickLinks.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            >
+              <Icon className="size-3.5" aria-hidden />
+              {label}
+            </Link>
+          ))}
+        </nav>
+      ) : null}
 
       {(notice || error) ? (
         <div className="flex flex-col gap-3">
@@ -1840,62 +1645,101 @@ export default function ShiftsPage() {
         </div>
       ) : null}
 
-      {/* Reconciliation console */}
-      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] md:flex dark:ring-white/[0.04]">
-        {/* Console toolbar */}
-        <div className="flex items-center justify-between gap-3 border-b border-border/50 bg-gradient-to-r from-muted/45 via-muted/20 to-transparent px-4 py-2.5">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-none border border-border/60 bg-background/70 text-primary shadow-sm">
-              <Scale className="size-[18px]" aria-hidden />
+      {/* ── Live "now" row ─────────────────────────────────────── */}
+      {currentOpenShift ? (
+        <section
+          aria-label="Open shift"
+          className={cn(
+            "relative flex flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden rounded-xl border border-emerald-500/25 bg-emerald-500/[0.05] px-4 py-3",
+            "ring-1 ring-inset ring-emerald-500/10",
+          )}
+        >
+          <span className="absolute inset-y-0 left-0 w-0.5 bg-emerald-500" aria-hidden />
+          <span className="relative flex items-center gap-2.5">
+            <span className="relative flex size-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" aria-hidden />
+              <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" aria-hidden />
             </span>
-            <div className="min-w-0">
-              <h2 className="font-heading text-base font-semibold leading-tight tracking-tight text-foreground">
-                Reconciliation Console
-              </h2>
-              <p className="truncate text-[11px] leading-tight text-muted-foreground">
-                Opening float → sales → close-out variance
-              </p>
-            </div>
+            <p className="text-sm font-semibold text-foreground">
+              {currentOpenShift.openedByName || "Cashier"}
+              <span className="font-normal text-muted-foreground"> at </span>
+              {currentOpenShift.branchName}
+            </p>
+          </span>
+          <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="size-3.5" aria-hidden />
+            Since <span className={NUM}>{fmtShortDate(currentOpenShift.openedAt)}</span>
+          </p>
+          <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Wallet className="size-3.5" aria-hidden />
+            Float{" "}
+            <span className={cn("font-semibold text-foreground", NUM)}>
+              {moneyStr(currentOpenShift.openingCash)}
+            </span>
+          </p>
+          <div className="ml-auto flex items-center gap-2">
+            {canClose ? (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setDrawoutModal(true)}
+                >
+                  New drawout
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setCloseModal(true)}
+                >
+                  Close shift
+                </Button>
+              </>
+            ) : null}
           </div>
-          <VarianceLegend className="justify-end" />
-        </div>
+        </section>
+      ) : null}
 
-        {/* Panels */}
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* ─── Column 1: Shift List (~28%) ────────────────────────── */}
-        <div className="flex min-w-[190px] max-w-[320px] flex-[1.12] flex-col border-r border-border/50">
-          <PanelHeader
-            icon={ListChecks}
-            title="Shift List"
-            meta={
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                {loading && (
-                  <span
-                    className="size-1.5 animate-pulse rounded-full bg-primary"
-                    aria-hidden
-                  />
-                )}
-                <span className="inline-flex min-w-5 items-center justify-center border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-                  {totalCount}
-                </span>
+      {/* ── The board: list rail + detail pane ─────────────────── */}
+      <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+        {/* Board rail */}
+        <section
+          aria-label="Shift board"
+          className={cn(CARD, "flex min-h-[24rem] flex-col overflow-hidden rounded-xl md:min-h-0")}
+        >
+          {/* Rail toolbar */}
+          <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-primary">
+                <Layers className="size-3.5" aria-hidden />
               </span>
-            }
-          />
+              <h2 className="truncate text-sm font-semibold tracking-tight text-foreground">
+                Board
+              </h2>
+              <span className="inline-flex min-w-5 items-center justify-center rounded-md border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                {totalCount}
+              </span>
+            </div>
+            <VarianceLegend className="hidden sm:flex" />
+          </div>
+
           {/* Filters */}
-          <div className="space-y-2 border-b border-border/50 bg-muted/15 p-2.5">
+          <div className="space-y-1.5 border-b border-border/50 bg-muted/10 p-2.5">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <input
-                className={dashboardInputClass(loading, "pl-9 text-sm rounded-none")}
-                placeholder="Search cashier or branch..."
+                className={cn(dashboardInputClass(loading), "rounded-lg pl-8 text-sm")}
+                placeholder="Search cashier or branch…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Search shifts"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               <select
-                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 text-xs rounded-none")}
+                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-lg text-xs")}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 aria-label="Filter by status"
@@ -1907,14 +1751,14 @@ export default function ShiftsPage() {
                 ))}
               </select>
               <select
-                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 text-xs rounded-none")}
+                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-lg text-xs")}
                 value={branchFilter}
                 disabled={isBranchLockedRole}
                 onChange={(e) => setBranchFilter(e.target.value)}
                 aria-label="Filter by branch"
               >
                 {isBranchLockedRole ? null : (
-                  <option value="">All Branches</option>
+                  <option value="">All branches</option>
                 )}
                 {branches
                   .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
@@ -1927,25 +1771,31 @@ export default function ShiftsPage() {
             </div>
           </div>
 
-          {/* Shift cards */}
-          <div className="flex-1 overflow-y-auto p-2.5">
-            <div className="space-y-2">
-              {filteredShifts.map((s) => (
-                <ShiftCard
-                  key={s.id}
-                  shift={s}
-                  isSelected={selectedShiftId === s.id}
-                  onSelect={() => setSelectedShiftId(s.id)}
-                />
-              ))}
-              {filteredShifts.length === 0 && !loading && (
-                <p className="py-8 text-center text-xs text-muted-foreground">
-                  No shifts found
+          {/* Rows */}
+          <div className="flex-1 space-y-1.5 overflow-y-auto p-2.5">
+            {filteredShifts.map((s) => (
+              <ShiftRow
+                key={s.id}
+                shift={s}
+                isSelected={selectedShiftId === s.id}
+                onSelect={() => setSelectedShiftId(s.id)}
+              />
+            ))}
+            {filteredShifts.length === 0 && !loading ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <Search className="size-5 text-muted-foreground/50" aria-hidden />
+                <p className="text-sm font-medium text-foreground">
+                  {shifts.length === 0 ? "No shifts yet" : "No shifts match"}
                 </p>
-              )}
-            </div>
-            {hasMore && (
-              <div className="mt-3 text-center">
+                <p className="max-w-[16rem] text-xs leading-relaxed text-muted-foreground">
+                  {shifts.length === 0
+                    ? "Open a shift to begin tracking cash for the day."
+                    : "Broaden your search or clear the filters."}
+                </p>
+              </div>
+            ) : null}
+            {hasMore ? (
+              <div className="pt-1 text-center">
                 <Button
                   type="button"
                   variant="outline"
@@ -1953,30 +1803,22 @@ export default function ShiftsPage() {
                   disabled={loading}
                   onClick={() => loadShifts(page + 1, true)}
                 >
-                  {loading ? "Loading…" : "Load More"}
+                  {loading ? "Loading…" : "Load more"}
                 </Button>
               </div>
-            )}
+            ) : null}
           </div>
-        </div>
+        </section>
 
-        {/* ─── Column 2: Analytics (~34%) ─────────────────────────── */}
-        <div className="hidden min-w-[230px] max-w-[380px] flex-[1.34] border-r border-border/50 lg:flex lg:flex-col">
-          <PanelHeader icon={Calculator} title="Analytics" />
-          <div className="flex-1 overflow-y-auto">
-            <AnalyticsPanel
-              shiftId={selectedShiftId}
-              refreshKey={detailRefreshKey}
-            />
-          </div>
-        </div>
-
-        {/* ─── Column 3: Detail Tabs (~38%) ────────────────────────── */}
-        <div className="flex min-w-[270px] flex-[1.54] flex-col">
+        {/* Detail pane */}
+        <section
+          aria-label="Shift details"
+          className={cn(CARD, "hidden min-h-0 flex-col overflow-hidden rounded-xl md:flex")}
+        >
           {selectedShift ? (
-            <div className="flex items-center gap-2.5 border-b border-border/50 bg-muted/25 px-4 py-2">
+            <div className="flex items-center gap-3 border-b border-border/50 px-4 py-2.5">
               <span
-                className="flex size-8 shrink-0 items-center justify-center rounded-none border border-border/60 bg-background/70 font-sans text-[11px] font-bold tracking-tight text-foreground shadow-sm"
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 font-sans text-[11px] font-bold tracking-tight text-foreground"
                 aria-hidden
               >
                 {initials(selectedShift.cashierName)}
@@ -1985,17 +1827,24 @@ export default function ShiftsPage() {
                 <h3 className="truncate text-sm font-semibold leading-tight tracking-tight text-foreground">
                   {selectedShift.cashierName}
                 </h3>
-                <p className="truncate text-[11px] leading-tight text-muted-foreground">
-                  {selectedShift.branchName}
+                <p className="flex items-center gap-1 truncate text-[11px] leading-tight text-muted-foreground">
+                  <MapPin className="size-3 shrink-0" aria-hidden />
+                  <span className="truncate">{selectedShift.branchName}</span>
+                  <span aria-hidden>·</span>
+                  <span className={NUM}>{fmtShortDate(selectedShift.openedAt)}</span>
                 </p>
               </div>
               <StatusBadge status={selectedShift.status} />
             </div>
           ) : (
-            <PanelHeader icon={ClipboardList} title="Shift Details" />
+            <div className="border-b border-border/50 px-4 py-2.5">
+              <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                Shift details
+              </h3>
+            </div>
           )}
-          <div className="flex-1 overflow-y-auto">
-            <DetailTabs
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <ShiftDetail
               shiftId={selectedShiftId}
               canUpdateOpening={canUpdateOpening}
               onOpeningUpdated={() => {
@@ -2005,20 +1854,22 @@ export default function ShiftsPage() {
               }}
             />
           </div>
-        </div>
-        </div>
+        </section>
       </div>
 
-      {/* Mobile: simple list view */}
-      <div className="flex-1 space-y-3 overflow-y-auto p-4 md:hidden">
+      {/* ── Mobile: rows + detail below ────────────────────────── */}
+      <div className="space-y-3 md:hidden">
         <div className="flex items-center gap-2">
-          <input
-            className={cn(dashboardInputClass(loading), "min-w-0 flex-1 rounded-none")}
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search shifts"
-          />
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              className={cn(dashboardInputClass(loading), "rounded-lg pl-8 text-sm")}
+              placeholder="Search…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search shifts"
+            />
+          </div>
           {canOpen ? (
             <Button
               size="sm"
@@ -2030,38 +1881,72 @@ export default function ShiftsPage() {
             </Button>
           ) : null}
         </div>
-        <div className="space-y-2">
+        <div className="flex gap-1.5">
+          <select
+            className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-lg text-xs")}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="Filter by status"
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <select
+            className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-lg text-xs")}
+            value={branchFilter}
+            disabled={isBranchLockedRole}
+            onChange={(e) => setBranchFilter(e.target.value)}
+            aria-label="Filter by branch"
+          >
+            {isBranchLockedRole ? null : (
+              <option value="">All branches</option>
+            )}
+            {branches
+              .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
+              .map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+          </select>
+        </div>
+        <div className="space-y-1.5">
           {filteredShifts.map((s) => (
-            <ShiftCard
+            <ShiftRow
               key={s.id}
               shift={s}
               isSelected={selectedShiftId === s.id}
               onSelect={() =>
                 setSelectedShiftId(s.id === selectedShiftId ? null : s.id)
               }
+              compact
             />
           ))}
-          {filteredShifts.length === 0 && !loading && (
+          {filteredShifts.length === 0 && !loading ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              No shifts found
+              {shifts.length === 0 ? "No shifts yet" : "No shifts match"}
             </p>
-          )}
+          ) : null}
         </div>
         {selectedShiftId ? (
-          <div className={cn(DASHBOARD_SECTION_SURFACE, "rounded-none")}>
-            <div className="mb-3 flex items-center justify-between">
+          <div className={cn(CARD, "overflow-hidden rounded-xl")}>
+            <div className="mb-1 flex items-center justify-between border-b border-border/50 px-3 py-2">
               <h3 className="text-sm font-semibold tracking-tight text-foreground">
-                Shift Details
+                Shift details
               </h3>
               <button
                 type="button"
                 onClick={() => setSelectedShiftId(null)}
-                className="text-muted-foreground hover:text-foreground"
+                aria-label="Close shift details"
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <X className="size-4" />
               </button>
             </div>
-            <DetailTabs
+            <ShiftDetail
               shiftId={selectedShiftId}
               canUpdateOpening={canUpdateOpening}
               onOpeningUpdated={() => {
@@ -2074,7 +1959,7 @@ export default function ShiftsPage() {
         ) : null}
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ─────────────────────────────────────────────── */}
       <OpenShiftModal
         open={openModal}
         onClose={() => {
