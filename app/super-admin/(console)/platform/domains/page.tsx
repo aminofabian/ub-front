@@ -123,6 +123,23 @@ export default function SuperAdminPlatformDomainsPage() {
   const [hostafricaBillingStubEnabled, setHostafricaBillingStubEnabled] = useState(true);
   const [hostafricaRegistrantDefaultsText, setHostafricaRegistrantDefaultsText] = useState("");
 
+  const [hostafricaResellerEmail, setHostafricaResellerEmail] = useState("");
+  const [hostafricaResellerApiKey, setHostafricaResellerApiKey] = useState("");
+  const [hostafricaResellerApiBaseUrl, setHostafricaResellerApiBaseUrl] = useState(
+    "https://my.hostafrica.com/modules/addons/DomainsReseller/api/index.php",
+  );
+  const [whoisFirstname, setWhoisFirstname] = useState("");
+  const [whoisLastname, setWhoisLastname] = useState("");
+  const [whoisCompany, setWhoisCompany] = useState("");
+  const [whoisEmail, setWhoisEmail] = useState("");
+  const [whoisAddress1, setWhoisAddress1] = useState("");
+  const [whoisAddress2, setWhoisAddress2] = useState("");
+  const [whoisCity, setWhoisCity] = useState("");
+  const [whoisState, setWhoisState] = useState("");
+  const [whoisPostcode, setWhoisPostcode] = useState("");
+  const [whoisCountry, setWhoisCountry] = useState("KE");
+  const [whoisPhone, setWhoisPhone] = useState("");
+
   const [palmartStkClientId, setPalmartStkClientId] = useState("");
   const [palmartStkClientSecret, setPalmartStkClientSecret] = useState("");
   const [palmartStkApiKey, setPalmartStkApiKey] = useState("");
@@ -145,6 +162,24 @@ export default function SuperAdminPlatformDomainsPage() {
     setHostafricaKenyanTlds(row.hostafricaKenyanTlds || "co.ke,or.ke,me.ke,sc.ke,ac.ke,go.ke,ke");
     setHostafricaBillingStubEnabled(row.hostafricaBillingStubEnabled);
     setHostafricaRegistrantDefaultsText(defaultsToText(row.hostafricaRegistrantDefaults));
+    setHostafricaResellerEmail(row.hostafricaResellerEmail || "");
+    setHostafricaResellerApiBaseUrl(
+      row.hostafricaResellerApiBaseUrl ||
+        "https://my.hostafrica.com/modules/addons/DomainsReseller/api/index.php",
+    );
+    setHostafricaResellerApiKey("");
+    const whois = row.hostafricaResellerWhois || {};
+    setWhoisFirstname(whois.firstname || "");
+    setWhoisLastname(whois.lastname || "");
+    setWhoisCompany(whois.companyname || "");
+    setWhoisEmail(whois.email || "");
+    setWhoisAddress1(whois.address1 || "");
+    setWhoisAddress2(whois.address2 || "");
+    setWhoisCity(whois.city || "");
+    setWhoisState(whois.state || "");
+    setWhoisPostcode(whois.postcode || "");
+    setWhoisCountry(whois.country || "KE");
+    setWhoisPhone(whois.phonenumber || "");
     setPalmartStkTillNumber(row.palmartStkTillNumber || "");
     setPalmartStkClientId("");
     setPalmartStkClientSecret("");
@@ -184,6 +219,21 @@ export default function SuperAdminPlatformDomainsPage() {
         hostafricaKenyanTlds,
         hostafricaBillingStubEnabled,
         hostafricaRegistrantDefaults: textToDefaults(hostafricaRegistrantDefaultsText),
+        hostafricaResellerEmail,
+        hostafricaResellerApiBaseUrl,
+        hostafricaResellerWhois: {
+          firstname: whoisFirstname.trim(),
+          lastname: whoisLastname.trim(),
+          companyname: whoisCompany.trim(),
+          email: whoisEmail.trim(),
+          address1: whoisAddress1.trim(),
+          address2: whoisAddress2.trim(),
+          city: whoisCity.trim(),
+          state: whoisState.trim(),
+          postcode: whoisPostcode.trim(),
+          country: whoisCountry.trim() || "KE",
+          phonenumber: whoisPhone.trim(),
+        },
         vercelTeamId,
         vercelProjectId,
         vercelApiBaseUrl,
@@ -193,6 +243,9 @@ export default function SuperAdminPlatformDomainsPage() {
       };
       if (hostafricaApiKey.trim()) {
         body.hostafricaApiKey = hostafricaApiKey.trim();
+      }
+      if (hostafricaResellerApiKey.trim()) {
+        body.hostafricaResellerApiKey = hostafricaResellerApiKey.trim();
       }
       if (vercelToken.trim()) {
         body.vercelToken = vercelToken.trim();
@@ -224,14 +277,19 @@ export default function SuperAdminPlatformDomainsPage() {
     }
   };
 
-  const clearSecret = (field: "hostafricaApiKey" | "vercelToken" | "palmartStk", label: string) => {
+  const clearSecret = (
+    field: "hostafricaApiKey" | "vercelToken" | "palmartStk" | "hostafricaResellerApiKey",
+    label: string,
+  ) => {
     showThemedConfirmToast({
       id: `clear-domain-${field}`,
       title: `Clear ${label}?`,
       description:
         field === "palmartStk"
           ? "Domain purchase M-Pesa will stop until new platform credentials are saved."
-          : "Merchants will fall back to env only if set. Prefer leaving a key in Super Admin.",
+          : field === "hostafricaResellerApiKey"
+            ? "Zero-touch RegisterDomain will stop until a DomainsReseller API key is saved again."
+            : "Merchants will fall back to env only if set. Prefer leaving a key in Super Admin.",
       confirmLabel: "Clear",
       confirmVariant: "destructive",
       onConfirm: async () => {
@@ -242,7 +300,9 @@ export default function SuperAdminPlatformDomainsPage() {
           const updated =
             field === "palmartStk"
               ? await updatePlatformDomainSettings({ clearPalmartStkCredentials: true })
-              : await updatePlatformDomainSettings({ [field]: "" });
+              : field === "hostafricaResellerApiKey"
+                ? await updatePlatformDomainSettings({ clearHostafricaResellerApiKey: true })
+                : await updatePlatformDomainSettings({ [field]: "" });
           applySettings(updated);
           setSuccess(`${label} cleared.`);
         } catch (e) {
@@ -378,6 +438,94 @@ export default function SuperAdminPlatformDomainsPage() {
               <span className="font-mono">name</span> values (case-insensitive). Leave blank to force ops to complete in
               the HA panel.
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <KeyRound className="size-4" aria-hidden />
+            DomainsReseller (zero-touch register)
+          </CardTitle>
+          <CardDescription>
+            HMAC API for RegisterDomain on the platform HostAfrica account. When configured, paid orders register
+            automatically — no ops register_url step.
+            {settings?.hostafricaResellerConfigured
+              ? " Ready."
+              : " Incomplete — fill email, API key, and WHOIS below."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Field
+            id="ha-reseller-email"
+            label="Reseller login email"
+            value={hostafricaResellerEmail}
+            onChange={setHostafricaResellerEmail}
+            placeholder="you@company.com"
+            hint="Sent as the username header."
+          />
+          <Field
+            id="ha-reseller-key"
+            label="Reseller API key"
+            type="password"
+            placeholder={
+              settings?.hasHostafricaResellerApiKey
+                ? "•••••••• (saved — leave blank to keep)"
+                : "Paste DomainsReseller API key"
+            }
+            hint={
+              settings?.hasHostafricaResellerApiKey
+                ? "A key is stored. Leave blank to keep it, or clear below."
+                : undefined
+            }
+            value={hostafricaResellerApiKey}
+            onChange={setHostafricaResellerApiKey}
+          />
+          {settings?.hasHostafricaResellerApiKey ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => clearSecret("hostafricaResellerApiKey", "DomainsReseller API key")}
+            >
+              Clear reseller API key
+            </Button>
+          ) : null}
+          <Field
+            id="ha-reseller-base"
+            label="Reseller API base URL"
+            value={hostafricaResellerApiBaseUrl}
+            onChange={setHostafricaResellerApiBaseUrl}
+            placeholder="https://my.hostafrica.com/modules/addons/DomainsReseller/api/index.php"
+          />
+          <div className="space-y-3 rounded-lg border p-3">
+            <div>
+              <p className="text-sm font-medium">Platform WHOIS contact</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Used for Registrant, Admin, Technical, and Billing on RegisterDomain.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field id="whois-fn" label="First name" value={whoisFirstname} onChange={setWhoisFirstname} />
+              <Field id="whois-ln" label="Last name" value={whoisLastname} onChange={setWhoisLastname} />
+              <Field id="whois-co" label="Company" value={whoisCompany} onChange={setWhoisCompany} />
+              <Field id="whois-em" label="Email" value={whoisEmail} onChange={setWhoisEmail} />
+              <Field id="whois-a1" label="Address line 1" value={whoisAddress1} onChange={setWhoisAddress1} />
+              <Field id="whois-a2" label="Address line 2" value={whoisAddress2} onChange={setWhoisAddress2} />
+              <Field id="whois-city" label="City" value={whoisCity} onChange={setWhoisCity} />
+              <Field id="whois-state" label="State / county" value={whoisState} onChange={setWhoisState} />
+              <Field id="whois-pc" label="Postcode" value={whoisPostcode} onChange={setWhoisPostcode} />
+              <Field id="whois-cc" label="Country (ISO)" value={whoisCountry} onChange={setWhoisCountry} placeholder="KE" />
+              <Field
+                id="whois-phone"
+                label="Phone"
+                value={whoisPhone}
+                onChange={setWhoisPhone}
+                placeholder="+2547…"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

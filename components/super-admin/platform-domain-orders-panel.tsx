@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   attachSaDomainOrderHostafrica,
+  fetchPlatformDomainSettings,
   fetchSaDomainOrders,
   markSaDomainOrderNsActive,
   markSaDomainOrderPaid,
@@ -81,13 +82,20 @@ export function PlatformDomainOrdersPanel() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [haDraft, setHaDraft] = useState<Record<string, string>>({});
+  const [resellerConfigured, setResellerConfigured] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError("");
     setLoading(true);
     try {
-      const list = await fetchSaDomainOrders(statusFilter || undefined);
+      const [list, settings] = await Promise.all([
+        fetchSaDomainOrders(statusFilter || undefined),
+        fetchPlatformDomainSettings().catch(() => null),
+      ]);
       setRows(list);
+      if (settings) {
+        setResellerConfigured(!!settings.hostafricaResellerConfigured);
+      }
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Could not load domain orders.");
       setRows([]);
@@ -143,8 +151,9 @@ export function PlatformDomainOrdersPanel() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Ops queue for Kenyan TLD purchases. After merchant pay (or Mark paid), open HostAfrica register_url on the
-        platform account, then Sync. Vercel DNS + NS cutover run automatically once owned.
+        {resellerConfigured
+          ? "Ops queue for Kenyan TLD purchases. With DomainsReseller configured, RegisterDomain runs automatically after pay — use Sync/Retry if ownership is slow. register_url remains a fallback when register fails."
+          : "Ops queue for Kenyan TLD purchases. After merchant pay (or Mark paid), open HostAfrica register_url on the platform account, then Sync. Configure DomainsReseller under Settings for zero-touch register."}
       </p>
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
@@ -212,6 +221,10 @@ export function PlatformDomainOrdersPanel() {
                 rows.map((row) => {
                   const s = row.status.toLowerCase();
                   const busy = busyId === row.id;
+                  const err = (row.lastError || "").toLowerCase();
+                  const showRegisterFallback =
+                    !resellerConfigured ||
+                    /registerdomain|domainsreseller|register_url|reseller api not|reseller register/.test(err);
                   return (
                     <tr key={row.id} className="border-b last:border-0 align-top hover:bg-muted/20">
                       <td className="px-3 py-3">
@@ -224,7 +237,7 @@ export function PlatformDomainOrdersPanel() {
                         {row.lastError ? (
                           <div className="mt-1 max-w-[16rem] text-[11px] text-destructive/90">{row.lastError}</div>
                         ) : null}
-                        {row.registerUrl ? (
+                        {row.registerUrl && showRegisterFallback ? (
                           <a
                             href={row.registerUrl}
                             target="_blank"
@@ -233,9 +246,13 @@ export function PlatformDomainOrdersPanel() {
                           >
                             Open HostAfrica register checkout
                           </a>
-                        ) : s === "registering" ? (
+                        ) : s === "registering" && !resellerConfigured ? (
                           <div className="mt-1 text-[11px] text-amber-800 dark:text-amber-200">
                             No register_url yet — refresh below
+                          </div>
+                        ) : s === "registering" && resellerConfigured && !row.hostafricaDomainId ? (
+                          <div className="mt-1 text-[11px] text-muted-foreground">
+                            Auto-register in progress — Sync to poll ownership
                           </div>
                         ) : null}
                       </td>
@@ -272,26 +289,28 @@ export function PlatformDomainOrdersPanel() {
                             )}
                             {s === "registering" ? (
                               <>
-                                {row.registerUrl ? (
-                                  <Button type="button" size="sm" asChild>
+                                {showRegisterFallback && row.registerUrl ? (
+                                  <Button type="button" size="sm" variant={resellerConfigured ? "outline" : "default"} asChild>
                                     <a href={row.registerUrl} target="_blank" rel="noreferrer">
                                       Open HA register
                                     </a>
                                   </Button>
                                 ) : null}
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={busy}
-                                  onClick={() =>
-                                    void runAction(row.id, "Register URL", () =>
-                                      refreshSaDomainOrderRegisterUrl(row.id),
-                                    )
-                                  }
-                                >
-                                  Refresh register URL
-                                </Button>
+                                {showRegisterFallback ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      void runAction(row.id, "Register URL", () =>
+                                        refreshSaDomainOrderRegisterUrl(row.id),
+                                      )
+                                    }
+                                  >
+                                    Refresh register URL
+                                  </Button>
+                                ) : null}
                               </>
                             ) : null}
                             {s !== "live" && s !== "failed" ? (

@@ -528,6 +528,11 @@ export type PlatformDomainSettingsRecord = {
   hostafricaKenyanTlds: string;
   hostafricaBillingStubEnabled: boolean;
   hostafricaRegistrantDefaults?: Record<string, string> | null;
+  hasHostafricaResellerApiKey: boolean;
+  hostafricaResellerEmail: string;
+  hostafricaResellerApiBaseUrl: string;
+  hostafricaResellerConfigured: boolean;
+  hostafricaResellerWhois?: Record<string, string> | null;
   hasPalmartStkCredentials: boolean;
   palmartStkTillNumber: string;
   hasVercelToken: boolean;
@@ -552,6 +557,11 @@ export type UpdatePlatformDomainSettingsPayload = Partial<{
   hostafricaKenyanTlds: string;
   hostafricaBillingStubEnabled: boolean;
   hostafricaRegistrantDefaults: Record<string, string>;
+  hostafricaResellerEmail: string;
+  hostafricaResellerApiKey: string;
+  hostafricaResellerApiBaseUrl: string;
+  hostafricaResellerWhois: Record<string, string>;
+  clearHostafricaResellerApiKey: boolean;
   palmartStkClientId: string;
   palmartStkClientSecret: string;
   palmartStkApiKey: string;
