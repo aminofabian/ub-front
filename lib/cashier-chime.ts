@@ -12,7 +12,7 @@ export function playCashierChime(variant: CashierChimeVariant = "order"): void {
     const start = () => {
       const now = ctx.currentTime;
       const gain = ctx.createGain();
-      gain.gain.value = 0.08;
+      gain.gain.value = 0.18;
       gain.connect(ctx.destination);
 
       if (variant === "order") {

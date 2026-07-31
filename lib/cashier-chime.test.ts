@@ -86,8 +86,8 @@ describe("playCashierChime", () => {
     expect(oscillatorMocks[0].stop).toHaveBeenCalledWith(1.68);
   });
 
-  it("sets gain to 0.08", () => {
+  it("sets gain to 0.18", () => {
     playCashierChime("order");
-    expect(gainMock.gain.value).toBe(0.08);
+    expect(gainMock.gain.value).toBe(0.18);
   });
 });
