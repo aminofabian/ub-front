@@ -900,22 +900,16 @@ function KpiCard({
 
 /** Numbered header for a console panel — reads as a workflow step (01 → 03). */
 function PanelHeader({
-  index,
   icon: Icon,
   title,
   meta,
 }: {
-  index: string;
   icon: LucideIcon;
   title: string;
   meta?: ReactNode;
 }) {
   return (
     <div className="flex items-center gap-2 border-b border-border/50 bg-muted/25 px-4 py-2">
-      <span className="font-mono text-[10px] font-semibold tabular-nums text-muted-foreground/50">
-        {index}
-      </span>
-      <span className="h-3 w-px bg-border/70" aria-hidden />
       <Icon className="size-4 text-foreground/45" aria-hidden />
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         {title}
@@ -1871,7 +1865,6 @@ export default function ShiftsPage() {
         {/* ─── Column 1: Shift List (~28%) ────────────────────────── */}
         <div className="flex w-[28%] min-w-[260px] flex-shrink-0 flex-col border-r border-border/50">
           <PanelHeader
-            index="01"
             icon={ListChecks}
             title="Shift List"
             meta={
@@ -1969,7 +1962,7 @@ export default function ShiftsPage() {
 
         {/* ─── Column 2: Analytics (~35%) ──────────────────────────── */}
         <div className="hidden w-[35%] min-w-[300px] flex-shrink-0 border-r border-border/50 lg:flex lg:flex-col">
-          <PanelHeader index="02" icon={Calculator} title="Analytics" />
+          <PanelHeader icon={Calculator} title="Analytics" />
           <div className="flex-1 overflow-y-auto">
             <AnalyticsPanel
               shiftId={selectedShiftId}
@@ -1982,10 +1975,6 @@ export default function ShiftsPage() {
         <div className="flex flex-1 flex-col">
           {selectedShift ? (
             <div className="flex items-center gap-2.5 border-b border-border/50 bg-muted/25 px-4 py-2">
-              <span className="font-mono text-[10px] font-semibold tabular-nums text-muted-foreground/50">
-                03
-              </span>
-              <span className="h-3 w-px bg-border/70" aria-hidden />
               <span
                 className="flex size-8 shrink-0 items-center justify-center rounded-none border border-border/60 bg-background/70 font-sans text-[11px] font-bold tracking-tight text-foreground shadow-sm"
                 aria-hidden
@@ -2003,7 +1992,7 @@ export default function ShiftsPage() {
               <StatusBadge status={selectedShift.status} />
             </div>
           ) : (
-            <PanelHeader index="03" icon={ClipboardList} title="Shift Details" />
+            <PanelHeader icon={ClipboardList} title="Shift Details" />
           )}
           <div className="flex-1 overflow-y-auto">
             <DetailTabs
