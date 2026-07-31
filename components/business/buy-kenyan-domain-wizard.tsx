@@ -358,7 +358,9 @@ export function BuyKenyanDomainWizard({
 
         {quotes.length > 0 ? (
           <ul className="mt-4 divide-y divide-border/60 rounded-xl border border-border/70">
-            {quotes.map((q) => (
+                {quotes.map((q) => {
+              const canBuy = q.available && q.priceCents != null && q.priceCents > 0;
+              return (
               <li
                 key={q.domain}
                 className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
@@ -366,21 +368,26 @@ export function BuyKenyanDomainWizard({
                 <div className="min-w-0">
                   <p className="font-mono text-sm font-medium">{q.domain}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {q.available ? formatPrice(q.priceCents, q.currency || currency) : "Unavailable"}
+                    {canBuy
+                      ? formatPrice(q.priceCents, q.currency || currency)
+                      : q.available
+                        ? "Not available for purchase"
+                        : "Unavailable"}
                     {q.premium ? " · Premium" : ""}
                   </p>
                 </div>
                 <Button
                   size="sm"
-                  disabled={!q.available || buying === q.domain}
+                  disabled={!canBuy || buying === q.domain}
                   className="gap-1.5"
                   onClick={() => void onBuy(q.domain)}
                 >
                   {buying === q.domain ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-                  {q.available ? "Buy" : "Taken"}
+                  {canBuy ? "Buy" : "Taken"}
                 </Button>
               </li>
-            ))}
+              );
+            })}
           </ul>
         ) : null}
 
