@@ -68,13 +68,18 @@ function FeaturedCard({
 
   return (
     <aside
-      className="overflow-hidden rounded-2xl shadow-md"
+      className="overflow-hidden border"
       style={{
-        backgroundColor: primary ?? "var(--color-primary)",
+        borderColor: primary ? `${primary}30` : "var(--color-primary) / 0.2",
       }}
     >
       <div className="px-4 pb-3 pt-4">
-        <p className="text-sm font-bold text-white">Featured picks</p>
+        <p
+          className="text-sm font-bold"
+          style={{ color: primary ?? undefined }}
+        >
+          Featured picks
+        </p>
       </div>
       <div className="grid grid-cols-4 gap-1.5 px-4">
         {reminders.map((t) => {
@@ -106,7 +111,8 @@ function FeaturedCard({
       <div className="px-4 pb-4 pt-3">
         <Link
           href={APP_ROUTES.shopAccount}
-          className="flex h-8 w-full items-center justify-center rounded-lg bg-black/25 text-xs font-semibold text-white transition hover:bg-black/35"
+          className="flex h-8 w-full items-center justify-center text-xs font-semibold transition-colors hover:underline"
+          style={{ color: primary ?? "var(--color-primary)" }}
         >
           Past orders & account
         </Link>

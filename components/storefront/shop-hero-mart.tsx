@@ -109,20 +109,20 @@ export function ShopHeroMart({
 
   return (
     <section
-      className="hidden overflow-hidden rounded-[4px] text-white shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-black/10 md:block"
+      className="overflow-hidden rounded-[4px] text-white shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-black/10"
       style={{ backgroundColor: heroBg }}
     >
-      <div className="grid min-h-[168px] grid-cols-[minmax(0,1fr)_1.15fr] lg:min-h-[188px]">
+      <div className="grid min-h-[120px] grid-cols-1 md:min-h-[168px] md:grid-cols-[minmax(0,1fr)_1.15fr] lg:min-h-[188px]">
         {/* Copy */}
-        <div className="relative z-10 flex flex-col justify-center gap-2 px-5 py-4 lg:gap-2.5 lg:px-6 lg:py-5">
-          <h1 className="font-heading text-[1.35rem] font-semibold leading-[1.12] tracking-[-0.025em] lg:text-[1.65rem]">
+        <div className="relative z-10 flex flex-col justify-center gap-1.5 px-4 py-3.5 md:gap-2 md:px-5 md:py-4 lg:gap-2.5 lg:px-6 lg:py-5">
+          <h1 className="font-heading text-[1.15rem] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[1.35rem] lg:text-[1.65rem]">
             <span className="block text-white">{headline}</span>
-            <span className="mt-0.5 block font-heading text-[1.05rem] font-medium italic tracking-[-0.01em] text-white/70 lg:text-[1.15rem]">
+            <span className="mt-0.5 block font-heading text-[0.95rem] font-medium italic tracking-[-0.01em] text-white/70 md:text-[1.05rem] lg:text-[1.15rem]">
               {subhead}
             </span>
           </h1>
 
-          <p className="max-w-md text-[12px] leading-snug text-white/55 line-clamp-2">
+          <p className="max-w-md text-[11px] leading-snug text-white/55 line-clamp-2 md:text-[12px]">
             {body}
           </p>
 
@@ -152,9 +152,9 @@ export function ShopHeroMart({
           </div>
         </div>
 
-        {/* Media */}
+        {/* Media — hidden on mobile when there's no banner */}
         <div
-          className="group relative min-h-0 w-full overflow-hidden"
+          className="group relative hidden min-h-0 w-full overflow-hidden md:block"
           onTouchStart={(e) => setTouchStart(e.touches[0].clientX)}
           onTouchEnd={(e) => {
             if (touchStart === null || !banners) return;
