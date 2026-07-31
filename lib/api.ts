@@ -2539,6 +2539,8 @@ export type DomainOrder = {
   payerPhone?: string | null;
   lastStkStatus?: string | null;
   paymentAvailable?: boolean;
+  /** True when SA billing stub skipped M-Pesa (not a real payment). */
+  paymentSkippedByStub?: boolean;
   createdAt?: string;
   updatedAt?: string;
 };

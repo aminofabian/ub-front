@@ -1,10 +1,10 @@
 /**
- * Shared cashier alert chime.
+ * Shared alert chime (cashier orders, grocery, supply bills).
  *
  * Uses the Web Audio API so it works offline and does not depend on external
  * assets. Keep this utility tiny; callers decide when to play.
  */
-export type CashierChimeVariant = "order" | "grocery";
+export type CashierChimeVariant = "order" | "grocery" | "supply";
 
 export function playCashierChime(variant: CashierChimeVariant = "order"): void {
   try {
@@ -22,6 +22,14 @@ export function playCashierChime(variant: CashierChimeVariant = "order"): void {
         osc.connect(gain);
         osc.start(now);
         osc.stop(now + 0.15);
+      } else if (variant === "supply") {
+        // Lower single beep so supply posts are distinct from sales.
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = 660;
+        osc.connect(gain);
+        osc.start(now);
+        osc.stop(now + 0.18);
       } else {
         // Two-pulse grocery chime: 660 Hz then 880 Hz.
         const pulses = [

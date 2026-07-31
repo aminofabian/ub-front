@@ -607,6 +607,11 @@ export type SaDomainOrderRecord = {
   intendedNameservers?: string[];
   dnsInstructions?: Record<string, unknown> | null;
   lastError?: string | null;
+  merchantMessage?: string | null;
+  paidAt?: string | null;
+  lastStkStatus?: string | null;
+  paymentAvailable?: boolean;
+  paymentSkippedByStub?: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
 };

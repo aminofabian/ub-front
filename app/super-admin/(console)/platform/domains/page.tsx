@@ -121,7 +121,7 @@ export default function SuperAdminPlatformDomainsPage() {
   const [hostafricaKenyanTlds, setHostafricaKenyanTlds] = useState(
     "co.ke,or.ke,me.ke,sc.ke,ac.ke,go.ke,ke",
   );
-  const [hostafricaBillingStubEnabled, setHostafricaBillingStubEnabled] = useState(true);
+  const [hostafricaBillingStubEnabled, setHostafricaBillingStubEnabled] = useState(false);
   const [hostafricaRegistrantDefaultsText, setHostafricaRegistrantDefaultsText] = useState("");
 
   const [hostafricaResellerEmail, setHostafricaResellerEmail] = useState("");
@@ -419,8 +419,8 @@ export default function SuperAdminPlatformDomainsPage() {
           />
           <ToggleRow
             id="ha-billing-stub"
-            label="Billing stub enabled"
-            description="When on, Buy skips M-Pesa and starts registration. Turn off for real Palmart STK checkout (credentials below)."
+            label="Billing stub (skip M-Pesa)"
+            description="WARNING: when on, Buy skips STK entirely — no phone prompt, no money collected, order looks “paid.” Keep OFF in production. Requires Palmart M-Pesa credentials below when off."
             checked={hostafricaBillingStubEnabled}
             onChange={setHostafricaBillingStubEnabled}
           />

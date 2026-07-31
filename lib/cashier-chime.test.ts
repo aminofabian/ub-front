@@ -78,6 +78,14 @@ describe("playCashierChime", () => {
     expect(oscillatorMocks[1].stop).toHaveBeenCalled();
   });
 
+  it("plays a single 660 Hz tone for supply variant", () => {
+    playCashierChime("supply");
+    expect(audioCtxMock.createOscillator).toHaveBeenCalledTimes(1);
+    expect(oscillatorMocks[0].frequency.value).toBe(660);
+    expect(oscillatorMocks[0].start).toHaveBeenCalledWith(1.5);
+    expect(oscillatorMocks[0].stop).toHaveBeenCalledWith(1.68);
+  });
+
   it("sets gain to 0.08", () => {
     playCashierChime("order");
     expect(gainMock.gain.value).toBe(0.08);

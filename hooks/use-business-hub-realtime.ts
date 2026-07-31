@@ -15,6 +15,8 @@ type BusinessHubRealtimeOptions = {
   onLiveEvent?: () => void;
   /** Fires only for sale.completed (after branch filter). */
   onSaleCompleted?: () => void;
+  /** Fires only for supply.posted (after branch filter). */
+  onSupplyPosted?: () => void;
 };
 
 function frameBranchId(frame: RealtimeFrame): string {
@@ -22,7 +24,7 @@ function frameBranchId(frame: RealtimeFrame): string {
 }
 
 /**
- * Invalidates Morning board metrics when sales or shifts change.
+ * Invalidates Morning board metrics when sales, supplies, or shifts change.
  * WebSocket signal only — metrics still load via REST (no polling).
  */
 export function useBusinessHubRealtime({
@@ -31,6 +33,7 @@ export function useBusinessHubRealtime({
   onInvalidate,
   onLiveEvent,
   onSaleCompleted,
+  onSupplyPosted,
 }: BusinessHubRealtimeOptions) {
   const subscriptionId = useId();
   const onInvalidateRef = useRef(onInvalidate);
@@ -39,6 +42,8 @@ export function useBusinessHubRealtime({
   onLiveEventRef.current = onLiveEvent;
   const onSaleCompletedRef = useRef(onSaleCompleted);
   onSaleCompletedRef.current = onSaleCompleted;
+  const onSupplyPostedRef = useRef(onSupplyPosted);
+  onSupplyPostedRef.current = onSupplyPosted;
   const branchIdRef = useRef(branchId);
   branchIdRef.current = branchId;
 
@@ -72,10 +77,17 @@ export function useBusinessHubRealtime({
       scheduleInvalidate(frame);
     };
 
+    const handleSupplyPosted = (frame: RealtimeFrame) => {
+      if (stopped || !matchesBranch(frame)) return;
+      onSupplyPostedRef.current?.();
+      scheduleInvalidate(frame);
+    };
+
     const client = getRealtimeClient();
     const unregister = client.registerListener(subscriptionId, {
       channels: ["pos"],
       onSaleCompleted: handleSaleCompleted,
+      onSupplyPosted: handleSupplyPosted,
       onShiftOpened: scheduleInvalidate,
       onShiftClosed: scheduleInvalidate,
       onPaymentConfirmed: scheduleInvalidate,

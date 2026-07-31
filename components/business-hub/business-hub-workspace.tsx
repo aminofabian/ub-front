@@ -30,6 +30,7 @@ import { PostSetupChecklist } from "@/components/business-hub/post-setup-checkli
 import { StockShelvesBanner } from "@/components/business-hub/stock-shelves-banner";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
+import { SupplyBillsRail } from "@/components/business-hub/supply-bills-rail";
 import { RevenueBarChart } from "@/components/business-hub/revenue-bar-chart";
 import { StockHealthPanel } from "@/components/business-hub/stock-health-panel";
 import { TopMoversPanel } from "@/components/business-hub/top-movers-panel";
@@ -79,6 +80,7 @@ import {
   fetchInventoryValuation,
   fetchItemsPage,
   fetchRecentSales,
+  fetchPathBSupplies,
   fetchSalesRegister,
   fetchShiftDrawouts,
   fetchShifts,
@@ -88,10 +90,12 @@ import {
   type InventoryExpiryPipelineResponse,
   type InventoryValuationResponseRecord,
   type OwnerDashboardResponse,
+  type PathBSupplyListRowRecord,
   type ProfitAndLossResponse,
   type RecentSaleRow,
   type SalesRegisterResponse,
 } from "@/lib/api";
+import { filterAndSortSupplyRows } from "@/app/(dashboard)/supplies/_components/supplies-bill-filters";
 import { groupLinesIntoTransactions } from "@/lib/sale-transactions";
 import {
   cashiersFromDrawouts,
@@ -106,6 +110,8 @@ import {
   TICK_POOL_LIMIT,
   type RecentTick,
 } from "@/lib/business-hub/ticks-from-transactions";
+
+const SUPPLY_DISPLAY_LIMIT = 12;
 
 export function BusinessHubWorkspace() {
   const {
@@ -124,6 +130,7 @@ export function BusinessHubWorkspace() {
     canViewApAging,
     canViewCustomers,
     canViewSalesIntelligence,
+    canPathBRead,
   } = useDashboard();
   const featureFlags = useFeatureFlags();
   const showButcherCounter =
@@ -136,6 +143,7 @@ export function BusinessHubWorkspace() {
   );
   const canViewOwnerSummary =
     roleKey !== "stock_manager" && roleKey !== "cashier";
+  const canViewSupplyBills = canPathBRead || canViewApAging;
 
   const [period, setPeriod] = useState<Period>("today");
   const [pulse, setPulse] = useState<FinancePulseResponse | null>(null);
@@ -166,11 +174,18 @@ export function BusinessHubWorkspace() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
+  const [supplyJustUpdated, setSupplyJustUpdated] = useState(false);
   const [recentTicks, setRecentTicks] = useState<RecentTick[]>([]);
+  const [todaySupplies, setTodaySupplies] = useState<PathBSupplyListRowRecord[]>(
+    [],
+  );
   const [recentDrawouts, setRecentDrawouts] = useState<HubDrawout[]>([]);
   const [selectedCashiers, setSelectedCashiers] = useState<string[]>([]);
   const loadGen = useRef(0);
   const justUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const supplyJustUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     // Wait until header branch/department seed finishes. An early fetch with
@@ -211,6 +226,7 @@ export function BusinessHubWorkspace() {
         expiryRes,
         openShiftsRes,
         recentSalesRes,
+        suppliesRes,
       ] = await Promise.all([
         canViewOwnerSummary
           ? fetchDashboardOwnerSummary(branch, type).catch(() => null)
@@ -276,6 +292,11 @@ export function BusinessHubWorkspace() {
               () => [] as RecentSaleRow[],
             )
           : Promise.resolve([] as RecentSaleRow[]),
+        canViewSupplyBills
+          ? fetchPathBSupplies({ branchId: branch }).catch(
+              () => [] as PathBSupplyListRowRecord[],
+            )
+          : Promise.resolve([] as PathBSupplyListRowRecord[]),
       ]);
 
       if (gen !== loadGen.current) return;
@@ -301,6 +322,12 @@ export function BusinessHubWorkspace() {
           ),
           TICK_POOL_LIMIT,
         ),
+      );
+      setTodaySupplies(
+        filterAndSortSupplyRows(
+          Array.isArray(suppliesRes) ? suppliesRes : [],
+          "today",
+        ).slice(0, SUPPLY_DISPLAY_LIMIT),
       );
 
       const openShiftRows = openShiftsRes?.shifts ?? [];
@@ -338,6 +365,7 @@ export function BusinessHubWorkspace() {
     canViewSupplyBatches,
     period,
     canViewSalesIntelligence,
+    canViewSupplyBills,
     canViewShifts,
   ]);
 
@@ -348,6 +376,9 @@ export function BusinessHubWorkspace() {
   useEffect(() => {
     return () => {
       if (justUpdatedTimer.current) clearTimeout(justUpdatedTimer.current);
+      if (supplyJustUpdatedTimer.current) {
+        clearTimeout(supplyJustUpdatedTimer.current);
+      }
     };
   }, []);
 
@@ -360,6 +391,17 @@ export function BusinessHubWorkspace() {
     }, 2400);
   }, []);
 
+  const markSupplyLiveEvent = useCallback(() => {
+    setSupplyJustUpdated(true);
+    if (supplyJustUpdatedTimer.current) {
+      clearTimeout(supplyJustUpdatedTimer.current);
+    }
+    supplyJustUpdatedTimer.current = setTimeout(() => {
+      setSupplyJustUpdated(false);
+      supplyJustUpdatedTimer.current = null;
+    }, 2400);
+  }, []);
+
   useBusinessHubRealtime({
     branchId,
     enabled: headerScopeReady,
@@ -369,6 +411,10 @@ export function BusinessHubWorkspace() {
     onLiveEvent: markLiveEvent,
     onSaleCompleted: () => {
       playCashierChime("order");
+    },
+    onSupplyPosted: () => {
+      playCashierChime("supply");
+      markSupplyLiveEvent();
     },
   });
 
@@ -918,6 +964,15 @@ export function BusinessHubWorkspace() {
                 live={pulseLive}
                 justUpdated={justUpdated}
               />
+
+              {canViewSupplyBills ? (
+                <SupplyBillsRail
+                  bills={todaySupplies}
+                  currency={currency}
+                  live={pulseLive}
+                  justUpdated={supplyJustUpdated}
+                />
+              ) : null}
 
               <RevenueBarChart
                 points={chartPoints}

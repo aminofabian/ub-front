@@ -125,6 +125,9 @@ function ProvisioningStepper({ order }: { order: DomainOrder }) {
 }
 
 function orderHeadline(order: DomainOrder): { text: string; className: string } {
+  if (order.paymentSkippedByStub) {
+    return { text: "Test mode — unpaid", className: "bg-amber-500/15 text-amber-900 dark:text-amber-200" };
+  }
   const s = order.status.toLowerCase();
   if (s === "live") return { text: "Live", className: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300" };
   if (s === "failed") return { text: "Failed", className: "bg-destructive/15 text-destructive" };
@@ -386,7 +389,12 @@ export function BuyKenyanDomainWizard({
           "success",
           order.paymentAvailable
             ? `Order placed for ${domain}. Pay with M-Pesa to continue.`
-            : `Order placed for ${domain}. Payment confirmation is pending.`,
+            : `Order placed for ${domain}. Platform M-Pesa isn't configured yet — ask Super Admin under Platform → Domains.`,
+        );
+      } else if (order.paymentSkippedByStub) {
+        onFeedback(
+          "error",
+          `Test mode: ${domain} skipped M-Pesa (billing stub is on). No payment was collected. Turn the stub off under Platform → Domains for real STK.`,
         );
       } else {
         onFeedback("success", `Order started for ${domain}. We'll register it and set up DNS automatically.`);
@@ -644,7 +652,7 @@ export function BuyKenyanDomainWizard({
                         <div className="mt-4 rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-3.5">
                           <p className="text-xs font-medium text-foreground">Pay with M-Pesa</p>
                           <p className={cn(dashboardHintClass(), "mt-0.5")}>
-                            Enter the phone that should receive the STK prompt.
+                            Enter the phone that should receive the STK prompt. Payment goes to Palmart’s platform till.
                           </p>
                           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                             <input
@@ -669,6 +677,20 @@ export function BuyKenyanDomainWizard({
                               {order.lastStkStatus?.toLowerCase() === "pending" ? "Resend STK" : "Send M-Pesa prompt"}
                             </Button>
                           </div>
+                        </div>
+                      ) : null}
+
+                      {showPay && !order.paymentAvailable ? (
+                        <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-3 py-3 text-sm text-amber-950 dark:text-amber-100">
+                          M-Pesa isn’t available yet. Ask Super Admin to save{" "}
+                          <span className="font-medium">Palmart M-Pesa</span> credentials under Platform → Domains and
+                          turn <span className="font-medium">Billing stub</span> off.
+                        </div>
+                      ) : null}
+
+                      {order.paymentSkippedByStub ? (
+                        <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-3 py-3 text-sm text-amber-950 dark:text-amber-100">
+                          Test mode: billing stub skipped payment — no STK was sent and no money was charged.
                         </div>
                       ) : null}
                     </div>
