@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Banknote,
+  Bell,
   Building2,
   ClipboardList,
   MonitorSmartphone,
@@ -46,6 +47,12 @@ export const BUSINESS_CONFIGURATION_NAV: BusinessSettingsNavItem[] = [
     group: "Till",
     icon: ShoppingCart,
   },
+  {
+    id: "settings-hub-alerts",
+    label: "Hub alerts",
+    group: "Till",
+    icon: Bell,
+  },
 ];
 
 /** @deprecated Prefer BUSINESS_PROFILE_NAV / BUSINESS_CONFIGURATION_NAV */
@@ -75,7 +82,7 @@ export const CONFIGURATION_WORKSPACES: {
   {
     id: "till",
     label: "Till & POS",
-    blurb: "Shifts, cashier powers, M-Pesa listen, drafts, and trusted devices",
+    blurb: "Shifts, cashier powers, hub beeps, M-Pesa listen, drafts, and trusted devices",
     groups: ["Till"],
   },
 ];

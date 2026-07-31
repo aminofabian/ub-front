@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import {
   AlertCircle,
   Banknote,
+  Bell,
   ClipboardList,
   Loader2,
   Moon,
@@ -34,6 +35,7 @@ import {
   isDailyAuditScheduleOrdered,
   normalizeDailyAuditTime,
   type CashierCapabilitiesForm,
+  type HubAlertSettings,
   type InventoryForm,
   type PosDraftsForm,
   type ShiftSettingsForm,
@@ -41,6 +43,7 @@ import {
 } from "@/components/business/business-settings-types";
 import { Button } from "@/components/ui/button";
 import type { BranchRecord } from "@/lib/api";
+import { playCashierChime } from "@/lib/cashier-chime";
 import { cn } from "@/lib/utils";
 
 function timeToMinutes(value: string, fallback: string): number {
@@ -211,6 +214,8 @@ export function BusinessConfigurationForm({
   setShiftSettings,
   tillListen,
   setTillListen,
+  hubAlerts,
+  setHubAlerts,
   activeBranches,
   defaultBranchId,
   isSaving,
@@ -230,6 +235,8 @@ export function BusinessConfigurationForm({
   setShiftSettings: React.Dispatch<React.SetStateAction<ShiftSettingsForm>>;
   tillListen: TillListenSettings;
   setTillListen: React.Dispatch<React.SetStateAction<TillListenSettings>>;
+  hubAlerts: HubAlertSettings;
+  setHubAlerts: React.Dispatch<React.SetStateAction<HubAlertSettings>>;
   activeBranches: BranchRecord[];
   defaultBranchId: string | null;
   isSaving: boolean;
@@ -854,6 +861,63 @@ export function BusinessConfigurationForm({
               title="On storefront cart & checkout"
               description="Listen while shoppers preview the cart and on the checkout payment step."
             />
+          </div>
+        </PolicyPanel>
+      ) : null}
+
+      {visibleIds.has("settings-hub-alerts") ? (
+        <PolicyPanel
+          id="settings-hub-alerts"
+          eyebrow="Till · Business hub"
+          title="Live beeps on /business"
+          hint="When the Morning board is open, play a short chime for new activity. Click the page once so the browser allows sound."
+          accent="amber"
+        >
+          <div className="grid gap-2.5 lg:grid-cols-2">
+            <PolicySwitch
+              checked={hubAlerts.beepOnSale}
+              onChange={(checked) =>
+                setHubAlerts((previous) => ({
+                  ...previous,
+                  beepOnSale: checked,
+                }))
+              }
+              icon={<Bell className="size-4" aria-hidden />}
+              title="Beep on new sale"
+              description="Chime when a POS sale completes (till tape)."
+            />
+            <PolicySwitch
+              checked={hubAlerts.beepOnSupply}
+              onChange={(checked) =>
+                setHubAlerts((previous) => ({
+                  ...previous,
+                  beepOnSupply: checked,
+                }))
+              }
+              icon={<Truck className="size-4" aria-hidden />}
+              title="Beep on new supply"
+              description="Chime when a supply bill is posted (supply tape)."
+            />
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl text-xs"
+              onClick={() => playCashierChime("order")}
+            >
+              Test sale beep
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl text-xs"
+              onClick={() => playCashierChime("supply")}
+            >
+              Test supply beep
+            </Button>
           </div>
         </PolicyPanel>
       ) : null}

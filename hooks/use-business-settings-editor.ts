@@ -19,10 +19,12 @@ import {
   DEFAULT_SHIFT_SETTINGS,
   DEFAULT_STOREFRONT,
   DEFAULT_TILL_LISTEN,
+  DEFAULT_HUB_ALERTS,
   defaultCatalogBranchId,
   parseFeaturedLines,
   type CashierCapabilitiesForm,
   type EditableBusiness,
+  type HubAlertSettings,
   type InventoryForm,
   type PosDraftsForm,
   type ShiftSettingsForm,
@@ -67,6 +69,8 @@ export function useBusinessSettingsEditor() {
   );
   const [tillListen, setTillListen] =
     useState<TillListenSettings>(DEFAULT_TILL_LISTEN);
+  const [hubAlerts, setHubAlerts] =
+    useState<HubAlertSettings>(DEFAULT_HUB_ALERTS);
   const [feedback, setFeedback] = useState<BusinessSettingsFeedback | null>(
     null,
   );
@@ -102,6 +106,7 @@ export function useBusinessSettingsEditor() {
         setCashierCapabilities(next.cashierCapabilities);
         setShiftSettings(next.shiftSettings);
         setTillListen(next.tillListen);
+        setHubAlerts(next.hubAlerts);
       })
       .catch((error) => {
         if (hydratedFromBootstrap.current) {
@@ -132,6 +137,7 @@ export function useBusinessSettingsEditor() {
       setCashierCapabilities(next.cashierCapabilities);
       setShiftSettings(next.shiftSettings);
       setTillListen(next.tillListen);
+      setHubAlerts(next.hubAlerts);
     }
     void load();
   }, [load, bootstrapBusiness]);
@@ -185,6 +191,7 @@ export function useBusinessSettingsEditor() {
     setCashierCapabilities(next.cashierCapabilities);
     setShiftSettings(next.shiftSettings);
     setTillListen(next.tillListen);
+    setHubAlerts(next.hubAlerts);
   }, [effectiveSnapshot, branches]);
 
   const removeDeliveryArea = useCallback(
@@ -383,6 +390,10 @@ export function useBusinessSettingsEditor() {
               mpesaSelected: tillListen.mpesaSelected,
               storefront: tillListen.storefront,
             },
+            hubAlerts: {
+              beepOnSale: hubAlerts.beepOnSale,
+              beepOnSupply: hubAlerts.beepOnSupply,
+            },
           };
         }
 
@@ -399,6 +410,7 @@ export function useBusinessSettingsEditor() {
         setCashierCapabilities(applied.cashierCapabilities);
         setShiftSettings(applied.shiftSettings);
         setTillListen(applied.tillListen);
+        setHubAlerts(applied.hubAlerts);
         setFeedback({
           kind: "success",
           text:
@@ -432,6 +444,7 @@ export function useBusinessSettingsEditor() {
       shiftSettings,
       storefront,
       tillListen,
+      hubAlerts,
     ],
   );
 
@@ -459,6 +472,8 @@ export function useBusinessSettingsEditor() {
     setShiftSettings,
     tillListen,
     setTillListen,
+    hubAlerts,
+    setHubAlerts,
     feedback,
     setFeedback,
     loadFailed,

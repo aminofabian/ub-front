@@ -7,6 +7,11 @@ import {
   tillListenFromFlags,
   type TillListenSettings,
 } from "@/lib/till-listen-settings";
+import {
+  DEFAULT_HUB_ALERTS,
+  hubAlertsFromFlags,
+  type HubAlertSettings,
+} from "@/lib/hub-alert-settings";
 import type { BranchRecord } from "@/lib/api";
 
 export const MAX_FEATURED = 12;
@@ -176,8 +181,14 @@ export function tillListenSettingsFromRecord(
   return tillListenFromFlags(b?.featureFlags);
 }
 
-export { DEFAULT_TILL_LISTEN };
-export type { TillListenSettings };
+export function hubAlertSettingsFromRecord(
+  b: BusinessRecord | null,
+): HubAlertSettings {
+  return hubAlertsFromFlags(b?.featureFlags);
+}
+
+export { DEFAULT_TILL_LISTEN, DEFAULT_HUB_ALERTS };
+export type { TillListenSettings, HubAlertSettings };
 
 export function defaultCatalogBranchId(
   branches: BranchRecord[],
@@ -330,6 +341,7 @@ export function applyBusinessSnapshot(
   cashierCapabilities: CashierCapabilitiesForm;
   shiftSettings: ShiftSettingsForm;
   tillListen: TillListenSettings;
+  hubAlerts: HubAlertSettings;
 } {
   return {
     editable: {
@@ -343,5 +355,6 @@ export function applyBusinessSnapshot(
     cashierCapabilities: cashierCapabilitiesFromRecord(payload),
     shiftSettings: shiftSettingsFromRecord(payload),
     tillListen: tillListenSettingsFromRecord(payload),
+    hubAlerts: hubAlertSettingsFromRecord(payload),
   };
 }

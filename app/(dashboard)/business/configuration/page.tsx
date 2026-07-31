@@ -511,6 +511,8 @@ export default function BusinessConfigurationPage() {
             setShiftSettings={editor.setShiftSettings}
             tillListen={editor.tillListen}
             setTillListen={editor.setTillListen}
+            hubAlerts={editor.hubAlerts}
+            setHubAlerts={editor.setHubAlerts}
             activeBranches={editor.activeBranches}
             defaultBranchId={
               editor.storefront.catalogBranchId ||

@@ -968,6 +968,10 @@ export type FeatureFlagsPatchPayload = {
     mpesaSelected?: boolean;
     storefront?: boolean;
   };
+  hubAlerts?: {
+    beepOnSale?: boolean;
+    beepOnSupply?: boolean;
+  };
 };
 
 export type PatchBusinessPayload = {
