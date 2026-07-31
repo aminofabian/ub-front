@@ -4,19 +4,31 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Check,
   CircleDashed,
+  CreditCard,
   Loader2,
+  Phone,
   RefreshCw,
   Search,
   Sparkles,
   WifiOff,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   DASHBOARD_SECTION_SURFACE,
   dashboardHintClass,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   createDomainOrder,
@@ -29,7 +41,7 @@ import {
 } from "@/lib/api";
 
 function formatPrice(cents: number | null | undefined, currency: string | null | undefined): string {
-  if (cents == null) return "Price on request";
+  if (cents == null) return "—";
   const amount = cents / 100;
   const cur = (currency || "KES").toUpperCase();
   try {
@@ -64,7 +76,7 @@ const STEPS: { key: StepKey; label: string }[] = [
   { key: "pay", label: "Pay" },
   { key: "register", label: "Register" },
   { key: "dns", label: "DNS" },
-  { key: "ns", label: "Nameservers" },
+  { key: "ns", label: "NS" },
   { key: "ssl", label: "SSL" },
 ];
 
@@ -77,41 +89,33 @@ function ProvisioningStepper({ order }: { order: DomainOrder }) {
   const currentIdx = stepIndex(current);
 
   return (
-    <ol className="mt-4 flex items-center gap-0" aria-label="Provisioning progress">
+    <ol className="flex items-center gap-0" aria-label="Provisioning progress">
       {STEPS.map((step, idx) => {
-        const done = live || (!failed && idx < currentIdx) || (live && step.key === "ssl");
+        const done = live || (!failed && idx < currentIdx);
         const active = !live && !failed && idx === currentIdx;
         const isFail = failed && idx === currentIdx;
         return (
           <li key={step.key} className="flex min-w-0 flex-1 items-center">
-            <div className="flex min-w-0 flex-col items-center gap-1.5">
+            <div className="flex min-w-0 flex-col items-center gap-1">
               <span
                 className={cn(
-                  "flex size-7 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors",
+                  "flex size-6 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors",
                   done && "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
                   active && "border-primary/40 bg-primary/10 text-primary",
                   isFail && "border-destructive/40 bg-destructive/10 text-destructive",
                   !done && !active && !isFail && "border-border/70 bg-muted/40 text-muted-foreground",
                 )}
               >
-                {done ? <Check className="size-3.5" aria-hidden /> : null}
-                {active ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
+                {done ? <Check className="size-3" aria-hidden /> : null}
+                {active ? <Loader2 className="size-3 animate-spin" aria-hidden /> : null}
                 {!done && !active ? idx + 1 : null}
               </span>
-              <span
-                className={cn(
-                  "truncate text-[10px] font-medium tracking-wide",
-                  active || done ? "text-foreground" : "text-muted-foreground",
-                  isFail && "text-destructive",
-                )}
-              >
-                {step.label}
-              </span>
+              <span className="truncate text-[10px] font-medium text-muted-foreground">{step.label}</span>
             </div>
             {idx < STEPS.length - 1 ? (
               <div
                 className={cn(
-                  "mx-1 mb-5 h-px min-w-[0.5rem] flex-1",
+                  "mx-0.5 mb-4 h-px min-w-[0.4rem] flex-1",
                   idx < currentIdx && !failed ? "bg-emerald-500/40" : "bg-border/70",
                 )}
                 aria-hidden
@@ -124,42 +128,31 @@ function ProvisioningStepper({ order }: { order: DomainOrder }) {
   );
 }
 
-function orderHeadline(order: DomainOrder): { text: string; className: string } {
-  if (order.paymentSkippedByStub) {
-    return { text: "Test mode — unpaid", className: "bg-amber-500/15 text-amber-900 dark:text-amber-200" };
-  }
+function orderBadge(order: DomainOrder): { text: string; variant: "success" | "warning" | "destructive" | "secondary" | "default" } {
+  if (order.paymentSkippedByStub) return { text: "Test mode", variant: "warning" };
   const s = order.status.toLowerCase();
-  if (s === "live") return { text: "Live", className: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300" };
-  if (s === "failed") return { text: "Failed", className: "bg-destructive/15 text-destructive" };
-  if (s === "awaiting_payment" || s === "quoted") {
-    return { text: "Awaiting payment", className: "bg-amber-500/15 text-amber-900 dark:text-amber-200" };
-  }
-  if (s === "registering") {
-    return { text: "Registering", className: "bg-amber-500/15 text-amber-900 dark:text-amber-200" };
-  }
-  if (s === "owned" || s === "provisioning") {
-    const { current } = resolveStep(order);
-    const text =
-      current === "dns" ? "Creating DNS" : current === "ns" ? "Finishing DNS" : "Verifying SSL";
-    return { text, className: "bg-sky-500/15 text-sky-900 dark:text-sky-200" };
-  }
-  return { text: order.status, className: "bg-muted text-muted-foreground" };
+  if (s === "live") return { text: "Live", variant: "success" };
+  if (s === "failed") return { text: "Failed", variant: "destructive" };
+  if (s === "awaiting_payment" || s === "quoted") return { text: "Awaiting payment", variant: "warning" };
+  if (s === "registering") return { text: "Registering", variant: "warning" };
+  if (s === "owned" || s === "provisioning") return { text: "Provisioning", variant: "default" };
+  return { text: order.status, variant: "secondary" };
 }
 
 function merchantSafeMessage(order: DomainOrder): string {
   if (order.merchantMessage?.trim()) return order.merchantMessage.trim();
   const { current, failed, live } = resolveStep(order);
   if (live) return "Your shop is live on this domain.";
-  if (failed) return "Something went wrong setting up this domain. Contact support if it persists.";
+  if (failed) return "Something went wrong. Contact support if it persists.";
   if (current === "pay") {
     return order.paymentAvailable
-      ? "Pay with M-Pesa to continue — we'll handle registration and DNS."
-      : "Payment is being confirmed. We'll start registration once it's cleared.";
+      ? "Pay with M-Pesa to continue."
+      : "Platform M-Pesa isn’t configured yet.";
   }
-  if (current === "register") return "We're registering your domain. This usually takes a few minutes.";
-  if (current === "dns") return "Creating DNS for your shop…";
-  if (current === "ns") return "Finishing DNS with the registrar — no action needed from you.";
-  return "Verifying SSL — almost live.";
+  if (current === "register") return "Registering your domain…";
+  if (current === "dns") return "Creating DNS…";
+  if (current === "ns") return "Finishing nameservers…";
+  return "Verifying SSL…";
 }
 
 function canBuyQuote(q: DomainQuote): boolean {
@@ -187,64 +180,119 @@ function pickPrimaryQuote(quotes: DomainQuote[], rawQuery: string): DomainQuote 
   return quotes[0] ?? null;
 }
 
-function QuoteRow({
-  quote,
-  currency,
-  buying,
-  onBuy,
-  emphasized,
+function PayDomainModal({
+  order,
+  open,
+  onOpenChange,
+  onPaid,
 }: {
-  quote: DomainQuote;
-  currency: string;
-  buying: string | null;
-  onBuy: (domain: string) => void;
-  emphasized?: boolean;
+  order: DomainOrder | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onPaid: (order: DomainOrder) => void;
 }) {
-  const busy = buying === quote.domain;
+  const [phone, setPhone] = useState("");
+  const [paying, setPaying] = useState(false);
+
+  useEffect(() => {
+    if (open && order) {
+      setPhone(order.payerPhone || "");
+    }
+  }, [open, order]);
+
+  if (!order) return null;
+
+  const onSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const next = phone.trim();
+    if (!next) {
+      toast.error("Enter the M-Pesa phone number to charge.");
+      return;
+    }
+    setPaying(true);
+    try {
+      const result = await payDomainOrder(order.id, next);
+      onPaid(result.order);
+      if (result.accepted) {
+        toast.success(result.message || "Check your phone to complete M-Pesa payment.");
+        onOpenChange(false);
+      } else {
+        toast.error(result.message || "Payment request declined.");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error && e.message.trim() ? e.message : "Could not start M-Pesa payment.");
+    } finally {
+      setPaying(false);
+    }
+  };
+
   return (
-    <li
-      className={cn(
-        "flex flex-col gap-3 px-4 py-3.5 transition-colors sm:flex-row sm:items-center sm:justify-between",
-        emphasized
-          ? "bg-emerald-500/[0.06]"
-          : "hover:bg-muted/30",
-      )}
-    >
-      <div className="min-w-0">
-        {emphasized ? (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800/80 dark:text-emerald-300/90">
-            Available
-          </p>
-        ) : null}
-        <p className={cn("font-mono font-semibold tracking-tight text-foreground", emphasized ? "mt-0.5 text-base" : "text-sm")}>
-          {quote.domain}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground/80">
-            {formatPrice(quote.priceCents, quote.currency || currency)}
-          </span>
-          <span className="text-muted-foreground/80"> · first year</span>
-        </p>
-      </div>
-      <Button
-        size={emphasized ? "default" : "sm"}
-        disabled={busy}
-        className="shrink-0 gap-1.5"
-        onClick={() => onBuy(quote.domain)}
-      >
-        {busy ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-        {emphasized ? "Get this domain" : "Get this one"}
-      </Button>
-    </li>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent side="center" className="max-w-md gap-5 sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="flex size-9 items-center justify-center rounded-xl border border-border/60 bg-muted/40">
+              <CreditCard className="size-4 text-foreground" aria-hidden />
+            </span>
+            Pay for domain
+          </DialogTitle>
+          <DialogDescription>
+            Send an M-Pesa STK prompt for{" "}
+            <span className="font-mono font-medium text-foreground">{order.fqdn}</span>
+            {order.priceCents != null ? (
+              <>
+                {" "}
+                · <span className="font-medium text-foreground">{formatPrice(order.priceCents, order.currency)}</span>
+              </>
+            ) : null}
+            . Payment goes to Palmart’s platform till.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+          <div className="space-y-1.5">
+            <label htmlFor="domain-pay-phone" className="text-sm font-medium">
+              M-Pesa phone number
+            </label>
+            <div className="relative">
+              <Phone
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <input
+                id="domain-pay-phone"
+                className={dashboardInputClass(false, "h-11 pl-10")}
+                placeholder="07xx or 2547…"
+                inputMode="tel"
+                autoComplete="tel"
+                autoFocus
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+            <p className={dashboardHintClass()}>The phone that should receive the STK prompt.</p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={paying} onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={paying || !phone.trim()} className="gap-1.5">
+              {paying ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <CreditCard className="size-3.5" aria-hidden />}
+              {order.lastStkStatus?.toLowerCase() === "pending" ? "Resend STK" : "Send STK prompt"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 export function BuyKenyanDomainWizard({
   onLive,
-  onFeedback,
+  embedded = false,
 }: {
   onLive: () => void;
-  onFeedback: (kind: "success" | "error", text: string) => void;
+  /** Hide outer section chrome when used inside a tab panel. */
+  embedded?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [searchedQuery, setSearchedQuery] = useState("");
@@ -252,12 +300,12 @@ export function BuyKenyanDomainWizard({
   const [buying, setBuying] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [quotes, setQuotes] = useState<DomainQuote[]>([]);
-  const [currency, setCurrency] = useState<string>("KES");
+  const [currency, setCurrency] = useState("KES");
   const [orders, setOrders] = useState<DomainOrder[]>([]);
   const [unavailable, setUnavailable] = useState(false);
-  const [payPhone, setPayPhone] = useState<Record<string, string>>({});
-  const [paying, setPaying] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [payOrder, setPayOrder] = useState<DomainOrder | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
 
   const reloadOrders = useCallback(async () => {
     try {
@@ -315,29 +363,6 @@ export function BuyKenyanDomainWizard({
     return () => window.clearInterval(id);
   }, [orders, reloadOrders, onLive]);
 
-  const onPay = async (order: DomainOrder) => {
-    const phone = (payPhone[order.id] || "").trim();
-    if (!phone) {
-      onFeedback("error", "Enter the M-Pesa phone number to charge.");
-      return;
-    }
-    setPaying(order.id);
-    try {
-      const result = await payDomainOrder(order.id, phone);
-      setOrders((prev) => prev.map((o) => (o.id === result.order.id ? result.order : o)));
-      if (result.accepted) {
-        onFeedback("success", result.message || "Check your phone to complete M-Pesa payment.");
-      } else {
-        onFeedback("error", result.message || "Payment request declined.");
-      }
-      await reloadOrders();
-    } catch (e) {
-      onFeedback("error", e instanceof Error && e.message.trim() ? e.message : "Could not start M-Pesa payment.");
-    } finally {
-      setPaying(null);
-    }
-  };
-
   const runSearch = async (raw: string) => {
     const q = raw.trim();
     if (!q) return;
@@ -351,26 +376,24 @@ export function BuyKenyanDomainWizard({
       setSearchedQuery(q);
       setUnavailable(false);
       if ((result.results || []).length === 0) {
-        onFeedback("error", "No Kenyan TLD matches. Try another name.");
+        toast.error("No Kenyan TLD matches. Try another name.");
       }
     } catch (e) {
       const msg = e instanceof Error && e.message.trim() ? e.message : "Search failed.";
       if (msg.toLowerCase().includes("not configured") || msg.toLowerCase().includes("unavailable")) {
         setUnavailable(true);
       }
-      onFeedback("error", msg);
+      toast.error(msg);
       setQuotes([]);
     } finally {
       setSearching(false);
     }
   };
 
-  const onSearch = async (event: React.FormEvent) => {
-    event.preventDefault();
-    await runSearch(query);
-  };
-
-  const primaryQuote = useMemo(() => pickPrimaryQuote(quotes, searchedQuery || query), [quotes, searchedQuery, query]);
+  const primaryQuote = useMemo(
+    () => pickPrimaryQuote(quotes, searchedQuery || query),
+    [quotes, searchedQuery, query],
+  );
   const buyableQuotes = useMemo(() => quotes.filter(canBuyQuote), [quotes]);
   const primaryTaken = !!primaryQuote && !canBuyQuote(primaryQuote);
   const alternativeQuotes = useMemo(() => {
@@ -385,33 +408,33 @@ export function BuyKenyanDomainWizard({
       setOrders((prev) => [order, ...prev.filter((o) => o.id !== order.id)]);
       const st = order.status.toLowerCase();
       if (st === "awaiting_payment" || st === "quoted") {
-        onFeedback(
-          "success",
-          order.paymentAvailable
-            ? `Order placed for ${domain}. Pay with M-Pesa to continue.`
-            : `Order placed for ${domain}. Platform M-Pesa isn't configured yet — ask Super Admin under Platform → Domains.`,
-        );
+        if (order.paymentAvailable) {
+          toast.success(`Order placed for ${domain}. Complete payment to continue.`);
+          setPayOrder(order);
+          setPayOpen(true);
+        } else {
+          toast.error("Platform M-Pesa isn’t configured yet — ask Super Admin under Platform → Domains.");
+        }
       } else if (order.paymentSkippedByStub) {
-        onFeedback(
-          "error",
-          `Test mode: ${domain} skipped M-Pesa (billing stub is on). No payment was collected. Turn the stub off under Platform → Domains for real STK.`,
+        toast.error(
+          `Test mode: ${domain} skipped M-Pesa (billing stub is on). Turn the stub off for real STK.`,
         );
       } else {
-        onFeedback("success", `Order started for ${domain}. We'll register it and set up DNS automatically.`);
+        toast.success(`Order started for ${domain}.`);
         try {
           const synced = await syncDomainOrder(order.id);
           setOrders((prev) => prev.map((o) => (o.id === synced.id ? synced : o)));
           if (synced.status.toLowerCase() === "live") {
-            onFeedback("success", `${synced.fqdn} is live.`);
+            toast.success(`${synced.fqdn} is live.`);
             onLive();
           }
         } catch {
-          /* ownership may still be pending */
+          /* pending */
         }
       }
       await reloadOrders();
     } catch (e) {
-      onFeedback("error", e instanceof Error && e.message.trim() ? e.message : "Could not start purchase.");
+      toast.error(e instanceof Error && e.message.trim() ? e.message : "Could not start purchase.");
     } finally {
       setBuying(null);
     }
@@ -423,13 +446,13 @@ export function BuyKenyanDomainWizard({
       const synced = await syncDomainOrder(order.id);
       setOrders((prev) => prev.map((o) => (o.id === synced.id ? synced : o)));
       if (synced.status.toLowerCase() === "live") {
-        onFeedback("success", `${synced.fqdn} is live.`);
+        toast.success(`${synced.fqdn} is live.`);
         onLive();
       } else {
-        onFeedback("success", merchantSafeMessage(synced));
+        toast.message(merchantSafeMessage(synced));
       }
     } catch (e) {
-      onFeedback("error", e instanceof Error && e.message.trim() ? e.message : "Could not refresh status.");
+      toast.error(e instanceof Error && e.message.trim() ? e.message : "Could not refresh status.");
       await reloadOrders();
     } finally {
       setSyncing(null);
@@ -438,53 +461,57 @@ export function BuyKenyanDomainWizard({
 
   if (unavailable) {
     return (
-      <section className={cn(DASHBOARD_SECTION_SURFACE, "border-dashed bg-muted/15")}>
+      <div className={cn(!embedded && DASHBOARD_SECTION_SURFACE, "rounded-2xl border border-dashed border-border/70 bg-muted/15 p-5")}>
         <div className="flex items-start gap-3">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background text-muted-foreground">
             <WifiOff className="size-4" aria-hidden />
           </span>
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold tracking-tight">Kenyan domain purchase isn’t ready yet</h2>
+          <div>
+            <h2 className="text-base font-semibold tracking-tight">Kenyan domain purchase isn’t ready</h2>
             <p className={cn(dashboardHintClass(), "mt-1.5")}>
-              Ask a platform admin to finish setup under{" "}
-              <span className="font-medium text-foreground">Platform → Domains</span>. You can still connect a domain
-              you already own below.
+              Ask a platform admin to finish setup under Platform → Domains. You can still connect a domain you already
+              own.
             </p>
           </div>
         </div>
-      </section>
+      </div>
     );
   }
 
   const showResults = hasSearched && !searching;
+  const openOrders = orders.filter((o) => {
+    const s = o.status.toLowerCase();
+    return s !== "live" && s !== "failed";
+  });
 
   return (
     <div className="space-y-6">
-      <section className={DASHBOARD_SECTION_SURFACE}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 max-w-xl">
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Buy a Kenyan domain
-            </p>
-            <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-foreground sm:text-[1.35rem]">
-              Find your .ke name
-            </h2>
-            <p className={cn(dashboardHintClass(), "mt-2")}>
-              Search, pay with M-Pesa, and we register it, set up DNS, and bring your shop live — no registrar login
-              for you.
-            </p>
+      <div className={cn(!embedded && DASHBOARD_SECTION_SURFACE, embedded && "space-y-0")}>
+        {!embedded ? (
+          <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 max-w-xl">
+              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Buy a Kenyan domain
+              </p>
+              <h2 className="mt-1.5 text-xl font-semibold tracking-tight">Find your .ke name</h2>
+              <p className={cn(dashboardHintClass(), "mt-2")}>
+                Search, pay with M-Pesa, and we register it and bring your shop live.
+              </p>
+            </div>
+            <div className="hidden items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-[11px] font-medium text-muted-foreground sm:inline-flex">
+              <Sparkles className="size-3.5 text-primary" aria-hidden />
+              .co.ke · .or.ke · .me.ke · .ke
+            </div>
           </div>
-          <div className="hidden items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-[11px] font-medium text-muted-foreground sm:inline-flex">
-            <Sparkles className="size-3.5 text-primary" aria-hidden />
-            .co.ke · .or.ke · .me.ke · .ke
-          </div>
-        </div>
+        ) : null}
 
-        <form className="mt-6" onSubmit={onSearch}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void runSearch(query);
+          }}
+        >
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
-            <label htmlFor="domain-search" className="sr-only">
-              Search domain
-            </label>
             <div className="relative min-w-0 flex-1">
               <Search
                 className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -492,7 +519,7 @@ export function BuyKenyanDomainWizard({
               />
               <input
                 id="domain-search"
-                className={dashboardInputClass(false, "h-12 pl-10 pr-3 text-[15px]")}
+                className={dashboardInputClass(false, "h-12 pl-10 text-[15px]")}
                 placeholder="Try mama-njeri or mama-njeri.co.ke"
                 autoComplete="off"
                 spellCheck={false}
@@ -500,93 +527,97 @@ export function BuyKenyanDomainWizard({
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
-            <Button
-              type="submit"
-              disabled={searching || !query.trim()}
-              className="h-12 shrink-0 gap-2 px-6 sm:w-auto"
-            >
-              {searching ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Searching…
-                </>
-              ) : (
-                <>
-                  <Search className="size-4" aria-hidden />
-                  Search
-                </>
-              )}
+            <Button type="submit" disabled={searching || !query.trim()} className="h-12 shrink-0 gap-2 px-6">
+              {searching ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
+              {searching ? "Searching…" : "Search"}
             </Button>
           </div>
         </form>
 
         {searching ? (
-          <div className="mt-6 space-y-3" aria-busy="true" aria-label="Searching domains">
+          <div className="mt-6 space-y-3" aria-busy="true">
             {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-16 animate-pulse rounded-xl border border-border/50 bg-muted/30"
-                style={{ animationDelay: `${i * 80}ms` }}
-              />
+              <div key={i} className="h-16 animate-pulse rounded-xl border border-border/50 bg-muted/30" />
             ))}
           </div>
         ) : null}
 
         {showResults && quotes.length > 0 ? (
-          <div className="mt-6 space-y-5">
+          <div className="mt-6 space-y-4">
             {primaryTaken && primaryQuote ? (
-              <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.09] via-amber-500/[0.04] to-transparent px-4 py-5 sm:px-5">
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border border-amber-500/25 bg-background/80 text-amber-800 dark:text-amber-200">
-                    <CircleDashed className="size-4" aria-hidden />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold tracking-tight text-amber-950 dark:text-amber-50">
-                      Oops — you were a little late
-                    </p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-amber-950/80 dark:text-amber-100/80">
-                      <span className="font-mono font-medium text-amber-950 dark:text-amber-50">
-                        {primaryQuote.domain}
-                      </span>{" "}
-                      is already taken and in use.
-                      {alternativeQuotes.length > 0
-                        ? " These alternatives are still free and work great for a shop."
-                        : " Try a different name — add a word, your town, or a shop nickname."}
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.07] px-4 py-4">
+                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border border-amber-500/25 bg-background/80 text-amber-800 dark:text-amber-200">
+                  <CircleDashed className="size-4" aria-hidden />
+                </span>
+                <div>
+                  <p className="font-semibold tracking-tight text-amber-950 dark:text-amber-50">
+                    Oops — you were a little late
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-amber-950/80 dark:text-amber-100/80">
+                    <span className="font-mono font-medium">{primaryQuote.domain}</span> is already taken and in use.
+                    {alternativeQuotes.length > 0
+                      ? " These alternatives are still free."
+                      : " Try a different name."}
+                  </p>
                 </div>
               </div>
             ) : null}
 
             {primaryQuote && canBuyQuote(primaryQuote) ? (
-              <ul className="overflow-hidden rounded-2xl border border-emerald-500/25 shadow-sm ring-1 ring-emerald-500/10">
-                <QuoteRow
-                  quote={primaryQuote}
-                  currency={currency}
-                  buying={buying}
-                  onBuy={(d) => void onBuy(d)}
-                  emphasized
-                />
-              </ul>
+              <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800/80 dark:text-emerald-300/90">
+                    Available
+                  </p>
+                  <p className="mt-0.5 font-mono text-base font-semibold">{primaryQuote.domain}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground/85">
+                      {formatPrice(primaryQuote.priceCents, primaryQuote.currency || currency)}
+                    </span>
+                    {" · first year"}
+                  </p>
+                </div>
+                <Button
+                  disabled={buying === primaryQuote.domain}
+                  className="shrink-0 gap-1.5"
+                  onClick={() => void onBuy(primaryQuote.domain)}
+                >
+                  {buying === primaryQuote.domain ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
+                  Get this domain
+                </Button>
+              </div>
             ) : null}
 
             {alternativeQuotes.length > 0 ? (
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2">
+              <div className="overflow-hidden rounded-2xl border border-border/70 shadow-sm">
+                <div className="flex items-center gap-2 border-b border-border/50 bg-muted/30 px-4 py-2.5">
                   <Sparkles className="size-3.5 text-primary" aria-hidden />
-                  <h3 className="text-sm font-semibold tracking-tight">
+                  <p className="text-sm font-semibold">
                     {primaryTaken ? "Great alternatives" : "Other Kenyan options"}
-                  </h3>
+                  </p>
                 </div>
-                <ul className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+                <ul className="divide-y divide-border/60">
                   {alternativeQuotes.map((q) => (
-                    <QuoteRow
+                    <li
                       key={q.domain}
-                      quote={q}
-                      currency={currency}
-                      buying={buying}
-                      onBuy={(d) => void onBuy(d)}
-                    />
+                      className="flex flex-col gap-2 px-4 py-3.5 transition-colors hover:bg-muted/25 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-mono text-sm font-semibold">{q.domain}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {formatPrice(q.priceCents, q.currency || currency)} · first year
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={buying === q.domain}
+                        className="gap-1.5"
+                        onClick={() => void onBuy(q.domain)}
+                      >
+                        {buying === q.domain ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
+                        Get this one
+                      </Button>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -596,127 +627,118 @@ export function BuyKenyanDomainWizard({
 
         {showResults && quotes.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-10 text-center">
-            <p className="text-sm font-medium text-foreground">No Kenyan matches for that search</p>
+            <p className="text-sm font-medium">No Kenyan matches</p>
             <p className={cn(dashboardHintClass(), "mx-auto mt-1.5 max-w-sm")}>
-              Try a shorter shop name, or add .co.ke yourself (e.g. mybrand.co.ke).
+              Try a shorter shop name, or include the TLD (e.g. mybrand.co.ke).
             </p>
           </div>
         ) : null}
-      </section>
+      </div>
 
       {orders.length > 0 ? (
         <section className="space-y-3">
-          <div className="flex items-end justify-between gap-3 px-0.5">
+          <div className="flex items-end justify-between gap-2 px-0.5">
             <div>
-              <h3 className="text-sm font-semibold tracking-tight text-foreground">Your purchases</h3>
-              <p className={dashboardHintClass()}>We keep working in the background — refresh anytime.</p>
+              <h3 className="text-sm font-semibold tracking-tight">Purchases</h3>
+              <p className={dashboardHintClass()}>
+                {openOrders.length > 0
+                  ? `${openOrders.length} in progress — we’ll keep working in the background.`
+                  : "Recent domain orders"}
+              </p>
             </div>
           </div>
-          <ul className="flex flex-col gap-3">
-            {orders.map((order) => {
-              const badge = orderHeadline(order);
-              const s = order.status.toLowerCase();
-              const showPay = s === "awaiting_payment" || s === "quoted";
-              const showRefresh =
-                s !== "live" &&
-                s !== "failed" &&
-                !(showPay && !order.paymentAvailable && order.lastStkStatus?.toLowerCase() !== "pending");
-
-              return (
-                <li
-                  key={order.id}
-                  className={cn(
-                    "rounded-2xl border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04] sm:p-5",
-                    s === "live" ? "border-emerald-500/25" : "border-border/70",
-                  )}
-                >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-mono text-sm font-semibold tracking-tight">{order.fqdn}</p>
-                        <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", badge.className)}>
-                          {badge.text}
-                        </span>
-                        {order.priceCents != null ? (
-                          <span className="text-xs text-muted-foreground">
-                            {formatPrice(order.priceCents, order.currency)}
-                          </span>
+          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+            <ul className="divide-y divide-border/50">
+              {orders.map((order) => {
+                const badge = orderBadge(order);
+                const s = order.status.toLowerCase();
+                const needsPay =
+                  (s === "awaiting_payment" || s === "quoted") && !!order.paymentAvailable;
+                const showRefresh = s !== "live" && s !== "failed";
+                return (
+                  <li key={order.id} className="px-4 py-4 sm:px-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-mono text-sm font-semibold">{order.fqdn}</p>
+                          <Badge variant={badge.variant}>{badge.text}</Badge>
+                          {order.priceCents != null ? (
+                            <span className="text-xs text-muted-foreground">
+                              {formatPrice(order.priceCents, order.currency)}
+                            </span>
+                          ) : null}
+                        </div>
+                        <ProvisioningStepper order={order} />
+                        <p className="text-sm text-muted-foreground">{merchantSafeMessage(order)}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 sm:justify-end">
+                        {needsPay ? (
+                          <Button
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => {
+                              setPayOrder(order);
+                              setPayOpen(true);
+                            }}
+                          >
+                            <CreditCard className="size-3.5" aria-hidden />
+                            Pay
+                          </Button>
+                        ) : null}
+                        {showRefresh ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={syncing === order.id}
+                            onClick={() => void onSync(order)}
+                          >
+                            {syncing === order.id ? (
+                              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                            ) : (
+                              <RefreshCw className="size-3.5" aria-hidden />
+                            )}
+                            Refresh
+                          </Button>
                         ) : null}
                       </div>
-                      <ProvisioningStepper order={order} />
-                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                        {merchantSafeMessage(order)}
-                      </p>
-
-                      {showPay && order.paymentAvailable ? (
-                        <div className="mt-4 rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-3.5">
-                          <p className="text-xs font-medium text-foreground">Pay with M-Pesa</p>
-                          <p className={cn(dashboardHintClass(), "mt-0.5")}>
-                            Enter the phone that should receive the STK prompt. Payment goes to Palmart’s platform till.
-                          </p>
-                          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <input
-                              className={dashboardInputClass(false, "sm:max-w-[15rem]")}
-                              placeholder="07xx or 2547…"
-                              inputMode="tel"
-                              autoComplete="tel"
-                              value={payPhone[order.id] || order.payerPhone || ""}
-                              onChange={(e) =>
-                                setPayPhone((prev) => ({ ...prev, [order.id]: e.target.value }))
-                              }
-                            />
-                            <Button
-                              size="sm"
-                              className="gap-1.5"
-                              disabled={paying === order.id}
-                              onClick={() => void onPay(order)}
-                            >
-                              {paying === order.id ? (
-                                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                              ) : null}
-                              {order.lastStkStatus?.toLowerCase() === "pending" ? "Resend STK" : "Send M-Pesa prompt"}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {showPay && !order.paymentAvailable ? (
-                        <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-3 py-3 text-sm text-amber-950 dark:text-amber-100">
-                          M-Pesa isn’t available yet. Ask Super Admin to save{" "}
-                          <span className="font-medium">Palmart M-Pesa</span> credentials under Platform → Domains and
-                          turn <span className="font-medium">Billing stub</span> off.
-                        </div>
-                      ) : null}
-
-                      {order.paymentSkippedByStub ? (
-                        <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-3 py-3 text-sm text-amber-950 dark:text-amber-100">
-                          Test mode: billing stub skipped payment — no STK was sent and no money was charged.
-                        </div>
-                      ) : null}
                     </div>
-                    {showRefresh ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0 gap-1.5"
-                        disabled={syncing === order.id}
-                        onClick={() => void onSync(order)}
-                      >
-                        {syncing === order.id ? (
-                          <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                        ) : (
-                          <RefreshCw className="size-3.5" aria-hidden />
-                        )}
-                        Refresh
-                      </Button>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </section>
       ) : null}
+
+      <PayDomainModal
+        order={payOrder}
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        onPaid={(updated) => {
+          setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+          void reloadOrders();
+        }}
+      />
     </div>
   );
+}
+
+/** Lightweight count for parent stats cards. */
+export function useDomainOrderStats() {
+  const [orders, setOrders] = useState<DomainOrder[]>([]);
+  useEffect(() => {
+    void fetchMyDomainOrders()
+      .then(setOrders)
+      .catch(() => setOrders([]));
+  }, []);
+  const open = orders.filter((o) => {
+    const s = o.status.toLowerCase();
+    return s !== "live" && s !== "failed";
+  }).length;
+  const awaitingPay = orders.filter((o) => {
+    const s = o.status.toLowerCase();
+    return s === "awaiting_payment" || s === "quoted";
+  }).length;
+  return { orders, open, awaitingPay, reload: () => fetchMyDomainOrders().then(setOrders) };
 }
