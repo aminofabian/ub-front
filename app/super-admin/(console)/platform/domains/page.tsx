@@ -456,21 +456,47 @@ export default function SuperAdminPlatformDomainsPage() {
             automatically — no ops register_url step.
             {settings?.hostafricaResellerConfigured
               ? " Ready."
-              : " Incomplete — fill email, API key, and WHOIS below."}
+              : " Incomplete — fill email, API key, and every required WHOIS field, then Save."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!settings?.hostafricaResellerConfigured ? (
+            <ul className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-950 dark:text-amber-100">
+              <li className="font-medium">Required before zero-touch register / Test:</li>
+              <li className="mt-1">
+                {settings?.hostafricaResellerEmail ? "✓" : "○"} Reseller login email
+                {settings?.hostafricaResellerEmail ? ` (${settings.hostafricaResellerEmail})` : ""}
+              </li>
+              <li>
+                {settings?.hasHostafricaResellerApiKey ? "✓" : "○"} Reseller API key
+                {settings?.hasHostafricaResellerApiKey ? " (saved)" : " — paste and Save"}
+              </li>
+              <li>
+                {settings?.hostafricaResellerWhois &&
+                ["firstname", "lastname", "companyname", "email", "address1", "city", "state", "postcode", "country", "phonenumber"].every(
+                  (k) => !!(settings.hostafricaResellerWhois as Record<string, string>)?.[k]?.trim(),
+                )
+                  ? "✓"
+                  : "○"}{" "}
+                Platform WHOIS (all fields marked * below)
+              </li>
+              <li className="mt-1 text-muted-foreground">
+                Fill the form → click <span className="font-medium text-foreground">Save domain settings</span> at the
+                bottom → then Test. Test reads the database, not unsaved form values.
+              </li>
+            </ul>
+          ) : null}
           <Field
             id="ha-reseller-email"
-            label="Reseller login email"
+            label="Reseller login email *"
             value={hostafricaResellerEmail}
             onChange={setHostafricaResellerEmail}
             placeholder="you@company.com"
-            hint="Sent as the username header."
+            hint="Sent as the username header. Must match the HostAfrica account that owns the DomainsReseller API key."
           />
           <Field
             id="ha-reseller-key"
-            label="Reseller API key"
+            label="Reseller API key *"
             type="password"
             placeholder={
               settings?.hasHostafricaResellerApiKey
@@ -480,7 +506,7 @@ export default function SuperAdminPlatformDomainsPage() {
             hint={
               settings?.hasHostafricaResellerApiKey
                 ? "A key is stored. Leave blank to keep it, or clear below."
-                : undefined
+                : "Required — paste the key from HostAfrica, then Save."
             }
             value={hostafricaResellerApiKey}
             onChange={setHostafricaResellerApiKey}
@@ -503,6 +529,34 @@ export default function SuperAdminPlatformDomainsPage() {
             onChange={setHostafricaResellerApiBaseUrl}
             placeholder="https://my.hostafrica.com/modules/addons/DomainsReseller/api/index.php"
           />
+          <div className="space-y-3 rounded-lg border p-3">
+            <div>
+              <p className="text-sm font-medium">Platform WHOIS contact *</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Used for Registrant, Admin, Technical, and Billing on RegisterDomain. Address line 2 is optional; every
+                other field is required.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field id="whois-fn" label="First name *" value={whoisFirstname} onChange={setWhoisFirstname} />
+              <Field id="whois-ln" label="Last name *" value={whoisLastname} onChange={setWhoisLastname} />
+              <Field id="whois-co" label="Company *" value={whoisCompany} onChange={setWhoisCompany} />
+              <Field id="whois-em" label="Email *" value={whoisEmail} onChange={setWhoisEmail} />
+              <Field id="whois-a1" label="Address line 1 *" value={whoisAddress1} onChange={setWhoisAddress1} />
+              <Field id="whois-a2" label="Address line 2" value={whoisAddress2} onChange={setWhoisAddress2} />
+              <Field id="whois-city" label="City *" value={whoisCity} onChange={setWhoisCity} />
+              <Field id="whois-state" label="State / county *" value={whoisState} onChange={setWhoisState} />
+              <Field id="whois-pc" label="Postcode *" value={whoisPostcode} onChange={setWhoisPostcode} />
+              <Field id="whois-cc" label="Country (ISO) *" value={whoisCountry} onChange={setWhoisCountry} placeholder="KE" />
+              <Field
+                id="whois-phone"
+                label="Phone *"
+                value={whoisPhone}
+                onChange={setWhoisPhone}
+                placeholder="+2547…"
+              />
+            </div>
+          </div>
           <div className="space-y-2">
             <Button
               type="button"
@@ -520,10 +574,11 @@ export default function SuperAdminPlatformDomainsPage() {
                       text: `Connected.${status.credit ? ` Credits: ${status.credit}.` : ""}`,
                     });
                   } else {
-                    setResellerTest({
-                      ok: false,
-                      text: status.error || "Reseller API rejected the request.",
-                    });
+                    const detail =
+                      status.missing && status.missing.length > 0
+                        ? status.missing.join("; ")
+                        : status.error || "Reseller API rejected the request.";
+                    setResellerTest({ ok: false, text: detail });
                   }
                 } catch (e) {
                   setResellerTest({
@@ -546,33 +601,6 @@ export default function SuperAdminPlatformDomainsPage() {
                 Save settings first, then test — calls GetCredits with the stored HMAC credentials.
               </p>
             )}
-          </div>
-          <div className="space-y-3 rounded-lg border p-3">
-            <div>
-              <p className="text-sm font-medium">Platform WHOIS contact</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Used for Registrant, Admin, Technical, and Billing on RegisterDomain.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field id="whois-fn" label="First name" value={whoisFirstname} onChange={setWhoisFirstname} />
-              <Field id="whois-ln" label="Last name" value={whoisLastname} onChange={setWhoisLastname} />
-              <Field id="whois-co" label="Company" value={whoisCompany} onChange={setWhoisCompany} />
-              <Field id="whois-em" label="Email" value={whoisEmail} onChange={setWhoisEmail} />
-              <Field id="whois-a1" label="Address line 1" value={whoisAddress1} onChange={setWhoisAddress1} />
-              <Field id="whois-a2" label="Address line 2" value={whoisAddress2} onChange={setWhoisAddress2} />
-              <Field id="whois-city" label="City" value={whoisCity} onChange={setWhoisCity} />
-              <Field id="whois-state" label="State / county" value={whoisState} onChange={setWhoisState} />
-              <Field id="whois-pc" label="Postcode" value={whoisPostcode} onChange={setWhoisPostcode} />
-              <Field id="whois-cc" label="Country (ISO)" value={whoisCountry} onChange={setWhoisCountry} placeholder="KE" />
-              <Field
-                id="whois-phone"
-                label="Phone"
-                value={whoisPhone}
-                onChange={setWhoisPhone}
-                placeholder="+2547…"
-              />
-            </div>
           </div>
         </CardContent>
       </Card>

@@ -668,6 +668,10 @@ export type SaResellerStatus = {
   ok: boolean;
   credit?: string | null;
   error?: string | null;
+  hasEmail?: boolean;
+  hasApiKeyStored?: boolean;
+  missing?: string[];
+  missingWhoisFields?: string[];
 };
 
 export async function fetchSaResellerStatus(): Promise<SaResellerStatus> {
