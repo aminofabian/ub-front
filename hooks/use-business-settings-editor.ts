@@ -395,6 +395,9 @@ export function useBusinessSettingsEditor() {
               beepOnSupply: hubAlerts.beepOnSupply,
             },
           };
+          body.hubAlerts = {
+            volume: hubAlerts.volume,
+          };
         }
 
         await updateBusiness(body);

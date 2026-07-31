@@ -37,7 +37,7 @@ import { TopMoversPanel } from "@/components/business-hub/top-movers-panel";
 import { useBusinessHubRealtime } from "@/hooks/use-business-hub-realtime";
 import { useOptionalRealtime } from "@/components/realtime-provider";
 import { playCashierChime } from "@/lib/cashier-chime";
-import { hubAlertsFromFlags } from "@/lib/hub-alert-settings";
+import { hubAlertsFromBusiness } from "@/lib/hub-alert-settings";
 import { APP_ROUTES } from "@/lib/config";
 import { isButcherPosEnabled } from "@/lib/butcher-feature";
 import {
@@ -135,8 +135,12 @@ export function BusinessHubWorkspace() {
   } = useDashboard();
   const featureFlags = useFeatureFlags();
   const hubAlerts = useMemo(
-    () => hubAlertsFromFlags(featureFlags),
-    [featureFlags],
+    () =>
+      hubAlertsFromBusiness({
+        flags: featureFlags,
+        volume: business?.hubAlerts?.volume,
+      }),
+    [featureFlags, business?.hubAlerts?.volume],
   );
   const showButcherCounter =
     isButcherPosEnabled(featureFlags) && canQuickSale;
@@ -415,10 +419,14 @@ export function BusinessHubWorkspace() {
     },
     onLiveEvent: markLiveEvent,
     onSaleCompleted: () => {
-      if (hubAlerts.beepOnSale) playCashierChime("order");
+      if (hubAlerts.beepOnSale) {
+        playCashierChime("order", { volume: hubAlerts.volume });
+      }
     },
     onSupplyPosted: () => {
-      if (hubAlerts.beepOnSupply) playCashierChime("supply");
+      if (hubAlerts.beepOnSupply) {
+        playCashierChime("supply", { volume: hubAlerts.volume });
+      }
       markSupplyLiveEvent();
     },
   });

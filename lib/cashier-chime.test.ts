@@ -86,8 +86,13 @@ describe("playCashierChime", () => {
     expect(oscillatorMocks[0].stop).toHaveBeenCalledWith(1.68);
   });
 
-  it("sets gain to 0.18", () => {
+  it("sets gain from default hub volume (45%)", () => {
     playCashierChime("order");
-    expect(gainMock.gain.value).toBe(0.18);
+    expect(gainMock.gain.value).toBeCloseTo(0.18);
+  });
+
+  it("honors explicit volume percent", () => {
+    playCashierChime("order", { volume: 100 });
+    expect(gainMock.gain.value).toBeCloseTo(0.4);
   });
 });

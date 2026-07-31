@@ -9,7 +9,7 @@ import {
 } from "@/lib/till-listen-settings";
 import {
   DEFAULT_HUB_ALERTS,
-  hubAlertsFromFlags,
+  hubAlertsFromBusiness,
   type HubAlertSettings,
 } from "@/lib/hub-alert-settings";
 import type { BranchRecord } from "@/lib/api";
@@ -184,7 +184,10 @@ export function tillListenSettingsFromRecord(
 export function hubAlertSettingsFromRecord(
   b: BusinessRecord | null,
 ): HubAlertSettings {
-  return hubAlertsFromFlags(b?.featureFlags);
+  return hubAlertsFromBusiness({
+    flags: b?.featureFlags,
+    volume: b?.hubAlerts?.volume,
+  });
 }
 
 export { DEFAULT_TILL_LISTEN, DEFAULT_HUB_ALERTS };

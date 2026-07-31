@@ -832,6 +832,9 @@ export type BusinessRecord = {
   subscriptionTier?: string;
   storefront?: StorefrontSettingsRecord;
   inventory?: InventorySettingsRecord;
+  hubAlerts?: {
+    volume?: number;
+  };
   featureFlags?: Record<string, boolean>;
   profile?: {
     storeType?: string | null;
@@ -981,6 +984,9 @@ export type PatchBusinessPayload = {
   storefront?: StorefrontPatchPayload;
   inventory?: InventoryPatchPayload;
   featureFlags?: FeatureFlagsPatchPayload;
+  hubAlerts?: {
+    volume?: number;
+  };
   globalCatalogCode?: string | null;
   /** Locked after onboarding completed/dismissed. */
   currency?: string;

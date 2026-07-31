@@ -899,13 +899,43 @@ export function BusinessConfigurationForm({
               description="Chime when a supply bill is posted (supply tape)."
             />
           </div>
+          <div className="rounded-xl border border-border/70 bg-muted/20 px-3.5 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">Volume</p>
+                <p className="text-xs text-muted-foreground">
+                  Applies to hub sale and supply beeps.
+                </p>
+              </div>
+              <span className="shrink-0 font-mono text-sm tabular-nums text-foreground">
+                {hubAlerts.volume}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={100}
+              step={1}
+              value={hubAlerts.volume}
+              onChange={(event) =>
+                setHubAlerts((previous) => ({
+                  ...previous,
+                  volume: Number(event.target.value),
+                }))
+              }
+              className="mt-3 w-full accent-primary"
+              aria-label="Hub alert volume"
+            />
+          </div>
           <div className="flex flex-wrap gap-2 pt-1">
             <Button
               type="button"
               variant="outline"
               size="sm"
               className="h-8 rounded-xl text-xs"
-              onClick={() => playCashierChime("order")}
+              onClick={() =>
+                playCashierChime("order", { volume: hubAlerts.volume })
+              }
             >
               Test sale beep
             </Button>
@@ -914,7 +944,9 @@ export function BusinessConfigurationForm({
               variant="outline"
               size="sm"
               className="h-8 rounded-xl text-xs"
-              onClick={() => playCashierChime("supply")}
+              onClick={() =>
+                playCashierChime("supply", { volume: hubAlerts.volume })
+              }
             >
               Test supply beep
             </Button>

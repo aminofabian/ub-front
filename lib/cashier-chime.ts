@@ -4,15 +4,25 @@
  * Uses the Web Audio API so it works offline and does not depend on external
  * assets. Keep this utility tiny; callers decide when to play.
  */
+import { DEFAULT_HUB_ALERT_VOLUME, hubChimeGain } from "./hub-alert-settings";
+
 export type CashierChimeVariant = "order" | "grocery" | "supply";
 
-export function playCashierChime(variant: CashierChimeVariant = "order"): void {
+export type PlayCashierChimeOptions = {
+  /** Loudness 1–100. Defaults to hub default (~0.18 gain). */
+  volume?: number;
+};
+
+export function playCashierChime(
+  variant: CashierChimeVariant = "order",
+  opts?: PlayCashierChimeOptions,
+): void {
   try {
     const ctx = new AudioContext();
     const start = () => {
       const now = ctx.currentTime;
       const gain = ctx.createGain();
-      gain.gain.value = 0.18;
+      gain.gain.value = hubChimeGain(opts?.volume ?? DEFAULT_HUB_ALERT_VOLUME);
       gain.connect(ctx.destination);
 
       if (variant === "order") {
