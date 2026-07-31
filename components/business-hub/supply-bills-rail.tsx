@@ -84,7 +84,7 @@ export function SupplyBillsRail({
             </p>
             <p className="mt-0.5 truncate text-[11px] text-[#8A8A8A]">
               {empty
-                ? "Today’s supply bills"
+                ? "Today's supply bills"
                 : `${summary.count} today · ${fmtMoney(summary.totalInvoiced, currency)}`}
             </p>
           </div>
