@@ -1691,20 +1691,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               {compactShelf ? (
                 <h3 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
                   {topProductsTitle}
-                  <span className="ml-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Shelf
-                  </span>
                 </h3>
               ) : (
                 <>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    Shelf
-                  </p>
                   <h3 className="pos-market-section-label mt-0.5 text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
                     {topProductsTitle}
                   </h3>
                   <p className="mt-1 truncate text-[11px] leading-tight text-muted-foreground">
-                    {topProductsSubtitle}
+                    Shelf prices · {topProductsSubtitle}
                   </p>
                 </>
               )}
@@ -1776,18 +1770,15 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               {compactShelf ? (
                 <h3 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
                   Browse aisles
-                  <span className="ml-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    A–Z
-                  </span>
                 </h3>
               ) : (
                 <>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    Aisles · A–Z
-                  </p>
                   <h3 className="pos-market-section-label mt-0.5 text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
                     Browse aisles
                   </h3>
+                  <p className="mt-1 text-[11px] leading-tight text-muted-foreground">
+                    A–Z
+                  </p>
                 </>
               )}
             </div>
