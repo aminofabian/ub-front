@@ -17,17 +17,19 @@ describe("playCashierChime", () => {
     frequency: { value: number };
     type: string;
   }>;
-  let gainMock: {
+  let gainMocks: Array<{
     connect: ReturnType<typeof jest.fn>;
-    gain: { value: number };
-  };
+    gain: {
+      value: number;
+      setValueAtTime: ReturnType<typeof jest.fn>;
+      linearRampToValueAtTime: ReturnType<typeof jest.fn>;
+      exponentialRampToValueAtTime: ReturnType<typeof jest.fn>;
+    };
+  }>;
 
   beforeEach(() => {
     oscillatorMocks = [];
-    gainMock = {
-      connect: jest.fn(),
-      gain: { value: 0 },
-    };
+    gainMocks = [];
     audioCtxMock = {
       createOscillator: jest.fn(() => {
         const osc = {
@@ -40,7 +42,19 @@ describe("playCashierChime", () => {
         oscillatorMocks.push(osc);
         return osc;
       }),
-      createGain: jest.fn(() => gainMock),
+      createGain: jest.fn(() => {
+        const g = {
+          connect: jest.fn(),
+          gain: {
+            value: 0,
+            setValueAtTime: jest.fn(),
+            linearRampToValueAtTime: jest.fn(),
+            exponentialRampToValueAtTime: jest.fn(),
+          },
+        };
+        gainMocks.push(g);
+        return g;
+      }),
       close: jest.fn(),
       resume: jest.fn(() => Promise.resolve()),
       currentTime: 1.5,
@@ -59,40 +73,45 @@ describe("playCashierChime", () => {
     expect(() => playCashierChime("order")).not.toThrow();
   });
 
-  it("plays a single 880 Hz tone for order variant", () => {
+  it("plays a soft rising C5→E5 for order (triangle + sheen)", () => {
     playCashierChime("order");
-    expect(audioCtxMock.createOscillator).toHaveBeenCalledTimes(1);
-    expect(oscillatorMocks[0].frequency.value).toBe(880);
-    expect(oscillatorMocks[0].start).toHaveBeenCalledWith(1.5);
-    expect(oscillatorMocks[0].stop).toHaveBeenCalledWith(1.65);
+    // 2 tones × (body + sheen) = 4 oscillators
+    expect(audioCtxMock.createOscillator).toHaveBeenCalledTimes(4);
+    expect(oscillatorMocks[0].type).toBe("triangle");
+    expect(oscillatorMocks[0].frequency.value).toBeCloseTo(523.25);
+    expect(oscillatorMocks[2].frequency.value).toBeCloseTo(659.25);
   });
 
-  it("plays a two-pulse grocery chime (660 Hz then 880 Hz)", () => {
+  it("plays a soft A4→E5 for grocery", () => {
     playCashierChime("grocery");
-    expect(audioCtxMock.createOscillator).toHaveBeenCalledTimes(2);
-    expect(oscillatorMocks[0].frequency.value).toBe(660);
-    expect(oscillatorMocks[0].start).toHaveBeenCalledWith(1.5);
-    expect(oscillatorMocks[0].stop).toHaveBeenCalledWith(1.62);
-    expect(oscillatorMocks[1].frequency.value).toBe(880);
-    expect(oscillatorMocks[1].start).toHaveBeenCalledWith(1.62);
-    expect(oscillatorMocks[1].stop).toHaveBeenCalled();
+    expect(audioCtxMock.createOscillator).toHaveBeenCalledTimes(4);
+    expect(oscillatorMocks[0].frequency.value).toBeCloseTo(440);
+    expect(oscillatorMocks[2].frequency.value).toBeCloseTo(659.25);
   });
 
-  it("plays a single 660 Hz tone for supply variant", () => {
+  it("plays a soft descending G4→E4 for supply", () => {
     playCashierChime("supply");
-    expect(audioCtxMock.createOscillator).toHaveBeenCalledTimes(1);
-    expect(oscillatorMocks[0].frequency.value).toBe(660);
-    expect(oscillatorMocks[0].start).toHaveBeenCalledWith(1.5);
-    expect(oscillatorMocks[0].stop).toHaveBeenCalledWith(1.68);
+    expect(audioCtxMock.createOscillator).toHaveBeenCalledTimes(4);
+    expect(oscillatorMocks[0].type).toBe("triangle");
+    expect(oscillatorMocks[0].frequency.value).toBeCloseTo(392);
+    expect(oscillatorMocks[2].frequency.value).toBeCloseTo(329.63);
   });
 
-  it("sets gain from default hub volume (45%)", () => {
+  it("applies master gain from default hub volume (45%)", () => {
     playCashierChime("order");
-    expect(gainMock.gain.value).toBeCloseTo(0.18);
+    // master is first createGain; peak ≈ 0.18 * 0.85
+    expect(gainMocks[0].gain.value).toBeCloseTo(0.18 * 0.85);
   });
 
   it("honors explicit volume percent", () => {
     playCashierChime("order", { volume: 100 });
-    expect(gainMock.gain.value).toBeCloseTo(0.4);
+    expect(gainMocks[0].gain.value).toBeCloseTo(0.4 * 0.85);
+  });
+
+  it("shapes each voice with attack and release", () => {
+    playCashierChime("order");
+    const voiceGain = gainMocks[1].gain;
+    expect(voiceGain.linearRampToValueAtTime).toHaveBeenCalled();
+    expect(voiceGain.exponentialRampToValueAtTime).toHaveBeenCalled();
   });
 });
