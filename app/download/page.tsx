@@ -5,9 +5,9 @@ import { DesktopDownloadPage } from "@/components/download/desktop-download-page
 import { resolveStorefrontSlug } from "@/lib/storefront-slug";
 
 export const metadata: Metadata = {
-  title: "Download Kiosk for desktop — offline POS for your shop",
+  title: "Download Kiosk — desktop POS and mobile apps",
   description:
-    "Install Kiosk on your PC and keep selling without internet. The desktop app bundles its own database and runs entirely on the till computer.",
+    "Install Kiosk on your till PC for fully offline selling, or get the mobile apps for Android and iPhone to run your shop from anywhere.",
 };
 
 export default async function DownloadPage() {

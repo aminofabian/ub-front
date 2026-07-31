@@ -1,6 +1,6 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -10,23 +10,35 @@ import {
   detectDesktopAppOs,
   fetchDesktopAppManifest,
 } from "@/lib/desktop-app-download";
+import { detectMobileDeviceOs } from "@/lib/mobile-app-download";
 
 const linkClass =
   "group inline-flex items-center gap-2 text-[13px] text-[var(--kiosk-text-dim)] transition-colors duration-200 hover:text-[var(--kiosk-gold)] sm:text-sm";
 
+const iconClass = "h-3.5 w-3.5 text-[var(--kiosk-gold)]";
+
+const labelClass =
+  "underline decoration-[var(--kiosk-border-strong)] underline-offset-4 transition-colors group-hover:decoration-[var(--kiosk-gold)]";
+
 /**
- * "Download the desktop app" link for the landing hero.
+ * "Download the app" link for the landing hero.
  *
- * When exactly one published installer matches the visitor's OS the link
+ * Phones/tablets get "Get the mobile app" → /download#mobile. On desktop,
+ * when exactly one published installer matches the visitor's OS the link
  * downloads it directly (one click → installer on disk); otherwise it goes
  * to /download where every platform is listed.
  */
 export function LandingDesktopDownloadLink() {
+  const [onPhone, setOnPhone] = useState(false);
   const [direct, setDirect] = useState<{ href: string; label: string } | null>(
     null,
   );
 
   useEffect(() => {
+    if (detectMobileDeviceOs() !== "other") {
+      setOnPhone(true);
+      return;
+    }
     let cancelled = false;
     fetchDesktopAppManifest().then((manifest) => {
       if (cancelled || !manifest) return;
@@ -43,14 +55,19 @@ export function LandingDesktopDownloadLink() {
     };
   }, []);
 
+  if (onPhone) {
+    return (
+      <Link href="/download#mobile" className={linkClass}>
+        <Smartphone className={iconClass} strokeWidth={2} aria-hidden />
+        <span className={labelClass}>Get the mobile app</span>
+      </Link>
+    );
+  }
+
   const inner = (
     <>
-      <Download
-        className="h-3.5 w-3.5 text-[var(--kiosk-gold)]"
-        strokeWidth={2}
-        aria-hidden
-      />
-      <span className="underline decoration-[var(--kiosk-border-strong)] underline-offset-4 transition-colors group-hover:decoration-[var(--kiosk-gold)]">
+      <Download className={iconClass} strokeWidth={2} aria-hidden />
+      <span className={labelClass}>
         {direct ? direct.label : "Download the desktop app"}
       </span>
     </>

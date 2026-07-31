@@ -11,6 +11,7 @@
     "till-print-bridge": "node scripts/till-print-bridge.mjs",
     "pack:till-print-bridge": "node scripts/pack-till-print-bridge-downloads.mjs",
     "pack:desktop-downloads": "node scripts/publish-desktop-downloads.mjs",
+    "pack:mobile-downloads": "node scripts/publish-mobile-downloads.mjs",
     "prebuild": "node scripts/pack-till-print-bridge-downloads.mjs",
     "start": "next start",
     "lint": "eslint",

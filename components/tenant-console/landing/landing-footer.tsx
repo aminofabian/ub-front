@@ -28,6 +28,7 @@ const FOOTER_COLS = [
       { label: "How it works", href: "/#how" },
       { label: "Stories", href: "/#stories" },
       { label: "Desktop app", href: "/download" },
+      { label: "Mobile apps", href: "/download#mobile" },
     ],
   },
   {

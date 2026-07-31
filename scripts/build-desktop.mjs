@@ -79,11 +79,12 @@ const CLOUD_ONLY_PATHS = [
   // app-shell.tsx, but stashing the routes ensures they're not even reachable
   // by typing the URL — there's no STK gateway on a desktop install to configure.
   "app/(dashboard)/payments",
-  // Desktop-app download page + installer payloads. Pointless inside the
+  // Desktop/mobile download page + installer payloads. Pointless inside the
   // desktop SKU, and the installers under public/ would otherwise be copied
   // into the static export (and therefore into the desktop JAR itself).
   "app/download",
   "public/downloads/desktop",
+  "public/downloads/mobile",
 ];
 
 const swapped = [];
