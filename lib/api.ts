@@ -2631,7 +2631,7 @@ export async function payDomainOrder(orderId: string, phoneNumber: string): Prom
     `${MY_DOMAIN_ORDERS_PATH}/${encodeURIComponent(orderId.trim())}/pay`,
     {
       method: "POST",
-      body: JSON.stringify({ phoneNumber }),
+      body: { phoneNumber },
     },
   );
 }

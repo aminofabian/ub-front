@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   fetchPlatformDomainSettings,
+  fetchSaResellerStatus,
   updatePlatformDomainSettings,
   type PlatformDomainSettingsRecord,
 } from "@/lib/super-admin-api";
@@ -139,6 +140,8 @@ export default function SuperAdminPlatformDomainsPage() {
   const [whoisPostcode, setWhoisPostcode] = useState("");
   const [whoisCountry, setWhoisCountry] = useState("KE");
   const [whoisPhone, setWhoisPhone] = useState("");
+  const [resellerTest, setResellerTest] = useState<{ ok: boolean; text: string } | null>(null);
+  const [resellerTesting, setResellerTesting] = useState(false);
 
   const [palmartStkClientId, setPalmartStkClientId] = useState("");
   const [palmartStkClientSecret, setPalmartStkClientSecret] = useState("");
@@ -500,6 +503,50 @@ export default function SuperAdminPlatformDomainsPage() {
             onChange={setHostafricaResellerApiBaseUrl}
             placeholder="https://my.hostafrica.com/modules/addons/DomainsReseller/api/index.php"
           />
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={busy || resellerTesting}
+              onClick={async () => {
+                setResellerTesting(true);
+                setResellerTest(null);
+                try {
+                  const status = await fetchSaResellerStatus();
+                  if (status.ok) {
+                    setResellerTest({
+                      ok: true,
+                      text: `Connected.${status.credit ? ` Credits: ${status.credit}.` : ""}`,
+                    });
+                  } else {
+                    setResellerTest({
+                      ok: false,
+                      text: status.error || "Reseller API rejected the request.",
+                    });
+                  }
+                } catch (e) {
+                  setResellerTest({
+                    ok: false,
+                    text: e instanceof Error ? e.message : "Could not reach the reseller API.",
+                  });
+                } finally {
+                  setResellerTesting(false);
+                }
+              }}
+            >
+              {resellerTesting ? "Testing…" : "Test reseller connection"}
+            </Button>
+            {resellerTest ? (
+              <p className={cn("text-xs", resellerTest.ok ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>
+                {resellerTest.text}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Save settings first, then test — calls GetCredits with the stored HMAC credentials.
+              </p>
+            )}
+          </div>
           <div className="space-y-3 rounded-lg border p-3">
             <div>
               <p className="text-sm font-medium">Platform WHOIS contact</p>

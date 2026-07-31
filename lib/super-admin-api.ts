@@ -663,6 +663,19 @@ export async function syncSaOpenDomainOrders(): Promise<{ advanced: number }> {
   });
 }
 
+export type SaResellerStatus = {
+  configured: boolean;
+  ok: boolean;
+  credit?: string | null;
+  error?: string | null;
+};
+
+export async function fetchSaResellerStatus(): Promise<SaResellerStatus> {
+  return saRequest<SaResellerStatus>(
+    `${API_ROUTES.superAdminPlatformDomainOrders}/reseller-status`,
+  );
+}
+
 export type SupplierPortalSettingsRecord = {
   portalEnabled: boolean;
   allowSelfClaim: boolean;
