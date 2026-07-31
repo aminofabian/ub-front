@@ -4,6 +4,7 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 
 import { HeroPosCart } from "./hero-pos-cart";
+import { LandingDesktopDownloadLink } from "./landing-desktop-download-link";
 import { goldCtaClass, ghostCtaClass } from "./landing-styles";
 
 type LandingHeroProps = {
@@ -155,6 +156,10 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
               >
                 See how it works
               </a>
+            </div>
+
+            <div className="landing-reveal landing-reveal-delay-3 mt-4 sm:mt-5">
+              <LandingDesktopDownloadLink />
             </div>
 
             <div className="landing-hero-stats-row landing-reveal landing-reveal-delay-4 mt-8 hidden border-t border-[var(--kiosk-border-soft)] pt-8 lg:mt-10 lg:grid lg:pt-8">

@@ -1,0 +1,15 @@
+{
+  "product": "Kiosk Desktop",
+  "version": "0.0.1",
+  "generatedAt": "2026-07-31T12:44:55.184Z",
+  "platforms": [
+    {
+      "id": "macos-aarch64",
+      "os": "macos",
+      "arch": "aarch64",
+      "label": "macOS (Apple Silicon)",
+      "file": "kiosk-desktop-0.0.1-macos-aarch64.dmg",
+      "sizeBytes": 2722624
+    }
+  ]
+}
