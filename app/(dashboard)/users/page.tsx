@@ -106,9 +106,9 @@ function userInitials(name: string): string {
 
 const AVATAR_PALETTES = [
   {
-    bg: "from-violet-500/25 via-violet-500/15 to-violet-500/5",
-    text: "text-violet-700 dark:text-violet-200",
-    ring: "ring-violet-500/30",
+    bg: "from-slate-500/25 via-slate-500/15 to-slate-500/5",
+    text: "text-slate-700 dark:text-slate-200",
+    ring: "ring-slate-500/30",
   },
   {
     bg: "from-sky-500/25 via-sky-500/15 to-sky-500/5",
@@ -131,9 +131,9 @@ const AVATAR_PALETTES = [
     ring: "ring-rose-500/30",
   },
   {
-    bg: "from-fuchsia-500/25 via-fuchsia-500/15 to-fuchsia-500/5",
-    text: "text-fuchsia-700 dark:text-fuchsia-200",
-    ring: "ring-fuchsia-500/30",
+    bg: "from-lime-500/25 via-lime-500/15 to-lime-500/5",
+    text: "text-lime-800 dark:text-lime-200",
+    ring: "ring-lime-500/30",
   },
   {
     bg: "from-teal-500/25 via-teal-500/15 to-teal-500/5",
@@ -141,9 +141,9 @@ const AVATAR_PALETTES = [
     ring: "ring-teal-500/30",
   },
   {
-    bg: "from-indigo-500/25 via-indigo-500/15 to-indigo-500/5",
-    text: "text-indigo-700 dark:text-indigo-200",
-    ring: "ring-indigo-500/30",
+    bg: "from-orange-500/25 via-orange-500/15 to-orange-500/5",
+    text: "text-orange-800 dark:text-orange-200",
+    ring: "ring-orange-500/30",
   },
 ] as const;
 

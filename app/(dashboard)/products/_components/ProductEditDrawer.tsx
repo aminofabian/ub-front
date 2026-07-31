@@ -231,7 +231,7 @@ export function ProductEditDrawer({
         sharedStock ? (
           <Boxes className="size-3.5 text-primary" aria-hidden />
         ) : isVariant ? (
-          <Layers className="size-3.5 text-violet-600" aria-hidden />
+          <Layers className="size-3.5 text-primary" aria-hidden />
         ) : (
           <PencilLine className="size-3.5 text-primary" aria-hidden />
         )

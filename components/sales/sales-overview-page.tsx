@@ -343,7 +343,7 @@ function SaleGroup({
               className={cn(
                 "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
                 isOnline
-                  ? "bg-indigo-50 text-indigo-800"
+                  ? "bg-sky-50 text-sky-800"
                   : refunded
                     ? "bg-destructive/10 text-destructive"
                     : "bg-emerald-50 text-emerald-800",

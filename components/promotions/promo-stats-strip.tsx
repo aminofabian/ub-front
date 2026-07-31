@@ -107,7 +107,7 @@ export function PromoStatsStrip({
         }
         icon={Target}
         accent="reach"
-        accentClass="text-violet-600 dark:text-violet-400"
+        accentClass="text-teal-600 dark:text-teal-400"
       />
       <StatCard
         label="Scheduled"

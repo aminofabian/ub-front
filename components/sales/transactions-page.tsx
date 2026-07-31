@@ -203,7 +203,7 @@ function TransactionRow({
       ? "Refunded"
       : "Completed";
   const statusClass = isOnline
-    ? "bg-indigo-50 text-indigo-800"
+    ? "bg-sky-50 text-sky-800"
     : refunded
       ? "bg-destructive/10 text-destructive"
       : "bg-emerald-50 text-emerald-800";

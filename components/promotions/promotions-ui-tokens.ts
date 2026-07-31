@@ -104,7 +104,7 @@ export const promoMobileFab = cn(
 
 export const promoStatAccent = {
   default: "border-l-primary/70",
-  reach: "border-l-violet-500/70",
+  reach: "border-l-teal-500/70",
   scheduled: "border-l-sky-500/70",
   completed: "border-l-emerald-500/70",
 } as const;
@@ -119,11 +119,11 @@ export function promoTypeAccent(type: string): {
 } {
   if (type === "WEEKLY_DEALS") {
     return {
-      stripe: "bg-gradient-to-b from-sky-400 via-indigo-500 to-violet-500/85",
+      stripe: "bg-gradient-to-b from-teal-400 via-emerald-500 to-green-600/85",
       iconWrap:
-        "bg-indigo-500/10 text-indigo-600 ring-indigo-500/20 dark:text-indigo-400",
-      glow: "from-indigo-500/[0.07] to-transparent",
-      badge: "bg-indigo-500/10 text-indigo-800 ring-indigo-500/20 dark:text-indigo-200",
+        "bg-teal-500/10 text-teal-700 ring-teal-500/25 dark:text-teal-400",
+      glow: "from-teal-500/[0.08] to-transparent",
+      badge: "bg-teal-500/10 text-teal-900 ring-teal-500/25 dark:text-teal-200",
     };
   }
   return {

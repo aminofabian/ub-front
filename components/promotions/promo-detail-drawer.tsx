@@ -183,7 +183,7 @@ export function PromoDetailDrawer({
             "h-1 w-full rounded-full",
             isFlash
               ? "bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500"
-              : "bg-gradient-to-r from-sky-400 via-indigo-500 to-violet-500",
+              : "bg-gradient-to-r from-teal-400 via-emerald-500 to-green-600",
           )}
           aria-hidden
         />
@@ -226,7 +226,7 @@ export function PromoDetailDrawer({
                     "h-full rounded-full transition-all duration-500",
                     isFlash
                       ? "bg-gradient-to-r from-amber-400 to-orange-500"
-                      : "bg-gradient-to-r from-sky-400 to-indigo-500",
+                      : "bg-gradient-to-r from-teal-400 to-emerald-500",
                   )}
                   style={{ width: `${Math.min(100, rate)}%` }}
                 />

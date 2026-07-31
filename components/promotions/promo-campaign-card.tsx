@@ -179,7 +179,7 @@ export function PromoCampaignCard({
                     "h-full rounded-full transition-all duration-500 ease-out",
                     isFlash
                       ? "bg-gradient-to-r from-amber-400 to-orange-500"
-                      : "bg-gradient-to-r from-sky-400 to-indigo-500",
+                      : "bg-gradient-to-r from-teal-400 to-emerald-500",
                   )}
                   style={{ width: `${Math.min(100, rate)}%` }}
                 />

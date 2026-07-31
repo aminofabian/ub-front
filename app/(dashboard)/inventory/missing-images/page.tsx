@@ -254,7 +254,7 @@ export default function InventoryMissingImagesPage() {
       {/* Ambient glow */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
         <div className="absolute -left-24 -top-28 h-80 w-80 bg-orange-400/[0.04] blur-3xl" />
-        <div className="absolute -right-20 top-1/3 h-72 w-80 bg-violet-400/[0.04] blur-3xl" />
+        <div className="absolute -right-20 top-1/3 h-72 w-80 bg-teal-400/[0.04] blur-3xl" />
       </div>
 
       <div className={cn(DASHBOARD_MAX_WIDE, "!space-y-4 !pb-12")}>

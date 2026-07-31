@@ -289,7 +289,7 @@ export default function StockTakeMyStatsPage() {
                   />
                 </div>
                 <div className="flex items-center gap-1.5 text-sm font-medium">
-                  <Moon className="size-4 text-indigo-500" />
+                  <Moon className="size-4 text-sky-500" />
                   {stats.eveningSessions} PM
                 </div>
               </div>

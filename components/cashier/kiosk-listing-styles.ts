@@ -4,7 +4,7 @@ const KIOSK_CATEGORY_PILL_PRESETS = [
   "bg-teal-100/90 text-teal-900 dark:bg-teal-950/35 dark:text-teal-100",
   "bg-amber-100/90 text-amber-950 dark:bg-amber-950/35 dark:text-amber-100",
   "bg-rose-100/90 text-rose-900 dark:bg-rose-950/35 dark:text-rose-100",
-  "bg-violet-100/90 text-violet-900 dark:bg-violet-950/35 dark:text-violet-100",
+  "bg-cyan-100/90 text-cyan-900 dark:bg-cyan-950/35 dark:text-cyan-100",
   "bg-sky-100/90 text-sky-900 dark:bg-sky-950/35 dark:text-sky-100",
   "bg-lime-100/90 text-lime-900 dark:bg-lime-950/35 dark:text-lime-100",
 ] as const;

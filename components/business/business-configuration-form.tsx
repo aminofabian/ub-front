@@ -149,24 +149,22 @@ function PolicySwitch({
 
 function PolicyPanel({
   id,
-  eyebrow,
   title,
   hint,
   children,
   accent = "emerald",
 }: {
   id: string;
-  eyebrow: string;
   title: string;
   hint: string;
   children: ReactNode;
-  accent?: "emerald" | "sky" | "amber" | "violet";
+  accent?: "emerald" | "sky" | "amber" | "teal";
 }) {
   const accentBar = {
-    emerald: "from-emerald-500/80 via-primary/50 to-transparent",
-    sky: "from-sky-500/70 via-sky-400/40 to-transparent",
-    amber: "from-amber-500/70 via-amber-400/35 to-transparent",
-    violet: "from-violet-500/60 via-fuchsia-400/30 to-transparent",
+    emerald: "bg-emerald-500/70",
+    sky: "bg-sky-500/60",
+    amber: "bg-amber-500/60",
+    teal: "bg-teal-500/60",
   }[accent];
 
   return (
@@ -174,12 +172,9 @@ function PolicyPanel({
       id={id}
       className="scroll-mt-28 overflow-hidden rounded-2xl border border-border/60 bg-card/90 shadow-sm"
     >
-      <div className={cn("h-1 w-full bg-gradient-to-r", accentBar)} />
+      <div className={cn("h-1 w-full", accentBar)} />
       <div className="space-y-4 p-4 sm:p-5">
         <header className="space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            {eyebrow}
-          </p>
           <h3 className="font-[family-name:var(--font-heading)] text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             {title}
           </h3>
@@ -313,7 +308,6 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-stock-take") ? (
         <PolicyPanel
           id="settings-stock-take"
-          eyebrow="Inventory · Counts"
           title="Stock take & daily audit"
           hint="How many SKUs get sampled overnight, when counts happen, and what stock managers can see while counting."
           accent="emerald"
@@ -497,7 +491,6 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-stock-levels") ? (
         <PolicyPanel
           id="settings-stock-levels"
-          eyebrow="Inventory · On hand"
           title="Stock levels"
           hint="Who can change quantities, and whether the till may oversell."
           accent="amber"
@@ -545,7 +538,6 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-receive") ? (
         <PolicyPanel
           id="settings-receive"
-          eyebrow="Inventory · Receiving"
           title="Receive stock"
           hint="Who can post supplier deliveries into on-hand."
           accent="sky"
@@ -580,10 +572,9 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-credit-tabs") ? (
         <PolicyPanel
           id="settings-credit-tabs"
-          eyebrow="Inventory · Credit"
           title="Credit tabs"
           hint="Cashier access to customer tab balances and clearance requests."
-          accent="violet"
+          accent="teal"
         >
           <PolicySwitch
             checked={inventory.allowCashierTabClearance}
@@ -603,7 +594,6 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-suppliers") ? (
         <PolicyPanel
           id="settings-suppliers"
-          eyebrow="Inventory · Vendors"
           title="Suppliers"
           hint="Who can create supplier profiles and link catalog products."
           accent="sky"
@@ -664,7 +654,6 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-shifts") ? (
         <PolicyPanel
           id="settings-shifts"
-          eyebrow="Till · Cash"
           title="Shifts & cash drawer"
           hint="How opening float is prepared when a cashier starts a shift."
           accent="amber"
@@ -687,7 +676,6 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-cashier") ? (
         <PolicyPanel
           id="settings-cashier"
-          eyebrow="Till · Permissions"
           title="Cashier capabilities"
           hint="What cashiers can do on the POS. Weighted marking is on by default."
           accent="emerald"
@@ -745,10 +733,9 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-pos-drafts") ? (
         <PolicyPanel
           id="settings-pos-drafts"
-          eyebrow="Till · Drafts"
           title="POS drafts"
           hint="Save in-progress sales and review them from Sales → Pending carts."
-          accent="violet"
+          accent="teal"
         >
           <PolicySwitch
             checked={posDrafts.enabled}
@@ -809,7 +796,6 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-till-listen") ? (
         <PolicyPanel
           id="settings-till-listen"
-          eyebrow="Till · M-Pesa"
           title="When to listen for till payments"
           hint="Buy Goods webhooks can auto-confirm sales. Default is checkout only — turn on earlier surfaces if cashiers pay before opening pay."
           accent="sky"
@@ -868,7 +854,6 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-hub-alerts") ? (
         <PolicyPanel
           id="settings-hub-alerts"
-          eyebrow="Till · Business hub"
           title="Live beeps on /business"
           hint="When the Morning board is open, play a short chime for new activity. Click the page once so the browser allows sound."
           accent="amber"

@@ -174,7 +174,7 @@ export function PromoCreateDrawer({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-9 gap-1.5 rounded-lg border-indigo-500/25 bg-indigo-500/5 font-medium hover:bg-indigo-500/10"
+                  className="h-9 gap-1.5 rounded-lg border-teal-500/25 bg-teal-500/5 font-medium hover:bg-teal-500/10"
                   onClick={() => loadExample(EXAMPLE_WEEKLY_DEALS)}
                 >
                   Weekly deals

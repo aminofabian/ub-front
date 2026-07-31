@@ -31,7 +31,6 @@ import {
   goldCtaClass,
   landingCardClass,
   landingRootStyle,
-  sectionLabelClass,
 } from "../tenant-console/landing/landing-styles";
 
 type BarcodeState =
@@ -175,12 +174,9 @@ export function BarcodePlatformPage() {
 
         <div className="relative z-10 mx-auto w-full max-w-[1120px] px-5 pb-24 pt-[7.5rem] sm:px-10 sm:pb-28 sm:pt-[8.5rem] lg:px-14">
           <header className="landing-reveal mb-10 max-w-[40rem]">
-            <p className={`${sectionLabelClass} mb-5`}>
-              Free barcode lookup &amp; product search
-            </p>
-            <h1 className="font-heading text-[clamp(2.25rem,5.8vw,3.75rem)] leading-[1.06] tracking-[-0.04em] text-[var(--kiosk-text)]">
+            <h1 className="font-heading text-[clamp(2.25rem,5.8vw,3.75rem)] leading-[1.06] tracking-[-0.03em] text-[var(--kiosk-text)]">
               Know what&apos;s on the shelf
-              <span className="mt-2 block bg-gradient-to-r from-[#20863B] via-[var(--kiosk-gold)] to-[#32B85A] bg-clip-text text-transparent">
+              <span className="mt-2 block font-semibold text-[var(--kiosk-gold)]">
                 before you ring it up.
               </span>
             </h1>
@@ -276,7 +272,6 @@ export function BarcodePlatformPage() {
           <section className="landing-reveal landing-reveal-delay-3 mt-20 rounded-2xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] p-8 sm:p-10">
             <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
               <div className="max-w-xl">
-                <p className={`${sectionLabelClass} mb-3`}>Point of sale</p>
                 <h2 className="font-heading text-[clamp(1.75rem,3.5vw,2.25rem)] leading-[1.12] tracking-[-0.03em] text-[var(--kiosk-text)]">
                   Want this at your counter every day?
                 </h2>
