@@ -818,7 +818,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             <section
               ref={walletSectionRef}
               id="wallet"
-              className="scroll-mt-4 rounded-2xl border border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-4"
+              className="scroll-mt-4 rounded-xl border border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-4"
             >
               {wallet > 0 ? (
                 <>
@@ -870,7 +870,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             {/* Stats row */}
             {tabStats.purchaseCount > 0 ? (
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5">
+                <div className="rounded-xl border border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5">
                   <p className="text-[13px] text-[var(--tab-muted)]">
                     This month
                   </p>
@@ -878,7 +878,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                     {fmtMoney(tabStats.monthAmount, currency)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5">
+                <div className="rounded-xl border border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5">
                   <p className="text-[13px] text-[var(--tab-muted)]">
                     Last visit
                   </p>

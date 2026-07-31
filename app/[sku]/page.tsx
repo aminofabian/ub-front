@@ -149,7 +149,7 @@ export default async function ShopItemPage({ params }: PageProps) {
           <span aria-hidden>←</span>
           <span>Back to shop</span>
         </Link>
-        <div className="rounded-2xl border border-border/60 bg-background p-3 shadow-sm sm:p-5">
+        <div className="rounded-xl border border-border/60 bg-background p-3 shadow-sm sm:p-5">
           <div className="grid gap-8 lg:grid-cols-[1.05fr_1fr]">
             <section>
               <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted">
@@ -241,10 +241,10 @@ export default async function ShopItemPage({ params }: PageProps) {
                   weighed={weighed}
                   unitType={item.unitType}
                   maxQty={item.qtyOnHand}
-                  className="mt-5"
+                  className="mt-6"
                 />
               ) : (
-                <div className="mt-5 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
+                <div className="mt-6 rounded-xl border border-dashed border-border/60 bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
                   {hasMultipleOptions
                     ? "Pick a priced option above to add this product to your cart."
                     : "This item is not available for online checkout yet. Visit the store or contact us for availability."}
@@ -257,30 +257,30 @@ export default async function ShopItemPage({ params }: PageProps) {
               />
 
               {featureLines.length > 0 && (
-                <ul className="mt-5 divide-y divide-border/70 rounded-lg border border-border/60">
+                <div className="mt-5 divide-y divide-border/70 rounded-xl border border-border/60">
                   {featureLines.slice(0, 6).map((line, idx) => (
-                    <li
+                    <div
                       key={`${line}-${idx}`}
-                      className="flex items-center gap-3 px-3 py-3 text-[15px]"
+                      className="flex items-start gap-3 px-4 py-3"
                     >
-                      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-black text-xs text-white">
-                        •
+                      <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--primary)]/10 text-[11px] font-bold text-[var(--primary)]">
+                        {idx + 1}
                       </span>
-                      <span>{line}</span>
-                    </li>
+                      <span className="text-[15px] leading-relaxed">{line}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
 
-              <div className="mt-5 grid grid-cols-3 overflow-hidden rounded-xl border border-border/70 text-center">
-                <div className="px-2 py-3 text-xs text-muted-foreground">
-                  Safe Payments
+              <div className="mt-5 grid grid-cols-3 overflow-hidden rounded-xl border border-border/60 text-center">
+                <div className="px-3 py-3">
+                  <p className="text-[11px] font-medium text-muted-foreground">Safe Payments</p>
                 </div>
-                <div className="border-x border-border/70 px-2 py-3 text-xs text-muted-foreground">
-                  Secure Logistics
+                <div className="border-x border-border/60 px-3 py-3">
+                  <p className="text-[11px] font-medium text-muted-foreground">Secure Logistics</p>
                 </div>
-                <div className="px-2 py-3 text-xs text-muted-foreground">
-                  Privacy Protection
+                <div className="px-3 py-3">
+                  <p className="text-[11px] font-medium text-muted-foreground">Privacy Protection</p>
                 </div>
               </div>
             </section>
