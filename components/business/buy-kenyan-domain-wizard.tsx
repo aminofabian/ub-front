@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Check, Loader2, RefreshCw, Search, ShoppingCart } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, Loader2, RefreshCw, Search, ShoppingCart, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -122,6 +122,27 @@ function merchantSafeMessage(order: DomainOrder): string {
   return "Verifying SSL — almost live.";
 }
 
+function canBuyQuote(q: DomainQuote): boolean {
+  return !!q.available && q.priceCents != null && q.priceCents > 0;
+}
+
+function normalizeFqdn(value: string): string {
+  return value.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/\.$/, "");
+}
+
+/** Pick the quote that best matches what the merchant typed (exact FQDN or label.co.ke). */
+function pickPrimaryQuote(quotes: DomainQuote[], rawQuery: string): DomainQuote | null {
+  if (!quotes.length) return null;
+  const q = normalizeFqdn(rawQuery);
+  const exact = quotes.find((x) => x.domain === q);
+  if (exact) return exact;
+  if (!q.includes(".")) {
+    const coKe = quotes.find((x) => x.domain === `${q}.co.ke`);
+    if (coKe) return coKe;
+  }
+  return quotes[0] ?? null;
+}
+
 function inputClass() {
   return cn(
     "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm shadow-sm transition-colors",
@@ -230,8 +251,13 @@ export function BuyKenyanDomainWizard({
 
   const onSearch = async (event: React.FormEvent) => {
     event.preventDefault();
-    const q = query.trim();
+    await runSearch(query);
+  };
+
+  const runSearch = async (raw: string) => {
+    const q = raw.trim();
     if (!q) return;
+    setQuery(q);
     setSearching(true);
     try {
       const result = await searchDomainQuotes(q);
@@ -249,10 +275,24 @@ export function BuyKenyanDomainWizard({
       }
       onFeedback("error", msg);
       setQuotes([]);
+      setSuggestions([]);
     } finally {
       setSearching(false);
     }
   };
+
+  const primaryQuote = useMemo(() => pickPrimaryQuote(quotes, query), [quotes, query]);
+  const buyableQuotes = useMemo(() => quotes.filter(canBuyQuote), [quotes]);
+  const primaryTaken = !!primaryQuote && !canBuyQuote(primaryQuote);
+  const alternativeQuotes = useMemo(() => {
+    if (!primaryQuote) return buyableQuotes;
+    return buyableQuotes.filter((q) => q.domain !== primaryQuote.domain);
+  }, [buyableQuotes, primaryQuote]);
+  const suggestionChips = useMemo(() => {
+    const fromApi = suggestions.filter((s) => !quotes.some((q) => q.domain === s));
+    const fromBuyable = alternativeQuotes.map((q) => q.domain);
+    return [...fromBuyable, ...fromApi].filter((s, i, arr) => arr.indexOf(s) === i).slice(0, 10);
+  }, [suggestions, quotes, alternativeQuotes]);
 
   const onBuy = async (domain: string) => {
     setBuying(domain);
@@ -357,52 +397,141 @@ export function BuyKenyanDomainWizard({
         </form>
 
         {quotes.length > 0 ? (
-          <ul className="mt-4 divide-y divide-border/60 rounded-xl border border-border/70">
-                {quotes.map((q) => {
-              const canBuy = q.available && q.priceCents != null && q.priceCents > 0;
-              return (
-              <li
-                key={q.domain}
-                className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="font-mono text-sm font-medium">{q.domain}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {canBuy
-                      ? formatPrice(q.priceCents, q.currency || currency)
-                      : q.available
-                        ? "Not available for purchase"
-                        : "Unavailable"}
-                    {q.premium ? " · Premium" : ""}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  disabled={!canBuy || buying === q.domain}
-                  className="gap-1.5"
-                  onClick={() => void onBuy(q.domain)}
-                >
-                  {buying === q.domain ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-                  {canBuy ? "Buy" : "Taken"}
-                </Button>
-              </li>
-              );
-            })}
-          </ul>
-        ) : null}
+          <div className="mt-5 space-y-4">
+            {primaryTaken && primaryQuote ? (
+              <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-4">
+                <p className="text-sm font-semibold text-amber-950 dark:text-amber-100">
+                  Oops — you were a little late
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">
+                  <span className="font-mono font-medium">{primaryQuote.domain}</span> is already taken and in use.
+                  {alternativeQuotes.length > 0
+                    ? " These alternatives are still free and work great for a shop:"
+                    : suggestionChips.length > 0
+                      ? " Try one of these ideas instead:"
+                      : " Try a different name — add a word, your town, or a shop nickname."}
+                </p>
+              </div>
+            ) : null}
 
-        {suggestions.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {suggestions.slice(0, 8).map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 font-mono text-xs hover:border-primary/30"
-                onClick={() => setQuery(s)}
-              >
-                {s}
-              </button>
-            ))}
+            {primaryQuote && canBuyQuote(primaryQuote) ? (
+              <div className="overflow-hidden rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06]">
+                <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wide text-emerald-800/80 dark:text-emerald-300/90">
+                      Available
+                    </p>
+                    <p className="mt-0.5 font-mono text-base font-semibold tracking-tight">{primaryQuote.domain}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {formatPrice(primaryQuote.priceCents, primaryQuote.currency || currency)}
+                      <span className="text-muted-foreground/80"> · first year</span>
+                    </p>
+                  </div>
+                  <Button
+                    size="default"
+                    disabled={buying === primaryQuote.domain}
+                    className="shrink-0 gap-1.5"
+                    onClick={() => void onBuy(primaryQuote.domain)}
+                  >
+                    {buying === primaryQuote.domain ? (
+                      <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    ) : null}
+                    Get this domain
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {alternativeQuotes.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-sm font-medium">
+                  <Sparkles className="size-3.5 text-primary" aria-hidden />
+                  {primaryTaken ? "Great alternatives" : "Other Kenyan options"}
+                </div>
+                <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/70">
+                  {alternativeQuotes.map((q) => (
+                    <li
+                      key={q.domain}
+                      className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-mono text-sm font-medium">{q.domain}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {formatPrice(q.priceCents, q.currency || currency)}
+                          <span className="text-muted-foreground/80"> · first year</span>
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={buying === q.domain}
+                        className="gap-1.5"
+                        onClick={() => void onBuy(q.domain)}
+                      >
+                        {buying === q.domain ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
+                        Get this one
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {primaryTaken && alternativeQuotes.length === 0 && suggestionChips.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Ideas worth a try</p>
+                <div className="flex flex-wrap gap-2">
+                  {suggestionChips.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={searching}
+                      className="rounded-full border border-border/70 bg-background px-3 py-1.5 font-mono text-xs transition-colors hover:border-primary/40 hover:bg-primary/5"
+                      onClick={() => void runSearch(s)}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {primaryTaken && alternativeQuotes.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Or search a different idea:</p>
+                <div className="flex flex-wrap gap-2">
+                  {suggestionChips
+                    .filter((s) => !alternativeQuotes.some((q) => q.domain === s))
+                    .slice(0, 6)
+                    .map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        disabled={searching}
+                        className="rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 font-mono text-xs hover:border-primary/30"
+                        onClick={() => void runSearch(s)}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            ) : null}
+
+            {!primaryTaken && suggestionChips.length > 0 && buyableQuotes.length <= 1 ? (
+              <div className="flex flex-wrap gap-2">
+                {suggestionChips.slice(0, 8).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={searching}
+                    className="rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 font-mono text-xs hover:border-primary/30"
+                    onClick={() => void runSearch(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
