@@ -131,7 +131,7 @@ export function ShopHeroMart({
               href="#shop-catalog"
               className={cn(
                 "inline-flex h-8 items-center gap-1.5 rounded-[3px] px-3.5 text-[12px] font-semibold shadow-sm transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98]",
-                !accent && !primary && "bg-sky-400 text-slate-900",
+                !accent && !primary && "bg-sky-500 text-white",
               )}
               style={heroCtaStyle(primary, accent)}
             >
