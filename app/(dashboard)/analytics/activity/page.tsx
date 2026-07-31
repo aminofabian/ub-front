@@ -587,6 +587,8 @@ export default function AnalyticsActivityPage() {
               onSort={onSort}
               onSelectItem={openItemStory}
               search={velocitySearch}
+              branchId={branchId}
+              onRowsChanged={load}
             />
           </SectionCard>
         ) : null}
@@ -599,7 +601,9 @@ export default function AnalyticsActivityPage() {
               loading={itemLoading}
               error={itemError}
               itemTypeId={headerItemTypeId || undefined}
+              branchId={branchId || undefined}
               onPickItem={openItemStory}
+              onChanged={load}
             />
           </SectionCard>
         ) : null}

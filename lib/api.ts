@@ -4611,6 +4611,9 @@ export type ItemVelocityRow = {
   last7Revenue: number | string;
   last30Qty: number | string;
   last30Revenue: number | string;
+  buyingPrice: number | string | null;
+  sellingPrice: number | string | null;
+  imageKey: string | null;
 };
 
 export async function fetchItemVelocity(
@@ -4664,6 +4667,9 @@ export type ItemActivitySummary = {
   itemName: string;
   sku: string | null;
   currentStock: number | string;
+  buyingPrice: number | string | null;
+  sellingPrice: number | string | null;
+  imageKey: string | null;
   lastReceiptAt: string | null;
   lastReceiptQty: number | string | null;
   soldSinceLastReceipt: number | string;
