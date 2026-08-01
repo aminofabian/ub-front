@@ -30,47 +30,40 @@ type Props = {
   detailPanelProps: ComponentProps<typeof ProductDetailPanel>;
 };
 
-const EXIT_MS = 400;
+const EXIT_MS = 420;
 
-/** Custom back glyph — shaft + head; animates “send sheet right” on dismiss. */
-function CatalogBackGlyph({ className }: { className?: string }) {
+/**
+ * Clean back mark: chevron in a square frame with a hairline “return track”
+ * that lengthens as the sheet exits to the right.
+ */
+function CatalogBackMark() {
   return (
-    <svg
-      viewBox="0 0 28 28"
-      fill="none"
-      aria-hidden
-      className={cn("size-5", className)}
-    >
-      {/* Trail that stretches on exit — implies the sheet leaving right */}
-      <path
-        className="catalog-mobile-back-shaft stroke-current"
-        d="M8 14H20"
-        strokeWidth="1.75"
-        strokeLinecap="square"
-        opacity="0.55"
-      />
-      <path
-        className="catalog-mobile-back-arrow stroke-current"
-        d="M12.5 8.5 7 14l5.5 5.5"
-        strokeWidth="1.75"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-      />
-      {/* Tiny right tick — the direction the panel will leave */}
-      <path
-        d="M21 11v6"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="square"
-        opacity="0.35"
-      />
-    </svg>
+    <span className="relative flex size-5 items-center justify-center">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden className="size-[18px]">
+        <path
+          className="catalog-mobile-back-shaft"
+          d="M10 12h9"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="square"
+          opacity="0.4"
+        />
+        <path
+          className="catalog-mobile-back-arrow"
+          d="M11 6.5 5.5 12 11 17.5"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="square"
+          strokeLinejoin="miter"
+        />
+      </svg>
+    </span>
   );
 }
 
 /**
- * Mobile product detail — slides in from the right; back arrow dismisses
- * by sliding the sheet back out to the right.
+ * Full-screen mobile product detail — slides in from the right; back control
+ * slides it back out.
  */
 export function ProductMobileDetailDrawer({
   open,
@@ -100,7 +93,6 @@ export function ProductMobileDetailDrawer({
     };
   }, []);
 
-  /** When parent closes while still showing (e.g. breakpoint), reset exit. */
   useEffect(() => {
     if (open) setExiting(false);
   }, [open]);
@@ -126,14 +118,14 @@ export function ProductMobileDetailDrawer({
   };
 
   const metaLine =
-    [d?.variantName?.trim(), d?.sku?.trim() ? `SKU ${d.sku.trim()}` : null]
+    [d?.variantName?.trim(), d?.sku?.trim() ? d.sku.trim() : null]
       .filter(Boolean)
-      .join(" · ") || "Product detail";
+      .join(" · ") || "Product";
 
   const dockBtn = cn(
-    "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5",
-    "bg-background text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground/70",
-    "transition-colors active:bg-muted/70",
+    "flex min-h-[3.25rem] flex-1 flex-col items-center justify-center gap-1",
+    "bg-background text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/65",
+    "transition-colors active:bg-muted/60",
     "disabled:pointer-events-none disabled:opacity-35",
     "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/40",
   );
@@ -148,10 +140,7 @@ export function ProductMobileDetailDrawer({
       <Dialog.Portal>
         <Dialog.Overlay
           className={cn(
-            "catalog-mobile-detail-scrim fixed inset-0 z-50",
-            "bg-black/30 dark:bg-black/55",
-            "supports-[backdrop-filter]:bg-black/18 supports-[backdrop-filter]:backdrop-blur-[3px]",
-            "supports-[backdrop-filter]:dark:bg-black/40",
+            "catalog-mobile-detail-scrim fixed inset-0 z-50 bg-background",
             exiting && "is-exiting",
           )}
         />
@@ -159,12 +148,8 @@ export function ProductMobileDetailDrawer({
         <Dialog.Content
           aria-describedby={undefined}
           className={cn(
-            "catalog-mobile-detail fixed inset-y-0 right-0 z-50 flex max-w-none flex-col outline-none",
-            "w-[calc(100%-0.85rem)]",
-            "border-l border-border bg-background",
-            "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
-            "pr-[env(safe-area-inset-right)]",
-            "shadow-[-18px_0_48px_-30px_rgba(0,0,0,0.4)] dark:shadow-[-18px_0_48px_-30px_rgba(0,0,0,0.75)]",
+            "catalog-mobile-detail fixed inset-0 z-50 flex h-[100dvh] max-h-[100dvh] w-full max-w-none flex-col bg-background outline-none",
+            "pt-[env(safe-area-inset-top)]",
             exiting && "is-exiting",
           )}
           onOpenAutoFocus={(e) => {
@@ -175,26 +160,9 @@ export function ProductMobileDetailDrawer({
             e.preventDefault();
             beginExit();
           }}
-          onInteractOutside={(e) => {
-            e.preventDefault();
-            beginExit();
-          }}
         >
-          {/* Sheet binder edge */}
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-px bg-border"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute inset-y-4 left-0 w-0.5 bg-foreground/20"
-            aria-hidden
-          />
-
-          <header className="relative shrink-0 border-b border-border bg-muted/20">
-            <div className="flex items-stretch gap-0">
-              {/*
-                Back control sits in the peek — press sends the sheet right.
-              */}
+          <header className="relative shrink-0 border-b border-border">
+            <div className="flex items-center gap-3 px-3 py-3">
               <button
                 id="product-mobile-detail-back"
                 type="button"
@@ -202,35 +170,37 @@ export function ProductMobileDetailDrawer({
                 disabled={exiting}
                 aria-label="Back to catalog"
                 className={cn(
-                  "catalog-mobile-back group relative -ml-0 flex shrink-0 items-center gap-1.5",
-                  "border-r border-border bg-foreground px-2.5 py-2.5 text-background",
-                  "transition-[background-color,transform] duration-200",
-                  "hover:bg-foreground/90 active:scale-[0.97]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                  "disabled:opacity-80",
-                  exiting && "is-sending",
+                  "catalog-mobile-back group relative flex size-11 shrink-0 items-center justify-center",
+                  "rounded-none border border-border bg-background text-foreground",
+                  "shadow-[inset_0_0_0_1px_transparent]",
+                  "transition-[border-color,background-color,transform] duration-200",
+                  "hover:border-foreground/35 hover:bg-muted/40",
+                  "active:scale-[0.96] active:bg-muted/60",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2",
+                  "disabled:opacity-70",
+                  exiting && "is-sending border-foreground/40 bg-muted/50",
                 )}
               >
+                {/* Corner ticks — sheet vernacular, not decoration noise */}
                 <span
-                  className="pointer-events-none absolute inset-y-0 -left-1 w-1 bg-foreground"
+                  className="pointer-events-none absolute left-1 top-1 size-1.5 border-l border-t border-foreground/35"
                   aria-hidden
                 />
-                <CatalogBackGlyph />
-                <span className="flex flex-col items-start leading-none">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-background/55">
-                    Back
-                  </span>
-                  <span className="text-[11px] font-semibold tracking-tight">
-                    Catalog
-                  </span>
-                </span>
+                <span
+                  className="pointer-events-none absolute bottom-1 right-1 size-1.5 border-b border-r border-foreground/35"
+                  aria-hidden
+                />
+                <CatalogBackMark />
               </button>
 
-              <div className="min-w-0 flex-1 self-center px-3 py-2">
-                <Dialog.Title className="truncate text-[13px] font-semibold tracking-tight text-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40">
+                  Catalog
+                </p>
+                <Dialog.Title className="truncate text-[15px] font-semibold tracking-tight text-foreground">
                   {d?.name?.trim() || "Product"}
                 </Dialog.Title>
-                <Dialog.Description className="truncate font-mono text-[10px] tracking-tight text-foreground/45">
+                <Dialog.Description className="truncate font-mono text-[11px] tracking-tight text-foreground/45">
                   {metaLine}
                 </Dialog.Description>
               </div>
@@ -238,7 +208,7 @@ export function ProductMobileDetailDrawer({
           </header>
 
           {banner ? (
-            <div className="shrink-0 border-b border-border px-3 py-2">
+            <div className="shrink-0 border-b border-border px-4 py-2.5">
               {banner}
             </div>
           ) : null}
@@ -248,18 +218,20 @@ export function ProductMobileDetailDrawer({
             className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
           >
             {d ? (
-              <ProductDetailPanel
-                {...detailPanelProps}
-                showMobileStickyActions={false}
-                mobileAppLayout
-              />
+              <div className="mx-auto w-full max-w-lg px-4 pb-8 pt-4">
+                <ProductDetailPanel
+                  {...detailPanelProps}
+                  showMobileStickyActions={false}
+                  mobileAppLayout
+                />
+              </div>
             ) : (
-              <div className="flex flex-col items-center justify-center gap-2.5 px-4 py-20">
+              <div className="flex flex-col items-center justify-center gap-3 px-6 py-24">
                 <Loader2
                   className="size-6 animate-spin text-foreground/35"
                   aria-hidden
                 />
-                <p className="text-[12px] font-medium tracking-tight text-foreground/45">
+                <p className="text-[13px] font-medium tracking-tight text-foreground/45">
                   Loading product…
                 </p>
               </div>
@@ -268,7 +240,12 @@ export function ProductMobileDetailDrawer({
 
           {d ? (
             <footer className="shrink-0 border-t border-border bg-background">
-              <div className="grid grid-cols-4 gap-px bg-border pb-[max(0px,env(safe-area-inset-bottom))]">
+              <div
+                className={cn(
+                  "grid grid-cols-4 gap-px bg-border",
+                  "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+                )}
+              >
                 <button
                   type="button"
                   className={dockBtn}

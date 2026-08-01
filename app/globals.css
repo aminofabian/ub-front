@@ -4637,22 +4637,22 @@ body:has(.landing-page) {
   0% {
     transform: translateX(0);
   }
-  35% {
-    transform: translateX(-4px);
+  40% {
+    transform: translateX(-3px);
   }
   100% {
-    transform: translateX(10px);
+    transform: translateX(6px);
   }
 }
 
 @keyframes catalog-back-shaft-grow {
   0% {
     transform: scaleX(1);
-    opacity: 0.55;
+    opacity: 0.4;
   }
   100% {
-    transform: scaleX(1.85);
-    opacity: 1;
+    transform: scaleX(1.65);
+    opacity: 0.85;
   }
 }
 
@@ -4667,7 +4667,7 @@ body:has(.landing-page) {
 }
 
 .catalog-mobile-detail-scrim {
-  animation: catalog-detail-scrim-in 0.35s ease-out both;
+  animation: catalog-detail-scrim-in 0.28s ease-out both;
 }
 
 .catalog-mobile-detail-scrim.is-exiting {

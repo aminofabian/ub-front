@@ -559,13 +559,14 @@ export function ProductDetailPanel(props: Props) {
       <div
         className={cn(
           detailHeroClass,
-          mobileAppLayout && "border-0 bg-transparent p-0 shadow-none sm:p-0",
+          mobileAppLayout &&
+            "border-0 bg-transparent p-0 shadow-none sm:p-0",
         )}
       >
         <div
           className={cn(
             "flex items-start gap-2.5",
-            mobileAppLayout && "gap-3",
+            mobileAppLayout && "gap-3.5",
           )}
         >
           {isParentish && !thumbUrl ? (
