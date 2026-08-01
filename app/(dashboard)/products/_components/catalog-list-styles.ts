@@ -47,7 +47,7 @@ export const catalogListToolbarMetaClass =
 
 /** Left filter rail — same sheet language as the list + detail panel. */
 export const catalogFilterColumnClass =
-  "hidden min-h-0 w-[9.5rem] shrink-0 flex-col border-r border-border bg-background lg:flex";
+  "hidden min-h-0 w-[14.25rem] shrink-0 flex-col border-r border-border bg-background lg:flex";
 
 export const catalogFilterToolbarClass = cn(
   "flex shrink-0 items-center justify-between gap-1",
