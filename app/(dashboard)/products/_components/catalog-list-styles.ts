@@ -45,31 +45,32 @@ export const catalogListToolbarClass = cn(
 export const catalogListToolbarMetaClass =
   "text-[10px] text-muted-foreground";
 
-/** Left filter rail — slim tuner strip beside the sheet. */
+/** Left filter rail — same sheet language as the list + detail panel. */
 export const catalogFilterColumnClass =
-  "hidden min-h-0 w-[9.25rem] shrink-0 flex-col border-r border-border lg:flex";
+  "hidden min-h-0 w-[9.5rem] shrink-0 flex-col border-r border-border bg-background lg:flex";
 
 export const catalogFilterToolbarClass = cn(
   "flex shrink-0 items-center justify-between gap-1",
-  "border-b border-border bg-muted/40",
-  "px-2 py-1",
+  "border-b border-border bg-muted/20",
+  "px-2 py-1.5",
 );
 
 export const catalogFilterToolbarTitleClass =
   "text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40";
 
 export const catalogFilterBodyClass = cn(
-  "flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overflow-x-hidden",
-  "bg-muted/15 px-1.5 py-2",
+  "flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto overflow-x-hidden",
+  "divide-y divide-border bg-background",
 );
 
-export const catalogFilterSectionClass = "flex min-w-0 flex-col gap-1.5";
+export const catalogFilterSectionClass =
+  "flex min-w-0 flex-col gap-1.5 px-2 py-2";
 
 export const catalogFilterLabelClass =
-  "px-0.5 text-[11px] font-medium tracking-tight text-foreground/55";
+  "text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40";
 
 export const catalogFilterInputClass = cn(
-  "h-7 w-full min-w-0 rounded-none border border-border/80 bg-background px-2 text-[12px] text-foreground shadow-none",
+  "h-7 w-full min-w-0 rounded-none border border-border bg-background px-2 text-[11px] text-foreground shadow-none",
   "placeholder:text-foreground/35",
   "focus-visible:border-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/25",
   "disabled:cursor-not-allowed disabled:bg-muted/40 disabled:text-foreground/40",
@@ -81,7 +82,7 @@ export const catalogFilterSelectClass = cn(
 );
 
 export const catalogFilterHintClass =
-  "px-0.5 text-[11px] font-normal leading-snug text-foreground/45";
+  "text-[10px] font-normal leading-snug text-foreground/40";
 
 export const catalogFilterOptionClass =
   "flex w-full cursor-pointer items-center gap-1.5 text-[11px] font-medium leading-tight text-foreground/70";
@@ -93,14 +94,47 @@ export const catalogFilterCheckboxClass = cn(
   "size-3 shrink-0 rounded-none border border-border accent-foreground",
 );
 
-/** Compact attention / scope toggles in the filter rail. */
+/** Compact attention / scope toggles — sheet cells. */
 export const catalogFilterToggleClass = cn(
-  "flex h-6 w-full items-center justify-between gap-1 rounded-none px-1.5 text-left text-[11px] font-medium tracking-tight transition-colors",
-  "border border-transparent text-foreground/55 hover:bg-background hover:text-foreground",
+  "flex h-7 w-full items-center justify-between gap-1 rounded-none px-2 text-left text-[11px] font-medium tracking-tight transition-colors",
+  "border-b border-border/60 bg-background text-foreground/70 last:border-b-0",
+  "hover:bg-muted/30 hover:text-foreground",
 );
 
 export const catalogFilterToggleActiveClass = cn(
-  "border-border bg-background text-foreground shadow-none",
+  "bg-muted/40 text-foreground",
+);
+
+/** Needs list — bordered sheet block matching detail metric/field rows. */
+export const catalogFilterNeedsSheetClass = cn(
+  "overflow-hidden rounded-none border border-border bg-background",
+);
+
+export const catalogFilterNeedsRowClass = cn(
+  "flex w-full items-center justify-between gap-2 border-b border-border/60 px-2 py-1.5 text-left last:border-b-0",
+  "text-[11px] font-medium tracking-tight text-foreground/70 transition-colors",
+  "hover:bg-muted/30 hover:text-foreground",
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/30",
+);
+
+export const catalogFilterNeedsRowActiveClass = cn(
+  "bg-muted/40 text-foreground",
+);
+
+export const catalogFilterNeedsCountClass =
+  "shrink-0 tabular-nums text-[11px] font-semibold tracking-tight text-foreground";
+
+/** Scope tabs as a 2×2 sheet grid. */
+export const catalogFilterScopeGridClass =
+  "grid grid-cols-2 gap-px overflow-hidden rounded-none border border-border bg-border";
+
+export const catalogFilterScopeCellClass = cn(
+  "flex h-7 items-center justify-center bg-background text-[10px] font-medium tracking-tight text-foreground/55 transition-colors",
+  "hover:bg-muted/30 hover:text-foreground",
+);
+
+export const catalogFilterScopeCellActiveClass = cn(
+  "bg-muted/40 font-semibold text-foreground",
 );
 
 export const catalogListHeaderRowClass = cn(

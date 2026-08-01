@@ -11,11 +11,16 @@ import {
   catalogFilterHintClass,
   catalogFilterInputClass,
   catalogFilterLabelClass,
+  catalogFilterNeedsCountClass,
+  catalogFilterNeedsRowActiveClass,
+  catalogFilterNeedsRowClass,
+  catalogFilterNeedsSheetClass,
   catalogFilterOptionClass,
+  catalogFilterScopeCellActiveClass,
+  catalogFilterScopeCellClass,
+  catalogFilterScopeGridClass,
   catalogFilterSectionClass,
   catalogFilterSelectClass,
-  catalogFilterToggleActiveClass,
-  catalogFilterToggleClass,
   catalogFilterToolbarClass,
   catalogFilterToolbarTitleClass,
 } from "./catalog-list-styles";
@@ -141,7 +146,7 @@ export function ProductFilterSidebar({ catalog }: Props) {
         <div className={catalogFilterSectionClass}>
           <span className={catalogFilterLabelClass}>Rows</span>
           <div
-            className="grid grid-cols-2 gap-0.5 rounded-sm bg-border/50 p-0.5"
+            className={catalogFilterScopeGridClass}
             role="tablist"
             aria-label="Catalog list view"
           >
@@ -155,10 +160,8 @@ export function ProductFilterSidebar({ catalog }: Props) {
                   aria-selected={active}
                   onClick={() => catalog.setCatalogScope(value)}
                   className={cn(
-                    "h-6 rounded-[2px] text-[10px] font-medium transition-colors",
-                    active
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
+                    catalogFilterScopeCellClass,
+                    active && catalogFilterScopeCellActiveClass,
                   )}
                 >
                   {label}
@@ -214,7 +217,7 @@ export function ProductFilterSidebar({ catalog }: Props) {
         {needs.length > 0 ? (
           <div className={catalogFilterSectionClass}>
             <span className={catalogFilterLabelClass}>Needs</span>
-            <div className="flex flex-col gap-0.5">
+            <div className={catalogFilterNeedsSheetClass}>
               {needs.map(([label, active, onClick, count]) => (
                 <button
                   key={label}
@@ -222,12 +225,12 @@ export function ProductFilterSidebar({ catalog }: Props) {
                   onClick={onClick}
                   aria-pressed={active}
                   className={cn(
-                    catalogFilterToggleClass,
-                    active && catalogFilterToggleActiveClass,
+                    catalogFilterNeedsRowClass,
+                    active && catalogFilterNeedsRowActiveClass,
                   )}
                 >
-                  <span className="truncate">{label}</span>
-                  <span className="tabular-nums text-[9px] opacity-70">
+                  <span className="min-w-0 truncate">{label}</span>
+                  <span className={catalogFilterNeedsCountClass}>
                     {count.toLocaleString()}
                   </span>
                 </button>

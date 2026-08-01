@@ -58,10 +58,10 @@ export function detailPanelTone(kind: DetailPanelKind): DetailPanelTone {
 }
 
 export const detailShellClass =
-  "relative flex flex-col gap-0 divide-y divide-border bg-background shadow-none";
+  "relative flex h-full min-h-0 flex-col gap-0 divide-y divide-border overflow-hidden border-0 bg-background shadow-none lg:border-l lg:border-border";
 
 export const detailHeroClass = cn(
-  "relative overflow-hidden rounded-none border-0 bg-muted/15 p-3 shadow-none",
+  "relative overflow-hidden rounded-none border-0 bg-muted/15 p-2.5 shadow-none",
 );
 
 export const detailSectionClass = cn(
@@ -69,7 +69,7 @@ export const detailSectionClass = cn(
 );
 
 export const detailSectionHeadClass = cn(
-  "flex items-center gap-1.5 border-b border-border px-3 py-1.5",
+  "flex items-center gap-1.5 border-b border-border px-2.5 py-1.5",
   "bg-muted/20",
 );
 
@@ -79,17 +79,17 @@ export const detailMetricGridClass =
 export const detailMetricCellWrapClass = "bg-background";
 
 export const detailCollapsibleTriggerClass = cn(
-  "flex w-full items-center gap-2 rounded-none px-3 py-2.5 text-left transition-colors",
+  "flex w-full items-center gap-2 rounded-none px-2.5 py-2 text-left transition-colors",
   "hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/40",
 );
 
 export const detailPackageCardClass = cn(
-  "relative overflow-hidden rounded-none border-0 border-b border-border bg-muted/15 p-2.5 shadow-none",
+  "relative overflow-hidden rounded-none border-0 border-b border-border bg-muted/15 p-2 shadow-none",
 );
 
 /** Thin row under Commerce for packages / weight — not a promo card. */
 export const detailSellingStripClass = cn(
-  "flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-none border-0 bg-background px-2.5 py-2 shadow-none",
+  "flex flex-wrap items-center gap-x-2 gap-y-1 rounded-none border-0 bg-background px-2.5 py-1.5 shadow-none",
 );
 
 export const detailStickyBarClass = cn(
@@ -97,7 +97,7 @@ export const detailStickyBarClass = cn(
   "lg:hidden",
 );
 
-export const detailQuickActionGridClass = "grid grid-cols-2 gap-1.5 sm:grid-cols-3";
+export const detailQuickActionGridClass = "grid grid-cols-2 gap-px bg-border sm:grid-cols-3";
 
 /** Section kickers — quiet uppercase, even ink */
 export const detailSectionLabelClass =
@@ -105,13 +105,13 @@ export const detailSectionLabelClass =
 
 /** Metric / field labels */
 export const detailFieldLabelClass =
-  "text-[10px] font-medium uppercase tracking-[0.1em] text-foreground/40";
+  "text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40";
 
 export const detailFieldValueClass =
-  "text-[12px] font-medium tracking-tight text-foreground truncate";
+  "text-[11px] font-medium tracking-tight text-foreground truncate";
 
 export const detailFieldRowClass = cn(
-  "group flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left",
+  "group flex w-full items-center justify-between gap-2 border-b border-border/60 px-2.5 py-1.5 text-left last:border-b-0",
   "transition-colors duration-150",
   "hover:bg-muted/30",
   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/30 focus-visible:ring-inset",
@@ -120,7 +120,7 @@ export const detailFieldRowClass = cn(
 export { productFormInlineEditClass as detailInlineEditClass } from "./product-form-styles";
 
 export const detailActionBtnClass = cn(
-  "inline-flex items-center justify-center rounded-md border border-border bg-background shadow-none",
+  "inline-flex items-center justify-center rounded-none border border-border bg-background shadow-none",
   "text-foreground/55 transition-colors",
   "hover:bg-muted/50 hover:text-foreground",
 );
@@ -145,7 +145,7 @@ export function detailStatCellClass(
   highlight?: "success" | "danger" | "default",
 ): string {
   return cn(
-    "px-3 py-2.5 transition-colors sm:px-2.5 sm:py-2",
+    "px-2.5 py-2 transition-colors",
     highlight === "success" && "bg-emerald-500/[0.04]",
     highlight === "danger" && "bg-red-500/[0.04]",
   );
