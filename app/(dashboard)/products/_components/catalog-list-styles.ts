@@ -111,14 +111,14 @@ export const catalogListHeaderRowClass = cn(
 
 /**
  * Spreadsheet grid — last column has no right border (flush to edge).
- * mobile — # · Product · Qty · Price
+ * mobile — # · Kind · Product · Qty · Price
  * xl+    — + Category
  */
 export const catalogListGridClass =
   "grid w-full min-w-0 max-w-full items-stretch gap-0 " +
-  "grid-cols-[1.5rem_minmax(0,1fr)_2.5rem_3.5rem] " +
-  "sm:grid-cols-[1.65rem_minmax(0,1fr)_3rem_4.25rem_0px] " +
-  "xl:grid-cols-[1.65rem_minmax(0,1fr)_3rem_4.25rem_5.25rem]";
+  "grid-cols-[1.5rem_1.65rem_minmax(0,1fr)_2.5rem_3.5rem] " +
+  "sm:grid-cols-[1.65rem_1.75rem_minmax(0,1fr)_3rem_4.25rem_0px] " +
+  "xl:grid-cols-[1.65rem_1.75rem_minmax(0,1fr)_3rem_4.25rem_5.25rem]";
 
 const sheetV = "border-r border-border/40";
 const sheetH = "border-b border-border/40";
@@ -129,7 +129,7 @@ const catalogMetricPad = "px-1 py-0";
 export function catalogVariantRowIndentClass(
   density: "comfortable" | "dense" = "dense",
 ): string {
-  return density === "dense" ? "pl-3 sm:pl-5" : "pl-4 sm:pl-7";
+  return density === "dense" ? "pl-0" : "pl-0";
 }
 
 export const catalogGridCol = {
@@ -139,22 +139,28 @@ export const catalogGridCol = {
     sheetH,
     "flex items-center justify-center bg-muted/25 px-0",
   ),
+  kind: cn(
+    "col-start-2 self-stretch",
+    sheetV,
+    sheetH,
+    "flex items-center justify-center bg-muted/15 px-0",
+  ),
   product: cn(
-    "col-start-2 min-w-0 self-stretch",
+    "col-start-3 min-w-0 self-stretch",
     sheetV,
     sheetH,
     catalogCellPad,
     "flex items-center",
   ),
-  stock: cn("col-start-3 self-stretch", sheetV, sheetH),
+  stock: cn("col-start-4 self-stretch", sheetV, sheetH),
   sell: cn(
-    "col-start-4 self-stretch",
+    "col-start-5 self-stretch",
     sheetH,
     // Flush last column on mobile/sm — money hugs the edge
     "bg-muted/[0.12] xl:border-r xl:border-border/40 xl:bg-transparent",
   ),
   category: cn(
-    "col-start-5 self-stretch",
+    "col-start-6 self-stretch",
     sheetH,
     "max-xl:invisible max-xl:pointer-events-none max-xl:border-0",
   ),
@@ -196,11 +202,30 @@ export const catalogSheetRowHeaderClass = cn(
   "active:bg-foreground/10",
 );
 
-/** Left rail — disabled; hierarchy is indent + tone only. */
+/** Left rail — tree line for variants; parent/group block banding. */
 export function catalogRowHierarchyClass(
-  _meta: Pick<CatalogRowMeta, "kind">,
+  meta: Pick<
+    CatalogRowMeta,
+    | "kind"
+    | "variantCount"
+    | "opensVariantGroup"
+    | "continuesVariantGroup"
+    | "endsVariantGroup"
+  >,
   _tone: CatalogRowTone,
 ): string {
+  if (meta.kind === "variant") {
+    return cn(
+      "bg-[#f4f6f8] dark:bg-muted/20",
+      // Vertical tree rail under the kind column
+      "after:pointer-events-none after:absolute after:bottom-0 after:left-[calc(1.5rem+0.825rem)] after:top-0 after:z-[1] after:w-px after:bg-border/80",
+      "sm:after:left-[calc(1.65rem+0.875rem)]",
+      meta.endsVariantGroup && "after:bottom-1/2",
+    );
+  }
+  if (meta.kind === "group" || meta.variantCount > 0) {
+    return "bg-[#e8ecf0] dark:bg-muted/35";
+  }
   return "";
 }
 
@@ -208,23 +233,42 @@ export function catalogTypeChipClass(
   kind: CatalogRowKind,
   variantCount: number,
 ): string {
+  const base =
+    "inline-flex h-4 min-w-[1.35rem] items-center justify-center rounded-none border px-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.06em]";
   if (kind === "group") {
-    return "border border-border bg-muted/60 text-muted-foreground";
+    return cn(base, "border-border bg-background text-foreground/55");
   }
   if (kind === "variant") {
-    return "border border-border bg-muted/50 text-foreground";
+    return cn(base, "border-border/70 bg-background text-foreground/70");
   }
   if (variantCount > 0) {
-    return "border border-border bg-muted/60 text-muted-foreground";
+    return cn(base, "border-foreground/25 bg-background text-foreground/70");
   }
-  return "border border-emerald-500/20 bg-emerald-500/10 text-emerald-900 dark:bg-emerald-500/12 dark:text-emerald-100";
+  return cn(base, "border-border/60 bg-background text-foreground/45");
 }
 
 export function catalogTypeChipLabel(
-  _kind: CatalogRowKind,
-  _variantCount: number,
-): string | null {
-  return null;
+  kind: CatalogRowKind,
+  variantCount: number,
+): string {
+  if (kind === "group") return "Grp";
+  if (kind === "variant") return "VAR";
+  if (variantCount > 0) return "PAR";
+  return "SKU";
+}
+
+/** Kind-column cell chrome for the spreadsheet type codes. */
+export function catalogKindCellClass(
+  kind: CatalogRowKind,
+  variantCount: number,
+): string {
+  if (kind === "variant") {
+    return "bg-[#f4f6f8] dark:bg-muted/20";
+  }
+  if (kind === "group" || variantCount > 0) {
+    return "bg-[#e8ecf0] dark:bg-muted/35";
+  }
+  return "";
 }
 
 const catalogListCheckboxBaseClass = cn(
@@ -270,11 +314,9 @@ export function catalogListCheckboxClass(
   }
   return cn(
     catalogListCheckboxBaseClass,
-    "border-emerald-400/45",
-    "checked:border-emerald-600 checked:bg-emerald-600",
-    "indeterminate:border-emerald-600 indeterminate:bg-emerald-600",
-    "dark:checked:border-emerald-500 dark:checked:bg-emerald-500",
-    "dark:indeterminate:border-emerald-500 dark:indeterminate:bg-emerald-500",
+    "border-foreground/30",
+    "checked:border-foreground checked:bg-foreground",
+    "indeterminate:border-foreground indeterminate:bg-foreground",
   );
 }
 
@@ -381,15 +423,23 @@ export function catalogRowInteractionClasses(
     isBulkSelected: boolean;
     isCheckboxChecked: boolean;
     zebra?: boolean;
+    /** When set, skip zebra — hierarchy banding already paints the row. */
+    sheetBanded?: boolean;
   },
 ): string {
-  const { isDetailActive, isBulkSelected, isCheckboxChecked, zebra } = state;
+  const {
+    isDetailActive,
+    isBulkSelected,
+    isCheckboxChecked,
+    zebra,
+    sheetBanded,
+  } = state;
   const showChecked = isCheckboxChecked && !isDetailActive && !isBulkSelected;
   const showBulk = isBulkSelected && !isDetailActive;
 
   return cn(
     "cursor-pointer transition-colors duration-75",
-    zebra ? "bg-[#fafafa] dark:bg-muted/15" : "bg-background",
+    !sheetBanded && (zebra ? "bg-[#fafafa] dark:bg-muted/15" : "bg-background"),
     !isDetailActive &&
       !showBulk &&
       !showChecked &&
@@ -629,17 +679,16 @@ export function catalogRowTone(kind: CatalogRowKind, variantCount: number): Cata
   return {
     label: "Product",
     icon: Package,
-    accent: "bg-emerald-500",
-    accentLight:
-      "bg-emerald-500/12 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100",
-    border: "border-emerald-500/30",
-    text: "text-emerald-950 dark:text-emerald-50",
-    muted: "text-emerald-800/70 dark:text-emerald-300/70",
-    gradient: "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.06]",
-    rowHover: "hover:bg-emerald-500/10 dark:hover:bg-emerald-500/12",
-    rowChecked: "bg-emerald-500/12",
-    rowBulk: "bg-emerald-500/10",
-    rowDetailActive: "z-[2] bg-emerald-500/14",
+    accent: "bg-foreground/40",
+    accentLight: "bg-muted text-muted-foreground",
+    border: "border-border",
+    text: "text-foreground",
+    muted: "text-muted-foreground",
+    gradient: "",
+    rowHover: "hover:bg-muted/30",
+    rowChecked: "bg-muted/35",
+    rowBulk: "bg-muted/30",
+    rowDetailActive: "z-[2] bg-muted/45",
   };
 }
 

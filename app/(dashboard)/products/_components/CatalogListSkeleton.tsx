@@ -33,12 +33,15 @@ function CatalogListSkeletonRow({
       <span className={cn("flex items-center justify-center", catalogGridCol.check)}>
         <span className="size-4 animate-pulse rounded bg-muted" />
       </span>
+      <span className={cn("flex items-center justify-center", catalogGridCol.kind)}>
+        <span className="h-3 w-6 animate-pulse rounded-none bg-muted" />
+      </span>
       <span className={cn("flex min-w-0 items-center gap-2 py-1", catalogGridCol.product)}>
         <span className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
           <span className="h-3.5 w-[72%] max-w-xs animate-pulse rounded bg-muted" />
           <span className="h-3 w-[42%] max-w-[10rem] animate-pulse rounded bg-muted/80" />
         </span>
-        <span className="size-8 shrink-0 animate-pulse rounded-lg border border-border/40 bg-muted/80 ring-1 ring-inset ring-black/[0.03]" />
+        <span className="size-8 shrink-0 animate-pulse rounded-none border border-border/40 bg-muted/80" />
       </span>
       <span className={cn(catalogListMetricCellClass, catalogGridCol.stock)}>
         <span className="h-5 w-10 animate-pulse rounded-full bg-muted" />

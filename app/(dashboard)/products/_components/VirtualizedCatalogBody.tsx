@@ -38,7 +38,9 @@ import {
   catalogListProductCellClass,
   catalogListShellClass,
   catalogGridCol,
-  catalogVariantRowIndentClass,
+  catalogKindCellClass,
+  catalogTypeChipClass,
+  catalogTypeChipLabel,
   catalogRowAccentClass,
   catalogRowHeightPx,
   catalogRowHierarchyClass,
@@ -267,6 +269,15 @@ export const VirtualizedCatalogBody = forwardRef<
         </span>
         <span
           className={cn(
+            catalogGridCol.kind,
+            "text-[9px] font-semibold uppercase tracking-[0.1em] text-foreground/40",
+          )}
+          title="Row type: PAR parent · VAR variant · SKU standalone · GRP group"
+        >
+          Type
+        </span>
+        <span
+          className={cn(
             catalogGridCol.product,
             "text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/40",
           )}
@@ -420,7 +431,13 @@ export const VirtualizedCatalogBody = forwardRef<
                 isBulkSelected: rowBulkSelected,
                 isCheckboxChecked: checkboxChecked && !active,
                 zebra: vi.index % 2 === 1,
+                sheetBanded:
+                  isVariant || isGroup || effectiveVariantCount > 0,
               };
+              const kindLabel = catalogTypeChipLabel(
+                meta.kind,
+                effectiveVariantCount,
+              );
 
               return (
                 <div
@@ -452,7 +469,6 @@ export const VirtualizedCatalogBody = forwardRef<
                       catalogRowAccentClass(tone, active),
                       catalogRowInteractionClasses(tone, rowInteraction),
                       row.active === false && "opacity-50",
-                      isVariant && catalogVariantRowIndentClass(density),
                     )}
                     onClick={() => onRowClick(row.id)}
                     onKeyDown={(event) => {
@@ -498,11 +514,37 @@ export const VirtualizedCatalogBody = forwardRef<
                       </button>
                     </span>
 
+                    <span
+                      className={cn(
+                        catalogGridCol.kind,
+                        catalogKindCellClass(meta.kind, effectiveVariantCount),
+                      )}
+                      title={
+                        kindLabel === "PAR"
+                          ? "Parent — has variants below"
+                          : kindLabel === "VAR"
+                            ? "Variant of a parent"
+                            : kindLabel === "GRP"
+                              ? "Group label"
+                              : "Standalone SKU"
+                      }
+                    >
+                      <span
+                        className={catalogTypeChipClass(
+                          meta.kind,
+                          effectiveVariantCount,
+                        )}
+                      >
+                        {kindLabel}
+                      </span>
+                    </span>
+
                     <div
                       className={cn(
                         catalogListProductCellClass,
                         catalogGridCol.product,
                         "gap-1.5 sm:gap-2",
+                        isVariant && "pl-3 sm:pl-4",
                       )}
                     >
                       {!isVariant && listThumb ? (
@@ -520,14 +562,6 @@ export const VirtualizedCatalogBody = forwardRef<
 
                       <div className="min-w-0 flex-1 py-0.5">
                         <div className="flex min-w-0 items-center gap-1.5">
-                          {isVariant ? (
-                            <span
-                              className="hidden w-2 shrink-0 text-[10px] text-foreground/25 sm:inline"
-                              aria-hidden
-                            >
-                              └
-                            </span>
-                          ) : null}
                           {nameResolution.needsNameFix ? (
                             <>
                               {nameResolution.label !== CATALOG_FIX_NAME_LABEL ? (
@@ -542,11 +576,11 @@ export const VirtualizedCatalogBody = forwardRef<
                               className="min-w-0 truncate text-[13px] tracking-tight"
                               title={variantTitle.combined}
                             >
-                              <span className="font-medium text-foreground/70">
+                              <span className="font-normal text-foreground/45">
                                 {variantTitle.family}
                               </span>
                               <span className="mx-1 text-foreground/25" aria-hidden>
-                                ·
+                                /
                               </span>
                               <span className="font-medium text-foreground">
                                 {variantTitle.option}
@@ -557,10 +591,8 @@ export const VirtualizedCatalogBody = forwardRef<
                               className={cn(
                                 "min-w-0 truncate tracking-tight",
                                 isParentSelector
-                                  ? "text-[12px] font-semibold text-foreground/70"
-                                  : isVariant
-                                    ? "text-[13px] font-medium text-foreground"
-                                    : "text-[13px] font-medium text-foreground",
+                                  ? "text-[13px] font-semibold text-foreground"
+                                  : "text-[13px] font-medium text-foreground",
                               )}
                               title={
                                 isVariant
