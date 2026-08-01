@@ -27,7 +27,7 @@ const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/;
 const ONBOARDING_DIALOG_Z = "z-[650]";
 
 export const onboardingBrandingTileClass = cn(
-  "group flex min-h-[5.5rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 px-2 py-3.5 text-center shadow-sm transition",
+  "group flex min-h-[5.5rem] w-full flex-col items-center justify-center gap-1.5 rounded-none border-2 px-2 py-3.5 text-center shadow-sm transition",
   "border-[#0D9488]/35 bg-gradient-to-b from-[#F0FDFA] to-white",
   "hover:border-[#0D9488] hover:from-[#CCFBF1] hover:to-[#F0FDFA] hover:shadow-md",
   "active:scale-[0.98]",
@@ -82,12 +82,12 @@ function ColorFieldWithHint({
           type="color"
           value={valid ? value : "#000000"}
           onChange={(e) => onChange(e.target.value.toUpperCase())}
-          className="h-10 w-14 cursor-pointer rounded-lg border border-[#E5E7EB] bg-white shadow-sm"
+          className="h-10 w-14 cursor-pointer rounded-none border border-[#E5E7EB] bg-white shadow-sm"
           title={hint}
         />
         <input
           aria-label={`${label} hex value`}
-          className="h-10 w-32 max-w-full rounded-lg border border-[#E5E7EB] bg-white px-3 font-mono text-sm uppercase text-[#1F2937] outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20"
+          className="h-10 w-32 max-w-full rounded-none border border-[#E5E7EB] bg-white px-3 font-mono text-sm uppercase text-[#1F2937] outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20"
           value={value}
           maxLength={7}
           onChange={(e) => onChange(e.target.value)}
@@ -115,7 +115,7 @@ function PresetCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "flex items-center gap-2 rounded-xl border px-2.5 py-2.5 text-left transition",
+        "flex items-center gap-2 rounded-none border px-2.5 py-2.5 text-left transition",
         selected
           ? "border-[#0D9488] bg-[#F0FDFA] ring-1 ring-[#0D9488]/30"
           : "border-[#E5E7EB] hover:border-[#D1D5DB] hover:bg-[#FAFAFA]",
@@ -201,7 +201,7 @@ export function OnboardingBrandingColorPicker({
         onClick={() => setOpen(true)}
         className={onboardingBrandingTileClass}
       >
-        <span className="flex size-10 items-center justify-center rounded-full bg-[#0D9488]/15 text-[#0D9488] transition group-hover:bg-[#0D9488]/25">
+        <span className="flex size-10 items-center justify-center rounded-none bg-[#0D9488]/15 text-[#0D9488] transition group-hover:bg-[#0D9488]/25">
           <Palette className="size-5" aria-hidden />
         </span>
         <span className="text-sm font-semibold text-[#134E4A]">Pick colours</span>
@@ -226,7 +226,7 @@ export function OnboardingBrandingColorPicker({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "flex w-full flex-col gap-3 rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 text-left transition sm:flex-row sm:items-center",
+          "flex w-full flex-col gap-3 rounded-none border border-[#E5E7EB] bg-white px-3 py-3 text-left transition sm:flex-row sm:items-center",
           "hover:border-[#0D9488]/40 hover:bg-[#FAFAFA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/30",
         )}
       >
@@ -304,7 +304,7 @@ export function OnboardingBrandingColorPicker({
                 </div>
               </div>
 
-              <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-[#FAFAFA] p-4">
+              <div className="rounded-none border border-dashed border-[#D1D5DB] bg-[#FAFAFA] p-4">
                 <p className="mb-3 text-xs font-medium text-[#6B7280]">
                   Or use custom colours
                 </p>

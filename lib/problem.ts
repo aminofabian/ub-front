@@ -269,9 +269,33 @@ export function getProblemTitle(payload: unknown): string {
   if (detail && PROBLEM_TYPES_WHERE_DETAIL_IS_PRIMARY.has(problem.type)) {
     return detail;
   }
+  if (detail) {
+    const friendlyBranch = friendlyBranchRequiredMessage(detail);
+    if (friendlyBranch) {
+      return friendlyBranch;
+    }
+  }
   if (detail && GENERIC_PROBLEM_TITLES.has(problem.title)) {
     return detail;
   }
 
   return problem.title.length > 0 ? problem.title : DEFAULT_PROBLEM_TITLE;
+}
+
+/** Soften harsh branch-resolution copy into actionable guidance. */
+function friendlyBranchRequiredMessage(detail: string): string | null {
+  const normalized = detail.trim().toLowerCase();
+  if (!normalized.includes("branch is required")) {
+    return null;
+  }
+  if (normalized.includes("assign you a branch")) {
+    return "Your account needs a shop location. Ask an owner to assign you a branch, then try again.";
+  }
+  if (
+    normalized.includes("select a branch") ||
+    normalized.includes("contact your administrator")
+  ) {
+    return "Choose a shop location first — pick a branch in the top bar, then try again.";
+  }
+  return "Choose a shop location first, then try again.";
 }

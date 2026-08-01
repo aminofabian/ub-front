@@ -284,7 +284,9 @@ export function OnboardingCatalogDrawer({
   const handleImport = useCallback(async () => {
     if (!canAdopt || selected.size === 0 || !openingBranchId.trim()) {
       if (!openingBranchId.trim()) {
-        setErrorMessage("No branch available for opening stock yet.");
+        setErrorMessage(
+          "Your shop location is still setting up. Wait a moment, or go back and finish branch setup, then try again.",
+        );
       }
       return;
     }
@@ -364,7 +366,9 @@ export function OnboardingCatalogDrawer({
     } catch (error) {
       setErrorMessage(
         error instanceof Error
-          ? error.message
+          ? error.message.toLowerCase().includes("branch")
+            ? "Choose a shop location first — pick a branch in the top bar, then import again."
+            : error.message
           : "Could not import products. Try again.",
       );
       setImportProgressLabel(null);

@@ -143,9 +143,9 @@ export function OnboardingTourCard({
         <div className="mt-4 flex flex-col gap-2">
           {branchSetupRequired ? (
             <>
-              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm leading-relaxed text-amber-950 dark:text-amber-100">
-                Branch is required. Select a branch or add your first shop
-                location before using the dashboard.
+              <p className="border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm leading-relaxed text-amber-950 dark:text-amber-100">
+                Add a shop location first so the dashboard knows which branch to
+                open. Go back and create one, then continue.
               </p>
               <Button
                 type="button"

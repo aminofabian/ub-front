@@ -247,7 +247,7 @@ export function OnboardingCatalogShelf({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         {selectedCount === 0 ? (
-          <div className="flex h-full min-h-[10rem] items-center justify-center rounded-xl border border-dashed border-[#D6D3CB] bg-[#FCFAF6] px-4 py-6 text-center text-xs leading-relaxed text-[#6B7280]">
+          <div className="flex h-full min-h-[10rem] items-center justify-center rounded-none border border-dashed border-[#D6D3CB] bg-[#FCFAF6] px-4 py-6 text-center text-xs leading-relaxed text-[#6B7280]">
             Tap shelf products to build your starter catalogue. Drafts stay until
             you import.
           </div>
@@ -311,7 +311,7 @@ export function OnboardingCatalogShelf({
           disabled={!canAdopt || selectedCount === 0 || importing}
           onClick={onImport}
           className={cn(
-            "flex h-11 w-full items-center justify-center gap-2 rounded-none text-sm font-semibold transition",
+            "flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition",
             canAdopt && selectedCount > 0 && !importing
               ? "bg-[#0D9488] text-white hover:bg-[#0F766E]"
               : "cursor-not-allowed bg-[#E5E7EB] text-white",
@@ -338,7 +338,7 @@ export function OnboardingCatalogShelf({
 
   const chipClass = (active: boolean) =>
     cn(
-      "shrink-0 rounded-full px-3.5 py-2 text-xs font-medium touch-manipulation active:scale-[0.97]",
+      "shrink-0 rounded-none px-3.5 py-2 text-xs font-medium touch-manipulation active:scale-[0.97]",
       active
         ? "bg-[#0D9488] text-white"
         : "bg-white text-[#374151] ring-1 ring-[#E5E7EB]",
@@ -351,7 +351,7 @@ export function OnboardingCatalogShelf({
           type="button"
           onClick={onClose}
           disabled={importing}
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#374151] active:scale-95 disabled:opacity-50 lg:hidden"
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-none border border-[#E5E7EB] bg-white text-[#374151] active:scale-95 disabled:opacity-50 lg:hidden"
           aria-label="Close catalogue"
         >
           <ChevronLeft className="size-5" aria-hidden />
@@ -370,7 +370,7 @@ export function OnboardingCatalogShelf({
             type="button"
             onClick={onClose}
             disabled={importing}
-            className="hidden h-10 rounded-xl border border-[#E5E7EB] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 lg:inline-flex lg:items-center"
+            className="hidden h-10 rounded-none border border-[#E5E7EB] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 lg:inline-flex lg:items-center"
           >
             Close
           </button>
@@ -437,7 +437,7 @@ export function OnboardingCatalogShelf({
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Find a product or scan barcode…"
-                className="h-11 w-full rounded-2xl border border-[#E5E7EB] bg-[#FCFAF6] pl-10 pr-3 text-base outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/15 sm:h-10 sm:rounded-none sm:text-sm"
+                className="h-11 w-full rounded-none border border-[#E5E7EB] bg-[#FCFAF6] pl-10 pr-3 text-base outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/15 sm:h-10 sm:text-sm"
                 enterKeyHint="search"
                 autoCapitalize="off"
                 autoCorrect="off"
@@ -493,7 +493,7 @@ export function OnboardingCatalogShelf({
             <button
               type="button"
               onClick={() => onMobileManifestOpenChange(false)}
-              className="inline-flex size-10 items-center justify-center rounded-full border border-[#E5E7EB] text-[#374151] active:scale-95"
+              className="inline-flex size-10 items-center justify-center rounded-none border border-[#E5E7EB] text-[#374151] active:scale-95"
               aria-label="Back to shelf"
             >
               <ChevronLeft className="size-5" aria-hidden />

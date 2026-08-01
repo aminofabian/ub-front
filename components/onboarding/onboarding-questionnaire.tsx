@@ -130,12 +130,12 @@ function OptionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full border text-left transition-[border-color,background-color,transform,box-shadow]",
+        "w-full rounded-none border text-left transition-[border-color,background-color,transform,box-shadow]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/40",
         "active:scale-[0.985] touch-manipulation",
         compact
-          ? "min-h-14 rounded-2xl px-3 py-3 text-[14px] sm:min-h-[3.25rem] sm:rounded-xl sm:px-4 sm:text-[15px]"
-          : "min-h-[3.25rem] rounded-2xl px-4 py-3.5 text-[15px] sm:rounded-xl",
+          ? "min-h-14 px-3 py-3 text-[14px] sm:min-h-[3.25rem] sm:px-4 sm:text-[15px]"
+          : "min-h-[3.25rem] px-4 py-3.5 text-[15px]",
         selected
           ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A] shadow-[0_1px_0_0_rgba(13,148,136,0.12)]"
           : "border-[#E5E7EB] bg-white text-[#4B5563] hover:border-[#D1D5DB] hover:bg-[#FAFAFA]",
@@ -160,7 +160,7 @@ function DepartmentChip({
       type="button"
       onClick={onToggle}
       className={cn(
-        "inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-[border-color,background-color,transform] touch-manipulation active:scale-[0.97]",
+        "inline-flex min-h-10 items-center gap-1.5 rounded-none border px-3.5 py-2 text-sm transition-[border-color,background-color,transform] touch-manipulation active:scale-[0.97]",
         selected
           ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A]"
           : "border-[#E5E7EB] bg-white text-[#4B5563] hover:border-[#D1D5DB]",
@@ -542,7 +542,7 @@ export function OnboardingQuestionnaire({
               type="button"
               onClick={onBack}
               disabled={submitting}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#374151] shadow-sm transition active:scale-95 disabled:opacity-50 sm:hidden"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-none border border-[#E5E7EB] bg-white text-[#374151] shadow-sm transition active:scale-95 disabled:opacity-50 sm:hidden"
               aria-label="Back"
             >
               <ChevronLeft className="size-5" aria-hidden />
@@ -555,7 +555,7 @@ export function OnboardingQuestionnaire({
               <KioskLogoMark size={36} variant="auth" className="sm:hidden" />
               <KioskLogoMark size={40} variant="auth" className="hidden sm:block" />
               {countryCode || currency ? (
-                <p className="hidden rounded-full border border-[#E5E7EB] bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[#6B7280] sm:inline-flex">
+                <p className="hidden border border-[#E5E7EB] bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[#6B7280] sm:inline-flex">
                   {[countryCode?.toUpperCase(), currency?.toUpperCase()]
                     .filter(Boolean)
                     .join(" · ")}
@@ -568,7 +568,7 @@ export function OnboardingQuestionnaire({
             type="button"
             onClick={step === 6 ? onFinishLater : onSkip}
             disabled={submitting}
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-full px-2 text-xs font-medium text-[#6B7280] transition active:scale-95 disabled:opacity-40 sm:hidden"
+            className="inline-flex h-10 shrink-0 items-center justify-center px-2 text-xs font-medium text-[#6B7280] transition active:scale-95 disabled:opacity-40 sm:hidden"
           >
             Skip
           </button>
@@ -605,7 +605,7 @@ export function OnboardingQuestionnaire({
                   ))}
                 </div>
                 {branchSlots > 0 ? (
-                  <div className="space-y-3 rounded-2xl border border-[#E8E4DC] bg-white/80 p-3.5 sm:rounded-xl sm:border-0 sm:bg-transparent sm:p-0 sm:pt-2">
+                  <div className="space-y-3 border border-[#E8E4DC] bg-white/80 p-3.5 sm:border-0 sm:bg-transparent sm:p-0 sm:pt-2">
                     <p className="text-xs font-medium text-[#6B7280]">
                       Name each branch (area or suburb)
                     </p>
@@ -622,7 +622,7 @@ export function OnboardingQuestionnaire({
                               → {preview}
                             </span>
                           </span>
-                          <div className="flex h-12 items-center overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20 sm:rounded-xl">
+                          <div className="flex h-12 items-center overflow-hidden rounded-none border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20">
                             <input
                               type="text"
                               value={locality}
@@ -689,7 +689,7 @@ export function OnboardingQuestionnaire({
                         </span>
                         <span
                           className={cn(
-                            "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border transition",
+                            "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-none border transition",
                             storeTypes.includes(opt.value)
                               ? "border-[#0D9488] bg-[#0D9488] text-white"
                               : "border-[#D1D5DB] bg-white",
@@ -782,14 +782,14 @@ export function OnboardingQuestionnaire({
                           addCustomDepartment();
                         }
                       }}
-                      className="h-12 min-w-0 flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-3 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:h-10 sm:rounded-xl sm:text-sm"
+                      className="h-12 min-w-0 flex-1 rounded-none border border-[#E5E7EB] bg-white px-3 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:h-10 sm:text-sm"
                       placeholder="e.g. Deli, Frozen Foods"
                       enterKeyHint="done"
                     />
                     <button
                       type="button"
                       onClick={addCustomDepartment}
-                      className="h-12 shrink-0 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-10 sm:rounded-xl"
+                      className="h-12 shrink-0 rounded-none border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-10"
                     >
                       Add
                     </button>
@@ -845,7 +845,7 @@ export function OnboardingQuestionnaire({
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      className="h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:rounded-xl sm:text-[15px]"
+                      className="h-12 w-full rounded-none border border-[#E5E7EB] bg-white px-4 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:text-[15px]"
                       placeholder={suggestedDisplayName || "Your shop name"}
                       autoComplete="organization"
                       enterKeyHint="done"
@@ -897,7 +897,7 @@ export function OnboardingQuestionnaire({
                     ) : null}
                   </div>
 
-                  <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white/70 p-4 sm:rounded-xl">
+                  <div className="rounded-none border border-dashed border-[#E5E7EB] bg-white/70 p-4">
                     <p className="mb-1 text-xs font-medium text-[#6B7280]">
                       Logo{" "}
                       <span className="font-normal text-[#9CA3AF]">
@@ -929,7 +929,7 @@ export function OnboardingQuestionnaire({
                           type="button"
                           disabled={submitting}
                           onClick={() => logoInputRef.current?.click()}
-                          className="h-11 rounded-2xl border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-auto sm:rounded-lg sm:py-2"
+                          className="h-11 rounded-none border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-auto sm:py-2"
                         >
                           {logoFile
                             ? "Replace logo"
@@ -981,8 +981,8 @@ export function OnboardingQuestionnaire({
                   }
                 />
                 {catalogShellEmpty ? (
-                  <div className="space-y-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F3F4F6] text-[#9CA3AF]">
+                  <div className="space-y-3 rounded-none border border-[#E8E4DC] bg-white/90 p-4">
+                    <div className="flex size-12 items-center justify-center rounded-none bg-[#F3F4F6] text-[#9CA3AF]">
                       <Package className="size-6" aria-hidden />
                     </div>
                     <ul className="space-y-2.5 text-sm text-[#4B5563]">
@@ -1003,14 +1003,14 @@ export function OnboardingQuestionnaire({
                     </ul>
                   </div>
                 ) : packLoading ? (
-                  <div className="rounded-2xl border border-[#E5E7EB] bg-white/90 px-4 py-10 text-center text-sm text-[#6B7280]">
+                  <div className="rounded-none border border-[#E5E7EB] bg-white/90 px-4 py-10 text-center text-sm text-[#6B7280]">
                     Finding a pack for your shop…
                   </div>
                 ) : suggestedPack ? (
-                  <div className="overflow-hidden rounded-2xl border border-[#99F6E4]/80 bg-white shadow-[0_12px_40px_-28px_rgba(13,148,136,0.45)]">
+                  <div className="overflow-hidden rounded-none border border-[#99F6E4]/80 bg-white shadow-[0_12px_40px_-28px_rgba(13,148,136,0.45)]">
                     <div className="bg-gradient-to-br from-[#F0FDFA] to-white px-4 pb-3 pt-4">
                       <div className="flex items-start gap-3">
-                        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#0D9488] text-white shadow-sm">
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-none bg-[#0D9488] text-white shadow-sm">
                           <Package className="size-5" aria-hidden />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -1021,7 +1021,7 @@ export function OnboardingQuestionnaire({
                             Matched to your shop type
                           </p>
                         </div>
-                        <span className="shrink-0 rounded-full bg-[#CCFBF1] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[#0F766E]">
+                        <span className="shrink-0 rounded-none bg-[#CCFBF1] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[#0F766E]">
                           {suggestedPack.productCount} items
                         </span>
                       </div>
@@ -1035,14 +1035,14 @@ export function OnboardingQuestionnaire({
                           {suggestedPack.sampleNames.slice(0, 4).map((name) => (
                             <span
                               key={name}
-                              className="max-w-full truncate rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#4B5563]"
+                              className="max-w-full truncate rounded-none bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#4B5563]"
                             >
                               {name}
                             </span>
                           ))}
                           {suggestedPack.productCount >
                           suggestedPack.sampleNames.length ? (
-                            <span className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#9CA3AF]">
+                            <span className="rounded-none bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#9CA3AF]">
                               +
                               {suggestedPack.productCount -
                                 Math.min(4, suggestedPack.sampleNames.length)}{" "}
@@ -1079,8 +1079,8 @@ export function OnboardingQuestionnaire({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-start gap-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F0FDFA] text-[#0D9488]">
+                  <div className="flex flex-col items-start gap-3 rounded-none border border-[#E8E4DC] bg-white/90 p-4">
+                    <div className="flex size-12 items-center justify-center rounded-none bg-[#F0FDFA] text-[#0D9488]">
                       <Package className="size-6" aria-hidden />
                     </div>
                     <p className="text-sm text-[#6B7280]">
@@ -1094,7 +1094,7 @@ export function OnboardingQuestionnaire({
 
           {errorMessage ? (
             <p
-              className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+              className="mt-4 rounded-none border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
               role="alert"
             >
               {errorMessage}

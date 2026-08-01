@@ -42,7 +42,7 @@ export function OnboardingBrandingPreviewModal({
         onClick={() => setOpen(true)}
         className={onboardingBrandingTileClass}
       >
-        <span className="flex size-10 items-center justify-center rounded-full bg-[#0D9488]/15 text-[#0D9488] transition group-hover:bg-[#0D9488]/25">
+        <span className="flex size-10 items-center justify-center rounded-none bg-[#0D9488]/15 text-[#0D9488] transition group-hover:bg-[#0D9488]/25">
           <Eye className="size-5" aria-hidden />
         </span>
         <span className="text-sm font-semibold text-[#134E4A]">Preview site</span>
@@ -55,7 +55,7 @@ export function OnboardingBrandingPreviewModal({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "flex w-full items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 text-left transition",
+          "flex w-full items-center gap-3 rounded-none border border-[#E5E7EB] bg-white px-3 py-3 text-left transition",
           "hover:border-[#0D9488]/40 hover:bg-[#FAFAFA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/30",
         )}
       >
