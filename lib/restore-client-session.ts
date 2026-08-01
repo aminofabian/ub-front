@@ -23,23 +23,39 @@ type RestoreSessionResponse = {
 };
 
 let restorePromise: Promise<boolean> | null = null;
+let forceRestorePromise: Promise<boolean> | null = null;
+
+export type RestoreClientSessionOptions = {
+  /**
+   * Always hit the network (skip claims short-circuit). Use during refresh
+   * recovery so stale in-memory claims cannot mask a missing/rotated cookie.
+   */
+  force?: boolean;
+};
 
 /** Restore session from httpOnly cookies into JS claims (Gap G3: no JWT in JS). */
-export function restoreClientSessionFromCookie(): Promise<boolean> {
+export function restoreClientSessionFromCookie(
+  options: RestoreClientSessionOptions = {},
+): Promise<boolean> {
   if (typeof window === "undefined") {
     return Promise.resolve(false);
   }
-  if (restorePromise) {
-    return restorePromise;
-  }
-  if (hasAccessSession()) {
-    return Promise.resolve(true);
+  const force = options.force === true;
+  if (!force) {
+    if (restorePromise) {
+      return restorePromise;
+    }
+    if (hasAccessSession()) {
+      return Promise.resolve(true);
+    }
+  } else if (forceRestorePromise) {
+    return forceRestorePromise;
   }
 
-  restorePromise = (async () => {
+  const run = (async () => {
     try {
       return await withAuthRefreshLock(async () => {
-        if (hasAccessSession()) {
+        if (!force && hasAccessSession()) {
           return true;
         }
 
@@ -111,9 +127,18 @@ export function restoreClientSessionFromCookie(): Promise<boolean> {
     } catch {
       return false;
     } finally {
-      restorePromise = null;
+      if (force) {
+        forceRestorePromise = null;
+      } else {
+        restorePromise = null;
+      }
     }
   })();
 
-  return restorePromise;
+  if (force) {
+    forceRestorePromise = run;
+  } else {
+    restorePromise = run;
+  }
+  return run;
 }

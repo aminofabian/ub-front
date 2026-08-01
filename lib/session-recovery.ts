@@ -1,6 +1,10 @@
 "use client";
 
-import { getSessionTokens } from "@/lib/auth";
+import {
+  getSessionClaims,
+  getSessionTokens,
+  hasAccessSession,
+} from "@/lib/auth";
 import { ERROR_CODES, PROBLEM_TITLES } from "@/lib/config";
 import { parseProblem } from "@/lib/problem";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
@@ -36,27 +40,66 @@ export function delay(ms: number): Promise<void> {
 }
 
 /**
- * Waits briefly for a sibling tab to finish refreshing and write new tokens
- * into shared storage (BroadcastChannel / storage event).
+ * Compact fingerprint of whatever the tab currently holds for auth identity.
+ * Gap G3 sessions often have claims only (no memory JWT).
+ */
+export function sessionAdvanceFingerprint(
+  accessToken?: string | null,
+  claimsExp?: number | null,
+): string {
+  const access = accessToken?.trim() || "";
+  if (access) {
+    return `t:${access}`;
+  }
+  if (typeof claimsExp === "number" && Number.isFinite(claimsExp)) {
+    return `c:${claimsExp}`;
+  }
+  return "";
+}
+
+function currentSessionAdvanceFingerprint(): string {
+  return sessionAdvanceFingerprint(
+    getSessionTokens()?.accessToken,
+    getSessionClaims()?.exp,
+  );
+}
+
+/**
+ * Waits briefly for a sibling tab (or in-tab broadcast) to finish refreshing
+ * and advance the session (memory JWT or Gap G3 claims `exp`).
  */
 export async function waitForSiblingTokenUpdate(
   baselineAccessToken: string | undefined,
   timeoutMs = 800,
+  baselineClaimsExp?: number | null,
 ): Promise<boolean> {
-  if (typeof window === "undefined" || !baselineAccessToken) {
+  if (typeof window === "undefined") {
     return false;
   }
 
-  const already = getSessionTokens();
-  if (already && already.accessToken !== baselineAccessToken) {
+  const baseline = sessionAdvanceFingerprint(
+    baselineAccessToken,
+    baselineClaimsExp ?? getSessionClaims()?.exp,
+  );
+
+  const already = currentSessionAdvanceFingerprint();
+  if (baseline && already && already !== baseline) {
+    return true;
+  }
+  // Gap G3: no baseline JWT/claims yet, but a session appeared while we waited.
+  if (!baseline && hasAccessSession()) {
     return true;
   }
 
   return new Promise((resolve) => {
     const deadline = Date.now() + timeoutMs;
     const poll = () => {
-      const current = getSessionTokens();
-      if (current && current.accessToken !== baselineAccessToken) {
+      const current = currentSessionAdvanceFingerprint();
+      if (baseline && current && current !== baseline) {
+        resolve(true);
+        return;
+      }
+      if (!baseline && hasAccessSession()) {
         resolve(true);
         return;
       }
@@ -74,9 +117,12 @@ export async function waitForSiblingTokenUpdate(
 export async function tryRecoverSessionBeforeSignOut(
   baselineAccessToken?: string,
 ): Promise<boolean> {
-  if (await waitForSiblingTokenUpdate(baselineAccessToken)) {
-    return Boolean(getSessionTokens()?.accessToken);
+  const baselineExp = getSessionClaims()?.exp;
+  if (await waitForSiblingTokenUpdate(baselineAccessToken, 800, baselineExp)) {
+    return hasAccessSession();
   }
-  const restored = await restoreClientSessionFromCookie();
-  return restored && Boolean(getSessionTokens()?.accessToken);
+  // Force a network restore — claims-only short-circuit would hide a missing
+  // httpOnly cookie after refresh rotation races on the business hub.
+  const restored = await restoreClientSessionFromCookie({ force: true });
+  return restored && hasAccessSession();
 }

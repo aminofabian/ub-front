@@ -13,6 +13,7 @@ import {
 } from "@/lib/config";
 import {
   finalizeClientSignOut,
+  getSessionClaims,
   getSessionTenantHost,
   getSessionTenantId,
   getSessionTokens,
@@ -37,6 +38,7 @@ import {
   delay,
   isRefreshAlreadyRotatedProblem,
   isSessionIdleExpiredProblem,
+  sessionAdvanceFingerprint,
   tryRecoverSessionBeforeSignOut,
   waitForSiblingTokenUpdate,
 } from "@/lib/session-recovery";
@@ -1351,15 +1353,17 @@ export async function refreshAccessToken(): Promise<RefreshOutcome> {
     return inFlightRefresh;
   }
   inFlightRefresh = (async (): Promise<RefreshOutcome> => {
-    const baselineAccessToken = getSessionTokens()?.accessToken;
+    const baseline = sessionAdvanceFingerprint(
+      getSessionTokens()?.accessToken,
+      getSessionClaims()?.exp,
+    );
     return withAuthRefreshLock(async (): Promise<RefreshOutcome> => {
-      const current = getSessionTokens()?.accessToken;
-      if (
-        baselineAccessToken &&
-        current &&
-        current !== baselineAccessToken
-      ) {
-        // Sibling tab refreshed while we waited for the lock.
+      const current = sessionAdvanceFingerprint(
+        getSessionTokens()?.accessToken,
+        getSessionClaims()?.exp,
+      );
+      if (baseline && current && current !== baseline) {
+        // Sibling tab refreshed while we waited for the lock (JWT or Gap G3 claims).
         return { kind: "ok" };
       }
       return performRefreshOnce();
@@ -1399,8 +1403,12 @@ async function applyRefreshResponse(response: Response): Promise<RefreshOutcome>
 }
 
 async function performRefreshOnce(): Promise<RefreshOutcome> {
-  const session = getSessionTokens();
-  const baselineAccessToken = session?.accessToken;
+  const baselineAccessToken = getSessionTokens()?.accessToken;
+  const baselineClaimsExp = getSessionClaims()?.exp;
+  const baseline = sessionAdvanceFingerprint(
+    baselineAccessToken,
+    baselineClaimsExp,
+  );
 
   let response: Response;
   try {
@@ -1423,19 +1431,22 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
 
   const payload = await response.clone().json().catch(() => ({}));
 
-  const adoptSiblingTokens = (): RefreshOutcome | null => {
-    const current = getSessionTokens();
-    if (
-      baselineAccessToken &&
-      current &&
-      current.accessToken !== baselineAccessToken
-    ) {
+  const adoptSiblingSession = (): RefreshOutcome | null => {
+    const current = sessionAdvanceFingerprint(
+      getSessionTokens()?.accessToken,
+      getSessionClaims()?.exp,
+    );
+    if (baseline && current && current !== baseline) {
+      return { kind: "ok" };
+    }
+    // Gap G3: we started with nothing in memory; sibling already restored claims.
+    if (!baseline && hasAccessSession()) {
       return { kind: "ok" };
     }
     return null;
   };
 
-  const adopted = adoptSiblingTokens();
+  const adopted = adoptSiblingSession();
   if (adopted) {
     return adopted;
   }
@@ -1448,7 +1459,13 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
     if (isRefreshAlreadyRotatedProblem(payload)) {
       // Sibling (or this tab's restore) likely holds the successor — wait longer
       // than the default so BroadcastChannel / storage can land before we retry.
-      if (await waitForSiblingTokenUpdate(baselineAccessToken, 1_500)) {
+      if (
+        await waitForSiblingTokenUpdate(
+          baselineAccessToken,
+          1_500,
+          baselineClaimsExp,
+        )
+      ) {
         return { kind: "ok" };
       }
       await delay(150);
@@ -1462,12 +1479,19 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
       }
     }
 
-    if (await waitForSiblingTokenUpdate(baselineAccessToken, 1_200)) {
+    if (
+      await waitForSiblingTokenUpdate(
+        baselineAccessToken,
+        1_200,
+        baselineClaimsExp,
+      )
+    ) {
       return { kind: "ok" };
     }
-    if (await restoreClientSessionFromCookie()) {
-      const current = getSessionTokens();
-      if (current && current.accessToken !== baselineAccessToken) {
+    // Force network restore: Gap G3 claims in memory must not short-circuit
+    // when ub.access was cleared by a sibling refresh rotation.
+    if (await restoreClientSessionFromCookie({ force: true })) {
+      if (hasAccessSession()) {
         return { kind: "ok" };
       }
     }
