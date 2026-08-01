@@ -447,6 +447,7 @@ export function ProductCreateDrawer({
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+      const creatingGroup = m.parentDraft.productStructure === "group";
       /* Keep the drawer open: call the original handler with keepOpen flag,
          then clear only the user-entered fields after success. */
       const savedType = m.parentDraft.itemTypeId;
@@ -455,9 +456,12 @@ export function ProductCreateDrawer({
       const savedStocked = m.parentDraft.isStocked;
       const savedSellable = m.parentDraft.isSellable;
 
-      await m.onCreateParent(e, { keepOpen });
+      await m.onCreateParent(e, {
+        /* Groups hand off to the variant drawer — never keep create open. */
+        keepOpen: creatingGroup ? false : keepOpen,
+      });
 
-      if (!keepOpen) return;
+      if (creatingGroup || !keepOpen) return;
 
       /* Reset draft but preserve structural defaults for rapid entry */
       m.setParentDraft({

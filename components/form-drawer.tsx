@@ -511,7 +511,8 @@ export function FormDrawerFields({
   index,
   children,
 }: {
-  legend: string;
+  /** Omit to hide the section header (fields only). */
+  legend?: string;
   hint?: React.ReactNode;
   /** Tighter panel for half-width or dense drawers */
   compact?: boolean;
@@ -530,6 +531,7 @@ export function FormDrawerFields({
       : typeof index === "number"
         ? String(index).padStart(2, "0")
         : index;
+  const hasLegend = Boolean(legend?.trim());
 
   return (
     <fieldset
@@ -560,29 +562,31 @@ export function FormDrawerFields({
           aria-hidden
         />
       ) : null}
-      <legend
-        className={cn(
-          "block w-full border-b px-0.5",
-          sharp || compact
-            ? "border-border pb-2"
-            : "border-border/35 pb-3 font-heading text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
-        )}
-      >
-        {sharp || compact ? (
-          <span className="flex items-baseline gap-2">
-            {indexLabel ? (
-              <span className="font-mono text-[10px] font-medium tabular-nums tracking-tight text-foreground/35">
-                {indexLabel}
+      {hasLegend ? (
+        <legend
+          className={cn(
+            "block w-full border-b px-0.5",
+            sharp || compact
+              ? "border-border pb-2"
+              : "border-border/35 pb-3 font-heading text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+          )}
+        >
+          {sharp || compact ? (
+            <span className="flex items-baseline gap-2">
+              {indexLabel ? (
+                <span className="font-mono text-[10px] font-medium tabular-nums tracking-tight text-foreground/35">
+                  {indexLabel}
+                </span>
+              ) : null}
+              <span className="text-[11px] font-semibold tracking-tight text-foreground/70">
+                {legend}
               </span>
-            ) : null}
-            <span className="text-[11px] font-semibold tracking-tight text-foreground/70">
-              {legend}
             </span>
-          </span>
-        ) : (
-          legend
-        )}
-      </legend>
+          ) : (
+            legend
+          )}
+        </legend>
+      ) : null}
       {hint ? (
         <p
           className={cn(

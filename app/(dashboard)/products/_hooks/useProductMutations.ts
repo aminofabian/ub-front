@@ -699,16 +699,20 @@ export function useProductMutations(d: Dependencies) {
           }
         }
         setPendingCreateImage(null);
-        setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
         await refreshFullCatalog();
         selectProduct(created.id);
         if (isCreatingGroup) {
+          /* Keep the create drawer on the group form until detail is ready,
+             then switch straight to add-variant — never paint EMPTY_PARENT
+             (standalone) while create-parent is still open. */
           await refreshSelectedDetail(created.id);
           setVariantDraftRows([emptyVariantDraft()]);
           setPendingVariantImage(null);
           setActiveDrawer("add-variant");
+          setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
           setMessage("Group created — add your first variant.");
         } else {
+          setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
           if (!opts?.keepOpen) setActiveDrawer(null);
           const linkedSupplier = canLinkSupplier && Boolean(sup);
           setMessage(

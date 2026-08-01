@@ -577,35 +577,33 @@ export function ProductsWorkspace() {
         m={m}
       />
 
-      {D ? (
-        <VariantCreateDrawer
-          open={activeDrawer === "add-variant"}
-          onClose={() => setActiveDrawer(null)}
-          banner={
-            activeDrawer === "add-variant" && catalog.message.trim() ? (
-              catalogBanner(catalog.message)
-            ) : undefined
-          }
-          parentDisplayName={variantDrawerParentName}
-          parentIsProductGroup={variantDrawerParentIsGroup}
-          parentCategoryId={variantDrawerParentCategoryId || undefined}
-          parentCategoryName={variantDrawerParentCategoryName || undefined}
-          siblingContextLabel={
-            isViewingVariant
-              ? D?.variantName?.trim() || D?.name?.trim() || undefined
-              : undefined
-          }
-          variantCreateSubmitCount={variantCreateSubmitCount}
-          sortedCategories={catalog.sortedCategories}
-          branches={m.branches}
-          m={m}
-          canLinkSupplier={canLinkSupplier}
-          canListSuppliers={canListSuppliers}
-          canSetSellPrice={canSetSellPrice}
-          canInventoryWrite={canInventoryWrite}
-          currencyCode={business?.currency?.trim() || ""}
-        />
-      ) : null}
+      <VariantCreateDrawer
+        open={activeDrawer === "add-variant" && !!D}
+        onClose={() => setActiveDrawer(null)}
+        banner={
+          activeDrawer === "add-variant" && catalog.message.trim() ? (
+            catalogBanner(catalog.message)
+          ) : undefined
+        }
+        parentDisplayName={variantDrawerParentName}
+        parentIsProductGroup={variantDrawerParentIsGroup}
+        parentCategoryId={variantDrawerParentCategoryId || undefined}
+        parentCategoryName={variantDrawerParentCategoryName || undefined}
+        siblingContextLabel={
+          isViewingVariant
+            ? D?.variantName?.trim() || D?.name?.trim() || undefined
+            : undefined
+        }
+        variantCreateSubmitCount={variantCreateSubmitCount}
+        sortedCategories={catalog.sortedCategories}
+        branches={m.branches}
+        m={m}
+        canLinkSupplier={canLinkSupplier}
+        canListSuppliers={canListSuppliers}
+        canSetSellPrice={canSetSellPrice}
+        canInventoryWrite={canInventoryWrite}
+        currencyCode={business?.currency?.trim() || ""}
+      />
 
       {D ? (
         <AddPackageModal

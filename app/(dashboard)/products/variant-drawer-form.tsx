@@ -244,10 +244,6 @@ function VariantPricingRow({
   );
 }
 
-function variantLegend(index: number): string {
-  return `Variant ${index + 1}`;
-}
-
 function VariantRowFields({
   row,
   index,
@@ -325,7 +321,7 @@ function VariantRowFields({
       ) : null}
 
       <FormDrawerSheet>
-      <FormDrawerFields legend={variantLegend(index)} appearance="sharp" embedded>
+      <FormDrawerFields appearance="sharp" embedded>
         {!parentIsProductGroup ? (
           <ToggleChip
             checked={row.isPackageVariant}
