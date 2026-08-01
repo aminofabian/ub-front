@@ -4,7 +4,11 @@ import { Check, ChevronLeft, Package, Search, X } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Switch } from "@/components/ui/switch";
-import type { GlobalCategoryRecord, GlobalProductRecord } from "@/lib/api";
+import type {
+  GlobalCatalogAdoptProgress,
+  GlobalCategoryRecord,
+  GlobalProductRecord,
+} from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -148,7 +152,7 @@ export type OnboardingCatalogShelfProps = {
   shelfCountLabel: string;
   canAdopt: boolean;
   importing?: boolean;
-  importProgressLabel?: string | null;
+  importProgress?: GlobalCatalogAdoptProgress | null;
   /** Non-blocking note (e.g. lines skipped by preview) shown near the import button. */
   importNotice?: string | null;
   errorMessage?: string | null;
@@ -183,7 +187,7 @@ export function OnboardingCatalogShelf({
   shelfCountLabel,
   canAdopt,
   importing = false,
-  importProgressLabel = null,
+  importProgress = null,
   importNotice = null,
   errorMessage = null,
   onImport,
@@ -194,6 +198,14 @@ export function OnboardingCatalogShelf({
 }: OnboardingCatalogShelfProps) {
   const selectedList = [...selected.values()];
   const selectedCount = selectedList.length;
+  const importPercent = importProgress
+    ? Math.min(100, Math.max(0, importProgress.percent))
+    : 0;
+  const importDetail =
+    importProgress?.message?.trim() ||
+    (importProgress
+      ? `Importing ${importProgress.processed} of ${importProgress.total}…`
+      : null);
 
   const parentRail = (
     <>
@@ -313,8 +325,11 @@ export function OnboardingCatalogShelf({
             {importNotice}
           </p>
         ) : null}
-        {importProgressLabel ? (
-          <p className="text-xs text-[#0F766E]">{importProgressLabel}</p>
+        {importing && importProgress ? (
+          <p className="text-xs tabular-nums text-[#0F766E]" role="status">
+            {importPercent}% · {importProgress.processed.toLocaleString()} /{" "}
+            {importProgress.total.toLocaleString()} products
+          </p>
         ) : null}
         <button
           type="button"
@@ -328,7 +343,9 @@ export function OnboardingCatalogShelf({
           )}
         >
           {importing
-            ? "Importing…"
+            ? importProgress
+              ? `Importing… ${importPercent}%`
+              : "Importing…"
             : selectedCount > 0
               ? `Import ${selectedCount} product${selectedCount === 1 ? "" : "s"}`
               : "Select products to import"}
@@ -356,35 +373,66 @@ export function OnboardingCatalogShelf({
 
   return (
     <div className="flex h-dvh max-h-dvh min-h-0 flex-col bg-[#F7F4EE] text-[#1F2937]">
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[#E8E4DC] bg-white/95 px-3 pb-3 pt-[max(0.65rem,env(safe-area-inset-top))] backdrop-blur-md sm:px-4">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={importing}
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-none border border-[#E5E7EB] bg-white text-[#374151] active:scale-95 disabled:opacity-50 lg:hidden"
-          aria-label="Close catalogue"
-        >
-          <ChevronLeft className="size-5" aria-hidden />
-        </button>
-        <div className="min-w-0 flex-1 lg:pl-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0D9488]">
-            Starter catalogue
-          </p>
-          <h2 className="truncate text-base font-semibold tracking-tight">
-            Stock your shelves
-          </h2>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {headerExtra}
+      <header className="shrink-0 border-b border-[#E8E4DC] bg-white/95 backdrop-blur-md">
+        <div className="flex items-center justify-between gap-3 px-3 pb-3 pt-[max(0.65rem,env(safe-area-inset-top))] sm:px-4">
           <button
             type="button"
             onClick={onClose}
             disabled={importing}
-            className="hidden h-10 rounded-none border border-[#E5E7EB] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 lg:inline-flex lg:items-center"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-none border border-[#E5E7EB] bg-white text-[#374151] active:scale-95 disabled:opacity-50 lg:hidden"
+            aria-label="Close catalogue"
           >
-            Close
+            <ChevronLeft className="size-5" aria-hidden />
           </button>
+          <div className="min-w-0 flex-1 lg:pl-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0D9488]">
+              Starter catalogue
+            </p>
+            <h2 className="truncate text-base font-semibold tracking-tight">
+              {importing && importProgress
+                ? `Importing ${importProgress.processed.toLocaleString()} of ${importProgress.total.toLocaleString()}`
+                : "Stock your shelves"}
+            </h2>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {importing && importProgress ? (
+              <span className="tabular-nums text-sm font-semibold text-[#0D9488]">
+                {importPercent}%
+              </span>
+            ) : null}
+            {headerExtra}
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={importing}
+              className="hidden h-10 rounded-none border border-[#E5E7EB] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 lg:inline-flex lg:items-center"
+            >
+              Close
+            </button>
+          </div>
         </div>
+        {importing && importProgress ? (
+          <div className="space-y-1.5 px-3 pb-3 sm:px-4">
+            <div
+              className="h-1.5 overflow-hidden rounded-full bg-[#E8E4DC]"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={importPercent}
+              aria-label="Catalogue import progress"
+            >
+              <div
+                className="h-full rounded-full bg-[#0D9488] transition-[width] duration-300 ease-out"
+                style={{ width: `${importPercent}%` }}
+              />
+            </div>
+            {importDetail ? (
+              <p className="truncate text-[11px] text-[#0F766E]" role="status">
+                {importDetail}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </header>
 
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col lg:flex-row">

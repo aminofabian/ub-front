@@ -99,11 +99,73 @@ export function logoutSuperAdmin(): void {
   clearSuperAdminSession();
 }
 
-async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+/** Refresh when less than this remains, so long jobs (promotes) never hit expiry. */
+const SA_TOKEN_REFRESH_WINDOW_MS = 15 * 60 * 1000;
+
+function saTokenExpiresAtMs(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(
+      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
+    ) as { exp?: number };
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+let saRefreshInFlight: Promise<string | null> | null = null;
+
+/**
+ * Sliding session: while the portal keeps making requests (e.g. polling a
+ * promote job), swap the token for a fresh one before it expires.
+ */
+async function refreshSaTokenIfNeeded(token: string): Promise<string> {
+  const expiresAt = saTokenExpiresAtMs(token);
+  if (expiresAt === null || expiresAt - Date.now() > SA_TOKEN_REFRESH_WINDOW_MS) {
+    return token;
+  }
+  saRefreshInFlight ??= (async () => {
+    try {
+      const response = await fetch(apiUrl(API_ROUTES.superAdminAuthRefresh), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const payload = (await response.json()) as { accessToken?: string };
+      if (!payload.accessToken) {
+        return null;
+      }
+      setSuperAdminAccessToken(payload.accessToken);
+      return payload.accessToken;
+    } catch {
+      return null;
+    } finally {
+      saRefreshInFlight = null;
+    }
+  })();
+  const refreshed = await saRefreshInFlight;
+  // On refresh failure keep the current token; the request may still land
+  // before expiry, and a real 401 is handled by the caller.
+  return refreshed ?? token;
+}
+
+/** Current token, refreshed if it is close to expiry. Throws when signed out. */
+async function saAuthToken(): Promise<string> {
   const token = getSuperAdminAccessToken();
   if (!token) {
     throw new Error("Super-admin session expired. Sign in again.");
   }
+  return refreshSaTokenIfNeeded(token);
+}
+
+async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = await saAuthToken();
   const method = (init.method ?? "GET").toUpperCase();
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
@@ -1280,10 +1342,7 @@ export async function uploadSaGlobalProductImage(
   file: File,
   catalogId?: string | null,
 ): Promise<SaGlobalProduct> {
-  const token = getSuperAdminAccessToken();
-  if (!token) {
-    throw new Error("Super-admin session expired. Sign in again.");
-  }
+  const token = await saAuthToken();
   const form = new FormData();
   form.append("file", file);
   const response = await fetch(
@@ -1428,10 +1487,7 @@ export async function exportSaGlobalProductsCsv(params?: {
   status?: string;
   missingImage?: boolean;
 }): Promise<Blob> {
-  const token = getSuperAdminAccessToken();
-  if (!token) {
-    throw new Error("Super-admin session expired. Sign in again.");
-  }
+  const token = await saAuthToken();
   const query = new URLSearchParams();
   withCatalogId(query, params?.catalogId);
   if (params?.status) query.set("status", params.status);
@@ -1464,10 +1520,7 @@ export async function importSaGlobalProductsCsv(
   file: File,
   catalogId?: string | null,
 ): Promise<SaCsvImportResult> {
-  const token = getSuperAdminAccessToken();
-  if (!token) {
-    throw new Error("Super-admin session expired. Sign in again.");
-  }
+  const token = await saAuthToken();
   const form = new FormData();
   form.append("file", file);
   let response: Response;

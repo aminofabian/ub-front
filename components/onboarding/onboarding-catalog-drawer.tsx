@@ -21,6 +21,7 @@ import {
   globalCatalogAdopt,
   previewGlobalCatalogAdopt,
   type GlobalCatalogAdoptLine,
+  type GlobalCatalogAdoptProgress,
   type GlobalCatalogMetaRecord,
   type GlobalProductRecord,
 } from "@/lib/api";
@@ -97,9 +98,8 @@ export function OnboardingCatalogDrawer({
   const [loadingMeta, setLoadingMeta] = useState(false);
   const [loadingShelf, setLoadingShelf] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [importProgressLabel, setImportProgressLabel] = useState<string | null>(
-    null,
-  );
+  const [importProgress, setImportProgress] =
+    useState<GlobalCatalogAdoptProgress | null>(null);
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mobileManifestOpen, setMobileManifestOpen] = useState(false);
@@ -117,7 +117,7 @@ export function OnboardingCatalogDrawer({
     setSearch("");
     setStorefrontVisible(true);
     setErrorMessage(null);
-    setImportProgressLabel(null);
+    setImportProgress(null);
     setImportNotice(null);
     setMobileManifestOpen(false);
     setLoadingMeta(true);
@@ -363,7 +363,13 @@ export function OnboardingCatalogDrawer({
     setImporting(true);
     setErrorMessage(null);
     setImportNotice(null);
-    setImportProgressLabel("Checking selection…");
+    setImportProgress({
+      phase: "queued",
+      processed: 0,
+      total: Math.max(products.length, 1),
+      percent: 2,
+      message: "Checking selection…",
+    });
 
     try {
       const preview = await previewGlobalCatalogAdopt(lines, {
@@ -397,26 +403,29 @@ export function OnboardingCatalogDrawer({
             ? "These products could not be imported (SKU conflicts). Add products manually instead."
             : "Nothing ready to import.",
         );
-        setImportProgressLabel(null);
+        setImportProgress(null);
         return;
       }
 
-      setImportProgressLabel(`Importing ${importLines.length} products…`);
+      setImportProgress({
+        phase: "importing",
+        processed: 0,
+        total: importLines.length,
+        percent: 4,
+        message: `Importing 0 of ${importLines.length}…`,
+      });
       const result = await globalCatalogAdopt(openingBranchId, importLines, {
         createMissingCategories: true,
         packId: parentFilter.kind === "pack" ? packFilter?.packId : undefined,
         onProgress: (progress) => {
-          setImportProgressLabel(
-            progress.message?.trim() ||
-              `Importing ${progress.processed} of ${progress.total}…`,
-          );
+          setImportProgress(progress);
         },
       });
 
       const imported = result.importedCount;
       if (imported <= 0) {
         setErrorMessage("Import finished but no products were added.");
-        setImportProgressLabel(null);
+        setImportProgress(null);
         return;
       }
 
@@ -425,7 +434,13 @@ export function OnboardingCatalogDrawer({
           ? "1 product added to your shop"
           : `${imported} products added to your shop`,
       );
-      setImportProgressLabel("Shelves stocked");
+      setImportProgress({
+        phase: "finishing",
+        processed: imported,
+        total: Math.max(importLines.length, imported),
+        percent: 100,
+        message: `Imported ${imported} product${imported === 1 ? "" : "s"}`,
+      });
       window.setTimeout(() => {
         onSuccess(imported);
         onOpenChange(false);
@@ -438,7 +453,7 @@ export function OnboardingCatalogDrawer({
             : error.message
           : "Could not import products. Try again.",
       );
-      setImportProgressLabel(null);
+      setImportProgress(null);
     } finally {
       setImporting(false);
     }
@@ -548,7 +563,7 @@ export function OnboardingCatalogDrawer({
         shelfCountLabel={shelfCountLabel}
         canAdopt={canAdopt}
         importing={importing}
-        importProgressLabel={importProgressLabel}
+        importProgress={importProgress}
         importNotice={importNotice}
         errorMessage={
           errorMessage ??

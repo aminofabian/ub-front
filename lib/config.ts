@@ -203,6 +203,7 @@ export const API_ROUTES = {
   marketplaceProductEditRequests: "/api/v1/marketplace/product-edit-requests",
   supplierPortalCapabilities: "/api/v1/supplier-portal/capabilities",
   superAdminAuthLogin: "/api/v1/super-admin/auth/login",
+  superAdminAuthRefresh: "/api/v1/super-admin/auth/refresh",
   superAdminBusinesses: "/api/v1/super-admin/businesses",
   superAdminPlatformPaymentGateways:
     "/api/v1/super-admin/payments/platform-gateways",

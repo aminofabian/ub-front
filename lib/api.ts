@@ -3949,28 +3949,49 @@ export async function fetchGlobalCatalogPack(
   );
 }
 
-export async function previewGlobalCatalogAdopt(
-  lines: GlobalCatalogAdoptLine[],
-  opts?: { createMissingCategories?: boolean },
-): Promise<GlobalCatalogAdoptResult> {
-  return request<GlobalCatalogAdoptResult>(
-    `${API_ROUTES.globalCatalog}/adopt/preview`,
-    {
-      method: "POST",
-      body: {
-        lines,
-        createMissingCategories: opts?.createMissingCategories === true,
-      },
-    },
-  );
-}
-
 const SYNC_ADOPT_MAX_LINES = 25;
 /** Must match backend {@code GlobalCatalogJobService.JOB_ADOPT_MAX_LINES}. */
 const JOB_ADOPT_MAX_LINES = 500;
 const ADOPT_JOB_POLL_MS = 1500;
 /** Fail only when a chunk stops making progress, not on a fixed wall clock. */
 const ADOPT_JOB_STALL_TIMEOUT_MS = 5 * 60 * 1000;
+
+export async function previewGlobalCatalogAdopt(
+  lines: GlobalCatalogAdoptLine[],
+  opts?: { createMissingCategories?: boolean },
+): Promise<GlobalCatalogAdoptResult> {
+  const createMissingCategories = opts?.createMissingCategories === true;
+  // Keep preview payloads within the same size we use for adopt jobs.
+  if (lines.length <= JOB_ADOPT_MAX_LINES) {
+    return request<GlobalCatalogAdoptResult>(
+      `${API_ROUTES.globalCatalog}/adopt/preview`,
+      {
+        method: "POST",
+        body: {
+          lines,
+          createMissingCategories,
+        },
+      },
+    );
+  }
+  const parts: GlobalCatalogAdoptResult[] = [];
+  for (let i = 0; i < lines.length; i += JOB_ADOPT_MAX_LINES) {
+    const chunk = lines.slice(i, i + JOB_ADOPT_MAX_LINES);
+    parts.push(
+      await request<GlobalCatalogAdoptResult>(
+        `${API_ROUTES.globalCatalog}/adopt/preview`,
+        {
+          method: "POST",
+          body: {
+            lines: chunk,
+            createMissingCategories,
+          },
+        },
+      ),
+    );
+  }
+  return mergeAdoptResults(parts);
+}
 
 export type GlobalCatalogJobStatus = {
   id: string;
@@ -4019,6 +4040,9 @@ export type GlobalCatalogAdoptProgress = {
   total: number;
   percent: number;
   message?: string | null;
+  /** 0-based batch index when the import is split across jobs. */
+  chunkIndex?: number;
+  chunkCount?: number;
 };
 
 function reportAdoptProgress(
@@ -4026,6 +4050,47 @@ function reportAdoptProgress(
   progress: GlobalCatalogAdoptProgress,
 ) {
   onProgress?.(progress);
+}
+
+/** Pull the live product name from a backend status line like "Importing 12 of 500 — Milk". */
+function productNameFromAdoptStatusMessage(message: string | null | undefined): string | null {
+  if (!message) {
+    return null;
+  }
+  const dash = message.indexOf(" — ");
+  if (dash < 0) {
+    return null;
+  }
+  const name = message.slice(dash + 3).trim();
+  return name.length > 0 ? name : null;
+}
+
+function formatAdoptProgressMessage(params: {
+  phase: GlobalCatalogAdoptProgress["phase"];
+  processed: number;
+  total: number;
+  backendMessage?: string | null;
+  chunkIndex?: number;
+  chunkCount?: number;
+}): string {
+  const { phase, processed, total, backendMessage, chunkIndex, chunkCount } = params;
+  const product = productNameFromAdoptStatusMessage(backendMessage);
+  const batchSuffix =
+    chunkCount != null && chunkCount > 1 && chunkIndex != null
+      ? ` · batch ${chunkIndex + 1} of ${chunkCount}`
+      : "";
+  if (phase === "queued") {
+    return chunkCount != null && chunkCount > 1 && chunkIndex != null
+      ? `Queuing batch ${chunkIndex + 1} of ${chunkCount}…`
+      : "Queued…";
+  }
+  if (phase === "finishing") {
+    return `Imported ${total} product${total === 1 ? "" : "s"}`;
+  }
+  if (product) {
+    return `Importing ${processed} of ${total}${batchSuffix} — ${product}`;
+  }
+  return `Importing ${processed} of ${total}${batchSuffix}…`;
 }
 
 function adoptProgressFromJob(
@@ -4070,21 +4135,48 @@ async function waitForGlobalCatalogAdoptJob(
     processedOffset?: number;
     /** Absolute total across all chunks. */
     grandTotal?: number;
+    chunkIndex?: number;
+    chunkCount?: number;
     onProgress?: (progress: GlobalCatalogAdoptProgress) => void;
   },
 ): Promise<GlobalCatalogAdoptResult> {
   const fallbackTotal = Math.max(opts?.fallbackTotal ?? 1, 1);
   const processedOffset = Math.max(opts?.processedOffset ?? 0, 0);
   const grandTotal = Math.max(opts?.grandTotal ?? fallbackTotal, 1);
+  const chunkIndex = opts?.chunkIndex;
+  const chunkCount = opts?.chunkCount;
   let lastMovementAt = Date.now();
   let lastSignature = "";
-  reportAdoptProgress(opts?.onProgress, {
-    phase: "queued",
-    processed: processedOffset,
-    total: grandTotal,
-    percent: Math.min(99, Math.max(2, Math.round((processedOffset / grandTotal) * 100))),
-    message: "Queued…",
-  });
+
+  const emit = (
+    phase: GlobalCatalogAdoptProgress["phase"],
+    absoluteProcessed: number,
+    backendMessage?: string | null,
+  ) => {
+    const capped = Math.min(grandTotal, Math.max(0, absoluteProcessed));
+    const percent =
+      phase === "finishing"
+        ? 100
+        : Math.min(99, Math.max(2, Math.round((capped / grandTotal) * 100)));
+    reportAdoptProgress(opts?.onProgress, {
+      phase,
+      processed: capped,
+      total: grandTotal,
+      percent,
+      chunkIndex,
+      chunkCount,
+      message: formatAdoptProgressMessage({
+        phase,
+        processed: capped,
+        total: grandTotal,
+        backendMessage,
+        chunkIndex,
+        chunkCount,
+      }),
+    });
+  };
+
+  emit("queued", processedOffset);
   for (;;) {
     const job = await fetchGlobalCatalogAdoptJob(jobId);
     const chunkProgress = adoptProgressFromJob(job, fallbackTotal);
@@ -4092,24 +4184,28 @@ async function waitForGlobalCatalogAdoptJob(
       grandTotal,
       processedOffset + chunkProgress.processed,
     );
-    reportAdoptProgress(opts?.onProgress, {
-      ...chunkProgress,
-      processed: absoluteProcessed,
-      total: grandTotal,
-      percent: Math.min(
-        99,
-        Math.max(2, Math.round((absoluteProcessed / grandTotal) * 100)),
-      ),
-    });
     if (job.status === "completed") {
       if (!job.result) {
         throw new Error(job.statusMessage || "Adopt job completed without a result.");
       }
+      // Don't flash 100% between batches — caller advances the offset.
+      emit(
+        chunkCount != null && chunkIndex != null && chunkIndex + 1 < chunkCount
+          ? "importing"
+          : "finishing",
+        absoluteProcessed,
+        job.statusMessage,
+      );
       return job.result;
     }
     if (job.status === "failed") {
       throw new Error(job.statusMessage || "Adopt job failed.");
     }
+    emit(
+      chunkProgress.phase === "queued" ? "queued" : "importing",
+      absoluteProcessed,
+      job.statusMessage,
+    );
     const signature = `${job.status}:${job.rowsProcessed}:${job.statusMessage ?? ""}`;
     if (signature !== lastSignature) {
       lastSignature = signature;
@@ -4229,6 +4325,8 @@ export async function globalCatalogAdopt(
           fallbackTotal: chunk.length,
           processedOffset,
           grandTotal: total,
+          chunkIndex,
+          chunkCount: chunks.length,
           onProgress,
         },
       );
@@ -4241,7 +4339,15 @@ export async function globalCatalogAdopt(
       processed: total,
       total: Math.max(total, 1),
       percent: 100,
-      message: "Import complete",
+      chunkIndex: chunks.length - 1,
+      chunkCount: chunks.length,
+      message: formatAdoptProgressMessage({
+        phase: "finishing",
+        processed: total,
+        total: Math.max(total, 1),
+        chunkIndex: chunks.length - 1,
+        chunkCount: chunks.length,
+      }),
     });
   }
 
