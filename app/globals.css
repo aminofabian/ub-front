@@ -4595,3 +4595,102 @@ body:has(.landing-page) {
     animation: none !important;
   }
 }
+
+/* ── Catalog mobile detail sheet (list → detail push) ─────────────────────── */
+@keyframes catalog-detail-in {
+  0% {
+    transform: translate3d(104%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes catalog-detail-out {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(108%, 0, 0);
+  }
+}
+
+@keyframes catalog-detail-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes catalog-detail-scrim-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes catalog-back-arrow-send {
+  0% {
+    transform: translateX(0);
+  }
+  35% {
+    transform: translateX(-4px);
+  }
+  100% {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes catalog-back-shaft-grow {
+  0% {
+    transform: scaleX(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scaleX(1.85);
+    opacity: 1;
+  }
+}
+
+.catalog-mobile-detail {
+  will-change: transform;
+  animation: catalog-detail-in 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.catalog-mobile-detail.is-exiting {
+  animation: catalog-detail-out 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+  pointer-events: none;
+}
+
+.catalog-mobile-detail-scrim {
+  animation: catalog-detail-scrim-in 0.35s ease-out both;
+}
+
+.catalog-mobile-detail-scrim.is-exiting {
+  animation: catalog-detail-scrim-out 0.32s ease-in both;
+}
+
+.catalog-mobile-back.is-sending .catalog-mobile-back-arrow {
+  animation: catalog-back-arrow-send 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.catalog-mobile-back.is-sending .catalog-mobile-back-shaft {
+  animation: catalog-back-shaft-grow 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-mobile-detail,
+  .catalog-mobile-detail.is-exiting,
+  .catalog-mobile-detail-scrim,
+  .catalog-mobile-detail-scrim.is-exiting,
+  .catalog-mobile-back.is-sending .catalog-mobile-back-arrow,
+  .catalog-mobile-back.is-sending .catalog-mobile-back-shaft {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
