@@ -82,21 +82,6 @@ function Label({
   );
 }
 
-function InlineField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-w-0 items-center gap-2">
-      <span className={cn(productFormLabelClass, "w-12 shrink-0")}>{label}</span>
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
-}
-
 function CompactSectionToggle({
   label,
   expanded,
@@ -112,14 +97,16 @@ function CompactSectionToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center gap-1.5 rounded-md border border-transparent px-1.5 py-1.5 text-left text-[12px] font-medium tracking-tight text-foreground/55 transition hover:border-border hover:bg-muted/30 hover:text-foreground"
+      className="flex w-full items-center gap-2 border-y border-border bg-muted/15 px-3 py-2 text-left transition-colors hover:bg-muted/25"
     >
       {expanded ? (
-        <ChevronDown className="size-3.5 shrink-0" aria-hidden />
+        <ChevronDown className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
       ) : (
-        <ChevronRight className="size-3.5 shrink-0" aria-hidden />
+        <ChevronRight className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
       )}
-      <span className="min-w-0 flex-1">{label}</span>
+      <span className="min-w-0 flex-1 text-[11px] font-semibold tracking-tight text-foreground/70">
+        {label}
+      </span>
       {badge}
     </button>
   );
@@ -272,6 +259,8 @@ function VariantRowFields({
   branches,
   canInventoryWrite,
   parentIsProductGroup,
+  parentCategoryId,
+  sortedCategories,
   onScanBarcode,
 }: {
   row: VariantDraft;
@@ -284,6 +273,8 @@ function VariantRowFields({
   branches: BranchRecord[];
   canInventoryWrite: boolean;
   parentIsProductGroup: boolean;
+  parentCategoryId?: string;
+  sortedCategories: CategoryRecord[];
   onScanBarcode: () => void;
 }) {
   const costPerUnit = useMemo(() => {
@@ -292,6 +283,29 @@ function VariantRowFields({
     if (buy != null) return buy / pack;
     return null;
   }, [row.defaultCostPrice, row.bundleQty]);
+
+  const categorySelectValue =
+    row.categoryId.trim() || parentCategoryId?.trim() || "";
+
+  const categoryField = (
+    <Label className="gap-0.5" label="Category">
+      <select
+        className={productFormSelectClass}
+        value={categorySelectValue}
+        onChange={(e) => onPatch({ categoryId: e.target.value })}
+      >
+        {!parentCategoryId ? (
+          <option value="">— None —</option>
+        ) : null}
+        {sortedCategories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+            {!c.active ? " (inactive)" : ""}
+          </option>
+        ))}
+      </select>
+    </Label>
+  );
 
   return (
     <div className="space-y-2">
@@ -311,7 +325,7 @@ function VariantRowFields({
       ) : null}
 
       <FormDrawerSheet>
-      <FormDrawerFields legend={variantLegend(index)} appearance="sharp" embedded index={1}>
+      <FormDrawerFields legend={variantLegend(index)} appearance="sharp" embedded>
         {!parentIsProductGroup ? (
           <ToggleChip
             checked={row.isPackageVariant}
@@ -368,12 +382,15 @@ function VariantRowFields({
         )}
       </FormDrawerFields>
 
-      <FormDrawerFields legend="Barcode & SKU" appearance="sharp" embedded index={2}>
+      <FormDrawerFields legend="Codes" appearance="sharp" embedded>
         <div className="grid gap-2 sm:grid-cols-2">
           <Label label="Barcode">
-            <div className="flex gap-1.5">
+            <div className="flex gap-px overflow-hidden rounded-none border border-border bg-border">
               <input
-                className={cn(icClass(), "min-w-0 flex-1 font-mono text-xs")}
+                className={cn(
+                  icClass(),
+                  "min-w-0 flex-1 border-0 font-mono text-xs focus-visible:ring-inset",
+                )}
                 placeholder="Scan or type"
                 value={row.barcode}
                 onChange={(e) => onPatch({ barcode: e.target.value })}
@@ -381,7 +398,7 @@ function VariantRowFields({
               <button
                 type="button"
                 onClick={onScanBarcode}
-                className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground/50 shadow-none hover:bg-muted"
+                className="flex size-8 shrink-0 items-center justify-center bg-background text-foreground/50 hover:bg-muted/50 hover:text-foreground"
                 aria-label="Scan barcode"
               >
                 <Camera className="size-3.5" aria-hidden />
@@ -402,7 +419,7 @@ function VariantRowFields({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 shrink-0 px-2 font-mono text-[10px] tracking-tight shadow-none"
+                  className="h-8 shrink-0 rounded-none px-2 font-mono text-[10px] tracking-tight shadow-none"
                   onClick={() => onPatch({ sku: suggestedNextSku })}
                 >
                   {suggestedNextSku}
@@ -411,28 +428,10 @@ function VariantRowFields({
             </div>
           </div>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <InlineField label="Brand">
-            <input
-              className={icClass()}
-              placeholder="Optional"
-              value={row.brand}
-              onChange={(e) => onPatch({ brand: e.target.value })}
-            />
-          </InlineField>
-          <InlineField label="Size">
-            <input
-              className={icClass()}
-              placeholder="Optional"
-              value={row.size}
-              onChange={(e) => onPatch({ size: e.target.value })}
-            />
-          </InlineField>
-        </div>
       </FormDrawerFields>
 
       {canInventoryWrite && !row.isPackageVariant ? (
-        <FormDrawerFields legend="Stock" appearance="sharp" embedded index={3}>
+        <FormDrawerFields legend="Stock" appearance="sharp" embedded>
           <StockIncreaseFields
             mode="opening"
             minimal
@@ -445,10 +444,15 @@ function VariantRowFields({
             unitCost={row.openingUnitCost}
             onUnitCostChange={(v) => onPatch({ openingUnitCost: v })}
             currentUnitCost={costPerUnit}
+            quantityAside={categoryField}
             className="space-y-2 border-0 bg-transparent p-0 shadow-none ring-0"
           />
         </FormDrawerFields>
-      ) : null}
+      ) : (
+        <FormDrawerFields legend="Category" appearance="sharp" embedded>
+          {categoryField}
+        </FormDrawerFields>
+      )}
       </FormDrawerSheet>
     </div>
   );
@@ -461,7 +465,7 @@ export function VariantDrawerForm({
   removeVariantDraftRow,
   parentIsProductGroup,
   parentCategoryId,
-  parentCategoryName,
+  parentCategoryName: _parentCategoryName,
   sortedCategories,
   branches,
   suppliersForLink,
@@ -486,6 +490,20 @@ export function VariantDrawerForm({
     setExtrasRow((i) => Math.min(i, Math.max(0, variantDraftRows.length - 1)));
   }, [variantDraftRows.length]);
 
+  useEffect(() => {
+    const parentCat = parentCategoryId?.trim();
+    if (!parentCat) return;
+    setVariantDraftRows((rows) => {
+      let changed = false;
+      const next = rows.map((r) => {
+        if (r.categoryId.trim()) return r;
+        changed = true;
+        return { ...r, categoryId: parentCat };
+      });
+      return changed ? next : rows;
+    });
+  }, [parentCategoryId, setVariantDraftRows]);
+
   const patchRow = useCallback(
     (index: number, partial: Partial<VariantDraft>) => {
       setVariantDraftRows((rows) =>
@@ -499,7 +517,6 @@ export function VariantDrawerForm({
 
   const hasMoreData = Boolean(
     extrasDraft.description ||
-      extrasDraft.categoryId ||
       extrasDraft.unitType ||
       extrasDraft.minStockLevel ||
       extrasDraft.reorderLevel ||
@@ -513,16 +530,6 @@ export function VariantDrawerForm({
 
   return (
     <form id="add-variant-form" className="space-y-2" onSubmit={onSubmit}>
-      {parentIsProductGroup && parentCategoryId ? (
-        <div className={cn("rounded-none border border-border bg-muted/15 px-2.5 py-1.5", productFormMetaClass)}>
-          Category:{" "}
-          <span className="text-foreground/80">
-            {parentCategoryName || "Group category"}
-          </span>
-          <span className="text-foreground/40"> — applied to new variants</span>
-        </div>
-      ) : null}
-
       {variantDraftRows.map((row, index) => (
         <VariantRowFields
           key={index}
@@ -536,6 +543,8 @@ export function VariantDrawerForm({
           branches={branches}
           canInventoryWrite={canInventoryWrite}
           parentIsProductGroup={parentIsProductGroup}
+          parentCategoryId={parentCategoryId}
+          sortedCategories={sortedCategories}
           onScanBarcode={() => setScannerRow(index)}
         />
       ))}
@@ -582,7 +591,7 @@ export function VariantDrawerForm({
       />
 
       {moreExpanded ? (
-        <div className="space-y-3 rounded-none border border-border bg-background p-3 shadow-none">
+        <div className="space-y-3 border border-t-0 border-border bg-background p-3 shadow-none">
           {canLinkSupplier ? (
             <div className="space-y-2">
               {canListSuppliers && suppliersForLink.length === 0 ? (
@@ -687,48 +696,14 @@ export function VariantDrawerForm({
             />
           </Label>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            {!parentIsProductGroup || !parentCategoryId ? (
-              <Label label="Category">
-                <select
-                  className={productFormSelectClass}
-                  value={extrasDraft.categoryId}
-                  onChange={(e) => patchRow(extrasRow, { categoryId: e.target.value })}
-                >
-                  <option value="">Same as parent</option>
-                  {sortedCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                      {!c.active ? " (inactive)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </Label>
-            ) : (
-              <Label label="Category override">
-                <select
-                  className={productFormSelectClass}
-                  value={extrasDraft.categoryId}
-                  onChange={(e) => patchRow(extrasRow, { categoryId: e.target.value })}
-                >
-                  {sortedCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                      {!c.active ? " (inactive)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </Label>
-            )}
-            <Label label="Unit">
-              <input
-                className={icClass()}
-                placeholder="each, kg…"
-                value={extrasDraft.unitType}
-                onChange={(e) => patchRow(extrasRow, { unitType: e.target.value })}
-              />
-            </Label>
-          </div>
+          <Label label="Unit">
+            <input
+              className={icClass()}
+              placeholder="each, kg…"
+              value={extrasDraft.unitType}
+              onChange={(e) => patchRow(extrasRow, { unitType: e.target.value })}
+            />
+          </Label>
 
           <div className="space-y-1.5">
             <span className={productFormLabelClass}>Cover photo</span>

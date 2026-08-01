@@ -213,15 +213,21 @@ export function ProductsWorkspace() {
     : "";
   const handleOpenAddVariant = useCallback(() => {
     const seed = emptyVariantDraft();
+    const parentCategory =
+      variantDrawerParentCategoryId ||
+      (isViewingVariant
+        ? D?.categoryId?.trim() || ""
+        : D && !D.variantOfItemId?.trim()
+          ? D.categoryId?.trim() || ""
+          : "");
+    if (parentCategory) seed.categoryId = parentCategory;
     if (isViewingVariant && D) {
-      seed.brand = D.brand?.trim() || "";
       seed.unitType = D.unitType?.trim() || "";
       seed.isPackageVariant = D.packageVariant ?? false;
-      if (D.categoryId?.trim()) seed.categoryId = D.categoryId.trim();
     }
     m.setVariantDraftRows([seed]);
     setActiveDrawer("add-variant");
-  }, [D, isViewingVariant, m]);
+  }, [D, isViewingVariant, m, variantDrawerParentCategoryId]);
   const variantCreateSubmitCount = m.variantDraftRows.filter((r) =>
     r.variantName.trim(),
   ).length;

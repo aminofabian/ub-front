@@ -172,6 +172,9 @@ export function useProductMutations(d: Dependencies) {
           sku: "",
           barcode: "",
           name: "",
+          brand: "",
+          size: "",
+          // Keep parent category / stock defaults from the first row.
         },
       ];
     });
@@ -332,21 +335,14 @@ export function useProductMutations(d: Dependencies) {
   // ─── seed variant draft from parent when drawer opens ─────────────
   useEffect(() => {
     if (activeDrawer !== "add-variant") return;
-    const parentBrand = detail?.brand;
-    const parentCategoryId =
-      detail?.variantOfItemId?.trim() ? "" : detail?.categoryId?.trim() || "";
-    if (!parentBrand && !parentCategoryId) return;
+    const parentCategoryId = detail?.variantOfItemId?.trim()
+      ? detail.categoryId?.trim() || ""
+      : detail?.categoryId?.trim() || "";
+    if (!parentCategoryId) return;
     setVariantDraftRows((rows) =>
-      rows.map((r, i) => {
-        let next = r;
-        if (i === 0 && parentBrand && r.brand === "") {
-          next = { ...next, brand: parentBrand };
-        }
-        if (parentCategoryId && r.categoryId === "") {
-          next = { ...next, categoryId: parentCategoryId };
-        }
-        return next;
-      }),
+      rows.map((r) =>
+        r.categoryId === "" ? { ...r, categoryId: parentCategoryId } : r,
+      ),
     );
   }, [activeDrawer, detail?.brand, detail?.categoryId, detail?.variantOfItemId]);
 
