@@ -610,6 +610,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewPosDrafts;
   if (item.href === APP_ROUTES.salesReports)
     return gate.canViewSalesIntelligence;
+  if (item.href === APP_ROUTES.storefrontWebOrders)
+    return gate.canViewStorefrontOrders;
   if (item.href === APP_ROUTES.salesQuick) return gate.canQuickSale;
   if (item.href === APP_ROUTES.cashier) return gate.canQuickSale;
   if (item.href === APP_ROUTES.grocery) {

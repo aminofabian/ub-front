@@ -14,11 +14,13 @@ export type BuildActionItemsInput = {
   batchDashboard: BatchDashboardResponse | null;
   expiryPipeline: InventoryExpiryPipelineResponse | null;
   storefrontEnabled: boolean | undefined;
+  openWebOrders: number;
   payablesOpen: number;
   canViewShifts: boolean;
   canViewSupplyBatches: boolean;
   canManageBusinessSettings: boolean;
   canViewApAging: boolean;
+  canViewStorefrontOrders: boolean;
 };
 
 export function expiringBatchCount(
@@ -86,6 +88,16 @@ export function buildActionItems(input: BuildActionItemsInput): ActionItem[] {
       detail: "Enable it to accept web orders",
       href: APP_ROUTES.businessSettings,
       tone: "info",
+    });
+  }
+
+  if (input.canViewStorefrontOrders && input.openWebOrders > 0) {
+    items.push({
+      id: "web-orders",
+      label: `${fmtCount(input.openWebOrders)} open web order${input.openWebOrders === 1 ? "" : "s"}`,
+      detail: "Confirm, pack, or complete pickup",
+      href: APP_ROUTES.storefrontWebOrders,
+      tone: "warning",
     });
   }
 

@@ -48,11 +48,13 @@ describe("buildActionItems", () => {
     batchDashboard: null,
     expiryPipeline: null,
     storefrontEnabled: true,
+    openWebOrders: 0,
     payablesOpen: 0,
     canViewShifts: true,
     canViewSupplyBatches: true,
     canManageBusinessSettings: true,
     canViewApAging: true,
+    canViewStorefrontOrders: true,
   };
 
   it("returns no items when everything is clear", () => {
@@ -80,6 +82,7 @@ describe("buildActionItems", () => {
       openShifts: 1,
       lowStockCount: 4,
       storefrontEnabled: false,
+      openWebOrders: 2,
       payablesOpen: 2000,
     });
 
@@ -87,9 +90,11 @@ describe("buildActionItems", () => {
       "open-shifts",
       "low-stock",
       "storefront-off",
+      "web-orders",
       "payables",
     ]);
     expect(items[0]?.href).toBe(APP_ROUTES.shifts);
     expect(items[2]?.href).toBe(APP_ROUTES.businessSettings);
+    expect(items[3]?.href).toBe(APP_ROUTES.storefrontWebOrders);
   });
 });

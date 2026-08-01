@@ -31,6 +31,7 @@ import { StockShelvesBanner } from "@/components/business-hub/stock-shelves-bann
 import { PulseHero } from "@/components/business-hub/pulse-hero";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
 import { SupplyBillsRail } from "@/components/business-hub/supply-bills-rail";
+import { WebOrdersRail } from "@/components/business-hub/web-orders-rail";
 import { RevenueBarChart } from "@/components/business-hub/revenue-bar-chart";
 import { StockHealthPanel } from "@/components/business-hub/stock-health-panel";
 import { TopMoversPanel } from "@/components/business-hub/top-movers-panel";
@@ -85,6 +86,7 @@ import {
   fetchSalesRegister,
   fetchShiftDrawouts,
   fetchShifts,
+  fetchWebOrders,
   type BatchDashboardResponse,
   type DrawoutRecord,
   type FinancePulseResponse,
@@ -95,6 +97,7 @@ import {
   type ProfitAndLossResponse,
   type RecentSaleRow,
   type SalesRegisterResponse,
+  type WebOrderSummary,
 } from "@/lib/api";
 import { filterAndSortSupplyRows } from "@/app/(dashboard)/supplies/_components/supplies-bill-filters";
 import { groupLinesIntoTransactions } from "@/lib/sale-transactions";
@@ -113,6 +116,17 @@ import {
 } from "@/lib/business-hub/ticks-from-transactions";
 
 const SUPPLY_DISPLAY_LIMIT = 24;
+const WEB_ORDERS_DISPLAY_LIMIT = 12;
+
+function isOpenWebOrder(order: WebOrderSummary): boolean {
+  const fulfillment = (order.fulfillmentStatus ?? "awaiting_confirmation")
+    .trim()
+    .toLowerCase();
+  if (fulfillment === "completed") return false;
+  const status = (order.status ?? "").trim().toLowerCase();
+  if (status === "cancelled" || status === "failed") return false;
+  return true;
+}
 
 export function BusinessHubWorkspace() {
   const {
@@ -131,6 +145,7 @@ export function BusinessHubWorkspace() {
     canViewApAging,
     canViewCustomers,
     canViewSalesIntelligence,
+    canViewStorefrontOrders,
     canPathBRead,
   } = useDashboard();
   const featureFlags = useFeatureFlags();
@@ -144,6 +159,7 @@ export function BusinessHubWorkspace() {
   );
   const showButcherCounter =
     isButcherPosEnabled(featureFlags) && canQuickSale;
+  const shopEnabled = featureFlags?.shop !== false;
 
   const roleKey = me?.role?.key?.trim().toLowerCase();
   const canApproveStockTake = hasPermission(
@@ -153,6 +169,8 @@ export function BusinessHubWorkspace() {
   const canViewOwnerSummary =
     roleKey !== "stock_manager" && roleKey !== "cashier";
   const canViewSupplyBills = canPathBRead || canViewApAging;
+  const canShowWebOrders =
+    canViewStorefrontOrders && shopEnabled;
 
   const [period, setPeriod] = useState<Period>("today");
   const [pulse, setPulse] = useState<FinancePulseResponse | null>(null);
@@ -188,6 +206,7 @@ export function BusinessHubWorkspace() {
   const [todaySupplies, setTodaySupplies] = useState<PathBSupplyListRowRecord[]>(
     [],
   );
+  const [openWebOrders, setOpenWebOrders] = useState<WebOrderSummary[]>([]);
   const [recentDrawouts, setRecentDrawouts] = useState<HubDrawout[]>([]);
   const [selectedCashiers, setSelectedCashiers] = useState<string[]>([]);
   const loadGen = useRef(0);
@@ -195,6 +214,10 @@ export function BusinessHubWorkspace() {
   const supplyJustUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const webOrdersJustUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const [webOrdersJustUpdated, setWebOrdersJustUpdated] = useState(false);
 
   const load = useCallback(async () => {
     // Wait until header branch/department seed finishes. An early fetch with
@@ -236,6 +259,7 @@ export function BusinessHubWorkspace() {
         openShiftsRes,
         recentSalesRes,
         suppliesRes,
+        webOrdersRes,
       ] = await Promise.all([
         canViewOwnerSummary
           ? fetchDashboardOwnerSummary(branch, type).catch(() => null)
@@ -306,6 +330,9 @@ export function BusinessHubWorkspace() {
               () => [] as PathBSupplyListRowRecord[],
             )
           : Promise.resolve([] as PathBSupplyListRowRecord[]),
+        canShowWebOrders
+          ? fetchWebOrders(0, 50).catch(() => [] as WebOrderSummary[])
+          : Promise.resolve([] as WebOrderSummary[]),
       ]);
 
       if (gen !== loadGen.current) return;
@@ -338,6 +365,18 @@ export function BusinessHubWorkspace() {
           "today",
         ).slice(0, SUPPLY_DISPLAY_LIMIT),
       );
+      const branchScope = branch?.trim();
+      const webRows = (Array.isArray(webOrdersRes) ? webOrdersRes : [])
+        .filter((order) =>
+          branchScope ? order.catalogBranchId === branchScope : true,
+        )
+        .filter(isOpenWebOrder)
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .slice(0, WEB_ORDERS_DISPLAY_LIMIT);
+      setOpenWebOrders(webRows);
 
       const openShiftRows = openShiftsRes?.shifts ?? [];
       if (openShiftRows.length > 0) {
@@ -376,6 +415,7 @@ export function BusinessHubWorkspace() {
     canViewSalesIntelligence,
     canViewSupplyBills,
     canViewShifts,
+    canShowWebOrders,
   ]);
 
   useEffect(() => {
@@ -387,6 +427,9 @@ export function BusinessHubWorkspace() {
       if (justUpdatedTimer.current) clearTimeout(justUpdatedTimer.current);
       if (supplyJustUpdatedTimer.current) {
         clearTimeout(supplyJustUpdatedTimer.current);
+      }
+      if (webOrdersJustUpdatedTimer.current) {
+        clearTimeout(webOrdersJustUpdatedTimer.current);
       }
     };
   }, []);
@@ -411,6 +454,17 @@ export function BusinessHubWorkspace() {
     }, 2400);
   }, []);
 
+  const markWebOrdersLiveEvent = useCallback(() => {
+    setWebOrdersJustUpdated(true);
+    if (webOrdersJustUpdatedTimer.current) {
+      clearTimeout(webOrdersJustUpdatedTimer.current);
+    }
+    webOrdersJustUpdatedTimer.current = setTimeout(() => {
+      setWebOrdersJustUpdated(false);
+      webOrdersJustUpdatedTimer.current = null;
+    }, 2400);
+  }, []);
+
   useBusinessHubRealtime({
     branchId,
     enabled: headerScopeReady,
@@ -428,6 +482,12 @@ export function BusinessHubWorkspace() {
         playCashierChime("supply", { volume: hubAlerts.volume });
       }
       markSupplyLiveEvent();
+    },
+    onWebOrderEvent: () => {
+      if (hubAlerts.beepOnSale) {
+        playCashierChime("order", { volume: hubAlerts.volume });
+      }
+      markWebOrdersLiveEvent();
     },
   });
 
@@ -487,22 +547,26 @@ export function BusinessHubWorkspace() {
         batchDashboard,
         expiryPipeline,
         storefrontEnabled: business?.storefront?.enabled,
+        openWebOrders: openWebOrders.length,
         payablesOpen,
         canViewShifts,
         canViewSupplyBatches,
         canManageBusinessSettings,
         canViewApAging,
+        canViewStorefrontOrders: canShowWebOrders,
       }),
     [
       batchDashboard,
       business?.storefront?.enabled,
       canManageBusinessSettings,
+      canShowWebOrders,
       canViewApAging,
       canViewShifts,
       canViewSupplyBatches,
       expiryPipeline,
       lowStockCount,
       openShifts,
+      openWebOrders.length,
       payablesOpen,
     ],
   );
@@ -511,7 +575,8 @@ export function BusinessHubWorkspace() {
     canViewShifts ||
     canViewSupplyBatches ||
     canManageBusinessSettings ||
-    canViewApAging;
+    canViewApAging ||
+    canShowWebOrders;
 
   const chartRevenue = chartPoints.map((p) => p.value);
   const salesEmpty = isHubSalesEmpty(revenue, orders, chartRevenue);
@@ -698,9 +763,13 @@ export function BusinessHubWorkspace() {
         icon: BarChart3,
       },
       {
-        href: "/storefront",
-        label: "Storefront",
-        hint: "Your public shop window",
+        href: canShowWebOrders
+          ? APP_ROUTES.storefrontWebOrders
+          : APP_ROUTES.businessSettings,
+        label: canShowWebOrders ? "Web orders" : "Storefront",
+        hint: canShowWebOrders
+          ? "Online pickup orders"
+          : "Set up your public shop",
         icon: Store,
       },
     ];
@@ -764,6 +833,7 @@ export function BusinessHubWorkspace() {
     canApproveStockTake,
     canListUsers,
     canManageBusinessSettings,
+    canShowWebOrders,
     canViewCustomers,
     canViewSalesIntelligence,
     showButcherCounter,
@@ -984,6 +1054,15 @@ export function BusinessHubWorkspace() {
                   currency={currency}
                   live={pulseLive}
                   justUpdated={supplyJustUpdated}
+                />
+              ) : null}
+
+              {canShowWebOrders ? (
+                <WebOrdersRail
+                  orders={openWebOrders}
+                  currency={currency}
+                  live={pulseLive}
+                  justUpdated={webOrdersJustUpdated}
                 />
               ) : null}
 
