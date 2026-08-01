@@ -137,9 +137,14 @@ export type OnboardingCatalogShelfProps = {
   onToggleProduct: (product: GlobalProductRecord) => void;
   onRemoveSelected: (productId: string) => void;
   onClearSelected: () => void;
+  onSelectAllOnShelf?: () => void;
+  onClearShelfSelection?: () => void;
+  allShelfSelected?: boolean;
+  shelfSelectableCount?: number;
   storefrontVisible: boolean;
   onStorefrontVisibleChange: (value: boolean) => void;
   loading?: boolean;
+  loadingLabel?: string | null;
   shelfCountLabel: string;
   canAdopt: boolean;
   importing?: boolean;
@@ -167,9 +172,14 @@ export function OnboardingCatalogShelf({
   onToggleProduct,
   onRemoveSelected,
   onClearSelected,
+  onSelectAllOnShelf,
+  onClearShelfSelection,
+  allShelfSelected = false,
+  shelfSelectableCount = 0,
   storefrontVisible,
   onStorefrontVisibleChange,
   loading = false,
+  loadingLabel = null,
   shelfCountLabel,
   canAdopt,
   importing = false,
@@ -443,9 +453,44 @@ export function OnboardingCatalogShelf({
                 autoCorrect="off"
               />
             </label>
-            <div className="flex items-center justify-between gap-2 text-xs text-[#6B7280]">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-xs text-[#6B7280]">
               <h3 className="font-semibold text-[#1F2937]">{shelfCountLabel}</h3>
-              {loading ? <span>Loading…</span> : null}
+              <div className="flex items-center gap-3">
+                {loading || loadingLabel ? (
+                  <span>{loadingLabel ?? "Loading…"}</span>
+                ) : null}
+                {shelfSelectableCount > 0 && !importing ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={
+                        allShelfSelected
+                          ? onClearShelfSelection
+                          : onSelectAllOnShelf
+                      }
+                      className="min-h-8 font-medium text-[#0D9488] active:opacity-70"
+                    >
+                      {allShelfSelected
+                        ? "Deselect all"
+                        : `Select all (${shelfSelectableCount})`}
+                    </button>
+                    {selectedCount > 0 ? (
+                      <>
+                        <span className="text-[#D1D5DB]" aria-hidden>
+                          ·
+                        </span>
+                        <button
+                          type="button"
+                          onClick={onClearSelected}
+                          className="min-h-8 text-[#6B7280] active:opacity-70"
+                        >
+                          Clear selection
+                        </button>
+                      </>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
             </div>
           </div>
 

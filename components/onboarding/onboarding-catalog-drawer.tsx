@@ -17,7 +17,7 @@ import {
 import {
   fetchGlobalCatalogMeta,
   fetchGlobalCatalogPack,
-  fetchGlobalCatalogProducts,
+  fetchAllGlobalCatalogProducts,
   globalCatalogAdopt,
   previewGlobalCatalogAdopt,
   type GlobalCatalogAdoptLine,
@@ -88,6 +88,8 @@ export function OnboardingCatalogDrawer({
   const [browseProducts, setBrowseProducts] = useState<GlobalProductRecord[]>(
     [],
   );
+  const [browseTotal, setBrowseTotal] = useState(0);
+  const [browseLoadLabel, setBrowseLoadLabel] = useState<string | null>(null);
   const [selected, setSelected] = useState<Map<string, GlobalProductRecord>>(
     () => new Map(),
   );
@@ -189,30 +191,50 @@ export function OnboardingCatalogDrawer({
 
     if (usePackShelf) {
       setBrowseProducts([]);
+      setBrowseTotal(0);
+      setBrowseLoadLabel(null);
       setLoadingShelf(false);
       return;
     }
 
     let cancelled = false;
+    const signal = { cancelled: false };
     setLoadingShelf(true);
+    setBrowseLoadLabel("Loading products…");
     void (async () => {
       try {
-        const page = await fetchGlobalCatalogProducts({
-          categoryId:
-            parentFilter.kind === "category"
-              ? parentFilter.categoryId
-              : null,
-          q: debouncedSearch.trim() || null,
-          onlyNotImported: true,
-          page: 0,
-          size: 120,
-        });
+        const products = await fetchAllGlobalCatalogProducts(
+          {
+            categoryId:
+              parentFilter.kind === "category"
+                ? parentFilter.categoryId
+                : null,
+            q: debouncedSearch.trim() || null,
+            onlyNotImported: true,
+          },
+          {
+            pageSize: 200,
+            signal,
+            onProgress: (loaded, total) => {
+              if (cancelled) return;
+              setBrowseLoadLabel(
+                total > 0
+                  ? `Loading ${loaded} of ${total}…`
+                  : `Loading ${loaded}…`,
+              );
+            },
+          },
+        );
         if (!cancelled) {
-          setBrowseProducts(page.content);
+          setBrowseProducts(products);
+          setBrowseTotal(products.length);
+          setBrowseLoadLabel(null);
         }
       } catch {
         if (!cancelled) {
           setBrowseProducts([]);
+          setBrowseTotal(0);
+          setBrowseLoadLabel(null);
         }
       } finally {
         if (!cancelled) {
@@ -223,6 +245,7 @@ export function OnboardingCatalogDrawer({
 
     return () => {
       cancelled = true;
+      signal.cancelled = true;
     };
   }, [open, meta, parentFilter, debouncedSearch]);
 
@@ -233,18 +256,38 @@ export function OnboardingCatalogDrawer({
     return browseProducts;
   }, [parentFilter, debouncedSearch, packProducts, browseProducts]);
 
+  const shelfSelectable = useMemo(
+    () => shelfProducts.filter((p) => !p.alreadyImported),
+    [shelfProducts],
+  );
+
+  const allShelfSelected =
+    shelfSelectable.length > 0 &&
+    shelfSelectable.every((p) => selected.has(p.id));
+
   const shelfCountLabel = useMemo(() => {
+    const count =
+      parentFilter.kind === "pack" && !debouncedSearch.trim()
+        ? shelfProducts.length
+        : browseTotal || shelfProducts.length;
     if (parentFilter.kind === "pack" && !debouncedSearch.trim()) {
-      return `Shelf ${shelfProducts.length}${packFilter ? ` · ${packFilter.packName}` : ""}`;
+      return `Shelf ${count}${packFilter ? ` · ${packFilter.packName}` : ""}`;
     }
     if (parentFilter.kind === "category") {
       const name =
         meta?.categories.find((c) => c.id === parentFilter.categoryId)?.name ??
         "Category";
-      return `Shelf ${shelfProducts.length} · ${name}`;
+      return `Shelf ${count} · ${name}`;
     }
-    return `Shelf ${shelfProducts.length}`;
-  }, [parentFilter, debouncedSearch, shelfProducts.length, packFilter, meta]);
+    return `Shelf ${count}`;
+  }, [
+    parentFilter,
+    debouncedSearch,
+    shelfProducts.length,
+    browseTotal,
+    packFilter,
+    meta,
+  ]);
 
   const parentCategories = useMemo(() => {
     const all = [...(meta?.categories ?? [])].sort(
@@ -280,6 +323,30 @@ export function OnboardingCatalogDrawer({
   const clearSelected = useCallback(() => {
     setSelected(new Map());
   }, []);
+
+  const selectAllOnShelf = useCallback(() => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      for (const product of shelfSelectable) {
+        next.set(product.id, product);
+      }
+      return next;
+    });
+  }, [shelfSelectable]);
+
+  const clearShelfSelection = useCallback(() => {
+    setSelected((prev) => {
+      if (shelfSelectable.length === 0) {
+        return prev;
+      }
+      const drop = new Set(shelfSelectable.map((p) => p.id));
+      const next = new Map(prev);
+      for (const id of drop) {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, [shelfSelectable]);
 
   const handleImport = useCallback(async () => {
     if (!canAdopt || selected.size === 0 || !openingBranchId.trim()) {
@@ -470,9 +537,14 @@ export function OnboardingCatalogDrawer({
         onToggleProduct={toggleProduct}
         onRemoveSelected={removeSelected}
         onClearSelected={clearSelected}
+        onSelectAllOnShelf={selectAllOnShelf}
+        onClearShelfSelection={clearShelfSelection}
+        allShelfSelected={allShelfSelected}
+        shelfSelectableCount={shelfSelectable.length}
         storefrontVisible={storefrontVisible}
         onStorefrontVisibleChange={setStorefrontVisible}
         loading={loadingMeta || loadingShelf}
+        loadingLabel={browseLoadLabel}
         shelfCountLabel={shelfCountLabel}
         canAdopt={canAdopt}
         importing={importing}

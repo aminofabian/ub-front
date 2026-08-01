@@ -3872,6 +3872,50 @@ export async function fetchGlobalCatalogProducts(params?: {
   };
 }
 
+/** Loads every matching global-catalog product by paging (avoids a hard UI cap). */
+export async function fetchAllGlobalCatalogProducts(
+  params?: {
+    categoryId?: string | null;
+    q?: string | null;
+    barcode?: string | null;
+    onlyNotImported?: boolean;
+  },
+  opts?: {
+    pageSize?: number;
+    onProgress?: (loaded: number, total: number) => void;
+    signal?: { cancelled: boolean };
+  },
+): Promise<GlobalProductRecord[]> {
+  const pageSize = Math.min(Math.max(opts?.pageSize ?? 200, 50), 500);
+  const out: GlobalProductRecord[] = [];
+  let page = 0;
+  let total = 0;
+
+  for (;;) {
+    if (opts?.signal?.cancelled) {
+      return out;
+    }
+    const result = await fetchGlobalCatalogProducts({
+      ...params,
+      page,
+      size: pageSize,
+    });
+    total = result.totalElements;
+    out.push(...result.content);
+    opts?.onProgress?.(out.length, total);
+    if (result.last || result.content.length === 0) {
+      break;
+    }
+    page += 1;
+    // Safety: never spin forever if the API misreports `last`.
+    if (page > 200 || out.length >= total) {
+      break;
+    }
+  }
+
+  return out;
+}
+
 export async function fetchGlobalCatalogProduct(
   id: string,
 ): Promise<GlobalProductRecord> {
