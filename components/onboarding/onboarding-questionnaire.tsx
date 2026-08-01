@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Package } from "lucide-react";
+import { Check, ChevronLeft, Package } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { OnboardingBrandingColorPicker } from "@/components/onboarding/onboarding-branding-color-picker";
@@ -71,23 +71,23 @@ function QuestionnaireProgress({ step }: { step: number }) {
     step >= QUESTIONNAIRE_STEP_COUNT
       ? 100
       : Math.round((clamped / answerSteps) * 100);
-  const label =
-    step >= QUESTIONNAIRE_STEP_COUNT
-      ? "Last step — stock your shelves"
-      : `You're ${percent}% done`;
 
   return (
-    <div className="w-full space-y-2">
-      <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="font-medium text-[#374151]">{label}</span>
+    <div className="w-full space-y-1.5">
+      <div className="flex items-center justify-between gap-3 text-[11px] sm:text-xs">
+        <span className="font-medium text-[#374151]">
+          {step >= QUESTIONNAIRE_STEP_COUNT
+            ? "Last step — stock your shelves"
+            : `${percent}% done`}
+        </span>
         <span className="tabular-nums text-[#9CA3AF]">
           {step >= QUESTIONNAIRE_STEP_COUNT
-            ? "Final step"
-            : `Step ${step} of ${answerSteps}`}
+            ? "Final"
+            : `${step} / ${answerSteps}`}
         </span>
       </div>
       <div
-        className="h-1.5 overflow-hidden rounded-full bg-[#E5E7EB]"
+        className="h-1 overflow-hidden rounded-full bg-[#E5E7EB] sm:h-1.5"
         role="progressbar"
         aria-valuenow={percent}
         aria-valuemin={0}
@@ -95,9 +95,20 @@ function QuestionnaireProgress({ step }: { step: number }) {
         aria-label={`Setup progress: ${percent} percent`}
       >
         <div
-          className="h-full rounded-full bg-[#0D9488] transition-[width] duration-300 ease-out"
+          className="h-full rounded-full bg-[#0D9488] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
           style={{ width: `${percent}%` }}
         />
+      </div>
+      <div className="flex gap-1 pt-0.5 sm:hidden" aria-hidden>
+        {Array.from({ length: answerSteps }, (_, i) => (
+          <span
+            key={i}
+            className={cn(
+              "h-1 flex-1 rounded-full transition-colors duration-300",
+              i < clamped ? "bg-[#0D9488]" : "bg-[#E5E7EB]",
+            )}
+          />
+        ))}
       </div>
     </div>
   );
@@ -107,20 +118,26 @@ function OptionButton({
   selected,
   onClick,
   children,
+  compact,
 }: {
   selected: boolean;
   onClick: () => void;
   children: ReactNode;
+  compact?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full rounded-xl border px-4 py-3.5 text-left text-[15px] transition-colors",
+        "w-full border text-left transition-[border-color,background-color,transform,box-shadow]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/40",
+        "active:scale-[0.985] touch-manipulation",
+        compact
+          ? "min-h-14 rounded-2xl px-3 py-3 text-[14px] sm:min-h-[3.25rem] sm:rounded-xl sm:px-4 sm:text-[15px]"
+          : "min-h-[3.25rem] rounded-2xl px-4 py-3.5 text-[15px] sm:rounded-xl",
         selected
-          ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A] shadow-sm"
+          ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A] shadow-[0_1px_0_0_rgba(13,148,136,0.12)]"
           : "border-[#E5E7EB] bg-white text-[#4B5563] hover:border-[#D1D5DB] hover:bg-[#FAFAFA]",
       )}
     >
@@ -143,7 +160,7 @@ function DepartmentChip({
       type="button"
       onClick={onToggle}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors",
+        "inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-[border-color,background-color,transform] touch-manipulation active:scale-[0.97]",
         selected
           ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A]"
           : "border-[#E5E7EB] bg-white text-[#4B5563] hover:border-[#D1D5DB]",
@@ -152,6 +169,25 @@ function DepartmentChip({
       {selected ? <Check className="size-3.5 shrink-0" aria-hidden /> : null}
       {label}
     </button>
+  );
+}
+
+function StepHeading({
+  title,
+  description,
+}: {
+  title: string;
+  description: ReactNode;
+}) {
+  return (
+    <div className="space-y-2 text-left">
+      <h1 className="text-[1.375rem] font-semibold tracking-tight text-[#1F2937] sm:text-2xl sm:text-center">
+        {title}
+      </h1>
+      <p className="text-[15px] leading-relaxed text-[#6B7280] sm:text-center sm:text-sm">
+        {description}
+      </p>
+    </div>
   );
 }
 
@@ -478,513 +514,621 @@ export function OnboardingQuestionnaire({
 
   const storeTypesLabel = formatStoreTypesLabel(storeTypes);
 
+  const scrollRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
+
+  const primaryCtaClass = cn(
+    "flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold transition touch-manipulation active:scale-[0.985] sm:rounded-xl",
+  );
+
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-y-auto bg-white px-4 py-10">
+    <div className="relative flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#FBF9F5] text-[#1F2937]">
       <div
         className="pointer-events-none absolute inset-0 overflow-hidden"
         aria-hidden
       >
-        <svg
-          className="absolute -left-8 -top-6 h-40 w-40 text-[#FED7AA]/60"
-          viewBox="0 0 200 200"
-          fill="none"
-        >
-          <path
-            d="M20 120C60 40 120 20 180 60"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-        </svg>
-        <svg
-          className="absolute -bottom-8 -right-6 h-44 w-44 text-[#FED7AA]/50"
-          viewBox="0 0 200 200"
-          fill="none"
-        >
-          <path
-            d="M30 80C80 140 140 160 170 100"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-        </svg>
+        <div className="absolute -left-24 top-0 size-72 rounded-full bg-[#99F6E4]/25 blur-3xl" />
+        <div className="absolute -right-16 top-40 size-64 rounded-full bg-[#FED7AA]/35 blur-3xl" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white/80 to-transparent" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md pb-8">
-        <div className="mb-8 flex w-full max-w-md flex-col items-center gap-4">
-          <KioskLogoMark size={44} variant="auth" />
-          {countryCode || currency ? (
-            <p className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1 text-[11px] font-medium text-[#6B7280]">
-              {[countryCode?.toUpperCase(), currency?.toUpperCase()]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          ) : null}
-          <QuestionnaireProgress step={step} />
+      <header className="relative z-20 shrink-0 border-b border-[#E8E4DC]/80 bg-[#FBF9F5]/92 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md sm:px-6">
+        <div className="mx-auto flex w-full max-w-lg items-center gap-3">
+          {step > 1 && step < 6 ? (
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={submitting}
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#374151] shadow-sm transition active:scale-95 disabled:opacity-50 sm:hidden"
+              aria-label="Back"
+            >
+              <ChevronLeft className="size-5" aria-hidden />
+            </button>
+          ) : (
+            <span className="size-10 shrink-0 sm:hidden" aria-hidden />
+          )}
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-2 sm:items-stretch">
+            <div className="flex w-full items-center justify-center gap-2.5 sm:justify-between">
+              <KioskLogoMark size={36} variant="auth" className="sm:hidden" />
+              <KioskLogoMark size={40} variant="auth" className="hidden sm:block" />
+              {countryCode || currency ? (
+                <p className="hidden rounded-full border border-[#E5E7EB] bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[#6B7280] sm:inline-flex">
+                  {[countryCode?.toUpperCase(), currency?.toUpperCase()]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              ) : null}
+            </div>
+            <QuestionnaireProgress step={step} />
+          </div>
+          <button
+            type="button"
+            onClick={step === 6 ? onFinishLater : onSkip}
+            disabled={submitting}
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-full px-2 text-xs font-medium text-[#6B7280] transition active:scale-95 disabled:opacity-40 sm:hidden"
+          >
+            Skip
+          </button>
         </div>
+      </header>
 
-        <div className="space-y-6 text-center">
-          {step === 1 ? (
-            <>
-              <h1 className="text-xl font-semibold tracking-tight text-[#1F2937] sm:text-2xl">
-                Your shop locations
-              </h1>
-              <p className="text-sm text-[#6B7280]">
-                How many branches do you have, and what do you call each one?
-              </p>
-              <div className="space-y-2.5 pt-2 text-left">
-                {BRANCH_COUNT_OPTIONS.map((opt) => (
-                  <OptionButton
-                    key={opt.value}
-                    selected={branchCount === opt.value}
-                    onClick={() => setBranchCount(opt.value)}
-                  >
-                    {opt.label}
-                  </OptionButton>
-                ))}
-              </div>
-              {branchSlots > 0 ? (
-                <div className="space-y-3 border-t border-[#F3F4F6] pt-4 text-left">
-                  <p className="text-xs font-medium text-[#6B7280]">
-                    Name each branch (area or suburb)
-                  </p>
-                  {branchLocalities.map((locality, index) => {
-                    const preview = formatBranchDisplayName(
-                      locality ||
-                        branchLocalityPlaceholder(index, countryCode),
-                    );
-                    return (
-                      <label key={index} className="block">
-                        <span className="mb-1.5 flex items-baseline justify-between gap-2 text-xs font-medium text-[#6B7280]">
-                          <span>Branch {index + 1}</span>
-                          <span className="font-normal text-[#9CA3AF]">
-                            → {preview}
+      <main
+        ref={scrollRef}
+        className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-5 sm:px-6 sm:py-8"
+      >
+        <div className="mx-auto w-full max-w-lg">
+          <div
+            key={step}
+            className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300 sm:space-y-6"
+          >
+            {step === 1 ? (
+              <>
+                <StepHeading
+                  title="Your shop locations"
+                  description="How many branches do you have, and what do you call each one?"
+                />
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-1 sm:gap-2.5">
+                  {BRANCH_COUNT_OPTIONS.map((opt) => (
+                    <OptionButton
+                      key={opt.value}
+                      compact
+                      selected={branchCount === opt.value}
+                      onClick={() => setBranchCount(opt.value)}
+                    >
+                      <span className="block text-center font-medium sm:text-left">
+                        {opt.label}
+                      </span>
+                    </OptionButton>
+                  ))}
+                </div>
+                {branchSlots > 0 ? (
+                  <div className="space-y-3 rounded-2xl border border-[#E8E4DC] bg-white/80 p-3.5 sm:rounded-xl sm:border-0 sm:bg-transparent sm:p-0 sm:pt-2">
+                    <p className="text-xs font-medium text-[#6B7280]">
+                      Name each branch (area or suburb)
+                    </p>
+                    {branchLocalities.map((locality, index) => {
+                      const preview = formatBranchDisplayName(
+                        locality ||
+                          branchLocalityPlaceholder(index, countryCode),
+                      );
+                      return (
+                        <label key={index} className="block">
+                          <span className="mb-1.5 flex items-baseline justify-between gap-2 text-xs font-medium text-[#6B7280]">
+                            <span>Branch {index + 1}</span>
+                            <span className="truncate font-normal text-[#9CA3AF]">
+                              → {preview}
+                            </span>
+                          </span>
+                          <div className="flex h-12 items-center overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20 sm:rounded-xl">
+                            <input
+                              type="text"
+                              value={locality}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setBranchLocalities((prev) => {
+                                  const next = [...prev];
+                                  next[index] = value;
+                                  return next;
+                                });
+                              }}
+                              className="min-w-0 flex-1 bg-transparent px-4 text-base text-[#1F2937] outline-none sm:text-[15px]"
+                              placeholder={branchLocalityPlaceholder(
+                                index,
+                                countryCode,
+                              )}
+                              aria-label={`Branch ${index + 1} area name`}
+                              autoComplete="address-level2"
+                              enterKeyHint="next"
+                            />
+                            <span className="shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#6B7280]">
+                              branch
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                    {branchCount === "5plus" ? (
+                      <p className="text-xs text-[#9CA3AF]">
+                        We&apos;ll set up your first five branches now. Add more
+                        later from Branches.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+
+            {step === 2 ? (
+              <>
+                <StepHeading
+                  title="What kind of shop is this?"
+                  description={
+                    <>
+                      Select all that apply — a mini mart can also include a
+                      butchery. Mini mart and mixed shop can import starter
+                      products at the end.
+                    </>
+                  }
+                />
+                <div className="space-y-2.5">
+                  {STORE_TYPE_OPTIONS.map((opt) => (
+                    <OptionButton
+                      key={opt.value}
+                      selected={storeTypes.includes(opt.value)}
+                      onClick={() => toggleStoreType(opt.value)}
+                    >
+                      <span className="flex items-start justify-between gap-3">
+                        <span className="min-w-0">
+                          <span className="block font-medium">{opt.label}</span>
+                          <span className="mt-0.5 block text-xs leading-snug text-[#9CA3AF]">
+                            {opt.hint}
                           </span>
                         </span>
-                        <div className="flex h-12 items-center overflow-hidden rounded-xl border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20">
-                          <input
-                            type="text"
-                            value={locality}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setBranchLocalities((prev) => {
-                                const next = [...prev];
-                                next[index] = value;
-                                return next;
-                              });
-                            }}
-                            className="min-w-0 flex-1 bg-transparent px-4 text-[15px] text-[#1F2937] outline-none"
-                            placeholder={branchLocalityPlaceholder(
-                              index,
-                              countryCode,
-                            )}
-                            aria-label={`Branch ${index + 1} area name`}
-                          />
-                          <span className="shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#6B7280]">
-                            branch
-                          </span>
-                        </div>
-                      </label>
-                    );
-                  })}
-                  {branchCount === "5plus" ? (
-                    <p className="text-xs text-[#9CA3AF]">
-                      We&apos;ll set up your first five branches now. Add more
-                      later from Branches.
-                    </p>
-                  ) : null}
+                        <span
+                          className={cn(
+                            "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border transition",
+                            storeTypes.includes(opt.value)
+                              ? "border-[#0D9488] bg-[#0D9488] text-white"
+                              : "border-[#D1D5DB] bg-white",
+                          )}
+                          aria-hidden
+                        >
+                          {storeTypes.includes(opt.value) ? (
+                            <Check className="size-3" />
+                          ) : null}
+                        </span>
+                      </span>
+                    </OptionButton>
+                  ))}
                 </div>
-              ) : null}
-            </>
-          ) : null}
+                <p className="text-xs text-[#9CA3AF]">
+                  {storeTypes.length === 0
+                    ? "Select at least one shop type to continue."
+                    : `${storeTypes.length} selected`}
+                </p>
+              </>
+            ) : null}
 
-          {step === 2 ? (
-            <>
-              <h1 className="text-xl font-semibold tracking-tight text-[#1F2937] sm:text-2xl">
-                What kind of shop is this?
-              </h1>
-              <p className="text-sm text-[#6B7280]">
-                Select all that apply — a mini mart can also include a butchery.
-                Mini mart and mixed shop can import starter products from our
-                catalogue at the end.
-              </p>
-              <div className="space-y-2.5 pt-2 text-left">
-                {STORE_TYPE_OPTIONS.map((opt) => (
-                  <OptionButton
-                    key={opt.value}
-                    selected={storeTypes.includes(opt.value)}
-                    onClick={() => toggleStoreType(opt.value)}
-                  >
-                    <span className="block font-medium">{opt.label}</span>
-                    <span className="mt-0.5 block text-xs text-[#9CA3AF]">
-                      {opt.hint}
-                    </span>
-                  </OptionButton>
-                ))}
-              </div>
-              <p className="text-xs text-[#9CA3AF]">
-                {storeTypes.length === 0
-                  ? "Select at least one shop type to continue."
-                  : `${storeTypes.length} selected`}
-              </p>
-            </>
-          ) : null}
-
-          {step === 3 ? (
-            <>
-              <h1 className="text-xl font-semibold tracking-tight text-[#1F2937] sm:text-2xl">
-                Choose your product sections
-              </h1>
-              <p className="text-sm text-[#6B7280]">
+            {step === 3 ? (
+              <>
+                <StepHeading
+                  title="Choose your product sections"
+                  description={
+                    availableDepartments.length > 0 ? (
+                      <>
+                        Suggested for {storeTypesLabel.toLowerCase()}. These
+                        group items at the till and in reports — pick what you
+                        sell now, add your own, or continue and edit later.
+                      </>
+                    ) : (
+                      <>
+                        Add the sections that fit{" "}
+                        {storeTypesLabel.toLowerCase()}. These group items at
+                        the till and in reports — you can edit them later.
+                      </>
+                    )
+                  }
+                />
                 {availableDepartments.length > 0 ? (
-                  <>
-                    Suggested for {storeTypesLabel.toLowerCase()}. These group
-                    items at the till and in reports — pick what you sell now,
-                    add your own, or continue and edit later.
-                  </>
-                ) : (
-                  <>
-                    Add the sections that fit {storeTypesLabel.toLowerCase()}.
-                    These group items at the till and in reports — you can edit
-                    them later.
-                  </>
-                )}
-              </p>
-              {availableDepartments.length > 0 ? (
-                <div className="flex items-center justify-center gap-3 pt-1 text-xs">
-                  <button
-                    type="button"
-                    onClick={selectAllDepartments}
-                    className="font-medium text-[#0D9488] hover:underline"
-                  >
-                    Select all
-                  </button>
-                  <span className="text-[#D1D5DB]">·</span>
-                  <button
-                    type="button"
-                    onClick={clearDepartments}
-                    className="text-[#6B7280] hover:underline"
-                  >
-                    Clear
-                  </button>
-                </div>
-              ) : null}
-              <div className="flex flex-wrap justify-center gap-2 pt-2 text-left">
-                {visibleDepartments.map((dept) => (
-                  <DepartmentChip
-                    key={dept}
-                    label={dept}
-                    selected={isDepartmentSelected(dept)}
-                    onToggle={() => toggleDepartment(dept)}
-                  />
-                ))}
-              </div>
-              <div className="pt-2 text-left">
-                <label
-                  htmlFor="onboarding-custom-department"
-                  className="block text-xs font-medium text-[#6B7280]"
-                >
-                  Add custom section
-                </label>
-                <div className="mt-1.5 flex gap-2">
-                  <input
-                    id="onboarding-custom-department"
-                    type="text"
-                    value={customDepartmentName}
-                    onChange={(event) => setCustomDepartmentName(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addCustomDepartment();
-                      }
-                    }}
-                    className="h-10 min-w-0 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20"
-                    placeholder="e.g. Deli, Frozen Foods, Ready-to-Eat"
-                  />
-                  <button
-                    type="button"
-                    onClick={addCustomDepartment}
-                    className="rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-[#374151] transition hover:bg-[#F9FAFB]"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-              <p className="text-xs text-[#9CA3AF]">
-                {selectedDepartments.length === 0
-                  ? "No sections selected yet. You can continue and add them later."
-                  : `${selectedDepartments.length} selected`}
-              </p>
-            </>
-          ) : null}
-
-          {step === 4 ? (
-            <>
-              <h1 className="text-xl font-semibold tracking-tight text-[#1F2937] sm:text-2xl">
-                Would you like to sell online?
-              </h1>
-              <p className="text-sm text-[#6B7280]">
-                Turn on a web shop so customers can browse and order from your
-                website. You can change this later in Settings.
-              </p>
-              <div className="space-y-2.5 pt-2 text-left">
-                {ONLINE_STORE_OPTIONS.map((opt) => (
-                  <OptionButton
-                    key={opt.value}
-                    selected={onlineStore === opt.value}
-                    onClick={() => setOnlineStore(opt.value)}
-                  >
-                    <span className="block font-medium">{opt.label}</span>
-                    <span className="mt-0.5 block text-xs text-[#9CA3AF]">
-                      {opt.value === "yes"
-                        ? businessSlug
-                          ? `Customers can shop at your storefront (/${businessSlug}).`
-                          : "Customers can browse and order from your web shop."
-                        : "Stay in-store only for now — turn online selling on anytime."}
-                    </span>
-                  </OptionButton>
-                ))}
-              </div>
-            </>
-          ) : null}
-
-          {step === 5 ? (
-            <>
-              <h1 className="text-xl font-semibold tracking-tight text-[#1F2937] sm:text-2xl">
-                Brand your shop
-              </h1>
-              <p className="text-sm text-[#6B7280]">
-                Set your display name and colours. Logo is optional — you can add
-                one later in settings.
-              </p>
-              <div className="space-y-4 pt-2 text-left">
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-medium text-[#6B7280]">
-                    Display name
-                  </span>
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-[#E5E7EB] bg-white px-4 text-[15px] text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20"
-                    placeholder={
-                      suggestedDisplayName || "Your shop name"
-                    }
-                  />
-                  {suggestedDisplayName &&
-                  displayName.trim() !== suggestedDisplayName ? (
+                  <div className="flex items-center gap-3 text-sm">
                     <button
                       type="button"
-                      onClick={() => setDisplayName(suggestedDisplayName)}
-                      className="mt-2 text-left text-xs text-[#0D9488] hover:underline"
+                      onClick={selectAllDepartments}
+                      className="min-h-10 font-medium text-[#0D9488] active:opacity-70"
                     >
-                      Use suggested:{" "}
-                      <span className="font-medium">{suggestedDisplayName}</span>
+                      Select all
                     </button>
-                  ) : suggestedDisplayName ? (
-                    <p className="mt-2 text-xs text-[#9CA3AF]">
-                      Suggested from your business name
-                    </p>
-                  ) : null}
-                </label>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-[#6B7280]">
-                    Colours &amp; preview
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <OnboardingBrandingColorPicker
-                      layout="tile"
-                      showContrastHint={false}
-                      primaryColor={primaryColor}
-                      accentColor={accentColor}
-                      onPrimaryChange={setPrimaryColor}
-                      onAccentChange={setAccentColor}
-                    />
-                    <OnboardingBrandingPreviewModal
-                      layout="tile"
-                      displayName={displayName}
-                      primaryColor={primaryColor}
-                      accentColor={accentColor}
-                      logoPreviewUrl={uploadedLogoUrl}
-                    />
+                    <span className="text-[#D1D5DB]">·</span>
+                    <button
+                      type="button"
+                      onClick={clearDepartments}
+                      className="min-h-10 text-[#6B7280] active:opacity-70"
+                    >
+                      Clear
+                    </button>
                   </div>
-                  {!meetsBrandingContrast(primaryColor, accentColor) ? (
-                    <p className="text-xs text-amber-700" role="status">
-                      Colours need more contrast — tap Pick colours to adjust.
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="rounded-xl border border-dashed border-[#E5E7EB] bg-[#FAFAFA]/80 p-4">
-                  <p className="mb-1 text-xs font-medium text-[#6B7280]">
-                    Logo{" "}
-                    <span className="font-normal text-[#9CA3AF]">(optional)</span>
-                  </p>
-                  <p className="mb-3 text-xs text-[#9CA3AF]">
-                    Skip for now if you don&apos;t have one — we use a generated
-                    mark from your shop name.
-                  </p>
-                  <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-                    <TenantLogo
-                      brand={displayName.trim() || businessName || "Your shop"}
-                      logoUrl={uploadedLogoUrl}
-                      primaryColor={primaryColor}
-                      variant="upload"
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  {visibleDepartments.map((dept) => (
+                    <DepartmentChip
+                      key={dept}
+                      label={dept}
+                      selected={isDepartmentSelected(dept)}
+                      onToggle={() => toggleDepartment(dept)}
                     />
-                    <div className="flex flex-col gap-2 text-center sm:text-left">
-                      <input
-                        ref={logoInputRef}
-                        type="file"
-                        accept={ACCEPTED_LOGO_TYPES}
-                        className="hidden"
-                        onChange={onLogoPick}
-                      />
+                  ))}
+                </div>
+                <div>
+                  <label
+                    htmlFor="onboarding-custom-department"
+                    className="block text-xs font-medium text-[#6B7280]"
+                  >
+                    Add custom section
+                  </label>
+                  <div className="mt-1.5 flex gap-2">
+                    <input
+                      id="onboarding-custom-department"
+                      type="text"
+                      value={customDepartmentName}
+                      onChange={(event) =>
+                        setCustomDepartmentName(event.target.value)
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addCustomDepartment();
+                        }
+                      }}
+                      className="h-12 min-w-0 flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-3 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:h-10 sm:rounded-xl sm:text-sm"
+                      placeholder="e.g. Deli, Frozen Foods"
+                      enterKeyHint="done"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCustomDepartment}
+                      className="h-12 shrink-0 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-10 sm:rounded-xl"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-[#9CA3AF]">
+                  {selectedDepartments.length === 0
+                    ? "No sections selected yet. You can continue and add them later."
+                    : `${selectedDepartments.length} selected`}
+                </p>
+              </>
+            ) : null}
+
+            {step === 4 ? (
+              <>
+                <StepHeading
+                  title="Would you like to sell online?"
+                  description="Turn on a web shop so customers can browse and order from your website. You can change this later in Settings."
+                />
+                <div className="space-y-2.5">
+                  {ONLINE_STORE_OPTIONS.map((opt) => (
+                    <OptionButton
+                      key={opt.value}
+                      selected={onlineStore === opt.value}
+                      onClick={() => setOnlineStore(opt.value)}
+                    >
+                      <span className="block font-medium">{opt.label}</span>
+                      <span className="mt-0.5 block text-xs leading-snug text-[#9CA3AF]">
+                        {opt.value === "yes"
+                          ? businessSlug
+                            ? `Customers can shop at your storefront (/${businessSlug}).`
+                            : "Customers can browse and order from your web shop."
+                          : "Stay in-store only for now — turn online selling on anytime."}
+                      </span>
+                    </OptionButton>
+                  ))}
+                </div>
+              </>
+            ) : null}
+
+            {step === 5 ? (
+              <>
+                <StepHeading
+                  title="Brand your shop"
+                  description="Set your display name and colours. Logo is optional — you can add one later in settings."
+                />
+                <div className="space-y-4">
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-medium text-[#6B7280]">
+                      Display name
+                    </span>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      className="h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:rounded-xl sm:text-[15px]"
+                      placeholder={suggestedDisplayName || "Your shop name"}
+                      autoComplete="organization"
+                      enterKeyHint="done"
+                    />
+                    {suggestedDisplayName &&
+                    displayName.trim() !== suggestedDisplayName ? (
                       <button
                         type="button"
-                        disabled={submitting}
-                        onClick={() => logoInputRef.current?.click()}
-                        className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm font-medium text-[#374151] transition hover:bg-[#F9FAFB]"
+                        onClick={() => setDisplayName(suggestedDisplayName)}
+                        className="mt-2 min-h-10 text-left text-xs text-[#0D9488] active:opacity-70"
                       >
-                        {logoFile ? "Replace logo" : "Upload logo (optional)"}
+                        Use suggested:{" "}
+                        <span className="font-medium">
+                          {suggestedDisplayName}
+                        </span>
                       </button>
-                      {logoFile ? (
+                    ) : suggestedDisplayName ? (
+                      <p className="mt-2 text-xs text-[#9CA3AF]">
+                        Suggested from your business name
+                      </p>
+                    ) : null}
+                  </label>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-[#6B7280]">
+                      Colours &amp; preview
+                    </p>
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                      <OnboardingBrandingColorPicker
+                        layout="tile"
+                        showContrastHint={false}
+                        primaryColor={primaryColor}
+                        accentColor={accentColor}
+                        onPrimaryChange={setPrimaryColor}
+                        onAccentChange={setAccentColor}
+                      />
+                      <OnboardingBrandingPreviewModal
+                        layout="tile"
+                        displayName={displayName}
+                        primaryColor={primaryColor}
+                        accentColor={accentColor}
+                        logoPreviewUrl={uploadedLogoUrl}
+                      />
+                    </div>
+                    {!meetsBrandingContrast(primaryColor, accentColor) ? (
+                      <p className="text-xs text-amber-700" role="status">
+                        Colours need more contrast — tap Pick colours to adjust.
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white/70 p-4 sm:rounded-xl">
+                    <p className="mb-1 text-xs font-medium text-[#6B7280]">
+                      Logo{" "}
+                      <span className="font-normal text-[#9CA3AF]">
+                        (optional)
+                      </span>
+                    </p>
+                    <p className="mb-3 text-xs text-[#9CA3AF]">
+                      Skip for now if you don&apos;t have one — we use a
+                      generated mark from your shop name.
+                    </p>
+                    <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+                      <TenantLogo
+                        brand={
+                          displayName.trim() || businessName || "Your shop"
+                        }
+                        logoUrl={uploadedLogoUrl}
+                        primaryColor={primaryColor}
+                        variant="upload"
+                      />
+                      <div className="flex w-full flex-col gap-2 text-center sm:text-left">
+                        <input
+                          ref={logoInputRef}
+                          type="file"
+                          accept={ACCEPTED_LOGO_TYPES}
+                          className="hidden"
+                          onChange={onLogoPick}
+                        />
                         <button
                           type="button"
-                          onClick={() => {
-                            setLogoFile(null);
-                            setLogoError("");
-                          }}
-                          className="text-xs text-[#6B7280] hover:underline"
+                          disabled={submitting}
+                          onClick={() => logoInputRef.current?.click()}
+                          className="h-11 rounded-2xl border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-auto sm:rounded-lg sm:py-2"
                         >
-                          Use generated logo instead
+                          {logoFile
+                            ? "Replace logo"
+                            : "Upload logo (optional)"}
                         </button>
-                      ) : (
-                        <p className="text-xs text-[#9CA3AF]">
-                          Optional — a generated mark is used until you upload
-                          one.
-                        </p>
-                      )}
-                      {logoError ? (
-                        <p className="text-xs text-red-600">{logoError}</p>
-                      ) : null}
+                        {logoFile ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLogoFile(null);
+                              setLogoError("");
+                            }}
+                            className="min-h-10 text-xs text-[#6B7280] active:opacity-70"
+                          >
+                            Use generated logo instead
+                          </button>
+                        ) : (
+                          <p className="text-xs text-[#9CA3AF]">
+                            Optional — a generated mark is used until you
+                            upload one.
+                          </p>
+                        )}
+                        {logoError ? (
+                          <p className="text-xs text-red-600">{logoError}</p>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </>
-          ) : null}
+              </>
+            ) : null}
 
-          {step === 6 ? (
-            <>
-              <h2 className="text-center text-[22px] font-semibold tracking-tight text-[#1F2937]">
-                Import products we already have
-              </h2>
-              {catalogShellEmpty ? (
-                <>
-                  <p className="mt-2 text-center text-sm leading-relaxed text-[#6B7280]">
-                    {catalogLabel
-                      ? `${catalogLabel} does not have starter products yet.`
-                      : "No starter products for your country yet."}{" "}
-                    Add products manually, or check back soon.
-                  </p>
-                  <div className="mt-8 flex size-16 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] mx-auto">
-                    <Package className="size-8 text-[#9CA3AF]" aria-hidden />
-                  </div>
-                  <ul className="mt-6 space-y-2 text-sm text-[#4B5563]">
-                    <li className="flex items-start gap-2">
-                      <Check
-                        className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
-                        aria-hidden
-                      />
-                      Add products one by one from Products
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check
-                        className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
-                        aria-hidden
-                      />
-                      Come back to the catalog later when templates arrive
-                    </li>
-                  </ul>
-                </>
-              ) : (
-                <>
-                  <p className="mt-2 text-center text-sm leading-relaxed text-[#6B7280]">
-                    Open the starter catalogue, tweak what you sell, and import
-                    in one tap — barcodes and prices included. Everything lands
-                    on your storefront by default.
-                  </p>
-                  {packLoading ? (
-                    <div className="mt-6 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-6 text-center text-sm text-[#6B7280]">
-                      Finding a starter pack for you…
+            {step === 6 ? (
+              <>
+                <StepHeading
+                  title={
+                    catalogShellEmpty
+                      ? "Add products when you’re ready"
+                      : "Stock your shelves"
+                  }
+                  description={
+                    catalogShellEmpty ? (
+                      catalogLabel
+                        ? `${catalogLabel} has no starter pack yet. You can add products yourself anytime.`
+                        : "No starter pack for your country yet. You can add products yourself anytime."
+                    ) : (
+                      "Import ready-made products for shops like yours — with barcodes already filled in."
+                    )
+                  }
+                />
+                {catalogShellEmpty ? (
+                  <div className="space-y-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F3F4F6] text-[#9CA3AF]">
+                      <Package className="size-6" aria-hidden />
                     </div>
-                  ) : suggestedPack ? (
-                    <div className="mt-6 rounded-2xl border border-[#99F6E4] bg-[#F0FDFA] p-4 text-left">
+                    <ul className="space-y-2.5 text-sm text-[#4B5563]">
+                      <li className="flex items-start gap-2.5">
+                        <Check
+                          className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
+                          aria-hidden
+                        />
+                        Add products from Products
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <Check
+                          className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
+                          aria-hidden
+                        />
+                        Check back when packs arrive for your region
+                      </li>
+                    </ul>
+                  </div>
+                ) : packLoading ? (
+                  <div className="rounded-2xl border border-[#E5E7EB] bg-white/90 px-4 py-10 text-center text-sm text-[#6B7280]">
+                    Finding a pack for your shop…
+                  </div>
+                ) : suggestedPack ? (
+                  <div className="overflow-hidden rounded-2xl border border-[#99F6E4]/80 bg-white shadow-[0_12px_40px_-28px_rgba(13,148,136,0.45)]">
+                    <div className="bg-gradient-to-br from-[#F0FDFA] to-white px-4 pb-3 pt-4">
                       <div className="flex items-start gap-3">
-                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#0D9488] shadow-sm">
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#0D9488] text-white shadow-sm">
                           <Package className="size-5" aria-hidden />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="mt-0.5 text-base font-semibold text-[#134E4A]">
+                          <p className="text-lg font-semibold tracking-tight text-[#134E4A]">
                             {suggestedPack.name}
                           </p>
-                          <p className="mt-1 text-xs text-[#0F766E]/80">
-                            Suggested for your shop · {suggestedPack.productCount} products
-                            {suggestedPack.samplePriceLabel
-                              ? ` · ${suggestedPack.samplePriceLabel}`
-                              : ""}
+                          <p className="mt-0.5 text-xs text-[#0F766E]/90">
+                            Matched to your shop type
                           </p>
-                          {suggestedPack.sampleNames.length > 0 ? (
-                            <p className="mt-2 line-clamp-2 text-xs text-[#4B5563]">
-                              Includes {suggestedPack.sampleNames.join(", ")}
-                              {suggestedPack.productCount >
-                              suggestedPack.sampleNames.length
-                                ? ", …"
-                                : ""}
-                            </p>
-                          ) : suggestedPack.description ? (
-                            <p className="mt-2 line-clamp-2 text-xs text-[#4B5563]">
-                              {suggestedPack.description}
-                            </p>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-[#CCFBF1] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[#0F766E]">
+                          {suggestedPack.productCount} items
+                        </span>
+                      </div>
+                    </div>
+                    {suggestedPack.sampleNames.length > 0 ? (
+                      <div className="border-t border-[#E0F2F1] px-4 py-3">
+                        <p className="mb-2 text-[11px] font-medium text-[#6B7280]">
+                          Sample products inside
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {suggestedPack.sampleNames.slice(0, 4).map((name) => (
+                            <span
+                              key={name}
+                              className="max-w-full truncate rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#4B5563]"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                          {suggestedPack.productCount >
+                          suggestedPack.sampleNames.length ? (
+                            <span className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#9CA3AF]">
+                              +
+                              {suggestedPack.productCount -
+                                Math.min(4, suggestedPack.sampleNames.length)}{" "}
+                              more
+                            </span>
                           ) : null}
                         </div>
                       </div>
+                    ) : null}
+                    <div className="border-t border-[#E0F2F1] bg-[#F8FFFD] px-4 py-3">
+                      <ul className="space-y-1.5 text-xs text-[#4B5563]">
+                        <li className="flex items-center gap-2">
+                          <Check
+                            className="size-3.5 shrink-0 text-[#0D9488]"
+                            aria-hidden
+                          />
+                          Barcodes &amp; names ready
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check
+                            className="size-3.5 shrink-0 text-[#0D9488]"
+                            aria-hidden
+                          />
+                          Pick what to keep before importing
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check
+                            className="size-3.5 shrink-0 text-[#0D9488]"
+                            aria-hidden
+                          />
+                          Shown on your online store by default
+                        </li>
+                      </ul>
                     </div>
-                  ) : (
-                    <div className="mt-8 flex size-16 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-[#F0FDFA] mx-auto">
-                      <Package className="size-8 text-[#0D9488]" aria-hidden />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-start gap-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F0FDFA] text-[#0D9488]">
+                      <Package className="size-6" aria-hidden />
                     </div>
-                  )}
-                </>
-              )}
-            </>
+                    <p className="text-sm text-[#6B7280]">
+                      Browse the catalogue and choose products to import.
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+
+          {errorMessage ? (
+            <p
+              className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+              role="alert"
+            >
+              {errorMessage}
+            </p>
           ) : null}
         </div>
+      </main>
 
-        {errorMessage ? (
-          <p className="mt-4 text-center text-sm text-red-600" role="alert">
-            {errorMessage}
-          </p>
-        ) : null}
-
-        <div className="mt-8 space-y-3">
+      <footer className="relative z-20 shrink-0 border-t border-[#E8E4DC]/80 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-6">
+        <div className="mx-auto w-full max-w-lg space-y-2.5">
           {step === 6 ? (
             <>
               {canBrowseGlobalCatalog && !catalogShellEmpty ? (
                 <button
                   type="button"
                   onClick={onOpenCatalogDrawer}
-                  className="h-12 w-full rounded-xl bg-[#0D9488] text-[15px] font-semibold text-white shadow-md transition hover:bg-[#0F766E] active:scale-[0.99]"
+                  className={cn(
+                    primaryCtaClass,
+                    "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]",
+                  )}
                 >
                   {suggestedPack
-                    ? `Stock my shelves with ${suggestedPack.name}`
-                    : "Stock my shelves"}
+                    ? `Open ${suggestedPack.name}`
+                    : "Open catalogue"}
                 </button>
               ) : null}
               {catalogShellEmpty ? (
                 <button
                   type="button"
                   onClick={onAddProductsManually}
-                  className="h-12 w-full rounded-xl bg-[#0D9488] text-[15px] font-semibold text-white shadow-md transition hover:bg-[#0F766E] active:scale-[0.99]"
+                  className={cn(
+                    primaryCtaClass,
+                    "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]",
+                  )}
                 >
                   Add products manually
                 </button>
@@ -993,16 +1137,14 @@ export function OnboardingQuestionnaire({
                 type="button"
                 onClick={onFinishLater}
                 className={cn(
-                  "h-12 w-full rounded-xl border text-[15px] font-semibold transition active:scale-[0.99]",
-                  canBrowseGlobalCatalog && !catalogShellEmpty
-                    ? "border-[#E5E7EB] bg-white text-[#374151] hover:bg-[#FAFAFA]"
-                    : catalogShellEmpty
-                      ? "border-[#E5E7EB] bg-white text-[#374151] hover:bg-[#FAFAFA]"
-                      : "bg-[#0D9488] text-white shadow-md hover:bg-[#0F766E]",
+                  primaryCtaClass,
+                  canBrowseGlobalCatalog || catalogShellEmpty
+                    ? "border border-transparent bg-transparent text-[#6B7280] hover:text-[#1F2937]"
+                    : "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]",
                 )}
               >
                 {canBrowseGlobalCatalog || catalogShellEmpty
-                  ? "I'll add products later"
+                  ? "Skip for now"
                   : "Continue to dashboard"}
               </button>
             </>
@@ -1012,9 +1154,9 @@ export function OnboardingQuestionnaire({
               disabled={!canContinue || submitting}
               onClick={handleContinue}
               className={cn(
-                "h-12 w-full rounded-xl text-[15px] font-semibold transition active:scale-[0.99]",
+                primaryCtaClass,
                 canContinue && !submitting
-                  ? "bg-[#0D9488] text-white shadow-md hover:bg-[#0F766E]"
+                  ? "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]"
                   : "cursor-not-allowed bg-[#E5E7EB] text-white",
               )}
             >
@@ -1026,32 +1168,43 @@ export function OnboardingQuestionnaire({
             </button>
           )}
 
-          {step === 6 ? null : (
-          <div className="flex items-center justify-between text-sm">
-            {step > 1 ? (
+          {step === 6 ? (
+            <div className="hidden justify-end text-sm sm:flex">
               <button
                 type="button"
-                onClick={onBack}
+                onClick={onFinishLater}
                 disabled={submitting}
-                className="text-[#6B7280] transition hover:text-[#1F2937] disabled:opacity-50"
+                className="min-h-10 text-[#9CA3AF] transition hover:text-[#6B7280] disabled:opacity-50"
               >
-                Back
+                Skip for now
               </button>
-            ) : (
-              <span />
-            )}
-            <button
-              type="button"
-              onClick={onSkip}
-              disabled={submitting}
-              className="text-[#9CA3AF] transition hover:text-[#6B7280] disabled:opacity-50"
-            >
-              Skip for now
-            </button>
-          </div>
+            </div>
+          ) : (
+            <div className="hidden items-center justify-between text-sm sm:flex">
+              {step > 1 ? (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  disabled={submitting}
+                  className="min-h-10 text-[#6B7280] transition hover:text-[#1F2937] disabled:opacity-50"
+                >
+                  Back
+                </button>
+              ) : (
+                <span />
+              )}
+              <button
+                type="button"
+                onClick={onSkip}
+                disabled={submitting}
+                className="min-h-10 text-[#9CA3AF] transition hover:text-[#6B7280] disabled:opacity-50"
+              >
+                Skip for now
+              </button>
+            </div>
           )}
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

@@ -31,7 +31,6 @@ import {
 import { isGlobalCatalogShellEmpty } from "@/lib/global-catalog-empty";
 import { pickSuggestedOnboardingPack } from "@/lib/onboarding-suggested-pack";
 import type { OnboardingSuggestedPackPreview } from "@/lib/onboarding-suggested-pack";
-import { formatMoney } from "@/lib/money";
 import {
   activateOnboardingQuestionnaire,
   completeOnboardingQuestionnaire,
@@ -83,7 +82,6 @@ function buildPackPreview(
   products: GlobalProductRecord[],
 ): OnboardingSuggestedPackPreview {
   const samples = products.slice(0, 4);
-  const priced = samples.find((p) => p.recommendedSellingPrice != null);
   return {
     id: pack.id,
     name: pack.name,
@@ -91,10 +89,7 @@ function buildPackPreview(
     productCount: pack.productCount,
     currency,
     sampleNames: samples.map((p) => p.name).filter(Boolean),
-    samplePriceLabel:
-      priced?.recommendedSellingPrice != null
-        ? `from ${formatMoney(priced.recommendedSellingPrice, currency)}`
-        : null,
+    samplePriceLabel: null,
   };
 }
 
@@ -364,7 +359,7 @@ export function OnboardingQuestionnaireProvider({
   const layer =
     active && mounted
       ? createPortal(
-          <div className="fixed inset-0 z-[600] overflow-y-auto bg-white">
+          <div className="fixed inset-0 z-[600] overflow-hidden bg-[#FBF9F5]">
             <OnboardingQuestionnaire
               step={step}
               initialAnswers={answers}
