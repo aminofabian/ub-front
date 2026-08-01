@@ -79,7 +79,7 @@ export type VirtualizedCatalogBodyProps = {
 
 function FixNamePill() {
   return (
-    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-none border border-amber-600/35 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-200">
+    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-none border border-amber-600/35 bg-amber-500/10 px-1 py-px text-[8px] font-medium text-amber-800 dark:text-amber-200">
       {CATALOG_FIX_NAME_LABEL}
     </span>
   );
@@ -463,8 +463,8 @@ export const VirtualizedCatalogBody = forwardRef<
                       catalogListGridClass,
                       "group relative min-w-0 max-w-full text-left",
                       density === "dense"
-                        ? "min-h-[1.85rem] sm:min-h-[2rem]"
-                        : "min-h-9 sm:min-h-[2.25rem]",
+                        ? "min-h-[1.25rem] sm:min-h-[1.375rem]"
+                        : "min-h-8 sm:min-h-9",
                       catalogRowHierarchyClass(meta, tone),
                       catalogRowAccentClass(tone, active),
                       catalogRowInteractionClasses(tone, rowInteraction),
@@ -543,11 +543,11 @@ export const VirtualizedCatalogBody = forwardRef<
                       className={cn(
                         catalogListProductCellClass,
                         catalogGridCol.product,
-                        "gap-1.5 sm:gap-2",
-                        isVariant && "pl-3 sm:pl-4",
+                        "gap-1",
+                        isVariant && "pl-2 sm:pl-3",
                       )}
                     >
-                      {!isVariant && listThumb ? (
+                      {density !== "dense" && !isVariant && listThumb ? (
                         <span className="hidden sm:inline-flex">
                           <CatalogListThumb
                             src={listThumb}
@@ -560,12 +560,12 @@ export const VirtualizedCatalogBody = forwardRef<
                         </span>
                       ) : null}
 
-                      <div className="min-w-0 flex-1 py-0.5">
-                        <div className="flex min-w-0 items-center gap-1.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-center gap-1">
                           {nameResolution.needsNameFix ? (
                             <>
                               {nameResolution.label !== CATALOG_FIX_NAME_LABEL ? (
-                                <span className="min-w-0 truncate text-[13px] font-medium tracking-tight text-foreground">
+                                <span className="min-w-0 truncate text-[11px] font-medium tracking-tight text-foreground">
                                   {nameResolution.label}
                                 </span>
                               ) : null}
@@ -573,13 +573,13 @@ export const VirtualizedCatalogBody = forwardRef<
                             </>
                           ) : isVariant && variantTitle?.family ? (
                             <span
-                              className="min-w-0 truncate text-[13px] tracking-tight"
+                              className="min-w-0 truncate text-[11px] tracking-tight"
                               title={variantTitle.combined}
                             >
                               <span className="font-normal text-foreground/45">
                                 {variantTitle.family}
                               </span>
-                              <span className="mx-1 text-foreground/25" aria-hidden>
+                              <span className="mx-0.5 text-foreground/25" aria-hidden>
                                 /
                               </span>
                               <span className="font-medium text-foreground">
@@ -589,10 +589,10 @@ export const VirtualizedCatalogBody = forwardRef<
                           ) : (
                             <span
                               className={cn(
-                                "min-w-0 truncate tracking-tight",
+                                "min-w-0 truncate text-[11px] tracking-tight",
                                 isParentSelector
-                                  ? "text-[13px] font-semibold text-foreground"
-                                  : "text-[13px] font-medium text-foreground",
+                                  ? "font-semibold text-foreground"
+                                  : "font-medium text-foreground",
                               )}
                               title={
                                 isVariant
@@ -603,31 +603,40 @@ export const VirtualizedCatalogBody = forwardRef<
                               {isVariant
                                 ? (variantTitle?.option ?? primaryName)
                                 : primaryName}
+                              {isParentSelector && effectiveVariantCount > 0 ? (
+                                <span className="ml-1 font-normal text-foreground/40">
+                                  · {effectiveVariantCount}
+                                </span>
+                              ) : null}
                             </span>
                           )}
                           {row.packageVariant ? (
-                            <span className="hidden shrink-0 rounded-none border border-border bg-muted/40 px-1 py-px text-[9px] font-medium uppercase tracking-[0.08em] text-foreground/55 sm:inline-flex">
+                            <span className="hidden shrink-0 rounded-none border border-border bg-muted/40 px-0.5 text-[8px] font-medium uppercase tracking-[0.06em] text-foreground/55 sm:inline-flex">
                               Pack
                             </span>
                           ) : null}
                           {isDuplicateName ? (
-                            <span className="hidden shrink-0 rounded-none border border-red-500/30 bg-red-500/10 px-1 py-px text-[9px] font-medium text-red-800 dark:text-red-300 sm:inline-flex">
-                              Duplicate
+                            <span className="hidden shrink-0 rounded-none border border-red-500/30 bg-red-500/10 px-0.5 text-[8px] font-medium text-red-800 dark:text-red-300 sm:inline-flex">
+                              Dup
                             </span>
                           ) : null}
                           {row.active === false ? (
-                            <span className="shrink-0 text-[9px] font-medium uppercase tracking-[0.08em] text-foreground/40">
+                            <span className="shrink-0 text-[8px] font-medium uppercase tracking-[0.06em] text-foreground/40">
                               Off
                             </span>
                           ) : null}
                         </div>
 
-                        {isParentSelector && effectiveVariantCount > 0 ? (
+                        {density !== "dense" &&
+                        isParentSelector &&
+                        effectiveVariantCount > 0 ? (
                           <div className="mt-0.5 truncate text-[10px] font-medium tracking-tight text-foreground/40">
                             {effectiveVariantCount.toLocaleString()}{" "}
                             {effectiveVariantCount === 1 ? "variant" : "variants"}
                           </div>
-                        ) : !isParentSelector && secondaryLine ? (
+                        ) : density !== "dense" &&
+                          !isParentSelector &&
+                          secondaryLine ? (
                           <div className="mt-0.5 hidden min-w-0 truncate font-mono text-[10px] tracking-tight text-foreground/35 sm:block">
                             {secondaryLine}
                           </div>
@@ -638,7 +647,7 @@ export const VirtualizedCatalogBody = forwardRef<
                     <span className={cn(catalogListMetricCellClass, catalogGridCol.stock)}>
                       {isParentSelector ? (
                         <span
-                          className="text-[11px] tabular-nums text-foreground/20"
+                          className="text-[10px] tabular-nums text-foreground/20"
                           title="In-store stock on variants"
                         >
                           –
@@ -646,7 +655,7 @@ export const VirtualizedCatalogBody = forwardRef<
                       ) : stock.label !== "—" ? (
                         <span
                           className={cn(
-                            "text-[12px] font-medium tabular-nums tracking-tight",
+                            "text-[11px] font-medium tabular-nums tracking-tight",
                             stock.className.includes("red")
                               ? "text-red-600 dark:text-red-400"
                               : stock.className.includes("amber")
@@ -658,7 +667,7 @@ export const VirtualizedCatalogBody = forwardRef<
                           {stock.label}
                         </span>
                       ) : (
-                        <span className="text-[11px] tabular-nums text-foreground/20">
+                        <span className="text-[10px] tabular-nums text-foreground/20">
                           –
                         </span>
                       )}
@@ -668,24 +677,24 @@ export const VirtualizedCatalogBody = forwardRef<
                       className={cn(
                         catalogListMetricCellClass,
                         catalogGridCol.sell,
-                        "pr-2.5",
+                        "pr-1.5",
                       )}
                     >
                       {isParentSelector ? (
-                        <span className="text-[11px] tabular-nums text-foreground/20">
+                        <span className="text-[10px] tabular-nums text-foreground/20">
                           –
                         </span>
                       ) : sell.kind === "empty" ? (
                         <NoPricePill />
                       ) : sell.kind === "price" ? (
                         <span
-                          className="text-[12px] font-semibold tabular-nums tracking-tight text-foreground"
+                          className="text-[11px] font-semibold tabular-nums tracking-tight text-foreground"
                           title={sell.title}
                         >
                           {sell.label}
                         </span>
                       ) : (
-                        <span className="text-[11px] tabular-nums text-foreground/20">
+                        <span className="text-[10px] tabular-nums text-foreground/20">
                           –
                         </span>
                       )}

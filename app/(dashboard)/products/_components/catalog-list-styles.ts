@@ -38,12 +38,12 @@ export const catalogListShellClass = cn(
 );
 
 export const catalogListToolbarClass = cn(
-  "flex flex-wrap items-center justify-between gap-1.5",
-  "bg-muted/20 px-3 py-1.5 lg:border-b lg:border-border lg:bg-muted/30 lg:px-2 lg:py-1",
+  "flex flex-wrap items-center justify-between gap-1",
+  "bg-muted/20 px-2 py-1 lg:border-b lg:border-border lg:bg-muted/30 lg:px-2 lg:py-0.5",
 );
 
 export const catalogListToolbarMetaClass =
-  "text-[11px] text-muted-foreground";
+  "text-[10px] text-muted-foreground";
 
 /** Left filter rail — slim tuner strip beside the sheet. */
 export const catalogFilterColumnClass =
@@ -105,7 +105,7 @@ export const catalogFilterToggleActiveClass = cn(
 
 export const catalogListHeaderRowClass = cn(
   "sticky top-0 z-10 shrink-0",
-  "bg-muted/50 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/40",
+  "bg-muted/50 text-[9px] font-semibold uppercase tracking-[0.1em] text-foreground/40",
   "border-b border-border",
 );
 
@@ -116,14 +116,14 @@ export const catalogListHeaderRowClass = cn(
  */
 export const catalogListGridClass =
   "grid w-full min-w-0 max-w-full items-stretch gap-0 " +
-  "grid-cols-[1.5rem_1.65rem_minmax(0,1fr)_2.5rem_3.5rem] " +
-  "sm:grid-cols-[1.65rem_1.75rem_minmax(0,1fr)_3rem_4.25rem_0px] " +
-  "xl:grid-cols-[1.65rem_1.75rem_minmax(0,1fr)_3rem_4.25rem_5.25rem]";
+  "grid-cols-[1.25rem_1.4rem_minmax(0,1fr)_2.25rem_3rem] " +
+  "sm:grid-cols-[1.35rem_1.5rem_minmax(0,1fr)_2.5rem_3.5rem_0px] " +
+  "xl:grid-cols-[1.35rem_1.5rem_minmax(0,1fr)_2.5rem_3.5rem_4.5rem]";
 
 const sheetV = "border-r border-border/40";
 const sheetH = "border-b border-border/40";
-const catalogCellPad = "px-2 py-0";
-const catalogMetricPad = "px-1 py-0";
+const catalogCellPad = "px-1.5 py-0";
+const catalogMetricPad = "px-0.5 py-0";
 
 /** Whole-row inset for variant SKUs (checkbox through metrics). */
 export function catalogVariantRowIndentClass(
@@ -195,8 +195,8 @@ export function catalogListCheckboxCellClass(_isVariant: boolean): string {
 
 /** Sheet row handle — tap # to select (Excel-style, no checkbox chrome). */
 export const catalogSheetRowHeaderClass = cn(
-  "flex h-full min-h-[1.75rem] w-full items-center justify-center",
-  "text-[9px] font-medium tabular-nums text-muted-foreground/70",
+  "flex h-full min-h-[1.25rem] w-full items-center justify-center",
+  "text-[8px] font-medium tabular-nums text-muted-foreground/70",
   "transition-colors hover:bg-muted/70 hover:text-foreground",
   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
   "active:bg-foreground/10",
@@ -218,8 +218,8 @@ export function catalogRowHierarchyClass(
     return cn(
       "bg-[#f4f6f8] dark:bg-muted/20",
       // Vertical tree rail under the kind column
-      "after:pointer-events-none after:absolute after:bottom-0 after:left-[calc(1.5rem+0.825rem)] after:top-0 after:z-[1] after:w-px after:bg-border/80",
-      "sm:after:left-[calc(1.65rem+0.875rem)]",
+      "after:pointer-events-none after:absolute after:bottom-0 after:left-[calc(1.25rem+0.7rem)] after:top-0 after:z-[1] after:w-px after:bg-border/80",
+      "sm:after:left-[calc(1.35rem+0.75rem)]",
       meta.endsVariantGroup && "after:bottom-1/2",
     );
   }
@@ -234,7 +234,7 @@ export function catalogTypeChipClass(
   variantCount: number,
 ): string {
   const base =
-    "inline-flex h-4 min-w-[1.35rem] items-center justify-center rounded-none border px-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.06em]";
+    "inline-flex h-3.5 min-w-[1.15rem] items-center justify-center rounded-none border px-px font-mono text-[7px] font-semibold uppercase tracking-[0.04em]";
   if (kind === "group") {
     return cn(base, "border-border bg-background text-foreground/55");
   }
@@ -357,9 +357,9 @@ export function catalogListThumbFrameClass(
   return cn(
     "relative block shrink-0 overflow-hidden rounded-none border border-border bg-muted/60",
     "transition-[border-color,opacity] duration-150",
-    kind === "group" && "size-5",
-    kind === "variant" && "size-4",
-    kind === "standalone" && "size-5",
+    kind === "group" && "size-3.5",
+    kind === "variant" && "size-3",
+    kind === "standalone" && "size-3.5",
     state?.active && "z-[1] border-foreground/30",
     state?.inactive && "opacity-55 saturate-[0.65]",
   );
@@ -379,7 +379,7 @@ export const catalogListThumbPlaceholderClass = cn(
 export function catalogListCategoryTagClass(): string {
   return cn(
     "inline-block max-w-full truncate rounded-none border border-border bg-muted/30",
-    "px-1 py-px text-[9px] font-medium uppercase tracking-[0.08em] text-foreground/55",
+    "px-0.5 py-px text-[8px] font-medium uppercase tracking-[0.06em] text-foreground/55",
   );
 }
 
@@ -702,13 +702,14 @@ export function catalogRowHeightPx(
     ? CATALOG_VARIANT_GROUP_END_GAP_PX[density]
     : 0;
   if (density === "dense") {
-    if (kind === "group") return 28 + gap;
-    if (kind === "variant") return 26 + groupEndGap;
-    return 30 + gap;
+    // Single-line spreadsheet rows — pack as many products as possible.
+    if (kind === "group") return 22 + gap;
+    if (kind === "variant") return 20 + groupEndGap;
+    return 22 + gap;
   }
-  if (kind === "group") return 44 + gap;
-  if (kind === "variant") return 36 + groupEndGap;
-  return 40 + gap;
+  if (kind === "group") return 36 + gap;
+  if (kind === "variant") return 30 + groupEndGap;
+  return 34 + gap;
 }
 
 export function catalogStockTone(qty: number | string | null | undefined): {
