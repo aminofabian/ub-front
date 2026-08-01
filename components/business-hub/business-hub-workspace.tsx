@@ -23,7 +23,7 @@ import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-em
 import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skeleton";
 import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
-import { CommandGrid } from "@/components/business-hub/command-grid";
+import { CommandGrid, type CommandLink } from "@/components/business-hub/command-grid";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PostSetupChecklist } from "@/components/business-hub/post-setup-checklist";
@@ -737,7 +737,7 @@ export function BusinessHubWorkspace() {
   ]);
 
   const commandLinks = useMemo(() => {
-    const links = [
+    const links: CommandLink[] = [
       {
         href: APP_ROUTES.sales,
         label: "Sales",
