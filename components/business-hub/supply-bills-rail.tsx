@@ -38,12 +38,15 @@ export function SupplyBillsRail({
   live = false,
   justUpdated = false,
   className,
+  onPayBill,
 }: {
   bills: PathBSupplyListRowRecord[];
   currency?: string | null;
   live?: boolean;
   justUpdated?: boolean;
   className?: string;
+  /** Opens the supplier payment drawer for this bill. */
+  onPayBill?: (bill: PathBSupplyListRowRecord) => void;
 }) {
   const summary = summarizeSupplyRows(bills);
   const empty = bills.length === 0;
@@ -106,6 +109,7 @@ export function SupplyBillsRail({
               const unpaid = isSupplyRowUnpaid(bill);
               const label = paymentLabel(bill.paymentStatus, unpaid);
               const total = supplyN(bill.grandTotal);
+              const payEnabled = Boolean(onPayBill);
               return (
                 <li
                   key={bill.supplierInvoiceId}
@@ -126,14 +130,40 @@ export function SupplyBillsRail({
                       {bill.supplierName || "Supplier"}
                     </p>
                   </div>
-                  <span
-                    className={cn(
-                      "shrink-0 text-[9px] font-semibold uppercase tracking-[0.06em]",
-                      unpaid ? "text-[#8A6B2E]" : "text-emerald-800",
-                    )}
-                  >
-                    {label}
-                  </span>
+                  {payEnabled ? (
+                    <button
+                      type="button"
+                      onClick={() => onPayBill?.(bill)}
+                      className={cn(
+                        "shrink-0 rounded-sm px-1 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/45",
+                        unpaid
+                          ? "bg-[#F3EBD9] text-[#8A6B2E] hover:bg-[#E8D9B8] hover:text-[#141414]"
+                          : "text-emerald-800 hover:bg-emerald-50",
+                      )}
+                      title={
+                        unpaid
+                          ? `Pay ${bill.supplierName || "supplier"}`
+                          : `Payment details · ${bill.supplierName || "supplier"}`
+                      }
+                      aria-label={
+                        unpaid
+                          ? `Pay bill for ${bill.supplierName || "supplier"} (${label})`
+                          : `View payment details for ${bill.supplierName || "supplier"}`
+                      }
+                    >
+                      {unpaid ? (label === "Partial" ? "Pay · Partial" : "Pay") : label}
+                    </button>
+                  ) : (
+                    <span
+                      className={cn(
+                        "shrink-0 text-[9px] font-semibold uppercase tracking-[0.06em]",
+                        unpaid ? "text-[#8A6B2E]" : "text-emerald-800",
+                      )}
+                    >
+                      {label}
+                    </span>
+                  )}
                   <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-[#141414]">
                     {fmtMoney(total, currency)}
                   </p>

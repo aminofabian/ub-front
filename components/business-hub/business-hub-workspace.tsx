@@ -100,6 +100,7 @@ import {
   type WebOrderSummary,
 } from "@/lib/api";
 import { filterAndSortSupplyRows } from "@/app/(dashboard)/supplies/_components/supplies-bill-filters";
+import { PaySupplyDrawer } from "@/app/(dashboard)/supplies/_components/pay-supply-drawer";
 import { groupLinesIntoTransactions } from "@/lib/sale-transactions";
 import {
   cashiersFromDrawouts,
@@ -147,6 +148,7 @@ export function BusinessHubWorkspace() {
     canViewSalesIntelligence,
     canViewStorefrontOrders,
     canPathBRead,
+    canRecordSupplierPayment,
   } = useDashboard();
   const featureFlags = useFeatureFlags();
   const hubAlerts = useMemo(
@@ -169,6 +171,9 @@ export function BusinessHubWorkspace() {
   const canViewOwnerSummary =
     roleKey !== "stock_manager" && roleKey !== "cashier";
   const canViewSupplyBills = canPathBRead || canViewApAging;
+  const canOpenSupplyPay =
+    canViewSupplyBills &&
+    (canRecordSupplierPayment || canViewApAging);
   const canShowWebOrders =
     canViewStorefrontOrders && shopEnabled;
 
@@ -206,6 +211,9 @@ export function BusinessHubWorkspace() {
   const [todaySupplies, setTodaySupplies] = useState<PathBSupplyListRowRecord[]>(
     [],
   );
+  const [payBillRow, setPayBillRow] =
+    useState<PathBSupplyListRowRecord | null>(null);
+  const [payBillOpen, setPayBillOpen] = useState(false);
   const [openWebOrders, setOpenWebOrders] = useState<WebOrderSummary[]>([]);
   const [recentDrawouts, setRecentDrawouts] = useState<HubDrawout[]>([]);
   const [selectedCashiers, setSelectedCashiers] = useState<string[]>([]);
@@ -463,6 +471,11 @@ export function BusinessHubWorkspace() {
       setWebOrdersJustUpdated(false);
       webOrdersJustUpdatedTimer.current = null;
     }, 2400);
+  }, []);
+
+  const openSupplyPay = useCallback((bill: PathBSupplyListRowRecord) => {
+    setPayBillRow(bill);
+    setPayBillOpen(true);
   }, []);
 
   useBusinessHubRealtime({
@@ -1054,6 +1067,7 @@ export function BusinessHubWorkspace() {
                   currency={currency}
                   live={pulseLive}
                   justUpdated={supplyJustUpdated}
+                  onPayBill={canOpenSupplyPay ? openSupplyPay : undefined}
                 />
               ) : null}
 
@@ -1148,6 +1162,20 @@ export function BusinessHubWorkspace() {
           onRemoveCashier={(name) =>
             setSelectedCashiers((prev) => prev.filter((n) => n !== name))
           }
+        />
+      ) : null}
+
+      {canOpenSupplyPay ? (
+        <PaySupplyDrawer
+          open={payBillOpen}
+          onOpenChange={(open) => {
+            setPayBillOpen(open);
+            if (!open) setPayBillRow(null);
+          }}
+          row={payBillRow}
+          onPaid={() => {
+            void load();
+          }}
         />
       ) : null}
     </div>
