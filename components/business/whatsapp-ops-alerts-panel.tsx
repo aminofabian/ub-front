@@ -300,12 +300,12 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
 
           <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
             <div>
-              <label className={dashboardLabelClass} htmlFor="ops-alert-phone">
+              <label className={dashboardLabelClass()} htmlFor="ops-alert-phone">
                 Phone
               </label>
               <input
                 id="ops-alert-phone"
-                className={dashboardInputClass}
+                className={dashboardInputClass()}
                 value={phoneInput}
                 onChange={(e) => {
                   setPhoneInput(e.target.value);
@@ -337,12 +337,12 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
           {codeSent || (!settings?.phoneVerified && codeInput) ? (
             <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
               <div>
-                <label className={dashboardLabelClass} htmlFor="ops-alert-code">
+                <label className={dashboardLabelClass()} htmlFor="ops-alert-code">
                   4-digit code
                 </label>
                 <input
                   id="ops-alert-code"
-                  className={dashboardInputClass}
+                  className={dashboardInputClass()}
                   value={codeInput}
                   onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="••••"
