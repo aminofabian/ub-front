@@ -13,9 +13,13 @@ import {
 import { createPortal } from "react-dom";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import { OnboardingCatalogDrawer } from "@/components/onboarding/onboarding-catalog-drawer";
 import { OnboardingQuestionnaire } from "@/components/onboarding/onboarding-questionnaire";
 import { APP_ROUTES } from "@/lib/config";
-import { isButcheryOnlyBusiness } from "@/lib/business-store-type";
+import {
+  isButcheryOnlyBusiness,
+  isCatalogEligibleStoreTypes,
+} from "@/lib/business-store-type";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { applyOnboardingQuestionnaire } from "@/lib/onboarding-questionnaire-apply";
 import {
@@ -104,6 +108,7 @@ export function OnboardingQuestionnaireProvider({
     me,
     business,
     branches,
+    branchId,
     itemTypes,
     refreshBranches,
     refreshItemTypes,
@@ -114,6 +119,10 @@ export function OnboardingQuestionnaireProvider({
   const canGlobalCatalog = hasPermission(
     me?.permissions,
     Permission.CatalogGlobalRead,
+  );
+  const canAdoptCatalog = hasPermission(
+    me?.permissions,
+    Permission.CatalogGlobalAdopt,
   );
 
   const [active, setActive] = useState(false);
@@ -129,13 +138,16 @@ export function OnboardingQuestionnaireProvider({
   const [suggestedPack, setSuggestedPack] =
     useState<OnboardingSuggestedPackPreview | null>(null);
   const [packLoading, setPackLoading] = useState(false);
+  const [catalogDrawerOpen, setCatalogDrawerOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  const catalogEligible = isCatalogEligibleStoreTypes(answers.storeTypes);
+
   useEffect(() => {
-    if (step !== 6 || !canGlobalCatalog) {
+    if (step !== 6 || !canGlobalCatalog || !catalogEligible) {
       return;
     }
     let cancelled = false;
@@ -197,7 +209,7 @@ export function OnboardingQuestionnaireProvider({
     return () => {
       cancelled = true;
     };
-  }, [step, canGlobalCatalog, answers.storeTypes]);
+  }, [step, canGlobalCatalog, catalogEligible, answers.storeTypes]);
 
   const startQuestionnaire = useCallback(() => {
     const stored = getOnboardingQuestionnaireState();
@@ -231,21 +243,9 @@ export function OnboardingQuestionnaireProvider({
     );
   }, [router, business]);
 
-  const handleBrowseCatalog = useCallback(() => {
-    setActive(false);
-    router.replace(`${APP_ROUTES.productsCatalog}?from=onboarding`);
-  }, [router]);
-
-  const handleImportSuggestedPack = useCallback(() => {
-    if (!suggestedPack) {
-      handleBrowseCatalog();
-      return;
-    }
-    setActive(false);
-    router.replace(
-      `${APP_ROUTES.productsCatalog}?from=onboarding&packId=${encodeURIComponent(suggestedPack.id)}`,
-    );
-  }, [router, suggestedPack, handleBrowseCatalog]);
+  const handleOpenCatalogDrawer = useCallback(() => {
+    setCatalogDrawerOpen(true);
+  }, []);
 
   const handleAddProductsManually = useCallback(() => {
     setActive(false);
@@ -253,6 +253,11 @@ export function OnboardingQuestionnaireProvider({
   }, [router]);
 
   const handleFinishLater = useCallback(() => {
+    finish();
+  }, [finish]);
+
+  const handleCatalogImportSuccess = useCallback(() => {
+    setCatalogDrawerOpen(false);
     finish();
   }, [finish]);
 
@@ -305,8 +310,20 @@ export function OnboardingQuestionnaireProvider({
             setBranchId(firstBranchId);
           }
           completeOnboardingQuestionnaire(merged);
-          saveQuestionnaireProgress(6, merged);
-          setStep(6);
+          if (isCatalogEligibleStoreTypes(merged.storeTypes)) {
+            saveQuestionnaireProgress(6, merged);
+            setStep(6);
+          } else {
+            setActive(false);
+            router.replace(
+              isButcheryOnlyBusiness({
+                profile: { storeTypes: merged.storeTypes },
+                onboarding: { answers: merged },
+              })
+                ? APP_ROUTES.butcher
+                : APP_ROUTES.business,
+            );
+          }
         } catch (error) {
           setErrorMessage(
             error instanceof Error
@@ -329,6 +346,7 @@ export function OnboardingQuestionnaireProvider({
       refreshItemTypes,
       refreshSession,
       setBranchId,
+      router,
     ],
   );
 
@@ -336,6 +354,12 @@ export function OnboardingQuestionnaireProvider({
     () => ({ active, reopen: startQuestionnaire }),
     [active, startQuestionnaire],
   );
+
+  const openingBranchId =
+    branchId.trim() ||
+    branches.find((b) => b.active)?.id?.trim() ||
+    branches[0]?.id?.trim() ||
+    "";
 
   const layer =
     active && mounted
@@ -360,11 +384,20 @@ export function OnboardingQuestionnaireProvider({
               }}
               onBack={handleBack}
               onSkip={handleSkip}
-              canBrowseGlobalCatalog={canGlobalCatalog}
-              onBrowseCatalog={handleBrowseCatalog}
-              onImportSuggestedPack={handleImportSuggestedPack}
+              canBrowseGlobalCatalog={canGlobalCatalog && catalogEligible}
+              onOpenCatalogDrawer={handleOpenCatalogDrawer}
               onAddProductsManually={handleAddProductsManually}
               onFinishLater={handleFinishLater}
+            />
+            <OnboardingCatalogDrawer
+              open={catalogDrawerOpen}
+              onOpenChange={setCatalogDrawerOpen}
+              suggestedPackId={suggestedPack?.id ?? null}
+              storeTypes={answers.storeTypes ?? []}
+              openingBranchId={openingBranchId}
+              currency={business?.currency}
+              canAdopt={canAdoptCatalog}
+              onSuccess={handleCatalogImportSuccess}
             />
           </div>,
           document.body,

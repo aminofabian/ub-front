@@ -50,8 +50,8 @@ type Props = {
   onBack: () => void;
   onSkip: () => void;
   canBrowseGlobalCatalog?: boolean;
-  onBrowseCatalog?: () => void;
-  onImportSuggestedPack?: () => void;
+  /** Opens the in-flow starter catalogue drawer (Step 6). */
+  onOpenCatalogDrawer?: () => void;
   onAddProductsManually?: () => void;
   onFinishLater?: () => void;
   /** ISO country for locality placeholders (defaults to KE examples). */
@@ -167,8 +167,7 @@ export function OnboardingQuestionnaire({
   onBack,
   onSkip,
   canBrowseGlobalCatalog = false,
-  onBrowseCatalog,
-  onImportSuggestedPack,
+  onOpenCatalogDrawer,
   onAddProductsManually,
   onFinishLater,
   countryCode = null,
@@ -604,7 +603,8 @@ export function OnboardingQuestionnaire({
               </h1>
               <p className="text-sm text-[#6B7280]">
                 Select all that apply — a mini mart can also include a butchery.
-                We use this to suggest starter products at the end.
+                Mini mart and mixed shop can import starter products from our
+                catalogue at the end.
               </p>
               <div className="space-y-2.5 pt-2 text-left">
                 {STORE_TYPE_OPTIONS.map((opt) => (
@@ -634,27 +634,39 @@ export function OnboardingQuestionnaire({
                 Choose your product sections
               </h1>
               <p className="text-sm text-[#6B7280]">
-                Suggested for {storeTypesLabel.toLowerCase()}. These group items
-                at the till and in reports — pick what you sell now, add your
-                own, or continue and edit later.
+                {availableDepartments.length > 0 ? (
+                  <>
+                    Suggested for {storeTypesLabel.toLowerCase()}. These group
+                    items at the till and in reports — pick what you sell now,
+                    add your own, or continue and edit later.
+                  </>
+                ) : (
+                  <>
+                    Add the sections that fit {storeTypesLabel.toLowerCase()}.
+                    These group items at the till and in reports — you can edit
+                    them later.
+                  </>
+                )}
               </p>
-              <div className="flex items-center justify-center gap-3 pt-1 text-xs">
-                <button
-                  type="button"
-                  onClick={selectAllDepartments}
-                  className="font-medium text-[#0D9488] hover:underline"
-                >
-                  Select all
-                </button>
-                <span className="text-[#D1D5DB]">·</span>
-                <button
-                  type="button"
-                  onClick={clearDepartments}
-                  className="text-[#6B7280] hover:underline"
-                >
-                  Clear
-                </button>
-              </div>
+              {availableDepartments.length > 0 ? (
+                <div className="flex items-center justify-center gap-3 pt-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={selectAllDepartments}
+                    className="font-medium text-[#0D9488] hover:underline"
+                  >
+                    Select all
+                  </button>
+                  <span className="text-[#D1D5DB]">·</span>
+                  <button
+                    type="button"
+                    onClick={clearDepartments}
+                    className="text-[#6B7280] hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : null}
               <div className="flex flex-wrap justify-center gap-2 pt-2 text-left">
                 {visibleDepartments.map((dept) => (
                   <DepartmentChip
@@ -897,9 +909,9 @@ export function OnboardingQuestionnaire({
               ) : (
                 <>
                   <p className="mt-2 text-center text-sm leading-relaxed text-[#6B7280]">
-                    Skip typing every item — import products shops like yours
-                    already sell, with barcodes and prices filled in. They will
-                    be ready to sell as soon as you import.
+                    Open the starter catalogue, tweak what you sell, and import
+                    in one tap — barcodes and prices included. Everything lands
+                    on your storefront by default.
                   </p>
                   {packLoading ? (
                     <div className="mt-6 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-6 text-center text-sm text-[#6B7280]">
@@ -958,31 +970,20 @@ export function OnboardingQuestionnaire({
           {step === 6 ? (
             <>
               {canBrowseGlobalCatalog && !catalogShellEmpty ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={onImportSuggestedPack ?? onBrowseCatalog}
-                    className="h-12 w-full rounded-xl bg-[#0D9488] text-[15px] font-semibold text-white shadow-md transition hover:bg-[#0F766E] active:scale-[0.99]"
-                  >
-                    {suggestedPack
-                      ? `Import ${suggestedPack.name} to sell`
-                      : "Browse product catalog"}
-                  </button>
-                  {suggestedPack ? (
-                    <button
-                      type="button"
-                      onClick={onBrowseCatalog}
-                      className="h-11 w-full rounded-xl border border-[#E5E7EB] bg-white text-[14px] font-medium text-[#374151] transition hover:bg-[#FAFAFA] active:scale-[0.99]"
-                    >
-                      Browse all products
-                    </button>
-                  ) : null}
-                </>
+                <button
+                  type="button"
+                  onClick={onOpenCatalogDrawer}
+                  className="h-12 w-full rounded-xl bg-[#0D9488] text-[15px] font-semibold text-white shadow-md transition hover:bg-[#0F766E] active:scale-[0.99]"
+                >
+                  {suggestedPack
+                    ? `Stock my shelves with ${suggestedPack.name}`
+                    : "Stock my shelves"}
+                </button>
               ) : null}
               {catalogShellEmpty ? (
                 <button
                   type="button"
-                  onClick={onAddProductsManually ?? onBrowseCatalog}
+                  onClick={onAddProductsManually}
                   className="h-12 w-full rounded-xl bg-[#0D9488] text-[15px] font-semibold text-white shadow-md transition hover:bg-[#0F766E] active:scale-[0.99]"
                 >
                   Add products manually

@@ -4,6 +4,8 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   getBusinessStoreTypes,
   isButcheryOnlyBusiness,
+  isCatalogEligibleBusiness,
+  isCatalogEligibleStoreTypes,
 } from "@/lib/business-store-type";
 import { resolveButcheryOnlyRedirect } from "@/lib/butcher-only-access";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
@@ -36,6 +38,17 @@ describe("business store types", () => {
         onboarding: { answers: { storeTypes: ["butchery"] } },
       }),
     ).toEqual(["butchery"]);
+  });
+
+  it("limits catalogue eligibility to mini mart and mixed shop", () => {
+    expect(isCatalogEligibleStoreTypes(["mini-mart"])).toBe(true);
+    expect(isCatalogEligibleStoreTypes(["mixed-shop"])).toBe(true);
+    expect(isCatalogEligibleStoreTypes(["butchery", "mini-mart"])).toBe(true);
+    expect(isCatalogEligibleStoreTypes(["cosmetics"])).toBe(false);
+    expect(isCatalogEligibleStoreTypes(["other"])).toBe(false);
+    expect(
+      isCatalogEligibleBusiness({ profile: { storeTypes: ["other"] } }),
+    ).toBe(false);
   });
 });
 

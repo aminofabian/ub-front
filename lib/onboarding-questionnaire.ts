@@ -18,7 +18,8 @@ export type StoreTypeChoice =
   | "fresh-market"
   | "mixed-shop"
   | "cosmetics"
-  | "wines-spirits";
+  | "wines-spirits"
+  | "other";
 
 export type OnlineStoreChoice = "yes" | "no";
 
@@ -77,7 +78,7 @@ export const BRANCH_LOCALITY_PLACEHOLDERS = [
   "Karen",
 ] as const;
 
-/** Country-aware locality examples (mirrors backend RegionDefaults). */
+/** Country-aware locality examples (mirrors backend RegionDefaults overrides). */
 export const BRANCH_LOCALITY_PLACEHOLDERS_BY_COUNTRY: Record<
   string,
   readonly string[]
@@ -88,6 +89,10 @@ export const BRANCH_LOCALITY_PLACEHOLDERS_BY_COUNTRY: Record<
   RW: ["Kigali", "Butare", "Gisenyi", "Ruhengeri", "Musanze"],
   NG: ["Lagos", "Abuja", "Port Harcourt", "Ibadan", "Kano"],
   ZA: ["Johannesburg", "Cape Town", "Durban", "Pretoria", "Gqeberha"],
+  US: ["New York", "Los Angeles", "Chicago", "Houston", "Miami"],
+  GB: ["London", "Manchester", "Birmingham", "Leeds", "Glasgow"],
+  IN: ["Mumbai", "Delhi", "Bengaluru", "Hyderabad", "Chennai"],
+  AE: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Al Ain"],
 };
 
 export function localityPlaceholdersForCountry(
@@ -138,6 +143,11 @@ export const STORE_TYPE_OPTIONS: readonly {
     value: "wines-spirits",
     label: "Wines & spirits",
     hint: "Beer, wine, spirits, and mixers",
+  },
+  {
+    value: "other",
+    label: "Other",
+    hint: "A different kind of shop — add your own product sections",
   },
 ];
 

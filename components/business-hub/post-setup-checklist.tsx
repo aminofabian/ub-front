@@ -10,7 +10,9 @@ import {
   Users,
 } from "lucide-react";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
+import { isCatalogEligibleBusiness } from "@/lib/business-store-type";
 import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { getOnboardingQuestionnaireState } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
@@ -26,7 +28,9 @@ type PostSetupChecklistProps = {
 export function PostSetupChecklist({
   catalogueCount = null,
 }: PostSetupChecklistProps) {
+  const { business } = useDashboard();
   const [show, setShow] = useState(false);
+  const catalogEligible = isCatalogEligibleBusiness(business);
 
   useEffect(() => {
     const state = getOnboardingQuestionnaireState();
@@ -50,15 +54,29 @@ export function PostSetupChecklist({
   const stocked = catalogueCount != null && catalogueCount > 0;
 
   const items = [
-    {
-      href: `${APP_ROUTES.productsCatalog}?from=onboarding`,
-      label: stocked ? "Starter pack imported" : "Import a starter pack",
-      desc: stocked
-        ? "Your catalog has products — you’re ready to sell."
-        : "Stock shelves from the shared catalog in minutes.",
-      icon: Package,
-      done: stocked,
-    },
+    ...(catalogEligible
+      ? [
+          {
+            href: `${APP_ROUTES.productsCatalog}?from=onboarding`,
+            label: stocked ? "Starter pack imported" : "Import a starter pack",
+            desc: stocked
+              ? "Your catalog has products — you’re ready to sell."
+              : "Stock shelves from the shared catalog in minutes.",
+            icon: Package,
+            done: stocked,
+          },
+        ]
+      : [
+          {
+            href: APP_ROUTES.products,
+            label: stocked ? "Products added" : "Add your first products",
+            desc: stocked
+              ? "Your catalog has products — you’re ready to sell."
+              : "Create products manually for your shop.",
+            icon: Package,
+            done: stocked,
+          },
+        ]),
     {
       href: APP_ROUTES.sales,
       label: "Record your first sale",

@@ -3819,6 +3819,8 @@ export type GlobalCatalogAdoptLine = {
   minStockLevel?: number | null;
   /** skip | merge | rename — when preview reports a SKU conflict */
   onSkuConflict?: "skip" | "merge" | "rename" | null;
+  /** When false, created items stay off the online storefront. Default true. */
+  webPublished?: boolean | null;
 };
 
 export type GlobalCatalogAdoptResultLine = {

@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 
 import { DesktopBootShell } from "@/components/desktop/desktop-boot-shell";
 import { IS_DESKTOP } from "@/lib/runtime";
+import {
+  WORLD_COUNTRY_DEFAULTS,
+  WORLD_REGION_DEFAULTS,
+} from "@/lib/world-region-defaults";
 
 /**
  * First-run setup wizard for the desktop SKU
@@ -31,37 +35,22 @@ type SubmitState =
   | { kind: "error"; message: string }
   | { kind: "success" };
 
-const TIMEZONES = [
-  "Africa/Nairobi",
-  "Africa/Kampala",
-  "Africa/Dar_es_Salaam",
-  "Africa/Kigali",
-  "Africa/Lagos",
-  "Africa/Johannesburg",
-  "UTC",
-];
+/** Unique currencies / timezones from the world region catalog (+ UTC). */
+const CURRENCIES = Array.from(
+  new Set(WORLD_REGION_DEFAULTS.map((r) => r.currency)),
+).sort();
 
-const CURRENCIES = ["KES", "UGX", "TZS", "RWF", "NGN", "ZAR", "USD", "EUR"];
+const TIMEZONES = Array.from(
+  new Set(["UTC", ...WORLD_REGION_DEFAULTS.map((r) => r.timezone)]),
+).sort();
 
-const COUNTRIES = [
-  { code: "KE", label: "Kenya" },
-  { code: "UG", label: "Uganda" },
-  { code: "TZ", label: "Tanzania" },
-  { code: "RW", label: "Rwanda" },
-  { code: "NG", label: "Nigeria" },
-  { code: "ZA", label: "South Africa" },
-];
+const COUNTRIES = WORLD_REGION_DEFAULTS.map((r) => ({
+  code: r.countryCode,
+  label: r.label,
+}));
 
 /** Mirrors backend RegionDefaults for desktop default fill (override still allowed). */
-const COUNTRY_DEFAULTS: Record<string, { currency: string; timezone: string }> =
-  {
-    KE: { currency: "KES", timezone: "Africa/Nairobi" },
-    UG: { currency: "UGX", timezone: "Africa/Kampala" },
-    TZ: { currency: "TZS", timezone: "Africa/Dar_es_Salaam" },
-    RW: { currency: "RWF", timezone: "Africa/Kigali" },
-    NG: { currency: "NGN", timezone: "Africa/Lagos" },
-    ZA: { currency: "ZAR", timezone: "Africa/Johannesburg" },
-  };
+const COUNTRY_DEFAULTS = WORLD_COUNTRY_DEFAULTS;
 
 export default function DesktopSetupPage() {
   const router = useRouter();

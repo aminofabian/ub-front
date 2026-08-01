@@ -7,7 +7,14 @@ export type StoreTypeId =
   | "fresh-market"
   | "mixed-shop"
   | "cosmetics"
-  | "wines-spirits";
+  | "wines-spirits"
+  | "other";
+
+/** Shop formats that get the shared starter-product catalogue during onboarding. */
+export const CATALOG_ELIGIBLE_STORE_TYPES: readonly StoreTypeId[] = [
+  "mini-mart",
+  "mixed-shop",
+];
 
 const STORE_TYPE_ORDER: readonly StoreTypeId[] = [
   "butchery",
@@ -17,6 +24,7 @@ const STORE_TYPE_ORDER: readonly StoreTypeId[] = [
   "mixed-shop",
   "cosmetics",
   "wines-spirits",
+  "other",
 ];
 
 type StoreTypeSource = {
@@ -94,4 +102,22 @@ export function isButcheryBusiness(
   source: StoreTypeSource | null | undefined,
 ): boolean {
   return getBusinessStoreTypes(source).includes("butchery");
+}
+
+/** True when any selected format can use the shared starter catalogue. */
+export function isCatalogEligibleStoreTypes(
+  storeTypes: readonly string[] | null | undefined,
+): boolean {
+  if (!storeTypes?.length) {
+    return false;
+  }
+  return storeTypes.some((value) =>
+    (CATALOG_ELIGIBLE_STORE_TYPES as readonly string[]).includes(value),
+  );
+}
+
+export function isCatalogEligibleBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return isCatalogEligibleStoreTypes(getBusinessStoreTypes(source));
 }

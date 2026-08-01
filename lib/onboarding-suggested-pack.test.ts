@@ -34,11 +34,30 @@ describe("pickSuggestedOnboardingPack", () => {
     expect(pickSuggestedOnboardingPack(packs, ["mini-mart"])?.id).toBe("m");
   });
 
-  test("falls back to first ready pack by sort order", () => {
+  test("matches mixed-shop packs", () => {
     const packs = [
-      pack({ id: "b", name: "B", sortOrder: 2 }),
-      pack({ id: "a", name: "A", sortOrder: 1 }),
+      pack({ id: "m", name: "Mini", storeKitId: "mini-mart", sortOrder: 1 }),
+      pack({ id: "x", name: "Mixed", storeKitId: "mixed-shop", sortOrder: 2 }),
     ];
-    expect(pickSuggestedOnboardingPack(packs, ["cosmetics"])?.id).toBe("a");
+    expect(pickSuggestedOnboardingPack(packs, ["mixed-shop"])?.id).toBe("x");
+  });
+
+  test("returns null for non catalogue-eligible shop types", () => {
+    const packs = [
+      pack({ id: "a", name: "A", sortOrder: 1 }),
+      pack({ id: "m", name: "Mini", storeKitId: "mini-mart", sortOrder: 2 }),
+    ];
+    expect(pickSuggestedOnboardingPack(packs, ["cosmetics"])).toBeNull();
+    expect(pickSuggestedOnboardingPack(packs, ["butchery"])).toBeNull();
+    expect(pickSuggestedOnboardingPack(packs, ["other"])).toBeNull();
+  });
+
+  test("eligible when mini-mart is among multiple types", () => {
+    const packs = [
+      pack({ id: "m", name: "Mini", storeKitId: "mini-mart", sortOrder: 1 }),
+    ];
+    expect(
+      pickSuggestedOnboardingPack(packs, ["butchery", "mini-mart"])?.id,
+    ).toBe("m");
   });
 });

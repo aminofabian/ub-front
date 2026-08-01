@@ -7,10 +7,15 @@ import {
 } from "./onboarding-questionnaire";
 
 describe("vertical store types", () => {
-  test("options include cosmetics and wines-spirits", () => {
+  test("options include cosmetics, wines-spirits, and other", () => {
     const values = STORE_TYPE_OPTIONS.map((o) => o.value);
     expect(values).toContain("cosmetics");
     expect(values).toContain("wines-spirits");
+    expect(values).toContain("other");
+  });
+
+  test("other has no starter departments", () => {
+    expect(storeTypeSectionLabels("other")).toEqual([]);
   });
 
   test("cosmetics seeds beauty departments", () => {

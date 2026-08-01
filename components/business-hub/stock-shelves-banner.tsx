@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Package } from "lucide-react";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import { useOnboardingQuestionnaire } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { APP_ROUTES } from "@/lib/config";
+import { isCatalogEligibleBusiness } from "@/lib/business-store-type";
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
 import {
   getOnboardingQuestionnaireState,
@@ -29,6 +31,7 @@ export function StockShelvesBanner({
   catalogueCount,
   className,
 }: StockShelvesBannerProps) {
+  const { business } = useDashboard();
   const { reopen } = useOnboardingQuestionnaire();
   const [dismissed, setDismissed] = useState(true);
   const [canResume, setCanResume] = useState(false);
@@ -39,7 +42,12 @@ export function StockShelvesBanner({
     setCanResume(state.status === "dismissed");
   }, []);
 
-  if (dismissed || catalogueCount == null || catalogueCount > 0) {
+  if (
+    dismissed ||
+    catalogueCount == null ||
+    catalogueCount > 0 ||
+    !isCatalogEligibleBusiness(business)
+  ) {
     return null;
   }
 
