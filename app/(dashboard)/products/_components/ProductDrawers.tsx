@@ -3,10 +3,7 @@
 import Image from "next/image";
 import {
   Camera,
-  CircleDollarSign,
-  Layers,
   Loader2,
-  Package,
   PencilLine,
   Save,
   Building2,
@@ -33,7 +30,6 @@ import {
 import type { ProductDetailApi } from "../_hooks/useProductDetail";
 import type { QuickEditApi } from "../_hooks/useQuickEdit";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
-import { ProductDetailPanel } from "./ProductDetailPanel";
 import {
   coverImageUrl,
   galleryImageUrl,
@@ -41,9 +37,10 @@ import {
   toNumber,
   usesSharedPackageStock,
 } from "../_utils";
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useState } from "react";
 
 export { ProductEditDrawer } from "./ProductEditDrawer";
+export { ProductMobileDetailDrawer } from "./ProductMobileDetailDrawer";
 
 // ─── Photos drawer ───────────────────────────────────────────────────────────
 
@@ -440,128 +437,5 @@ function F({
     <ProductFormField label={label} required={required}>
       {children}
     </ProductFormField>
-  );
-}
-
-// ─── Mobile detail drawer ────────────────────────────────────────────────────
-
-export function ProductMobileDetailDrawer({
-  open,
-  onClose,
-  banner,
-  detail,
-  detailPanelProps,
-}: {
-  open: boolean;
-  onClose: () => void;
-  banner?: FormDrawerProps["banner"];
-  detail: Pick<ProductDetailApi, "detail">;
-  detailPanelProps: ComponentProps<typeof ProductDetailPanel>;
-}) {
-  const d = detail.detail;
-  const canEdit = detailPanelProps.canCatalogWrite;
-  const canStock = detailPanelProps.canInventoryWrite;
-  const sharedStock = !!d && usesSharedPackageStock(d);
-
-  const focusCommerce = () => {
-    requestAnimationFrame(() => {
-      document
-        .getElementById("product-commerce")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  };
-
-  const dockBtn = cn(
-    "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 border border-border bg-background",
-    "text-[10px] font-semibold uppercase tracking-wide text-foreground",
-    "active:bg-muted/70 disabled:opacity-40",
-  );
-
-  return (
-    <FormDrawer
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) onClose();
-      }}
-      banner={banner}
-      title={d?.name ?? "Product"}
-      description={
-        d?.variantName?.trim() ||
-        (d?.sku ? `SKU ${d.sku}` : "Tap Price or Stock to update")
-      }
-      contextLabel={d?.variantOfItemId ? "Variant" : "Product"}
-      width="full"
-      appearance="sharp"
-      headerDensity="compact"
-      footer={
-        d ? (
-          <div className="grid grid-cols-4 gap-1.5 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
-            <button
-              type="button"
-              className={dockBtn}
-              disabled={!canEdit}
-              onClick={() => {
-                detailPanelProps.openQuickEdit("bundlePrice");
-                focusCommerce();
-              }}
-            >
-              <CircleDollarSign className="size-4" aria-hidden />
-              Price
-            </button>
-            <button
-              type="button"
-              className={dockBtn}
-              disabled={
-                sharedStock
-                  ? !canStock || !detailPanelProps.onOpenBaseStock
-                  : !canStock
-              }
-              onClick={() => {
-                if (sharedStock && detailPanelProps.onOpenBaseStock) {
-                  detailPanelProps.onOpenBaseStock();
-                  return;
-                }
-                detailPanelProps.openQuickEdit("stock");
-                focusCommerce();
-              }}
-            >
-              <Package className="size-4" aria-hidden />
-              Stock
-            </button>
-            <button
-              type="button"
-              className={dockBtn}
-              disabled={!canEdit}
-              onClick={() => detailPanelProps.setActiveDrawer("edit-product")}
-            >
-              <PencilLine className="size-4" aria-hidden />
-              Edit
-            </button>
-            <button
-              type="button"
-              className={dockBtn}
-              disabled={!canEdit}
-              onClick={() => detailPanelProps.setActiveDrawer("photos")}
-            >
-              <Camera className="size-4" aria-hidden />
-              Photo
-            </button>
-          </div>
-        ) : undefined
-      }
-    >
-      {d ? (
-        <ProductDetailPanel
-          {...detailPanelProps}
-          showMobileStickyActions={false}
-          mobileAppLayout
-        />
-      ) : (
-        <div className="flex flex-col items-center justify-center gap-3 py-16">
-          <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        </div>
-      )}
-    </FormDrawer>
   );
 }

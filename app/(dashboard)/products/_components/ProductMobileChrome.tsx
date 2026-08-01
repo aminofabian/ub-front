@@ -100,9 +100,9 @@ export function ProductMobileChrome({
           <input
             id="catalog-omni"
             className={cn(
-              "h-9 w-full rounded-md border border-border/80 bg-muted/30 pl-8 pr-8 text-[13px] shadow-none",
-              "placeholder:text-muted-foreground/50",
-              "focus-visible:border-foreground/25 focus-visible:bg-background focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/25",
+              "h-9 w-full rounded-none border border-border bg-background pl-8 pr-8 text-[13px] shadow-none",
+              "placeholder:text-foreground/35",
+              "focus-visible:border-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/25",
             )}
             value={catalog.search}
             onChange={(e) => catalog.setSearch(e.target.value)}
@@ -130,15 +130,15 @@ export function ProductMobileChrome({
           aria-expanded={showPanel}
           aria-label="More filters"
           className={cn(
-            "relative inline-flex size-9 shrink-0 items-center justify-center rounded-md border transition-colors",
+            "relative inline-flex size-9 shrink-0 items-center justify-center rounded-none border transition-colors",
             showPanel || panelCount > 0
               ? "border-foreground bg-foreground text-background"
-              : "border-border/80 bg-muted/30 text-muted-foreground hover:text-foreground",
+              : "border-border bg-background text-muted-foreground hover:text-foreground",
           )}
         >
           <ListFilter className="size-3.5" aria-hidden />
           {panelCount > 0 ? (
-            <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-background text-[9px] font-bold tabular-nums text-foreground ring-1 ring-border">
+            <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-none border border-border bg-background text-[9px] font-bold tabular-nums text-foreground">
               {panelCount}
             </span>
           ) : null}
@@ -151,7 +151,7 @@ export function ProductMobileChrome({
             size="icon"
             disabled={!canCreate}
             onClick={onAddFromCatalog}
-            className="size-9 shrink-0 rounded-md border border-border/80 bg-muted/30 shadow-none"
+            className="size-9 shrink-0 rounded-none border border-border bg-background shadow-none"
             aria-label="Add from library"
           >
             <Library className="size-3.5" aria-hidden />
@@ -163,7 +163,7 @@ export function ProductMobileChrome({
           size="sm"
           disabled={!canCreate}
           onClick={onCreateNew}
-          className="h-9 shrink-0 gap-1 rounded-md px-2.5 text-[12px] font-semibold shadow-none"
+          className="h-9 shrink-0 gap-1 rounded-none px-2.5 text-[12px] font-semibold shadow-none"
         >
           <PackagePlus className="size-3.5" aria-hidden />
           New
@@ -171,7 +171,7 @@ export function ProductMobileChrome({
       </div>
 
       <div
-        className="grid grid-cols-4 gap-px overflow-hidden rounded-md border border-border/80 bg-border/60"
+        className="grid grid-cols-4 gap-px overflow-hidden rounded-none border border-border bg-border"
         role="tablist"
         aria-label="Catalog scope"
       >
@@ -187,8 +187,8 @@ export function ProductMobileChrome({
               className={cn(
                 "h-7 text-[11px] font-medium transition-colors",
                 active
-                  ? "bg-background text-foreground"
-                  : "bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                  ? "bg-muted/40 font-semibold text-foreground"
+                  : "bg-background text-foreground/55 hover:bg-muted/30 hover:text-foreground",
               )}
             >
               {label}
