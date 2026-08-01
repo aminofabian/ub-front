@@ -24,6 +24,7 @@ import {
 import { BusinessSettingsForm } from "@/components/business/business-settings-form";
 import {
   BUSINESS_CONFIGURATION_NAV,
+  BUSINESS_OPS_ALERT_NAV,
   BUSINESS_PROFILE_NAV,
 } from "@/components/business/business-settings-nav";
 import {
@@ -52,7 +53,10 @@ function scrollToSection(id: string) {
 function redirectLegacyConfigHash() {
   const hash = window.location.hash.replace(/^#/, "");
   if (!hash) return false;
-  if (BUSINESS_CONFIGURATION_NAV.some((item) => item.id === hash)) {
+  if (
+    BUSINESS_CONFIGURATION_NAV.some((item) => item.id === hash) ||
+    hash === BUSINESS_OPS_ALERT_NAV.id
+  ) {
     window.location.replace(
       `${APP_ROUTES.businessConfiguration}#${hash}`,
     );

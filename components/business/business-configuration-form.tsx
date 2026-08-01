@@ -308,6 +308,9 @@ export function BusinessConfigurationForm({
         onSubmit(event);
       }}
     >
+      {/* Always visible on this page — Inventory and Till workspaces */}
+      <WhatsAppOpsAlertsPanel canEdit={canEditWhatsAppAlerts} />
+
       {visibleIds.has("settings-stock-take") ? (
         <PolicyPanel
           id="settings-stock-take"
@@ -940,10 +943,6 @@ export function BusinessConfigurationForm({
             </Button>
           </div>
         </PolicyPanel>
-      ) : null}
-
-      {visibleIds.has("settings-whatsapp-alerts") ? (
-        <WhatsAppOpsAlertsPanel canEdit={canEditWhatsAppAlerts} />
       ) : null}
 
       {visibleIds.has("settings-trusted-tills") ? (

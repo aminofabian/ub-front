@@ -54,18 +54,21 @@ export const BUSINESS_CONFIGURATION_NAV: BusinessSettingsNavItem[] = [
     group: "Till",
     icon: Bell,
   },
-  {
-    id: "settings-whatsapp-alerts",
-    label: "WhatsApp alerts",
-    group: "Till",
-    icon: MessageCircle,
-  },
 ];
+
+/** Always listed on Configuration (Inventory + Till workspaces). */
+export const BUSINESS_OPS_ALERT_NAV: BusinessSettingsNavItem = {
+  id: "settings-whatsapp-alerts",
+  label: "WhatsApp alerts",
+  group: "Till",
+  icon: MessageCircle,
+};
 
 /** @deprecated Prefer BUSINESS_PROFILE_NAV / BUSINESS_CONFIGURATION_NAV */
 export const BUSINESS_SETTINGS_NAV: BusinessSettingsNavItem[] = [
   ...BUSINESS_PROFILE_NAV,
   ...BUSINESS_CONFIGURATION_NAV,
+  BUSINESS_OPS_ALERT_NAV,
 ];
 
 export const BUSINESS_SETTINGS_NAV_GROUPS = ["Business", "Inventory", "Till"] as const;

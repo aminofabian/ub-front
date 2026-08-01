@@ -21,6 +21,7 @@ import {
 import { BusinessConfigurationForm } from "@/components/business/business-configuration-form";
 import {
   BUSINESS_CONFIGURATION_NAV,
+  BUSINESS_OPS_ALERT_NAV,
   CONFIGURATION_WORKSPACES,
   type ConfigurationWorkspace,
 } from "@/components/business/business-settings-nav";
@@ -45,6 +46,7 @@ function scrollToSection(id: string) {
 
 function workspaceFromHash(hash: string): ConfigurationWorkspace {
   const id = hash.replace(/^#/, "");
+  if (id === BUSINESS_OPS_ALERT_NAV.id) return "inventory";
   const item = BUSINESS_CONFIGURATION_NAV.find((nav) => nav.id === id);
   if (item?.group === "Till") return "till";
   return "inventory";
@@ -66,7 +68,10 @@ export default function BusinessConfigurationPage() {
       if (!hash) return;
       setWorkspace(workspaceFromHash(hash));
       const id = hash.replace(/^#/, "");
-      if (BUSINESS_CONFIGURATION_NAV.some((item) => item.id === id)) {
+      if (
+        BUSINESS_CONFIGURATION_NAV.some((item) => item.id === id) ||
+        id === BUSINESS_OPS_ALERT_NAV.id
+      ) {
         setActiveSection(id);
       }
     };
@@ -85,11 +90,14 @@ export default function BusinessConfigurationPage() {
   }, [workspace, activeSection, editor.effectiveSnapshot]);
 
   useEffect(() => {
-    const ids = BUSINESS_CONFIGURATION_NAV.filter((item) =>
-      workspace === "inventory"
-        ? item.group === "Inventory"
-        : item.group === "Till",
-    ).map((item) => item.id);
+    const ids = [
+      ...BUSINESS_CONFIGURATION_NAV.filter((item) =>
+        workspace === "inventory"
+          ? item.group === "Inventory"
+          : item.group === "Till",
+      ).map((item) => item.id),
+      BUSINESS_OPS_ALERT_NAV.id,
+    ];
     const elements = ids
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => Boolean(el));
@@ -110,12 +118,14 @@ export default function BusinessConfigurationPage() {
   }, [workspace, editor.effectiveSnapshot, editor.canManageBusinessSettings]);
 
   const sectionItems = useMemo(
-    () =>
-      BUSINESS_CONFIGURATION_NAV.filter((item) =>
+    () => [
+      ...BUSINESS_CONFIGURATION_NAV.filter((item) =>
         workspace === "inventory"
           ? item.group === "Inventory"
           : item.group === "Till",
       ),
+      BUSINESS_OPS_ALERT_NAV,
+    ],
     [workspace],
   );
 
@@ -482,30 +492,9 @@ export default function BusinessConfigurationPage() {
             </ul>
             <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-2.5 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Jump to
+                Also under Configuration
               </p>
               <div className="mt-1.5 flex flex-col gap-1">
-                {workspace !== "till" ? (
-                  <button
-                    type="button"
-                    className="text-left text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      setWorkspace("till");
-                      setActiveSection("settings-whatsapp-alerts");
-                      history.replaceState(
-                        null,
-                        "",
-                        "#settings-whatsapp-alerts",
-                      );
-                      window.setTimeout(
-                        () => scrollToSection("settings-whatsapp-alerts"),
-                        80,
-                      );
-                    }}
-                  >
-                    WhatsApp alerts
-                  </button>
-                ) : null}
                 <Link
                   href={APP_ROUTES.businessBranding}
                   className="text-xs text-muted-foreground hover:text-foreground"
