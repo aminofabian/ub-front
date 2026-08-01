@@ -38,9 +38,7 @@ import {
   catalogListProductCellClass,
   catalogListShellClass,
   catalogGridCol,
-  catalogKindCellClass,
-  catalogTypeChipClass,
-  catalogTypeChipLabel,
+  catalogVariantRowIndentClass,
   catalogRowAccentClass,
   catalogRowHeightPx,
   catalogRowHierarchyClass,
@@ -269,15 +267,6 @@ export const VirtualizedCatalogBody = forwardRef<
         </span>
         <span
           className={cn(
-            catalogGridCol.kind,
-            "text-[9px] font-semibold uppercase tracking-[0.1em] text-foreground/40",
-          )}
-          title="Row type: PAR parent · VAR variant · SKU standalone · GRP group"
-        >
-          Type
-        </span>
-        <span
-          className={cn(
             catalogGridCol.product,
             "text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/40",
           )}
@@ -434,10 +423,6 @@ export const VirtualizedCatalogBody = forwardRef<
                 sheetBanded:
                   isVariant || isGroup || effectiveVariantCount > 0,
               };
-              const kindLabel = catalogTypeChipLabel(
-                meta.kind,
-                effectiveVariantCount,
-              );
 
               return (
                 <div
@@ -514,37 +499,12 @@ export const VirtualizedCatalogBody = forwardRef<
                       </button>
                     </span>
 
-                    <span
-                      className={cn(
-                        catalogGridCol.kind,
-                        catalogKindCellClass(meta.kind, effectiveVariantCount),
-                      )}
-                      title={
-                        kindLabel === "PAR"
-                          ? "Parent — has variants below"
-                          : kindLabel === "VAR"
-                            ? "Variant of a parent"
-                            : kindLabel === "GRP"
-                              ? "Group label"
-                              : "Standalone SKU"
-                      }
-                    >
-                      <span
-                        className={catalogTypeChipClass(
-                          meta.kind,
-                          effectiveVariantCount,
-                        )}
-                      >
-                        {kindLabel}
-                      </span>
-                    </span>
-
                     <div
                       className={cn(
                         catalogListProductCellClass,
                         catalogGridCol.product,
                         "gap-1",
-                        isVariant && "pl-2 sm:pl-3",
+                        isVariant && catalogVariantRowIndentClass(density),
                       )}
                     >
                       {density !== "dense" && !isVariant && listThumb ? (

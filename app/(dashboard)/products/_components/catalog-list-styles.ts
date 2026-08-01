@@ -111,25 +111,25 @@ export const catalogListHeaderRowClass = cn(
 
 /**
  * Spreadsheet grid — last column has no right border (flush to edge).
- * mobile — # · Kind · Product · Qty · Price
+ * mobile — # · Product · Qty · Price
  * xl+    — + Category
  */
 export const catalogListGridClass =
   "grid w-full min-w-0 max-w-full items-stretch gap-0 " +
-  "grid-cols-[1.25rem_1.4rem_minmax(0,1fr)_2.25rem_3rem] " +
-  "sm:grid-cols-[1.35rem_1.5rem_minmax(0,1fr)_2.5rem_3.5rem_0px] " +
-  "xl:grid-cols-[1.35rem_1.5rem_minmax(0,1fr)_2.5rem_3.5rem_4.5rem]";
+  "grid-cols-[1.25rem_minmax(0,1fr)_2.25rem_3rem] " +
+  "sm:grid-cols-[1.35rem_minmax(0,1fr)_2.5rem_3.5rem_0px] " +
+  "xl:grid-cols-[1.35rem_minmax(0,1fr)_2.5rem_3.5rem_4.5rem]";
 
 const sheetV = "border-r border-border/40";
 const sheetH = "border-b border-border/40";
 const catalogCellPad = "px-1.5 py-0";
 const catalogMetricPad = "px-0.5 py-0";
 
-/** Whole-row inset for variant SKUs (checkbox through metrics). */
+/** ~7 characters of inset so variants nest under their parent / SKU column. */
 export function catalogVariantRowIndentClass(
-  density: "comfortable" | "dense" = "dense",
+  _density: "comfortable" | "dense" = "dense",
 ): string {
-  return density === "dense" ? "pl-0" : "pl-0";
+  return "pl-[7ch]";
 }
 
 export const catalogGridCol = {
@@ -139,28 +139,22 @@ export const catalogGridCol = {
     sheetH,
     "flex items-center justify-center bg-muted/25 px-0",
   ),
-  kind: cn(
-    "col-start-2 self-stretch",
-    sheetV,
-    sheetH,
-    "flex items-center justify-center bg-muted/15 px-0",
-  ),
   product: cn(
-    "col-start-3 min-w-0 self-stretch",
+    "col-start-2 min-w-0 self-stretch",
     sheetV,
     sheetH,
     catalogCellPad,
     "flex items-center",
   ),
-  stock: cn("col-start-4 self-stretch", sheetV, sheetH),
+  stock: cn("col-start-3 self-stretch", sheetV, sheetH),
   sell: cn(
-    "col-start-5 self-stretch",
+    "col-start-4 self-stretch",
     sheetH,
     // Flush last column on mobile/sm — money hugs the edge
     "bg-muted/[0.12] xl:border-r xl:border-border/40 xl:bg-transparent",
   ),
   category: cn(
-    "col-start-6 self-stretch",
+    "col-start-5 self-stretch",
     sheetH,
     "max-xl:invisible max-xl:pointer-events-none max-xl:border-0",
   ),
@@ -202,7 +196,7 @@ export const catalogSheetRowHeaderClass = cn(
   "active:bg-foreground/10",
 );
 
-/** Left rail — tree line for variants; parent/group block banding. */
+/** Soft band for parent+variant families; standalones stay on the sheet. */
 export function catalogRowHierarchyClass(
   meta: Pick<
     CatalogRowMeta,
@@ -215,57 +209,9 @@ export function catalogRowHierarchyClass(
   _tone: CatalogRowTone,
 ): string {
   if (meta.kind === "variant") {
-    return cn(
-      "bg-[#f4f6f8] dark:bg-muted/20",
-      // Vertical tree rail under the kind column
-      "after:pointer-events-none after:absolute after:bottom-0 after:left-[calc(1.25rem+0.7rem)] after:top-0 after:z-[1] after:w-px after:bg-border/80",
-      "sm:after:left-[calc(1.35rem+0.75rem)]",
-      meta.endsVariantGroup && "after:bottom-1/2",
-    );
-  }
-  if (meta.kind === "group" || meta.variantCount > 0) {
-    return "bg-[#e8ecf0] dark:bg-muted/35";
-  }
-  return "";
-}
-
-export function catalogTypeChipClass(
-  kind: CatalogRowKind,
-  variantCount: number,
-): string {
-  const base =
-    "inline-flex h-3.5 min-w-[1.15rem] items-center justify-center rounded-none border px-px font-mono text-[7px] font-semibold uppercase tracking-[0.04em]";
-  if (kind === "group") {
-    return cn(base, "border-border bg-background text-foreground/55");
-  }
-  if (kind === "variant") {
-    return cn(base, "border-border/70 bg-background text-foreground/70");
-  }
-  if (variantCount > 0) {
-    return cn(base, "border-foreground/25 bg-background text-foreground/70");
-  }
-  return cn(base, "border-border/60 bg-background text-foreground/45");
-}
-
-export function catalogTypeChipLabel(
-  kind: CatalogRowKind,
-  variantCount: number,
-): string {
-  if (kind === "group") return "Grp";
-  if (kind === "variant") return "VAR";
-  if (variantCount > 0) return "PAR";
-  return "SKU";
-}
-
-/** Kind-column cell chrome for the spreadsheet type codes. */
-export function catalogKindCellClass(
-  kind: CatalogRowKind,
-  variantCount: number,
-): string {
-  if (kind === "variant") {
     return "bg-[#f4f6f8] dark:bg-muted/20";
   }
-  if (kind === "group" || variantCount > 0) {
+  if (meta.kind === "group" || meta.variantCount > 0) {
     return "bg-[#e8ecf0] dark:bg-muted/35";
   }
   return "";

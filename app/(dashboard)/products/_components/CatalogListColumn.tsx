@@ -37,11 +37,10 @@ type Props = {
 const ROW_TYPE_LEGEND: {
   id: CatalogListDisplayType;
   label: string;
-  code: string;
 }[] = [
-  { id: "parent", label: "Parents", code: "PAR" },
-  { id: "variant", label: "Variants", code: "VAR" },
-  { id: "standalone", label: "Standalones", code: "SKU" },
+  { id: "parent", label: "Parents" },
+  { id: "variant", label: "Variants" },
+  { id: "standalone", label: "Standalones" },
 ];
 
 export function CatalogListColumn({
@@ -206,18 +205,15 @@ export function CatalogListColumn({
               className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 border-l border-border/40 pl-2 text-[10px] text-muted-foreground"
               aria-label="Row type counts"
             >
-              {ROW_TYPE_LEGEND.map(({ id, label, code }, index) => {
+              {ROW_TYPE_LEGEND.map(({ id, label }, index) => {
                 const count = catalog.rowTypeCounts[id];
                 return (
-                  <span key={id} className="inline-flex items-center gap-1">
+                  <span key={id} className="inline-flex items-center gap-0.5">
                     {index > 0 ? (
                       <span className="text-border" aria-hidden>
                         ·
                       </span>
                     ) : null}
-                    <span className="inline-flex h-4 min-w-[1.35rem] items-center justify-center rounded-none border border-border bg-background px-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.06em] text-foreground/55">
-                      {code}
-                    </span>
                     <span className="tabular-nums font-semibold text-foreground">
                       {count.toLocaleString()}
                     </span>
