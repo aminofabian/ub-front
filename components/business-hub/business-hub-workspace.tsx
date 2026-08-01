@@ -83,6 +83,7 @@ import {
   fetchInventoryExpiryPipeline,
   fetchInventoryValuation,
   fetchItemsPage,
+  fetchCreditsActivitySummary,
   fetchOutstandingTabs,
   fetchRecentSales,
   fetchPathBSupplies,
@@ -91,6 +92,7 @@ import {
   fetchShifts,
   fetchWebOrders,
   type BatchDashboardResponse,
+  type CreditsActivitySummaryRecord,
   type DrawoutRecord,
   type FinancePulseResponse,
   type InventoryExpiryPipelineResponse,
@@ -229,6 +231,8 @@ export function BusinessHubWorkspace() {
   const [openCreditTabs, setOpenCreditTabs] = useState<
     OutstandingTabRowRecord[]
   >([]);
+  const [creditActivity, setCreditActivity] =
+    useState<CreditsActivitySummaryRecord | null>(null);
   const [payBillRow, setPayBillRow] =
     useState<PathBSupplyListRowRecord | null>(null);
   const [payBillOpen, setPayBillOpen] = useState(false);
@@ -292,6 +296,7 @@ export function BusinessHubWorkspace() {
         recentSalesRes,
         suppliesRes,
         creditTabsRes,
+        creditSummaryRes,
         webOrdersRes,
       ] = await Promise.all([
         canViewOwnerSummary
@@ -366,6 +371,12 @@ export function BusinessHubWorkspace() {
         canViewCreditTabs
           ? fetchOutstandingTabs().catch(() => [] as OutstandingTabRowRecord[])
           : Promise.resolve([] as OutstandingTabRowRecord[]),
+        canViewCreditTabs
+          ? fetchCreditsActivitySummary(
+              activeRange.from,
+              activeRange.to,
+            ).catch(() => null)
+          : Promise.resolve(null),
         canShowWebOrders
           ? fetchWebOrders(0, 50).catch(() => [] as WebOrderSummary[])
           : Promise.resolve([] as WebOrderSummary[]),
@@ -406,6 +417,7 @@ export function BusinessHubWorkspace() {
           Array.isArray(creditTabsRes) ? creditTabsRes : [],
         ).slice(0, CREDIT_TABS_DISPLAY_LIMIT),
       );
+      setCreditActivity(creditSummaryRes);
       const branchScope = branch?.trim();
       const webRows = (Array.isArray(webOrdersRes) ? webOrdersRes : [])
         .filter((order) =>
@@ -1132,6 +1144,9 @@ export function BusinessHubWorkspace() {
                   live={pulseLive}
                   justUpdated={creditJustUpdated}
                   onPayTab={canOpenCreditPay ? openCreditPay : undefined}
+                  paidTotal={creditActivity?.totalPaid ?? null}
+                  paidCount={creditActivity?.paymentCount ?? null}
+                  paidPeriodLabel={isToday ? "today" : "this week"}
                 />
               ) : null}
 

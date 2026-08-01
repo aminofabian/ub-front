@@ -23,6 +23,9 @@ export function CreditTabsRail({
   justUpdated = false,
   className,
   onPayTab,
+  paidTotal = null,
+  paidCount = null,
+  paidPeriodLabel = "today",
 }: {
   tabs: OutstandingTabRowRecord[];
   currency?: string | null;
@@ -31,9 +34,21 @@ export function CreditTabsRail({
   className?: string;
   /** Opens the mark-paid dialog for this customer tab. */
   onPayTab?: (tab: OutstandingTabRowRecord) => void;
+  /** Credit collections in the hub period filter. */
+  paidTotal?: number | string | null;
+  paidCount?: number | null;
+  /** e.g. "today" / "this week" — matches PeriodToggle. */
+  paidPeriodLabel?: string;
 }) {
   const empty = tabs.length === 0;
   const totalOwed = tabs.reduce((sum, tab) => sum + toNum(tab.balanceOwed), 0);
+  const paid = paidTotal == null ? null : toNum(paidTotal);
+  const collections =
+    paid == null
+      ? null
+      : paidCount != null && paidCount > 0
+        ? `${paidCount} · ${fmtMoney(paid, currency)}`
+        : fmtMoney(paid, currency);
 
   return (
     <section
@@ -50,13 +65,23 @@ export function CreditTabsRail({
       />
 
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[#E6E1D8] px-3 py-1.5">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#C47A5A]">
-            Credit tape
-          </p>
-          {!empty ? (
-            <p className="truncate text-[10px] text-[#8A8A8A]">
-              {tabs.length} open · {fmtMoney(totalOwed, currency)}
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#C47A5A]">
+              Credit tape
+            </p>
+            {!empty ? (
+              <p className="truncate text-[10px] text-[#8A8A8A]">
+                {tabs.length} open · {fmtMoney(totalOwed, currency)}
+              </p>
+            ) : null}
+          </div>
+          {collections != null ? (
+            <p
+              className="truncate text-[10px] font-medium tabular-nums text-emerald-800"
+              title={`Credit payments collected ${paidPeriodLabel}`}
+            >
+              Paid {paidPeriodLabel} · {collections}
             </p>
           ) : null}
         </div>
@@ -81,7 +106,11 @@ export function CreditTabsRail({
 
       {empty ? (
         <div className="px-3 py-2.5">
-          <p className="text-[11px] text-[#8A8A8A]">No open credit tabs.</p>
+          <p className="text-[11px] text-[#8A8A8A]">
+            {paid != null && paid > 0.009
+              ? `No open tabs · ${fmtMoney(paid, currency)} collected ${paidPeriodLabel}.`
+              : "No open credit tabs."}
+          </p>
         </div>
       ) : (
         <div
