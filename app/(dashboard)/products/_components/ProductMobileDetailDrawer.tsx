@@ -30,11 +30,10 @@ type Props = {
   detailPanelProps: ComponentProps<typeof ProductDetailPanel>;
 };
 
-const EXIT_MS = 420;
+const EXIT_MS = 400;
 
 /**
- * Clean back mark: chevron in a square frame with a hairline “return track”
- * that lengthens as the sheet exits to the right.
+ * Clean back mark: chevron with a hairline return track that lengthens on exit.
  */
 function CatalogBackMark() {
   return (
@@ -63,7 +62,7 @@ function CatalogBackMark() {
 
 /**
  * Full-screen mobile product detail — slides in from the right; back control
- * slides it back out.
+ * slides it back out (single exit pass, no reopen flicker).
  */
 export function ProductMobileDetailDrawer({
   open,
@@ -78,6 +77,8 @@ export function ProductMobileDetailDrawer({
   const sharedStock = !!d && usesSharedPackageStock(d);
   const scrollRef = useRef<HTMLDivElement>(null);
   const exitTimer = useRef<number | null>(null);
+  /** Blocks Radix onOpenChange(false) from starting a second exit while we close. */
+  const exitLockRef = useRef(false);
   const [exiting, setExiting] = useState(false);
 
   const portalOpen = open || exiting;
@@ -93,21 +94,30 @@ export function ProductMobileDetailDrawer({
     };
   }, []);
 
+  /** Parent re-opened us — clear any stale exit state. */
   useEffect(() => {
-    if (open) setExiting(false);
+    if (!open) return;
+    exitLockRef.current = false;
+    setExiting(false);
   }, [open]);
 
   const finishExit = useCallback(() => {
-    setExiting(false);
     onClose();
+    setExiting(false);
+    /* Keep the lock through the commit that sets open=false so Radix's
+       onOpenChange(false) cannot call beginExit again and re-mount the sheet. */
+    window.setTimeout(() => {
+      exitLockRef.current = false;
+    }, 0);
   }, [onClose]);
 
   const beginExit = useCallback(() => {
-    if (exiting) return;
+    if (exitLockRef.current || exiting || !open) return;
+    exitLockRef.current = true;
     setExiting(true);
     if (exitTimer.current != null) window.clearTimeout(exitTimer.current);
     exitTimer.current = window.setTimeout(finishExit, EXIT_MS);
-  }, [exiting, finishExit]);
+  }, [exiting, open, finishExit]);
 
   const focusCommerce = () => {
     requestAnimationFrame(() => {
@@ -134,7 +144,10 @@ export function ProductMobileDetailDrawer({
     <Dialog.Root
       open={portalOpen}
       onOpenChange={(next) => {
-        if (!next) beginExit();
+        if (next) return;
+        /* Ignore the synthetic close Radix emits when we set open=false after exit. */
+        if (exitLockRef.current || exiting) return;
+        beginExit();
       }}
     >
       <Dialog.Portal>
@@ -156,9 +169,19 @@ export function ProductMobileDetailDrawer({
             e.preventDefault();
             document.getElementById("product-mobile-detail-back")?.focus();
           }}
+          onCloseAutoFocus={(e) => {
+            /* Prevent focus returning to the list row from re-triggering open. */
+            e.preventDefault();
+          }}
           onEscapeKeyDown={(e) => {
             e.preventDefault();
             beginExit();
+          }}
+          onPointerDownOutside={(e) => {
+            e.preventDefault();
+          }}
+          onInteractOutside={(e) => {
+            e.preventDefault();
           }}
         >
           <header className="relative shrink-0 border-b border-border">
@@ -172,7 +195,6 @@ export function ProductMobileDetailDrawer({
                 className={cn(
                   "catalog-mobile-back group relative flex size-11 shrink-0 items-center justify-center",
                   "rounded-none border border-border bg-background text-foreground",
-                  "shadow-[inset_0_0_0_1px_transparent]",
                   "transition-[border-color,background-color,transform] duration-200",
                   "hover:border-foreground/35 hover:bg-muted/40",
                   "active:scale-[0.96] active:bg-muted/60",
@@ -181,7 +203,6 @@ export function ProductMobileDetailDrawer({
                   exiting && "is-sending border-foreground/40 bg-muted/50",
                 )}
               >
-                {/* Corner ticks — sheet vernacular, not decoration noise */}
                 <span
                   className="pointer-events-none absolute left-1 top-1 size-1.5 border-l border-t border-foreground/35"
                   aria-hidden
