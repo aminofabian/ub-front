@@ -4,6 +4,7 @@ import {
   Bell,
   Building2,
   ClipboardList,
+  MessageCircle,
   MonitorSmartphone,
   ShoppingCart,
   Store,
@@ -53,6 +54,12 @@ export const BUSINESS_CONFIGURATION_NAV: BusinessSettingsNavItem[] = [
     group: "Till",
     icon: Bell,
   },
+  {
+    id: "settings-whatsapp-alerts",
+    label: "WhatsApp alerts",
+    group: "Till",
+    icon: MessageCircle,
+  },
 ];
 
 /** @deprecated Prefer BUSINESS_PROFILE_NAV / BUSINESS_CONFIGURATION_NAV */
@@ -82,7 +89,7 @@ export const CONFIGURATION_WORKSPACES: {
   {
     id: "till",
     label: "Till & POS",
-    blurb: "Shifts, cashier powers, hub beeps, M-Pesa listen, drafts, and trusted devices",
+    blurb: "Shifts, cashier powers, hub beeps, WhatsApp alerts, M-Pesa listen, drafts, and trusted devices",
     groups: ["Till"],
   },
 ];

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { TrustedTillsPanel } from "@/components/business/trusted-tills-panel";
+import { WhatsAppOpsAlertsPanel } from "@/components/business/whatsapp-ops-alerts-panel";
 import {
   BUSINESS_CONFIGURATION_NAV,
   type ConfigurationWorkspace,
@@ -216,6 +217,7 @@ export function BusinessConfigurationForm({
   isSaving,
   onSubmit,
   onCancel,
+  canEditWhatsAppAlerts = false,
 }: {
   workspace: ConfigurationWorkspace;
   inventory: InventoryForm;
@@ -237,6 +239,7 @@ export function BusinessConfigurationForm({
   isSaving: boolean;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
+  canEditWhatsAppAlerts?: boolean;
 }) {
   const [dailyAuditSampleDraft, setDailyAuditSampleDraft] = useState(
     String(inventory.dailyAuditSampleSize),
@@ -937,6 +940,10 @@ export function BusinessConfigurationForm({
             </Button>
           </div>
         </PolicyPanel>
+      ) : null}
+
+      {visibleIds.has("settings-whatsapp-alerts") ? (
+        <WhatsAppOpsAlertsPanel canEdit={canEditWhatsAppAlerts} />
       ) : null}
 
       {visibleIds.has("settings-trusted-tills") ? (

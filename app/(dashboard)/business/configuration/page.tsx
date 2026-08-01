@@ -32,6 +32,7 @@ import {
 import { BusinessSettingsSkeleton } from "@/components/dashboard/business-settings-skeleton";
 import { Button } from "@/components/ui/button";
 import { useBusinessSettingsEditor } from "@/hooks/use-business-settings-editor";
+import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,7 @@ function workspaceFromHash(hash: string): ConfigurationWorkspace {
 export default function BusinessConfigurationPage() {
   const router = useRouter();
   const editor = useBusinessSettingsEditor();
+  const { canManageCreditSettings } = useDashboard();
   const [workspace, setWorkspace] =
     useState<ConfigurationWorkspace>("inventory");
   const [activeSection, setActiveSection] = useState(
@@ -520,6 +522,7 @@ export default function BusinessConfigurationPage() {
               null
             }
             isSaving={editor.isSaving}
+            canEditWhatsAppAlerts={canManageCreditSettings}
             onSubmit={(event) => {
               event.preventDefault();
               void editor.save("operations");

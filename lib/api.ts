@@ -9055,6 +9055,106 @@ export async function testSmsMessage(
   );
 }
 
+// ─── Tenant WhatsApp ops alerts (owner phone) ─────────────────────────────
+
+export type OpsAlertSettingsRecord = {
+  enabled: boolean;
+  phone: string | null;
+  phoneMasked: string | null;
+  phoneVerified: boolean;
+  phoneVerifiedAt: string | null;
+  alertWebOrder: boolean;
+  alertShift: boolean;
+  alertSupply: boolean;
+  alertCreditPayment: boolean;
+  messagingReady: boolean;
+};
+
+export type UpdateOpsAlertSettingsPayload = {
+  enabled: boolean;
+  alertWebOrder: boolean;
+  alertShift: boolean;
+  alertSupply: boolean;
+  alertCreditPayment: boolean;
+};
+
+export async function fetchOpsAlertSettings(): Promise<OpsAlertSettingsRecord> {
+  return request<OpsAlertSettingsRecord>("/api/v1/ops-alerts/settings");
+}
+
+export async function updateOpsAlertSettings(
+  body: UpdateOpsAlertSettingsPayload,
+): Promise<OpsAlertSettingsRecord> {
+  return request<OpsAlertSettingsRecord>("/api/v1/ops-alerts/settings", {
+    method: "PUT",
+    body,
+  });
+}
+
+export async function clearOpsAlertPhone(): Promise<OpsAlertSettingsRecord> {
+  return request<OpsAlertSettingsRecord>("/api/v1/ops-alerts/settings/phone", {
+    method: "DELETE",
+  });
+}
+
+export type SendOpsAlertPhoneVerificationResult = {
+  phone: string;
+  expiresAt: string;
+  channel: string;
+  phoneMasked: string;
+};
+
+export async function sendOpsAlertPhoneVerification(
+  phone: string,
+): Promise<SendOpsAlertPhoneVerificationResult> {
+  return request<SendOpsAlertPhoneVerificationResult>(
+    "/api/v1/ops-alerts/phone-verifications",
+    {
+      method: "POST",
+      body: { phone },
+    },
+  );
+}
+
+export type VerifyOpsAlertPhoneResult = {
+  phone: string;
+  phoneMasked: string;
+  phoneVerifiedAt: string;
+};
+
+export async function verifyOpsAlertPhone(
+  phone: string,
+  code: string,
+): Promise<VerifyOpsAlertPhoneResult> {
+  return request<VerifyOpsAlertPhoneResult>(
+    "/api/v1/ops-alerts/phone-verifications/verify",
+    {
+      method: "POST",
+      body: { phone, code },
+    },
+  );
+}
+
+export type OpsAlertTestSendResult = {
+  channel: string;
+  outcome: string;
+  detail: string;
+  phoneMasked: string;
+};
+
+export async function testOpsAlertSend(opts?: {
+  phone?: string;
+  message?: string;
+}): Promise<OpsAlertTestSendResult> {
+  return request<OpsAlertTestSendResult>("/api/v1/ops-alerts/test", {
+    method: "POST",
+    body: {
+      phone: opts?.phone?.trim() || null,
+      message: opts?.message?.trim() || null,
+    },
+  });
+}
+
 // ─── Phase 9 Sync Conflicts ─────────────────────────────────────────────
 
 export type SyncConflictRecord = {
