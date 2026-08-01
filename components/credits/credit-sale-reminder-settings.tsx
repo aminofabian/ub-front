@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
 
@@ -20,6 +21,7 @@ import {
   type CreditSaleReminderSettingsRecord,
   type CreditSaleReminderTestResult,
 } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -234,6 +236,19 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
             your account link. WhatsApp is tried first (RapidAPI lookup + Meta); SMS
             is the fallback. Use the separate WhatsApp and SMS test panels below to
             verify each channel alone. The test here runs the full reminder pipeline.
+          </p>
+          <p className="mt-2 text-sm">
+            <Link
+              href={`${APP_ROUTES.businessConfiguration}#settings-whatsapp-alerts`}
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+            >
+              Owner WhatsApp alerts
+              <span aria-hidden>→</span>
+            </Link>
+            <span className="text-muted-foreground">
+              {" "}
+              for web orders, shifts, supply bills, and credit payments
+            </span>
           </p>
         </div>
       </div>

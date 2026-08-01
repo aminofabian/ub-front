@@ -68,13 +68,21 @@ export default function BusinessConfigurationPage() {
       const id = hash.replace(/^#/, "");
       if (BUSINESS_CONFIGURATION_NAV.some((item) => item.id === id)) {
         setActiveSection(id);
-        window.requestAnimationFrame(() => scrollToSection(id));
       }
     };
     applyHash();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
   }, []);
+
+  // Scroll after workspace swap so deep links (e.g. #settings-whatsapp-alerts) land on the panel.
+  useEffect(() => {
+    const id = window.location.hash.replace(/^#/, "");
+    if (!id || id !== activeSection) return;
+    if (!document.getElementById(id)) return;
+    const t = window.setTimeout(() => scrollToSection(id), 50);
+    return () => window.clearTimeout(t);
+  }, [workspace, activeSection, editor.effectiveSnapshot]);
 
   useEffect(() => {
     const ids = BUSINESS_CONFIGURATION_NAV.filter((item) =>
@@ -474,9 +482,30 @@ export default function BusinessConfigurationPage() {
             </ul>
             <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-2.5 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Also under Configuration
+                Jump to
               </p>
               <div className="mt-1.5 flex flex-col gap-1">
+                {workspace !== "till" ? (
+                  <button
+                    type="button"
+                    className="text-left text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      setWorkspace("till");
+                      setActiveSection("settings-whatsapp-alerts");
+                      history.replaceState(
+                        null,
+                        "",
+                        "#settings-whatsapp-alerts",
+                      );
+                      window.setTimeout(
+                        () => scrollToSection("settings-whatsapp-alerts"),
+                        80,
+                      );
+                    }}
+                  >
+                    WhatsApp alerts
+                  </button>
+                ) : null}
                 <Link
                   href={APP_ROUTES.businessBranding}
                   className="text-xs text-muted-foreground hover:text-foreground"

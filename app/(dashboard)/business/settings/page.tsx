@@ -12,6 +12,7 @@ import {
   Coins,
   Globe,
   MapPin,
+  MessageCircle,
   Palette,
   RefreshCw,
   Shield,
@@ -196,6 +197,12 @@ export default function BusinessSettingsPage() {
               label: "Configuration",
               desc: "Inventory & till",
               icon: SlidersHorizontal,
+            },
+            {
+              href: `${APP_ROUTES.businessConfiguration}#settings-whatsapp-alerts`,
+              label: "WhatsApp alerts",
+              desc: "Owner event notifications",
+              icon: MessageCircle,
             },
             {
               href: APP_ROUTES.businessBranding,

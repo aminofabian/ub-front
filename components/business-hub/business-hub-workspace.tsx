@@ -7,6 +7,7 @@ import {
   Boxes,
   ClipboardCheck,
   CreditCard,
+  MessageCircle,
   Package,
   RefreshCw,
   ScanLine,
@@ -905,6 +906,12 @@ export function BusinessHubWorkspace() {
         label: "Configuration",
         hint: "Inventory and till policies",
         icon: Settings,
+      });
+      links.push({
+        href: `${APP_ROUTES.businessConfiguration}#settings-whatsapp-alerts`,
+        label: "WhatsApp alerts",
+        hint: "Owner order & shift notifications",
+        icon: MessageCircle,
       });
     }
     return links;
