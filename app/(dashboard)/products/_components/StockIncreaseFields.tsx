@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { ArrowRight, Building2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -42,6 +43,8 @@ type Props = {
   minimal?: boolean;
   /** Hide the unit cost column — parent shows derived cost from pricing instead */
   hideUnitCostInput?: boolean;
+  /** Renders beside qty when unit cost is hidden (e.g. Category on create). */
+  quantityAside?: ReactNode;
 };
 
 function previewArrow() {
@@ -101,6 +104,7 @@ export function StockIncreaseFields({
   hint,
   minimal = false,
   hideUnitCostInput = false,
+  quantityAside,
 }: Props) {
   const isOpening = mode === "opening";
   const defaultHint = minimal
@@ -159,7 +163,13 @@ export function StockIncreaseFields({
           </select>
         </ProductFormField>
 
-        <div className={cn(hideUnitCostInput ? "max-w-sm" : productFormGrid2Class)}>
+        <div
+          className={cn(
+            hideUnitCostInput && !quantityAside
+              ? "max-w-sm"
+              : productFormGrid2Class,
+          )}
+        >
           <ProductFormField
             label={isOpening ? "Opening qty" : "Qty to add"}
             required={!isOpening}
@@ -221,64 +231,70 @@ export function StockIncreaseFields({
             </div>
           </ProductFormField>
 
-          {!hideUnitCostInput ? (
-          <ProductFormField
-            label={
-              unitCostLabel ??
-              (minimal ? "Unit cost" : isOpening ? "Cost per unit received" : "Unit cost")
-            }
-            required={!isOpening}
-            hint={
-              minimal
-                ? undefined
-                : unitCostHint ??
-                  (isOpening
-                    ? "Values this stock batch in inventory — usually buy price ÷ pack qty"
-                    : "Cost per unit for this stock-in")
-            }
-          >
-            <input
-              className={productFormInputClass}
-              inputMode="decimal"
-              placeholder={
-                catalogCost != null ? formatAmount(catalogCost) : "0.00"
+          {hideUnitCostInput && quantityAside ? (
+            quantityAside
+          ) : !hideUnitCostInput ? (
+            <ProductFormField
+              label={
+                unitCostLabel ??
+                (minimal
+                  ? "Unit cost"
+                  : isOpening
+                    ? "Cost per unit received"
+                    : "Unit cost")
               }
-              value={unitCost}
-              onChange={(e) => onUnitCostChange(e.target.value)}
-            />
-            {showCostPreview && !minimal ? (
-              <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <PreviewStat
-                  label={
-                    catalogCostLabel ??
-                    (isOpening ? "Catalog cost / unit" : "Buying price")
-                  }
-                  value={formatAmount(catalogCost ?? 0)}
-                />
-                {receiptUnitCost != null &&
-                Number.isFinite(receiptUnitCost) &&
-                unitCost.trim() !== "" ? (
-                  <>
-                    {previewArrow()}
-                    <PreviewStat
-                      label={
-                        receiptCostLabel ??
-                        (isOpening ? "This delivery" : "This receipt")
-                      }
-                      value={formatAmount(receiptUnitCost)}
-                      strong
-                    />
-                  </>
-                ) : (
-                  <span className={productFormPreviewClass}>
-                    {isOpening
-                      ? "Prefilled from buy price ÷ pack qty — change if landed cost differs"
-                      : "Prefilled from catalog — edit if this receipt differs"}
-                  </span>
-                )}
-              </div>
-            ) : null}
-          </ProductFormField>
+              required={!isOpening}
+              hint={
+                minimal
+                  ? undefined
+                  : unitCostHint ??
+                    (isOpening
+                      ? "Values this stock batch in inventory — usually buy price ÷ pack qty"
+                      : "Cost per unit for this stock-in")
+              }
+            >
+              <input
+                className={productFormInputClass}
+                inputMode="decimal"
+                placeholder={
+                  catalogCost != null ? formatAmount(catalogCost) : "0.00"
+                }
+                value={unitCost}
+                onChange={(e) => onUnitCostChange(e.target.value)}
+              />
+              {showCostPreview && !minimal ? (
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <PreviewStat
+                    label={
+                      catalogCostLabel ??
+                      (isOpening ? "Catalog cost / unit" : "Buying price")
+                    }
+                    value={formatAmount(catalogCost ?? 0)}
+                  />
+                  {receiptUnitCost != null &&
+                  Number.isFinite(receiptUnitCost) &&
+                  unitCost.trim() !== "" ? (
+                    <>
+                      {previewArrow()}
+                      <PreviewStat
+                        label={
+                          receiptCostLabel ??
+                          (isOpening ? "This delivery" : "This receipt")
+                        }
+                        value={formatAmount(receiptUnitCost)}
+                        strong
+                      />
+                    </>
+                  ) : (
+                    <span className={productFormPreviewClass}>
+                      {isOpening
+                        ? "Prefilled from buy price ÷ pack qty — change if landed cost differs"
+                        : "Prefilled from catalog — edit if this receipt differs"}
+                    </span>
+                  )}
+                </div>
+              ) : null}
+            </ProductFormField>
           ) : null}
         </div>
       </div>

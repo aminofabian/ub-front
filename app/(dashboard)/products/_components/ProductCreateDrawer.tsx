@@ -123,14 +123,16 @@ function CompactSectionToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center gap-1.5 rounded-md border border-transparent px-1.5 py-1.5 text-left text-[12px] font-medium tracking-tight text-foreground/55 transition hover:border-border hover:bg-muted/30 hover:text-foreground"
+      className="flex w-full items-center gap-2 border-y border-border bg-muted/15 px-3 py-2 text-left transition-colors hover:bg-muted/25"
     >
       {expanded ? (
-        <ChevronDown className="size-3.5 shrink-0" aria-hidden />
+        <ChevronDown className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
       ) : (
-        <ChevronRight className="size-3.5 shrink-0" aria-hidden />
+        <ChevronRight className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
       )}
-      <span className="min-w-0 flex-1">{label}</span>
+      <span className="min-w-0 flex-1 text-[11px] font-semibold tracking-tight text-foreground/70">
+        {label}
+      </span>
       {badge}
     </button>
   );
@@ -232,7 +234,7 @@ function ToggleChip({
       type="button"
       onClick={() => onChange(!checked)}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium tracking-tight transition",
+        "inline-flex items-center gap-1.5 rounded-none border px-2 py-1 text-[11px] font-medium tracking-tight transition",
         checked
           ? "border-foreground bg-foreground text-background"
           : "border-border bg-background text-foreground/55 hover:border-foreground/40 hover:text-foreground",
@@ -424,7 +426,6 @@ export function ProductCreateDrawer({
   const hasDetailData = Boolean(
     m.parentDraft.description ||
       m.parentDraft.unitType ||
-      m.parentDraft.categoryId ||
       m.parentDraft.brand ||
       m.parentDraft.size,
   );
@@ -583,7 +584,7 @@ export function ProductCreateDrawer({
         )}
 
         <FormDrawerSheet>
-        <FormDrawerFields legend="Essentials" appearance="sharp" embedded index={1}>
+        <FormDrawerFields legend="Essentials" appearance="sharp" embedded>
           <div className="grid grid-cols-2 gap-px overflow-hidden rounded-none border border-border bg-border">
             <button
               type="button"
@@ -794,7 +795,7 @@ export function ProductCreateDrawer({
 
         {!isGroup ? (
           <>
-            <FormDrawerFields legend="Pricing" appearance="sharp" embedded index={2}>
+            <FormDrawerFields legend="Pricing" appearance="sharp" embedded>
               <ProductCreatePricingSection
                 draft={m.parentDraft}
                 setDraft={m.setParentDraft}
@@ -805,12 +806,15 @@ export function ProductCreateDrawer({
               />
             </FormDrawerFields>
 
-            <FormDrawerFields legend="Barcode & SKU" appearance="sharp" embedded index={3}>
+            <FormDrawerFields legend="Codes" appearance="sharp" embedded>
               <div className="grid gap-2 sm:grid-cols-2">
                 <Label className="gap-0.5" label="Barcode">
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-px overflow-hidden rounded-none border border-border bg-border">
                     <input
-                      className={cn(icClass(), "min-w-0 flex-1 font-mono text-xs")}
+                      className={cn(
+                        icClass(),
+                        "min-w-0 flex-1 border-0 font-mono text-xs focus-visible:ring-inset",
+                      )}
                       placeholder="Scan or type"
                       value={m.parentDraft.barcode}
                       onChange={(e) => {
@@ -820,7 +824,7 @@ export function ProductCreateDrawer({
                     <button
                       type="button"
                       onClick={() => setScannerOpen(true)}
-                      className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground shadow-none hover:bg-muted"
+                      className="flex size-8 shrink-0 items-center justify-center bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                       aria-label="Scan barcode with camera"
                     >
                       <Camera className="size-3.5" aria-hidden />
@@ -841,7 +845,7 @@ export function ProductCreateDrawer({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 shrink-0 px-2 font-mono text-[10px] tracking-tight"
+                        className="h-8 shrink-0 rounded-none px-2 font-mono text-[10px] tracking-tight shadow-none"
                         onClick={() =>
                           m.setParentDraft((p) => ({
                             ...p,
@@ -878,10 +882,11 @@ export function ProductCreateDrawer({
               ) : null}
             </FormDrawerFields>
 
-            <FormDrawerFields legend="Stock" appearance="sharp" embedded index={4}>
+            <FormDrawerFields legend="Stock" appearance="sharp" embedded>
               <StockIncreaseFields
                 minimal
                 mode="opening"
+                hideUnitCostInput
                 branches={branches}
                 branchId={m.parentDraft.openingBranchId}
                 onBranchIdChange={(id) =>
@@ -895,8 +900,28 @@ export function ProductCreateDrawer({
                 onUnitCostChange={(v) =>
                   m.setParentDraft((p) => ({ ...p, openingUnitCost: v }))
                 }
-                unitCostLabel="Unit cost (optional)"
-                unitCostHint="Defaults from buy price — exact cost from Supplies"
+                quantityAside={
+                  <Label className="gap-0.5" label="Category">
+                    <select
+                      className={icClass()}
+                      value={m.parentDraft.categoryId}
+                      onChange={(e) =>
+                        m.setParentDraft((p) => ({
+                          ...p,
+                          categoryId: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">— None —</option>
+                      {catalog.sortedCategories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                          {!c.active ? " (inactive)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </Label>
+                }
                 className="space-y-2 border-0 bg-transparent p-0 shadow-none ring-0"
               />
               <div className="flex flex-wrap gap-1.5">
@@ -925,7 +950,7 @@ export function ProductCreateDrawer({
               </div>
             </FormDrawerFields>
 
-            <FormDrawerFields legend="Selling units" appearance="sharp" embedded index={5}>
+            <FormDrawerFields legend="Selling units" appearance="sharp" embedded>
               <PackageVariantsSection
                 compact
                 showEnableToggle
@@ -957,40 +982,19 @@ export function ProductCreateDrawer({
           }
         />
         {moreExpanded ? (
-          <div className="space-y-3 rounded-none border border-border bg-background p-3 shadow-none">
-            <div className="grid gap-2 sm:grid-cols-2">
-              {!isGroup ? (
-                <Label className="gap-0.5" label="Category">
-                  <select
-                    className={icClass()}
-                    value={m.parentDraft.categoryId}
-                    onChange={(e) =>
-                      m.setParentDraft((p) => ({ ...p, categoryId: e.target.value }))
-                    }
-                  >
-                    <option value="">— None —</option>
-                    {catalog.sortedCategories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                        {!c.active ? " (inactive)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </Label>
-              ) : null}
-              {!isGroup ? (
-                <Label className="gap-0.5" label="Unit">
-                  <input
-                    className={icClass()}
-                    placeholder="each, kg…"
-                    value={m.parentDraft.unitType}
-                    onChange={(e) =>
-                      m.setParentDraft((p) => ({ ...p, unitType: e.target.value }))
-                    }
-                  />
-                </Label>
-              ) : null}
-            </div>
+          <div className="space-y-3 border border-t-0 border-border bg-background p-3 shadow-none">
+            {!isGroup ? (
+              <Label className="gap-0.5" label="Unit">
+                <input
+                  className={icClass()}
+                  placeholder="each, kg…"
+                  value={m.parentDraft.unitType}
+                  onChange={(e) =>
+                    m.setParentDraft((p) => ({ ...p, unitType: e.target.value }))
+                  }
+                />
+              </Label>
+            ) : null}
 
             <div className="grid gap-2 sm:grid-cols-2">
               <InlineField label="Brand">
@@ -1020,7 +1024,7 @@ export function ProductCreateDrawer({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs"
+                        className="h-7 rounded-none text-xs shadow-none"
                         disabled={m.suppliersLoading}
                         onClick={() => void m.loadSuppliersForLink()}
                       >
