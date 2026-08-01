@@ -270,7 +270,7 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
         </header>
 
         {message ? (
-          <DashboardFeedback kind={message.kind}>{message.text}</DashboardFeedback>
+          <DashboardFeedback kind={message.kind} text={message.text} />
         ) : null}
 
         {!settings?.messagingReady ? (
