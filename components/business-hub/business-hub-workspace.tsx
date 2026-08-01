@@ -30,11 +30,13 @@ import { PostSetupChecklist } from "@/components/business-hub/post-setup-checkli
 import { StockShelvesBanner } from "@/components/business-hub/stock-shelves-banner";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
+import { CreditTabsRail } from "@/components/business-hub/credit-tabs-rail";
 import { SupplyBillsRail } from "@/components/business-hub/supply-bills-rail";
 import { WebOrdersRail } from "@/components/business-hub/web-orders-rail";
 import { RevenueBarChart } from "@/components/business-hub/revenue-bar-chart";
 import { StockHealthPanel } from "@/components/business-hub/stock-health-panel";
 import { TopMoversPanel } from "@/components/business-hub/top-movers-panel";
+import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
 import { useBusinessHubRealtime } from "@/hooks/use-business-hub-realtime";
 import { useOptionalRealtime } from "@/components/realtime-provider";
 import { playCashierChime } from "@/lib/cashier-chime";
@@ -81,6 +83,7 @@ import {
   fetchInventoryExpiryPipeline,
   fetchInventoryValuation,
   fetchItemsPage,
+  fetchOutstandingTabs,
   fetchRecentSales,
   fetchPathBSupplies,
   fetchSalesRegister,
@@ -92,6 +95,7 @@ import {
   type FinancePulseResponse,
   type InventoryExpiryPipelineResponse,
   type InventoryValuationResponseRecord,
+  type OutstandingTabRowRecord,
   type OwnerDashboardResponse,
   type PathBSupplyListRowRecord,
   type ProfitAndLossResponse,
@@ -117,7 +121,14 @@ import {
 } from "@/lib/business-hub/ticks-from-transactions";
 
 const SUPPLY_DISPLAY_LIMIT = 24;
+const CREDIT_TABS_DISPLAY_LIMIT = 24;
 const WEB_ORDERS_DISPLAY_LIMIT = 12;
+
+function sortOutstandingTabs(
+  rows: OutstandingTabRowRecord[],
+): OutstandingTabRowRecord[] {
+  return [...rows].sort((a, b) => toNum(b.balanceOwed) - toNum(a.balanceOwed));
+}
 
 function isOpenWebOrder(order: WebOrderSummary): boolean {
   const fulfillment = (order.fulfillmentStatus ?? "awaiting_confirmation")
@@ -149,6 +160,7 @@ export function BusinessHubWorkspace() {
     canViewStorefrontOrders,
     canPathBRead,
     canRecordSupplierPayment,
+    canReviewPaymentClaims,
   } = useDashboard();
   const featureFlags = useFeatureFlags();
   const hubAlerts = useMemo(
@@ -174,6 +186,8 @@ export function BusinessHubWorkspace() {
   const canOpenSupplyPay =
     canViewSupplyBills &&
     (canRecordSupplierPayment || canViewApAging);
+  const canViewCreditTabs = canViewCustomers;
+  const canOpenCreditPay = canViewCreditTabs && canReviewPaymentClaims;
   const canShowWebOrders =
     canViewStorefrontOrders && shopEnabled;
 
@@ -207,19 +221,29 @@ export function BusinessHubWorkspace() {
   const [refreshing, setRefreshing] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
   const [supplyJustUpdated, setSupplyJustUpdated] = useState(false);
+  const [creditJustUpdated, setCreditJustUpdated] = useState(false);
   const [recentTicks, setRecentTicks] = useState<RecentTick[]>([]);
   const [todaySupplies, setTodaySupplies] = useState<PathBSupplyListRowRecord[]>(
     [],
   );
+  const [openCreditTabs, setOpenCreditTabs] = useState<
+    OutstandingTabRowRecord[]
+  >([]);
   const [payBillRow, setPayBillRow] =
     useState<PathBSupplyListRowRecord | null>(null);
   const [payBillOpen, setPayBillOpen] = useState(false);
+  const [payCreditTab, setPayCreditTab] =
+    useState<OutstandingTabRowRecord | null>(null);
+  const [payCreditOpen, setPayCreditOpen] = useState(false);
   const [openWebOrders, setOpenWebOrders] = useState<WebOrderSummary[]>([]);
   const [recentDrawouts, setRecentDrawouts] = useState<HubDrawout[]>([]);
   const [selectedCashiers, setSelectedCashiers] = useState<string[]>([]);
   const loadGen = useRef(0);
   const justUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supplyJustUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const creditJustUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
   const webOrdersJustUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(
@@ -267,6 +291,7 @@ export function BusinessHubWorkspace() {
         openShiftsRes,
         recentSalesRes,
         suppliesRes,
+        creditTabsRes,
         webOrdersRes,
       ] = await Promise.all([
         canViewOwnerSummary
@@ -338,6 +363,9 @@ export function BusinessHubWorkspace() {
               () => [] as PathBSupplyListRowRecord[],
             )
           : Promise.resolve([] as PathBSupplyListRowRecord[]),
+        canViewCreditTabs
+          ? fetchOutstandingTabs().catch(() => [] as OutstandingTabRowRecord[])
+          : Promise.resolve([] as OutstandingTabRowRecord[]),
         canShowWebOrders
           ? fetchWebOrders(0, 50).catch(() => [] as WebOrderSummary[])
           : Promise.resolve([] as WebOrderSummary[]),
@@ -372,6 +400,11 @@ export function BusinessHubWorkspace() {
           Array.isArray(suppliesRes) ? suppliesRes : [],
           "today",
         ).slice(0, SUPPLY_DISPLAY_LIMIT),
+      );
+      setOpenCreditTabs(
+        sortOutstandingTabs(
+          Array.isArray(creditTabsRes) ? creditTabsRes : [],
+        ).slice(0, CREDIT_TABS_DISPLAY_LIMIT),
       );
       const branchScope = branch?.trim();
       const webRows = (Array.isArray(webOrdersRes) ? webOrdersRes : [])
@@ -422,6 +455,7 @@ export function BusinessHubWorkspace() {
     period,
     canViewSalesIntelligence,
     canViewSupplyBills,
+    canViewCreditTabs,
     canViewShifts,
     canShowWebOrders,
   ]);
@@ -435,6 +469,9 @@ export function BusinessHubWorkspace() {
       if (justUpdatedTimer.current) clearTimeout(justUpdatedTimer.current);
       if (supplyJustUpdatedTimer.current) {
         clearTimeout(supplyJustUpdatedTimer.current);
+      }
+      if (creditJustUpdatedTimer.current) {
+        clearTimeout(creditJustUpdatedTimer.current);
       }
       if (webOrdersJustUpdatedTimer.current) {
         clearTimeout(webOrdersJustUpdatedTimer.current);
@@ -462,6 +499,17 @@ export function BusinessHubWorkspace() {
     }, 2400);
   }, []);
 
+  const markCreditLiveEvent = useCallback(() => {
+    setCreditJustUpdated(true);
+    if (creditJustUpdatedTimer.current) {
+      clearTimeout(creditJustUpdatedTimer.current);
+    }
+    creditJustUpdatedTimer.current = setTimeout(() => {
+      setCreditJustUpdated(false);
+      creditJustUpdatedTimer.current = null;
+    }, 2400);
+  }, []);
+
   const markWebOrdersLiveEvent = useCallback(() => {
     setWebOrdersJustUpdated(true);
     if (webOrdersJustUpdatedTimer.current) {
@@ -478,6 +526,11 @@ export function BusinessHubWorkspace() {
     setPayBillOpen(true);
   }, []);
 
+  const openCreditPay = useCallback((tab: OutstandingTabRowRecord) => {
+    setPayCreditTab(tab);
+    setPayCreditOpen(true);
+  }, []);
+
   useBusinessHubRealtime({
     branchId,
     enabled: headerScopeReady,
@@ -489,6 +542,7 @@ export function BusinessHubWorkspace() {
       if (hubAlerts.beepOnSale) {
         playCashierChime("order", { volume: hubAlerts.volume });
       }
+      markCreditLiveEvent();
     },
     onSupplyPosted: () => {
       if (hubAlerts.beepOnSupply) {
@@ -1071,6 +1125,16 @@ export function BusinessHubWorkspace() {
                 />
               ) : null}
 
+              {canViewCreditTabs ? (
+                <CreditTabsRail
+                  tabs={openCreditTabs}
+                  currency={currency}
+                  live={pulseLive}
+                  justUpdated={creditJustUpdated}
+                  onPayTab={canOpenCreditPay ? openCreditPay : undefined}
+                />
+              ) : null}
+
               {canShowWebOrders ? (
                 <WebOrdersRail
                   orders={openWebOrders}
@@ -1174,6 +1238,21 @@ export function BusinessHubWorkspace() {
           }}
           row={payBillRow}
           onPaid={() => {
+            void load();
+          }}
+        />
+      ) : null}
+
+      {canOpenCreditPay ? (
+        <MarkPaidDialog
+          open={payCreditOpen}
+          onOpenChange={(open) => {
+            setPayCreditOpen(open);
+            if (!open) setPayCreditTab(null);
+          }}
+          customer={payCreditTab}
+          onPaid={() => {
+            markCreditLiveEvent();
             void load();
           }}
         />
