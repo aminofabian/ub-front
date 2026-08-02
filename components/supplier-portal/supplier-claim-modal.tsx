@@ -379,10 +379,15 @@ export function SupplierClaimModal({
               <form className="space-y-3" onSubmit={onVerifyCode}>
                 {devCodeHint ? (
                   <AuthAlert variant="success">
-                    SMS is not configured on this environment. Use code{" "}
+                    No live SMS on this environment. Use code{" "}
                     <span className="font-mono font-semibold tracking-wider">{devCodeHint}</span>.
                   </AuthAlert>
-                ) : null}
+                ) : (
+                  <p className="text-[12px] text-muted-foreground">
+                    Check SMS first. If nothing arrives within a minute, ask the shop to confirm
+                    Sozuri/TextSMS is configured under Platform → Integrations.
+                  </p>
+                )}
                 <label className="text-sm font-medium" htmlFor="claim-code">
                   Verification code
                 </label>

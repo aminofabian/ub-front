@@ -19,7 +19,7 @@ export type PageSealStatus = {
 export type PageSealSendCodeResult = {
   phoneHint: string | null;
   expiresAt: string | null;
-  channel: string | null;
+  channel?: string | null;
   devCode: string | null;
 };
 
@@ -254,18 +254,21 @@ export async function unsealCustomerTab(
   return readJson(res);
 }
 
+function shopSupplierSealBase(slug: string): string {
+  // Prefer the supplier-portal nested paths (same host resolution as the ledger).
+  return `/api/v1/public/suppliers/${encodeURIComponent(slug)}/page-seal`;
+}
+
 export async function fetchShopSupplierPageSealStatus(
   slug: string,
 ): Promise<PageSealStatus> {
   const unlock = getPageSealUnlock("shop-supplier", slug);
   const headers = tenantHostHeaders();
   if (unlock) headers[UNLOCK_HEADER] = unlock;
-  const res = await fetch(
-    apiUrl(
-      `/api/v1/public/page-seals/shop-supplier/${encodeURIComponent(slug)}`,
-    ),
-    { headers, cache: "no-store" },
-  );
+  const res = await fetch(apiUrl(shopSupplierSealBase(slug)), {
+    headers,
+    cache: "no-store",
+  });
   return readJson<PageSealStatus>(res);
 }
 
@@ -273,16 +276,11 @@ export async function unlockShopSupplierPageSeal(
   slug: string,
   pin: string,
 ): Promise<PageSealUnlockResult> {
-  const res = await fetch(
-    apiUrl(
-      `/api/v1/public/page-seals/shop-supplier/${encodeURIComponent(slug)}/unlock`,
-    ),
-    {
-      method: "POST",
-      headers: tenantHostHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ pin }),
-    },
-  );
+  const res = await fetch(apiUrl(`${shopSupplierSealBase(slug)}/unlock`), {
+    method: "POST",
+    headers: tenantHostHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ pin }),
+  });
   const out = await readJson<PageSealUnlockResult>(res);
   setPageSealUnlock("shop-supplier", slug, out.unlockToken);
   return out;
@@ -291,12 +289,10 @@ export async function unlockShopSupplierPageSeal(
 export async function sendShopSupplierPageSealCode(
   slug: string,
 ): Promise<PageSealSendCodeResult> {
-  const res = await fetch(
-    apiUrl(
-      `/api/v1/public/page-seals/shop-supplier/${encodeURIComponent(slug)}/send-code`,
-    ),
-    { method: "POST", headers: tenantHostHeaders() },
-  );
+  const res = await fetch(apiUrl(`${shopSupplierSealBase(slug)}/send-code`), {
+    method: "POST",
+    headers: tenantHostHeaders(),
+  });
   return readJson<PageSealSendCodeResult>(res);
 }
 
@@ -304,16 +300,11 @@ export async function sealShopSupplierPage(
   slug: string,
   body: { code: string; pin: string; confirmPin: string },
 ): Promise<{ ok: boolean; sealed: boolean }> {
-  const res = await fetch(
-    apiUrl(
-      `/api/v1/public/page-seals/shop-supplier/${encodeURIComponent(slug)}/seal`,
-    ),
-    {
-      method: "POST",
-      headers: tenantHostHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(body),
-    },
-  );
+  const res = await fetch(apiUrl(`${shopSupplierSealBase(slug)}/seal`), {
+    method: "POST",
+    headers: tenantHostHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
   return readJson(res);
 }
 
@@ -321,15 +312,10 @@ export async function unsealShopSupplierPage(
   slug: string,
   pin: string,
 ): Promise<{ ok: boolean; sealed: boolean }> {
-  const res = await fetch(
-    apiUrl(
-      `/api/v1/public/page-seals/shop-supplier/${encodeURIComponent(slug)}/unseal`,
-    ),
-    {
-      method: "POST",
-      headers: tenantHostHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ pin }),
-    },
-  );
+  const res = await fetch(apiUrl(`${shopSupplierSealBase(slug)}/unseal`), {
+    method: "POST",
+    headers: tenantHostHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ pin }),
+  });
   return readJson(res);
 }

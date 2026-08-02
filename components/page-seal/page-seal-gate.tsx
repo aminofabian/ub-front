@@ -280,7 +280,17 @@ function SealManager({
             : await sendCustomerTabSealCode(subjectKey);
       setDevCode(res.devCode);
       setStep("code");
-      toast.success(`Code sent to ${res.phoneHint || "your phone"}`);
+      if (res.devCode) {
+        toast.message(`SMS stub — use code ${res.devCode}`, {
+          description: "SMS provider is not live on this environment.",
+        });
+      } else {
+        toast.success(
+          `Code sent${res.phoneHint ? ` to ${res.phoneHint}` : ""}${
+            res.channel ? ` via ${res.channel}` : ""
+          }`,
+        );
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not send code");
     } finally {
