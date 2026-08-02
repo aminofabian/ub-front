@@ -7,18 +7,22 @@ import { toast } from "sonner";
 import {
   clearPageSealUnlock,
   sealCustomerTab,
+  sealShopSupplierPage,
   sealSupplierPage,
   sendCustomerTabSealCode,
+  sendShopSupplierPageSealCode,
   sendSupplierPageSealCode,
   unsealCustomerTab,
+  unsealShopSupplierPage,
   unsealSupplierPage,
   unlockCustomerTabSeal,
+  unlockShopSupplierPageSeal,
   unlockSupplierPageSeal,
   type PageSealStatus,
 } from "@/lib/page-seal";
 import { cn } from "@/lib/utils";
 
-type Scope = "supplier" | "customer-tab";
+type Scope = "supplier" | "customer-tab" | "shop-supplier";
 
 type Props = {
   scope: Scope;
@@ -121,6 +125,8 @@ function SealUnlockPad({
     try {
       if (scope === "supplier") {
         await unlockSupplierPageSeal(subjectKey, value);
+      } else if (scope === "shop-supplier") {
+        await unlockShopSupplierPageSeal(subjectKey, value);
       } else {
         await unlockCustomerTabSeal(subjectKey, value);
       }
@@ -168,8 +174,13 @@ function SealUnlockPad({
         {displayName || "Protected page"}
       </h1>
       <p className="mt-2 max-w-sm text-center text-[13px] leading-relaxed text-muted-foreground">
-        This {scope === "supplier" ? "passport" : "credit tab"} is sealed. Enter the 4-digit PIN to
-        break the seal
+        This{" "}
+        {scope === "supplier"
+          ? "passport"
+          : scope === "shop-supplier"
+            ? "supplier page"
+            : "credit tab"}{" "}
+        is sealed. Enter the 4-digit PIN to break the seal
         {phoneHint ? ` · phone on file ${phoneHint}` : ""}.
       </p>
 
@@ -264,7 +275,9 @@ function SealManager({
       const res =
         scope === "supplier"
           ? await sendSupplierPageSealCode()
-          : await sendCustomerTabSealCode(subjectKey);
+          : scope === "shop-supplier"
+            ? await sendShopSupplierPageSealCode(subjectKey)
+            : await sendCustomerTabSealCode(subjectKey);
       setDevCode(res.devCode);
       setStep("code");
       toast.success(`Code sent to ${res.phoneHint || "your phone"}`);
@@ -280,6 +293,8 @@ function SealManager({
     try {
       if (scope === "supplier") {
         await sealSupplierPage({ code, pin, confirmPin });
+      } else if (scope === "shop-supplier") {
+        await sealShopSupplierPage(subjectKey, { code, pin, confirmPin });
       } else {
         await sealCustomerTab(subjectKey, { code, pin, confirmPin });
       }
@@ -299,6 +314,9 @@ function SealManager({
       if (scope === "supplier") {
         await unsealSupplierPage(pin);
         clearPageSealUnlock("supplier", subjectKey);
+      } else if (scope === "shop-supplier") {
+        await unsealShopSupplierPage(subjectKey, pin);
+        clearPageSealUnlock("shop-supplier", subjectKey);
       } else {
         await unsealCustomerTab(subjectKey, pin);
         clearPageSealUnlock("customer-tab", subjectKey);

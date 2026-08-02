@@ -28,14 +28,22 @@ export type PageSealUnlockResult = {
   expiresAt: string;
 };
 
-function storageKey(scope: "supplier" | "customer-tab", key: string): string {
+export type PageSealScope = "supplier" | "customer-tab" | "shop-supplier";
+
+function storageKey(scope: PageSealScope, key: string): string {
   return `ub.pageSeal.unlock:${scope}:${key.trim().toLowerCase()}`;
 }
 
-export function getPageSealUnlock(
-  scope: "supplier" | "customer-tab",
-  key: string,
-): string | null {
+function tenantHostHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { Accept: "application/json", ...extra };
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname?.trim();
+    if (host) headers["X-Tenant-Host"] = host;
+  }
+  return headers;
+}
+
+export function getPageSealUnlock(scope: PageSealScope, key: string): string | null {
   if (typeof window === "undefined") return null;
   try {
     return sessionStorage.getItem(storageKey(scope, key));
@@ -45,7 +53,7 @@ export function getPageSealUnlock(
 }
 
 export function setPageSealUnlock(
-  scope: "supplier" | "customer-tab",
+  scope: PageSealScope,
   key: string,
   token: string,
 ): void {
@@ -56,10 +64,7 @@ export function setPageSealUnlock(
   }
 }
 
-export function clearPageSealUnlock(
-  scope: "supplier" | "customer-tab",
-  key: string,
-): void {
+export function clearPageSealUnlock(scope: PageSealScope, key: string): void {
   try {
     sessionStorage.removeItem(storageKey(scope, key));
   } catch {
@@ -243,6 +248,86 @@ export async function unsealCustomerTab(
     {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ pin }),
+    },
+  );
+  return readJson(res);
+}
+
+export async function fetchShopSupplierPageSealStatus(
+  slug: string,
+): Promise<PageSealStatus> {
+  const unlock = getPageSealUnlock("shop-supplier", slug);
+  const headers = tenantHostHeaders();
+  if (unlock) headers[UNLOCK_HEADER] = unlock;
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/page-seals/shop-supplier/${encodeURIComponent(slug)}`,
+    ),
+    { headers, cache: "no-store" },
+  );
+  return readJson<PageSealStatus>(res);
+}
+
+export async function unlockShopSupplierPageSeal(
+  slug: string,
+  pin: string,
+): Promise<PageSealUnlockResult> {
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/page-seals/shop-supplier/${encodeURIComponent(slug)}/unlock`,
+    ),
+    {
+      method: "POST",
+      headers: tenantHostHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ pin }),
+    },
+  );
+  const out = await readJson<PageSealUnlockResult>(res);
+  setPageSealUnlock("shop-supplier", slug, out.unlockToken);
+  return out;
+}
+
+export async function sendShopSupplierPageSealCode(
+  slug: string,
+): Promise<PageSealSendCodeResult> {
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/page-seals/shop-supplier/${encodeURIComponent(slug)}/send-code`,
+    ),
+    { method: "POST", headers: tenantHostHeaders() },
+  );
+  return readJson<PageSealSendCodeResult>(res);
+}
+
+export async function sealShopSupplierPage(
+  slug: string,
+  body: { code: string; pin: string; confirmPin: string },
+): Promise<{ ok: boolean; sealed: boolean }> {
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/page-seals/shop-supplier/${encodeURIComponent(slug)}/seal`,
+    ),
+    {
+      method: "POST",
+      headers: tenantHostHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    },
+  );
+  return readJson(res);
+}
+
+export async function unsealShopSupplierPage(
+  slug: string,
+  pin: string,
+): Promise<{ ok: boolean; sealed: boolean }> {
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/page-seals/shop-supplier/${encodeURIComponent(slug)}/unseal`,
+    ),
+    {
+      method: "POST",
+      headers: tenantHostHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ pin }),
     },
   );

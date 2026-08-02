@@ -1,4 +1,5 @@
 import { apiUrl } from "@/lib/config";
+import { getPageSealUnlock } from "@/lib/page-seal";
 
 export type PublicSupplierSupplyLine = {
   description: string;
@@ -55,14 +56,11 @@ async function readJson<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
-function tenantHostHeaders(): HeadersInit {
-  if (typeof window === "undefined") {
-    return { Accept: "application/json" };
-  }
-  const host = window.location.hostname?.trim();
-  const headers: Record<string, string> = { Accept: "application/json" };
-  if (host) {
-    headers["X-Tenant-Host"] = host;
+function tenantHostHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { Accept: "application/json", ...extra };
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname?.trim();
+    if (host) headers["X-Tenant-Host"] = host;
   }
   return headers;
 }
@@ -73,10 +71,13 @@ export async function fetchPublicSupplierPortal(
   const s = slug.trim();
   if (!s) return null;
   try {
+    const unlock = getPageSealUnlock("shop-supplier", s);
+    const headers = tenantHostHeaders();
+    if (unlock) headers["X-Page-Unlock"] = unlock;
     const res = await fetch(
       apiUrl(`/api/v1/public/suppliers/${encodeURIComponent(s)}`),
       {
-        headers: tenantHostHeaders(),
+        headers,
         cache: "no-store",
       },
     );

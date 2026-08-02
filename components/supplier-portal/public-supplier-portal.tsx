@@ -9,6 +9,7 @@ import {
   Receipt,
 } from "lucide-react";
 
+import { PageSealGate } from "@/components/page-seal/page-seal-gate";
 import { PublicSupplierComplaintModal } from "@/components/supplier-portal/public-supplier-complaint-modal";
 import {
   fetchPublicSupplierPortal,
@@ -16,6 +17,10 @@ import {
   type PublicSupplierSupplyLine,
   type PublicSupplierSupplyRow,
 } from "@/lib/public-supplier-portal";
+import {
+  fetchShopSupplierPageSealStatus,
+  type PageSealStatus,
+} from "@/lib/page-seal";
 import {
   formatMoneyCompact,
   resolveCurrencyCode,
@@ -144,6 +149,8 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
   const [tab, setTab] = useState<PortalTab>("supplies");
   const [openSupplyKey, setOpenSupplyKey] = useState<string | null>(null);
   const [complaintOpen, setComplaintOpen] = useState(false);
+  const [sealStatus, setSealStatus] = useState<PageSealStatus | null>(null);
+  const [sealEpoch, setSealEpoch] = useState(0);
 
   const theme = useMemo(
     () =>
@@ -170,7 +177,30 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [username, sealEpoch]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchShopSupplierPageSealStatus(username)
+      .then((row) => {
+        if (!cancelled) setSealStatus(row);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSealStatus({
+            sealed: false,
+            scope: "shop_supplier",
+            subjectKey: username,
+            displayName: null,
+            phoneHint: null,
+            unlockValid: true,
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [username, sealEpoch]);
 
   if (busy) {
     return (
@@ -212,6 +242,8 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
     });
     movementsByInvoice.set(m.invoiceNumber, list);
   }
+
+  const sealedLocked = Boolean(sealStatus?.sealed && !sealStatus.unlockValid);
 
   return (
     <div
@@ -264,7 +296,18 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           </div>
         </header>
 
-        <section className="px-3.5 pt-3.5">
+        <div className="px-3.5 pt-3">
+          <PageSealGate
+            scope="shop-supplier"
+            subjectKey={username}
+            status={sealStatus}
+            canManage
+            onUnlocked={() => setSealEpoch((n) => n + 1)}
+            onSealedChange={() => setSealEpoch((n) => n + 1)}
+          >
+            {sealedLocked ? null : (
+              <>
+        <section className="pt-0.5">
           <div className={cn("relative overflow-hidden border bg-white/85", INK_BORDER)}>
             <span
               aria-hidden
@@ -304,7 +347,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           </div>
         </section>
 
-        <div className="px-3.5 pt-4">
+        <div className="pt-4">
           <div
             role="tablist"
             aria-label="Portal sections"
@@ -355,7 +398,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           </div>
         </div>
 
-        <main className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-28 pt-3">
+        <main className="min-h-0 flex-1 overflow-y-auto pb-6 pt-3">
           {tab === "supplies" ? (
             data.supplies.length === 0 ? (
               <EmptyState label="No posted supplies yet." />
@@ -487,7 +530,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           </p>
         </main>
 
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md px-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8">
+        <div className="pointer-events-none sticky bottom-0 z-30 mt-auto px-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8">
           <div className="pointer-events-auto bg-gradient-to-t from-[#e7e1d6] via-[#e7e1d6]/90% to-transparent pb-1 pt-6">
             <button
               type="button"
@@ -498,6 +541,10 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
               Voice a complaint
             </button>
           </div>
+        </div>
+              </>
+            )}
+          </PageSealGate>
         </div>
       </div>
 
