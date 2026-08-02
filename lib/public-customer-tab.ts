@@ -75,7 +75,9 @@ export async function fetchPublicCustomerTab(
   if (!p) return null;
   try {
     const res = await fetch(
-      apiUrl(`/api/v1/public/credits/tabs/${encodeURIComponent(p)}`),
+      apiUrl(
+        `/api/v1/public/credits/tabs/${encodeURIComponent(p)}?t=${Date.now()}`,
+      ),
       {
         headers: tenantHostHeaders(),
         cache: "no-store",

@@ -897,8 +897,6 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const silentReload = useCallback(async () => {
     const data = await fetchPublicCustomerTab(phone);
     if (!data) {
-      setNotFound(true);
-      setTab(null);
       return;
     }
     setNotFound(false);
@@ -909,6 +907,31 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       toKenyanLocal07(data.phoneDisplay) || data.phoneDisplay || phone;
     setPayPhone(display);
   }, [phone]);
+
+  const applyTabSnapshot = useCallback(
+    (balanceOwed: unknown, walletBalance?: unknown | null) => {
+      setTab((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          balanceOwed: balanceOwed ?? prev.balanceOwed,
+          walletBalance:
+            walletBalance != null ? walletBalance : prev.walletBalance,
+        };
+      });
+      const nextOwed = toNum(balanceOwed);
+      setAmount(nextOwed > 0 ? String(Math.round(nextOwed)) : "");
+    },
+    [],
+  );
+
+  const refreshAfterPayment = useCallback(async () => {
+    await silentReload();
+    for (const delayMs of [1500, 3500]) {
+      await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+      await silentReload();
+    }
+  }, [silentReload]);
 
   useEffect(() => {
     void reload();
@@ -922,10 +945,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         const st = await fetchPublicTabStkStatus(phone, intentId);
         if (cancelled) return;
         if (st.status === "fulfilled") {
+          applyTabSnapshot(st.balanceOwed, st.walletBalance);
           setPaid(true);
           setStatusMsg("Payment received — asante!");
           setPromptSent(false);
-          void reload();
+          setIntentId(null);
+          void refreshAfterPayment();
           return;
         }
         if (st.status === "failed") {
@@ -943,7 +968,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [intentId, promptSent, paid, phone, reload]);
+  }, [intentId, promptSent, paid, phone, applyTabSnapshot, refreshAfterPayment]);
 
   useEffect(() => {
     if (!walletIntentId || !walletPromptSent || walletPaid) return;
@@ -953,10 +978,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         const st = await fetchPublicTabStkStatus(phone, walletIntentId);
         if (cancelled) return;
         if (st.status === "fulfilled") {
+          applyTabSnapshot(st.balanceOwed, st.walletBalance);
           setWalletPaid(true);
           setWalletStatusMsg("Wallet topped up — asante!");
           setWalletPromptSent(false);
-          void reload();
+          setWalletIntentId(null);
+          void refreshAfterPayment();
           return;
         }
         if (st.status === "failed") {
@@ -974,7 +1001,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [walletIntentId, walletPromptSent, walletPaid, phone, reload]);
+  }, [walletIntentId, walletPromptSent, walletPaid, phone, applyTabSnapshot, refreshAfterPayment]);
 
   useEffect(() => {
     if (!manualSubmitted || manualCleared) return;
@@ -1153,17 +1180,23 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   }
 
   useEffect(() => {
-    if (paid) {
-      const t = window.setTimeout(() => setPaySheetOpen(false), 1800);
-      return () => window.clearTimeout(t);
-    }
+    if (!paid) return;
+    const t = window.setTimeout(() => {
+      setPaySheetOpen(false);
+      setPaid(false);
+      setStatusMsg(null);
+    }, 2200);
+    return () => window.clearTimeout(t);
   }, [paid]);
 
   useEffect(() => {
-    if (walletPaid) {
-      const t = window.setTimeout(() => setWalletSheetOpen(false), 1800);
-      return () => window.clearTimeout(t);
-    }
+    if (!walletPaid) return;
+    const t = window.setTimeout(() => {
+      setWalletSheetOpen(false);
+      setWalletPaid(false);
+      setWalletStatusMsg(null);
+    }, 2200);
+    return () => window.clearTimeout(t);
   }, [walletPaid]);
 
   return (
