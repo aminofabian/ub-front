@@ -32,6 +32,8 @@ import {
   type PublicCustomerTab,
   type PublicTabPurchaseRow,
 } from "@/lib/public-customer-tab";
+import { PageSealGate } from "@/components/page-seal/page-seal-gate";
+import type { PageSealStatus } from "@/lib/page-seal";
 import { buildStorefrontThemeVars } from "@/lib/storefront-theme";
 import { cn } from "@/lib/utils";
 import {
@@ -1040,6 +1042,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const currency = tab?.currency || "KES";
   const displayShop = tab?.shopName || shopName;
   const firstName = tab?.customerName?.trim().split(/\s+/)[0] || null;
+  const sealedLocked = Boolean(tab?.pageSealed && !tab?.pageUnlocked);
   const payDisabled = busy || promptSent || owed <= 0;
   const manualPayDisabled = busy || manualSubmitted || owed <= 0;
   const amountNum = Number.parseFloat(amount);
@@ -1049,8 +1052,9 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const walletAmountValid =
     Number.isFinite(walletAmountNum) && walletAmountNum >= 1;
   const walletTopUpDisabled = walletBusy || walletPromptSent;
-  const showPay = owed > 0 && !loading && !notFound && mounted;
-  const showWalletTopUp = !loading && !notFound && mounted && owed <= 0;
+  const showPay = owed > 0 && !loading && !notFound && mounted && !sealedLocked;
+  const showWalletTopUp =
+    !loading && !notFound && mounted && owed <= 0 && !sealedLocked;
   const purchaseCount = tab?.purchases?.length ?? 0;
   const tabStats = useMemo(
     () => computeTabStats(tab?.purchases ?? []),
@@ -1298,7 +1302,26 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </Link>
           </div>
         ) : (
-          <main className="flex flex-1 flex-col">
+          <PageSealGate
+            scope="customer-tab"
+            subjectKey={phone}
+            status={
+              {
+                sealed: Boolean(tab?.pageSealed),
+                scope: "customer_tab",
+                subjectKey: phone,
+                displayName: tab?.customerName ?? null,
+                phoneHint: tab?.phoneDisplay
+                  ? `••• ${String(tab.phoneDisplay).replace(/\D/g, "").slice(-4)}`
+                  : null,
+                unlockValid: Boolean(!tab?.pageSealed || tab?.pageUnlocked),
+              } satisfies PageSealStatus
+            }
+            canManage
+            onUnlocked={() => void reload()}
+            onSealedChange={() => void reload()}
+          >
+            <main className="flex flex-1 flex-col">
             <section
               ref={walletSectionRef}
               id="wallet"
@@ -1408,6 +1431,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               </section>
             ) : null}
           </main>
+          </PageSealGate>
         )}
 
         {showPay ? (

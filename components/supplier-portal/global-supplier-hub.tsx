@@ -36,6 +36,11 @@ import { marketplaceSupplierPath } from "@/lib/marketplace-url";
 import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
 import { cn } from "@/lib/utils";
 import { SupplierActivityTabs } from "@/components/supplier-portal/supplier-activity-tabs";
+import { PageSealGate } from "@/components/page-seal/page-seal-gate";
+import {
+  fetchSupplierPageSealStatus,
+  type PageSealStatus,
+} from "@/lib/page-seal";
 
 type Props = {
   username: string;
@@ -488,6 +493,8 @@ export function GlobalSupplierHubView({ username }: Props) {
     undefined,
   );
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sealStatus, setSealStatus] = useState<PageSealStatus | null>(null);
+  const [sealEpoch, setSealEpoch] = useState(0);
 
   const refreshAuth = useCallback(() => {
     const token = getSupplierPortalAccessToken();
@@ -502,6 +509,12 @@ export function GlobalSupplierHubView({ username }: Props) {
       .catch(() => setOwnerUsername(null));
   }, []);
 
+  const reloadStorefront = useCallback(() => {
+    void resolveGlobalSupplierStorefront(username).then((row) => {
+      setStorefront(row);
+    });
+  }, [username]);
+
   useEffect(() => {
     refreshAuth();
     let cancelled = false;
@@ -511,7 +524,30 @@ export function GlobalSupplierHubView({ username }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [username, refreshAuth]);
+  }, [username, refreshAuth, sealEpoch]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchSupplierPageSealStatus(username)
+      .then((row) => {
+        if (!cancelled) setSealStatus(row);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSealStatus({
+            sealed: false,
+            scope: "supplier_slug",
+            subjectKey: username,
+            displayName: null,
+            phoneHint: null,
+            unlockValid: true,
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [username, sealEpoch]);
 
   if (storefront === undefined) {
     return (
@@ -532,77 +568,94 @@ export function GlobalSupplierHubView({ username }: Props) {
     );
   }
 
-  const showPulse = Boolean(
+  const isOwner = Boolean(
     signedIn &&
-      hub &&
       ownerUsername !== undefined &&
       ownerUsername &&
       ownerUsername.trim().toLowerCase() ===
-        (hub.username || username).trim().toLowerCase(),
+        (hub?.username || username).trim().toLowerCase(),
   );
+  const showPulse = Boolean(isOwner && hub);
+  const sealedLocked = Boolean(sealStatus?.sealed && !sealStatus.unlockValid);
 
   return (
     <HubShell>
       <div className="mx-auto w-full max-w-[1400px] px-3 pb-10 pt-3 sm:px-5">
-        {hub ? (
-          <PassportStrip
-            hub={hub}
-            signedIn={signedIn}
-            expandedId={expandedId}
-            setExpandedId={setExpandedId}
-          />
-        ) : null}
+        <PageSealGate
+          scope="supplier"
+          subjectKey={username}
+          status={sealStatus}
+          canManage={isOwner}
+          onUnlocked={() => {
+            setSealEpoch((n) => n + 1);
+            reloadStorefront();
+          }}
+          onSealedChange={() => setSealEpoch((n) => n + 1)}
+        >
+          {sealedLocked ? null : (
+            <>
+              {hub ? (
+                <PassportStrip
+                  hub={hub}
+                  signedIn={signedIn}
+                  expandedId={expandedId}
+                  setExpandedId={setExpandedId}
+                />
+              ) : null}
 
-        {showPulse ? <SupplierActivityTabs className="mt-5" /> : null}
+              {showPulse ? <SupplierActivityTabs className="mt-5" /> : null}
 
-        {detail ? (
-          <div className={cn(hub || showPulse ? "mt-5" : "mt-0")}>
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-              <p className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
-                @{username}
-                {!hub ? (
-                  <span className="font-sans text-muted-foreground/80">
-                    {" "}
-                    · marketplace listing
-                  </span>
-                ) : (
-                  <span className="font-sans font-bold uppercase tracking-[0.14em]">
-                    {" "}
-                    · Catalogue
-                  </span>
-                )}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                {!hub ? (
-                  <Link
-                    href={APP_ROUTES.supplierPortalClaim}
-                    className={cn(
-                      "inline-flex h-7 items-center border px-2 text-[10px] font-semibold uppercase tracking-[0.1em]",
-                      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-                      "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
-                    )}
-                  >
-                    Claim passport
-                  </Link>
-                ) : null}
-                {detail.slug ? (
-                  <Link
-                    href={marketplaceSupplierPath(detail)}
-                    className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
-                  >
-                    Full page
-                  </Link>
-                ) : null}
-              </div>
-            </div>
-            <MarketplaceOrderWorkspace detail={detail} layout="shelf" />
-          </div>
-        ) : hub ? (
-          <div className="mt-8 text-center text-sm text-muted-foreground">
-            Passport claimed, but no public catalogue is linked yet. Link a shop identity
-            from the supplier portal profile to show products here.
-          </div>
-        ) : null}
+              {detail ? (
+                <div className={cn(hub || showPulse ? "mt-5" : "mt-0")}>
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <p className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+                      @{username}
+                      {!hub ? (
+                        <span className="font-sans text-muted-foreground/80">
+                          {" "}
+                          · marketplace listing
+                        </span>
+                      ) : (
+                        <span className="font-sans font-bold uppercase tracking-[0.14em]">
+                          {" "}
+                          · Catalogue
+                        </span>
+                      )}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {!hub ? (
+                        <Link
+                          href={APP_ROUTES.supplierPortalClaim}
+                          className={cn(
+                            "inline-flex h-7 items-center border px-2 text-[10px] font-semibold uppercase tracking-[0.1em]",
+                            "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+                            "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
+                          )}
+                        >
+                          Claim passport
+                        </Link>
+                      ) : null}
+                      {detail.slug ? (
+                        <Link
+                          href={marketplaceSupplierPath(detail)}
+                          className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+                        >
+                          Full page
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                  <MarketplaceOrderWorkspace detail={detail} layout="shelf" />
+                </div>
+              ) : hub ? (
+                <div className="mt-8 text-center text-sm text-muted-foreground">
+                  Passport claimed, but no public catalogue is linked yet. Link a shop identity
+                  from the supplier portal profile to show products here.
+                </div>
+              ) : null}
+            </>
+          )}
+        </PageSealGate>
       </div>
     </HubShell>
   );

@@ -10,6 +10,7 @@ import {
   getSupplierPortalAccessToken,
   signOutSupplierPortalAndRedirectToLogin,
 } from "@/lib/supplier-portal-session";
+import { getPageSealUnlock } from "@/lib/page-seal";
 import type { PublicSupplierSupplyRow } from "@/lib/public-supplier-portal";
 
 export type GlobalSupplierHubTotals = {
@@ -37,6 +38,8 @@ export type GlobalSupplierHub = {
   currency: string;
   totals: GlobalSupplierHubTotals;
   shops: GlobalSupplierHubShopCard[];
+  pageSealed?: boolean;
+  pageUnlocked?: boolean;
 };
 
 export type GlobalHubShopDetail = {
@@ -159,11 +162,14 @@ export async function fetchGlobalSupplierHub(
   const u = username.trim();
   if (!u) return null;
   try {
+    const unlock = getPageSealUnlock("supplier", u);
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (unlock) headers["X-Page-Unlock"] = unlock;
     const res = await fetch(
       apiUrl(
         `${API_ROUTES.publicMarketplace}/suppliers/by-username/${encodeURIComponent(u)}`,
       ),
-      { headers: { Accept: "application/json" }, cache: "no-store" },
+      { headers, cache: "no-store" },
     );
     if (res.status === 404) return null;
     return await readJson<GlobalSupplierHub>(res);

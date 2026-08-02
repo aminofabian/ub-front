@@ -1,4 +1,5 @@
 import { apiUrl } from "@/lib/config";
+import { getPageSealUnlock } from "@/lib/page-seal";
 
 export type PublicTabPurchaseLine = {
   itemName: string;
@@ -23,9 +24,11 @@ export type PublicCustomerTab = {
   phoneDisplay: string;
   shopName: string;
   currency: string;
-  balanceOwed: number | string;
+  balanceOwed: number | string | null;
   walletBalance?: number | string | null;
   purchases: PublicTabPurchaseRow[];
+  pageSealed?: boolean;
+  pageUnlocked?: boolean;
 };
 
 export type PublicTabStk = {
@@ -74,12 +77,15 @@ export async function fetchPublicCustomerTab(
   const p = phone.trim();
   if (!p) return null;
   try {
+    const headers = { ...tenantHostHeaders() } as Record<string, string>;
+    const unlock = getPageSealUnlock("customer-tab", p);
+    if (unlock) headers["X-Page-Unlock"] = unlock;
     const res = await fetch(
       apiUrl(
         `/api/v1/public/credits/tabs/${encodeURIComponent(p)}?t=${Date.now()}`,
       ),
       {
-        headers: tenantHostHeaders(),
+        headers,
         cache: "no-store",
       },
     );
