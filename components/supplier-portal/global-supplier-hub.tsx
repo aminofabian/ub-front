@@ -35,7 +35,7 @@ import {
 import { marketplaceSupplierPath } from "@/lib/marketplace-url";
 import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
 import { cn } from "@/lib/utils";
-import { SupplierSalesPulse } from "@/components/supplier-portal/supplier-sales-pulse";
+import { SupplierActivityTabs } from "@/components/supplier-portal/supplier-activity-tabs";
 
 type Props = {
   username: string;
@@ -553,7 +553,7 @@ export function GlobalSupplierHubView({ username }: Props) {
           />
         ) : null}
 
-        {showPulse ? <SupplierSalesPulse className="mt-5" /> : null}
+        {showPulse ? <SupplierActivityTabs className="mt-5" /> : null}
 
         {detail ? (
           <div className={cn(hub || showPulse ? "mt-5" : "mt-0")}>

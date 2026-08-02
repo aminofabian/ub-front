@@ -991,6 +991,105 @@ export async function fetchSupplierPortalSalesPulse(): Promise<SupplierPortalSal
   );
 }
 
+export type SupplierPortalRestockWindow = "day" | "week" | "month";
+
+export type SupplierPortalRestockBoard = {
+  generatedAt: string;
+  currency: string;
+  window: SupplierPortalRestockWindow | string;
+  windowStart: string;
+  windowEnd: string;
+  windowDays: number;
+  summary: {
+    suppliedQty: number | string;
+    tillQty: number | string;
+    damageQty: number | string;
+    onHandQty: number | string;
+    suggestedQty: number | string;
+    needsRestockCount: number;
+    outOfStockCount: number;
+  };
+  daily: Array<{
+    date: string;
+    suppliedQty: number | string;
+    tillQty: number | string;
+    damageQty: number | string;
+  }>;
+  rows: Array<{
+    key: string;
+    localSupplierId: string;
+    shopName: string;
+    itemId: string | null;
+    productName: string;
+    sku: string | null;
+    packSize: number | string | null;
+    packUnit: string | null;
+    suppliedQty: number | string;
+    tillQty: number | string | null;
+    damageQty: number | string;
+    onHand: number | string | null;
+    avgDailyDemand: number | string;
+    daysOfCover: number | string | null;
+    suggestedRestock: number | string;
+    stockVisible: boolean;
+    velocityVisible: boolean;
+    urgency: "out" | "low" | "plan" | "ok" | string;
+  }>;
+  stockShopCount: number;
+  velocityShopCount: number;
+  shopCount: number;
+};
+
+export async function fetchSupplierPortalRestockBoard(opts?: {
+  window?: SupplierPortalRestockWindow;
+  localSupplierId?: string;
+}): Promise<SupplierPortalRestockBoard> {
+  const params = new URLSearchParams();
+  params.set("window", opts?.window ?? "week");
+  if (opts?.localSupplierId?.trim()) {
+    params.set("localSupplierId", opts.localSupplierId.trim());
+  }
+  return supplierPortalFetch<SupplierPortalRestockBoard>(
+    `${API_ROUTES.supplierPortalHub}/restock-board?${params}`,
+  );
+}
+
+export async function downloadSupplierPortalRestockBoard(opts: {
+  window?: SupplierPortalRestockWindow;
+  localSupplierId?: string;
+  format: "csv" | "pdf";
+}): Promise<void> {
+  const token = getSupplierPortalAccessToken();
+  if (!token) {
+    signOutSupplierPortalAndRedirectToLogin("missing access token");
+    throw new Error("Sign in required");
+  }
+  const params = new URLSearchParams();
+  params.set("window", opts.window ?? "week");
+  params.set("format", opts.format);
+  if (opts.localSupplierId?.trim()) {
+    params.set("localSupplierId", opts.localSupplierId.trim());
+  }
+  const response = await fetch(
+    apiUrl(`${API_ROUTES.supplierPortalHub}/restock-board?${params}`),
+    { headers: { Authorization: `Bearer ${token}`, Accept: "*/*" } },
+  );
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    if (isSessionRelatedProblem(response.status, payload)) {
+      signOutSupplierPortalAndRedirectToLogin(getProblemTitle(payload));
+    }
+    throw new Error(getProblemTitle(payload) || "Download failed");
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `restock-${opts.window ?? "week"}.${opts.format}`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function fetchSupplierPortalShopDetail(
   localSupplierId: string,
 ): Promise<SupplierPortalShopDetail> {

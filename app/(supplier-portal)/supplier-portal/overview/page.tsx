@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Check, ChevronRight } from "lucide-react";
 
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
-import { SupplierSalesPulse } from "@/components/supplier-portal/supplier-sales-pulse";
+import { SupplierActivityTabs } from "@/components/supplier-portal/supplier-activity-tabs";
 import {
   mktChip,
   mktPosAccentBar,
@@ -356,7 +356,7 @@ export default function SupplierPortalOverviewPage() {
           </div>
         </section>
 
-        <SupplierSalesPulse />
+        <SupplierActivityTabs />
 
         {hub && hub.shops.length > 0 ? (
           <div className="space-y-1 lg:hidden">
