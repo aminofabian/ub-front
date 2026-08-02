@@ -403,11 +403,21 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
           icon={<MessageCircle className="size-4" aria-hidden />}
           title="Enable WhatsApp alerts"
           description={
-            settings?.phoneVerified
-              ? "Send alerts to the verified number above"
-              : "Verify a number first"
+            !settings?.phoneVerified
+              ? "Verify a number first"
+              : enabled
+                ? "Sending alerts to the verified number above"
+                : "Alerts are OFF — turn this on and save, or re-verify the number"
           }
         />
+
+        {settings?.phoneVerified && !enabled ? (
+          <p className="rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-3.5 py-3 text-xs text-amber-950 dark:text-amber-100">
+            Your number is verified, but alerts are disabled. Turn on
+            &quot;Enable WhatsApp alerts&quot; and click Save — otherwise shifts
+            and web orders will not notify you (test send still works).
+          </p>
+        ) : null}
 
         <div className="grid gap-2 lg:grid-cols-2">
           <ToggleRow
