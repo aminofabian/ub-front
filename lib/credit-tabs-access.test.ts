@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BusinessRecord, MeResponse } from "@/lib/api";
 import { Permission } from "@/lib/permissions";
-import { canCashierClearTabs } from "@/lib/credit-tabs-access";
+import { canCashierClearTabs, phoneVerificationRequiredForNewTab } from "@/lib/credit-tabs-access";
 
 function me(roleKey: string, permissions: string[] = []): MeResponse {
   return {
@@ -14,12 +14,18 @@ function me(roleKey: string, permissions: string[] = []): MeResponse {
   } as MeResponse;
 }
 
-function business(allow?: boolean): BusinessRecord {
+function business(
+  allow?: boolean,
+  creditTabs: NonNullable<
+    NonNullable<BusinessRecord["inventory"]>["creditTabs"]
+  > = {},
+): BusinessRecord {
   return {
     name: "Shop",
     inventory: {
       creditTabs: {
         allowCashierTabClearance: allow,
+        ...creditTabs,
       },
     },
   };
@@ -67,5 +73,25 @@ describe("canCashierClearTabs", () => {
         business(true),
       ),
     ).toBe(true);
+  });
+});
+
+describe("phoneVerificationRequiredForNewTab", () => {
+  it("defaults to required when absent", () => {
+    expect(phoneVerificationRequiredForNewTab({ name: "Shop" })).toBe(true);
+    expect(phoneVerificationRequiredForNewTab(null)).toBe(true);
+  });
+
+  it("respects explicit setting", () => {
+    expect(
+      phoneVerificationRequiredForNewTab(
+        business(undefined, { requirePhoneVerificationForNewTabCustomers: true }),
+      ),
+    ).toBe(true);
+    expect(
+      phoneVerificationRequiredForNewTab(
+        business(undefined, { requirePhoneVerificationForNewTabCustomers: false }),
+      ),
+    ).toBe(false);
   });
 });

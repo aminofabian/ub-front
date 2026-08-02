@@ -369,6 +369,8 @@ export function useBusinessSettingsEditor() {
             },
             creditTabs: {
               allowCashierTabClearance: inventory.allowCashierTabClearance,
+              requirePhoneVerificationForNewTabCustomers:
+                inventory.requirePhoneVerificationForNewTabCustomers,
             },
           };
           body.featureFlags = {

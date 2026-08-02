@@ -813,6 +813,7 @@ export type ReceiveStockSettingsRecord = {
 
 export type CreditTabsSettingsRecord = {
   allowCashierTabClearance?: boolean;
+  requirePhoneVerificationForNewTabCustomers?: boolean;
 };
 
 export type InventorySettingsRecord = {
@@ -942,6 +943,7 @@ export type ReceiveStockPatchPayload = {
 
 export type CreditTabsPatchPayload = {
   allowCashierTabClearance?: boolean;
+  requirePhoneVerificationForNewTabCustomers?: boolean;
 };
 
 export type InventoryPatchPayload = {

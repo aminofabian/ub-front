@@ -16,6 +16,16 @@ export function creditTabsSettings(
   return business?.inventory?.creditTabs;
 }
 
+/** Default on — new tab customers must verify phone via OTP unless admin disables. */
+export function phoneVerificationRequiredForNewTab(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return (
+    creditTabsSettings(business)?.requirePhoneVerificationForNewTabCustomers !==
+    false
+  );
+}
+
 /**
  * Cashier (and butcher cashier) may open the Tabs modal and propose clearances
  * when the admin toggle is on and they can read credit customers.

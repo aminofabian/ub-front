@@ -278,6 +278,7 @@ export type CashierPosLayoutProps = {
     | "setPhoneVerificationCode"
     | "phoneVerificationChannel"
     | "phoneVerificationCooldownUntil"
+    | "requirePhoneVerificationForNewTabCustomers"
     | "onSearchCustomers"
     | "onSendPhoneVerification"
     | "onRegisterCustomer"

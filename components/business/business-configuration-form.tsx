@@ -594,6 +594,18 @@ export function BusinessConfigurationForm({
             title="Allow cashiers to clear credit tabs"
             description="Cashiers get a Tabs button to list balances and submit cash/M-Pesa clearances for admin approval."
           />
+          <PolicySwitch
+            checked={inventory.requirePhoneVerificationForNewTabCustomers}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                requirePhoneVerificationForNewTabCustomers: checked,
+              }))
+            }
+            icon={<Users className="size-4" aria-hidden />}
+            title="Require phone verification for new tabs"
+            description="When enabled, cashiers must send a 4-digit code to the customer's phone before opening a tab for a number that isn't already registered."
+          />
         </PolicyPanel>
       ) : null}
 

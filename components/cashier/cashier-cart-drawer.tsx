@@ -142,6 +142,8 @@ export type CashierCartDrawerProps = {
   setPhoneVerificationCode: (s: string) => void;
   phoneVerificationChannel: string;
   phoneVerificationCooldownUntil: number;
+  /** When false, cashiers may register a new customer without OTP. */
+  requirePhoneVerificationForNewTabCustomers?: boolean;
   onSearchCustomers: () => void;
   onSendPhoneVerification: () => void;
   onRegisterCustomer: () => void;
@@ -296,6 +298,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     setPhoneVerificationCode,
     phoneVerificationChannel,
     phoneVerificationCooldownUntil,
+    requirePhoneVerificationForNewTabCustomers = true,
     onSearchCustomers,
     onSendPhoneVerification,
     onRegisterCustomer,
@@ -1189,17 +1192,22 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         <div className="space-y-3 rounded-xl border border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_7%,transparent)] p-3.5">
                           <div className="space-y-1">
                             <p className="text-[13px] font-semibold tracking-tight text-foreground">
-                              {creditChangeToWallet
-                                ? "New number — verify before wallet credit"
-                                : "New number — verify before credit"}
+                              {requirePhoneVerificationForNewTabCustomers
+                                ? creditChangeToWallet
+                                  ? "New number — verify before wallet credit"
+                                  : "New number — verify before credit"
+                                : creditChangeToWallet
+                                  ? "New number — register before wallet credit"
+                                  : "New number — register before credit"}
                             </p>
                             <p className="text-[12px] leading-snug text-muted-foreground">
-                              A 4-digit code will be sent to this phone by SMS
-                              or WhatsApp. The customer must read it aloud so
-                              you can confirm the number
-                              {creditChangeToWallet
-                                ? " before parking change on their wallet."
-                                : " before opening a tab."}
+                              {requirePhoneVerificationForNewTabCustomers
+                                ? creditChangeToWallet
+                                  ? "A 4-digit code will be sent to this phone by SMS or WhatsApp. The customer must read it aloud so you can confirm the number before parking change on their wallet."
+                                  : "A 4-digit code will be sent to this phone by SMS or WhatsApp. The customer must read it aloud so you can confirm the number before opening a tab."
+                                : creditChangeToWallet
+                                  ? "Enter the customer's name to register this number and park change on their wallet."
+                                  : "Enter the customer's name to register this number and open a tab."}
                             </p>
                           </div>
                           {canManageCustomers ? (
@@ -1218,65 +1226,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   disabled={
                                     !online ||
                                     customerRegisterBusy ||
-                                    phoneVerificationSent
+                                    (requirePhoneVerificationForNewTabCustomers &&
+                                      phoneVerificationSent)
                                   }
                                 />
                               </label>
-                              {!phoneVerificationSent ? (
-                                <Button
-                                  type="button"
-                                  className="h-11 w-full rounded-xl text-sm font-semibold"
-                                  disabled={
-                                    !online ||
-                                    customerRegisterBusy ||
-                                    !customerRegisterName.trim() ||
-                                    Date.now() < phoneVerificationCooldownUntil
-                                  }
-                                  onClick={onSendPhoneVerification}
-                                >
-                                  {customerRegisterBusy
-                                    ? "Sending code…"
-                                    : "Send code to phone"}
-                                </Button>
-                              ) : (
-                                <div className="space-y-2.5 rounded-lg bg-background/70 px-3 py-3 ring-1 ring-border/70">
-                                  <div className="space-y-0.5">
-                                    <p className="text-[13px] font-semibold text-foreground">
-                                      Ask the customer for their code
-                                    </p>
-                                    <p className="text-[12px] leading-snug text-muted-foreground">
-                                      Sent
-                                      {phoneVerificationChannel
-                                        ? ` via ${phoneVerificationChannel}`
-                                        : " to their phone"}
-                                      . Type the 4 digits they show or read to
-                                      you.
-                                    </p>
-                                  </div>
-                                  <input
-                                    className={fieldClass(
-                                      "h-14 w-full text-center text-2xl font-semibold tracking-[0.35em]",
-                                    )}
-                                    value={phoneVerificationCode}
-                                    onChange={(e) =>
-                                      setPhoneVerificationCode(
-                                        e.target.value
-                                          .replace(/\D/g, "")
-                                          .slice(0, 4),
-                                      )
-                                    }
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        onRegisterCustomer();
-                                      }
-                                    }}
-                                    inputMode="numeric"
-                                    autoComplete="one-time-code"
-                                    placeholder="••••"
-                                    aria-label="4-digit verification code"
-                                    disabled={!online || customerRegisterBusy}
-                                  />
+                              {requirePhoneVerificationForNewTabCustomers ? (
+                                !phoneVerificationSent ? (
                                   <Button
                                     type="button"
                                     className="h-11 w-full rounded-xl text-sm font-semibold"
@@ -1284,33 +1240,105 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                       !online ||
                                       customerRegisterBusy ||
                                       !customerRegisterName.trim() ||
-                                      phoneVerificationCode.length !== 4
-                                    }
-                                    onClick={onRegisterCustomer}
-                                  >
-                                    {customerRegisterBusy
-                                      ? "Verifying…"
-                                      : creditChangeToWallet
-                                        ? "Verify & credit wallet"
-                                        : "Verify & open tab"}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="h-9 w-full rounded-xl text-xs text-muted-foreground"
-                                    disabled={
-                                      !online ||
-                                      customerRegisterBusy ||
-                                      Date.now() <
-                                        phoneVerificationCooldownUntil
+                                      Date.now() < phoneVerificationCooldownUntil
                                     }
                                     onClick={onSendPhoneVerification}
                                   >
-                                    {Date.now() < phoneVerificationCooldownUntil
-                                      ? "Resend available soon"
-                                      : "Resend code"}
+                                    {customerRegisterBusy
+                                      ? "Sending code…"
+                                      : "Send code to phone"}
                                   </Button>
-                                </div>
+                                ) : (
+                                  <div className="space-y-2.5 rounded-lg bg-background/70 px-3 py-3 ring-1 ring-border/70">
+                                    <div className="space-y-0.5">
+                                      <p className="text-[13px] font-semibold text-foreground">
+                                        Ask the customer for their code
+                                      </p>
+                                      <p className="text-[12px] leading-snug text-muted-foreground">
+                                        Sent
+                                        {phoneVerificationChannel
+                                          ? ` via ${phoneVerificationChannel}`
+                                          : " to their phone"}
+                                        . Type the 4 digits they show or read to
+                                        you.
+                                      </p>
+                                    </div>
+                                    <input
+                                      className={fieldClass(
+                                        "h-14 w-full text-center text-2xl font-semibold tracking-[0.35em]",
+                                      )}
+                                      value={phoneVerificationCode}
+                                      onChange={(e) =>
+                                        setPhoneVerificationCode(
+                                          e.target.value
+                                            .replace(/\D/g, "")
+                                            .slice(0, 4),
+                                        )
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          e.preventDefault();
+                                          onRegisterCustomer();
+                                        }
+                                      }}
+                                      inputMode="numeric"
+                                      autoComplete="one-time-code"
+                                      placeholder="••••"
+                                      aria-label="4-digit verification code"
+                                      disabled={!online || customerRegisterBusy}
+                                    />
+                                    <Button
+                                      type="button"
+                                      className="h-11 w-full rounded-xl text-sm font-semibold"
+                                      disabled={
+                                        !online ||
+                                        customerRegisterBusy ||
+                                        !customerRegisterName.trim() ||
+                                        phoneVerificationCode.length !== 4
+                                      }
+                                      onClick={onRegisterCustomer}
+                                    >
+                                      {customerRegisterBusy
+                                        ? "Verifying…"
+                                        : creditChangeToWallet
+                                          ? "Verify & credit wallet"
+                                          : "Verify & open tab"}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      className="h-9 w-full rounded-xl text-xs text-muted-foreground"
+                                      disabled={
+                                        !online ||
+                                        customerRegisterBusy ||
+                                        Date.now() <
+                                          phoneVerificationCooldownUntil
+                                      }
+                                      onClick={onSendPhoneVerification}
+                                    >
+                                      {Date.now() < phoneVerificationCooldownUntil
+                                        ? "Resend available soon"
+                                        : "Resend code"}
+                                    </Button>
+                                  </div>
+                                )
+                              ) : (
+                                <Button
+                                  type="button"
+                                  className="h-11 w-full rounded-xl text-sm font-semibold"
+                                  disabled={
+                                    !online ||
+                                    customerRegisterBusy ||
+                                    !customerRegisterName.trim()
+                                  }
+                                  onClick={onRegisterCustomer}
+                                >
+                                  {customerRegisterBusy
+                                    ? "Registering…"
+                                    : creditChangeToWallet
+                                      ? "Register & credit wallet"
+                                      : "Register & open tab"}
+                                </Button>
                               )}
                             </>
                           ) : (

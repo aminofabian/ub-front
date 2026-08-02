@@ -50,6 +50,7 @@ export type InventoryForm = {
   allowReceiveForCashier: boolean;
   allowReceiveForStockManager: boolean;
   allowCashierTabClearance: boolean;
+  requirePhoneVerificationForNewTabCustomers: boolean;
 };
 
 export type PosDraftsForm = {
@@ -148,6 +149,8 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowReceiveForStockManager: true,
   /** Match backend: cashier tab clearance defaults off. */
   allowCashierTabClearance: false,
+  /** Match backend: phone verification for new tabs defaults on. */
+  requirePhoneVerificationForNewTabCustomers: true,
 };
 
 export const DEFAULT_POS_DRAFTS: PosDraftsForm = {
@@ -330,6 +333,9 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
     allowCashierTabClearance: Boolean(
       b?.inventory?.creditTabs?.allowCashierTabClearance,
     ),
+    requirePhoneVerificationForNewTabCustomers:
+      b?.inventory?.creditTabs?.requirePhoneVerificationForNewTabCustomers !==
+      false,
   };
 }
 

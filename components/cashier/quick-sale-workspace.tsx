@@ -65,7 +65,7 @@ import {
   canLinkSupplierProducts,
   canWriteSuppliers,
 } from "@/lib/supplier-access";
-import { canCashierClearTabs } from "@/lib/credit-tabs-access";
+import { canCashierClearTabs, phoneVerificationRequiredForNewTab } from "@/lib/credit-tabs-access";
 import {
   countPendingSales,
   enqueuePendingSale,
@@ -328,6 +328,7 @@ export function QuickSaleWorkspace({
     variant === "cashier" && canPathBWrite && canViewSuppliers;
   const allowCreditTabs =
     variant === "cashier" && canCashierClearTabs(me, business);
+  const requirePhoneVerification = phoneVerificationRequiredForNewTab(business);
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
@@ -1335,15 +1336,17 @@ export function QuickSaleWorkspace({
       setNotice("");
       return;
     }
-    if (!phoneVerificationSent) {
-      setError("Send a verification code first.");
-      setNotice("");
-      return;
-    }
-    if (!/^\d{4}$/.test(code)) {
-      setError("Enter the 4-digit verification code.");
-      setNotice("");
-      return;
+    if (requirePhoneVerification) {
+      if (!phoneVerificationSent) {
+        setError("Send a verification code first.");
+        setNotice("");
+        return;
+      }
+      if (!/^\d{4}$/.test(code)) {
+        setError("Enter the 4-digit verification code.");
+        setNotice("");
+        return;
+      }
     }
     if (!online) {
       setError("Go online to register a customer.");
@@ -1358,11 +1361,15 @@ export function QuickSaleWorkspace({
     setCustomerRegisterBusy(true);
     setError("");
     try {
-      const verified = await verifyCustomerPhoneVerification(phone, code);
+      let phoneVerificationToken: string | undefined;
+      if (requirePhoneVerification) {
+        const verified = await verifyCustomerPhoneVerification(phone, code);
+        phoneVerificationToken = verified.phoneVerificationToken;
+      }
       const created = await createCustomer({
         name,
         phones: [{ phone, primary: true }],
-        phoneVerificationToken: verified.phoneVerificationToken,
+        phoneVerificationToken,
       });
       setCustomerHits([created]);
       setSelectedCustomer(created);
@@ -1388,6 +1395,7 @@ export function QuickSaleWorkspace({
     online,
     phoneVerificationCode,
     phoneVerificationSent,
+    requirePhoneVerification,
     resetPhoneVerification,
     setCustomerHits,
     setSelectedCustomer,
@@ -3619,6 +3627,7 @@ export function QuickSaleWorkspace({
           setPhoneVerificationCode,
           phoneVerificationChannel,
           phoneVerificationCooldownUntil,
+          requirePhoneVerificationForNewTabCustomers: requirePhoneVerification,
           onSearchCustomers: () => void onSearchCustomers(),
           onSendPhoneVerification: () => void onSendPhoneVerification(),
           onRegisterCustomer: () => void onRegisterCustomer(),
