@@ -6,6 +6,8 @@ import { APP_ROUTES } from "@/lib/config";
 import { fmtMoney } from "@/lib/business-hub/formatters";
 import type { OutstandingTabRowRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
+import { storedCustomerPhoneIssue } from "@/lib/customer-phone";
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -138,9 +140,23 @@ export function CreditTabsRail({
                       {name}
                     </p>
                     {tab.primaryPhone?.trim() ? (
-                      <p className="truncate font-mono text-[10px] tabular-nums text-[#8A8A8A]">
-                        {tab.primaryPhone.trim()}
-                      </p>
+                      <>
+                        <p
+                          className={cn(
+                            "truncate font-mono text-[10px] tabular-nums",
+                            storedCustomerPhoneIssue(tab.primaryPhone)
+                              ? "font-semibold text-red-700"
+                              : "text-[#8A8A8A]",
+                          )}
+                        >
+                          {tab.primaryPhone.trim()}
+                        </p>
+                        <CustomerPhoneFlag
+                          phone={tab.primaryPhone}
+                          compact
+                          className="mt-0.5 text-[10px] text-red-700"
+                        />
+                      </>
                     ) : null}
                   </div>
                   {payEnabled ? (

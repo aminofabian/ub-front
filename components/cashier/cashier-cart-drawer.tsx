@@ -43,7 +43,11 @@ import {
 } from "./cashier-qty-control";
 import { CashierWeighedToggle } from "./cashier-weighed-toggle";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
-import { isValidCustomerPhone, customerPhoneValidationMessage } from "@/lib/customer-phone";
+import { isValidCustomerPhone, customerPhoneValidationMessage, storedCustomerPhoneIssue } from "@/lib/customer-phone";
+import {
+  CustomerPhoneFlag,
+  customerPrimaryPhone,
+} from "@/components/credits/customer-phone-flag";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import type { LocalReceiptPrinterTarget } from "@/lib/desktop-print";
@@ -1149,7 +1153,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       ) : null}
                       {customerHits.length > 0 ? (
                         <ul className="max-h-36 space-y-1 overflow-y-auto">
-                          {customerHits.map((c) => (
+                          {customerHits.map((c) => {
+                            const hitPhone = customerPrimaryPhone(c.phones);
+                            const phoneIssue = storedCustomerPhoneIssue(hitPhone);
+                            return (
                             <li key={c.id}>
                               <button
                                 type="button"
@@ -1158,15 +1165,29 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   selectedCustomer?.id === c.id
                                     ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] font-semibold"
                                     : "hover:bg-muted/50",
+                                  phoneIssue &&
+                                    "ring-1 ring-destructive/40",
                                 )}
                                 onClick={() => setSelectedCustomer(c)}
                               >
                                 {c.name}
-                                <span className="ml-1.5 text-muted-foreground">
-                                  {c.phones.find((p) => p.primary)?.phone ??
-                                    c.phones[0]?.phone ??
-                                    ""}
+                                <span
+                                  className={cn(
+                                    "ml-1.5",
+                                    phoneIssue
+                                      ? "text-destructive"
+                                      : "text-muted-foreground",
+                                  )}
+                                >
+                                  {hitPhone}
                                 </span>
+                                {phoneIssue ? (
+                                  <CustomerPhoneFlag
+                                    phone={hitPhone}
+                                    compact
+                                    className="mt-0.5 block"
+                                  />
+                                ) : null}
                                 {c.credit ? (
                                   <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
                                     {Number(c.credit.balanceOwed) > 0
@@ -1181,7 +1202,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 ) : null}
                               </button>
                             </li>
-                          ))}
+                            );
+                          })}
                         </ul>
                       ) : null}
                       {(payMethod === "customer_credit" ||
@@ -1349,19 +1371,49 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         </div>
                       ) : null}
                       {selectedCustomer ? (
-                        <p className="rounded-xl bg-muted/40 px-3 py-2 text-[13px]">
-                          <span className="font-semibold">
-                            {selectedCustomer.name}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {" "}
-                            · wallet{" "}
-                            {Number(
-                              selectedCustomer.credit.walletBalance,
-                            ).toFixed(2)}{" "}
-                            {currency}
-                          </span>
-                        </p>
+                        <div className="rounded-xl bg-muted/40 px-3 py-2 text-[13px]">
+                          <p>
+                            <span className="font-semibold">
+                              {selectedCustomer.name}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              · wallet{" "}
+                              {Number(
+                                selectedCustomer.credit.walletBalance,
+                              ).toFixed(2)}{" "}
+                              {currency}
+                            </span>
+                          </p>
+                          {(() => {
+                            const selectedPhone = customerPrimaryPhone(
+                              selectedCustomer.phones,
+                            );
+                            if (!selectedPhone) {
+                              return (
+                                <p className="mt-1 text-[11px] font-medium text-destructive">
+                                  No phone on file — add one before sending
+                                  reminders or STK.
+                                </p>
+                              );
+                            }
+                            if (!storedCustomerPhoneIssue(selectedPhone)) {
+                              return (
+                                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                  {selectedPhone}
+                                </p>
+                              );
+                            }
+                            return (
+                              <div className="mt-1">
+                                <p className="text-[11px] font-medium text-destructive">
+                                  {selectedPhone}
+                                </p>
+                                <CustomerPhoneFlag phone={selectedPhone} />
+                              </div>
+                            );
+                          })()}
+                        </div>
                       ) : null}
                     </div>
                   ) : null}

@@ -37,6 +37,8 @@ import {
   type LocalReceiptPrinterTarget,
 } from "@/lib/desktop-print";
 import { cn } from "@/lib/utils";
+import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
+import { storedCustomerPhoneIssue } from "@/lib/customer-phone";
 
 type CashierCreditTabsModalProps = {
   open: boolean;
@@ -297,9 +299,21 @@ export function CashierCreditTabsModal({
                           <span className="block truncate text-sm font-medium">
                             {row.name}
                           </span>
-                          <span className="block truncate text-xs text-muted-foreground">
+                          <span
+                            className={cn(
+                              "block truncate text-xs",
+                              storedCustomerPhoneIssue(row.primaryPhone)
+                                ? "font-medium text-destructive"
+                                : "text-muted-foreground",
+                            )}
+                          >
                             {row.primaryPhone?.trim() || "No phone"}
                           </span>
+                          <CustomerPhoneFlag
+                            phone={row.primaryPhone}
+                            compact
+                            className="mt-0.5"
+                          />
                         </span>
                         <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--pos-primary)]">
                           {money(row.balanceOwed, currency)}
@@ -328,9 +342,17 @@ export function CashierCreditTabsModal({
                 <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-foreground">
                   {money(selected.balanceOwed, currency)}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p
+                  className={cn(
+                    "mt-1 text-xs",
+                    storedCustomerPhoneIssue(selected.primaryPhone)
+                      ? "font-medium text-destructive"
+                      : "text-muted-foreground",
+                  )}
+                >
                   {selected.primaryPhone?.trim() || "No phone on file"}
                 </p>
+                <CustomerPhoneFlag phone={selected.primaryPhone} />
               </div>
 
               <button

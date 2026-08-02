@@ -19,8 +19,10 @@ import {
   DashboardPageHero,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
+import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
 import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
 import { RemindPaymentButtons } from "@/components/credits/remind-payment-buttons";
+import { isUsableStoredCustomerPhone } from "@/lib/customer-phone";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFormatMoney } from "@/hooks/use-format-money";
@@ -546,9 +548,17 @@ export function CreditActivityPage() {
                       >
                         {tab.name}
                       </Link>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p
+                        className={
+                          tab.primaryPhone?.trim() &&
+                          !isUsableStoredCustomerPhone(tab.primaryPhone)
+                            ? "truncate text-xs font-medium text-destructive"
+                            : "truncate text-xs text-muted-foreground"
+                        }
+                      >
                         {tab.primaryPhone?.trim() || "No phone"}
                       </p>
+                      <CustomerPhoneFlag phone={tab.primaryPhone} />
                     </div>
                     <p className="shrink-0 text-sm font-semibold tabular-nums text-amber-800 dark:text-amber-300">
                       {fmtKes(owed)}
@@ -557,7 +567,7 @@ export function CreditActivityPage() {
                       {canRemind ? (
                         <RemindPaymentButtons
                           customerId={tab.customerId}
-                          disabled={!tab.primaryPhone?.trim()}
+                          disabled={!isUsableStoredCustomerPhone(tab.primaryPhone)}
                           onResult={({ ok, text }) =>
                             setFeedback({
                               kind: ok ? "success" : "error",

@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   customerPhoneValidationMessage,
+  isUsableStoredCustomerPhone,
   isValidCustomerPhone,
   normalizeCustomerPhone,
   requiredCustomerPhoneLength,
+  storedCustomerPhoneIssue,
 } from "./customer-phone";
 
 describe("customer phone tab validation", () => {
@@ -34,5 +36,14 @@ describe("customer phone tab validation", () => {
     expect(customerPhoneValidationMessage("712")).toMatch(/9 digits/);
     expect(customerPhoneValidationMessage("0712345678")).toBeNull();
     expect(customerPhoneValidationMessage("712345678")).toBeNull();
+  });
+
+  it("flags legacy short 07 numbers like mistyped cashier entries", () => {
+    expect(storedCustomerPhoneIssue("072390823")).toMatch(/Needs 10 digits/);
+    expect(isUsableStoredCustomerPhone("072390823")).toBe(false);
+    expect(storedCustomerPhoneIssue("0723825635")).toBeNull();
+    expect(isUsableStoredCustomerPhone("0723825635")).toBe(true);
+    expect(storedCustomerPhoneIssue("")).toBeNull();
+    expect(storedCustomerPhoneIssue(null)).toBeNull();
   });
 });

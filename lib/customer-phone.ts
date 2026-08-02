@@ -1,3 +1,5 @@
+import { looksLikeKenyanMobilePath } from "@/lib/kenyan-phone";
+
 /** Align with backend CustomerPhoneNormalizer (digit strip). */
 export const MAX_CUSTOMER_PHONE_DIGITS = 24;
 
@@ -21,9 +23,7 @@ export function requiredCustomerPhoneLength(digits: string): number {
 }
 
 export function isValidCustomerPhone(raw: string): boolean {
-  const n = normalizeCustomerPhone(raw);
-  if (!n) return false;
-  return n.length === requiredCustomerPhoneLength(n);
+  return customerPhoneValidationMessage(raw) === null;
 }
 
 export function customerPhoneValidationMessage(raw: string): string | null {
@@ -42,5 +42,38 @@ export function customerPhoneValidationMessage(raw: string): string | null {
     }
     return `Phone must be ${CUSTOMER_PHONE_LEN_LOCAL} digits (e.g. 712345678).`;
   }
+  if (!looksLikeKenyanMobilePath(trimmed)) {
+    return "Enter a valid Kenyan mobile (e.g. 0712345678).";
+  }
   return null;
+}
+
+/**
+ * Issue with a phone already saved on a customer (legacy / mistyped).
+ * Returns null when empty (missing) or when the number is usable for M-Pesa / reminders.
+ */
+export function storedCustomerPhoneIssue(
+  raw: string | null | undefined,
+): string | null {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return null;
+  const digits = normalizeCustomerPhone(trimmed);
+  if (!digits) return "Invalid phone";
+  const required = requiredCustomerPhoneLength(digits);
+  if (digits.length !== required) {
+    return `Needs ${required} digits (has ${digits.length})`;
+  }
+  if (!looksLikeKenyanMobilePath(trimmed)) {
+    return "Not a valid Kenyan mobile";
+  }
+  return null;
+}
+
+/** True when a non-empty stored phone passes current tab / messaging rules. */
+export function isUsableStoredCustomerPhone(
+  raw: string | null | undefined,
+): boolean {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return false;
+  return storedCustomerPhoneIssue(trimmed) === null;
 }
