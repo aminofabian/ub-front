@@ -879,7 +879,7 @@ export function BusinessSettingsForm({
                 }
                 icon={<Users className="size-4 text-muted-foreground" />}
                 title="Require phone verification for new tabs"
-                description="When enabled, cashiers must send a 4-digit code to the customer's phone before opening a tab for a number that isn't already registered."
+                description="When enabled, cashiers must send a 4-digit code (SMS and WhatsApp) before opening a tab for a number that isn't already registered."
               />
             </FormDrawerFields>
           </SettingsAnchor>

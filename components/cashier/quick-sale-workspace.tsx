@@ -1298,8 +1298,16 @@ export function QuickSaleWorkspace({
       setPhoneVerificationCode("");
       setPhoneVerificationChannel(sent.channel);
       setPhoneVerificationCooldownUntil(Date.now() + 60_000);
+      const channelLabel =
+        sent.channel === "whatsapp+sms"
+          ? "SMS and WhatsApp"
+          : sent.channel === "whatsapp"
+            ? "WhatsApp"
+            : sent.channel === "sms"
+              ? "SMS"
+              : sent.channel;
       setNotice(
-        `4-digit code sent via ${sent.channel} to ${sent.maskedHint}. Ask the customer to read it aloud.`,
+        `4-digit code sent via ${channelLabel} to ${sent.maskedHint}. Ask the customer to read it aloud.`,
       );
     } catch (e) {
       setError(

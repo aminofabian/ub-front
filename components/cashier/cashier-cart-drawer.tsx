@@ -1225,8 +1225,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             <p className="text-[12px] leading-snug text-muted-foreground">
                               {requirePhoneVerificationForNewTabCustomers
                                 ? creditChangeToWallet
-                                  ? "A 4-digit code will be sent to this phone by SMS or WhatsApp. The customer must read it aloud so you can confirm the number before parking change on their wallet."
-                                  : "A 4-digit code will be sent to this phone by SMS or WhatsApp. The customer must read it aloud so you can confirm the number before opening a tab."
+                                  ? "A 4-digit code will be sent by SMS and WhatsApp. The customer must read it aloud so you can confirm the number before parking change on their wallet."
+                                  : "A 4-digit code will be sent by SMS and WhatsApp. The customer must read it aloud so you can confirm the number before opening a tab."
                                 : creditChangeToWallet
                                   ? "Enter the customer's name to register this number and park change on their wallet."
                                   : "Enter the customer's name to register this number and open a tab."}
@@ -1277,12 +1277,18 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                         Ask the customer for their code
                                       </p>
                                       <p className="text-[12px] leading-snug text-muted-foreground">
-                                        Sent
-                                        {phoneVerificationChannel
-                                          ? ` via ${phoneVerificationChannel}`
-                                          : " to their phone"}
-                                        . Type the 4 digits they show or read to
-                                        you.
+                                      Sent
+                                      {phoneVerificationChannel === "whatsapp+sms"
+                                        ? " via SMS and WhatsApp"
+                                        : phoneVerificationChannel === "whatsapp"
+                                          ? " via WhatsApp"
+                                          : phoneVerificationChannel === "sms"
+                                            ? " via SMS"
+                                            : phoneVerificationChannel
+                                              ? ` via ${phoneVerificationChannel}`
+                                              : " to their phone"}
+                                      . Type the 4 digits they show or read to
+                                      you.
                                       </p>
                                     </div>
                                     <input
