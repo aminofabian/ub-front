@@ -254,20 +254,68 @@ function portalSurfaceStyle(
   const isDark = theme === "dark";
   return {
     ...storefrontVars,
-    ["--tab-bg" as string]: isDark ? "#121212" : "#f3f4f6",
-    ["--tab-fg" as string]: isDark ? "#f5f5f5" : "#111827",
-    ["--tab-muted" as string]: isDark ? "#a3a3a3" : "#6b7280",
-    ["--tab-card" as string]: isDark ? "#1c1c1e" : "#ffffff",
-    ["--tab-border" as string]: isDark ? "#2e2e32" : "#e5e7eb",
-    ["--tab-input" as string]: isDark ? "#161618" : "#ffffff",
-    ["--tab-chip" as string]: isDark ? "transparent" : "#ffffff",
-    ["--tab-cta-bg" as string]: isDark ? "#ffffff" : primary,
-    ["--tab-cta-fg" as string]: isDark ? "#111111" : "#ffffff",
-    ["--tab-secondary-bg" as string]: isDark ? "transparent" : "#ffffff",
+    ["--tab-bg" as string]: isDark ? "#0a0a0a" : "#e8e8e8",
+    ["--tab-fg" as string]: isDark ? "#fafafa" : "#0a0a0a",
+    ["--tab-muted" as string]: isDark ? "#a3a3a3" : "#525252",
+    ["--tab-card" as string]: isDark ? "#141414" : "#ffffff",
+    ["--tab-border" as string]: isDark ? "#2a2a2a" : "#cfcfcf",
+    ["--tab-input" as string]: isDark ? "#0f0f0f" : "#ffffff",
+    ["--tab-chip" as string]: isDark ? "#1a1a1a" : "#f5f5f5",
+    ["--tab-cta-bg" as string]: isDark ? "#fafafa" : primary,
+    ["--tab-cta-fg" as string]: isDark ? "#0a0a0a" : "#ffffff",
+    ["--tab-success-fg" as string]: isDark ? "#86efac" : "#166534",
+    ["--tab-success-bg" as string]: isDark ? "#052e16" : "#ecfdf5",
+    ["--tab-error-fg" as string]: isDark ? "#fca5a5" : "#b91c1c",
+    ["--tab-error-bg" as string]: isDark ? "#450a0a" : "#fef2f2",
+    ["--tab-focus" as string]: primary,
     ["--primary" as string]: primary,
     backgroundColor: "var(--tab-bg)",
     color: "var(--tab-fg)",
+    fontFeatureSettings: '"tnum" 1',
   };
+}
+
+const fieldClass =
+  "w-full border border-[var(--tab-border)] bg-[var(--tab-input)] px-3 py-3 text-[17px] font-semibold tabular-nums outline-none transition-[border-color,box-shadow] duration-150 focus-visible:border-[var(--tab-focus)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] disabled:opacity-50";
+
+const btnPrimaryClass =
+  "flex w-full items-center justify-center gap-2 py-3.5 text-[15px] font-semibold transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tab-card)] active:opacity-85 disabled:cursor-not-allowed disabled:opacity-45";
+
+const btnSecondaryClass =
+  "flex w-full items-center justify-center gap-2 border border-[var(--tab-border)] py-3 text-[14px] font-medium text-[var(--tab-muted)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] active:bg-[var(--tab-bg)] disabled:opacity-45";
+
+function PortalSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col animate-pulse">
+      <div className="border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-8">
+        <div className="h-3 w-28 bg-[var(--tab-border)]" />
+        <div className="mt-4 h-10 w-48 bg-[var(--tab-border)]" />
+        <div className="mt-5 h-3 w-40 bg-[var(--tab-border)]" />
+      </div>
+      <div className="border-b border-[var(--tab-border)] px-4 py-4">
+        <div className="h-3 w-full max-w-xs bg-[var(--tab-border)]" />
+      </div>
+      <div className="mt-4 space-y-0 divide-y divide-[var(--tab-border)] border-y border-[var(--tab-border)] bg-[var(--tab-card)]">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex items-center justify-between px-4 py-3.5">
+            <div className="space-y-2">
+              <div className="h-3.5 w-36 bg-[var(--tab-border)]" />
+              <div className="h-2.5 w-24 bg-[var(--tab-border)]" />
+            </div>
+            <div className="h-3.5 w-16 bg-[var(--tab-border)]" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SheetHandle() {
+  return (
+    <div className="flex shrink-0 justify-center border-b border-[var(--tab-border)] py-2.5" aria-hidden>
+      <div className="h-1 w-10 bg-[var(--tab-border)]" />
+    </div>
+  );
 }
 
 function PurchaseRow({
@@ -294,7 +342,7 @@ function PurchaseRow({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start gap-3 px-3.5 py-3 text-left active:opacity-90"
+        className="flex w-full items-start gap-3 px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] active:bg-[var(--tab-bg)]"
         aria-expanded={open}
       >
         <div className="min-w-0 flex-1">
@@ -496,31 +544,35 @@ function PaySheet({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/60"
         aria-label="Close payment"
         onClick={onClose}
       />
       <div
         ref={sheetRef}
-        className="relative flex max-h-[96dvh] w-full flex-col border-t border-[var(--tab-border)] bg-[var(--tab-card)] shadow-[0_-24px_80px_rgba(0,0,0,0.35)] motion-safe:animate-in motion-safe:slide-in-from-bottom-full motion-safe:duration-300"
+        className="relative flex max-h-[96dvh] w-full flex-col border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] motion-safe:animate-in motion-safe:slide-in-from-bottom-full motion-safe:duration-200 motion-safe:ease-out"
         style={{ paddingBottom: `max(${keyboardInset}px, env(safe-area-inset-bottom))` }}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--tab-border)] px-4 py-3.5">
+        <SheetHandle />
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--tab-border)] px-4 py-4">
           <div className="min-w-0">
-            <p
+            <h2
               id={`${fieldIdPrefix}-pay-title`}
-              className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--tab-muted)]"
+              className="text-[1.125rem] font-semibold leading-snug tracking-[-0.02em]"
             >
-              Pay tab balance
-            </p>
-            <p className="truncate text-[17px] font-bold tracking-tight">
-              {shopLabel}
+              Pay {shopLabel}
+            </h2>
+            <p className="mt-1 text-[14px] text-[var(--tab-muted)]">
+              Outstanding{" "}
+              <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+                {fmtMoney(owed, currency)}
+              </span>
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex size-10 shrink-0 items-center justify-center border border-[var(--tab-border)] text-[13px] font-bold uppercase tracking-wide text-[var(--tab-muted)] active:bg-[var(--tab-bg)]"
+            className="flex size-9 shrink-0 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)] active:bg-[var(--tab-bg)]"
             aria-label="Close"
           >
             ✕
@@ -528,15 +580,6 @@ function PaySheet({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-          <div className="mb-5 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tab-muted)]">
-              Outstanding
-            </p>
-            <p className="mt-1 text-[2rem] font-bold leading-none tabular-nums tracking-tight">
-              {fmtMoney(owed, currency)}
-            </p>
-          </div>
-
           <QuickAmountChips
             owed={owed}
             currency={currency}
@@ -548,12 +591,12 @@ function PaySheet({
           <div className="mt-4">
             <label
               htmlFor={amountId}
-              className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tab-muted)]"
+              className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
             >
-              {payMode === "manual" ? "Amount paid" : "Amount to pay"}
+              {payMode === "manual" ? "Amount you paid" : "Amount to pay"}
             </label>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[var(--tab-muted)]">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-medium text-[var(--tab-muted)]">
                 {resolveCurrencyCode(currency) === "KES"
                   ? "Ksh"
                   : resolveCurrencyCode(currency)}
@@ -569,28 +612,21 @@ function PaySheet({
                 onChange={(e) => setAmount(e.target.value)}
                 disabled={payMode === "stk" ? payDisabled : manualPayDisabled}
                 onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                className="w-full border border-[var(--tab-border)] bg-[var(--tab-input)] py-3.5 pl-12 pr-3 text-[22px] font-bold tabular-nums outline-none focus:border-[var(--tab-fg)] focus:ring-1 focus:ring-[var(--tab-fg)] disabled:opacity-50"
+                className={cn(fieldClass, "pl-12 pr-3 text-[22px] font-bold")}
               />
             </div>
           </div>
 
-          <div className="mt-5 border border-[var(--tab-border)] bg-[var(--tab-bg)] p-4">
-            <div className="flex items-start gap-3">
-              <div
-                className="flex size-10 shrink-0 items-center justify-center border border-[var(--tab-border)] bg-[var(--tab-card)]"
-                aria-hidden
-              >
-                <Smartphone className="size-4 text-[var(--tab-muted)]" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tab-muted)]">
-                  M-Pesa number
-                </p>
-                <p className="mt-0.5 text-[12px] leading-snug text-[var(--tab-muted)]">
-                  STK prompt goes to this phone. Confirm or change it before paying.
-                </p>
-              </div>
-            </div>
+          <div className="mt-5">
+            <label
+              htmlFor={phoneId}
+              className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
+            >
+              M-Pesa number
+            </label>
+            <p className="mb-2 text-[13px] leading-snug text-[var(--tab-muted)]">
+              The payment prompt will be sent to this phone. Confirm or change it before you pay.
+            </p>
             <input
               ref={phoneInputRef}
               id={phoneId}
@@ -603,30 +639,32 @@ function PaySheet({
               disabled={payMode === "stk" ? payDisabled : manualPayDisabled}
               onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
               className={cn(
-                "mt-3 w-full border bg-[var(--tab-input)] px-3 py-3.5 text-[20px] font-bold tabular-nums tracking-wide outline-none focus:ring-1 disabled:opacity-50",
-                phoneOk
-                  ? "border-[var(--tab-fg)] focus:border-[var(--tab-fg)] focus:ring-[var(--tab-fg)]"
-                  : "border-red-500/70 focus:border-red-500 focus:ring-red-500/40",
+                fieldClass,
+                "text-[19px] font-bold tracking-wide",
+                !phoneOk && payPhone.trim()
+                  ? "border-[var(--tab-error-fg)] focus-visible:border-[var(--tab-error-fg)] focus-visible:ring-[color-mix(in_oklab,var(--tab-error-fg)_25%,transparent)]"
+                  : "",
               )}
             />
             {!phoneOk && payPhone.trim() ? (
-              <p className="mt-2 text-[12px] font-medium text-red-500">
+              <p className="mt-2 text-[13px] font-medium text-[var(--tab-error-fg)]">
                 Enter a valid Kenyan mobile number (07… or 01…).
               </p>
             ) : (
-              <p className="mt-2 text-[12px] text-[var(--tab-muted)]">
-                Display: {formatPhoneDisplay(payPhone) || "—"}
+              <p className="mt-2 text-[13px] text-[var(--tab-muted)]">
+                {formatPhoneDisplay(payPhone) || "No number entered"}
               </p>
             )}
           </div>
 
           {payMode === "manual" ? (
-            <div className="mt-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
+            <div className="mt-4">
               <label
                 htmlFor={refId}
-                className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tab-muted)]"
+                className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
               >
-                M-Pesa code <span className="font-normal normal-case">(optional)</span>
+                M-Pesa confirmation code{" "}
+                <span className="font-normal text-[var(--tab-muted)]">(optional)</span>
               </label>
               <input
                 id={refId}
@@ -638,32 +676,28 @@ function PaySheet({
                 onChange={(e) => setReference(e.target.value)}
                 disabled={manualPayDisabled}
                 onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                className="w-full border border-[var(--tab-border)] bg-[var(--tab-input)] px-3 py-3 text-[16px] uppercase tracking-wide outline-none focus:border-[var(--tab-fg)] focus:ring-1 focus:ring-[var(--tab-fg)] disabled:opacity-50"
+                className={cn(fieldClass, "text-[15px] uppercase tracking-wide")}
               />
             </div>
           ) : null}
 
           {error ? (
-            <p className="mt-4 border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-[13px] font-medium text-red-500" role="alert">
+            <p
+              className="mt-4 border border-[var(--tab-error-fg)] bg-[var(--tab-error-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-error-fg)]"
+              role="alert"
+            >
               {error}
             </p>
           ) : null}
 
           {promptSent && payMode === "stk" && statusMsg ? (
-            <p
-              className="mt-4 border px-3 py-2.5 text-[13px] font-medium"
-              style={{
-                borderColor: "color-mix(in oklab, var(--primary) 35%, transparent)",
-                backgroundColor: "color-mix(in oklab, var(--primary) 10%, transparent)",
-                color: "var(--primary)",
-              }}
-            >
+            <p className="mt-4 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-fg)]">
               {statusMsg}
             </p>
           ) : null}
 
           {paid ? (
-            <p className="mt-4 flex items-center gap-2 border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-[13px] font-medium text-emerald-600">
+            <p className="mt-4 flex items-center gap-2 border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-success-fg)]">
               <CheckCircle2 className="size-4 shrink-0" />
               {statusMsg}
             </p>
@@ -676,7 +710,7 @@ function PaySheet({
           ) : null}
 
           {manualCleared ? (
-            <p className="mt-4 border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-[13px] font-medium text-emerald-600">
+            <p className="mt-4 border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--tab-success-fg)]">
               Payment cleared — balance updated.
             </p>
           ) : null}
@@ -689,7 +723,7 @@ function PaySheet({
                 type="button"
                 disabled={payDisabled || !amountValid || !phoneOk}
                 onClick={onPay}
-                className="flex w-full items-center justify-center gap-2 py-4 text-[15px] font-bold uppercase tracking-[0.06em] transition active:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+                className={btnPrimaryClass}
                 style={{
                   backgroundColor: "var(--tab-cta-bg)",
                   color: "var(--tab-cta-fg)",
@@ -702,14 +736,14 @@ function PaySheet({
                   </>
                 ) : promptSent ? (
                   <>
-                    <Smartphone className="size-4 animate-pulse" />
+                    <Smartphone className="size-4" />
                     Enter PIN on your phone
                   </>
                 ) : (
                   <>
                     <Smartphone className="size-4" />
                     {amountValid
-                      ? `Pay ${fmtMoney(amountNum, currency)}`
+                      ? `Pay ${fmtMoney(amountNum, currency)} with M-Pesa`
                       : "Pay with M-Pesa"}
                   </>
                 )}
@@ -718,7 +752,7 @@ function PaySheet({
                 type="button"
                 disabled={busy || promptSent || manualSubmitted}
                 onClick={() => setPayMode("manual")}
-                className="flex w-full items-center justify-center gap-2 border border-[var(--tab-border)] py-3 text-[13px] font-semibold text-[var(--tab-muted)] active:bg-[var(--tab-bg)] disabled:opacity-45"
+                className={btnSecondaryClass}
               >
                 <FileCheck2 className="size-4" />
                 I already paid — report it
@@ -730,7 +764,7 @@ function PaySheet({
                 type="button"
                 disabled={manualPayDisabled || !amountValid || manualSubmitted}
                 onClick={onSubmitManual}
-                className="flex w-full items-center justify-center gap-2 py-4 text-[15px] font-bold uppercase tracking-[0.06em] transition active:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+                className={btnPrimaryClass}
                 style={{
                   backgroundColor: "var(--tab-cta-bg)",
                   color: "var(--tab-cta-fg)",
@@ -759,7 +793,7 @@ function PaySheet({
                 type="button"
                 disabled={busy || manualSubmitted}
                 onClick={() => setPayMode("stk")}
-                className="flex w-full items-center justify-center gap-2 border border-[var(--tab-border)] py-3 text-[13px] font-semibold active:bg-[var(--tab-bg)] disabled:opacity-45"
+                className={btnSecondaryClass}
               >
                 <Smartphone className="size-4" />
                 Pay with M-Pesa instead
@@ -1138,13 +1172,17 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       style={surfaceStyle}
     >
       <div
+        className="h-[2px] w-full shrink-0"
+        style={{ backgroundColor: primary }}
+        aria-hidden
+      />
+      <div
         className={cn(
-          "mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col",
-          showPay ? "pb-[calc(5.75rem+env(safe-area-inset-bottom))]" : "",
+          "mx-auto flex min-h-[calc(100dvh-2px)] w-full max-w-lg flex-col",
+          showPay ? "pb-[calc(5.5rem+env(safe-area-inset-bottom))]" : "",
         )}
       >
-        {/* App chrome */}
-        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--tab-border)] bg-[var(--tab-bg)] px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--tab-border)] bg-[var(--tab-bg)] px-4 py-3 pt-[max(0.65rem,env(safe-area-inset-top))]">
           {branding.logoUrl ? (
             <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden border border-[var(--tab-border)] bg-[var(--tab-card)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1164,19 +1202,21 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--tab-muted)]">
-              Credit tab
-            </p>
-            <h1 className="truncate text-[16px] font-bold leading-tight tracking-tight">
+            <h1 className="truncate text-[1rem] font-semibold leading-tight tracking-[-0.02em]">
               {displayShop}
             </h1>
+            <p className="truncate text-[13px] text-[var(--tab-muted)]">
+              {firstName && !loading && !notFound
+                ? `${firstName}'s tab`
+                : "Your tab"}
+            </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             {showWalletTopUp ? (
               <button
                 type="button"
                 onClick={() => setWalletSheetOpen(true)}
-                className="inline-flex h-9 items-center gap-1.5 border border-[var(--tab-border)] bg-[var(--tab-card)] px-2.5 text-[11px] font-bold uppercase tracking-wide text-[var(--tab-fg)] active:bg-[var(--tab-bg)]"
+                className="inline-flex h-9 items-center gap-1.5 border border-[var(--tab-border)] bg-[var(--tab-card)] px-2.5 text-[13px] font-medium text-[var(--tab-fg)] active:bg-[var(--tab-bg)]"
                 aria-label={`Top up wallet · ${fmtMoney(wallet, currency)}`}
               >
                 <Wallet className="size-3.5 shrink-0" aria-hidden />
@@ -1203,15 +1243,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         </header>
 
         {loading ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-24">
-            <Loader2
-              className="size-7 animate-spin"
-              style={{ color: primary }}
-            />
-            <p className="text-sm text-[var(--tab-muted)]">
-              Loading your account…
-            </p>
-          </div>
+          <PortalSkeleton />
         ) : notFound ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-24 text-center">
             <Store className="size-9 text-[var(--tab-muted)]" />
@@ -1223,7 +1255,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </div>
             <Link
               href="/shop"
-              className="px-5 py-3 text-sm font-bold uppercase tracking-wide"
+              className="px-5 py-3 text-sm font-semibold"
               style={{
                 backgroundColor: "var(--tab-cta-bg)",
                 color: "var(--tab-cta-fg)",
@@ -1233,8 +1265,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </Link>
           </div>
         ) : (
-          <main className="flex flex-1 flex-col motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300">
-            {/* Hero balance */}
+          <main className="flex flex-1 flex-col">
             <section
               ref={walletSectionRef}
               id="wallet"
@@ -1242,33 +1273,50 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             >
               <div className="flex items-end justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--tab-muted)]">
-                    {firstName ? `${firstName}'s balance` : "Balance due"}
-                  </p>
-                  <p className="mt-2 text-[2.75rem] font-bold leading-none tabular-nums tracking-tighter">
+                  <h2 className="text-[1.75rem] font-semibold leading-none tabular-nums tracking-[-0.03em]">
                     {fmtMoney(owed, currency)}
+                  </h2>
+                  <p className="mt-2 text-[14px] text-[var(--tab-muted)]">
+                    {owed > 0
+                      ? `Balance owed to ${displayShop}`
+                      : wallet > 0
+                        ? "Nothing owed — wallet credit available"
+                        : "Nothing owed"}
                   </p>
                 </div>
                 {wallet > 0 ? (
                   <div className="shrink-0 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2 text-right">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--tab-muted)]">
+                    <p className="text-[13px] font-medium text-[var(--tab-muted)]">
                       Wallet
                     </p>
-                    <p className="mt-0.5 text-[15px] font-bold tabular-nums">
+                    <p className="mt-0.5 text-[15px] font-semibold tabular-nums">
                       {fmtMoney(wallet, currency)}
                     </p>
                   </div>
                 ) : null}
               </div>
               {tabStats.purchaseCount > 0 ? (
-                <p className="mt-4 text-[12px] text-[var(--tab-muted)]">
+                <p className="mt-5 text-[13px] leading-relaxed text-[var(--tab-muted)]">
                   {tabStats.purchaseCount} visit
                   {tabStats.purchaseCount === 1 ? "" : "s"}
                   {" · "}
                   {fmtMoney(tabStats.totalCredit, currency)} lifetime
+                  {tabStats.lastPurchaseAt ? (
+                    <>
+                      {" · "}
+                      Last visit{" "}
+                      {fmtRelativeVisit(tabStats.lastPurchaseAt).toLowerCase()}
+                    </>
+                  ) : null}
+                  {tabStats.monthAmount > 0 ? (
+                    <>
+                      {" · "}
+                      {fmtMoney(tabStats.monthAmount, currency)} this month
+                    </>
+                  ) : null}
                 </p>
               ) : (
-                <p className="mt-4 text-[12px] text-[var(--tab-muted)]">
+                <p className="mt-5 text-[13px] text-[var(--tab-muted)]">
                   {wallet > 0
                     ? "Wallet ready for your next visit."
                     : "No purchases on this tab yet."}
@@ -1276,39 +1324,8 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               )}
             </section>
 
-            {tabStats.purchaseCount > 0 ? (
-              <div className="grid grid-cols-2 border-b border-[var(--tab-border)]">
-                <div className="border-r border-[var(--tab-border)] px-4 py-3.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--tab-muted)]">
-                    This month
-                  </p>
-                  <p className="mt-1 text-[1.1rem] font-bold tabular-nums">
-                    {fmtMoney(tabStats.monthAmount, currency)}
-                  </p>
-                </div>
-                <div className="px-4 py-3.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--tab-muted)]">
-                    Last visit
-                  </p>
-                  <p className="mt-1 text-[1.1rem] font-bold">
-                    {tabStats.lastPurchaseAt
-                      ? fmtRelativeVisit(tabStats.lastPurchaseAt)
-                      : "—"}
-                  </p>
-                </div>
-              </div>
-            ) : null}
-
             {owed <= 0 ? (
-              <div
-                className="mx-4 mt-4 flex items-center gap-2.5 border px-3.5 py-3 text-[13px] font-semibold"
-                style={{
-                  borderColor: "color-mix(in oklab, #10b981 35%, transparent)",
-                  backgroundColor:
-                    "color-mix(in oklab, #10b981 10%, transparent)",
-                  color: portalTheme === "dark" ? "#6ee7b7" : "#047857",
-                }}
-              >
+              <div className="mx-4 mt-4 flex items-center gap-2.5 border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3.5 py-3 text-[13px] font-medium text-[var(--tab-success-fg)]">
                 <CheckCircle2 className="size-4 shrink-0" />
                 {wallet > 0
                   ? `All clear — ${fmtMoney(wallet, currency)} wallet credit available.`
@@ -1317,17 +1334,17 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             ) : null}
 
             {purchaseCount > 0 ? (
-              <section className="mt-4 flex flex-1 flex-col">
-                <div className="flex items-center justify-between border-y border-[var(--tab-border)] px-4 py-2.5">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--tab-muted)]">
-                    Activity
-                  </p>
+              <section className="mt-5 flex flex-1 flex-col">
+                <div className="flex items-center justify-between border-y border-[var(--tab-border)] px-4 py-3">
+                  <h3 className="text-[15px] font-semibold tracking-[-0.02em]">
+                    Recent purchases
+                  </h3>
                   <button
                     type="button"
                     onClick={() => setHistoryOpen((open) => !open)}
-                    className="text-[11px] font-semibold uppercase tracking-wide text-[var(--tab-fg)]"
+                    className="text-[13px] font-medium text-[var(--tab-muted)]"
                   >
-                    {historyOpen ? "Collapse" : "Expand"}
+                    {historyOpen ? "Show less" : "Show all"}
                   </button>
                 </div>
                 <ul
@@ -1350,7 +1367,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   <button
                     type="button"
                     onClick={() => setHistoryOpen(true)}
-                    className="border-b border-[var(--tab-border)] px-4 py-3 text-center text-[12px] font-semibold uppercase tracking-wide text-[var(--tab-muted)] active:bg-[var(--tab-card)]"
+                    className="border-b border-[var(--tab-border)] px-4 py-3 text-center text-[13px] font-medium text-[var(--tab-muted)] active:bg-[var(--tab-card)]"
                   >
                     View all {purchaseCount} purchases
                   </button>
@@ -1360,31 +1377,27 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           </main>
         )}
 
-        {/* Fixed pay bar */}
         {showPay ? (
           <div
-            className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(0,0,0,0.12)]"
+            className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
             style={{ maxWidth: "32rem", marginInline: "auto" }}
           >
-            <div className="mb-2 flex items-center justify-between gap-3 text-[12px]">
-              <span className="font-semibold uppercase tracking-wide text-[var(--tab-muted)]">
-                Pay via M-Pesa
-              </span>
-              <span className="tabular-nums font-bold text-[var(--tab-fg)]">
-                {fmtMoney(owed, currency)} owed
-              </span>
-            </div>
+            <p className="mb-2 text-[13px] text-[var(--tab-muted)]">
+              {fmtMoney(owed, currency)} owed · M-Pesa
+            </p>
             <button
               type="button"
               onClick={openPaySheet}
-              className="flex w-full items-center justify-center gap-2 py-4 text-[15px] font-bold uppercase tracking-[0.08em] active:opacity-90"
+              className={btnPrimaryClass}
               style={{
                 backgroundColor: "var(--tab-cta-bg)",
                 color: "var(--tab-cta-fg)",
               }}
             >
               <Smartphone className="size-4" />
-              Pay {amountValid ? fmtMoney(amountNum, currency) : "now"}
+              {amountValid
+                ? `Pay ${fmtMoney(amountNum, currency)} with M-Pesa`
+                : "Pay with M-Pesa"}
             </button>
           </div>
         ) : null}
@@ -1446,42 +1459,42 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         >
           <button
             type="button"
-            className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/60"
             aria-label="Close"
             onClick={() => {
               if (!walletBusy && !walletPromptSent) setWalletSheetOpen(false);
             }}
           />
           <div
-            className="relative flex max-h-[92dvh] w-full flex-col border-t border-[var(--tab-border)] bg-[var(--tab-card)] shadow-[0_-24px_80px_rgba(0,0,0,0.35)] motion-safe:animate-in motion-safe:slide-in-from-bottom-full motion-safe:duration-300"
+            className="relative flex max-h-[92dvh] w-full flex-col border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] motion-safe:animate-in motion-safe:slide-in-from-bottom-full motion-safe:duration-200 motion-safe:ease-out"
             style={{
               paddingBottom: `max(${walletKeyboardInset}px, env(safe-area-inset-bottom))`,
             }}
           >
-            <div className="flex shrink-0 items-center justify-between border-b border-[var(--tab-border)] px-4 py-3.5">
+            <SheetHandle />
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--tab-border)] px-4 py-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--tab-muted)]">
-                  Wallet top-up
+                <h2 className="text-[1.125rem] font-semibold tracking-[-0.02em]">
+                  Top up wallet
+                </h2>
+                <p className="mt-1 text-[14px] text-[var(--tab-muted)]">
+                  Current balance{" "}
+                  <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+                    {fmtMoney(wallet, currency)}
+                  </span>
                 </p>
-                <p className="text-[17px] font-bold">Add M-Pesa credit</p>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   if (!walletBusy && !walletPromptSent) setWalletSheetOpen(false);
                 }}
-                className="flex size-10 items-center justify-center border border-[var(--tab-border)] text-[13px] font-bold uppercase text-[var(--tab-muted)]"
+                className="flex size-9 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)]"
               >
                 ✕
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-              <p className="mb-4 text-[13px] text-[var(--tab-muted)]">
-                Current wallet:{" "}
-                <span className="font-bold tabular-nums text-[var(--tab-fg)]">
-                  {fmtMoney(wallet, currency)}
-                </span>
-              </p>
               <div className="grid grid-cols-4 gap-2">
                 {[100, 200, 500, 1000].map((n) => (
                   <button
@@ -1503,9 +1516,9 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               <div className="mt-4">
                 <label
                   htmlFor={`${fieldIdPrefix}-wallet-amount`}
-                  className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tab-muted)]"
+                  className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
                 >
-                  Amount
+                  Amount to add
                 </label>
                 <input
                   id={`${fieldIdPrefix}-wallet-amount`}
@@ -1519,13 +1532,13 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   }}
                   disabled={walletTopUpDisabled}
                   onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                  className="w-full border border-[var(--tab-border)] bg-[var(--tab-input)] px-3 py-3.5 text-[22px] font-bold tabular-nums outline-none focus:border-[var(--tab-fg)] focus:ring-1 focus:ring-[var(--tab-fg)] disabled:opacity-50"
+                  className={cn(fieldClass, "text-[22px] font-bold")}
                 />
               </div>
-              <div className="mt-5 border border-[var(--tab-border)] bg-[var(--tab-bg)] p-4">
+              <div className="mt-5">
                 <label
                   htmlFor={`${fieldIdPrefix}-wallet-phone`}
-                  className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tab-muted)]"
+                  className="mb-1.5 block text-[13px] font-medium text-[var(--tab-fg)]"
                 >
                   M-Pesa number
                 </label>
@@ -1541,7 +1554,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   }}
                   disabled={walletTopUpDisabled}
                   onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                  className="w-full border border-[var(--tab-border)] bg-[var(--tab-input)] px-3 py-3.5 text-[18px] font-bold tabular-nums outline-none focus:border-[var(--tab-fg)] focus:ring-1 focus:ring-[var(--tab-fg)] disabled:opacity-50"
+                  className={cn(fieldClass, "text-[18px] font-bold tracking-wide")}
                 />
               </div>
               {walletStatusMsg ? (
@@ -1550,7 +1563,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 </p>
               ) : null}
               {walletError ? (
-                <p className="mt-4 border border-red-500/30 bg-red-500/10 px-3 py-2 text-[13px] text-red-500">
+                <p className="mt-4 border border-[var(--tab-error-fg)] bg-[var(--tab-error-bg)] px-3 py-2 text-[13px] text-[var(--tab-error-fg)]">
                   {walletError}
                 </p>
               ) : null}
@@ -1560,7 +1573,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 type="button"
                 disabled={walletTopUpDisabled || !walletAmountValid || !phoneOk}
                 onClick={() => void onWalletTopUp()}
-                className="flex w-full items-center justify-center gap-2 py-4 text-[15px] font-bold uppercase tracking-[0.06em] disabled:opacity-45"
+                className={btnPrimaryClass}
                 style={{
                   backgroundColor: "var(--tab-cta-bg)",
                   color: "var(--tab-cta-fg)",
