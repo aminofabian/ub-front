@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
+import { SupplierClaimModal } from "@/components/supplier-portal/supplier-claim-modal";
 import {
   spBtnPrimary,
   spEyebrow,
@@ -20,6 +20,7 @@ export default function SupplierPortalLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [claimOpen, setClaimOpen] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,15 +123,18 @@ export default function SupplierPortalLoginPage() {
 
           <p className="mt-5 text-center text-sm text-muted-foreground">
             New here?{" "}
-            <Link
-              href={APP_ROUTES.supplierPortalClaim}
+            <button
+              type="button"
+              onClick={() => setClaimOpen(true)}
               className="font-medium text-[var(--pos-primary,#0f766e)] underline underline-offset-2"
             >
               Claim with phone
-            </Link>
+            </button>
           </p>
         </div>
       </div>
+
+      <SupplierClaimModal open={claimOpen} onOpenChange={setClaimOpen} />
     </div>
   );
 }
