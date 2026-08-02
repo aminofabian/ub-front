@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Check, ChevronRight } from "lucide-react";
 
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
+import { SupplierSalesPulse } from "@/components/supplier-portal/supplier-sales-pulse";
 import {
   mktChip,
   mktPosAccentBar,
@@ -256,41 +257,6 @@ export default function SupplierPortalOverviewPage() {
               You&apos;re caught up — nothing waiting.
             </div>
           ) : null}
-
-          {hub && hub.shops.length > 0 ? (
-            <div className="space-y-1">
-              <div className="flex items-baseline justify-between gap-3 px-0.5">
-                <p className="text-[13px] font-medium text-[var(--pos-ink,#1c1915)]">Shops</p>
-                <Link
-                  href={APP_ROUTES.supplierPortalShops}
-                  className="text-[13px] text-[var(--pos-primary,#0f766e)]"
-                >
-                  See all
-                </Link>
-              </div>
-              <div className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] border-y border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
-                {hub.shops.slice(0, 4).map((shop) => (
-                  <Link
-                    key={shop.localSupplierId}
-                    href={`${APP_ROUTES.supplierPortalShops}/${shop.localSupplierId}`}
-                    className="flex min-h-14 items-center gap-3 py-3 active:opacity-70"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-medium text-[var(--pos-ink,#1c1915)]">
-                        {shop.shopName}
-                      </p>
-                      {canViewMoney ? (
-                        <p className="mt-0.5 text-[13px] text-muted-foreground tabular-nums">
-                          Outstanding {money(shop.owed, currency)}
-                        </p>
-                      ) : null}
-                    </div>
-                    <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </section>
 
         {/* Desktop header */}
@@ -389,6 +355,43 @@ export default function SupplierPortalOverviewPage() {
             />
           </div>
         </section>
+
+        <SupplierSalesPulse />
+
+        {hub && hub.shops.length > 0 ? (
+          <div className="space-y-1 lg:hidden">
+            <div className="flex items-baseline justify-between gap-3 px-0.5">
+              <p className="text-[13px] font-medium text-[var(--pos-ink,#1c1915)]">Shops</p>
+              <Link
+                href={APP_ROUTES.supplierPortalShops}
+                className="text-[13px] text-[var(--pos-primary,#0f766e)]"
+              >
+                See all
+              </Link>
+            </div>
+            <div className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] border-y border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
+              {hub.shops.slice(0, 4).map((shop) => (
+                <Link
+                  key={shop.localSupplierId}
+                  href={`${APP_ROUTES.supplierPortalShops}/${shop.localSupplierId}`}
+                  className="flex min-h-14 items-center gap-3 py-3 active:opacity-70"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px] font-medium text-[var(--pos-ink,#1c1915)]">
+                      {shop.shopName}
+                    </p>
+                    {canViewMoney ? (
+                      <p className="mt-0.5 text-[13px] text-muted-foreground tabular-nums">
+                        Outstanding {money(shop.owed, currency)}
+                      </p>
+                    ) : null}
+                  </div>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {hub && hub.shops.length > 0 ? (
           <section className={cn(spPanel, "hidden lg:block")}>

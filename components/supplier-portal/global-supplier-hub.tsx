@@ -27,6 +27,7 @@ import {
   type GlobalSupplierHubShopCard,
   type GlobalSupplierStorefront,
 } from "@/lib/global-supplier-hub";
+import { fetchSupplierPortalProfile } from "@/lib/marketplace-api";
 import {
   formatMoneyCompact,
   resolveCurrencyCode,
@@ -34,6 +35,7 @@ import {
 import { marketplaceSupplierPath } from "@/lib/marketplace-url";
 import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
 import { cn } from "@/lib/utils";
+import { SupplierSalesPulse } from "@/components/supplier-portal/supplier-sales-pulse";
 
 type Props = {
   username: string;
@@ -307,7 +309,7 @@ function PassportStrip({
           )}
         >
           <p className="text-[12px] text-muted-foreground">
-            Sign in to expand shop ledgers &amp; leave notes
+            Sign in for live product pulse, shop ledgers &amp; notes
           </p>
           <Link
             href={APP_ROUTES.supplierPortalLogin}
@@ -482,10 +484,22 @@ export function GlobalSupplierHubView({ username }: Props) {
     undefined,
   );
   const [signedIn, setSignedIn] = useState(false);
+  const [ownerUsername, setOwnerUsername] = useState<string | null | undefined>(
+    undefined,
+  );
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const refreshAuth = useCallback(() => {
-    setSignedIn(Boolean(getSupplierPortalAccessToken()));
+    const token = getSupplierPortalAccessToken();
+    setSignedIn(Boolean(token));
+    if (!token) {
+      setOwnerUsername(null);
+      return;
+    }
+    setOwnerUsername(undefined);
+    void fetchSupplierPortalProfile()
+      .then((profile) => setOwnerUsername(profile.username ?? null))
+      .catch(() => setOwnerUsername(null));
   }, []);
 
   useEffect(() => {
@@ -518,6 +532,15 @@ export function GlobalSupplierHubView({ username }: Props) {
     );
   }
 
+  const showPulse = Boolean(
+    signedIn &&
+      hub &&
+      ownerUsername !== undefined &&
+      ownerUsername &&
+      ownerUsername.trim().toLowerCase() ===
+        (hub.username || username).trim().toLowerCase(),
+  );
+
   return (
     <HubShell>
       <div className="mx-auto w-full max-w-[1400px] px-3 pb-10 pt-3 sm:px-5">
@@ -530,8 +553,10 @@ export function GlobalSupplierHubView({ username }: Props) {
           />
         ) : null}
 
+        {showPulse ? <SupplierSalesPulse className="mt-5" /> : null}
+
         {detail ? (
-          <div className={cn(hub ? "mt-5" : "mt-0")}>
+          <div className={cn(hub || showPulse ? "mt-5" : "mt-0")}>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <p className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
                 @{username}

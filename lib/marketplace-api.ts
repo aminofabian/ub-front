@@ -951,6 +951,46 @@ export async function fetchSupplierPortalHubShops(): Promise<SupplierPortalHubSh
   return supplierPortalFetch<SupplierPortalHubShops>(API_ROUTES.supplierPortalHubShops);
 }
 
+export type SupplierPortalSalesPulse = {
+  generatedAt: string;
+  currency: string;
+  summary: {
+    supplyQtyToday: number | string;
+    supplyAmountToday: number | string;
+    tillQtyToday: number | string;
+    supplyQty7d: number | string;
+    tillQty7d: number | string;
+    eventCount: number;
+  };
+  products: Array<{
+    key: string;
+    productName: string;
+    shopName: string;
+    channel: "supply" | "till" | string;
+    qtyToday: number | string;
+    qty7d: number | string;
+    amountToday: number | string;
+    amount7d: number | string;
+  }>;
+  events: Array<{
+    id: string;
+    at: string;
+    channel: "supply" | "till" | string;
+    productName: string;
+    shopName: string;
+    quantity: number | string;
+    amount: number | string | null;
+  }>;
+  velocityShopCount: number;
+  shopCount: number;
+};
+
+export async function fetchSupplierPortalSalesPulse(): Promise<SupplierPortalSalesPulse> {
+  return supplierPortalFetch<SupplierPortalSalesPulse>(
+    `${API_ROUTES.supplierPortalHub}/sales-pulse`,
+  );
+}
+
 export async function fetchSupplierPortalShopDetail(
   localSupplierId: string,
 ): Promise<SupplierPortalShopDetail> {
