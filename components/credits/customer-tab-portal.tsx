@@ -909,17 +909,17 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   }, [phone]);
 
   const applyTabSnapshot = useCallback(
-    (balanceOwed: unknown, walletBalance?: unknown | null) => {
+    (balanceOwed: number | string, walletBalance?: number | string | null) => {
+      const nextOwed = toNum(balanceOwed);
       setTab((prev) => {
         if (!prev) return prev;
         return {
           ...prev,
-          balanceOwed: balanceOwed ?? prev.balanceOwed,
+          balanceOwed: nextOwed,
           walletBalance:
-            walletBalance != null ? walletBalance : prev.walletBalance,
+            walletBalance != null ? toNum(walletBalance) : prev.walletBalance,
         };
       });
-      const nextOwed = toNum(balanceOwed);
       setAmount(nextOwed > 0 ? String(Math.round(nextOwed)) : "");
     },
     [],
