@@ -67,6 +67,23 @@ export async function resolveStockHolderForEdit(opts: {
   const unstockedChild =
     detail.isStocked === false && Boolean(parentId);
 
+  const isGroup =
+    detail.groupLabelOnly === true ||
+    (detail.isSellable === false &&
+      !parentId &&
+      (detail.variants?.length ?? 0) > 0);
+  if (isGroup) {
+    const names = (detail.variants ?? [])
+      .slice(0, 6)
+      .map((v) => (v.variantName || v.name || v.sku || "").trim())
+      .filter(Boolean)
+      .join(", ");
+    throw new Error(
+      `"${detail.name}" is a product group. Edit stock on one of its options` +
+        (names ? `: ${names}` : " (open the product and pick a variant)"),
+    );
+  }
+
   const holderItemId =
     (isPackage || unstockedChild) && parentId ? parentId : catalogItemId;
 

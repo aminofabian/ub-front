@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -14,8 +14,11 @@ import {
 import { cn } from "@/lib/utils";
 import {
   patchItem,
+  fetchItemById,
   getCloudinarySignature,
   uploadToCloudinary,
+  type ItemDetailRecord,
+  type ItemSummaryRecord,
   type ItemVelocityRow,
 } from "@/lib/api";
 import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
@@ -62,6 +65,21 @@ const COLUMNS: { key: VelocitySortKey; label: string; hint: string }[] = [
   { key: "last30Qty", label: "30d", hint: "Including today" },
 ];
 
+function isProductGroup(detail: ItemDetailRecord | null): boolean {
+  if (!detail) return false;
+  if (detail.groupLabelOnly === true) return true;
+  const hasVariants = (detail.variants?.length ?? 0) > 0;
+  return (
+    detail.isSellable === false &&
+    !detail.variantOfItemId?.trim() &&
+    hasVariants
+  );
+}
+
+function variantLabel(v: ItemSummaryRecord): string {
+  return (v.variantName || v.name || v.sku || "Option").trim();
+}
+
 /* ------------------------------------------------------------------ */
 /*                          Edit Drawer                               */
 /* ------------------------------------------------------------------ */
@@ -78,6 +96,10 @@ function EditDrawer({
   branchId: string;
   onSaved: (patch: Partial<ItemVelocityRow>) => void;
 }) {
+  const [detail, setDetail] = useState<ItemDetailRecord | null>(null);
+  const [detailLoading, setDetailLoading] = useState(true);
+  const [selectedVariant, setSelectedVariant] =
+    useState<ItemSummaryRecord | null>(null);
   const [stock, setStock] = useState(formatQty(row.currentStock));
   const [buying, setBuying] = useState(
     toNum(row.buyingPrice) > 0 ? String(toNum(row.buyingPrice)) : "",
@@ -90,35 +112,115 @@ function EditDrawer({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    setDetailLoading(true);
+    setSelectedVariant(null);
+    setError(null);
+    fetchItemById(row.itemId, { branchId: branchId || undefined })
+      .then((d) => {
+        if (cancelled) return;
+        setDetail(d);
+        if (!isProductGroup(d)) {
+          setStock(formatQty(d.stockQty ?? row.currentStock));
+          setBuying(
+            toNum(d.buyingPrice) > 0 ? String(toNum(d.buyingPrice)) : "",
+          );
+          setSelling(
+            toNum(d.bundlePrice) > 0
+              ? String(toNum(d.bundlePrice))
+              : toNum(row.sellingPrice) > 0
+                ? String(toNum(row.sellingPrice))
+                : "",
+          );
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setDetail(null);
+          setError(
+            err instanceof Error ? err.message : "Could not load product.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [row.itemId, row.currentStock, row.sellingPrice, branchId]);
+
+  const group = isProductGroup(detail);
+  const editTarget = group ? selectedVariant : detail;
+  const editItemId = editTarget?.id ?? row.itemId;
+
+  const selectVariant = useCallback((v: ItemSummaryRecord) => {
+    setSelectedVariant(v);
+    setStock(formatQty(v.stockQty));
+    setBuying(
+      toNum(v.buyingPrice) > 0 ? String(toNum(v.buyingPrice)) : "",
+    );
+    setSelling(
+      toNum(v.bundlePrice) > 0 ? String(toNum(v.bundlePrice)) : "",
+    );
+    setError(null);
+  }, []);
+
   const handleSave = useCallback(async () => {
     setError(null);
+    if (group && !selectedVariant) {
+      setError("Pick which option to update first.");
+      return;
+    }
+    if (!branchId && (() => {
+      const ns = parseFloat(stock);
+      const cur = toNum(editTarget?.stockQty ?? row.currentStock);
+      return !isNaN(ns) && Math.abs(ns - cur) > 0.0001;
+    })()) {
+      setError("Select a branch before changing stock.");
+      return;
+    }
     setSaving(true);
     try {
       const patch: Partial<ItemVelocityRow> = {};
       const tasks: Promise<unknown>[] = [];
       const ns = parseFloat(stock);
-      const cur = toNum(row.currentStock);
+      const cur = toNum(editTarget?.stockQty ?? (group ? 0 : row.currentStock));
       if (!isNaN(ns) && ns >= 0 && Math.abs(ns - cur) > 0.0001 && branchId) {
         tasks.push(
           setCatalogOnHandStock({
-            itemId: row.itemId,
+            itemId: editItemId,
             branchId: branchId.trim(),
             targetDisplay: ns,
-            unitCost: toNum(row.buyingPrice) || 0,
+            unitCost:
+              (buying ? parseFloat(buying) : undefined) ||
+              toNum(editTarget?.buyingPrice) ||
+              toNum(row.buyingPrice) ||
+              0,
             notes: `Set on-hand from activity to ${formatQty(ns)}`,
           }),
         );
-        patch.currentStock = ns;
+        // Only reflect stock on the velocity row when editing that same SKU.
+        if (!group) patch.currentStock = ns;
       }
       const bp = buying ? parseFloat(buying) : undefined;
-      if (bp !== undefined && !isNaN(bp) && bp !== toNum(row.buyingPrice)) {
-        tasks.push(patchItem(row.itemId, { buyingPrice: bp }));
-        patch.buyingPrice = bp;
+      if (
+        bp !== undefined &&
+        !isNaN(bp) &&
+        bp !== toNum(editTarget?.buyingPrice ?? row.buyingPrice)
+      ) {
+        tasks.push(patchItem(editItemId, { buyingPrice: bp }));
+        if (!group) patch.buyingPrice = bp;
       }
       const sp = selling ? parseFloat(selling) : undefined;
-      if (sp !== undefined && !isNaN(sp) && sp !== toNum(row.sellingPrice)) {
-        tasks.push(patchItem(row.itemId, { bundlePrice: sp }));
-        patch.sellingPrice = sp;
+      if (
+        sp !== undefined &&
+        !isNaN(sp) &&
+        sp !== toNum(editTarget?.bundlePrice ?? row.sellingPrice)
+      ) {
+        tasks.push(patchItem(editItemId, { bundlePrice: sp }));
+        if (!group) patch.sellingPrice = sp;
       }
       if (tasks.length === 0) {
         onSaved({});
@@ -131,7 +233,18 @@ function EditDrawer({
     } finally {
       setSaving(false);
     }
-  }, [row, stock, buying, selling, branchId, onSaved]);
+  }, [
+    group,
+    selectedVariant,
+    branchId,
+    stock,
+    buying,
+    selling,
+    editTarget,
+    editItemId,
+    row,
+    onSaved,
+  ]);
 
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,7 +267,12 @@ function EditDrawer({
     [row.itemId, onSaved],
   );
 
-  const field = (label: string, val: string, set: (v: string) => void, hint?: string) => (
+  const field = (
+    label: string,
+    val: string,
+    set: (v: string) => void,
+    hint?: string,
+  ) => (
     <label className="flex flex-col gap-1">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
         {label}
@@ -170,6 +288,10 @@ function EditDrawer({
     </label>
   );
 
+  const titleName = selectedVariant
+    ? `${row.itemName} · ${variantLabel(selectedVariant)}`
+    : row.itemName;
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent
@@ -178,15 +300,14 @@ function EditDrawer({
         overlayClassName="bg-black/20 backdrop-blur-[2px]"
         showCloseButton={false}
       >
-        {/* Header */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="min-w-0">
             <DialogTitle className="truncate text-[14px] font-semibold">
-              {row.itemName}
+              {titleName}
             </DialogTitle>
-            {row.sku ? (
+            {selectedVariant?.sku || row.sku ? (
               <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/50">
-                {row.sku}
+                {selectedVariant?.sku || row.sku}
               </p>
             ) : null}
           </div>
@@ -199,46 +320,46 @@ function EditDrawer({
           </button>
         </div>
 
-        {/* Photo area */}
-        <div className="border-b px-4 py-3">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={uploading}
-              onClick={() => fileRef.current?.click()}
-              className="group relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]"
-            >
-              {row.imageKey ? (
-                <img
-                  src={`https://res.cloudinary.com/dzqnyh7km/image/upload/w_128,h_128,c_fill/${row.imageKey}`}
-                  alt=""
-                  className="absolute inset-0 size-full object-cover"
-                />
-              ) : (
-                <ImageIcon className="size-5 text-muted-foreground/35 group-hover:text-primary/50" />
-              )}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100">
-                <Camera className="size-4 text-white" />
-              </div>
-              {uploading ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-                  <svg className="size-4 animate-spin text-primary" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
+        {!group ? (
+          <div className="border-b px-4 py-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => fileRef.current?.click()}
+                className="group relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]"
+              >
+                {row.imageKey ? (
+                  <img
+                    src={`https://res.cloudinary.com/dzqnyh7km/image/upload/w_128,h_128,c_fill/${row.imageKey}`}
+                    alt=""
+                    className="absolute inset-0 size-full object-cover"
+                  />
+                ) : (
+                  <ImageIcon className="size-5 text-muted-foreground/35 group-hover:text-primary/50" />
+                )}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100">
+                  <Camera className="size-4 text-white" />
                 </div>
-              ) : null}
-            </button>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                Photo
-              </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground/50">
-                {row.imageKey ? "Tap to change" : "Tap to add"}
-              </p>
+                {uploading ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/70">
+                    <svg className="size-4 animate-spin text-primary" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
+                  </div>
+                ) : null}
+              </button>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  Photo
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground/50">
+                  {row.imageKey ? "Tap to change" : "Tap to add"}
+                </p>
+              </div>
             </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
           </div>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-        </div>
+        ) : null}
 
-        {/* Form fields */}
         <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
           {error ? (
             <div className="rounded-lg border border-destructive/20 bg-destructive/[0.06] px-3 py-2 text-[11px] font-medium text-destructive">
@@ -246,26 +367,103 @@ function EditDrawer({
             </div>
           ) : null}
 
-          {field("In store", stock, setStock, formatQty(row.currentStock))}
+          {detailLoading ? (
+            <p className="text-[12px] text-muted-foreground">Loading…</p>
+          ) : null}
 
-          <div className="grid grid-cols-2 gap-3">
-            {field("Buying price", buying, setBuying, toNum(row.buyingPrice) > 0 ? String(toNum(row.buyingPrice)) : "0")}
-            {field("Selling price", selling, setSelling, toNum(row.sellingPrice) > 0 ? String(toNum(row.sellingPrice)) : "0")}
+          {group && !selectedVariant ? (
+            <div className="space-y-2">
+              <p className="text-[12px] leading-relaxed text-muted-foreground">
+                <span className="font-medium text-foreground">{row.itemName}</span>{" "}
+                is a product group. Stock and prices live on each option —
+                pick one to edit:
+              </p>
+              <ul className="space-y-1.5">
+                {(detail?.variants ?? []).map((v) => (
+                  <li key={v.id}>
+                    <button
+                      type="button"
+                      onClick={() => selectVariant(v)}
+                      className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.04]"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-medium text-foreground">
+                          {variantLabel(v)}
+                        </span>
+                        {v.sku ? (
+                          <span className="font-mono text-[10px] text-muted-foreground/60">
+                            {v.sku}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="shrink-0 font-mono text-[12px] tabular-nums text-foreground/80">
+                        {formatQty(v.stockQty)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {group && selectedVariant ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedVariant(null);
+                setError(null);
+              }}
+              className="text-[11px] font-medium text-primary hover:underline"
+            >
+              ← All {row.itemName} options
+            </button>
+          ) : null}
+
+          {(!group && !detailLoading) || selectedVariant ? (
+            <>
+              {field(
+                "In store",
+                stock,
+                setStock,
+                formatQty(editTarget?.stockQty ?? row.currentStock),
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                {field(
+                  "Buying price",
+                  buying,
+                  setBuying,
+                  toNum(editTarget?.buyingPrice ?? row.buyingPrice) > 0
+                    ? String(toNum(editTarget?.buyingPrice ?? row.buyingPrice))
+                    : "0",
+                )}
+                {field(
+                  "Selling price",
+                  selling,
+                  setSelling,
+                  toNum(editTarget?.bundlePrice ?? row.sellingPrice) > 0
+                    ? String(
+                        toNum(editTarget?.bundlePrice ?? row.sellingPrice),
+                      )
+                    : "0",
+                )}
+              </div>
+            </>
+          ) : null}
+        </div>
+
+        {(!group && !detailLoading) || selectedVariant ? (
+          <div className="border-t px-4 py-3">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || detailLoading}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+            >
+              <Save className="size-4" />
+              {saving ? "Saving…" : "Save changes"}
+            </button>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="border-t px-4 py-3">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
-          >
-            <Save className="size-4" />
-            {saving ? "Saving…" : "Save changes"}
-          </button>
-        </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );
