@@ -14,11 +14,11 @@ import {
 import { cn } from "@/lib/utils";
 import {
   patchItem,
-  postStockIncrease,
   getCloudinarySignature,
   uploadToCloudinary,
   type ItemVelocityRow,
 } from "@/lib/api";
+import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 function toNum(n: number | string | null | undefined): number {
@@ -95,21 +95,20 @@ function EditDrawer({
     setSaving(true);
     try {
       const p: Promise<unknown>[] = [];
-      const cur = toNum(row.currentStock);
       const ns = parseFloat(stock);
-      if (!isNaN(ns) && ns !== cur && branchId) {
-        const d = ns - cur;
-        if (d !== 0) {
-          p.push(
-            postStockIncrease({
-              branchId: branchId.trim(),
-              itemId: row.itemId,
-              quantity: Math.abs(d),
-              unitCost: toNum(row.buyingPrice) || 0,
-              notes: `Quick adjust from activity (${d > 0 ? "+" : ""}${formatQty(d)})`,
-            }),
-          );
-        }
+      const cur = toNum(row.currentStock);
+      if (!isNaN(ns) && ns >= 0 && Math.abs(ns - cur) > 0.0001 && branchId) {
+        // Absolute set in display units (packages for package SKUs). Never use
+        // postStockIncrease alone — that only adds and skips package conversion.
+        p.push(
+          setCatalogOnHandStock({
+            itemId: row.itemId,
+            branchId: branchId.trim(),
+            targetDisplay: ns,
+            unitCost: toNum(row.buyingPrice) || 0,
+            notes: `Set on-hand from activity to ${formatQty(ns)}`,
+          }),
+        );
       }
       const bp = buying ? parseFloat(buying) : undefined;
       if (bp !== undefined && !isNaN(bp) && bp !== toNum(row.buyingPrice)) {

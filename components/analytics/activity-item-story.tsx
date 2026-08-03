@@ -19,12 +19,12 @@ import { cn } from "@/lib/utils";
 import {
   fetchItemsPage,
   patchItem,
-  postStockIncrease,
   getCloudinarySignature,
   uploadToCloudinary,
   type ItemActivityResponse,
   type ItemSummaryRecord,
 } from "@/lib/api";
+import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 function toNum(n: number | string | null | undefined): number {
@@ -117,17 +117,16 @@ function EditDrawer({
       const p: Promise<unknown>[] = [];
       const cur = toNum(s.currentStock);
       const ns = parseFloat(stock);
-      if (!isNaN(ns) && ns !== cur && branchId) {
-        const d = ns - cur;
-        if (d !== 0) {
-          p.push(postStockIncrease({
-            branchId: branchId.trim(),
+      if (!isNaN(ns) && ns >= 0 && Math.abs(ns - cur) > 0.0001 && branchId) {
+        p.push(
+          setCatalogOnHandStock({
             itemId: s.itemId,
-            quantity: Math.abs(d),
+            branchId: branchId.trim(),
+            targetDisplay: ns,
             unitCost: toNum(s.buyingPrice) || 0,
-            notes: `Quick adjust from activity (${d > 0 ? "+" : ""}${formatQty(d)})`,
-          }));
-        }
+            notes: `Set on-hand from activity to ${formatQty(ns)}`,
+          }),
+        );
       }
       const bp = buying ? parseFloat(buying) : undefined;
       if (bp !== undefined && !isNaN(bp) && bp !== toNum(s.buyingPrice))
