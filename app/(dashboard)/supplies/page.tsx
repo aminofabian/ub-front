@@ -273,6 +273,26 @@ export default function SuppliesPage() {
           </div>
         ) : null}
 
+        {canPay ? (
+          <button
+            type="button"
+            onClick={() => setAdvanceOpen(true)}
+            className="flex w-full items-center justify-between gap-3 border-b border-border bg-primary/[0.05] px-3 py-2 text-left transition-colors hover:bg-primary/[0.08] sm:px-4"
+          >
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold text-foreground">
+                Deposit to a supplier wallet
+              </span>
+              <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                Prepay now — credit applies automatically when they bring supplies.
+              </span>
+            </span>
+            <span className="shrink-0 border border-primary/35 bg-card px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-primary">
+              Deposit
+            </span>
+          </button>
+        ) : null}
+
         <div
           className="grid grid-cols-2 border-b border-border sm:grid-cols-4"
           role="group"

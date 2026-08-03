@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Building2, PencilLine, Send, UserPlus } from "lucide-react";
+import { Building2, PencilLine, Send, UserPlus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import type {
@@ -13,6 +13,10 @@ import { inviteSupplierToPortal } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TelLink } from "@/components/tel-link";
+import {
+  formatSupplyMoney,
+  supplyN,
+} from "../../supplies/_components/supplies-shared";
 
 import {
   SupEmptyState,
@@ -31,8 +35,11 @@ export function SupplierEditColumn({
   detail,
   contacts,
   canWrite,
+  canDeposit = false,
+  currency = "KES",
   onEditProfile,
   onAddContact,
+  onDeposit,
   variant = "default",
   selectedInvoiceId = null,
   onSelectInvoice,
@@ -41,8 +48,11 @@ export function SupplierEditColumn({
   detail: SupplierRecord | null;
   contacts: SupplierContactRecord[];
   canWrite: boolean;
+  canDeposit?: boolean;
+  currency?: string;
   onEditProfile?: () => void;
   onAddContact?: () => void;
+  onDeposit?: () => void;
   variant?: "default" | "sidebar";
   selectedInvoiceId?: string | null;
   onSelectInvoice?: (order: SupplierPurchaseHistoryOrderRecord) => void;
@@ -50,6 +60,7 @@ export function SupplierEditColumn({
 }) {
   const compact = variant === "sidebar";
   const [inviteBusy, setInviteBusy] = useState(false);
+  const walletCredit = detail ? supplyN(detail.prepaymentBalance) : 0;
 
   const onInvite = async () => {
     if (!detail) return;
@@ -168,6 +179,27 @@ export function SupplierEditColumn({
               >
                 <Send className="size-3" aria-hidden />
                 {inviteBusy ? "…" : "Invite"}
+              </Button>
+            </div>
+          ) : null}
+          {canDeposit && onDeposit ? (
+            <div className="flex items-center justify-between gap-2 border-x border-b border-border bg-primary/[0.04] px-2.5 py-2">
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  Wallet credit
+                </p>
+                <p className="font-mono text-[13px] font-semibold tabular-nums text-foreground">
+                  {formatSupplyMoney(walletCredit, currency)}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 gap-1 rounded-none px-2 text-[11px] font-semibold"
+                onClick={onDeposit}
+              >
+                <Wallet className="size-3" aria-hidden />
+                Deposit
               </Button>
             </div>
           ) : null}
@@ -292,6 +324,30 @@ export function SupplierEditColumn({
               >
                 <Send className="size-3.5" aria-hidden />
                 {inviteBusy ? "Sending…" : "Invite portal"}
+              </Button>
+            </div>
+          ) : null}
+          {canDeposit && onDeposit ? (
+            <div className="flex items-center justify-between gap-3 border-t border-border bg-primary/[0.04] px-3 py-2.5">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  Wallet credit
+                </p>
+                <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">
+                  {formatSupplyMoney(walletCredit, currency)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Applied automatically on the next supply
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 gap-1.5 rounded-none px-3 text-xs font-semibold"
+                onClick={onDeposit}
+              >
+                <Wallet className="size-3.5" aria-hidden />
+                Deposit
               </Button>
             </div>
           ) : null}

@@ -13,6 +13,7 @@ import {
   Search,
   Truck,
   UserPlus,
+  Wallet,
 } from "lucide-react";
 
 import {
@@ -69,6 +70,7 @@ import { NewSupplierForm } from "./_components/NewSupplierForm";
 import { SupDrawerFooter, SupMobileSelectionBar } from "./_components/supplier-layout-primitives";
 import { SupplierPageHeader } from "./_components/SupplierPageHeader";
 import { SupplierWorkspaceEmpty } from "./_components/SupplierWorkspaceEmpty";
+import { AdvanceDepositDrawer } from "../supplies/_components/advance-deposit-drawer";
 import { NewSupplyDrawer } from "../supplies/_components/new-supply-drawer";
 import {
   supFieldLabel,
@@ -98,6 +100,10 @@ export default function SuppliersPage() {
   const canWrite = canWriteSuppliers(me, business);
   const canOpenNewSupply =
     canPathBWrite && canViewSuppliers && canViewCategories;
+  const canDeposit = hasPermission(
+    me?.permissions,
+    Permission.PurchasingPaymentWrite,
+  );
   const canReadCatalog = hasPermission(
     me?.permissions,
     Permission.CatalogItemsRead,
@@ -145,6 +151,8 @@ export default function SuppliersPage() {
   const [linksBusy, setLinksBusy] = useState(false);
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [newSupplyOpen, setNewSupplyOpen] = useState(false);
+  const [advanceOpen, setAdvanceOpen] = useState(false);
+  const currency = business?.currency?.trim() || "KES";
   const [selectedInvoice, setSelectedInvoice] =
     useState<SupplierPurchaseHistoryOrderRecord | null>(null);
   const [invoiceDrawerOpen, setInvoiceDrawerOpen] = useState(false);
@@ -949,6 +957,18 @@ export default function SuppliersPage() {
                       Supply
                     </Button>
                   ) : null}
+                  {canDeposit ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-10 min-h-10 flex-1 gap-1.5 rounded-lg border-primary/35 text-primary"
+                      onClick={() => setAdvanceOpen(true)}
+                    >
+                      <Wallet className="size-3.5" aria-hidden />
+                      Deposit
+                    </Button>
+                  ) : null}
                 </SupMobileSelectionBar>
               </div>
             ) : null}
@@ -1012,6 +1032,11 @@ export default function SuppliersPage() {
                       detail={detail}
                       contacts={contacts}
                       canWrite={canWrite}
+                      canDeposit={canDeposit}
+                      currency={currency}
+                      onDeposit={
+                        canDeposit ? () => setAdvanceOpen(true) : undefined
+                      }
                       selectedInvoiceId={
                         selectedInvoice?.supplierInvoiceId ?? null
                       }
@@ -1149,6 +1174,16 @@ export default function SuppliersPage() {
               detail={detail}
               contacts={contacts}
               canWrite={canWrite}
+              canDeposit={canDeposit}
+              currency={currency}
+              onDeposit={
+                canDeposit
+                  ? () => {
+                      setEditDrawerOpen(false);
+                      setAdvanceOpen(true);
+                    }
+                  : undefined
+              }
               selectedInvoiceId={selectedInvoice?.supplierInvoiceId ?? null}
               onSelectInvoice={handleSelectInvoice}
               purchaseHistoryRefreshKey={purchaseHistoryKey}
@@ -1442,6 +1477,21 @@ export default function SuppliersPage() {
             }
           }}
           initialSupplier={detail}
+        />
+      ) : null}
+
+      {canDeposit ? (
+        <AdvanceDepositDrawer
+          open={advanceOpen}
+          onOpenChange={setAdvanceOpen}
+          onDeposited={() => {
+            if (selectedId) {
+              void onSelectSupplier(selectedId);
+            }
+            setPurchaseHistoryKey((k) => k + 1);
+          }}
+          currency={currency}
+          initialSupplierId={detail?.id ?? selectedId}
         />
       ) : null}
     </div>

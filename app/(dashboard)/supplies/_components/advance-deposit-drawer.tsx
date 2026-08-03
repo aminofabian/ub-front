@@ -50,6 +50,8 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   onDeposited: () => void;
   currency: string;
+  /** Prefill / lock the supplier when opened from a supplier profile. */
+  initialSupplierId?: string | null;
 };
 
 export function AdvanceDepositDrawer({
@@ -57,6 +59,7 @@ export function AdvanceDepositDrawer({
   onOpenChange,
   onDeposited,
   currency,
+  initialSupplierId = null,
 }: Props) {
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
@@ -89,22 +92,22 @@ export function AdvanceDepositDrawer({
           (s) => (s.status ?? "").toLowerCase() !== "inactive" && !s.deletedAt,
         );
         setSuppliers(active);
-        if (active.length > 0) {
-          setSupplierId((prev) =>
-            prev && active.some((s) => s.id === prev) ? prev : active[0]!.id,
-          );
-          const first = active[0]!;
-          setPaymentMethod(resolvePaymentMethod(first.paymentMethodPreferred));
-        } else {
+        if (active.length === 0) {
           setSupplierId("");
+          return;
         }
+        const preferred = initialSupplierId?.trim() || "";
+        const pick =
+          (preferred && active.find((s) => s.id === preferred)) || active[0]!;
+        setSupplierId(pick.id);
+        setPaymentMethod(resolvePaymentMethod(pick.paymentMethodPreferred));
       })
       .catch((e) => {
         setSuppliers([]);
         setError(e instanceof Error ? e.message : "Could not load suppliers.");
       })
       .finally(() => setLoadingSuppliers(false));
-  }, [open]);
+  }, [open, initialSupplierId]);
 
   useEffect(() => {
     if (!selected) return;
@@ -152,8 +155,8 @@ export function AdvanceDepositDrawer({
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Pay supplier in advance"
-      description="Deposit cash against a supplier. When they bring items, that credit settles the bill automatically."
+      title="Deposit to supplier wallet"
+      description="Add money to this supplier’s advance balance. When they bring items, credit is applied automatically."
       icon={<Wallet className="size-4" aria-hidden />}
       footer={
         <div className="flex w-full items-center justify-end gap-2">
@@ -178,7 +181,7 @@ export function AdvanceDepositDrawer({
                 Depositing…
               </>
             ) : (
-              "Deposit advance"
+              "Deposit to wallet"
             )}
           </Button>
         </div>

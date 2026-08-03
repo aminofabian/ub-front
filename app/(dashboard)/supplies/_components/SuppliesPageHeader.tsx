@@ -116,14 +116,13 @@ export function SuppliesPageHeader({
           {canPayAdvance && onPayAdvance ? (
             <Button
               type="button"
-              variant="outline"
               size="sm"
-              className="h-7 gap-1 rounded-none border-border px-2 text-[11px] font-medium"
+              variant="outline"
+              className="h-7 gap-1 rounded-none border-primary/40 bg-primary/[0.06] px-2.5 text-[11px] font-semibold text-primary hover:bg-primary/[0.1]"
               onClick={onPayAdvance}
             >
               <Wallet className="size-3" aria-hidden />
-              <span className="hidden sm:inline">Pay advance</span>
-              <span className="sm:hidden">Advance</span>
+              Deposit
             </Button>
           ) : null}
           {canOpenNewSupply ? (

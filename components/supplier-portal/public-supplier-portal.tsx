@@ -377,13 +377,12 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
         <section>
           <div
             className={cn(
-              "grid divide-x border bg-white/85",
-              hasCredit ? "grid-cols-3" : "grid-cols-2",
+              "grid grid-cols-3 divide-x border bg-white/85",
               INK_BORDER,
               INK_DIVIDE,
             )}
           >
-            <div className="px-2.5 py-1.5">
+            <div className="px-2 py-1.5">
               <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                 Amount owed
               </p>
@@ -391,20 +390,30 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                 {fmtMoney(data.openBalance, currency)}
               </p>
             </div>
-            {hasCredit ? (
-              <div className="px-2.5 py-1.5">
-                <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[var(--pos-primary)]">
-                  Advance credit
-                </p>
-                <p className="mt-px text-[1.05rem] font-semibold leading-none tracking-tight tabular-nums text-[var(--pos-primary)]">
-                  {fmtMoney(advanceCredit, currency)}
-                </p>
-                <p className="mt-px text-[9px] leading-tight text-muted-foreground">
-                  Prepaid · applied on next supply
-                </p>
-              </div>
-            ) : null}
-            <div className="px-2.5 py-1.5">
+            <div className="px-2 py-1.5">
+              <p
+                className={cn(
+                  "text-[8px] font-semibold uppercase tracking-[0.1em]",
+                  hasCredit
+                    ? "text-[var(--pos-primary)]"
+                    : "text-muted-foreground",
+                )}
+              >
+                Advance credit
+              </p>
+              <p
+                className={cn(
+                  "mt-px text-[1.05rem] font-semibold leading-none tracking-tight tabular-nums",
+                  hasCredit && "text-[var(--pos-primary)]",
+                )}
+              >
+                {fmtMoney(advanceCredit, currency)}
+              </p>
+              <p className="mt-px text-[9px] leading-tight text-muted-foreground">
+                {hasCredit ? "Prepaid · next supply" : "No wallet deposit yet"}
+              </p>
+            </div>
+            <div className="px-2 py-1.5">
               <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                 Paid to date
               </p>
