@@ -253,29 +253,29 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
         <header
           className={cn(
-            "sticky top-0 z-20 border-b bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md",
+            "sticky top-0 z-20 border-b bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md",
             INK_BORDER_SOFT,
           )}
         >
-          <div className="flex items-center gap-3 px-3.5 pb-3">
+          <div className="flex items-center gap-2.5 px-3.5 pb-2">
             {branding.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={branding.logoUrl}
                 alt=""
                 className={cn(
-                  "size-10 shrink-0 border object-contain bg-white",
+                  "size-8 shrink-0 border object-contain bg-white",
                   INK_BORDER_SOFT,
                 )}
               />
             ) : (
-              <span className="flex size-10 shrink-0 items-center justify-center bg-[var(--pos-primary)] text-[11px] font-bold text-[var(--pos-primary-ink,#fff)]">
+              <span className="flex size-8 shrink-0 items-center justify-center bg-[var(--pos-primary)] text-[10px] font-bold text-[var(--pos-primary-ink,#fff)]">
                 {data.supplierName.slice(0, 2).toUpperCase()}
               </span>
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h1 className="truncate text-[15px] font-semibold tracking-tight">
+                <h1 className="truncate text-[14px] font-semibold tracking-tight">
                   {data.supplierName}
                 </h1>
                 <span
@@ -289,14 +289,14 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                   {settled ? "Settled" : "Open"}
                 </span>
               </div>
-              <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+              <p className="truncate text-[11px] leading-tight text-muted-foreground">
                 {data.shopName}
               </p>
             </div>
           </div>
         </header>
 
-        <div className="px-3.5 pt-3">
+        <div className="px-3.5 pt-2">
           <PageSealGate
             scope="shop-supplier"
             subjectKey={username}
@@ -313,29 +313,29 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           >
             {sealedLocked ? null : (
               <>
-        <section className="pt-0.5">
+        <section className="pt-2">
           <div className={cn("relative overflow-hidden border bg-white/85", INK_BORDER)}>
             <span
               aria-hidden
-              className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary)]"
+              className="absolute inset-y-0 left-0 w-0.5 bg-[var(--pos-primary)]"
             />
-            <div className={cn("grid grid-cols-2 divide-x pl-1", INK_DIVIDE)}>
-              <div className="px-3.5 py-3.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <div className={cn("grid grid-cols-2 divide-x pl-0.5", INK_DIVIDE)}>
+              <div className="px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Amount owed
                 </p>
-                <p className="mt-1.5 text-[1.65rem] font-semibold leading-none tracking-tight tabular-nums">
+                <p className="mt-0.5 text-[1.25rem] font-semibold leading-none tracking-tight tabular-nums">
                   {fmtMoney(data.openBalance, currency)}
                 </p>
               </div>
-              <div className="px-3.5 py-3.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Paid to date
                 </p>
-                <p className="mt-1.5 text-[1.15rem] font-semibold leading-none tracking-tight tabular-nums">
+                <p className="mt-0.5 text-[1.05rem] font-semibold leading-none tracking-tight tabular-nums">
                   {fmtMoney(data.totalPaid, currency)}
                 </p>
-                <p className="mt-1.5 text-[10px] text-muted-foreground">
+                <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
                   of {fmtMoney(data.totalSpent, currency)} · {data.invoiceCount}{" "}
                   {data.invoiceCount === 1 ? "supply" : "supplies"}
                 </p>
@@ -343,7 +343,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
             </div>
             <p
               className={cn(
-                "border-t px-3.5 py-2.5 text-[11px] leading-snug text-muted-foreground",
+                "border-t px-3 py-1.5 text-[10px] leading-snug text-muted-foreground",
                 INK_BORDER_SOFT,
                 "bg-[color-mix(in_srgb,var(--pos-primary)_5%,transparent)]",
               )}
@@ -353,7 +353,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           </div>
         </section>
 
-        <div className="pt-4">
+        <div className="pt-2.5">
           <div
             role="tablist"
             aria-label="Portal sections"
@@ -374,7 +374,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                   aria-selected={active}
                   onClick={() => setTab(id)}
                   className={cn(
-                    "relative flex h-10 items-center justify-center gap-1.5 text-[12px] font-semibold transition-colors",
+                    "relative flex h-9 items-center justify-center gap-1.5 text-[12px] font-semibold transition-colors",
                     active
                       ? "bg-white text-[var(--pos-ink,#1c1915)]"
                       : "text-muted-foreground hover:bg-white/60",
@@ -404,7 +404,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           </div>
         </div>
 
-        <main className="min-h-0 flex-1 overflow-y-auto pb-6 pt-3">
+        <main className="min-h-0 flex-1 overflow-y-auto pb-6 pt-2">
           {tab === "supplies" ? (
             data.supplies.length === 0 ? (
               <EmptyState label="No posted supplies yet." />
