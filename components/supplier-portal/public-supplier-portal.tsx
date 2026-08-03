@@ -183,7 +183,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
   const [sealStatus, setSealStatus] = useState<PageSealStatus | null>(null);
   const [sealEpoch, setSealEpoch] = useState(0);
   const [sellingPeriod, setSellingPeriod] =
-    useState<PublicSupplierSellingPeriod>("week");
+    useState<PublicSupplierSellingPeriod>("today");
   const [selling, setSelling] = useState<PublicSupplierProductsSelling | null>(
     null,
   );
@@ -725,7 +725,7 @@ function SellingPanel({
               {soldCount > 0 ? ` · ${soldCount} sold` : ""}
             </span>
             <span className={busy ? "opacity-60" : undefined}>
-              {busy ? "Updating…" : "Units · stock"}
+              {busy ? "Updating…" : "Sold · on hand"}
             </span>
           </li>
           {products.map((row, index) => (
@@ -752,7 +752,7 @@ function SellingRow({
   currency: string;
 }) {
   const units = toNum(row.unitsSold);
-  const stock = toNum(row.currentStock);
+  const stock = Math.max(0, toNum(row.currentStock));
   const last = fmtSoldAt(row.lastSoldAt);
   return (
     <li
@@ -790,11 +790,24 @@ function SellingRow({
             sold
           </span>
         </p>
-        <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
-          {fmtMoney(row.revenue, currency)}
-          <span className="mx-1 opacity-50">·</span>
-          {fmtQty(stock)} in stock
+        <p
+          className={cn(
+            "mt-0.5 font-mono text-[12px] font-semibold tabular-nums",
+            stock <= 0.009
+              ? "text-rose-700"
+              : "text-[var(--pos-ink,#1c1915)]",
+          )}
+        >
+          {fmtQty(stock)}
+          <span className="ml-1 text-[10px] font-medium text-muted-foreground">
+            on hand
+          </span>
         </p>
+        {units > 0 ? (
+          <p className="mt-0.5 font-mono text-[10px] tabular-nums text-muted-foreground">
+            {fmtMoney(row.revenue, currency)}
+          </p>
+        ) : null}
       </div>
     </li>
   );

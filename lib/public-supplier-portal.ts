@@ -113,7 +113,7 @@ export async function fetchPublicSupplierPortal(
 
 export async function fetchPublicSupplierProductsSelling(
   slug: string,
-  period: PublicSupplierSellingPeriod = "week",
+  period: PublicSupplierSellingPeriod = "today",
   sort: "units" | "revenue" = "units",
 ): Promise<PublicSupplierProductsSelling | null> {
   const s = slug.trim();
