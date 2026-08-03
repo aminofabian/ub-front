@@ -10,6 +10,7 @@ import {
   Loader2,
   Moon,
   Save,
+  ScanLine,
   ShoppingCart,
   Smartphone,
   Sun,
@@ -775,48 +776,61 @@ export function BusinessConfigurationForm({
       {visibleIds.has("settings-pos-drafts") ? (
         <PolicyPanel
           id="settings-pos-drafts"
-          title="POS drafts"
-          hint="Save in-progress sales and review them from Sales → Pending carts."
+          title="Live pending carts"
+          hint="Save in-progress till carts so admins can watch live from Sales → Pending carts."
           accent="teal"
         >
           <PolicySwitch
-            checked={posDrafts.enabled}
+            checked={posDrafts.enabled && posDrafts.uiVisible}
             onChange={(checked) =>
               setPosDrafts((previous) => ({
                 ...previous,
                 enabled: checked,
-              }))
-            }
-            icon={<ShoppingCart className="size-4" aria-hidden />}
-            title="Enable POS draft persistence"
-            description="Cashier carts sync to the server so staff can resume sales later."
-          />
-          <PolicySwitch
-            checked={posDrafts.uiVisible}
-            onChange={(checked) =>
-              setPosDrafts((previous) => ({
-                ...previous,
                 uiVisible: checked,
               }))
             }
-            title="Show pending carts in navigation"
-            description="Adds Sales → Pending carts and the in-register pending panel."
+            icon={<ShoppingCart className="size-4" aria-hidden />}
+            title="Live pending carts"
+            description="When off, cashiers keep a local cart only; admins will not see live pending tickets. Existing open tickets stay listed until paid or cancelled."
+          />
+          <PolicySwitch
+            checked={posDrafts.scanToCart}
+            onChange={(checked) =>
+              setPosDrafts((previous) => ({
+                ...previous,
+                scanToCart: checked,
+              }))
+            }
+            icon={<ScanLine className="size-4" aria-hidden />}
+            title="Add scanned items straight to cart"
+            description="When a barcode matches exactly one product, add it immediately — no second tap. Ambiguous or unknown barcodes still fill the search box."
           />
           <details className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-3.5 py-3">
             <summary className="cursor-pointer text-sm font-medium">
-              Advanced rollout options
+              Advanced
             </summary>
             <div className="mt-3 space-y-2.5">
               <PolicySwitch
-                checked={posDrafts.shadowWrites}
+                checked={posDrafts.enabled}
                 onChange={(checked) =>
                   setPosDrafts((previous) => ({
                     ...previous,
-                    shadowWrites: checked,
+                    enabled: checked,
                   }))
                 }
-                title="Shadow writes"
-                description="Log draft payloads without affecting cashier behavior."
+                title="Draft persistence"
+                description="Cashier carts sync to the server as a draft on every item add."
+              />
+              <PolicySwitch
+                checked={posDrafts.uiVisible}
+                onChange={(checked) =>
+                  setPosDrafts((previous) => ({
+                    ...previous,
+                    uiVisible: checked,
+                  }))
+                }
+                title="Show pending carts UI"
+                description="Adds Sales → Pending carts and the in-register pending panel."
               />
               <PolicySwitch
                 checked={posDrafts.offlineMirror}

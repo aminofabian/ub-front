@@ -35,7 +35,7 @@ export const BUSINESS_CONFIGURATION_NAV: BusinessSettingsNavItem[] = [
   { id: "settings-suppliers", label: "Suppliers", group: "Inventory", icon: Truck },
   { id: "settings-shifts", label: "Shifts & cash", group: "Till", icon: Banknote },
   { id: "settings-cashier", label: "Cashier", group: "Till", icon: ShoppingCart },
-  { id: "settings-pos-drafts", label: "POS drafts", group: "Till", icon: ClipboardList },
+  { id: "settings-pos-drafts", label: "Pending carts", group: "Till", icon: ClipboardList },
   {
     id: "settings-trusted-tills",
     label: "Trusted tills",
