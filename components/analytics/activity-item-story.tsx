@@ -19,13 +19,25 @@ import { cn } from "@/lib/utils";
 import {
   fetchItemsPage,
   patchItem,
-  getCloudinarySignature,
-  uploadToCloudinary,
+  uploadItemImageFile,
   type ItemActivityResponse,
   type ItemSummaryRecord,
 } from "@/lib/api";
+import { useDashboard } from "@/components/dashboard-provider";
+import { canEditStockLevels } from "@/lib/inventory-access";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+
+function activityImageSrc(
+  imageKey: string | null | undefined,
+  size: number,
+): string | null {
+  const key = imageKey?.trim();
+  if (!key) return null;
+  if (key.startsWith("http://") || key.startsWith("https://")) return key;
+  return `https://res.cloudinary.com/dzqnyh7km/image/upload/w_${size},h_${size},c_fill/${key}`;
+}
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -97,6 +109,11 @@ function EditDrawer({
   branchId?: string;
   onSaved: (patch: Partial<ItemActivityResponse["summary"]>) => void;
 }) {
+  const { me, business } = useDashboard();
+  const canEditStock = canEditStockLevels(me, business);
+  const canEditPrices = hasPermission(me?.permissions, Permission.CatalogItemsWrite);
+  const canUploadPhoto =
+    canEditPrices || hasPermission(me?.permissions, Permission.StocktakeRun);
   const s = activity.summary;
   const [stock, setStock] = useState(formatQty(s.currentStock));
   const [buying, setBuying] = useState(
@@ -109,6 +126,7 @@ function EditDrawer({
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const photoSrc = activityImageSrc(s.imageKey, 128);
 
   const handleSave = useCallback(async () => {
     setError(null);
@@ -118,11 +136,19 @@ function EditDrawer({
       const tasks: Promise<unknown>[] = [];
       const cur = toNum(s.currentStock);
       const ns = parseFloat(stock);
-      if (!isNaN(ns) && ns >= 0 && Math.abs(ns - cur) > 0.0001 && branchId) {
+      const stockChanged =
+        !isNaN(ns) && ns >= 0 && Math.abs(ns - cur) > 0.0001 && Boolean(branchId);
+      if (stockChanged) {
+        if (!canEditStock) {
+          setError(
+            "Stock edits are turned off for your role. Ask an owner to enable “Allow stock managers to edit stock”, or use Daily Audit / Stock take.",
+          );
+          return;
+        }
         tasks.push(
           setCatalogOnHandStock({
             itemId: s.itemId,
-            branchId: branchId.trim(),
+            branchId: branchId!.trim(),
             targetDisplay: ns,
             unitCost: toNum(s.buyingPrice) || 0,
             notes: `Set on-hand from activity to ${formatQty(ns)}`,
@@ -131,12 +157,20 @@ function EditDrawer({
         patch.currentStock = ns;
       }
       const bp = buying ? parseFloat(buying) : undefined;
-      if (bp !== undefined && !isNaN(bp) && bp !== toNum(s.buyingPrice)) {
+      const buyingChanged =
+        bp !== undefined && !isNaN(bp) && bp !== toNum(s.buyingPrice);
+      const sp = selling ? parseFloat(selling) : undefined;
+      const sellingChanged =
+        sp !== undefined && !isNaN(sp) && sp !== toNum(s.sellingPrice);
+      if ((buyingChanged || sellingChanged) && !canEditPrices) {
+        setError("You don’t have permission to change buying or selling prices.");
+        return;
+      }
+      if (buyingChanged) {
         tasks.push(patchItem(s.itemId, { buyingPrice: bp }));
         patch.buyingPrice = bp;
       }
-      const sp = selling ? parseFloat(selling) : undefined;
-      if (sp !== undefined && !isNaN(sp) && sp !== toNum(s.sellingPrice)) {
+      if (sellingChanged) {
         tasks.push(patchItem(s.itemId, { bundlePrice: sp }));
         patch.sellingPrice = sp;
       }
@@ -151,27 +185,47 @@ function EditDrawer({
     } finally {
       setSaving(false);
     }
-  }, [s, stock, buying, selling, branchId, onSaved]);
+  }, [s, stock, buying, selling, branchId, onSaved, canEditStock, canEditPrices]);
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    if (!canUploadPhoto) {
+      setError("You don’t have permission to upload product photos.");
+      return;
+    }
+    if (!f.type.startsWith("image/")) {
+      setError("Choose a photo (JPG, PNG, or HEIC).");
+      return;
+    }
     setUploading(true);
     setError(null);
     try {
-      const sig = await getCloudinarySignature("items");
-      const r = await uploadToCloudinary(f, sig);
-      await patchItem(s.itemId, { imageKey: r.public_id });
-      onSaved({ imageKey: r.public_id });
+      // Multipart upload allows stocktake.run (stock managers) — not catalog.items.write.
+      const saved = await uploadItemImageFile(s.itemId, f, {
+        altText: s.itemName,
+        primary: true,
+      });
+      const nextKey =
+        saved.secureUrl?.trim() || saved.publicId?.trim() || null;
+      if (nextKey) {
+        onSaved({ imageKey: nextKey });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
     }
-  }, [s.itemId, onSaved]);
+  }, [s.itemId, s.itemName, onSaved, canUploadPhoto]);
 
-  const field = (label: string, val: string, set: (v: string) => void, hint?: string) => (
+  const field = (
+    label: string,
+    val: string,
+    set: (v: string) => void,
+    hint?: string,
+    readOnly?: boolean,
+  ) => (
     <label className="flex flex-col gap-1.5">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
         {label}
@@ -181,9 +235,10 @@ function EditDrawer({
         inputMode="decimal"
         step="any"
         value={val}
+        readOnly={readOnly}
         onChange={(e) => set(e.target.value)}
         placeholder={hint ?? "—"}
-        className="h-12 rounded-xl border border-border/50 bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 md:h-10 md:text-[13px]"
+        className="h-12 rounded-xl border border-border/50 bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 read-only:cursor-default read-only:opacity-70 md:h-10 md:text-[13px]"
       />
     </label>
   );
@@ -223,24 +278,26 @@ function EditDrawer({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              disabled={uploading}
+              disabled={uploading || !canUploadPhoto}
               onClick={() => fileRef.current?.click()}
-              className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors active:scale-[0.98] hover:border-primary/30 hover:bg-primary/[0.04]"
+              className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors active:scale-[0.98] hover:border-primary/30 hover:bg-primary/[0.04] disabled:opacity-60"
             >
-              {s.imageKey ? (
+              {photoSrc ? (
                 <img
-                  src={`https://res.cloudinary.com/dzqnyh7km/image/upload/w_128,h_128,c_fill/${s.imageKey}`}
+                  src={photoSrc}
                   alt=""
                   className="absolute inset-0 size-full object-cover"
                 />
               ) : (
                 <ImageIcon className="size-5 text-muted-foreground/35 group-hover:text-primary/50" />
               )}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 md:opacity-0 md:group-hover:bg-black/20 md:group-hover:opacity-100">
-                <span className="flex size-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm md:bg-transparent">
-                  <Camera className="size-3.5 text-white" />
-                </span>
-              </div>
+              {canUploadPhoto ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 md:opacity-0 md:group-hover:bg-black/20 md:group-hover:opacity-100">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm md:bg-transparent">
+                    <Camera className="size-3.5 text-white" />
+                  </span>
+                </div>
+              ) : null}
               {uploading ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/70">
                   <svg className="size-4 animate-spin text-primary" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
@@ -249,7 +306,13 @@ function EditDrawer({
             </button>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Photo</p>
-              <p className="mt-0.5 text-[12px] text-muted-foreground/55">{s.imageKey ? "Tap to change" : "Tap to add"}</p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground/55">
+                {!canUploadPhoto
+                  ? "Photo upload not available for your role"
+                  : s.imageKey
+                    ? "Tap to change"
+                    : "Tap to add"}
+              </p>
             </div>
           </div>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
@@ -261,10 +324,28 @@ function EditDrawer({
               {error}
             </div>
           ) : null}
-          {field("Stock on hand", stock, setStock, formatQty(s.currentStock))}
+          {field(
+            "Stock on hand",
+            stock,
+            setStock,
+            formatQty(s.currentStock),
+            !canEditStock,
+          )}
           <div className="grid grid-cols-2 gap-3">
-            {field("Buying price", buying, setBuying, toNum(s.buyingPrice) > 0 ? String(toNum(s.buyingPrice)) : "0")}
-            {field("Selling price", selling, setSelling, toNum(s.sellingPrice) > 0 ? String(toNum(s.sellingPrice)) : "0")}
+            {field(
+              "Buying price",
+              buying,
+              setBuying,
+              toNum(s.buyingPrice) > 0 ? String(toNum(s.buyingPrice)) : "0",
+              !canEditPrices,
+            )}
+            {field(
+              "Selling price",
+              selling,
+              setSelling,
+              toNum(s.sellingPrice) > 0 ? String(toNum(s.sellingPrice)) : "0",
+              !canEditPrices,
+            )}
           </div>
         </div>
 
@@ -336,6 +417,7 @@ export function ActivityItemStory({
   }, [activity]);
 
   const s = activity?.summary;
+  const headerImageSrc = activityImageSrc(s?.imageKey, 64);
 
   return (
     <div className="space-y-4">
@@ -396,9 +478,9 @@ export function ActivityItemStory({
           {/* Header */}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              {s?.imageKey ? (
+              {headerImageSrc ? (
                 <img
-                  src={`https://res.cloudinary.com/dzqnyh7km/image/upload/w_64,h_64,c_fill/${s.imageKey}`}
+                  src={headerImageSrc}
                   alt=""
                   className="size-10 shrink-0 rounded-xl border border-border/30 object-cover"
                 />
