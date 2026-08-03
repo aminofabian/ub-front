@@ -42,6 +42,27 @@ export type PublicSupplierPortal = {
   linkedProducts: string[];
 };
 
+export type PublicSupplierSellingPeriod = "today" | "week" | "month";
+
+export type PublicSupplierProductSellingRow = {
+  itemId: string;
+  name: string;
+  sku: string | null;
+  unitsSold: number | string;
+  revenue: number | string;
+  currentStock: number | string;
+  lastSoldAt: string | null;
+};
+
+export type PublicSupplierProductsSelling = {
+  period: PublicSupplierSellingPeriod | string;
+  periodStart: string;
+  periodEnd: string;
+  currency: string;
+  sort: "units" | "revenue" | string;
+  products: PublicSupplierProductSellingRow[];
+};
+
 async function readJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail = res.statusText;
@@ -83,6 +104,34 @@ export async function fetchPublicSupplierPortal(
     );
     if (res.status === 404) return null;
     return await readJson<PublicSupplierPortal>(res);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPublicSupplierProductsSelling(
+  slug: string,
+  period: PublicSupplierSellingPeriod = "week",
+  sort: "units" | "revenue" = "units",
+): Promise<PublicSupplierProductsSelling | null> {
+  const s = slug.trim();
+  if (!s) return null;
+  try {
+    const unlock = getPageSealUnlock("shop-supplier", s);
+    const headers = tenantHostHeaders();
+    if (unlock) headers["X-Page-Unlock"] = unlock;
+    const params = new URLSearchParams({ period, sort });
+    const res = await fetch(
+      apiUrl(
+        `/api/v1/public/suppliers/${encodeURIComponent(s)}/products-selling?${params}`,
+      ),
+      {
+        headers,
+        cache: "no-store",
+      },
+    );
+    if (res.status === 404) return null;
+    return await readJson<PublicSupplierProductsSelling>(res);
   } catch {
     return null;
   }

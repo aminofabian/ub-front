@@ -7,13 +7,18 @@ import {
   MessageSquareWarning,
   Package,
   Receipt,
+  TrendingUp,
 } from "lucide-react";
 
 import { PageSealGate } from "@/components/page-seal/page-seal-gate";
 import { PublicSupplierComplaintModal } from "@/components/supplier-portal/public-supplier-complaint-modal";
 import {
   fetchPublicSupplierPortal,
+  fetchPublicSupplierProductsSelling,
   type PublicSupplierPortal,
+  type PublicSupplierProductSellingRow,
+  type PublicSupplierProductsSelling,
+  type PublicSupplierSellingPeriod,
   type PublicSupplierSupplyLine,
   type PublicSupplierSupplyRow,
 } from "@/lib/public-supplier-portal";
@@ -38,7 +43,13 @@ type Props = {
   branding: Branding;
 };
 
-type PortalTab = "supplies" | "movements";
+type PortalTab = "supplies" | "movements" | "selling";
+
+const SELLING_PERIODS: { id: PublicSupplierSellingPeriod; label: string }[] = [
+  { id: "today", label: "Today" },
+  { id: "week", label: "Week" },
+  { id: "month", label: "Month" },
+];
 
 const INK_BORDER =
   "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]";
@@ -70,6 +81,26 @@ function fmtDate(iso: string): string {
     }).format(new Date(iso));
   } catch {
     return iso;
+  }
+}
+
+function fmtQty(amount: unknown): string {
+  const n = toNum(amount);
+  if (Number.isInteger(n)) return String(n);
+  return n.toLocaleString("en", { maximumFractionDigits: 2 });
+}
+
+function fmtSoldAt(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("en", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return "";
   }
 }
 
@@ -151,6 +182,12 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [sealStatus, setSealStatus] = useState<PageSealStatus | null>(null);
   const [sealEpoch, setSealEpoch] = useState(0);
+  const [sellingPeriod, setSellingPeriod] =
+    useState<PublicSupplierSellingPeriod>("week");
+  const [selling, setSelling] = useState<PublicSupplierProductsSelling | null>(
+    null,
+  );
+  const [sellingBusy, setSellingBusy] = useState(false);
 
   const theme = useMemo(
     () =>
@@ -201,6 +238,26 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
       cancelled = true;
     };
   }, [username, sealEpoch]);
+
+  useEffect(() => {
+    if (tab !== "selling") return;
+    let cancelled = false;
+    setSellingBusy(true);
+    void fetchPublicSupplierProductsSelling(username, sellingPeriod, "units")
+      .then((row) => {
+        if (cancelled) return;
+        setSelling(row);
+        setSellingBusy(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSelling(null);
+        setSellingBusy(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, username, sellingPeriod, sealEpoch]);
 
   if (busy) {
     return (
@@ -348,12 +405,18 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           <div
             role="tablist"
             aria-label="Portal sections"
-            className={cn("grid grid-cols-2 border bg-white/70", INK_BORDER)}
+            className={cn("grid grid-cols-3 border bg-white/70", INK_BORDER)}
           >
             {(
               [
                 ["supplies", "Supplies", Receipt, data.supplies.length],
                 ["movements", "Items", Package, data.movements.length],
+                [
+                  "selling",
+                  "Selling",
+                  TrendingUp,
+                  selling?.products.length ?? data.linkedProducts.length,
+                ],
               ] as const
             ).map(([id, label, Icon, count]) => {
               const active = tab === id;
@@ -365,17 +428,17 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                   aria-selected={active}
                   onClick={() => setTab(id)}
                   className={cn(
-                    "relative flex h-8 items-center justify-center gap-1 text-[11px] font-semibold transition-colors",
+                    "relative flex h-8 items-center justify-center gap-0.5 px-0.5 text-[10px] font-semibold transition-colors sm:gap-1 sm:text-[11px]",
                     active
                       ? "bg-white text-[var(--pos-ink,#1c1915)]"
                       : "text-muted-foreground hover:bg-white/60",
                   )}
                 >
-                  <Icon className="size-3.5" aria-hidden />
+                  <Icon className="size-3 shrink-0 sm:size-3.5" aria-hidden />
                   {label}
                   <span
                     className={cn(
-                      "px-1.5 py-0.5 font-mono text-[10px] tabular-nums",
+                      "px-1 py-px font-mono text-[9px] tabular-nums sm:px-1.5 sm:text-[10px]",
                       active
                         ? "bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-[var(--pos-primary)]"
                         : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)]",
@@ -468,58 +531,68 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                 })}
               </ul>
             )
-          ) : data.movements.length === 0 ? (
-            <EmptyState label="No line movements yet." />
-          ) : (
-            <ul className={cn("overflow-hidden border bg-white/90", INK_BORDER)}>
-              {data.movements.map((m, i) => (
-                <li
-                  key={`${m.invoiceNumber}-${m.description}-${i}`}
-                  className={cn(
-                    "border-b px-3.5 py-3.5 last:border-b-0",
-                    "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)]",
-                  )}
-                >
-                  <p className="text-[13px] font-medium leading-snug text-[var(--pos-ink,#1c1915)]">
-                    {m.description}
-                  </p>
-                  <div className="mt-2.5 flex items-end justify-between gap-3">
-                    <div className="min-w-0 space-y-0.5 text-[11px] leading-tight text-muted-foreground">
-                      <p>
-                        <span className="tabular-nums">
-                          {fmtDate(m.invoiceDate)}
-                        </span>
-                        <span className="mx-1.5 text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)]">
-                          ·
-                        </span>
-                        <span className="font-mono tabular-nums">
-                          {toNum(m.quantity)} × {toNum(m.unitCost).toFixed(2)}
-                        </span>
-                      </p>
-                      <p className="font-mono tracking-tight">
-                        {m.invoiceNumber}
+          ) : tab === "movements" ? (
+            data.movements.length === 0 ? (
+              <EmptyState label="No line movements yet." />
+            ) : (
+              <ul className={cn("overflow-hidden border bg-white/90", INK_BORDER)}>
+                {data.movements.map((m, i) => (
+                  <li
+                    key={`${m.invoiceNumber}-${m.description}-${i}`}
+                    className={cn(
+                      "border-b px-3.5 py-3.5 last:border-b-0",
+                      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)]",
+                    )}
+                  >
+                    <p className="text-[13px] font-medium leading-snug text-[var(--pos-ink,#1c1915)]">
+                      {m.description}
+                    </p>
+                    <div className="mt-2.5 flex items-end justify-between gap-3">
+                      <div className="min-w-0 space-y-0.5 text-[11px] leading-tight text-muted-foreground">
+                        <p>
+                          <span className="tabular-nums">
+                            {fmtDate(m.invoiceDate)}
+                          </span>
+                          <span className="mx-1.5 text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)]">
+                            ·
+                          </span>
+                          <span className="font-mono tabular-nums">
+                            {toNum(m.quantity)} × {toNum(m.unitCost).toFixed(2)}
+                          </span>
+                        </p>
+                        <p className="font-mono tracking-tight">
+                          {m.invoiceNumber}
+                        </p>
+                      </div>
+                      <p className="shrink-0 font-mono text-[14px] font-semibold tabular-nums tracking-tight text-[var(--pos-ink,#1c1915)]">
+                        {fmtMoney(m.lineTotal, currency)}
                       </p>
                     </div>
-                    <p className="shrink-0 font-mono text-[14px] font-semibold tabular-nums tracking-tight text-[var(--pos-ink,#1c1915)]">
-                      {fmtMoney(m.lineTotal, currency)}
+                  </li>
+                ))}
+                {data.linkedProducts.length > 0 ? (
+                  <li className={cn("px-3.5 py-3", PAPER)}>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                      Linked catalogue
                     </p>
-                  </div>
-                </li>
-              ))}
-              {data.linkedProducts.length > 0 ? (
-                <li className={cn("px-3.5 py-3", PAPER)}>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                    Linked catalogue
-                  </p>
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                    {data.linkedProducts.slice(0, 18).join(" · ")}
-                    {data.linkedProducts.length > 18
-                      ? ` · +${data.linkedProducts.length - 18} more`
-                      : ""}
-                  </p>
-                </li>
-              ) : null}
-            </ul>
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                      {data.linkedProducts.slice(0, 18).join(" · ")}
+                      {data.linkedProducts.length > 18
+                        ? ` · +${data.linkedProducts.length - 18} more`
+                        : ""}
+                    </p>
+                  </li>
+                ) : null}
+              </ul>
+            )
+          ) : (
+            <SellingPanel
+              busy={sellingBusy}
+              selling={selling}
+              period={sellingPeriod}
+              onPeriodChange={setSellingPeriod}
+              currency={selling?.currency ?? currency}
+            />
           )}
 
           <p className="mt-4 pb-2 text-center text-[10px] text-muted-foreground">
@@ -553,6 +626,150 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
         theme={theme}
       />
     </div>
+  );
+}
+
+function SellingPanel({
+  busy,
+  selling,
+  period,
+  onPeriodChange,
+  currency,
+}: {
+  busy: boolean;
+  selling: PublicSupplierProductsSelling | null;
+  period: PublicSupplierSellingPeriod;
+  onPeriodChange: (period: PublicSupplierSellingPeriod) => void;
+  currency: string;
+}) {
+  const products = selling?.products ?? [];
+  const soldCount = products.filter((p) => toNum(p.unitsSold) > 0).length;
+
+  return (
+    <div className="space-y-1.5">
+      <div
+        role="group"
+        aria-label="Sales period"
+        className={cn("grid grid-cols-3 border bg-white/70", INK_BORDER)}
+      >
+        {SELLING_PERIODS.map((p) => {
+          const active = period === p.id;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onPeriodChange(p.id)}
+              className={cn(
+                "relative h-7 text-[11px] font-semibold transition-colors",
+                active
+                  ? "bg-white text-[var(--pos-ink,#1c1915)]"
+                  : "text-muted-foreground hover:bg-white/60",
+              )}
+            >
+              {p.label}
+              {active ? (
+                <span
+                  aria-hidden
+                  className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--pos-primary)]"
+                />
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+
+      {busy && !selling ? (
+        <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-muted-foreground">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          Loading sell-through…
+        </div>
+      ) : products.length === 0 ? (
+        <EmptyState label="No linked products yet." />
+      ) : (
+        <ul className={cn("overflow-hidden border bg-white/90", INK_BORDER)}>
+          <li
+            className={cn(
+              "flex items-center justify-between px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground",
+              PAPER,
+            )}
+          >
+            <span>
+              Fastest first
+              {soldCount > 0 ? ` · ${soldCount} sold` : ""}
+            </span>
+            <span className={busy ? "opacity-60" : undefined}>
+              {busy ? "Updating…" : "Units · stock"}
+            </span>
+          </li>
+          {products.map((row, index) => (
+            <SellingRow
+              key={row.itemId}
+              row={row}
+              rank={index + 1}
+              currency={currency}
+            />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function SellingRow({
+  row,
+  rank,
+  currency,
+}: {
+  row: PublicSupplierProductSellingRow;
+  rank: number;
+  currency: string;
+}) {
+  const units = toNum(row.unitsSold);
+  const stock = toNum(row.currentStock);
+  const last = fmtSoldAt(row.lastSoldAt);
+  return (
+    <li
+      className={cn(
+        "flex items-start justify-between gap-3 border-b px-3 py-2.5 last:border-b-0",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)]",
+      )}
+    >
+      <div className="flex min-w-0 items-start gap-2">
+        <span
+          className={cn(
+            "mt-0.5 w-5 shrink-0 text-center font-mono text-[10px] tabular-nums",
+            units > 0 ? "text-[var(--pos-primary)]" : "text-muted-foreground",
+          )}
+        >
+          {rank}
+        </span>
+        <div className="min-w-0">
+          <p className="text-[13px] font-medium leading-snug text-[var(--pos-ink,#1c1915)]">
+            {row.name}
+          </p>
+          <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
+            {row.sku ? (
+              <span className="font-mono tracking-tight">{row.sku}</span>
+            ) : null}
+            {row.sku && last ? " · " : null}
+            {last ? `Last ${last}` : units <= 0 ? "No sales in period" : null}
+          </p>
+        </div>
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="font-mono text-[13px] font-semibold tabular-nums">
+          {fmtQty(units)}
+          <span className="ml-1 text-[10px] font-medium text-muted-foreground">
+            sold
+          </span>
+        </p>
+        <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
+          {fmtMoney(row.revenue, currency)}
+          <span className="mx-1 opacity-50">·</span>
+          {fmtQty(stock)} in stock
+        </p>
+      </div>
+    </li>
   );
 }
 
