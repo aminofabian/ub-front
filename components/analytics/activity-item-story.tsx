@@ -172,17 +172,18 @@ function EditDrawer({
   }, [s.itemId, onSaved]);
 
   const field = (label: string, val: string, set: (v: string) => void, hint?: string) => (
-    <label className="flex flex-col gap-1">
+    <label className="flex flex-col gap-1.5">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
         {label}
       </span>
       <input
         type="number"
+        inputMode="decimal"
         step="any"
         value={val}
         onChange={(e) => set(e.target.value)}
         placeholder={hint ?? "—"}
-        className="h-9 rounded-lg border border-border/50 bg-muted/20 px-3 text-[13px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35"
+        className="h-12 rounded-xl border border-border/50 bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 md:h-10 md:text-[13px]"
       />
     </label>
   );
@@ -190,14 +191,17 @@ function EditDrawer({
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent
-        side="right"
-        className="w-[min(100%,22rem)] !gap-0 !p-0"
-        overlayClassName="bg-black/20 backdrop-blur-[2px]"
+        side="bottom"
+        className="!gap-0 !p-0 md:!inset-y-0 md:!bottom-auto md:!left-auto md:!right-0 md:!h-[100dvh] md:!max-h-[100dvh] md:!w-[min(100%,22rem)] md:!max-w-full md:!rounded-none md:!rounded-l-2xl md:!border-l md:!border-t-0 md:!pb-[env(safe-area-inset-bottom)] md:!shadow-[-24px_0_80px_-20px_rgba(0,0,0,0.12)] md:data-[state=open]:slide-in-from-right md:data-[state=closed]:slide-out-to-right"
+        overlayClassName="bg-black/25 backdrop-blur-[2px]"
         showCloseButton={false}
       >
-        <div className="flex items-center justify-between border-b px-4 py-3">
+        <div className="flex justify-center pt-2.5 md:hidden" aria-hidden>
+          <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
+        </div>
+        <div className="flex items-center justify-between border-b border-border/40 px-4 pb-3 pt-1 md:pt-3">
           <div className="min-w-0">
-            <DialogTitle className="truncate text-[14px] font-semibold">
+            <DialogTitle className="truncate text-[15px] font-semibold tracking-tight">
               {s.itemName}
             </DialogTitle>
             {s.sku ? (
@@ -208,21 +212,20 @@ function EditDrawer({
           </div>
           <button
             onClick={onClose}
-            className="ml-2 flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+            className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
             aria-label="Close"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>
 
-        {/* Photo */}
-        <div className="border-b px-4 py-3">
+        <div className="border-b border-border/40 px-4 py-3">
           <div className="flex items-center gap-3">
             <button
               type="button"
               disabled={uploading}
               onClick={() => fileRef.current?.click()}
-              className="group relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]"
+              className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors active:scale-[0.98] hover:border-primary/30 hover:bg-primary/[0.04]"
             >
               {s.imageKey ? (
                 <img
@@ -233,8 +236,10 @@ function EditDrawer({
               ) : (
                 <ImageIcon className="size-5 text-muted-foreground/35 group-hover:text-primary/50" />
               )}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100">
-                <Camera className="size-4 text-white" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 md:opacity-0 md:group-hover:bg-black/20 md:group-hover:opacity-100">
+                <span className="flex size-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm md:bg-transparent">
+                  <Camera className="size-3.5 text-white" />
+                </span>
               </div>
               {uploading ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/70">
@@ -244,16 +249,15 @@ function EditDrawer({
             </button>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Photo</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground/50">{s.imageKey ? "Tap to change" : "Tap to add"}</p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground/55">{s.imageKey ? "Tap to change" : "Tap to add"}</p>
             </div>
           </div>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
         </div>
 
-        {/* Fields */}
-        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
           {error ? (
-            <div className="rounded-lg border border-destructive/20 bg-destructive/[0.06] px-3 py-2 text-[11px] font-medium text-destructive">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/[0.06] px-3 py-2.5 text-[12px] font-medium text-destructive">
               {error}
             </div>
           ) : null}
@@ -264,12 +268,12 @@ function EditDrawer({
           </div>
         </div>
 
-        <div className="border-t px-4 py-3">
+        <div className="border-t border-border/40 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pb-3">
           <button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-[14px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
           >
             <Save className="size-4" />
             {saving ? "Saving…" : "Save changes"}
@@ -342,7 +346,7 @@ export function ActivityItemStory({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search a product — e.g. Eggs…"
-          className="h-10 w-full rounded-xl border border-border/50 bg-muted/30 pl-9 pr-3 text-sm outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+          className="h-12 w-full rounded-xl border border-border/50 bg-muted/30 pl-9 pr-3 text-[16px] outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-10 sm:text-sm"
         />
         {query.trim().length >= 2 ? (
           <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-20 overflow-hidden rounded-xl border border-border/50 bg-card shadow-lg">
@@ -408,16 +412,16 @@ export function ActivityItemStory({
               <button
                 type="button"
                 onClick={() => setEditOpen(true)}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/50 bg-muted/30 px-2.5 text-[11px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50"
+                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50 active:scale-[0.98] sm:h-8 sm:rounded-lg sm:px-2.5 sm:text-[11px]"
               >
-                <Pencil className="size-3" />
+                <Pencil className="size-3.5 sm:size-3" />
                 Edit
               </button>
               <Link
                 href={`/products/${s?.itemId}`}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/50 bg-muted/30 px-2.5 text-[11px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50"
+                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50 sm:h-8 sm:rounded-lg sm:px-2.5 sm:text-[11px]"
               >
-                <ExternalLink className="size-3" aria-hidden />
+                <ExternalLink className="size-3.5 sm:size-3" aria-hidden />
                 Open
               </Link>
             </div>

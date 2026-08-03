@@ -55,9 +55,12 @@ const dialogContentVariants = cva(
           "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right " +
           "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
         bottom:
-          "bottom-0 left-0 right-0 h-[85vh] max-h-[85vh] rounded-t-2xl border-t " +
+          "bottom-0 left-0 right-0 flex max-h-[min(92dvh,40rem)] w-full flex-col overflow-hidden " +
+          "rounded-t-[1.25rem] border border-border/60 border-b-0 bg-background " +
+          "pb-[env(safe-area-inset-bottom)] shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.18)] " +
           "data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom " +
-          "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom",
+          "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom " +
+          "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
       },
     },
     defaultVariants: {

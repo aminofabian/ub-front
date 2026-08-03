@@ -292,17 +292,18 @@ function EditDrawer({
     set: (v: string) => void,
     hint?: string,
   ) => (
-    <label className="flex flex-col gap-1">
+    <label className="flex flex-col gap-1.5">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
         {label}
       </span>
       <input
         type="number"
+        inputMode="decimal"
         step="any"
         value={val}
         onChange={(e) => set(e.target.value)}
         placeholder={hint ?? "—"}
-        className="h-9 rounded-lg border border-border/50 bg-muted/20 px-3 text-[13px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35"
+        className="h-12 rounded-xl border border-border/50 bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 md:h-10 md:text-[13px]"
       />
     </label>
   );
@@ -314,14 +315,19 @@ function EditDrawer({
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent
-        side="right"
-        className="w-[min(100%,22rem)] !gap-0 !p-0"
-        overlayClassName="bg-black/20 backdrop-blur-[2px]"
+        side="bottom"
+        className="!gap-0 !p-0 md:!inset-y-0 md:!bottom-auto md:!left-auto md:!right-0 md:!h-[100dvh] md:!max-h-[100dvh] md:!w-[min(100%,22rem)] md:!max-w-full md:!rounded-none md:!rounded-l-2xl md:!border-l md:!border-t-0 md:!pb-[env(safe-area-inset-bottom)] md:!shadow-[-24px_0_80px_-20px_rgba(0,0,0,0.12)] md:data-[state=open]:slide-in-from-right md:data-[state=closed]:slide-out-to-right"
+        overlayClassName="bg-black/25 backdrop-blur-[2px]"
         showCloseButton={false}
       >
-        <div className="flex items-center justify-between border-b px-4 py-3">
+        {/* Drag handle — mobile bottom sheet cue */}
+        <div className="flex justify-center pt-2.5 md:hidden" aria-hidden>
+          <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
+        </div>
+
+        <div className="flex items-center justify-between border-b border-border/40 px-4 pb-3 pt-1 md:pt-3">
           <div className="min-w-0">
-            <DialogTitle className="truncate text-[14px] font-semibold">
+            <DialogTitle className="truncate text-[15px] font-semibold tracking-tight">
               {titleName}
             </DialogTitle>
             {selectedVariant?.sku || row.sku ? (
@@ -332,21 +338,21 @@ function EditDrawer({
           </div>
           <button
             onClick={onClose}
-            className="ml-2 flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+            className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
             aria-label="Close"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>
 
         {!labelOnlyGroup ? (
-          <div className="border-b px-4 py-3">
+          <div className="border-b border-border/40 px-4 py-3">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 disabled={uploading}
                 onClick={() => fileRef.current?.click()}
-                className="group relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]"
+                className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border/50 bg-muted/20 transition-colors active:scale-[0.98] hover:border-primary/30 hover:bg-primary/[0.04]"
               >
                 {row.imageKey ? (
                   <img
@@ -357,8 +363,10 @@ function EditDrawer({
                 ) : (
                   <ImageIcon className="size-5 text-muted-foreground/35 group-hover:text-primary/50" />
                 )}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100">
-                  <Camera className="size-4 text-white" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 transition-opacity md:opacity-0 md:group-hover:bg-black/20 md:group-hover:opacity-100">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none">
+                    <Camera className="size-3.5 text-white md:size-4" />
+                  </span>
                 </div>
                 {uploading ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/70">
@@ -370,7 +378,7 @@ function EditDrawer({
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                   Photo
                 </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground/50">
+                <p className="mt-0.5 text-[12px] text-muted-foreground/55">
                   {row.imageKey ? "Tap to change" : "Tap to add"}
                 </p>
               </div>
@@ -379,31 +387,30 @@ function EditDrawer({
           </div>
         ) : null}
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
           {error ? (
-            <div className="rounded-lg border border-destructive/20 bg-destructive/[0.06] px-3 py-2 text-[11px] font-medium text-destructive">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/[0.06] px-3 py-2.5 text-[12px] font-medium leading-snug text-destructive">
               {error}
             </div>
           ) : null}
 
           {detailLoading ? (
-            <p className="text-[12px] text-muted-foreground">Loading…</p>
+            <p className="text-[13px] text-muted-foreground">Loading…</p>
           ) : null}
 
           {stockedBase && !detailLoading ? (
-            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
-              <p className="text-[12px] leading-relaxed text-muted-foreground">
-                <span className="font-medium text-foreground">Base stock</span>
+            <div className="space-y-2 rounded-2xl border border-border/50 bg-muted/15 px-3.5 py-3">
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                <span className="font-semibold text-foreground">Base stock</span>
                 {" — "}
-                sellable options below draw from this pool. Edit the base amount
-                here (not each tray/pack).
+                trays and packs sell from this pool. Edit the base here.
               </p>
               {(detail?.variants?.length ?? 0) > 0 ? (
-                <ul className="space-y-1 border-t border-border/40 pt-2">
+                <ul className="space-y-1.5 border-t border-border/40 pt-2.5">
                   {(detail?.variants ?? []).map((v) => (
                     <li
                       key={v.id}
-                      className="flex items-center justify-between gap-2 text-[11px]"
+                      className="flex items-center justify-between gap-2 text-[12px]"
                     >
                       <span className="truncate text-foreground/85">
                         {variantLabel(v)}
@@ -415,7 +422,7 @@ function EditDrawer({
                         ) : null}
                       </span>
                       <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
-                        ≈ {formatQty(v.stockQty)} avail
+                        ≈ {formatQty(v.stockQty)}
                       </span>
                     </li>
                   ))}
@@ -426,20 +433,20 @@ function EditDrawer({
 
           {labelOnlyGroup && !selectedVariant ? (
             <div className="space-y-2">
-              <p className="text-[12px] leading-relaxed text-muted-foreground">
-                <span className="font-medium text-foreground">{row.itemName}</span>{" "}
-                is a product group with no base stock. Pick an option to edit:
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                <span className="font-semibold text-foreground">{row.itemName}</span>{" "}
+                has no base stock. Pick an option:
               </p>
-              <ul className="space-y-1.5">
+              <ul className="space-y-2">
                 {(detail?.variants ?? []).map((v) => (
                   <li key={v.id}>
                     <button
                       type="button"
                       onClick={() => selectVariant(v)}
-                      className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.04]"
+                      className="flex min-h-12 w-full items-center justify-between gap-2 rounded-2xl border border-border/60 bg-muted/20 px-3.5 py-3 text-left transition-colors active:scale-[0.99] hover:border-primary/40 hover:bg-primary/[0.04]"
                     >
                       <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-medium text-foreground">
+                        <span className="block truncate text-[14px] font-medium text-foreground">
                           {variantLabel(v)}
                         </span>
                         {v.sku ? (
@@ -448,7 +455,7 @@ function EditDrawer({
                           </span>
                         ) : null}
                       </span>
-                      <span className="shrink-0 font-mono text-[12px] tabular-nums text-foreground/80">
+                      <span className="shrink-0 font-mono text-[13px] tabular-nums text-foreground/80">
                         {formatQty(v.stockQty)}
                       </span>
                     </button>
@@ -465,7 +472,7 @@ function EditDrawer({
                 setSelectedVariant(null);
                 setError(null);
               }}
-              className="text-[11px] font-medium text-primary hover:underline"
+              className="min-h-10 text-[13px] font-medium text-primary"
             >
               ← All {row.itemName} options
             </button>
@@ -504,12 +511,12 @@ function EditDrawer({
         </div>
 
         {(!labelOnlyGroup && !detailLoading) || selectedVariant ? (
-          <div className="border-t px-4 py-3">
+          <div className="border-t border-border/40 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pb-3">
             <button
               type="button"
               onClick={handleSave}
               disabled={saving || detailLoading}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-[14px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
             >
               <Save className="size-4" />
               {saving ? "Saving…" : "Save changes"}
@@ -588,10 +595,10 @@ export function ActivityVelocityBoard({
   return (
     <div className="space-y-4">
       {movers.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-wrap md:overflow-visible">
+          <span className="flex shrink-0 items-center gap-1.5 self-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
             <Gauge className="size-3" aria-hidden />
-            Pulse vs yesterday
+            Pulse
           </span>
           {movers.map(({ row, delta }) => {
             const up = delta > 0;
@@ -601,18 +608,18 @@ export function ActivityVelocityBoard({
                 type="button"
                 onClick={() => onSelectItem(row.itemId)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-medium transition-colors active:scale-[0.98]",
                   up
                     ? "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-700 hover:bg-emerald-500/10"
                     : "border-amber-500/25 bg-amber-500/[0.06] text-amber-800 hover:bg-amber-500/10",
                 )}
               >
                 {up ? (
-                  <ArrowUpRight className="size-3 shrink-0" aria-hidden />
+                  <ArrowUpRight className="size-3.5 shrink-0" aria-hidden />
                 ) : (
-                  <ArrowDownRight className="size-3 shrink-0" aria-hidden />
+                  <ArrowDownRight className="size-3.5 shrink-0" aria-hidden />
                 )}
-                <span className="max-w-[9rem] truncate">{row.itemName}</span>
+                <span className="max-w-[8rem] truncate">{row.itemName}</span>
                 <span className="font-mono tabular-nums">
                   {up ? "+" : ""}
                   {formatQty(delta)}
@@ -624,107 +631,332 @@ export function ActivityVelocityBoard({
       ) : null}
 
       {sorted.length === 0 ? (
-        <div className="py-10 text-center text-xs text-muted-foreground">
+        <div className="py-10 text-center text-sm text-muted-foreground">
           {search.trim()
             ? "No products match your search."
             : "No sales in the last 30 days for this scope."}
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-xs">
-            <thead>
-              <tr className="border-b-2 border-border/50 text-left">
-                <th className="sticky left-0 z-10 bg-card pb-2.5 pt-1 pl-1">
-                  <button
-                    type="button"
-                    onClick={() => onSort("itemName")}
-                    className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 hover:text-foreground"
+        <>
+          {/* ── Mobile: pulse cards ───────────────────────────────── */}
+          <div className="space-y-2 md:hidden">
+            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button
+                type="button"
+                onClick={() => onSort("itemName")}
+                className={cn(
+                  "h-8 shrink-0 rounded-full border px-3 text-[11px] font-semibold transition-colors",
+                  sortKey === "itemName"
+                    ? "border-primary/25 bg-primary/10 text-primary"
+                    : "border-border/50 bg-muted/30 text-muted-foreground",
+                )}
+              >
+                A–Z
+                {sortKey === "itemName" ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
+              </button>
+              {COLUMNS.map((col) => (
+                <button
+                  key={col.key}
+                  type="button"
+                  title={col.hint}
+                  onClick={() => onSort(col.key)}
+                  className={cn(
+                    "h-8 shrink-0 rounded-full border px-3 text-[11px] font-semibold transition-colors",
+                    sortKey === col.key
+                      ? "border-primary/25 bg-primary/10 text-primary"
+                      : "border-border/50 bg-muted/30 text-muted-foreground",
+                  )}
+                >
+                  {col.label}
+                  {sortKey === col.key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
+                </button>
+              ))}
+            </div>
+
+            <ul className="divide-y divide-border/40 overflow-hidden rounded-2xl border border-border/50 bg-card/40">
+              {sorted.map((row, idx) => {
+                const focusKey =
+                  sortKey === "itemName" ? "todayQty" : sortKey;
+                const focusQty = toNum(
+                  row[focusKey as keyof ItemVelocityRow] as number | string,
+                );
+                const focusCol =
+                  COLUMNS.find((c) => c.key === focusKey) ?? COLUMNS[0];
+                const focusRev = toNum(
+                  row[
+                    focusKey.replace("Qty", "Revenue") as keyof ItemVelocityRow
+                  ] as number | string,
+                );
+                const vsYday = toNum(row.todayQty) - toNum(row.yesterdayQty);
+
+                return (
+                  <li
+                    key={row.itemId}
+                    className={cn(
+                      "relative",
+                      idx === 0 && "animate-in fade-in-0 slide-in-from-bottom-1 duration-300",
+                    )}
+                    style={
+                      idx > 0 && idx < 12
+                        ? { animationDelay: `${idx * 28}ms` }
+                        : undefined
+                    }
                   >
-                    Product
-                    {sortKey === "itemName" ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
-                  </button>
-                </th>
-                {COLUMNS.map((col) => (
-                  <th key={col.key} className="px-1.5 pb-2.5 pt-1 text-right" title={col.hint}>
+                    <div className="flex gap-2 p-3">
+                      <button
+                        type="button"
+                        onClick={() => onSelectItem(row.itemId)}
+                        className="min-w-0 flex-1 text-left active:opacity-80"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-[14px] font-semibold tracking-tight text-foreground">
+                              {row.itemName}
+                            </p>
+                            {row.sku ? (
+                              <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/50">
+                                {row.sku}
+                              </p>
+                            ) : null}
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="font-mono text-[18px] font-bold leading-none tabular-nums tracking-tight text-foreground">
+                              {formatQty(focusQty)}
+                            </p>
+                            <p className="mt-0.5 text-[10px] font-medium text-muted-foreground/65">
+                              {focusCol.label}
+                              {focusRev > 0
+                                ? ` · ${formatMoneyCompact(focusRev)}`
+                                : ""}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Period pulse — 5 beats */}
+                        <div
+                          className="mt-2.5 flex h-8 items-end gap-1"
+                          aria-hidden
+                        >
+                          {COLUMNS.map((col) => {
+                            const qty = toNum(
+                              row[
+                                col.key as keyof ItemVelocityRow
+                              ] as number | string,
+                            );
+                            const pct = Math.max(
+                              8,
+                              Math.min(
+                                100,
+                                (qty / maxByCol[col.key]) * 100,
+                              ),
+                            );
+                            const active = col.key === focusKey;
+                            return (
+                              <div
+                                key={col.key}
+                                className="flex min-w-0 flex-1 flex-col items-center justify-end gap-0.5"
+                              >
+                                <span
+                                  className={cn(
+                                    "w-full rounded-sm transition-[height,background-color] duration-300 ease-out",
+                                    active
+                                      ? "bg-primary"
+                                      : "bg-primary/25",
+                                  )}
+                                  style={{ height: `${pct}%` }}
+                                />
+                                <span
+                                  className={cn(
+                                    "text-[8px] font-semibold uppercase tracking-wide",
+                                    active
+                                      ? "text-primary"
+                                      : "text-muted-foreground/45",
+                                  )}
+                                >
+                                  {col.label === "Yesterday"
+                                    ? "Y"
+                                    : col.label.slice(0, 2)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
+                          <span className="font-medium text-muted-foreground/70">
+                            In store{" "}
+                            <span className="font-mono tabular-nums text-foreground/85">
+                              {formatQty(row.currentStock)}
+                            </span>
+                          </span>
+                          {vsYday !== 0 ? (
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-0.5 font-mono tabular-nums",
+                                vsYday > 0
+                                  ? "text-emerald-600"
+                                  : "text-amber-700",
+                              )}
+                            >
+                              {vsYday > 0 ? (
+                                <ArrowUpRight className="size-3" />
+                              ) : (
+                                <ArrowDownRight className="size-3" />
+                              )}
+                              {vsYday > 0 ? "+" : ""}
+                              {formatQty(vsYday)} vs yday
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/40">
+                              flat vs yday
+                            </span>
+                          )}
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setEditingRow(row)}
+                        className="flex size-11 shrink-0 items-center justify-center self-center rounded-xl border border-border/50 bg-muted/25 text-foreground/70 transition-colors active:scale-95 active:bg-muted/50"
+                        aria-label={`Edit ${row.itemName}`}
+                      >
+                        <Pencil className="size-4" />
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {/* ── Desktop: density table ────────────────────────────── */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[640px] text-xs">
+              <thead>
+                <tr className="border-b-2 border-border/50 text-left">
+                  <th className="sticky left-0 z-10 bg-card pb-2.5 pt-1 pl-1">
                     <button
                       type="button"
-                      onClick={() => onSort(col.key)}
-                      className="w-full text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 hover:text-foreground"
+                      onClick={() => onSort("itemName")}
+                      className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 hover:text-foreground"
                     >
-                      {col.label}
-                      {sortKey === col.key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
+                      Product
+                      {sortKey === "itemName"
+                        ? sortDir === "asc"
+                          ? " ↑"
+                          : " ↓"
+                        : ""}
                     </button>
                   </th>
-                ))}
-                <th
-                  className="px-1.5 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70"
-                  title="Branch on-hand (same as Products)"
-                >
-                  In store
-                </th>
-                <th className="w-8 pb-2.5 pt-1" />
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((row, idx) => (
-                <tr
-                  key={row.itemId}
-                  className={cn(
-                    "group cursor-pointer border-l-2 border-transparent transition-colors",
-                    "hover:border-l-primary/30 hover:bg-primary/[0.03]",
-                    idx % 2 === 0 ? "bg-transparent" : "bg-muted/[0.08]",
-                  )}
-                  onClick={() => onSelectItem(row.itemId)}
-                >
-                  <td className="sticky left-0 z-[1] bg-inherit py-2 pl-1 pr-2">
-                    <p className="max-w-[180px] truncate text-[11px] font-medium text-foreground/90">
-                      {row.itemName}
-                    </p>
-                    {row.sku ? (
-                      <p className="font-mono text-[9.5px] text-muted-foreground/45">
-                        {row.sku}
-                      </p>
-                    ) : null}
-                  </td>
-                  {COLUMNS.map((col) => {
-                    const qty = toNum(row[col.key as keyof ItemVelocityRow] as number | string);
-                    const revKey = col.key.replace("Qty", "Revenue") as keyof ItemVelocityRow;
-                    const rev = toNum(row[revKey] as number | string);
-                    const pct = Math.min(100, (qty / maxByCol[col.key]) * 100);
-                    return (
-                      <td key={col.key} className="px-1.5 py-2 text-right">
-                        <div className="ml-auto flex w-[4rem] flex-col items-end gap-0.5">
-                          <span className="font-mono text-[11px] font-semibold tabular-nums text-foreground">
-                            {formatQty(qty)}
-                          </span>
-                          <span className="font-mono text-[9px] tabular-nums text-muted-foreground/48">
-                            {formatMoneyCompact(rev)}
-                          </span>
-                          <span className="mt-0.5 h-0.5 w-full overflow-hidden rounded-full bg-muted/40" aria-hidden>
-                            <span className="block h-full rounded-full bg-primary/45" style={{ width: `${pct}%` }} />
-                          </span>
-                        </div>
-                      </td>
-                    );
-                  })}
-                  <td className="px-1.5 py-2 text-right font-mono text-[11px] tabular-nums text-foreground/75">
-                    {formatQty(row.currentStock)}
-                  </td>
-                  <td className="py-2 pr-1">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setEditingRow(row); }}
-                      className="flex size-6 items-center justify-center rounded-md text-muted-foreground/25 opacity-0 transition-all hover:bg-muted/60 hover:text-foreground group-hover:opacity-100"
-                      title="Edit stock, prices, photo"
+                  {COLUMNS.map((col) => (
+                    <th
+                      key={col.key}
+                      className="px-1.5 pb-2.5 pt-1 text-right"
+                      title={col.hint}
                     >
-                      <Pencil className="size-3" />
-                    </button>
-                  </td>
+                      <button
+                        type="button"
+                        onClick={() => onSort(col.key)}
+                        className="w-full text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 hover:text-foreground"
+                      >
+                        {col.label}
+                        {sortKey === col.key
+                          ? sortDir === "asc"
+                            ? " ↑"
+                            : " ↓"
+                          : ""}
+                      </button>
+                    </th>
+                  ))}
+                  <th
+                    className="px-1.5 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70"
+                    title="Branch on-hand (same as Products)"
+                  >
+                    In store
+                  </th>
+                  <th className="w-8 pb-2.5 pt-1" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {sorted.map((row, idx) => (
+                  <tr
+                    key={row.itemId}
+                    className={cn(
+                      "group cursor-pointer border-l-2 border-transparent transition-colors",
+                      "hover:border-l-primary/30 hover:bg-primary/[0.03]",
+                      idx % 2 === 0 ? "bg-transparent" : "bg-muted/[0.08]",
+                    )}
+                    onClick={() => onSelectItem(row.itemId)}
+                  >
+                    <td className="sticky left-0 z-[1] bg-inherit py-2 pl-1 pr-2">
+                      <p className="max-w-[180px] truncate text-[11px] font-medium text-foreground/90">
+                        {row.itemName}
+                      </p>
+                      {row.sku ? (
+                        <p className="font-mono text-[9.5px] text-muted-foreground/45">
+                          {row.sku}
+                        </p>
+                      ) : null}
+                    </td>
+                    {COLUMNS.map((col) => {
+                      const qty = toNum(
+                        row[
+                          col.key as keyof ItemVelocityRow
+                        ] as number | string,
+                      );
+                      const revKey = col.key.replace(
+                        "Qty",
+                        "Revenue",
+                      ) as keyof ItemVelocityRow;
+                      const rev = toNum(row[revKey] as number | string);
+                      const pct = Math.min(
+                        100,
+                        (qty / maxByCol[col.key]) * 100,
+                      );
+                      return (
+                        <td key={col.key} className="px-1.5 py-2 text-right">
+                          <div className="ml-auto flex w-[4rem] flex-col items-end gap-0.5">
+                            <span className="font-mono text-[11px] font-semibold tabular-nums text-foreground">
+                              {formatQty(qty)}
+                            </span>
+                            <span className="font-mono text-[9px] tabular-nums text-muted-foreground/48">
+                              {formatMoneyCompact(rev)}
+                            </span>
+                            <span
+                              className="mt-0.5 h-0.5 w-full overflow-hidden rounded-full bg-muted/40"
+                              aria-hidden
+                            >
+                              <span
+                                className="block h-full rounded-full bg-primary/45"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </span>
+                          </div>
+                        </td>
+                      );
+                    })}
+                    <td className="px-1.5 py-2 text-right font-mono text-[11px] tabular-nums text-foreground/75">
+                      {formatQty(row.currentStock)}
+                    </td>
+                    <td className="py-2 pr-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingRow(row);
+                        }}
+                        className="flex size-7 items-center justify-center rounded-md text-muted-foreground/40 transition-all hover:bg-muted/60 hover:text-foreground group-hover:text-muted-foreground"
+                        title="Edit stock, prices, photo"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {editingRow ? (
