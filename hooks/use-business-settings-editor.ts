@@ -351,6 +351,10 @@ export function useBusinessSettingsEditor() {
               allowStockEditForGroceryClerk:
                 inventory.allowStockEditForGroceryClerk,
               allowNegativeStock: inventory.allowNegativeStock,
+              allowActivityForStockManager:
+                inventory.allowActivityForStockManager,
+              allowStockPageForStockManager:
+                inventory.allowStockPageForStockManager,
             },
             suppliers: {
               allowSupplierWriteForStockManager:

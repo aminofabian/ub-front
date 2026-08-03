@@ -92,12 +92,22 @@ function isInventoryHrefAllowed(
 export function filterInventoryQuickLinksForUser(
   me: MeResponse | null | undefined,
   links: readonly InventoryQuickLink[],
+  business?: BusinessRecord | null,
 ): InventoryQuickLink[] {
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   if (roleKey === "stock_manager") {
-    return links.filter((link) =>
-      isInventoryHrefAllowed(link.href, STOCK_MANAGER_INVENTORY_HREFS),
-    );
+    const stockPageOn = stockManagerStockPageEnabled(business);
+    const allowed = STOCK_MANAGER_INVENTORY_HREFS.filter((href) => {
+      if (
+        href === APP_ROUTES.inventoryStock ||
+        href === APP_ROUTES.inventoryRestock ||
+        href === APP_ROUTES.inventoryMissingBarcodes
+      ) {
+        return stockPageOn;
+      }
+      return true;
+    });
+    return links.filter((link) => isInventoryHrefAllowed(link.href, allowed));
   }
   if (roleKey === "grocery_clerk") {
     return links.filter((link) =>
@@ -113,6 +123,20 @@ export function stockLevelsSettings(
   return business?.inventory?.stockLevels;
 }
 
+/** Activity page for stock managers — default on when unset. */
+export function stockManagerActivityEnabled(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return stockLevelsSettings(business)?.allowActivityForStockManager !== false;
+}
+
+/** Stock / restock / missing-barcode pages for stock managers — default on. */
+export function stockManagerStockPageEnabled(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return stockLevelsSettings(business)?.allowStockPageForStockManager !== false;
+}
+
 export function canEditStockLevels(
   me: MeResponse | null | undefined,
   business: BusinessRecord | null | undefined,
@@ -123,7 +147,10 @@ export function canEditStockLevels(
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const settings = stockLevelsSettings(business);
   if (roleKey === "stock_manager") {
-    return Boolean(settings?.allowStockEditForStockManager);
+    return (
+      stockManagerStockPageEnabled(business) &&
+      Boolean(settings?.allowStockEditForStockManager)
+    );
   }
   if (roleKey === "grocery_clerk") {
     return Boolean(settings?.allowStockEditForGroceryClerk);
@@ -135,10 +162,16 @@ export function canViewStockLevels(
   me: MeResponse | null | undefined,
   business: BusinessRecord | null | undefined,
 ): boolean {
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  if (roleKey === "stock_manager") {
+    return (
+      stockManagerStockPageEnabled(business) &&
+      hasPermission(me?.permissions, Permission.InventoryRead)
+    );
+  }
   if (hasPermission(me?.permissions, Permission.InventoryRead)) {
     return true;
   }
-  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   if (roleKey === "grocery_clerk") {
     return Boolean(stockLevelsSettings(business)?.allowStockEditForGroceryClerk);
   }
@@ -177,6 +210,7 @@ export function canStockManagerSeeSystemStockDuringCount(
 
 export function inventoryQuickLinksForUser(
   me: MeResponse | null | undefined,
+  business?: BusinessRecord | null,
 ): InventoryQuickLink[] {
-  return filterInventoryQuickLinksForUser(me, STOCK_PAGE_QUICK_LINKS);
+  return filterInventoryQuickLinksForUser(me, STOCK_PAGE_QUICK_LINKS, business);
 }

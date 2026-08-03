@@ -797,6 +797,10 @@ export type StockLevelsSettingsRecord = {
   allowStockEditForStockManager?: boolean;
   allowStockEditForGroceryClerk?: boolean;
   allowNegativeStock?: boolean;
+  /** Activity page for stock managers. Default on when absent. */
+  allowActivityForStockManager?: boolean;
+  /** Stock / restock pages for stock managers. Default on when absent. */
+  allowStockPageForStockManager?: boolean;
 };
 
 export type SuppliersAccessSettingsRecord = {
@@ -927,6 +931,8 @@ export type StockLevelsPatchPayload = {
   allowStockEditForStockManager?: boolean;
   allowStockEditForGroceryClerk?: boolean;
   allowNegativeStock?: boolean;
+  allowActivityForStockManager?: boolean;
+  allowStockPageForStockManager?: boolean;
 };
 
 export type SuppliersAccessPatchPayload = {

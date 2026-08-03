@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   CreditCard,
+  Gauge,
   LayoutDashboard,
   Lock,
   MapPin,
@@ -44,7 +45,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
 import { isButcheryOnlyBusiness } from "@/lib/business-store-type";
 import { APP_ROUTES } from "@/lib/config";
-import { groceryClerkStockAccessEnabled } from "@/lib/inventory-access";
+import { groceryClerkStockAccessEnabled, stockManagerActivityEnabled, stockManagerStockPageEnabled } from "@/lib/inventory-access";
 import {
   canLinkSupplierProducts,
   canWriteSuppliers,
@@ -432,6 +433,8 @@ type NavGate = {
   canViewPaymentGateways: boolean;
   roleKey: string | undefined;
   groceryClerkStockAccess: boolean;
+  stockManagerStockPage: boolean;
+  stockManagerActivity: boolean;
   canWriteSuppliers: boolean;
   canLinkSupplierProducts: boolean;
 };
@@ -480,10 +483,17 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
       APP_ROUTES.inventoryStockTake,
       APP_ROUTES.inventoryStockTakeMyStats,
       APP_ROUTES.inventoryStockTakeDailyAudit,
-      APP_ROUTES.inventoryStock,
-      APP_ROUTES.inventoryRestock,
-      APP_ROUTES.inventoryMissingBarcodes,
     ];
+    if (gate.stockManagerStockPage) {
+      allowed.push(
+        APP_ROUTES.inventoryStock,
+        APP_ROUTES.inventoryRestock,
+        APP_ROUTES.inventoryMissingBarcodes,
+      );
+    }
+    if (gate.stockManagerActivity) {
+      allowed.push(APP_ROUTES.analyticsActivity);
+    }
     if (gate.canAddSupplies) {
       allowed.push(APP_ROUTES.purchasingAddSupplies);
       allowed.push(APP_ROUTES.supplierDirectory);
@@ -599,6 +609,10 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.pricing) return gate.canViewPricing;
   if (item.href === APP_ROUTES.shifts) return gate.canViewShifts;
   if (item.href === APP_ROUTES.analytics) return gate.canViewAnalytics;
+  if (item.href === APP_ROUTES.analyticsActivity) {
+    if (gate.roleKey === "stock_manager") return gate.stockManagerActivity;
+    return gate.canViewSalesIntelligence || gate.canViewAnalytics;
+  }
   if (item.href === APP_ROUTES.sales) return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.paymentsSettings)
     return gate.canViewPaymentGateways;
@@ -831,6 +845,8 @@ export function AppShell({ children }: AppShellProps) {
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
   const groceryClerkStockAccess = groceryClerkStockAccessEnabled(business);
+  const stockManagerStockPage = stockManagerStockPageEnabled(business);
+  const stockManagerActivity = stockManagerActivityEnabled(business);
   const canWriteSuppliersDelegated = canWriteSuppliers(me, business);
   const canLinkSupplierProductsDelegated = canLinkSupplierProducts(
     me,
@@ -873,6 +889,8 @@ export function AppShell({ children }: AppShellProps) {
       canViewPaymentGateways,
       roleKey: me?.role?.key?.trim().toLowerCase(),
       groceryClerkStockAccess,
+      stockManagerStockPage,
+      stockManagerActivity,
       canWriteSuppliers: canWriteSuppliersDelegated,
       canLinkSupplierProducts: canLinkSupplierProductsDelegated,
     };
@@ -916,6 +934,8 @@ export function AppShell({ children }: AppShellProps) {
     canViewPaymentGateways,
     me?.role?.key,
     groceryClerkStockAccess,
+    stockManagerStockPage,
+    stockManagerActivity,
     canWriteSuppliersDelegated,
     canLinkSupplierProductsDelegated,
   ]);
@@ -975,9 +995,12 @@ export function AppShell({ children }: AppShellProps) {
   const visibleBottomTabs = useMemo(() => {
     const roleKey = me?.role?.key?.trim().toLowerCase();
     if (roleKey === "stock_manager") {
-      const tabs: BottomTab[] = [...STOCK_MANAGER_BOTTOM_TABS];
+      const tabs: BottomTab[] = [];
+      if (canAddSupplies) {
+        tabs.push(STOCK_MANAGER_BOTTOM_TABS[0]); // Receive
+      }
       if (supplierToolsEnabled) {
-        tabs.splice(1, 0, {
+        tabs.push({
           id: "suppliers",
           label: "Vendors",
           icon: Truck,
@@ -985,6 +1008,25 @@ export function AppShell({ children }: AppShellProps) {
           matchSectionIds: ["procurement"],
         });
       }
+      if (stockManagerStockPage) {
+        tabs.push(
+          STOCK_MANAGER_BOTTOM_TABS[1], // Stock
+          STOCK_MANAGER_BOTTOM_TABS[2], // Out
+        );
+      }
+      if (stockManagerActivity) {
+        tabs.push({
+          id: "activity",
+          label: "Activity",
+          icon: Gauge,
+          href: APP_ROUTES.analyticsActivity,
+          matchSectionIds: ["sales"],
+        });
+      }
+      tabs.push(
+        STOCK_MANAGER_BOTTOM_TABS[3], // Audit
+        STOCK_MANAGER_BOTTOM_TABS[4], // Counts
+      );
       return tabs;
     }
     if (roleKey === "cashier") {
@@ -1074,7 +1116,15 @@ export function AppShell({ children }: AppShellProps) {
       return groceryClerkTabs;
     }
     return BOTTOM_TABS;
-  }, [me, business, canViewSuppliers, supplierToolsEnabled]);
+  }, [
+    me,
+    business,
+    canViewSuppliers,
+    supplierToolsEnabled,
+    canAddSupplies,
+    stockManagerStockPage,
+    stockManagerActivity,
+  ]);
 
   // Which bottom tab is currently "active"
   const activeBottomTabId = useMemo(() => {
@@ -1108,9 +1158,14 @@ export function AppShell({ children }: AppShellProps) {
       const allowed: string[] = [
         APP_ROUTES.inventoryStockTake,
         APP_ROUTES.inventoryStockTakeDailyAudit,
-        APP_ROUTES.inventoryStock,
-        APP_ROUTES.inventoryRestock,
       ];
+      if (stockManagerStockPage) {
+        allowed.push(APP_ROUTES.inventoryStock, APP_ROUTES.inventoryRestock);
+        allowed.push(APP_ROUTES.inventoryMissingBarcodes);
+      }
+      if (stockManagerActivity) {
+        allowed.push(APP_ROUTES.analyticsActivity);
+      }
       if (canAddSupplies) {
         allowed.push(APP_ROUTES.purchasingAddSupplies);
         allowed.push(APP_ROUTES.supplierDirectory);
@@ -1184,6 +1239,8 @@ export function AppShell({ children }: AppShellProps) {
     supplierToolsEnabled,
     canViewSuppliers,
     canAddSupplies,
+    stockManagerStockPage,
+    stockManagerActivity,
   ]);
 
   return (

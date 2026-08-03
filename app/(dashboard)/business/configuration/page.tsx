@@ -134,6 +134,8 @@ export default function BusinessConfigurationPage() {
       return [
         editor.inventory.showSystemStockToStockManager,
         editor.inventory.allowStockEditForStockManager,
+        editor.inventory.allowStockPageForStockManager,
+        editor.inventory.allowActivityForStockManager,
         editor.inventory.allowStockEditForGroceryClerk,
         editor.inventory.allowNegativeStock,
         editor.inventory.allowReceiveForStockManager,

@@ -514,6 +514,30 @@ export function BusinessConfigurationForm({
             description="Stock managers can set on-hand quantities on the Stock page. They still cannot edit the product catalog."
           />
           <PolicySwitch
+            checked={inventory.allowStockPageForStockManager}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                allowStockPageForStockManager: checked,
+              }))
+            }
+            icon={<Warehouse className="size-4" aria-hidden />}
+            title="Show Stock page to stock managers"
+            description="Stock, Out of stock, and Missing barcodes. Turn off to keep managers on counts and receive only."
+          />
+          <PolicySwitch
+            checked={inventory.allowActivityForStockManager}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                allowActivityForStockManager: checked,
+              }))
+            }
+            icon={<Warehouse className="size-4" aria-hidden />}
+            title="Show Activity to stock managers"
+            description="Sold-by-period and item story so they can adjust stock from what is moving. Turn off to hide Activity."
+          />
+          <PolicySwitch
             checked={inventory.allowStockEditForGroceryClerk}
             onChange={(checked) =>
               setInventory((previous) => ({

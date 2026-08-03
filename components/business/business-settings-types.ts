@@ -43,6 +43,8 @@ export type InventoryForm = {
   allowStockEditForStockManager: boolean;
   allowStockEditForGroceryClerk: boolean;
   allowNegativeStock: boolean;
+  allowActivityForStockManager: boolean;
+  allowStockPageForStockManager: boolean;
   allowSupplierWriteForStockManager: boolean;
   allowSupplierWriteForCashier: boolean;
   allowLinkProductsForStockManager: boolean;
@@ -140,6 +142,9 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowStockEditForStockManager: false,
   allowStockEditForGroceryClerk: false,
   allowNegativeStock: false,
+  /** Match backend: Activity + Stock pages default on for stock managers. */
+  allowActivityForStockManager: true,
+  allowStockPageForStockManager: true,
   allowSupplierWriteForStockManager: false,
   allowSupplierWriteForCashier: false,
   allowLinkProductsForStockManager: false,
@@ -314,6 +319,10 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
     allowNegativeStock: Boolean(
       b?.inventory?.stockLevels?.allowNegativeStock,
     ),
+    allowActivityForStockManager:
+      b?.inventory?.stockLevels?.allowActivityForStockManager !== false,
+    allowStockPageForStockManager:
+      b?.inventory?.stockLevels?.allowStockPageForStockManager !== false,
     allowSupplierWriteForStockManager: Boolean(
       b?.inventory?.suppliers?.allowSupplierWriteForStockManager,
     ),

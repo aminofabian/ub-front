@@ -7,6 +7,8 @@ import {
   canViewStockLevels,
   filterInventoryQuickLinksForUser,
   inventoryQuickLinksForUser,
+  stockManagerActivityEnabled,
+  stockManagerStockPageEnabled,
   type InventoryQuickLink,
 } from "@/lib/inventory-access";
 import type { BusinessRecord, MeResponse } from "@/lib/api";
@@ -47,6 +49,30 @@ describe("inventory-access", () => {
     };
     expect(canEditStockLevels(me, businessWithStockEdits)).toBe(true);
     expect(canViewStockLevels(me, businessWithStockEdits)).toBe(true);
+  });
+
+  it("hides stock page for stock managers when the page toggle is off", () => {
+    const me: MeResponse = {
+      role: { key: "stock_manager" },
+      permissions: ["inventory.read"],
+    };
+    const business: BusinessRecord = {
+      name: "Test",
+      inventory: {
+        stockLevels: {
+          allowStockPageForStockManager: false,
+          allowStockEditForStockManager: true,
+        },
+      },
+    };
+    expect(canViewStockLevels(me, business)).toBe(false);
+    expect(canEditStockLevels(me, business)).toBe(false);
+  });
+
+  it("treats unset activity and stock-page toggles as enabled", () => {
+    const empty: BusinessRecord = { name: "Test" };
+    expect(stockManagerActivityEnabled(empty)).toBe(true);
+    expect(stockManagerStockPageEnabled(empty)).toBe(true);
   });
 
   it("grants grocery clerk read and edit when the business toggle is on", () => {

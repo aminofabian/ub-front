@@ -423,7 +423,10 @@ export function StockLevelsPage() {
   const canWrite = canEditStockLevels(me, business);
   const currency = business?.currency?.trim() || "KES";
 
-  const quickLinks = useMemo(() => inventoryQuickLinksForUser(me), [me]);
+  const quickLinks = useMemo(
+    () => inventoryQuickLinksForUser(me, business),
+    [me, business],
+  );
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
