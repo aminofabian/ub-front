@@ -76,7 +76,7 @@ function EditDrawer({
   onClose: () => void;
   row: ItemVelocityRow;
   branchId: string;
-  onSaved: () => void;
+  onSaved: (patch: Partial<ItemVelocityRow>) => void;
 }) {
   const [stock, setStock] = useState(formatQty(row.currentStock));
   const [buying, setBuying] = useState(
@@ -94,13 +94,12 @@ function EditDrawer({
     setError(null);
     setSaving(true);
     try {
-      const p: Promise<unknown>[] = [];
+      const patch: Partial<ItemVelocityRow> = {};
+      const tasks: Promise<unknown>[] = [];
       const ns = parseFloat(stock);
       const cur = toNum(row.currentStock);
       if (!isNaN(ns) && ns >= 0 && Math.abs(ns - cur) > 0.0001 && branchId) {
-        // Absolute set in display units (packages for package SKUs). Never use
-        // postStockIncrease alone — that only adds and skips package conversion.
-        p.push(
+        tasks.push(
           setCatalogOnHandStock({
             itemId: row.itemId,
             branchId: branchId.trim(),
@@ -109,18 +108,24 @@ function EditDrawer({
             notes: `Set on-hand from activity to ${formatQty(ns)}`,
           }),
         );
+        patch.currentStock = ns;
       }
       const bp = buying ? parseFloat(buying) : undefined;
       if (bp !== undefined && !isNaN(bp) && bp !== toNum(row.buyingPrice)) {
-        p.push(patchItem(row.itemId, { buyingPrice: bp }));
+        tasks.push(patchItem(row.itemId, { buyingPrice: bp }));
+        patch.buyingPrice = bp;
       }
       const sp = selling ? parseFloat(selling) : undefined;
       if (sp !== undefined && !isNaN(sp) && sp !== toNum(row.sellingPrice)) {
-        p.push(patchItem(row.itemId, { bundlePrice: sp }));
+        tasks.push(patchItem(row.itemId, { bundlePrice: sp }));
+        patch.sellingPrice = sp;
       }
-      if (p.length === 0) { onSaved(); return; }
-      await Promise.all(p);
-      onSaved();
+      if (tasks.length === 0) {
+        onSaved({});
+        return;
+      }
+      await Promise.all(tasks);
+      onSaved(patch);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed.");
     } finally {
@@ -138,7 +143,7 @@ function EditDrawer({
         const sig = await getCloudinarySignature("items");
         const r = await uploadToCloudinary(f, sig);
         await patchItem(row.itemId, { imageKey: r.public_id });
-        onSaved();
+        onSaved({ imageKey: r.public_id });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Upload failed.");
       } finally {
@@ -277,7 +282,7 @@ export function ActivityVelocityBoard({
   onSelectItem,
   search,
   branchId,
-  onRowsChanged,
+  onRowPatched,
 }: {
   rows: ItemVelocityRow[];
   sortKey: VelocitySortKey;
@@ -286,7 +291,8 @@ export function ActivityVelocityBoard({
   onSelectItem: (itemId: string) => void;
   search: string;
   branchId: string;
-  onRowsChanged?: () => void;
+  /** Apply edits in place — do not refetch the whole board (preserves scroll). */
+  onRowPatched?: (itemId: string, patch: Partial<ItemVelocityRow>) => void;
 }) {
   const [editingRow, setEditingRow] = useState<ItemVelocityRow | null>(null);
 
@@ -477,9 +483,12 @@ export function ActivityVelocityBoard({
           onClose={() => setEditingRow(null)}
           row={editingRow}
           branchId={branchId}
-          onSaved={() => {
+          onSaved={(patch) => {
+            if (Object.keys(patch).length > 0) {
+              onRowPatched?.(editingRow.itemId, patch);
+              setEditingRow((prev) => (prev ? { ...prev, ...patch } : null));
+            }
             setEditingRow(null);
-            onRowsChanged?.();
           }}
         />
       ) : null}

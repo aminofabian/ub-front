@@ -224,6 +224,69 @@ export default function AnalyticsActivityPage() {
     });
   }, []);
 
+  const patchVelocityRow = useCallback(
+    (itemId: string, patch: Partial<ItemVelocityRow>) => {
+      setVelocityRows((rows) =>
+        rows.map((row) => (row.itemId === itemId ? { ...row, ...patch } : row)),
+      );
+      setItemActivity((prev) => {
+        if (!prev || prev.summary.itemId !== itemId) return prev;
+        return {
+          ...prev,
+          summary: {
+            ...prev.summary,
+            ...(patch.currentStock !== undefined
+              ? { currentStock: patch.currentStock }
+              : {}),
+            ...(patch.buyingPrice !== undefined
+              ? { buyingPrice: patch.buyingPrice }
+              : {}),
+            ...(patch.sellingPrice !== undefined
+              ? { sellingPrice: patch.sellingPrice }
+              : {}),
+            ...(patch.imageKey !== undefined
+              ? { imageKey: patch.imageKey }
+              : {}),
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const patchItemSummary = useCallback(
+    (
+      itemId: string,
+      patch: Partial<ItemActivityResponse["summary"]>,
+    ) => {
+      setItemActivity((prev) => {
+        if (!prev || prev.summary.itemId !== itemId) return prev;
+        return { ...prev, summary: { ...prev.summary, ...patch } };
+      });
+      setVelocityRows((rows) =>
+        rows.map((row) => {
+          if (row.itemId !== itemId) return row;
+          return {
+            ...row,
+            ...(patch.currentStock !== undefined
+              ? { currentStock: patch.currentStock }
+              : {}),
+            ...(patch.buyingPrice !== undefined
+              ? { buyingPrice: patch.buyingPrice }
+              : {}),
+            ...(patch.sellingPrice !== undefined
+              ? { sellingPrice: patch.sellingPrice }
+              : {}),
+            ...(patch.imageKey !== undefined
+              ? { imageKey: patch.imageKey }
+              : {}),
+          };
+        }),
+      );
+    },
+    [],
+  );
+
   const load = useCallback(async () => {
     setError(null);
     setLoading(true);
@@ -588,7 +651,7 @@ export default function AnalyticsActivityPage() {
               onSelectItem={openItemStory}
               search={velocitySearch}
               branchId={branchId}
-              onRowsChanged={load}
+              onRowPatched={patchVelocityRow}
             />
           </SectionCard>
         ) : null}
@@ -603,7 +666,7 @@ export default function AnalyticsActivityPage() {
               itemTypeId={headerItemTypeId || undefined}
               branchId={branchId || undefined}
               onPickItem={openItemStory}
-              onChanged={load}
+              onSummaryPatched={patchItemSummary}
             />
           </SectionCard>
         ) : null}

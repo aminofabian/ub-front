@@ -95,7 +95,7 @@ function EditDrawer({
   onClose: () => void;
   activity: ItemActivityResponse;
   branchId?: string;
-  onSaved: () => void;
+  onSaved: (patch: Partial<ItemActivityResponse["summary"]>) => void;
 }) {
   const s = activity.summary;
   const [stock, setStock] = useState(formatQty(s.currentStock));
@@ -114,11 +114,12 @@ function EditDrawer({
     setError(null);
     setSaving(true);
     try {
-      const p: Promise<unknown>[] = [];
+      const patch: Partial<ItemActivityResponse["summary"]> = {};
+      const tasks: Promise<unknown>[] = [];
       const cur = toNum(s.currentStock);
       const ns = parseFloat(stock);
       if (!isNaN(ns) && ns >= 0 && Math.abs(ns - cur) > 0.0001 && branchId) {
-        p.push(
+        tasks.push(
           setCatalogOnHandStock({
             itemId: s.itemId,
             branchId: branchId.trim(),
@@ -127,16 +128,24 @@ function EditDrawer({
             notes: `Set on-hand from activity to ${formatQty(ns)}`,
           }),
         );
+        patch.currentStock = ns;
       }
       const bp = buying ? parseFloat(buying) : undefined;
-      if (bp !== undefined && !isNaN(bp) && bp !== toNum(s.buyingPrice))
-        p.push(patchItem(s.itemId, { buyingPrice: bp }));
+      if (bp !== undefined && !isNaN(bp) && bp !== toNum(s.buyingPrice)) {
+        tasks.push(patchItem(s.itemId, { buyingPrice: bp }));
+        patch.buyingPrice = bp;
+      }
       const sp = selling ? parseFloat(selling) : undefined;
-      if (sp !== undefined && !isNaN(sp) && sp !== toNum(s.sellingPrice))
-        p.push(patchItem(s.itemId, { bundlePrice: sp }));
-      if (p.length === 0) { onSaved(); return; }
-      await Promise.all(p);
-      onSaved();
+      if (sp !== undefined && !isNaN(sp) && sp !== toNum(s.sellingPrice)) {
+        tasks.push(patchItem(s.itemId, { bundlePrice: sp }));
+        patch.sellingPrice = sp;
+      }
+      if (tasks.length === 0) {
+        onSaved({});
+        return;
+      }
+      await Promise.all(tasks);
+      onSaved(patch);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed.");
     } finally {
@@ -153,7 +162,7 @@ function EditDrawer({
       const sig = await getCloudinarySignature("items");
       const r = await uploadToCloudinary(f, sig);
       await patchItem(s.itemId, { imageKey: r.public_id });
-      onSaved();
+      onSaved({ imageKey: r.public_id });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
@@ -282,7 +291,7 @@ export function ActivityItemStory({
   itemTypeId,
   branchId,
   onPickItem,
-  onChanged,
+  onSummaryPatched,
 }: {
   itemId: string | null;
   activity: ItemActivityResponse | null;
@@ -291,7 +300,11 @@ export function ActivityItemStory({
   itemTypeId?: string;
   branchId?: string;
   onPickItem: (itemId: string) => void;
-  onChanged?: () => void;
+  /** Apply edits in place — do not refetch (preserves scroll / selection). */
+  onSummaryPatched?: (
+    itemId: string,
+    patch: Partial<ItemActivityResponse["summary"]>,
+  ) => void;
 }) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<ItemSummaryRecord[]>([]);
@@ -537,13 +550,18 @@ export function ActivityItemStory({
           </div>
 
           {/* Edit drawer */}
-          {editOpen ? (
+          {editOpen && activity ? (
             <EditDrawer
               open
               activity={activity}
               branchId={branchId}
               onClose={() => setEditOpen(false)}
-              onSaved={() => { setEditOpen(false); onChanged?.(); }}
+              onSaved={(patch) => {
+                if (Object.keys(patch).length > 0 && activity.summary.itemId) {
+                  onSummaryPatched?.(activity.summary.itemId, patch);
+                }
+                setEditOpen(false);
+              }}
             />
           ) : null}
         </>
