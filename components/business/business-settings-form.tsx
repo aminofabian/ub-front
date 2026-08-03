@@ -1049,31 +1049,23 @@ export function BusinessSettingsForm({
             <FormDrawerFields
             compact
               legend="Cashier POS drafts"
-              hint="Save in-progress sales and review them from Sales → Pending carts."
+              hint="Save in-progress sales so admins can watch live from Sales → Pending carts."
             >
+              {/* ── Master toggle: Live pending carts ── */}
               <ToggleRow
-                checked={posDrafts.enabled}
+                checked={posDrafts.enabled && posDrafts.uiVisible}
                 onChange={(checked) =>
                   setPosDrafts((previous) => ({
                     ...previous,
                     enabled: checked,
-                  }))
-                }
-                icon={<ShoppingCart className="size-4 text-muted-foreground" />}
-                title="Enable POS draft persistence"
-                description="Cashier carts sync to the server so staff can resume sales later."
-              />
-              <ToggleRow
-                checked={posDrafts.uiVisible}
-                onChange={(checked) =>
-                  setPosDrafts((previous) => ({
-                    ...previous,
                     uiVisible: checked,
                   }))
                 }
-                title="Show pending carts in navigation"
-                description="Adds Sales → Pending carts and the in-register pending panel."
+                icon={<ShoppingCart className="size-4 text-muted-foreground" />}
+                title="Live pending carts"
+                description="When off, cashiers keep a local cart only; admins will not see live pending tickets. Existing open tickets stay listed until paid or cancelled."
               />
+              {/* ── Scan-to-cart ── */}
               <ToggleRow
                 checked={posDrafts.scanToCart}
                 onChange={(checked) =>
@@ -1086,11 +1078,34 @@ export function BusinessSettingsForm({
                 title="Add scanned items straight to cart"
                 description="When a barcode matches exactly one product, add it immediately — no second tap. Ambiguous or unknown barcodes still fill the search box."
               />
+              {/* ── Advanced: granular flags ── */}
               <details className="rounded-xl border border-border/60 bg-muted/15 px-3.5 py-2.5">
                 <summary className="cursor-pointer text-sm font-medium text-foreground">
-                  Advanced rollout options
+                  Advanced
                 </summary>
                 <div className="mt-3 space-y-3">
+                  <ToggleRow
+                    checked={posDrafts.enabled}
+                    onChange={(checked) =>
+                      setPosDrafts((previous) => ({
+                        ...previous,
+                        enabled: checked,
+                      }))
+                    }
+                    title="Draft persistence"
+                    description="Cashier carts sync to the server as a draft on every item add."
+                  />
+                  <ToggleRow
+                    checked={posDrafts.uiVisible}
+                    onChange={(checked) =>
+                      setPosDrafts((previous) => ({
+                        ...previous,
+                        uiVisible: checked,
+                      }))
+                    }
+                    title="Show pending carts UI"
+                    description="Adds Sales → Pending carts and the in-register pending panel."
+                  />
                   <label
                     className={cn(
                       "flex items-start gap-3 rounded-xl border border-border/70 bg-background/90 px-3.5 py-3 text-sm shadow-sm",
