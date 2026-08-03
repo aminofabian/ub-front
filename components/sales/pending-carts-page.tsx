@@ -140,13 +140,92 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   COMPLETE: "Payment completed",
 };
 
+type AuditLinePayload = {
+  itemId?: string;
+  itemName?: string;
+  qty?: number | string;
+  unitPrice?: number | string;
+  saleId?: string;
+};
+
 function formatAuditAction(action: string): string {
   return AUDIT_ACTION_LABELS[action] ?? action;
 }
 
-function truncateAuditValue(value: string): string {
-  if (value.length <= 40) return value;
-  return value.slice(0, 37) + "…";
+function parseAuditPayload(raw: string | null | undefined): AuditLinePayload | null {
+  if (!raw?.trim()) return null;
+  try {
+    const parsed = JSON.parse(raw) as AuditLinePayload;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveAuditItemName(
+  payload: AuditLinePayload | null,
+  itemNamesById: Map<string, string>,
+): string | null {
+  const fromPayload = payload?.itemName?.trim();
+  if (fromPayload) return fromPayload;
+  const itemId = payload?.itemId?.trim();
+  if (!itemId) return null;
+  return itemNamesById.get(itemId) ?? null;
+}
+
+function formatAuditLineDetail(
+  raw: string | null | undefined,
+  currency: string,
+  itemNamesById: Map<string, string>,
+): string | null {
+  if (!raw?.trim()) return null;
+  const payload = parseAuditPayload(raw);
+  if (!payload) return raw;
+
+  if (payload.saleId) {
+    return `Sale ${payload.saleId}`;
+  }
+
+  const name = resolveAuditItemName(payload, itemNamesById);
+  const qty = Number(payload.qty);
+  const unitPrice = Number(payload.unitPrice);
+  const hasQty = Number.isFinite(qty);
+  const hasPrice = Number.isFinite(unitPrice);
+
+  if (name && hasQty && hasPrice) {
+    return `${name} · ${qty} × ${fmtKes(unitPrice, currency)}`;
+  }
+  if (name && hasQty) {
+    return `${name} · qty ${qty}`;
+  }
+  if (name) return name;
+  if (hasQty && hasPrice) {
+    return `${qty} × ${fmtKes(unitPrice, currency)}`;
+  }
+  return raw;
+}
+
+function formatAuditChange(
+  entry: PosDraftAuditEntry,
+  currency: string,
+  itemNamesById: Map<string, string>,
+): string | null {
+  const before = formatAuditLineDetail(entry.oldValue, currency, itemNamesById);
+  const after = formatAuditLineDetail(entry.newValue, currency, itemNamesById);
+  if (before && after) return `${before} → ${after}`;
+  return after ?? before;
+}
+
+function buildItemNameMap(
+  lines: PosDraftResponse["lines"] | undefined,
+): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const line of lines ?? []) {
+    const id = line.itemId?.trim();
+    const name = line.itemName?.trim();
+    if (id && name) map.set(id, name);
+  }
+  return map;
 }
 
 export function PendingCartsPage() {
@@ -185,6 +264,9 @@ export function PendingCartsPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [auditEntries, setAuditEntries] = useState<PosDraftAuditEntry[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [auditItemNames, setAuditItemNames] = useState<Map<string, string>>(
+    () => new Map(),
+  );
 
   const loadDrafts = useCallback(async () => {
     const bid = branchId?.trim();
@@ -233,6 +315,9 @@ export function PendingCartsPage() {
       const updatedDraftId = String(frame.data?.draftId ?? "");
       if (updatedDraftId && updatedDraftId === selectedId) {
         void fetchPosDraft(updatedDraftId).then(setDetail).catch(() => {});
+        void fetchPosDraft(updatedDraftId, { includeDeleted: true })
+          .then((full) => setAuditItemNames(buildItemNameMap(full.lines)))
+          .catch(() => {});
         void fetchPosDraftAudit(updatedDraftId).then(setAuditEntries).catch(() => {});
       }
     },
@@ -319,10 +404,17 @@ export function PendingCartsPage() {
     setDetail(null);
     setDetailLoading(true);
     setAuditEntries([]);
+    setAuditItemNames(new Map());
     setAuditLoading(true);
     try {
-      const full = await fetchPosDraft(id);
+      const [full, withDeleted] = await Promise.all([
+        fetchPosDraft(id),
+        fetchPosDraft(id, { includeDeleted: true }).catch(() => null),
+      ]);
       setDetail(full);
+      setAuditItemNames(
+        buildItemNameMap(withDeleted?.lines ?? full.lines),
+      );
     } catch (e) {
       toast.error(
         e instanceof PosDraftApiError ? e.message : "Could not load details",
@@ -346,6 +438,7 @@ export function PendingCartsPage() {
     setSelectedId(null);
     setDetail(null);
     setAuditEntries([]);
+    setAuditItemNames(new Map());
   }, []);
 
   const handleCancel = useCallback(async () => {
@@ -811,27 +904,30 @@ export function PendingCartsPage() {
                       </p>
                     ) : (
                       <ol className="relative ml-3 border-l border-border/60 pl-4">
-                        {auditEntries.map((entry) => (
-                          <li key={entry.id} className="relative mb-3 last:mb-0">
-                            <span className="absolute -left-[1.15rem] top-1.5 size-2 rounded-full border border-border bg-card" />
-                            <p className="text-xs font-medium text-foreground">
-                              {formatAuditAction(entry.action)}
-                            </p>
-                            <p className="mt-0.5 text-[11px] text-muted-foreground">
-                              {entry.userName || "Staff"}{" "}
-                              · {formatDateTime(entry.createdAt)}
-                            </p>
-                            {entry.oldValue || entry.newValue ? (
-                              <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
-                                {entry.oldValue && entry.newValue
-                                  ? `${truncateAuditValue(entry.oldValue)} → ${truncateAuditValue(entry.newValue)}`
-                                  : entry.newValue
-                                    ? `→ ${truncateAuditValue(entry.newValue)}`
-                                    : truncateAuditValue(entry.oldValue ?? "")}
+                        {auditEntries.map((entry) => {
+                          const change = formatAuditChange(
+                            entry,
+                            currency,
+                            auditItemNames,
+                          );
+                          return (
+                            <li key={entry.id} className="relative mb-3 last:mb-0">
+                              <span className="absolute -left-[1.15rem] top-1.5 size-2 rounded-full border border-border bg-card" />
+                              <p className="text-xs font-medium text-foreground">
+                                {formatAuditAction(entry.action)}
                               </p>
-                            ) : null}
-                          </li>
-                        ))}
+                              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                {entry.userName || "Staff"}{" "}
+                                · {formatDateTime(entry.createdAt)}
+                              </p>
+                              {change ? (
+                                <p className="mt-0.5 whitespace-normal break-words text-[11px] leading-snug text-muted-foreground">
+                                  {change}
+                                </p>
+                              ) : null}
+                            </li>
+                          );
+                        })}
                       </ol>
                     )}
                   </div>
