@@ -302,7 +302,13 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
             subjectKey={username}
             status={sealStatus}
             canManage
-            onUnlocked={() => setSealEpoch((n) => n + 1)}
+            onUnlocked={() => {
+              // Optimistic unlock so the pad dismisses even before status refetch.
+              setSealStatus((prev) =>
+                prev ? { ...prev, unlockValid: true } : prev,
+              );
+              setSealEpoch((n) => n + 1);
+            }}
             onSealedChange={() => setSealEpoch((n) => n + 1)}
           >
             {sealedLocked ? null : (

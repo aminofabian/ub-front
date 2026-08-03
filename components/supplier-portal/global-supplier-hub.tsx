@@ -600,6 +600,9 @@ export function GlobalSupplierHubView({ username }: Props) {
           status={sealStatus}
           canManage={isOwner}
           onUnlocked={() => {
+            setSealStatus((prev) =>
+              prev ? { ...prev, unlockValid: true } : prev,
+            );
             setSealEpoch((n) => n + 1);
             reloadStorefront();
           }}

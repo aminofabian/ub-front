@@ -17,6 +17,8 @@ const HEADER_ALLOWLIST = [
   "x-request-id",
   "x-tenant-id",
   "x-tenant-host",
+  // Page-seal session token (supplier passport / shop portal / customer tab).
+  "x-page-unlock",
   "x-till-device-id",
   "x-test-user-id",
   "x-test-role-id",
