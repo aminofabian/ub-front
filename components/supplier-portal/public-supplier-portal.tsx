@@ -287,6 +287,8 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
 
   const currency = data.currency;
   const owed = toNum(data.openBalance);
+  const advanceCredit = toNum(data.advanceCredit);
+  const hasCredit = advanceCredit > 0.009;
   const settled = owed <= 0.009;
   const movementsByInvoice = new Map<string, PublicSupplierSupplyLine[]>();
   for (const m of data.movements) {
@@ -338,12 +340,14 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                 <span
                   className={cn(
                     "shrink-0 px-1 py-px text-[8px] font-bold uppercase tracking-[0.1em]",
-                    settled
-                      ? "bg-emerald-500/12 text-emerald-800"
-                      : "bg-amber-500/14 text-amber-900",
+                    hasCredit
+                      ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)]"
+                      : settled
+                        ? "bg-emerald-500/12 text-emerald-800"
+                        : "bg-amber-500/14 text-amber-900",
                   )}
                 >
-                  {settled ? "Settled" : "Open"}
+                  {hasCredit ? "Credit" : settled ? "Settled" : "Open"}
                 </span>
               </div>
               <p className="truncate text-[10px] leading-tight text-muted-foreground">
@@ -373,7 +377,8 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
         <section>
           <div
             className={cn(
-              "grid grid-cols-2 divide-x border bg-white/85",
+              "grid divide-x border bg-white/85",
+              hasCredit ? "grid-cols-3" : "grid-cols-2",
               INK_BORDER,
               INK_DIVIDE,
             )}
@@ -386,6 +391,19 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                 {fmtMoney(data.openBalance, currency)}
               </p>
             </div>
+            {hasCredit ? (
+              <div className="px-2.5 py-1.5">
+                <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[var(--pos-primary)]">
+                  Advance credit
+                </p>
+                <p className="mt-px text-[1.05rem] font-semibold leading-none tracking-tight tabular-nums text-[var(--pos-primary)]">
+                  {fmtMoney(advanceCredit, currency)}
+                </p>
+                <p className="mt-px text-[9px] leading-tight text-muted-foreground">
+                  Prepaid · applied on next supply
+                </p>
+              </div>
+            ) : null}
             <div className="px-2.5 py-1.5">
               <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                 Paid to date

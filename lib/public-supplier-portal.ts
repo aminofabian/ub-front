@@ -36,6 +36,8 @@ export type PublicSupplierPortal = {
   openBalance: number | string;
   totalSpent: number | string;
   totalPaid: number | string;
+  /** Unapplied advance / overpayment credit. */
+  advanceCredit?: number | string | null;
   invoiceCount: number;
   supplies: PublicSupplierSupplyRow[];
   movements: PublicSupplierMovementRow[];
