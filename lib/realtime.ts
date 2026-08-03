@@ -303,6 +303,10 @@ export type RealtimeListenerOptions = Pick<
   | "onGroceryInvoiceCancelled"
   | "onGroceryInvoiceExpired"
   | "onGroceryInvoiceStk"
+  | "onPosDraftCreated"
+  | "onPosDraftUpdated"
+  | "onPosDraftCancelled"
+  | "onPosDraftCompleted"
   | "onError"
   | "onConnectionStateChange"
 >;
@@ -326,6 +330,10 @@ const LISTENER_HANDLER_KEYS = [
   "onGroceryInvoiceCancelled",
   "onGroceryInvoiceExpired",
   "onGroceryInvoiceStk",
+  "onPosDraftCreated",
+  "onPosDraftUpdated",
+  "onPosDraftCancelled",
+  "onPosDraftCompleted",
   "onError",
   "onConnectionStateChange",
 ] as const satisfies readonly (keyof RealtimeListenerOptions)[];
