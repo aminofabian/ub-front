@@ -60,6 +60,7 @@ export type PosDraftsForm = {
   uiVisible: boolean;
   shadowWrites: boolean;
   offlineMirror: boolean;
+  scanToCart: boolean;
 };
 
 export type CashierCapabilitiesForm = {
@@ -163,6 +164,7 @@ export const DEFAULT_POS_DRAFTS: PosDraftsForm = {
   uiVisible: false,
   shadowWrites: false,
   offlineMirror: false,
+  scanToCart: false,
 };
 
 export function parseFeaturedLines(raw: string): string[] {
@@ -180,6 +182,7 @@ export function posDraftsFromRecord(b: BusinessRecord | null): PosDraftsForm {
     uiVisible: ff[POS_DRAFT_FLAGS.uiVisible] === true,
     shadowWrites: ff[POS_DRAFT_FLAGS.shadowWrites] === true,
     offlineMirror: ff[POS_DRAFT_FLAGS.offlineMirror] === true,
+    scanToCart: ff[POS_CASHIER_CAPABILITY_FLAGS.scanToCart] === true,
   };
 }
 

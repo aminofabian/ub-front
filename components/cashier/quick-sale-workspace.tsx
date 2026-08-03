@@ -130,6 +130,7 @@ import {
 } from "@/components/shifts/shift-action-modals";
 import {
   POS_DRAFT_FLAGS,
+  cancelPosDraft,
   fetchPosDraft,
   listPosDrafts,
   tryCompletePosDraftWithRetries,
@@ -237,10 +238,11 @@ export function QuickSaleWorkspace({
   } = useDashboard();
   const online = useOnlineStatus();
   const posDraftsEnabled = useFeatureFlag(POS_DRAFT_FLAGS.enabled);
-  const posDraftsShadow = useFeatureFlag(POS_DRAFT_FLAGS.shadowWrites);
   const posDraftsUi = useFeatureFlag(POS_DRAFT_FLAGS.uiVisible);
   const posDraftOfflineMirror = useFeatureFlag(POS_DRAFT_FLAGS.offlineMirror);
-  const posDraftPersistence = posDraftsEnabled || posDraftsShadow;
+  const posDraftPersistence = posDraftsEnabled;
+  // NOTE: pos_drafts.shadow_writes is deprecated — it no longer gates draft
+  // persistence.  Set pos_drafts.enabled + pos_drafts.ui_visible instead.
   // Always mirror open carts to IndexedDB when available so session expiry /
   // remount does not wipe an in-progress till (Gap N). Offline *sale queue*
   // remains gated by pos_drafts.offline_mirror.
@@ -2997,7 +2999,11 @@ export function QuickSaleWorkspace({
       let draftId = activeCart.draftId;
       let draftVersion = activeCart.version;
 
-      if (posDraftPersistence) {
+      // Sync if drafts are enabled OR if this cart already has a server draft
+      // (covers mid-day disable: admin turned the feature OFF but the cashier
+      // still has an open synced cart — let them complete it).
+      const hasExistingDraft = activeCart.draftId != null;
+      if (posDraftPersistence || hasExistingDraft) {
         const pendingSync = posDraftSyncTimers.current[activeCartId];
         if (pendingSync) {
           clearTimeout(pendingSync);
@@ -3037,7 +3043,9 @@ export function QuickSaleWorkspace({
       let failMsg = "Sale failed.";
       let failStatus = 0;
 
-      if (posDraftPersistence && draftId) {
+      // Use draft-complete path whenever we have a server draft ID,
+      // even if pos_drafts.enabled was toggled OFF mid-day.
+      if (draftId) {
         const draftResult = await tryCompletePosDraftWithRetries(
           draftId,
           completeBody,
@@ -3269,6 +3277,20 @@ export function QuickSaleWorkspace({
 
   const onStartNewSale = useCallback(() => {
     const active = carts.find((c) => c.id === activeCartId) ?? carts[0];
+    if (!active) return;
+
+    // Cancel server draft if one exists and the cart is not empty.
+    if (
+      active.draftId &&
+      active.lines.length > 0 &&
+      posDraftPersistence &&
+      online
+    ) {
+      void cancelPosDraft(active.draftId).catch(() => {
+        // Best-effort — draft may already be completed / cancelled.
+      });
+    }
+
     if (active?.groceryInvoiceId && online) {
       void unlockGroceryInvoice(active.groceryInvoiceId);
     }
@@ -3289,7 +3311,7 @@ export function QuickSaleWorkspace({
         c.id === activeCartId ? resetCartSessionKeepingTab(c) : c,
       );
     });
-  }, [activeCartId, carts, dismissCompletedSaleUi, online]);
+  }, [activeCartId, carts, dismissCompletedSaleUi, online, posDraftPersistence]);
 
   const onDownloadReceiptPdf = useCallback(async () => {
     if (!lastSale) {
@@ -3555,6 +3577,7 @@ export function QuickSaleWorkspace({
           itemCount: cartSessionItemCount(c),
           kind: cartSessionTabKind(c),
           ageMs: cartSessionAgeMs(c),
+          syncStatus: c.syncStatus,
         }))}
         activeCartId={activeCartId}
         canCreateCart={carts.length < MAX_CARTS}

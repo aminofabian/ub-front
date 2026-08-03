@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Loader2,
   Save,
+  ScanLine,
   ShoppingCart,
   Truck,
   Users,
@@ -1073,22 +1074,23 @@ export function BusinessSettingsForm({
                 title="Show pending carts in navigation"
                 description="Adds Sales → Pending carts and the in-register pending panel."
               />
+              <ToggleRow
+                checked={posDrafts.scanToCart}
+                onChange={(checked) =>
+                  setPosDrafts((previous) => ({
+                    ...previous,
+                    scanToCart: checked,
+                  }))
+                }
+                icon={<ScanLine className="size-4 text-muted-foreground" />}
+                title="Add scanned items straight to cart"
+                description="When a barcode matches exactly one product, add it immediately — no second tap. Ambiguous or unknown barcodes still fill the search box."
+              />
               <details className="rounded-xl border border-border/60 bg-muted/15 px-3.5 py-2.5">
                 <summary className="cursor-pointer text-sm font-medium text-foreground">
                   Advanced rollout options
                 </summary>
                 <div className="mt-3 space-y-3">
-                  <ToggleRow
-                    checked={posDrafts.shadowWrites}
-                    onChange={(checked) =>
-                      setPosDrafts((previous) => ({
-                        ...previous,
-                        shadowWrites: checked,
-                      }))
-                    }
-                    title="Shadow writes"
-                    description="Log draft payloads without affecting cashier behavior."
-                  />
                   <label
                     className={cn(
                       "flex items-start gap-3 rounded-xl border border-border/70 bg-background/90 px-3.5 py-3 text-sm shadow-sm",

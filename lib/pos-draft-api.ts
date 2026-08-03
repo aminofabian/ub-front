@@ -47,6 +47,10 @@ export type PosDraftResponse = {
   createdBy: string;
   createdByName: string | null;
   saleId: string | null;
+  cancelledBy: string | null;
+  cancelledAt: string | null;
+  cancelledReason: string | null;
+  completedAt: string | null;
   createdAt: string;
   updatedAt: string;
   lines: PosDraftLineResponse[];
@@ -286,4 +290,24 @@ export async function tryCompletePosDraftWithRetries(
     }
   }
   return last;
+}
+
+export type PosDraftAuditEntry = {
+  id: string;
+  draftId: string;
+  userId: string;
+  userName: string | null;
+  action: string;
+  lineId: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  createdAt: string;
+};
+
+export async function fetchPosDraftAudit(
+  draftId: string,
+): Promise<PosDraftAuditEntry[]> {
+  return posDraftRequest<PosDraftAuditEntry[]>(
+    `/api/v1/pos-drafts/${draftId}/audit`,
+  );
 }

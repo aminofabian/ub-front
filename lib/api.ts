@@ -965,6 +965,7 @@ export type PosDraftsFeatureFlagsPatch = {
   uiVisible?: boolean;
   shadowWrites?: boolean;
   offlineMirror?: boolean;
+  scanToCart?: boolean;
 };
 
 export type FeatureFlagsPatchPayload = {

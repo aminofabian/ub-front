@@ -36,13 +36,16 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import {
   cancelPosDraft,
   fetchPosDraft,
+  fetchPosDraftAudit,
   listPosDrafts,
   POS_DRAFT_FLAGS,
   PosDraftApiError,
+  type PosDraftAuditEntry,
   type PosDraftResponse,
   type PosDraftStatus,
   type PosDraftSummaryResponse,
 } from "@/lib/pos-draft-api";
+import { usePosDraftEvents } from "@/hooks/use-pos-draft-events";
 
 type StatusTab = PosDraftStatus | "all";
 
@@ -128,6 +131,24 @@ function fmtKes(n: number, currency: string): string {
   }).format(n);
 }
 
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  CREATE_DRAFT: "Cart created",
+  ADD_LINE: "Line added",
+  UPDATE_LINE: "Line updated",
+  REMOVE_LINE: "Line removed",
+  CANCEL: "Cart cancelled",
+  COMPLETE: "Payment completed",
+};
+
+function formatAuditAction(action: string): string {
+  return AUDIT_ACTION_LABELS[action] ?? action;
+}
+
+function truncateAuditValue(value: string): string {
+  if (value.length <= 40) return value;
+  return value.slice(0, 37) + "…";
+}
+
 export function PendingCartsPage() {
   const { me, business, branches, branchId } = useDashboard();
   const online = useOnlineStatus();
@@ -162,6 +183,8 @@ export function PendingCartsPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [auditEntries, setAuditEntries] = useState<PosDraftAuditEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   const loadDrafts = useCallback(async () => {
     const bid = branchId?.trim();
@@ -198,6 +221,46 @@ export function PendingCartsPage() {
   useEffect(() => {
     void loadDrafts();
   }, [loadDrafts]);
+
+  // ── Realtime subscription: live refresh on draft events ──
+  usePosDraftEvents({
+    onCreated: () => {
+      if (statusTab === "pending") void loadDrafts();
+    },
+    onUpdated: (frame) => {
+      if (statusTab === "pending") void loadDrafts();
+      // Refresh detail drawer if the updated draft is currently open
+      const updatedDraftId = String(frame.data?.draftId ?? "");
+      if (updatedDraftId && updatedDraftId === selectedId) {
+        void fetchPosDraft(updatedDraftId).then(setDetail).catch(() => {});
+        void fetchPosDraftAudit(updatedDraftId).then(setAuditEntries).catch(() => {});
+      }
+    },
+    onCancelled: (frame) => {
+      const ticket = frame.data?.ticketNumber;
+      toast.info(
+        ticket ? `Ticket #${ticket} cancelled` : "A pending sale was cancelled",
+      );
+      void loadDrafts();
+      // Close detail drawer if the cancelled draft is currently open
+      const cancelledDraftId = String(frame.data?.draftId ?? "");
+      if (cancelledDraftId && cancelledDraftId === selectedId) {
+        closeDetail();
+      }
+    },
+    onCompleted: (frame) => {
+      const ticket = frame.data?.ticketNumber;
+      toast.success(
+        ticket ? `Ticket #${ticket} paid` : "A pending sale was completed",
+      );
+      void loadDrafts();
+      // Close detail drawer if the completed draft is currently open
+      const completedDraftId = String(frame.data?.draftId ?? "");
+      if (completedDraftId && completedDraftId === selectedId) {
+        closeDetail();
+      }
+    },
+  });
 
   const cashierOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -255,6 +318,8 @@ export function PendingCartsPage() {
     setSelectedId(id);
     setDetail(null);
     setDetailLoading(true);
+    setAuditEntries([]);
+    setAuditLoading(true);
     try {
       const full = await fetchPosDraft(id);
       setDetail(full);
@@ -263,14 +328,24 @@ export function PendingCartsPage() {
         e instanceof PosDraftApiError ? e.message : "Could not load details",
       );
       setSelectedId(null);
+      return;
     } finally {
       setDetailLoading(false);
+    }
+    try {
+      const audit = await fetchPosDraftAudit(id);
+      setAuditEntries(audit);
+    } catch {
+      // Audit log is best-effort — drawer works without it
+    } finally {
+      setAuditLoading(false);
     }
   }, []);
 
   const closeDetail = useCallback(() => {
     setSelectedId(null);
     setDetail(null);
+    setAuditEntries([]);
   }, []);
 
   const handleCancel = useCallback(async () => {
@@ -719,6 +794,46 @@ export function PendingCartsPage() {
                         </li>
                       ))}
                     </ul>
+                  </div>
+
+                  {/* ── Activity timeline ── */}
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Activity
+                    </p>
+                    {auditLoading ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : auditEntries.length === 0 ? (
+                      <p className="py-2 text-center text-xs text-muted-foreground">
+                        No activity recorded yet.
+                      </p>
+                    ) : (
+                      <ol className="relative ml-3 border-l border-border/60 pl-4">
+                        {auditEntries.map((entry) => (
+                          <li key={entry.id} className="relative mb-3 last:mb-0">
+                            <span className="absolute -left-[1.15rem] top-1.5 size-2 rounded-full border border-border bg-card" />
+                            <p className="text-xs font-medium text-foreground">
+                              {formatAuditAction(entry.action)}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">
+                              {entry.userName || "Staff"}{" "}
+                              · {formatDateTime(entry.createdAt)}
+                            </p>
+                            {entry.oldValue || entry.newValue ? (
+                              <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+                                {entry.oldValue && entry.newValue
+                                  ? `${truncateAuditValue(entry.oldValue)} → ${truncateAuditValue(entry.newValue)}`
+                                  : entry.newValue
+                                    ? `→ ${truncateAuditValue(entry.newValue)}`
+                                    : truncateAuditValue(entry.oldValue ?? "")}
+                              </p>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ol>
+                    )}
                   </div>
 
                   {detail.status === "pending" ? (

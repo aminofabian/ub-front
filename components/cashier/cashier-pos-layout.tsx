@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { useOptionalPosTillLock } from "@/components/auth/pos-till-lock";
 import { Button } from "@/components/ui/button";
 import {
+  fetchItems,
   itemListThumbnailUrl,
   uploadItemImageFile,
   type CategoryTreeNodeRecord,
@@ -57,6 +58,8 @@ import { useMediaLg } from "@/hooks/use-media-lg";
 import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
 import { usePosEvents } from "@/hooks/use-pos-events";
 import { type TopProductRecord } from "@/lib/top-products";
+import { useFeatureFlag } from "@/components/providers/tenant-provider";
+import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { cn } from "@/lib/utils";
 import {
   CashierProductModal,
@@ -199,6 +202,8 @@ export type CashierPosLayoutProps = {
     kind: "held" | "empty" | "open";
     /** Age in ms for stale held-sale cues. */
     ageMs: number;
+    /** Server-sync status for the active cart (idle = synced). */
+    syncStatus?: string;
   }[];
   activeCartId: string;
   canCreateCart: boolean;
@@ -951,16 +956,140 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const tillLock = useOptionalPosTillLock();
   const tillLocked = tillLock?.locked === true;
 
+  const scanToCartEnabled = useFeatureFlag(
+    POS_CASHIER_CAPABILITY_FLAGS.scanToCart,
+  );
+
+  const markAdded = useCallback(
+    (itemId: string) => {
+      setPulseCart(true);
+      setJustAddedId(itemId);
+      window.setTimeout(() => {
+        setJustAddedId((cur) => (cur === itemId ? null : cur));
+      }, 700);
+      if (!isLg) {
+        setCheckoutDrawerOpen(true);
+      } else {
+        // Keep the wedge / keyboard ready for the next scan.
+        window.requestAnimationFrame(() => focusSearch(true));
+      }
+    },
+    [isLg, setCheckoutDrawerOpen, focusSearch],
+  );
+
+  // Guard against concurrent barcode resolves (wedge can fire faster than fetch).
+  const barcodeResolveBusyRef = useRef(false);
+
   const applyBarcodeSearch = useCallback(
     (code: string) => {
       if (tillLocked) return;
       const trimmed = code.trim();
       if (!trimmed) return;
+
+      // ── Special-code guard: delegate to existing handlers ──
+      if (/^GI-/i.test(trimmed)) {
+        setSearch(trimmed);
+        window.requestAnimationFrame(() => focusSearch(true));
+        return;
+      }
+
+      // ── Scan-to-cart: resolve barcode, auto-add on single match ──
+      if (
+        scanToCartEnabled &&
+        online &&
+        branchId &&
+        !barcodeResolveBusyRef.current
+      ) {
+        barcodeResolveBusyRef.current = true;
+        const bid = branchId.trim();
+        void (async () => {
+          let shouldFillSearch = false;
+          try {
+            const items = await fetchItems(undefined, {
+              barcode: trimmed,
+              catalogScope: "SKUS_ONLY",
+              softAuth: true,
+              branchId: bid,
+            });
+            const sellable = items.filter((row) => !row.groupLabelOnly);
+
+            if (sellable.length === 1) {
+              const item = sellable[0]!;
+              // Try tile price cache first, then fetch shelf price
+              const cachedLabel = tileShelfPrices[item.id] ?? "";
+              const shelfLabel: string =
+                cachedLabel ||
+                (await fetchPosShelfPrice(item.id, bid, {
+                  businessId,
+                  onStaleItem: onStalePosItem,
+                }).then((sp) => {
+                  if (!sp) return "";
+                  const label =
+                    formatShelfPriceLabel(sp.price, currency) ?? "";
+                  if (label) {
+                    setTileShelfPrices((prev) => ({
+                      ...prev,
+                      [item.id]: label,
+                    }));
+                  }
+                  return label;
+                }));
+
+              const shelfAmount = shelfLabel
+                ? shelfPriceToInputString(
+                    splitShelfPriceDisplay(shelfLabel).amount,
+                  )
+                : "";
+              if (shelfAmount) {
+                const added = addLine(item, 1, shelfAmount);
+                if (added) {
+                  markAdded(item.id);
+                  return; // success — silent add, done
+                }
+                // addLine returned false (e.g. stock cap) — fill search
+              } else {
+                // No shelf price → open product modal for cashier to set price
+                setPickedItem(item);
+                setModalOpen(true);
+                return;
+              }
+            } else if (sellable.length === 0) {
+              toast.error("Barcode not found in catalog", { duration: 2500 });
+            }
+            // 0 or 2+ matches → fill search so cashier can pick
+            shouldFillSearch = true;
+          } catch {
+            toast.error("Could not look up barcode", { duration: 2500 });
+            shouldFillSearch = true;
+          } finally {
+            barcodeResolveBusyRef.current = false;
+          }
+          if (shouldFillSearch) {
+            setSearch(trimmed);
+            window.requestAnimationFrame(() => focusSearch(true));
+          }
+        })();
+        return;
+      }
+
+      // ── Fallback: fill search (original behaviour) ──
       setSearch(trimmed);
-      // Next frame so the controlled value is painted, then select for the next scan.
       window.requestAnimationFrame(() => focusSearch(true));
     },
-    [setSearch, focusSearch, tillLocked],
+    [
+      tillLocked,
+      scanToCartEnabled,
+      online,
+      branchId,
+      setSearch,
+      focusSearch,
+      addLine,
+      tileShelfPrices,
+      currency,
+      businessId,
+      onStalePosItem,
+      markAdded,
+    ],
   );
 
   usePosBarcodeWedge({
@@ -1044,20 +1173,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     categoryFilterId != null ||
     Boolean(typeFilterId?.trim());
   const showCatalog = !hasSearch;
-
-  const markAdded = (itemId: string) => {
-    setPulseCart(true);
-    setJustAddedId(itemId);
-    window.setTimeout(() => {
-      setJustAddedId((cur) => (cur === itemId ? null : cur));
-    }, 700);
-    if (!isLg) {
-      setCheckoutDrawerOpen(true);
-    } else {
-      // Keep the wedge / keyboard ready for the next scan.
-      window.requestAnimationFrame(() => focusSearch(true));
-    }
-  };
 
   const handlePickItem = (item: ItemSummaryRecord) => {
     if (item.groupLabelOnly) {
@@ -1450,6 +1565,28 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       <span className="truncate font-semibold tabular-nums">
                         {tab.label}
                       </span>
+                      {tab.syncStatus && tab.kind !== "empty" ? (
+                        <span
+                          className={cn(
+                            "size-1.5 shrink-0 rounded-full",
+                            tab.syncStatus === "idle"
+                              ? "bg-emerald-500"
+                              : tab.syncStatus === "syncing"
+                                ? "animate-pulse bg-amber-500"
+                                : "bg-red-500",
+                          )}
+                          title={
+                            tab.syncStatus === "idle"
+                              ? "Synced"
+                              : tab.syncStatus === "syncing"
+                                ? "Syncing…"
+                                : tab.syncStatus === "error"
+                                  ? "Sync error"
+                                  : "Conflict"
+                          }
+                          aria-label={`Sync status: ${tab.syncStatus}`}
+                        />
+                      ) : null}
                     </span>
                     {hasItems ? (
                       <span className="pl-3 text-[10px] tabular-nums text-muted-foreground">

@@ -383,6 +383,7 @@ export function useBusinessSettingsEditor() {
               uiVisible: posDrafts.uiVisible,
               shadowWrites: posDrafts.shadowWrites,
               offlineMirror: posDrafts.offlineMirror,
+              scanToCart: posDrafts.scanToCart,
             },
             posCashierPriceEdit: cashierCapabilities.priceEdit,
             posCashierCreateProduct: cashierCapabilities.createProduct,

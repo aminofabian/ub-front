@@ -69,6 +69,10 @@ export type RealtimeEventType =
   | "grocery.invoice.cancelled"
   | "grocery.invoice.expired"
   | "grocery.invoice.stk"
+  | "pos_draft.created"
+  | "pos_draft.updated"
+  | "pos_draft.cancelled"
+  | "pos_draft.completed"
   | "catch-up.overflow"
   | "error"
   | "ping";
@@ -124,6 +128,10 @@ export interface RealtimeClientOptions {
   onGroceryInvoiceCancelled?: FrameHandler;
   onGroceryInvoiceExpired?: FrameHandler;
   onGroceryInvoiceStk?: FrameHandler;
+  onPosDraftCreated?: FrameHandler;
+  onPosDraftUpdated?: FrameHandler;
+  onPosDraftCancelled?: FrameHandler;
+  onPosDraftCompleted?: FrameHandler;
   onError?: ErrorHandler;
   onConnectionStateChange?: ConnectionStateHandler;
 }
@@ -158,6 +166,10 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "grocery.invoice.cancelled": "onGroceryInvoiceCancelled",
   "grocery.invoice.expired": "onGroceryInvoiceExpired",
   "grocery.invoice.stk": "onGroceryInvoiceStk",
+  "pos_draft.created": "onPosDraftCreated",
+  "pos_draft.updated": "onPosDraftUpdated",
+  "pos_draft.cancelled": "onPosDraftCancelled",
+  "pos_draft.completed": "onPosDraftCompleted",
 };
 
 // ── WS URL Resolution ──
