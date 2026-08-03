@@ -15,8 +15,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  fetchWhatsAppDiagnostics,
   testWhatsAppMessage,
   type CreditSaleReminderTestResult,
+  type WhatsAppDiagnosticsResult,
 } from "@/lib/api";
 
 type Props = {
@@ -28,6 +30,9 @@ export function WhatsAppTestPanel({ canSend }: Props) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<CreditSaleReminderTestResult | null>(null);
+  const [diagnosing, setDiagnosing] = useState(false);
+  const [diagnostics, setDiagnostics] =
+    useState<WhatsAppDiagnosticsResult | null>(null);
   const [feedback, setFeedback] = useState<{
     text: string;
     kind: "error" | "success";
@@ -58,6 +63,22 @@ export function WhatsAppTestPanel({ canSend }: Props) {
       });
     } finally {
       setSending(false);
+    }
+  };
+
+  const onDiagnose = async () => {
+    if (diagnosing) return;
+    setDiagnosing(true);
+    setFeedback(null);
+    try {
+      setDiagnostics(await fetchWhatsAppDiagnostics());
+    } catch (err) {
+      setFeedback({
+        text: err instanceof Error ? err.message : "Could not read Meta setup.",
+        kind: "error",
+      });
+    } finally {
+      setDiagnosing(false);
     }
   };
 
@@ -107,13 +128,23 @@ export function WhatsAppTestPanel({ canSend }: Props) {
           />
         </label>
 
-        <Button
-          type="button"
-          disabled={sending || !phone.trim()}
-          onClick={() => void onSend()}
-        >
-          {sending ? "Sending…" : "Send test WhatsApp"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            disabled={sending || !phone.trim()}
+            onClick={() => void onSend()}
+          >
+            {sending ? "Sending…" : "Send test WhatsApp"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={diagnosing}
+            onClick={() => void onDiagnose()}
+          >
+            {diagnosing ? "Checking…" : "Why do cold numbers fail?"}
+          </Button>
+        </div>
 
         {result ? (
           <MessagingTestResultCard
@@ -122,7 +153,87 @@ export function WhatsAppTestPanel({ canSend }: Props) {
             showRemindersToggle={false}
           />
         ) : null}
+
+        {diagnostics ? <DiagnosticsCard data={diagnostics} /> : null}
       </div>
     </section>
+  );
+}
+
+function DiagnosticsCard({ data }: { data: WhatsAppDiagnosticsResult }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/20 text-sm">
+      <div className="border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Cold (business-initiated) sends:{" "}
+        {data.coldSendReady ? "ready" : "blocked"}
+      </div>
+
+      <div className="divide-y divide-border/50">
+        <section className="space-y-1 px-3 py-2.5 text-muted-foreground">
+          <p>
+            Number:{" "}
+            <span className="text-foreground">
+              {data.displayPhoneNumber ?? data.phoneNumberId ?? "unknown"}
+            </span>
+            {data.verifiedName ? ` · ${data.verifiedName}` : ""}
+          </p>
+          <p>
+            Quality:{" "}
+            <span className="text-foreground">
+              {data.qualityRating ?? "unknown"}
+            </span>
+            {data.messagingLimitTier ? (
+              <>
+                {" · limit "}
+                <span className="text-foreground">
+                  {data.messagingLimitTier}
+                </span>
+              </>
+            ) : null}
+          </p>
+          {data.phoneError ? (
+            <p className="break-words font-mono text-[11px] text-foreground/85">
+              {data.phoneError}
+            </p>
+          ) : null}
+        </section>
+
+        <section className="space-y-1.5 px-3 py-2.5">
+          <p className="text-xs font-semibold text-foreground">Templates</p>
+          {data.templates.length ? (
+            data.templates.map((t) => (
+              <p
+                key={`${t.name}-${t.language}`}
+                className="text-muted-foreground"
+              >
+                <span className="font-mono text-[11px] text-foreground">
+                  {t.name} ({t.language})
+                </span>{" "}
+                — <span className="text-foreground">{t.status}</span>
+                {t.rejectedReason ? ` · ${t.rejectedReason}` : ""}
+              </p>
+            ))
+          ) : (
+            <p className="text-muted-foreground">
+              {data.templatesError ?? "No matching templates found."}
+            </p>
+          )}
+        </section>
+
+        {data.findings.length ? (
+          <section className="space-y-1.5 px-3 py-2.5">
+            <p className="text-xs font-semibold text-foreground">Diagnosis</p>
+            {data.findings.map((f) => (
+              <p
+                key={f}
+                className="text-xs leading-relaxed text-amber-800 dark:text-amber-200"
+              >
+                {f}
+              </p>
+            ))}
+          </section>
+        ) : null}
+      </div>
+    </div>
   );
 }

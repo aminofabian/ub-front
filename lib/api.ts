@@ -9044,6 +9044,47 @@ export async function testWhatsAppMessage(
   );
 }
 
+export type WhatsAppTemplateStatus = {
+  name: string;
+  language: string | null;
+  status: string | null;
+  category: string | null;
+  rejectedReason: string | null;
+  qualityScore: string | null;
+};
+
+export type WhatsAppDiagnosticsResult = {
+  metaWhatsAppConfigured: boolean;
+  phoneNumberId: string | null;
+  graphVersion: string | null;
+  tokenSource: string | null;
+  tokenFingerprint: string | null;
+  displayPhoneNumber: string | null;
+  verifiedName: string | null;
+  qualityRating: string | null;
+  messagingLimitTier: string | null;
+  nameStatus: string | null;
+  phoneError: string | null;
+  wabaId: string | null;
+  wabaError: string | null;
+  templates: WhatsAppTemplateStatus[];
+  templatesError: string | null;
+  coldSendReady: boolean;
+  findings: string[];
+};
+
+/** Reads template + account health from Meta to explain cold-send failures. */
+export async function fetchWhatsAppDiagnostics(
+  wabaId?: string,
+): Promise<WhatsAppDiagnosticsResult> {
+  const query = wabaId?.trim()
+    ? `?wabaId=${encodeURIComponent(wabaId.trim())}`
+    : "";
+  return request<WhatsAppDiagnosticsResult>(
+    `/api/v1/credits/sale-reminder-settings/whatsapp-diagnostics${query}`,
+  );
+}
+
 export async function testSmsMessage(
   phone: string,
   message?: string,
