@@ -24,6 +24,7 @@ import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
+import { AdvanceDepositDrawer } from "./_components/advance-deposit-drawer";
 import { EditSupplyBillDrawer } from "./_components/edit-supply-bill-drawer";
 import { NewSupplyDrawer } from "./_components/new-supply-drawer";
 import { PaySupplyDrawer } from "./_components/pay-supply-drawer";
@@ -75,6 +76,7 @@ export default function SuppliesPage() {
   const [listError, setListError] = useState<string | null>(null);
 
   const [newOpen, setNewOpen] = useState(false);
+  const [advanceOpen, setAdvanceOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [payRow, setPayRow] = useState<PathBSupplyListRowRecord | null>(null);
   const [paySettleAll, setPaySettleAll] = useState(false);
@@ -257,10 +259,12 @@ export default function SuppliesPage() {
           canViewApAging={canViewApAging}
           canShowProcurementLinks={canShowProcurementLinks}
           canOpenNewSupply={canOpenNewSupply}
+          canPayAdvance={canPay}
           listLoading={listLoading}
           branchScopeLabel={headerBranchName || undefined}
           onRefresh={() => void refresh()}
           onNewSupply={() => setNewOpen(true)}
+          onPayAdvance={() => setAdvanceOpen(true)}
         />
 
         {listError ? (
@@ -597,6 +601,13 @@ export default function SuppliesPage() {
       </div>
 
       <NewSupplyDrawer open={newOpen} onOpenChange={setNewOpen} onPosted={() => void refresh()} />
+
+      <AdvanceDepositDrawer
+        open={advanceOpen}
+        onOpenChange={setAdvanceOpen}
+        onDeposited={() => void refresh()}
+        currency={currency}
+      />
 
       <PaySupplyDrawer
         open={payOpen}

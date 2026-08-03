@@ -1178,7 +1178,12 @@ export function PaySupplyDrawer({
                       />
                     </label>
                     <label className="flex flex-col gap-1.5">
-                      <span className={supFieldLabel}>Supplier credit applied</span>
+                      <span className={supFieldLabel}>
+                        Supplier credit applied
+                        {supplyN(supplier?.prepaymentBalance) > 0.009
+                          ? ` · available ${formatSupplyMoney(supplyN(supplier?.prepaymentBalance))}`
+                          : ""}
+                      </span>
                       <input
                         className={supInput}
                         value={creditApplied}

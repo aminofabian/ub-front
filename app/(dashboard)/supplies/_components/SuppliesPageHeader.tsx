@@ -6,6 +6,7 @@ import {
   PackagePlus,
   RefreshCw,
   Truck,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -21,18 +22,22 @@ export function SuppliesPageHeader({
   canViewApAging,
   canShowProcurementLinks,
   canOpenNewSupply,
+  canPayAdvance,
   listLoading,
   branchScopeLabel,
   onRefresh,
   onNewSupply,
+  onPayAdvance,
 }: {
   canViewApAging: boolean;
   canShowProcurementLinks: boolean;
   canOpenNewSupply: boolean;
+  canPayAdvance?: boolean;
   listLoading: boolean;
   branchScopeLabel?: string;
   onRefresh: () => void;
   onNewSupply: () => void;
+  onPayAdvance?: () => void;
 }) {
   const { branchName } = useSessionBranch();
   const scope = branchScopeLabel?.trim() || branchName?.trim() || null;
@@ -108,6 +113,19 @@ export function SuppliesPageHeader({
             />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
+          {canPayAdvance && onPayAdvance ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 rounded-none border-border px-2 text-[11px] font-medium"
+              onClick={onPayAdvance}
+            >
+              <Wallet className="size-3" aria-hidden />
+              <span className="hidden sm:inline">Pay advance</span>
+              <span className="sm:hidden">Advance</span>
+            </Button>
+          ) : null}
           {canOpenNewSupply ? (
             <Button
               type="button"

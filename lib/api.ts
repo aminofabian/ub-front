@@ -8183,6 +8183,8 @@ export type SupplierRecord = {
   taxExempt: boolean;
   creditTermsDays: number | null;
   creditLimit: number | null;
+  /** Cash deposited / overpaid and not yet applied to invoices. */
+  prepaymentBalance?: number | string | null;
   rating: number | null;
   status: string;
   notes: string | null;
