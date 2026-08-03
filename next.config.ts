@@ -7,13 +7,15 @@ import type { NextConfig } from "next";
  */
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.googletagmanager.com",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://*.google-analytics.com https://*.googletagmanager.com",
   "font-src 'self' data:",
   // Till Print Bridge runs on the cashier PC (HTTP loopback). Cloud cashier
   // must be allowed to fetch it; upgrade-insecure-requests exempts loopback.
-  "connect-src 'self' https: wss: ws: http://127.0.0.1:19500 http://localhost:19500 http://[::1]:19500",
+  // CSP host-source grammar has no IPv6 literals, so [::1] is omitted — browsers
+  // reject the whole source and warn.
+  "connect-src 'self' https: wss: ws: http://127.0.0.1:19500 http://localhost:19500",
   "media-src 'self' blob:",
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",
