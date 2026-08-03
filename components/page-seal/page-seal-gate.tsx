@@ -87,7 +87,7 @@ export function PageSealGate({
   return (
     <div className={className}>
       {canManage ? (
-        <div className="mb-4">
+        <div className="mb-1.5">
           <SealManager
             scope={scope}
             subjectKey={subjectKey}
@@ -354,17 +354,17 @@ function SealManager({
           setOpen((v) => !v);
           setStep(sealed ? "unseal" : "idle");
         }}
-        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+        className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left"
       >
-        <span className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--pos-ink,#1c1915)]">
+        <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--pos-ink,#1c1915)]">
           {sealed ? (
-            <ShieldCheck className="size-3.5 text-[var(--pos-primary,#0f766e)]" />
+            <ShieldCheck className="size-3 text-[var(--pos-primary,#0f766e)]" />
           ) : (
-            <Lock className="size-3.5 text-muted-foreground" />
+            <Lock className="size-3 text-muted-foreground" />
           )}
           {sealed ? "Page sealed" : "Protect this page"}
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
           {open ? "Close" : sealed ? "Manage" : "Seal"}
         </span>
       </button>

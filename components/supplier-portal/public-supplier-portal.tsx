@@ -253,34 +253,34 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
         <header
           className={cn(
-            "sticky top-0 z-20 border-b bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md",
+            "sticky top-0 z-20 border-b bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] pt-[max(0.35rem,env(safe-area-inset-top))] backdrop-blur-md",
             INK_BORDER_SOFT,
           )}
         >
-          <div className="flex items-center gap-2.5 px-3.5 pb-2">
+          <div className="flex items-center gap-2 px-3 pb-1.5">
             {branding.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={branding.logoUrl}
                 alt=""
                 className={cn(
-                  "size-8 shrink-0 border object-contain bg-white",
+                  "size-7 shrink-0 border object-contain bg-white",
                   INK_BORDER_SOFT,
                 )}
               />
             ) : (
-              <span className="flex size-8 shrink-0 items-center justify-center bg-[var(--pos-primary)] text-[10px] font-bold text-[var(--pos-primary-ink,#fff)]">
+              <span className="flex size-7 shrink-0 items-center justify-center bg-[var(--pos-primary)] text-[9px] font-bold text-[var(--pos-primary-ink,#fff)]">
                 {data.supplierName.slice(0, 2).toUpperCase()}
               </span>
             )}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="truncate text-[14px] font-semibold tracking-tight">
+              <div className="flex items-center gap-1.5">
+                <h1 className="truncate text-[13px] font-semibold leading-tight tracking-tight">
                   {data.supplierName}
                 </h1>
                 <span
                   className={cn(
-                    "shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]",
+                    "shrink-0 px-1 py-px text-[8px] font-bold uppercase tracking-[0.1em]",
                     settled
                       ? "bg-emerald-500/12 text-emerald-800"
                       : "bg-amber-500/14 text-amber-900",
@@ -289,14 +289,14 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                   {settled ? "Settled" : "Open"}
                 </span>
               </div>
-              <p className="truncate text-[11px] leading-tight text-muted-foreground">
+              <p className="truncate text-[10px] leading-tight text-muted-foreground">
                 {data.shopName}
               </p>
             </div>
           </div>
         </header>
 
-        <div className="px-3.5 pt-2">
+        <div className="px-3 pt-1.5">
           <PageSealGate
             scope="shop-supplier"
             subjectKey={username}
@@ -313,47 +313,38 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           >
             {sealedLocked ? null : (
               <>
-        <section className="pt-2">
-          <div className={cn("relative overflow-hidden border bg-white/85", INK_BORDER)}>
-            <span
-              aria-hidden
-              className="absolute inset-y-0 left-0 w-0.5 bg-[var(--pos-primary)]"
-            />
-            <div className={cn("grid grid-cols-2 divide-x pl-0.5", INK_DIVIDE)}>
-              <div className="px-3 py-2">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  Amount owed
-                </p>
-                <p className="mt-0.5 text-[1.25rem] font-semibold leading-none tracking-tight tabular-nums">
-                  {fmtMoney(data.openBalance, currency)}
-                </p>
-              </div>
-              <div className="px-3 py-2">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  Paid to date
-                </p>
-                <p className="mt-0.5 text-[1.05rem] font-semibold leading-none tracking-tight tabular-nums">
-                  {fmtMoney(data.totalPaid, currency)}
-                </p>
-                <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
-                  of {fmtMoney(data.totalSpent, currency)} · {data.invoiceCount}{" "}
-                  {data.invoiceCount === 1 ? "supply" : "supplies"}
-                </p>
-              </div>
+        <section>
+          <div
+            className={cn(
+              "grid grid-cols-2 divide-x border bg-white/85",
+              INK_BORDER,
+              INK_DIVIDE,
+            )}
+          >
+            <div className="px-2.5 py-1.5">
+              <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                Amount owed
+              </p>
+              <p className="mt-px text-[1.05rem] font-semibold leading-none tracking-tight tabular-nums">
+                {fmtMoney(data.openBalance, currency)}
+              </p>
             </div>
-            <p
-              className={cn(
-                "border-t px-3 py-1.5 text-[10px] leading-snug text-muted-foreground",
-                INK_BORDER_SOFT,
-                "bg-[color-mix(in_srgb,var(--pos-primary)_5%,transparent)]",
-              )}
-            >
-              Usually settled within 48 hours. Delayed? Tap Voice a complaint.
-            </p>
+            <div className="px-2.5 py-1.5">
+              <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                Paid to date
+              </p>
+              <p className="mt-px text-[1.05rem] font-semibold leading-none tracking-tight tabular-nums">
+                {fmtMoney(data.totalPaid, currency)}
+              </p>
+              <p className="mt-px text-[9px] leading-tight text-muted-foreground">
+                of {fmtMoney(data.totalSpent, currency)} · {data.invoiceCount}{" "}
+                {data.invoiceCount === 1 ? "supply" : "supplies"}
+              </p>
+            </div>
           </div>
         </section>
 
-        <div className="pt-2.5">
+        <div className="pt-1.5">
           <div
             role="tablist"
             aria-label="Portal sections"
@@ -374,7 +365,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
                   aria-selected={active}
                   onClick={() => setTab(id)}
                   className={cn(
-                    "relative flex h-9 items-center justify-center gap-1.5 text-[12px] font-semibold transition-colors",
+                    "relative flex h-8 items-center justify-center gap-1 text-[11px] font-semibold transition-colors",
                     active
                       ? "bg-white text-[var(--pos-ink,#1c1915)]"
                       : "text-muted-foreground hover:bg-white/60",
@@ -404,7 +395,7 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
           </div>
         </div>
 
-        <main className="min-h-0 flex-1 overflow-y-auto pb-6 pt-2">
+        <main className="min-h-0 flex-1 overflow-y-auto pb-6 pt-1.5">
           {tab === "supplies" ? (
             data.supplies.length === 0 ? (
               <EmptyState label="No posted supplies yet." />
