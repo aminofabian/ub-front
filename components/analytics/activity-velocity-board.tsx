@@ -242,7 +242,7 @@ function EditDrawer({
             </div>
           ) : null}
 
-          {field("Stock on hand", stock, setStock, formatQty(row.currentStock))}
+          {field("In store", stock, setStock, formatQty(row.currentStock))}
 
           <div className="grid grid-cols-2 gap-3">
             {field("Buying price", buying, setBuying, toNum(row.buyingPrice) > 0 ? String(toNum(row.buyingPrice)) : "0")}
@@ -401,8 +401,11 @@ export function ActivityVelocityBoard({
                     </button>
                   </th>
                 ))}
-                <th className="px-1.5 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70">
-                  Stock
+                <th
+                  className="px-1.5 pb-2.5 pt-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70"
+                  title="Branch on-hand (same as Products)"
+                >
+                  In store
                 </th>
                 <th className="w-8 pb-2.5 pt-1" />
               </tr>
