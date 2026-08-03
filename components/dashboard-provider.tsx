@@ -448,17 +448,25 @@ export function DashboardProvider({
         return;
       }
     }
-    const defaultType = itemTypes.find((t) => t.isDefault);
-    const fallback = defaultType?.id ?? itemTypes[0]?.id ?? "";
-    if (fallback && fallback !== itemTypeId) {
+    // Fresh login (nothing persisted) or stale selection: default to
+    // "All departments". Do not fall back to isDefault / first type — that
+    // incorrectly pinned users onto Cereals (or whichever type is starred)
+    // after every logout. Exception: grocery clerks locked to a single
+    // assigned department keep that department selected.
+    const singleLockedDepartment =
+      isGroceryClerk && itemTypes.length === 1 ? (itemTypes[0]?.id ?? "") : "";
+    const fallback = singleLockedDepartment;
+    if (fallback !== itemTypeId) {
       if (persistedTypeInvalid || currentTypeInvalid) {
         if (!staleItemTypeNoticeShownRef.current) {
           staleItemTypeNoticeShownRef.current = true;
           const label =
             itemTypes.find((t) => t.id === fallback)?.label?.trim() ??
-            "default department";
+            "your assigned department";
           toast.info("Department selection updated", {
-            description: `Your previous department is no longer available. Switched to ${label}.`,
+            description: fallback
+              ? `Your previous department is no longer available. Switched to ${label}.`
+              : "Your previous department is no longer available. Showing all departments.",
           });
         }
         writePersistedItemType(effectiveBusiness?.id ?? null, fallback);
@@ -472,6 +480,7 @@ export function DashboardProvider({
     effectiveBusiness?.id,
     itemTypeId,
     defaultAllDepartments,
+    isGroceryClerk,
   ]);
 
   const headerScopeReady =
