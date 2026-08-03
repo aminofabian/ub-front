@@ -70,8 +70,9 @@ export function WhatsAppTestPanel({ canSend }: Props) {
             Test Meta WhatsApp
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Send a one-off Meta WhatsApp message only. Does not call RapidAPI or SMS
-            — use the SMS test panel for Sozuri / Africa&apos;s Talking.
+            Sends Meta WhatsApp only (no RapidAPI / SMS). With a message: free-form text
+            (needs an open 24h chat window). Leave message blank to ping, then fall back to
+            the approved payment_reminder template for cold numbers.
           </p>
         </div>
       </div>
