@@ -67,20 +67,23 @@ export async function resolveStockHolderForEdit(opts: {
   const unstockedChild =
     detail.isStocked === false && Boolean(parentId);
 
-  const isGroup =
+  // Label-only groups hold no stock — user must edit a sellable option.
+  // Stocked bases (e.g. Eggs) are editable even when not sellable; packages draw from them.
+  const isLabelOnlyGroup =
     detail.groupLabelOnly === true ||
     (detail.isSellable === false &&
+      detail.isStocked === false &&
       !parentId &&
       (detail.variants?.length ?? 0) > 0);
-  if (isGroup) {
+  if (isLabelOnlyGroup) {
     const names = (detail.variants ?? [])
       .slice(0, 6)
       .map((v) => (v.variantName || v.name || v.sku || "").trim())
       .filter(Boolean)
       .join(", ");
     throw new Error(
-      `"${detail.name}" is a product group. Edit stock on one of its options` +
-        (names ? `: ${names}` : " (open the product and pick a variant)"),
+      `"${detail.name}" is a product group with no base stock. Edit one of its options` +
+        (names ? `: ${names}` : ""),
     );
   }
 

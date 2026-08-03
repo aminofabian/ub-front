@@ -65,15 +65,25 @@ const COLUMNS: { key: VelocitySortKey; label: string; hint: string }[] = [
   { key: "last30Qty", label: "30d", hint: "Including today" },
 ];
 
-function isProductGroup(detail: ItemDetailRecord | null): boolean {
+function isLabelOnlyGroup(detail: ItemDetailRecord | null): boolean {
   if (!detail) return false;
   if (detail.groupLabelOnly === true) return true;
   const hasVariants = (detail.variants?.length ?? 0) > 0;
   return (
     detail.isSellable === false &&
+    detail.isStocked === false &&
     !detail.variantOfItemId?.trim() &&
     hasVariants
   );
+}
+
+/** Stocked parent (e.g. Eggs) whose package options draw from this base on-hand. */
+function isStockedBaseWithOptions(detail: ItemDetailRecord | null): boolean {
+  if (!detail) return false;
+  if (detail.variantOfItemId?.trim()) return false;
+  if ((detail.variants?.length ?? 0) === 0) return false;
+  if (detail.isStocked === false) return false;
+  return true;
 }
 
 function variantLabel(v: ItemSummaryRecord): string {
@@ -121,7 +131,7 @@ function EditDrawer({
       .then((d) => {
         if (cancelled) return;
         setDetail(d);
-        if (!isProductGroup(d)) {
+        if (!isLabelOnlyGroup(d)) {
           setStock(formatQty(d.stockQty ?? row.currentStock));
           setBuying(
             toNum(d.buyingPrice) > 0 ? String(toNum(d.buyingPrice)) : "",
@@ -151,8 +161,9 @@ function EditDrawer({
     };
   }, [row.itemId, row.currentStock, row.sellingPrice, branchId]);
 
-  const group = isProductGroup(detail);
-  const editTarget = group ? selectedVariant : detail;
+  const labelOnlyGroup = isLabelOnlyGroup(detail);
+  const stockedBase = isStockedBaseWithOptions(detail);
+  const editTarget = labelOnlyGroup ? selectedVariant : detail;
   const editItemId = editTarget?.id ?? row.itemId;
 
   const selectVariant = useCallback((v: ItemSummaryRecord) => {
@@ -169,7 +180,7 @@ function EditDrawer({
 
   const handleSave = useCallback(async () => {
     setError(null);
-    if (group && !selectedVariant) {
+    if (labelOnlyGroup && !selectedVariant) {
       setError("Pick which option to update first.");
       return;
     }
@@ -186,7 +197,9 @@ function EditDrawer({
       const patch: Partial<ItemVelocityRow> = {};
       const tasks: Promise<unknown>[] = [];
       const ns = parseFloat(stock);
-      const cur = toNum(editTarget?.stockQty ?? (group ? 0 : row.currentStock));
+      const cur = toNum(
+        editTarget?.stockQty ?? (labelOnlyGroup ? 0 : row.currentStock),
+      );
       if (!isNaN(ns) && ns >= 0 && Math.abs(ns - cur) > 0.0001 && branchId) {
         tasks.push(
           setCatalogOnHandStock({
@@ -201,8 +214,10 @@ function EditDrawer({
             notes: `Set on-hand from activity to ${formatQty(ns)}`,
           }),
         );
-        // Only reflect stock on the velocity row when editing that same SKU.
-        if (!group) patch.currentStock = ns;
+        // Reflect on the velocity row when editing that same SKU (including stocked bases).
+        if (!labelOnlyGroup || editItemId === row.itemId) {
+          patch.currentStock = ns;
+        }
       }
       const bp = buying ? parseFloat(buying) : undefined;
       if (
@@ -211,7 +226,9 @@ function EditDrawer({
         bp !== toNum(editTarget?.buyingPrice ?? row.buyingPrice)
       ) {
         tasks.push(patchItem(editItemId, { buyingPrice: bp }));
-        if (!group) patch.buyingPrice = bp;
+        if (!labelOnlyGroup || editItemId === row.itemId) {
+          patch.buyingPrice = bp;
+        }
       }
       const sp = selling ? parseFloat(selling) : undefined;
       if (
@@ -220,7 +237,9 @@ function EditDrawer({
         sp !== toNum(editTarget?.bundlePrice ?? row.sellingPrice)
       ) {
         tasks.push(patchItem(editItemId, { bundlePrice: sp }));
-        if (!group) patch.sellingPrice = sp;
+        if (!labelOnlyGroup || editItemId === row.itemId) {
+          patch.sellingPrice = sp;
+        }
       }
       if (tasks.length === 0) {
         onSaved({});
@@ -234,7 +253,7 @@ function EditDrawer({
       setSaving(false);
     }
   }, [
-    group,
+    labelOnlyGroup,
     selectedVariant,
     branchId,
     stock,
@@ -320,7 +339,7 @@ function EditDrawer({
           </button>
         </div>
 
-        {!group ? (
+        {!labelOnlyGroup ? (
           <div className="border-b px-4 py-3">
             <div className="flex items-center gap-3">
               <button
@@ -371,12 +390,45 @@ function EditDrawer({
             <p className="text-[12px] text-muted-foreground">Loading…</p>
           ) : null}
 
-          {group && !selectedVariant ? (
+          {stockedBase && !detailLoading ? (
+            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
+              <p className="text-[12px] leading-relaxed text-muted-foreground">
+                <span className="font-medium text-foreground">Base stock</span>
+                {" — "}
+                sellable options below draw from this pool. Edit the base amount
+                here (not each tray/pack).
+              </p>
+              {(detail?.variants?.length ?? 0) > 0 ? (
+                <ul className="space-y-1 border-t border-border/40 pt-2">
+                  {(detail?.variants ?? []).map((v) => (
+                    <li
+                      key={v.id}
+                      className="flex items-center justify-between gap-2 text-[11px]"
+                    >
+                      <span className="truncate text-foreground/85">
+                        {variantLabel(v)}
+                        {v.packageUnitsPerSale != null ? (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {formatQty(v.packageUnitsPerSale)} / pack
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
+                        ≈ {formatQty(v.stockQty)} avail
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+
+          {labelOnlyGroup && !selectedVariant ? (
             <div className="space-y-2">
               <p className="text-[12px] leading-relaxed text-muted-foreground">
                 <span className="font-medium text-foreground">{row.itemName}</span>{" "}
-                is a product group. Stock and prices live on each option —
-                pick one to edit:
+                is a product group with no base stock. Pick an option to edit:
               </p>
               <ul className="space-y-1.5">
                 {(detail?.variants ?? []).map((v) => (
@@ -406,7 +458,7 @@ function EditDrawer({
             </div>
           ) : null}
 
-          {group && selectedVariant ? (
+          {labelOnlyGroup && selectedVariant ? (
             <button
               type="button"
               onClick={() => {
@@ -419,10 +471,10 @@ function EditDrawer({
             </button>
           ) : null}
 
-          {(!group && !detailLoading) || selectedVariant ? (
+          {(!labelOnlyGroup && !detailLoading) || selectedVariant ? (
             <>
               {field(
-                "In store",
+                stockedBase ? "Base in store" : "In store",
                 stock,
                 setStock,
                 formatQty(editTarget?.stockQty ?? row.currentStock),
@@ -451,7 +503,7 @@ function EditDrawer({
           ) : null}
         </div>
 
-        {(!group && !detailLoading) || selectedVariant ? (
+        {(!labelOnlyGroup && !detailLoading) || selectedVariant ? (
           <div className="border-t px-4 py-3">
             <button
               type="button"
