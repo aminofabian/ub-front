@@ -281,8 +281,8 @@ function SealManager({
       setDevCode(res.devCode);
       setStep("code");
       if (res.devCode) {
-        toast.message(`SMS stub — use code ${res.devCode}`, {
-          description: "SMS provider is not live on this environment.",
+        toast.message(`Code stub — use ${res.devCode}`, {
+          description: "Messaging provider is not live on this environment.",
         });
       } else {
         toast.success(
@@ -374,8 +374,8 @@ function SealManager({
           {!sealed && step === "idle" ? (
             <>
               <p className="text-[12px] leading-relaxed text-muted-foreground">
-                Verify the phone on this account, then set a 4-digit PIN. Visitors will need that
-                PIN to open balances and history
+                We&apos;ll text a code by WhatsApp and SMS to verify this phone, then you set a
+                4-digit PIN. Visitors will need that PIN to open balances and history
                 {phoneHint ? ` · ${phoneHint}` : ""}.
               </p>
               <button
@@ -389,7 +389,7 @@ function SealManager({
                 )}
               >
                 {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Smartphone className="size-3.5" />}
-                Send SMS code
+                Send code
               </button>
             </>
           ) : null}
@@ -397,7 +397,7 @@ function SealManager({
           {!sealed && step === "code" ? (
             <>
               <p className="text-[12px] text-muted-foreground">
-                Enter the SMS code, then choose your PIN.
+                Enter the code we sent by WhatsApp and SMS, then choose your PIN.
                 {devCode ? (
                   <span className="ml-1 font-mono text-[var(--pos-primary,#0f766e)]">
                     stub {devCode}
