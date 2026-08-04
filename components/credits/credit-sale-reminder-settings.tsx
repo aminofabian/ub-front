@@ -232,10 +232,12 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold tracking-tight">Credit tab reminders</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            When a customer takes items on credit, send a short payment reminder with
-            your account link. WhatsApp is tried first (RapidAPI lookup + Meta); SMS
-            is the fallback. Use the separate WhatsApp and SMS test panels below to
-            verify each channel alone. The test here runs the full reminder pipeline.
+            When a customer takes items on credit, always send a short payment reminder
+            with your account link. Outstanding-balance re-reminders and staff Remind
+            are limited to once every{" "}
+            <span className="font-medium text-foreground">3 days</span> per customer
+            (protects Meta template quality). WhatsApp is tried first; SMS is the
+            fallback.
           </p>
           <p className="mt-2 text-sm">
             <Link

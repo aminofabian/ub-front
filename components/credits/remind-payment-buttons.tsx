@@ -85,7 +85,7 @@ export function RemindPaymentButtons({
         variant="outline"
         className="h-8 gap-1 rounded-none px-2"
         disabled={disabled || busy != null}
-        title="Remind via WhatsApp, falling back to SMS"
+        title="Remind via WhatsApp, falling back to SMS (max once every 3 days)"
         onClick={() => void send("auto")}
       >
         {busy === "auto" ? (
