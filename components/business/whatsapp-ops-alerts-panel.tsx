@@ -263,9 +263,10 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
             WhatsApp alerts
           </h3>
           <p className="text-sm text-muted-foreground">
-            Get a WhatsApp (or SMS fallback) on a verified owner number when
-            key store events happen. Uses the same Meta WhatsApp / SMS setup as
-            credit messaging.
+            Get alerts on a verified owner number when key store events happen.
+            SMS is preferred when configured (reliable). Free-form WhatsApp alone
+            only works inside Meta&apos;s 24h reply window — that is why shift
+            open/close can go silent even when credit templates still send.
           </p>
         </header>
 
