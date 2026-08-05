@@ -435,7 +435,7 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
             disabled={!canEdit}
             icon={<Banknote className="size-4" aria-hidden />}
             title="Shifts"
-            description="When a till shift is opened or closed"
+            description="When a till shift is opened or closed (SMS when configured — WhatsApp alone only works for 24h after you message the business number)"
           />
           <ToggleRow
             checked={alertSupply}
