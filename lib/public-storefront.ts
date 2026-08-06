@@ -5,6 +5,11 @@
 import { getServerApiOrigin } from "@/lib/config";
 import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import { resolvePublicItemIdFromShopUrlSegment } from "@/lib/shop-item-url";
+import {
+  normalizeLandingTemplateId,
+  normalizeStoreThemeId,
+  type LandingContent,
+} from "@/lib/storefront-templates";
 
 export type PublicCatalogItemCard = {
   id: string;
@@ -197,6 +202,16 @@ export type TenantAuthConfig = {
  * Single tenant-context payload returned by the public host-resolve endpoint.
  * Drives storefront branding, auth-method UI, and feature gates.
  */
+export type LandingContentPayload = {
+  headline?: string | null;
+  subheadline?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  hours?: string | null;
+  address?: string | null;
+  ctaLabel?: string | null;
+};
+
 export type TenantContext = {
   tenantId: string;
   tenantName: string;
@@ -206,6 +221,9 @@ export type TenantContext = {
   authConfig: TenantAuthConfig;
   featureFlags: Record<string, boolean>;
   storefrontEnabled: boolean;
+  storeThemeId: string;
+  landingTemplateId: string;
+  landingContent: LandingContentPayload | null;
   resolvedAt: string;
   /** ISO-3166 alpha-2 when known (e.g. KE). */
   countryCode: string | null;
@@ -682,6 +700,13 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
     : {};
 
   const storefrontEnabled = o.storefrontEnabled === true;
+  const storeThemeId = normalizeStoreThemeId(
+    typeof o.storeThemeId === "string" ? o.storeThemeId : null,
+  );
+  const landingTemplateId = normalizeLandingTemplateId(
+    typeof o.landingTemplateId === "string" ? o.landingTemplateId : null,
+  );
+  const landingContent = normalizeLandingContentPayload(o.landingContent);
   const resolvedAt =
     typeof o.resolvedAt === "string" && o.resolvedAt.trim()
       ? o.resolvedAt.trim()
@@ -708,10 +733,45 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
     authConfig,
     featureFlags,
     storefrontEnabled,
+    storeThemeId,
+    landingTemplateId,
+    landingContent,
     resolvedAt,
     countryCode,
     branchLocalities,
   };
+}
+
+function normalizeLandingContentPayload(raw: unknown): LandingContent | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const o = raw as Record<string, unknown>;
+  const pick = (key: string) => {
+    const v = o[key];
+    return typeof v === "string" && v.trim() ? v.trim() : null;
+  };
+  const content: LandingContent = {
+    headline: pick("headline"),
+    subheadline: pick("subheadline"),
+    phone: pick("phone"),
+    whatsapp: pick("whatsapp"),
+    hours: pick("hours"),
+    address: pick("address"),
+    ctaLabel: pick("ctaLabel"),
+  };
+  if (
+    !content.headline &&
+    !content.subheadline &&
+    !content.phone &&
+    !content.whatsapp &&
+    !content.hours &&
+    !content.address &&
+    !content.ctaLabel
+  ) {
+    return null;
+  }
+  return content;
 }
 
 export async function fetchTenantContext(

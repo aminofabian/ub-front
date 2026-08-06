@@ -31,6 +31,15 @@ export type StorefrontForm = {
   announcement: string;
   featuredLines: string;
   deliveryAreas: { id: string; name: string; active: boolean }[];
+  storeThemeId: string;
+  landingTemplateId: string;
+  landingHeadline: string;
+  landingSubheadline: string;
+  landingPhone: string;
+  landingWhatsapp: string;
+  landingHours: string;
+  landingAddress: string;
+  landingCtaLabel: string;
 };
 
 export type InventoryForm = {
@@ -122,6 +131,15 @@ export const DEFAULT_STOREFRONT: StorefrontForm = {
   announcement: "",
   featuredLines: "",
   deliveryAreas: [],
+  storeThemeId: "mart",
+  landingTemplateId: "coming-soon-editorial",
+  landingHeadline: "",
+  landingSubheadline: "",
+  landingPhone: "",
+  landingWhatsapp: "",
+  landingHours: "",
+  landingAddress: "",
+  landingCtaLabel: "",
 };
 
 export const DEFAULT_DAILY_AUDIT_SAMPLE_SIZE = 25;
@@ -225,6 +243,7 @@ export function storefrontFromRecord(
     branches,
     String(s?.catalogBranchId ?? "").trim(),
   );
+  const lc = s?.landingContent;
   return {
     enabled: Boolean(s?.enabled),
     catalogBranchId,
@@ -236,6 +255,15 @@ export function storefrontFromRecord(
       name: String(area.name ?? "").trim(),
       active: area.active !== false,
     })),
+    storeThemeId: String(s?.storeThemeId ?? "mart"),
+    landingTemplateId: String(s?.landingTemplateId ?? "coming-soon-editorial"),
+    landingHeadline: String(lc?.headline ?? ""),
+    landingSubheadline: String(lc?.subheadline ?? ""),
+    landingPhone: String(lc?.phone ?? ""),
+    landingWhatsapp: String(lc?.whatsapp ?? ""),
+    landingHours: String(lc?.hours ?? ""),
+    landingAddress: String(lc?.address ?? ""),
+    landingCtaLabel: String(lc?.ctaLabel ?? ""),
   };
 }
 

@@ -12,6 +12,7 @@ import {
 } from "@/lib/branding-color-presets";
 import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { TemplatePicker } from "@/components/storefront/template-picker";
 import {
   BRANCH_COUNT_OPTIONS,
   ONLINE_STORE_OPTIONS,
@@ -29,6 +30,10 @@ import {
   type OnlineStoreChoice,
   type StoreTypeChoice,
 } from "@/lib/onboarding-questionnaire";
+import {
+  DEFAULT_LANDING_TEMPLATE_ID,
+  DEFAULT_STORE_THEME_ID,
+} from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 import type { OnboardingSuggestedPackPreview } from "@/lib/onboarding-suggested-pack";
 
@@ -50,7 +55,7 @@ type Props = {
   onBack: () => void;
   onSkip: () => void;
   canBrowseGlobalCatalog?: boolean;
-  /** Opens the in-flow starter catalogue drawer (Step 6). */
+  /** Opens the in-flow starter catalogue drawer (final stock step). */
   onOpenCatalogDrawer?: () => void;
   onAddProductsManually?: () => void;
   onFinishLater?: () => void;
@@ -233,6 +238,12 @@ export function OnboardingQuestionnaire({
   const [onlineStore, setOnlineStore] = useState<OnlineStoreChoice | "">(
     initialAnswers.onlineStore ?? "yes",
   );
+  const [storeThemeId, setStoreThemeId] = useState(
+    initialAnswers.storeThemeId ?? DEFAULT_STORE_THEME_ID,
+  );
+  const [landingTemplateId, setLandingTemplateId] = useState(
+    initialAnswers.landingTemplateId ?? DEFAULT_LANDING_TEMPLATE_ID,
+  );
   const [displayName, setDisplayName] = useState(() => {
     const saved = initialAnswers.displayName?.trim();
     if (saved) {
@@ -385,6 +396,10 @@ export function OnboardingQuestionnaire({
       case 4:
         return Boolean(onlineStore);
       case 5:
+        return onlineStore === "yes"
+          ? Boolean(storeThemeId)
+          : Boolean(landingTemplateId);
+      case 6:
         return (
           displayName.trim().length > 0 &&
           primaryColor.trim().length > 0 &&
@@ -401,6 +416,8 @@ export function OnboardingQuestionnaire({
     branchSlots,
     storeTypes,
     onlineStore,
+    storeThemeId,
+    landingTemplateId,
     displayName,
     primaryColor,
     accentColor,
@@ -500,6 +517,21 @@ export function OnboardingQuestionnaire({
         onContinue({ onlineStore });
         break;
       case 5:
+        if (onlineStore === "yes") {
+          if (!storeThemeId) return;
+          onContinue({
+            storeThemeId,
+            landingTemplateId: landingTemplateId || DEFAULT_LANDING_TEMPLATE_ID,
+          });
+        } else {
+          if (!landingTemplateId) return;
+          onContinue({
+            landingTemplateId,
+            storeThemeId: storeThemeId || DEFAULT_STORE_THEME_ID,
+          });
+        }
+        break;
+      case 6:
         onContinue(
           {
             displayName: displayName.trim(),
@@ -537,7 +569,7 @@ export function OnboardingQuestionnaire({
 
       <header className="relative z-20 shrink-0 border-b border-[#E8E4DC]/80 bg-[#FBF9F5]/92 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md sm:px-6">
         <div className="mx-auto flex w-full max-w-lg items-center gap-3">
-          {step > 1 && step < 6 ? (
+          {step > 1 && step < QUESTIONNAIRE_STEP_COUNT ? (
             <button
               type="button"
               onClick={onBack}
@@ -566,7 +598,7 @@ export function OnboardingQuestionnaire({
           </div>
           <button
             type="button"
-            onClick={step === 6 ? onFinishLater : onSkip}
+            onClick={step === QUESTIONNAIRE_STEP_COUNT ? onFinishLater : onSkip}
             disabled={submitting}
             className="inline-flex h-10 shrink-0 items-center justify-center px-2 text-xs font-medium text-[#6B7280] transition active:scale-95 disabled:opacity-40 sm:hidden"
           >
@@ -833,6 +865,36 @@ export function OnboardingQuestionnaire({
             {step === 5 ? (
               <>
                 <StepHeading
+                  title={
+                    onlineStore === "yes"
+                      ? "Choose your store theme"
+                      : "Choose your landing page"
+                  }
+                  description={
+                    onlineStore === "yes"
+                      ? "Pick how your online shop looks. You can switch themes later in Settings."
+                      : "Pick a public page for your shop link while you stay in-store only. You can change this later."
+                  }
+                />
+                <TemplatePicker
+                  kind={onlineStore === "yes" ? "store" : "landing"}
+                  value={
+                    onlineStore === "yes" ? storeThemeId : landingTemplateId
+                  }
+                  onChange={(id) => {
+                    if (onlineStore === "yes") {
+                      setStoreThemeId(id);
+                    } else {
+                      setLandingTemplateId(id);
+                    }
+                  }}
+                />
+              </>
+            ) : null}
+
+            {step === 6 ? (
+              <>
+                <StepHeading
                   title="Brand your shop"
                   description="Set your display name and colours. Logo is optional — you can add one later in settings."
                 />
@@ -962,7 +1024,7 @@ export function OnboardingQuestionnaire({
               </>
             ) : null}
 
-            {step === 6 ? (
+            {step === 7 ? (
               <>
                 <StepHeading
                   title={
@@ -1105,7 +1167,7 @@ export function OnboardingQuestionnaire({
 
       <footer className="relative z-20 shrink-0 border-t border-[#E8E4DC]/80 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-6">
         <div className="mx-auto w-full max-w-lg space-y-2.5">
-          {step === 6 ? (
+          {step === QUESTIONNAIRE_STEP_COUNT ? (
             <>
               {canBrowseGlobalCatalog && !catalogShellEmpty ? (
                 <button
@@ -1162,13 +1224,13 @@ export function OnboardingQuestionnaire({
             >
               {submitting
                 ? "Setting up your shop…"
-                : step === 5
+                : step === 6
                   ? "Create my shop"
                   : "Continue"}
             </button>
           )}
 
-          {step === 6 ? (
+          {step === QUESTIONNAIRE_STEP_COUNT ? (
             <div className="hidden justify-end text-sm sm:flex">
               <button
                 type="button"

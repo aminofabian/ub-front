@@ -1,12 +1,10 @@
 import { headers } from "next/headers";
-import { Suspense } from "react";
 
-import { ShopAisleGrid } from "@/components/storefront/shop-aisle-grid";
-import ShopCatalogWithMore from "@/components/storefront/shop-catalog-with-more";
-import { ShopTypeFilters } from "@/components/storefront/shop-type-filters";
-import { ShopHeroMart } from "@/components/storefront/shop-hero-mart";
-import { ShopSidebarWidgets } from "@/components/storefront/shop-sidebar-widgets";
-import { ShopStorefrontComingSoon } from "@/components/storefront/shop-storefront-coming-soon";
+import { StorefrontAnalyticsBeacon } from "@/components/storefront/storefront-analytics-beacon";
+import {
+  resolveLandingPage,
+  resolveStoreHome,
+} from "@/components/storefront/templates/registry";
 import { ShopUnavailable } from "@/components/storefront/shop-unavailable";
 import {
   resolveStorefrontSlug,
@@ -23,6 +21,7 @@ import {
   primaryStorefrontArea,
   resolveStorefrontDeliveryHint,
 } from "@/lib/storefront-seo-defaults";
+import { normalizeStoreThemeId } from "@/lib/storefront-templates";
 
 function isHexColor(value: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(value.trim());
@@ -106,13 +105,24 @@ export async function StorefrontCatalogHome({
       tenant?.branding?.displayName ?? tenant?.tenantName ?? slug;
     const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
     const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
+    const Landing = resolveLandingPage(tenant?.landingTemplateId);
     return (
-      <ShopStorefrontComingSoon
-        storeName={storeName}
-        logoUrl={tenant?.branding?.logoUrl ?? null}
-        primaryHex={isHexColor(primaryRaw) ? primaryRaw : null}
-        accentHex={isHexColor(accentRaw) ? accentRaw : null}
-      />
+      <>
+        <StorefrontAnalyticsBeacon
+          surface="landing"
+          slug={slug}
+          landingTemplateId={tenant?.landingTemplateId}
+          storeThemeId={tenant?.storeThemeId}
+        />
+        <Landing
+          templateId={tenant?.landingTemplateId ?? "coming-soon-editorial"}
+          storeName={storeName}
+          logoUrl={tenant?.branding?.logoUrl ?? null}
+          primaryHex={isHexColor(primaryRaw) ? primaryRaw : null}
+          accentHex={isHexColor(accentRaw) ? accentRaw : null}
+          landingContent={tenant?.landingContent ?? null}
+        />
+      </>
     );
   }
 
@@ -155,66 +165,43 @@ export async function StorefrontCatalogHome({
   const showcaseImage =
     featured[0]?.imageUrl || storefront?.featured?.[0]?.imageUrl || null;
 
+  const themeId = normalizeStoreThemeId(tenant?.storeThemeId);
+  const StoreHome = resolveStoreHome(themeId);
+
   return (
-    <div className="min-w-0">
-      <div className="mx-auto max-w-7xl px-3 pb-16 pt-2 sm:px-6 sm:pb-24 sm:pt-3">
-        <div className="grid gap-4 lg:grid-cols-12 lg:items-start lg:gap-6">
-          {/* Main content */}
-          <main className="min-w-0 space-y-3.5 sm:space-y-4 lg:col-span-9">
-            <ShopHeroMart
-              title={heroTitle}
-              tagline={announcement}
-              branchHint={branchHint}
-              areaLabel={areaLabel}
-              primaryHex={primary}
-              accentHex={accentHex}
-              showcaseImage={showcaseImage}
-              logoUrl={logoUrl}
-              heroBannerUrls={heroBannerUrls}
-            />
-
-            <Suspense fallback={null}>
-              <ShopTypeFilters types={types} primaryHex={primary} />
-            </Suspense>
-
-            <ShopAisleGrid
-              categories={categories}
-              primaryHex={primary}
-              accentHex={accentHex}
-            />
-
-            <section id="shop-catalog" className="scroll-mt-24 pt-1">
-              <ShopCatalogWithMore
-                key={`${q ?? ""}\0${categoryId ?? ""}\0${resolvedTypeId ?? ""}\0${categoryPathSlug ?? ""}`}
-                slug={slug}
-                currency={list.currency}
-                initialItems={catalogItems}
-                initialNextCursor={list.nextCursor}
-                initialTotalCount={list.totalCount ?? undefined}
-                q={q}
-                categoryId={categoryId}
-                typeId={resolvedTypeId}
-                categoryHeading={categoryHeading ?? typeHeading}
-                categoryPathSlug={categoryPathSlug}
-                accentHex={accentHex}
-              />
-            </section>
-          </main>
-
-          {/* Sidebar */}
-          <aside className="hidden lg:col-span-3 lg:block">
-            <div className="lg:sticky lg:top-24">
-              <ShopSidebarWidgets
-                slug={slug}
-                currency={list.currency}
-                featured={featured}
-                primaryHex={primary}
-                accentHex={accentHex}
-              />
-            </div>
-          </aside>
-        </div>
-      </div>
-    </div>
+    <>
+      <StorefrontAnalyticsBeacon
+        surface="store"
+        slug={slug}
+        storeThemeId={themeId}
+        landingTemplateId={tenant?.landingTemplateId}
+      />
+      <StoreHome
+        themeId={themeId}
+        slug={slug}
+        currency={list.currency}
+        catalogItems={catalogItems}
+        nextCursor={list.nextCursor}
+        totalCount={list.totalCount ?? undefined}
+        q={q}
+        categoryId={categoryId}
+        typeId={resolvedTypeId}
+        categoryHeading={categoryHeading ?? typeHeading}
+        categoryPathSlug={categoryPathSlug}
+        categories={categories}
+        types={types}
+        featured={featured}
+        heroTitle={heroTitle}
+        announcement={announcement}
+        branchHint={branchHint}
+        areaLabel={areaLabel}
+        primaryHex={primary}
+        accentHex={accentHex}
+        logoUrl={logoUrl}
+        heroBannerUrls={heroBannerUrls}
+        showcaseImage={showcaseImage}
+        storefront={storefront}
+      />
+    </>
   );
 }

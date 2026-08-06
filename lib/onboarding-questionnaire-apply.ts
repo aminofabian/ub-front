@@ -22,6 +22,12 @@ import {
   labelToItemTypeKey,
 } from "@/lib/item-type-suggestions";
 import { isButcheryBusiness } from "@/lib/business-store-type";
+import {
+  DEFAULT_LANDING_TEMPLATE_ID,
+  DEFAULT_STORE_THEME_ID,
+  normalizeLandingTemplateId,
+  normalizeStoreThemeId,
+} from "@/lib/storefront-templates";
 
 export async function applyOnboardingQuestionnaire(
   answers: OnboardingQuestionnaireAnswers,
@@ -54,11 +60,27 @@ export async function applyOnboardingQuestionnaire(
   const activeBranches = refreshed.filter((b) => b.active);
   const firstBranchId = activeBranches[0]?.id ?? null;
 
+  const storeThemeId = normalizeStoreThemeId(
+    answers.storeThemeId || DEFAULT_STORE_THEME_ID,
+  );
+  const landingTemplateId = normalizeLandingTemplateId(
+    answers.landingTemplateId || DEFAULT_LANDING_TEMPLATE_ID,
+  );
+
   if (answers.onlineStore === "yes" && firstBranchId) {
     await updateBusiness({
       storefront: {
         enabled: true,
         catalogBranchId: firstBranchId,
+        storeThemeId,
+        landingTemplateId,
+      },
+    });
+  } else {
+    await updateBusiness({
+      storefront: {
+        storeThemeId,
+        landingTemplateId,
       },
     });
   }
@@ -116,13 +138,15 @@ export async function applyOnboardingQuestionnaire(
 
   await patchOnboardingState({
     status: "completed",
-    step: 5,
+    step: 6,
     answers: {
       branchCount: answers.branchCount,
       branchLocalities: answers.branchLocalities,
       storeTypes: answers.storeTypes,
       selectedDepartments: answers.selectedDepartments,
       onlineStore: answers.onlineStore,
+      storeThemeId,
+      landingTemplateId,
       displayName: answers.displayName.trim(),
       primaryColor: answers.primaryColor.trim(),
       accentColor: answers.accentColor.trim(),

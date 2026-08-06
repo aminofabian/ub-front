@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { BrandingTemplateSection } from "@/components/business/branding-template-section";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -1300,6 +1301,13 @@ export default function BrandingPage() {
             logoUrl={logoUrl}
             business={snapshot}
             location={seoLocation}
+          />
+
+          <BrandingTemplateSection
+            business={snapshot}
+            onSaved={(next) => {
+              setSnapshot(next);
+            }}
           />
         </div>
       </div>

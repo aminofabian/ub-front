@@ -1,14 +1,14 @@
-import { Suspense } from "react";
-
 import { ShopStorefrontChrome } from "@/components/storefront/shop-storefront-chrome";
 import { ShopStorefrontRealtime } from "@/components/storefront/shop-storefront-realtime";
 import { StorefrontThemeScope } from "@/components/storefront/storefront-theme-scope";
+import { resolveStoreChromeVariant } from "@/components/storefront/templates/registry";
 import {
   fetchPublicCategories,
   fetchPublicStorefront,
   fetchTenantContext,
 } from "@/lib/public-storefront";
 import { resolveStorefrontDeliveryHint } from "@/lib/storefront-seo-defaults";
+import { normalizeStoreThemeId } from "@/lib/storefront-templates";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
 import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
 import { cn } from "@/lib/utils";
@@ -67,9 +67,18 @@ export async function StorefrontShell({
     catalogBranchName: storefront?.catalogBranchName,
   });
   const isComingSoon = Boolean(slug && !storefront);
+  const storeThemeId = normalizeStoreThemeId(tenant?.storeThemeId);
+  const chromeVariant = resolveStoreChromeVariant(storeThemeId);
 
   if (isComingSoon) {
-    return <div className="min-h-screen">{children}</div>;
+    return (
+      <div
+        className="min-h-screen"
+        data-landing-template-id={tenant?.landingTemplateId ?? undefined}
+      >
+        {children}
+      </div>
+    );
   }
 
   return (
@@ -78,6 +87,9 @@ export async function StorefrontShell({
       accentHex={accent}
       className={cn(
         "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[oklch(0.985_0.002_90)] dark:bg-background",
+        chromeVariant === "dark" && "bg-stone-950 dark:bg-stone-950",
+        chromeVariant === "oxide" && "bg-[#EDEAE2] dark:bg-[#EDEAE2]",
+        chromeVariant === "tint-lab" && "bg-[#F6F1EA] dark:bg-[#F6F1EA]",
       )}
     >
       {slug ? (
@@ -90,6 +102,8 @@ export async function StorefrontShell({
           locationHint={locationHint}
           categories={categories}
           deliveryAreas={storefront?.deliveryAreas ?? []}
+          chromeVariant={chromeVariant}
+          storeThemeId={storeThemeId}
         >
           {children}
         </ShopStorefrontChrome>

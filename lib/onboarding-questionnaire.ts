@@ -32,6 +32,10 @@ export type OnboardingQuestionnaireAnswers = {
   /** Department labels the tenant chose (item types). */
   selectedDepartments: string[];
   onlineStore: OnlineStoreChoice;
+  /** Live storefront layout package when onlineStore is yes. */
+  storeThemeId: string;
+  /** Public landing / coming-soon template when store is off. */
+  landingTemplateId: string;
   displayName: string;
   primaryColor: string;
   accentColor: string;
@@ -56,7 +60,8 @@ export type OnboardingQuestionnaireState = {
   updatedAt: string;
 };
 
-export const QUESTIONNAIRE_STEP_COUNT = 6;
+/** Answer steps 1–6 + final stock step 7. */
+export const QUESTIONNAIRE_STEP_COUNT = 7;
 
 export const BRANCH_COUNT_OPTIONS: readonly {
   value: BranchCountChoice;

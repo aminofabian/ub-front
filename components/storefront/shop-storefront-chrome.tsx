@@ -2,13 +2,19 @@
 
 import { ChevronDown, ShoppingBag } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { Suspense, type ReactNode } from "react";
+import { Suspense, type CSSProperties, type ReactNode } from "react";
 
 import { APP_ROUTES } from "@/lib/config";
 
 import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
 import { ShopCheckoutDrawer } from "@/components/storefront/shop-checkout-drawer";
 import { ShopLeadCaptureCard } from "@/components/storefront/shop-lead-capture-card";
+import { OxideHeader } from "@/components/storefront/templates/store/oxide-header";
+import { oxideFontVariables } from "@/components/storefront/templates/store/oxide-fonts";
+import oxideStyles from "@/components/storefront/templates/store/oxide.module.css";
+import { TintLabHeader } from "@/components/storefront/templates/store/tint-lab-header";
+import { tintFontVariables } from "@/components/storefront/templates/store/tint-lab-fonts";
+import tintStyles from "@/components/storefront/templates/store/tint-lab.module.css";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
@@ -106,6 +112,8 @@ export function ShopStorefrontChrome({
   locationHint,
   categories,
   deliveryAreas = [],
+  chromeVariant = "default",
+  storeThemeId,
   children,
 }: {
   slug: string;
@@ -116,22 +124,68 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab";
+  storeThemeId?: string | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
   const compactChrome = useCompactStorefrontChrome();
+  const isOxide = chromeVariant === "oxide";
+  const isTintLab = chromeVariant === "tint-lab";
+  const isCustomChrome = isOxide || isTintLab;
+  const showDefaultChrome = !compactChrome && !isCustomChrome;
+
+  const shellStyle: CSSProperties | undefined = isOxide && accentHex
+    ? ({ ["--oxide-accent" as string]: accentHex } as CSSProperties)
+    : isTintLab && accentHex
+      ? ({ ["--tint-accent" as string]: accentHex } as CSSProperties)
+      : undefined;
 
   return (
     <ShopCartProvider slug={slug}>
-      <div className="storefront-browse flex min-h-0 flex-1 flex-col bg-[var(--storefront-paper)]">
-      {!compactChrome ? (
+      <div
+        data-store-theme-id={storeThemeId ?? undefined}
+        className={cn(
+          "storefront-browse flex min-h-0 flex-1 flex-col",
+          chromeVariant === "dark" &&
+            "bg-stone-950 text-stone-50 [--storefront-paper:theme(colors.stone.950)]",
+          chromeVariant === "soft" &&
+            "bg-rose-50/40 [--storefront-paper:theme(colors.rose.50)]",
+          chromeVariant === "default" && "bg-[var(--storefront-paper)]",
+          isOxide &&
+            cn(
+              oxideStyles.root,
+              oxideStyles.body,
+              oxideFontVariables,
+              "[--storefront-paper:#EDEAE2]",
+            ),
+          isTintLab &&
+            cn(
+              tintStyles.root,
+              tintStyles.body,
+              tintFontVariables,
+              "[--storefront-paper:#F6F1EA]",
+            ),
+        )}
+        style={shellStyle}
+      >
+      {isOxide && !compactChrome ? (
+        <OxideHeader storeName={headerTitle} />
+      ) : null}
+      {isTintLab && !compactChrome ? (
+        <TintLabHeader storeName={headerTitle} />
+      ) : null}
+      {showDefaultChrome ? (
         <>
           <ShopUtilityBar
             slug={slug}
             storeName={headerTitle}
             primaryHex={primaryHex}
             locationHint={locationHint}
-            className="hidden sm:block"
+            className={cn(
+              "hidden sm:block",
+              chromeVariant === "dark" && "border-stone-800 bg-stone-950/95",
+            )}
           />
           <ShopHeaderBar
             slug={slug}
@@ -141,7 +195,7 @@ export function ShopStorefrontChrome({
           />
         </>
       ) : null}
-      {!compactChrome ? (
+      {showDefaultChrome ? (
         <Suspense fallback={<RailFallback />}>
           <ShopCategoryRail
             categories={categories}
@@ -160,14 +214,16 @@ export function ShopStorefrontChrome({
       </div>
       <ShopCartDrawer />
       <ShopCheckoutDrawer />
-      <ShopLeadCaptureCard
-        slug={slug}
-        storeName={headerTitle}
-        deliveryAreas={deliveryAreas}
-        primaryHex={primaryHex}
-        accentHex={accentHex}
-      />
-      <FloatingCartButton accentHex={accentHex} />
+      {!isCustomChrome ? (
+        <ShopLeadCaptureCard
+          slug={slug}
+          storeName={headerTitle}
+          deliveryAreas={deliveryAreas}
+          primaryHex={primaryHex}
+          accentHex={accentHex}
+        />
+      ) : null}
+      {!isCustomChrome ? <FloatingCartButton accentHex={accentHex} /> : null}
       </div>
     </ShopCartProvider>
   );

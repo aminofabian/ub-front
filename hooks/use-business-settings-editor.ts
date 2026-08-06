@@ -329,6 +329,18 @@ export function useBusinessSettingsEditor() {
                 active: area.active,
               }))
               .filter((area) => area.name.length > 0),
+            storeThemeId: storefront.storeThemeId.trim() || "mart",
+            landingTemplateId:
+              storefront.landingTemplateId.trim() || "coming-soon-editorial",
+            landingContent: {
+              headline: storefront.landingHeadline.trim() || null,
+              subheadline: storefront.landingSubheadline.trim() || null,
+              phone: storefront.landingPhone.trim() || null,
+              whatsapp: storefront.landingWhatsapp.trim() || null,
+              hours: storefront.landingHours.trim() || null,
+              address: storefront.landingAddress.trim() || null,
+              ctaLabel: storefront.landingCtaLabel.trim() || null,
+            },
           };
         }
 

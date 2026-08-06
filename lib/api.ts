@@ -750,6 +750,16 @@ export type DeliveryAreaRecord = {
   active: boolean;
 };
 
+export type LandingContentRecord = {
+  headline?: string | null;
+  subheadline?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  hours?: string | null;
+  address?: string | null;
+  ctaLabel?: string | null;
+};
+
 export type StorefrontSettingsRecord = {
   enabled: boolean;
   catalogBranchId?: string | null;
@@ -757,6 +767,9 @@ export type StorefrontSettingsRecord = {
   announcement?: string | null;
   featuredItemIds: string[];
   deliveryAreas?: DeliveryAreaRecord[];
+  storeThemeId?: string | null;
+  landingTemplateId?: string | null;
+  landingContent?: LandingContentRecord | null;
 };
 
 export type BrandingRecord = {
@@ -916,6 +929,9 @@ export type StorefrontPatchPayload = {
   announcement?: string | null;
   featuredItemIds?: string[] | null;
   deliveryAreas?: DeliveryAreaRecord[] | null;
+  storeThemeId?: string | null;
+  landingTemplateId?: string | null;
+  landingContent?: LandingContentRecord | null;
 };
 
 export type StocktakePatchPayload = {
@@ -2482,6 +2498,8 @@ export type OnboardingAnswersRecord = {
   storeTypes?: string[];
   selectedDepartments?: string[];
   onlineStore?: string;
+  storeThemeId?: string;
+  landingTemplateId?: string;
   displayName?: string;
   primaryColor?: string;
   accentColor?: string;

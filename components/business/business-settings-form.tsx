@@ -17,6 +17,8 @@ import {
 
 import { FormDrawerFields } from "@/components/form-drawer";
 import { TrustedTillsPanel } from "@/components/business/trusted-tills-panel";
+import { TemplatePicker } from "@/components/storefront/template-picker";
+import { StorefrontTemplatePreview } from "@/components/storefront/storefront-template-preview";
 import { Button } from "@/components/ui/button";
 import {
   MAX_FEATURED,
@@ -134,6 +136,7 @@ export function BusinessSettingsForm({
   focusStorefrontOnMount,
   /** Profile page only shows identity + storefront. */
   variant = "all",
+  storefrontPreviewUrl,
   onSubmit,
   onCancel,
   onRemoveDeliveryArea,
@@ -158,6 +161,7 @@ export function BusinessSettingsForm({
   storefrontNeedsBranch: boolean;
   focusStorefrontOnMount?: boolean;
   variant?: "profile" | "all";
+  storefrontPreviewUrl?: string | null;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   onRemoveDeliveryArea?: (areaId: string) => void | Promise<void>;
@@ -326,6 +330,82 @@ export function BusinessSettingsForm({
                 />
                 Enable storefront
               </label>
+
+              <div className="space-y-2 sm:col-span-2">
+                <p className={labelClass()}>
+                  {storefront.enabled ? "Store theme" : "Landing page template"}
+                </p>
+                <p className={hintClass()}>
+                  {storefront.enabled
+                    ? "Layout package for your live online shop. Cart and checkout stay the same."
+                    : "Public page shown on your shop link while the storefront is off."}
+                </p>
+                <TemplatePicker
+                  compact
+                  kind={storefront.enabled ? "store" : "landing"}
+                  value={
+                    storefront.enabled
+                      ? storefront.storeThemeId
+                      : storefront.landingTemplateId
+                  }
+                  onChange={(id) =>
+                    setStorefront((s) =>
+                      s.enabled
+                        ? { ...s, storeThemeId: id }
+                        : { ...s, landingTemplateId: id },
+                    )
+                  }
+                />
+                <StorefrontTemplatePreview
+                  kind={storefront.enabled ? "store" : "landing"}
+                  templateId={
+                    storefront.enabled
+                      ? storefront.storeThemeId
+                      : storefront.landingTemplateId
+                  }
+                  previewUrl={storefrontPreviewUrl}
+                />
+              </div>
+
+              {!storefront.enabled ? (
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <p className={labelClass()}>Landing page copy (optional)</p>
+                    <p className={hintClass()}>
+                      Overrides default template text when set.
+                    </p>
+                  </div>
+                  {(
+                    [
+                      ["landingHeadline", "Headline", "sf-land-headline"],
+                      ["landingSubheadline", "Subheadline", "sf-land-sub"],
+                      ["landingHours", "Hours", "sf-land-hours"],
+                      ["landingAddress", "Address", "sf-land-address"],
+                      ["landingPhone", "Phone", "sf-land-phone"],
+                      ["landingWhatsapp", "WhatsApp", "sf-land-wa"],
+                      ["landingCtaLabel", "CTA label", "sf-land-cta"],
+                    ] as const
+                  ).map(([field, label, id]) => (
+                    <div key={field} className="space-y-1.5">
+                      <label className={labelClass()} htmlFor={id}>
+                        {label}
+                      </label>
+                      <input
+                        id={id}
+                        className={inputClass()}
+                        value={storefront[field]}
+                        onChange={(e) =>
+                          setStorefront((s) => ({
+                            ...s,
+                            [field]: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
               <div className="grid gap-2.5 sm:grid-cols-2">
                 <div className="space-y-1.5 sm:col-span-2">
                   <label className={labelClass()} htmlFor="sf-branch">

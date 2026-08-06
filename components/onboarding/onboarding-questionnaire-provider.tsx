@@ -61,6 +61,10 @@ export function useOnboardingQuestionnaire() {
 function isCompleteAnswers(
   answers: Partial<OnboardingQuestionnaireAnswers>,
 ): answers is OnboardingQuestionnaireAnswers {
+  const hasTemplate =
+    answers.onlineStore === "yes"
+      ? Boolean(answers.storeThemeId)
+      : Boolean(answers.landingTemplateId);
   return (
     Boolean(answers.branchCount) &&
     Array.isArray(answers.branchLocalities) &&
@@ -70,6 +74,7 @@ function isCompleteAnswers(
     answers.storeTypes.length > 0 &&
     Array.isArray(answers.selectedDepartments) &&
     Boolean(answers.onlineStore) &&
+    hasTemplate &&
     Boolean(answers.displayName?.trim()) &&
     Boolean(answers.primaryColor?.trim()) &&
     Boolean(answers.accentColor?.trim())
@@ -142,7 +147,7 @@ export function OnboardingQuestionnaireProvider({
   const catalogEligible = isCatalogEligibleStoreTypes(answers.storeTypes);
 
   useEffect(() => {
-    if (step !== 6 || !canGlobalCatalog || !catalogEligible) {
+    if (step !== 7 || !canGlobalCatalog || !catalogEligible) {
       return;
     }
     let cancelled = false;
@@ -275,14 +280,14 @@ export function OnboardingQuestionnaireProvider({
       setAnswers(merged);
       setErrorMessage("");
 
-      if (step < 5) {
+      if (step < 6) {
         const nextStep = step + 1;
         saveQuestionnaireProgress(nextStep, merged);
         setStep(nextStep);
         return;
       }
 
-      if (step === 5) {
+      if (step === 6) {
         if (!isCompleteAnswers(merged)) {
           setErrorMessage("Please complete all steps before finishing.");
           return;
@@ -306,8 +311,8 @@ export function OnboardingQuestionnaireProvider({
           }
           completeOnboardingQuestionnaire(merged);
           if (isCatalogEligibleStoreTypes(merged.storeTypes)) {
-            saveQuestionnaireProgress(6, merged);
-            setStep(6);
+            saveQuestionnaireProgress(7, merged);
+            setStep(7);
           } else {
             setActive(false);
             router.replace(
