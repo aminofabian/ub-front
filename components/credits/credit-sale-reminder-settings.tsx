@@ -276,7 +276,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
             onChange={(e) => setEnabled(e.target.checked)}
             disabled={!canEdit}
           />
-          <span>Send reminders after credit (tab) sales</span>
+          <span>Send receipt after credit (tab) sales (WhatsApp + SMS when configured)</span>
         </label>
 
         <label className="flex items-start gap-2 text-sm">
