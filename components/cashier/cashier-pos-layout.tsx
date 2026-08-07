@@ -111,6 +111,21 @@ const KIOSK_TILE_SHELL = cn(
   "dark:border-border/40 dark:bg-card",
 );
 
+/** Match HID wedge MIN_CODE_LEN — skip plain name searches like "milk". */
+function looksLikeScannedCode(raw: string): boolean {
+  const t = raw.trim();
+  if (t.length < 4) return false;
+  if (/^GI-/i.test(t)) return true;
+  const compact = t.replace(/[\s-]/g, "");
+  if (/^\d{4,}$/.test(compact)) return true;
+  // Compact alphanumeric / SKU codes must include a digit.
+  return (
+    !/\s/.test(t) &&
+    /\d/.test(t) &&
+    /^[A-Za-z0-9._/-]+$/.test(t)
+  );
+}
+
 export type CashierPosShiftLinksProps = {
   branchId: string;
   branchSelected: boolean;
@@ -1657,6 +1672,15 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key !== "Enter") return;
+                // HID scanners type into the focused search box and finish with
+                // Enter. The wedge skips this input, so Enter must drive
+                // scan-to-cart (or grocery invoice lookup) here.
+                const q = e.currentTarget.value.trim();
+                if (scanToCartEnabled && looksLikeScannedCode(q)) {
+                  e.preventDefault();
+                  applyBarcodeSearch(q);
+                  return;
+                }
                 // Select so the next hardware scan replaces this code.
                 window.requestAnimationFrame(() => focusSearch(true));
               }}
