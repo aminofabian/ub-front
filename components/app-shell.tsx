@@ -28,6 +28,7 @@ import {
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
+import { KioskPayHeaderBalance } from "@/components/payments/kiosk-pay-header-balance";
 import { SokoMindGuide } from "@/components/sokomind-guide";
 import { DesktopNavRail } from "@/components/shell/desktop-nav-rail";
 import {
@@ -853,6 +854,12 @@ export function AppShell({ children }: AppShellProps) {
     me?.permissions,
     Permission.PaymentsGatewaysRead,
   );
+  const canWritePaymentGateways = hasPermission(
+    me?.permissions,
+    Permission.PaymentsGatewaysWrite,
+  );
+  const showOwnerKioskPay =
+    isOwner && canViewPaymentGateways;
   const canViewPosDrafts = hasPermission(
     me?.permissions,
     Permission.PosDraftsRead,
@@ -1316,6 +1323,13 @@ export function AppShell({ children }: AppShellProps) {
               pathname={pathname}
               variant="desktop"
             />
+            {showOwnerKioskPay ? (
+              <KioskPayHeaderBalance
+                canWithdraw={canWritePaymentGateways}
+                currencyFallback={business?.currency?.trim() || "KES"}
+                variant="desktop"
+              />
+            ) : null}
             {canReadNotifications ? <NotificationBell /> : null}
             {/* Phase 9: Branch selector — hidden for stock managers, cashiers and grocery clerks who are locked to their assigned branch */}
             {isStockManager || isCashier || isButcherCashier || isGroceryClerk ? (
@@ -1413,6 +1427,15 @@ export function AppShell({ children }: AppShellProps) {
             departmentName={currentItemType?.label ?? ALL_DEPARTMENTS_LABEL}
             userInitial={userInitial}
             canReadNotifications={canReadNotifications}
+            headerTools={
+              showOwnerKioskPay ? (
+                <KioskPayHeaderBalance
+                  canWithdraw={canWritePaymentGateways}
+                  currencyFallback={business?.currency?.trim() || "KES"}
+                  variant="tablet"
+                />
+              ) : null
+            }
             posLinks={headerPosLinks}
             onOpenMore={() => setMoreOpen(true)}
           />

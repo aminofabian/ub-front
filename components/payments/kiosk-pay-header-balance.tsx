@@ -194,25 +194,11 @@ export function KioskPayHeaderBalance({
   };
 
   const chip = (
-    <button
-      type="button"
-      onClick={() => {
-        if (!canWithdraw || !active) return;
-        setWithdrawPhone(account.payoutPhone ?? "");
-        setWithdrawOpen(true);
-      }}
-      disabled={!canWithdraw || !active}
-      title={
-        !active
-          ? "Activate Kiosk Pay in Payments → Settings"
-          : canWithdraw
-            ? "Withdraw to M-Pesa"
-            : "Kiosk Pay balance"
-      }
+    <div
       className={cn(
         variant === "desktop"
-          ? "inline-flex h-8 max-w-[14rem] items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-semibold shadow-sm transition-colors hover:bg-muted/60 disabled:cursor-default disabled:opacity-80"
-          : "tablet-header-tool inline-flex h-full items-center gap-1.5 border-l border-[var(--tablet-header-ink)]/12 px-2.5 text-[11px] font-semibold text-[var(--tablet-header-ink)] transition-colors hover:bg-[var(--tablet-header-ink)]/5 disabled:opacity-70",
+          ? "inline-flex h-8 max-w-[18rem] items-center gap-1.5 rounded-md border bg-background pl-2.5 pr-1 text-xs font-semibold shadow-sm"
+          : "tablet-header-tool inline-flex h-full items-center gap-1.5 border-l border-[var(--tablet-header-ink)]/12 pl-2.5 pr-1 text-[11px] font-semibold text-[var(--tablet-header-ink)]",
         className,
       )}
     >
@@ -223,7 +209,7 @@ export function KioskPayHeaderBalance({
         )}
         aria-hidden
       />
-      <span className="min-w-0 truncate tabular-nums">
+      <span className="min-w-0 truncate tabular-nums" title="Kiosk Pay available">
         {money(available, currency)}
       </span>
       {pending > 0.001 ? (
@@ -234,11 +220,30 @@ export function KioskPayHeaderBalance({
               ? "text-muted-foreground"
               : "text-[var(--tablet-header-ink)]/55",
           )}
+          title="Pending withdraw"
         >
           · {money(pending, currency)} out
         </span>
       ) : null}
-    </button>
+      {canWithdraw && active ? (
+        <Button
+          type="button"
+          size="sm"
+          variant={variant === "desktop" ? "secondary" : "ghost"}
+          className={cn(
+            "h-6 shrink-0 px-2 text-[11px] font-semibold",
+            variant === "tablet" &&
+              "text-[var(--tablet-header-ink)] hover:bg-[var(--tablet-header-ink)]/10",
+          )}
+          onClick={() => {
+            setWithdrawPhone(account.payoutPhone ?? "");
+            setWithdrawOpen(true);
+          }}
+        >
+          Withdraw
+        </Button>
+      ) : null}
+    </div>
   );
 
   return (

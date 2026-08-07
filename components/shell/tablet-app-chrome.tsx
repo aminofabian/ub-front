@@ -146,7 +146,7 @@ type TabletAppHeaderProps = {
   userInitial: string;
   canReadNotifications: boolean;
   /** Optional tools rendered before the notification bell (e.g. Kiosk Pay). */
-  headerTools?: React.ReactNode;
+  headerTools?: ReactNode;
   posLinks?: readonly HeaderPosLink[];
   onOpenMore: () => void;
 };
