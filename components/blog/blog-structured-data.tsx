@@ -67,26 +67,79 @@ export function BlogArticleJsonLd({
   siteUrl: string;
 }) {
   const base = siteUrl.replace(/\/+$/, "");
+  const graph: Record<string, unknown>[] = [
+    {
+      "@type": "BlogPosting",
+      "@id": `${url}#article`,
+      headline: article.title,
+      description: article.description,
+      datePublished: article.publishedAt,
+      dateModified: article.updatedAt,
+      inLanguage: "en-KE",
+      author: {
+        "@type": "Organization",
+        name: article.author,
+        url: base,
+      },
+      publisher: {
+        "@type": "Organization",
+        name: PLATFORM_SITE_NAME,
+        url: base,
+        logo: {
+          "@type": "ImageObject",
+          url: `${base}/icon`,
+        },
+      },
+      mainEntityOfPage: {
+        "@type": "WebPage",
+        "@id": url,
+      },
+      keywords: [...article.tags, ...(article.keywords ?? [])].join(", "),
+      articleSection: article.category,
+      about: {
+        "@type": "Thing",
+        name: "Point of sale systems in Kenya",
+      },
+      isAccessibleForFree: true,
+    },
+  ];
+
+  if (article.faqs && article.faqs.length > 0) {
+    graph.push({
+      "@type": "FAQPage",
+      "@id": `${url}#faq`,
+      mainEntity: article.faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.answer,
+        },
+      })),
+    });
+  }
+
+  if (article.ranking && article.ranking.length > 0) {
+    graph.push({
+      "@type": "ItemList",
+      "@id": `${url}#ranking`,
+      name: article.title,
+      itemListOrder: "https://schema.org/ItemListOrderAscending",
+      numberOfItems: article.ranking.length,
+      itemListElement: article.ranking.map((item) => ({
+        "@type": "ListItem",
+        position: item.position,
+        name: item.name,
+        ...(item.url ? { url: item.url } : {}),
+      })),
+    });
+  }
+
   return (
     <JsonLd
       data={{
         "@context": "https://schema.org",
-        "@type": "BlogPosting",
-        headline: article.title,
-        description: article.description,
-        datePublished: article.publishedAt,
-        dateModified: article.updatedAt,
-        author: {
-          "@type": "Organization",
-          name: article.author,
-        },
-        publisher: {
-          "@type": "Organization",
-          name: PLATFORM_SITE_NAME,
-          url: base,
-        },
-        mainEntityOfPage: url,
-        keywords: article.tags.join(", "),
+        "@graph": graph,
       }}
     />
   );

@@ -1,9 +1,20 @@
-import type { BlogBlock } from "@/lib/blog";
+import Link from "next/link";
+
+import type { BlogBlock, BlogFaq } from "@/lib/blog";
 import { cn } from "@/lib/utils";
 
 type BlogArticleBodyProps = {
   body: BlogBlock[];
+  faqs?: BlogFaq[];
 };
+
+function slugifyHeading(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+}
 
 function calloutLabel(
   tone: "info" | "tip" | "warning" | undefined,
@@ -15,7 +26,7 @@ function calloutLabel(
   return "Note";
 }
 
-export function BlogArticleBody({ body }: BlogArticleBodyProps) {
+export function BlogArticleBody({ body, faqs }: BlogArticleBodyProps) {
   return (
     <div className="blog-article-prose space-y-6">
       {body.map((block, index) => {
@@ -34,7 +45,8 @@ export function BlogArticleBody({ body }: BlogArticleBodyProps) {
             return (
               <h2
                 key={key}
-                className="pt-2 font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-[1.65rem]"
+                id={slugifyHeading(block.text)}
+                className="scroll-mt-28 pt-2 font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-[1.65rem]"
               >
                 {block.text}
               </h2>
@@ -122,10 +134,69 @@ export function BlogArticleBody({ body }: BlogArticleBodyProps) {
                 </table>
               </div>
             );
+          case "links":
+            return (
+              <ul key={key} className="space-y-0 border-t border-[var(--kiosk-border-soft)]">
+                {block.items.map((item) => (
+                  <li
+                    key={item.href}
+                    className="border-b border-[var(--kiosk-border-soft)]"
+                  >
+                    <Link
+                      href={item.href}
+                      className="group flex items-baseline justify-between gap-4 py-3.5 no-underline"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-[15px] font-semibold tracking-[-0.015em] text-[var(--kiosk-text)] transition-colors group-hover:text-[var(--kiosk-gold)]">
+                          {item.label}
+                        </span>
+                        {item.blurb ? (
+                          <span className="mt-1 block text-[13px] leading-[1.5] text-[var(--kiosk-text-soft)]">
+                            {item.blurb}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span
+                        aria-hidden
+                        className="shrink-0 font-mono text-[12px] text-[var(--kiosk-text-faint)] transition-colors group-hover:text-[var(--kiosk-gold)]"
+                      >
+                        →
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            );
           default:
             return null;
         }
       })}
+
+      {faqs && faqs.length > 0 ? (
+        <section className="space-y-4 pt-4" aria-labelledby="article-faq">
+          <h2
+            id="article-faq"
+            className="scroll-mt-28 pt-2 font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-[1.65rem]"
+          >
+            Frequently asked questions
+          </h2>
+          <div className="border-t border-[var(--kiosk-border-soft)]">
+            {faqs.map((faq) => (
+              <details
+                key={faq.question}
+                className="border-b border-[var(--kiosk-border-soft)]"
+              >
+                <summary className="cursor-pointer list-none py-4 text-[15px] font-semibold tracking-[-0.015em] text-[var(--kiosk-text)] [&::-webkit-details-marker]:hidden">
+                  {faq.question}
+                </summary>
+                <p className="pb-4 pr-4 text-[15px] leading-[1.65] text-[var(--kiosk-text-soft)]">
+                  {faq.answer}
+                </p>
+              </details>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

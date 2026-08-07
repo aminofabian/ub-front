@@ -87,12 +87,15 @@ export function BlogArticlePageView({ slug }: { slug: string }) {
                 {article.description}
               </p>
               <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)]">
-                {formatBlogDateLong(article.publishedAt)} · {article.author}
+                {article.updatedAt !== article.publishedAt
+                  ? `Updated ${formatBlogDateLong(article.updatedAt)}`
+                  : formatBlogDateLong(article.publishedAt)}{" "}
+                · {article.author}
                 {article.listedOnly ? " · Coming soon" : ""}
               </p>
 
               <div className="mt-10">
-                <BlogArticleBody body={article.body} />
+                <BlogArticleBody body={article.body} faqs={article.faqs} />
               </div>
 
               <BlogRelated
@@ -102,18 +105,18 @@ export function BlogArticlePageView({ slug }: { slug: string }) {
 
               <section className="mt-14 rounded-2xl border border-[var(--kiosk-border)] bg-[color-mix(in_srgb,var(--kiosk-panel)_70%,var(--kiosk-bg))] px-5 py-8 sm:px-8 sm:py-10">
                 <h2 className="font-heading text-[clamp(22px,4vw,32px)] tracking-[-0.02em] text-[var(--kiosk-text)]">
-                  Ready to sell today?
+                  Ready for a POS built for Kenya?
                 </h2>
                 <p className="mt-3 max-w-xl text-[15px] leading-[1.65] text-[var(--kiosk-text-soft)]">
-                  Claim your shop on Kiosk, sync stock with your counter, and
-                  take M-Pesa without waiting weeks for an ERP rollout.
+                  Start free on Kiosk.ke — barcode POS, native M-Pesa STK,
+                  offline sales, and an online storefront from one stock count.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Link href="/#pricing" className={goldCtaClass}>
-                    Start selling on Kiosk
+                  <Link href="/" className={goldCtaClass}>
+                    Get Kiosk free
                   </Link>
-                  <Link href="/blog" className={ghostCtaClass}>
-                    Back to blog
+                  <Link href="/#pricing" className={ghostCtaClass}>
+                    See POS pricing
                   </Link>
                 </div>
               </section>

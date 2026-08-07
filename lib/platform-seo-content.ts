@@ -69,21 +69,22 @@ export const PLATFORM_GUIDES = [
   {
     title: "Top 10 POS systems in Kenya (2026)",
     href: "/blog/top-10-pos-systems-kenya-2026",
-    blurb: "Ranked on setup speed, native M-Pesa, eTIMS fit, and shop-floor reality.",
+    blurb:
+      "Ranked on setup speed, native M-Pesa, eTIMS fit, and shop-floor reality.",
   },
   {
-    title: "Set up a POS in 30 minutes",
-    href: "/blog/set-up-a-pos-in-30-minutes",
-    blurb: "From signup to first sale — what actually happens on day one.",
+    title: "How to choose a POS in Kenya",
+    href: "/blog/how-to-choose-pos-kenya",
+    blurb: "Checklist for M-Pesa, offline, eTIMS, pricing, and growth.",
   },
   {
-    title: "Why M-Pesa integration matters",
-    href: "/blog/why-m-pesa-integration-matters",
+    title: "POS with M-Pesa in Kenya",
+    href: "/blog/pos-with-mpesa-kenya",
     blurb: "Native STK versus bolt-ons — and what that means at the till.",
   },
   {
-    title: "Grow a mini-mart in Kenya",
-    href: "/blog/how-to-grow-a-mini-mart-in-kenya",
-    blurb: "Stock, systems, and routines that turn one shop into a real business.",
+    title: "Best POS for mini-marts",
+    href: "/blog/best-pos-for-mini-marts-kenya",
+    blurb: "What neighborhood shops should prioritize before buying.",
   },
 ] as const;

@@ -18,6 +18,7 @@ export type {
   BlogArticle,
   BlogArticleRef,
   BlogBlock,
+  BlogFaq,
   BlogPath,
 } from "./types";
 
@@ -114,6 +115,7 @@ export function articleStaticParams() {
 export function allBlogPaths(): BlogPath[] {
   const paths: BlogPath[] = [{ type: "hub", href: "/blog" }];
   for (const article of BLOG_ARTICLES) {
+    if (article.listedOnly) continue;
     paths.push({
       type: "article",
       href: articleHref(article.slug),

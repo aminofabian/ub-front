@@ -21,13 +21,7 @@ export async function generateMetadata({
   if (!article) {
     return { title: "Not found" };
   }
-  return blogArticleMetadata({
-    slug: article.slug,
-    title: article.title,
-    description: article.description,
-    publishedAt: article.publishedAt,
-    updatedAt: article.updatedAt,
-  });
+  return blogArticleMetadata(article);
 }
 
 export default async function BlogArticlePage({ params }: PageProps) {

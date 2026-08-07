@@ -1,6 +1,9 @@
 import { GROW_MINI_MART_PILLAR_SLUG } from "./cluster-grow-mini-mart";
 import { KIOSK_VS_ODOO_PILLAR_SLUG } from "./cluster-kiosk-vs-odoo";
-import { TOP_10_POS_KENYA_PILLAR_SLUG } from "./cluster-top-10-pos-kenya";
+import {
+  TOP_10_POS_KENYA_PILLAR_SLUG,
+  TOP_10_SPOKE_SLUGS,
+} from "./cluster-top-10-pos-kenya";
 import type { BlogArticleRef } from "./types";
 
 export type BlogClusterDef = {
@@ -38,9 +41,9 @@ export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
     title: "Top 10 POS Systems in Kenya",
     shortTitle: "Top 10 Kenya",
     description:
-      "Ranked on setup speed, native M-Pesa, eTIMS compliance, and local shop-floor fit.",
+      "Ranked on setup speed, native M-Pesa, eTIMS readiness, and local shop-floor fit — plus buying guides.",
     pillarSlug: TOP_10_POS_KENYA_PILLAR_SLUG,
-    spokeSlugs: [],
+    spokeSlugs: [...TOP_10_SPOKE_SLUGS],
   },
   {
     id: "kiosk-vs-odoo",

@@ -1,3 +1,8 @@
+export type BlogFaq = {
+  question: string;
+  answer: string;
+};
+
 export type BlogBlock =
   | { type: "paragraph"; text: string }
   | { type: "heading"; text: string }
@@ -7,6 +12,10 @@ export type BlogBlock =
       type: "table";
       headers: string[];
       rows: string[][];
+    }
+  | {
+      type: "links";
+      items: { label: string; href: string; blurb?: string }[];
     };
 
 export type BlogArticle = {
@@ -19,11 +28,17 @@ export type BlogArticle = {
   /** ISO date string YYYY-MM-DD */
   updatedAt: string;
   tags: string[];
+  /** Extra SERP/keyword phrases beyond tags. */
+  keywords?: string[];
   author: string;
   /** Slugs of related posts (pillar + cross-links). */
   relatedSlugs: string[];
   /** When true, listed on the hub but body is a short placeholder. */
   listedOnly?: boolean;
+  /** FAQPage JSON-LD + optional FAQ section at end of article. */
+  faqs?: BlogFaq[];
+  /** Ranked ItemList for comparison / top-N articles. */
+  ranking?: { name: string; position: number; url?: string }[];
   body: BlogBlock[];
 };
 
