@@ -105,7 +105,7 @@ export function KioskPayHeaderBalance({
               pendingBalance: pending ?? 0,
               lifetimeIn: 0,
               lifetimeOut: 0,
-              feePercent: 1,
+              feePercent: 0,
               platformFeePercent: 1,
               storefrontEnabled: true,
               platformEnabled: true,

@@ -129,8 +129,8 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Collect online via Kiosk&apos;s Paystack, or at the cashier via Kiosk Pay
-            STK — funds land in your Kiosk Pay balance. Withdraw to M-Pesa anytime.
-            You can still connect your own Paystack above.
+            STK — funds land in your Kiosk Pay balance (provider fees only). Withdraw to
+            M-Pesa anytime. You can still connect your own Paystack above.
           </p>
         </div>
         <Button
@@ -189,7 +189,7 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
                   {active ? "Active" : "Off"}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  · fee {account?.feePercent ?? 1}%
+                  · provider fees only
                 </span>
               </p>
             </div>

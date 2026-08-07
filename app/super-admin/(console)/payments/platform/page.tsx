@@ -27,7 +27,6 @@ export default function SuperAdminPlatformPaymentsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [kioskSaving, setKioskSaving] = useState(false);
 
-  const [feePercent, setFeePercent] = useState("1");
   const [minWithdraw, setMinWithdraw] = useState("100");
   const [dailyLimit, setDailyLimit] = useState("200000");
   const [paystackEnv, setPaystackEnv] = useState("sandbox");
@@ -48,7 +47,6 @@ export default function SuperAdminPlatformPaymentsPage() {
       ]);
       setGateways(gws);
       setKioskPay(kp);
-      setFeePercent(String(kp.feePercent ?? 1));
       setMinWithdraw(String(kp.minWithdrawAmount ?? 100));
       setDailyLimit(String(kp.dailyWithdrawLimit ?? 200000));
       setPaystackEnv(kp.paystackEnvironment ?? "sandbox");
@@ -87,7 +85,7 @@ export default function SuperAdminPlatformPaymentsPage() {
     try {
       const next = await patchPlatformKioskPaySettings({
         enabled: enabled ?? kioskPay?.enabled,
-        feePercent: Number(feePercent),
+        feePercent: 0,
         minWithdrawAmount: Number(minWithdraw),
         dailyWithdrawLimit: Number(dailyLimit),
         paystackEnvironment: paystackEnv,
@@ -172,15 +170,11 @@ export default function SuperAdminPlatformPaymentsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <label className="space-y-1 text-sm">
-              <span className="text-xs text-muted-foreground">Fee %</span>
-              <input
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                value={feePercent}
-                onChange={(e) => setFeePercent(e.target.value)}
-              />
-            </label>
+          <p className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+            No platform markup. Paystack / KopoKopo processing fees are deducted from
+            the merchant&apos;s Kiosk Pay balance.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1 text-sm">
               <span className="text-xs text-muted-foreground">Min withdraw</span>
               <input

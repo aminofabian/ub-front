@@ -868,7 +868,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             <p className="text-[11px] text-muted-foreground">
                               {kioskPayHint?.trim()
                                 ? kioskPayHint
-                                : "Payment settles to your Kiosk Pay balance (platform fee applies). Withdraw from Payments → Kiosk Pay."}
+                                : "Payment settles to your Kiosk Pay balance (provider fees only). Withdraw from Payments → Kiosk Pay."}
                             </p>
                           ) : null}
                           {stkPushStatus === "failed" ? (
