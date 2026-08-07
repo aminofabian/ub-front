@@ -12,6 +12,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { APP_ROUTES } from "@/lib/config";
+import { isBranchLockedRole } from "@/lib/branch-access";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { usePosEvents } from "@/hooks/use-pos-events";
 import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
@@ -3357,8 +3358,8 @@ export function QuickSaleWorkspace({
   }, [online, posDraftOfflineMirror, cartLocalMirror, carts]);
 
   const canOpenShift = hasPermission(me?.permissions, Permission.ShiftsOpen);
-  const canCloseShift = hasPermission(me?.permissions, Permission.ShiftsClose);
-  const showPosShiftLinks = isCashier && (canOpenShift || canCloseShift);
+  const canCloseShiftPerm = hasPermission(me?.permissions, Permission.ShiftsClose);
+  const showPosShiftLinks = isCashier && (canOpenShift || canCloseShiftPerm);
 
   const [branchOpenShift, setBranchOpenShift] = useState<ShiftRecord | null>(
     null,
@@ -3367,6 +3368,16 @@ export function QuickSaleWorkspace({
   const [openShiftModal, setOpenShiftModal] = useState(false);
   const [closeShiftModal, setCloseShiftModal] = useState(false);
   const [drawoutModal, setDrawoutModal] = useState(false);
+
+  const shiftOpenedByMe =
+    branchOpenShift != null &&
+    !!me?.id &&
+    branchOpenShift.openedBy === me.id;
+  const canCloseThisShift =
+    canCloseShiftPerm &&
+    (!branchOpenShift ||
+      shiftOpenedByMe ||
+      !isBranchLockedRole(me?.role?.key));
 
   const refetchBranchOpenShift = useCallback(() => {
     if (!branchId?.trim() || !online) {
@@ -3553,7 +3564,12 @@ export function QuickSaleWorkspace({
                 hasOpenShift: branchOpenShift != null,
                 shiftLoading: branchShiftLoading,
                 canOpenShift,
-                canCloseShift,
+                canCloseShift: canCloseThisShift,
+                openedByLabel: branchOpenShift
+                  ? branchOpenShift.openedByName ||
+                    (shiftOpenedByMe ? "You" : null)
+                  : null,
+                tillLabel: branchOpenShift?.tillLabel ?? null,
                 onShortcut: onPosShiftShortcut,
               }
             : null

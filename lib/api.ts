@@ -30,7 +30,6 @@ import {
 } from "@/lib/pos-soft-auth";
 import {
   getOrCreateTillDeviceId,
-  peekTillDeviceId,
   TILL_DEVICE_HEADER,
 } from "@/lib/till-device";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
@@ -1292,12 +1291,9 @@ export function buildRequestHeaders(
     headers["X-Tenant-Id"] = tenantId;
   }
 
-  // Till device id: mint on POS shells; otherwise send if already present
-  // (e.g. login-pin after getOrCreate in loginWithPin).
+  // Always mint/send till device id so shifts and sales bind to this register.
   if (typeof window !== "undefined") {
-    const tillId = isPosSoftAuthActive()
-      ? getOrCreateTillDeviceId()
-      : peekTillDeviceId();
+    const tillId = getOrCreateTillDeviceId();
     if (tillId) {
       headers[TILL_DEVICE_HEADER] = tillId;
     }
@@ -6846,6 +6842,8 @@ export type ShiftRecord = {
   openedAt: string;
   closedAt: string | null;
   closeJournalEntryId: string | null;
+  tillDeviceKey?: string | null;
+  tillLabel?: string | null;
   openingDenominations?: DenominationRecord[];
   closingDenominations?: DenominationRecord[];
 };
@@ -6955,6 +6953,8 @@ export type ShiftListItem = {
   variance: number | string | null;
   transactionCount: number;
   totalSales: number | string;
+  registerName?: string | null;
+  shiftNumber?: string | null;
 };
 
 export type ShiftListResponse = {

@@ -1425,39 +1425,73 @@ export default function ShiftsPage() {
   const refreshOpenShift = useCallback(async () => {
     if (!branches.length) return;
 
+    const pickBannerShift = async (branchIds: string[]) => {
+      for (const bid of branchIds) {
+        try {
+          const s = await fetchCurrentShift(bid);
+          if (s.status === "open") {
+            return s;
+          }
+        } catch {
+          // no till/branch-scoped open on this register
+        }
+      }
+      if (isBranchLockedRole) {
+        return null;
+      }
+      // Managers: surface any open shift on the branch (other tills).
+      for (const bid of branchIds) {
+        try {
+          const listed = await fetchShifts({
+            branchId: bid,
+            status: "open",
+            size: 20,
+          });
+          const first = listed.shifts.find((row) => row.status === "open");
+          if (!first) continue;
+          try {
+            return await fetchShiftDetail(first.id);
+          } catch {
+            return {
+              id: first.id,
+              branchId: first.branchId,
+              branchName: first.branchName,
+              status: first.status,
+              openingCash: first.openingFloat,
+              expectedClosingCash: first.expectedCash,
+              countedClosingCash: first.actualCountedCash,
+              closingVariance: first.variance,
+              openingNotes: null,
+              closingNotes: null,
+              varianceReason: null,
+              openedBy: first.cashierId,
+              openedByName: first.cashierName,
+              closedBy: null,
+              closedByName: null,
+              openedAt: first.openedAt,
+              closedAt: first.closedAt,
+              closeJournalEntryId: null,
+              tillLabel: first.registerName ?? null,
+            } satisfies ShiftRecord;
+          }
+        } catch {
+          // continue
+        }
+      }
+      return null;
+    };
+
     if (isBranchLockedRole) {
       const bid = me?.branchId?.trim();
       if (!bid || !branches.some((b) => b.id === bid)) {
         setCurrentOpenShift(null);
         return;
       }
-      try {
-        const s = await fetchCurrentShift(bid);
-        if (s.status === "open") {
-          setCurrentOpenShift(s);
-          return;
-        }
-      } catch {
-        setCurrentOpenShift(null);
-        return;
-      }
-      setCurrentOpenShift(null);
+      setCurrentOpenShift(await pickBannerShift([bid]));
       return;
     }
 
-    // Check first available branch for open shift
-    for (const b of branches) {
-      try {
-        const s = await fetchCurrentShift(b.id);
-        if (s.status === "open") {
-          setCurrentOpenShift(s);
-          return;
-        }
-      } catch {
-        // no open shift for this branch, continue
-      }
-    }
-    setCurrentOpenShift(null);
+    setCurrentOpenShift(await pickBannerShift(branches.map((b) => b.id)));
   }, [branches, isBranchLockedRole, me?.branchId]);
 
   useEffect(() => {
@@ -1662,7 +1696,7 @@ export default function ShiftsPage() {
             <p className="text-sm font-semibold text-foreground">
               {currentOpenShift.openedByName || "Cashier"}
               <span className="font-normal text-muted-foreground"> at </span>
-              {currentOpenShift.branchName}
+              {currentOpenShift.tillLabel || currentOpenShift.branchName}
             </p>
           </span>
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
