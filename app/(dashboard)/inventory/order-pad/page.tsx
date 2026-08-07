@@ -1,14 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ClipboardList, Loader2, Plus, Trash2 } from "lucide-react";
+import { ClipboardList, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import {
-  DASHBOARD_MAX,
   DashboardAccessDenied,
   DashboardFeedback,
-  DashboardPageHero,
-  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { OrderPadDrawer } from "@/components/order-pad/order-pad-drawer";
 import { Button } from "@/components/ui/button";
@@ -25,6 +22,20 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
+import {
+  supFieldLabel,
+  supFilterRail,
+  supSelect,
+} from "../../suppliers/_components/supplier-ui-tokens";
+
+type FilterKey = "pending" | "ordered" | "all";
+
+const FILTERS: { id: FilterKey; label: string }[] = [
+  { id: "pending", label: "Pending" },
+  { id: "ordered", label: "Ordered" },
+  { id: "all", label: "All" },
+];
+
 function formatQty(v: number | string | null | undefined): string {
   if (v == null || v === "") return "—";
   const n = typeof v === "number" ? v : Number(v);
@@ -33,9 +44,20 @@ function formatQty(v: number | string | null | undefined): string {
 }
 
 function formatWhen(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "";
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (sameDay) {
+    return d.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
   return d.toLocaleString(undefined, {
     month: "short",
     day: "numeric",
@@ -52,7 +74,7 @@ export default function OrderPadPage() {
 
   const [branchId, setBranchId] = useState("");
   const [branches, setBranches] = useState<BranchRecord[]>([]);
-  const [filter, setFilter] = useState<"pending" | "ordered" | "all">("pending");
+  const [filter, setFilter] = useState<FilterKey>("pending");
   const [rows, setRows] = useState<OrderPadItemRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,6 +162,12 @@ export default function OrderPadPage() {
     }
   };
 
+  const activeBranchName =
+    branches.find((b) => b.id === branchId)?.name?.trim() || "";
+
+  const pendingCount = rows.filter((r) => !r.ordered).length;
+  const orderedCount = rows.filter((r) => r.ordered).length;
+
   if (!canRead) {
     return (
       <DashboardAccessDenied
@@ -149,118 +177,174 @@ export default function OrderPadPage() {
     );
   }
 
-  const pendingCount = rows.filter((r) => !r.ordered).length;
-  const orderedCount = rows.filter((r) => r.ordered).length;
-
   return (
-    <div className={cn(DASHBOARD_MAX, "mx-auto space-y-4 px-4 pb-12 pt-4")}>
-      <DashboardPageHero
-        icon={ClipboardList}
-        eyebrow="Inventory"
-        title="Order pad"
-        description="Items cashiers and stock managers flagged to order. Admins check off what has already been ordered."
-      >
-        {canWrite ? (
+    <div className="mx-auto w-full max-w-lg">
+      <div className="overflow-hidden border border-border bg-card">
+        {/* Compact header */}
+        <header className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
+          <ClipboardList
+            className="size-3.5 shrink-0 text-muted-foreground"
+            aria-hidden
+          />
+          <h1 className="min-w-0 flex-1 truncate text-sm font-bold leading-none tracking-tight">
+            Order pad
+          </h1>
           <Button
             type="button"
-            className="rounded-none"
-            onClick={() => setDrawerOpen(true)}
+            variant="outline"
+            size="sm"
+            className="h-7 shrink-0 gap-1 rounded-none px-2 text-[11px] font-medium"
+            disabled={loading || !branchId}
+            onClick={() => void load()}
+            aria-label="Refresh order pad"
           >
-            <Plus className="size-4" aria-hidden />
-            Add items
+            <RefreshCw
+              className={cn("size-3", loading && "animate-spin")}
+              aria-hidden
+            />
           </Button>
-        ) : null}
-      </DashboardPageHero>
-
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex min-w-[12rem] flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Branch</span>
-          <select
-            className={cn(dashboardSelectClass, "rounded-none")}
-            value={branchId}
-            disabled={branchLocked}
-            onChange={(e) => setBranchId(e.target.value)}
-          >
-            <option value="">Select branch</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex min-w-[10rem] flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Show</span>
-          <select
-            className={cn(dashboardSelectClass, "rounded-none")}
-            value={filter}
-            onChange={(e) =>
-              setFilter(e.target.value as "pending" | "ordered" | "all")
-            }
-          >
-            <option value="pending">Not ordered yet</option>
-            <option value="ordered">Already ordered</option>
-            <option value="all">Everything</option>
-          </select>
-        </label>
-        <Button
-          type="button"
-          variant="outline"
-          className="rounded-none"
-          onClick={() => void load()}
-          disabled={loading || !branchId}
-        >
-          Refresh
-        </Button>
-      </div>
-
-      {error ? <DashboardFeedback kind="error" text={error} /> : null}
-
-      {!branchId ? (
-        <p className="border border-dashed border-border/70 px-4 py-8 text-sm text-muted-foreground">
-          Choose a branch to see the order pad.
-        </p>
-      ) : loading ? (
-        <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-          Loading…
-        </div>
-      ) : rows.length === 0 ? (
-        <div className="border border-dashed border-border/70 px-4 py-10 text-center">
-          <ClipboardList className="mx-auto size-8 text-muted-foreground/50" aria-hidden />
-          <p className="mt-3 text-sm font-medium">No items on this view</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {canWrite
-              ? "Use Add items to put products on the pad."
-              : "Staff will add items from the till or stock screens."}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filter === "all" ? (
-            <p className="text-xs text-muted-foreground">
-              {pendingCount} waiting · {orderedCount} ordered
-            </p>
+          {canWrite ? (
+            <Button
+              type="button"
+              size="sm"
+              className="h-7 shrink-0 gap-1 rounded-none px-2.5 text-[11px] font-medium"
+              onClick={() => setDrawerOpen(true)}
+            >
+              <Plus className="size-3" aria-hidden />
+              Add
+            </Button>
           ) : null}
-          <ul className="divide-y divide-border/70 border border-border/70">
+        </header>
+
+        {/* Filters */}
+        <div className={cn(supFilterRail, "flex-col items-stretch gap-1.5 !py-1.5")}>
+          <div className="flex items-center gap-1.5">
+            {!branchLocked ? (
+              <label className="min-w-0 flex-1">
+                <span className={cn(supFieldLabel, "sr-only")}>Branch</span>
+                <select
+                  className={cn(
+                    supSelect,
+                    "h-8 w-full bg-background py-0 text-xs",
+                  )}
+                  value={branchId}
+                  onChange={(e) => setBranchId(e.target.value)}
+                  aria-label="Branch"
+                >
+                  <option value="">Branch…</option>
+                  {branches
+                    .filter((b) => b.active || b.id === branchId)
+                    .map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ) : activeBranchName ? (
+              <span className="min-w-0 flex-1 truncate px-0.5 text-[11px] text-muted-foreground">
+                {activeBranchName}
+              </span>
+            ) : null}
+
+            {branchId && !loading ? (
+              <span className="shrink-0 border border-border bg-background px-1.5 py-1 text-[10px] font-medium tabular-nums text-muted-foreground">
+                {rows.length}
+              </span>
+            ) : null}
+          </div>
+
+          <div
+            className="grid grid-cols-3 border border-border bg-background"
+            role="tablist"
+            aria-label="Order status"
+          >
+            {FILTERS.map((tab) => {
+              const active = filter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setFilter(tab.id)}
+                  className={cn(
+                    "h-8 touch-manipulation text-[11px] font-semibold transition-colors",
+                    "border-r border-border last:border-r-0",
+                    active
+                      ? "bg-foreground text-background"
+                      : "bg-transparent text-muted-foreground active:bg-muted/60",
+                  )}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {error ? (
+          <div className="border-b border-border px-2.5 py-1.5">
+            <DashboardFeedback kind="error" text={error} />
+          </div>
+        ) : null}
+
+        {filter === "all" && rows.length > 0 ? (
+          <p className="border-b border-border bg-muted/15 px-2.5 py-1 text-[10px] tabular-nums text-muted-foreground">
+            {pendingCount} pending · {orderedCount} ordered
+          </p>
+        ) : null}
+
+        {/* List */}
+        {!branchId ? (
+          <div className="px-3 py-8 text-center">
+            <p className="text-xs text-muted-foreground">
+              Choose a branch to see the order pad.
+            </p>
+          </div>
+        ) : loading ? (
+          <div className="flex items-center justify-center gap-1.5 py-8 text-xs text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            Loading…
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="px-3 py-8 text-center">
+            <ClipboardList
+              className="mx-auto size-6 text-muted-foreground/40"
+              aria-hidden
+            />
+            <p className="mt-2 text-xs font-medium">Nothing here</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              {canWrite
+                ? "Tap Add to put products on the pad."
+                : "Staff add items from the till or stock screens."}
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-border">
             {rows.map((row) => {
               const busy = busyId === row.id;
+              const when = formatWhen(row.createdAt);
+              const canRemove = canManage || (canWrite && !row.ordered);
+
               return (
                 <li
                   key={row.id}
                   className={cn(
-                    "flex items-start gap-3 px-3 py-3 sm:px-4",
-                    row.ordered && "bg-muted/25",
+                    "flex items-center gap-2 px-2 py-1.5",
+                    row.ordered && "bg-muted/20",
                   )}
                 >
                   {canManage ? (
-                    <label className="mt-0.5 flex shrink-0 cursor-pointer items-start gap-2">
+                    <label className="flex size-9 shrink-0 cursor-pointer touch-manipulation items-center justify-center">
                       <input
                         type="checkbox"
-                        className="mt-0.5 size-4 accent-foreground"
+                        className="size-[18px] accent-foreground"
                         checked={row.ordered}
                         disabled={busy}
-                        onChange={(e) => void toggleOrdered(row, e.target.checked)}
+                        onChange={(e) =>
+                          void toggleOrdered(row, e.target.checked)
+                        }
                         aria-label={
                           row.ordered
                             ? `Mark ${row.itemName} as not ordered`
@@ -271,7 +355,7 @@ export default function OrderPadPage() {
                   ) : (
                     <span
                       className={cn(
-                        "mt-1 size-2.5 shrink-0 rounded-full",
+                        "ml-2 mr-1 size-2 shrink-0 rounded-full",
                         row.ordered ? "bg-emerald-600" : "bg-amber-500",
                       )}
                       aria-hidden
@@ -279,54 +363,50 @@ export default function OrderPadPage() {
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <p
-                      className={cn(
-                        "font-medium leading-snug",
-                        row.ordered && "text-muted-foreground line-through",
-                      )}
-                    >
-                      {row.itemName}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Qty {formatQty(row.quantity)}
-                      {row.itemId ? " · Catalog" : " · Free text"}
-                      {" · "}
-                      {row.createdByName}
-                      {" · "}
-                      {formatWhen(row.createdAt)}
-                    </p>
-                    {row.note ? (
-                      <p className="mt-1 text-xs text-muted-foreground">{row.note}</p>
-                    ) : null}
-                    {row.ordered && row.orderedByName ? (
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        Ordered by {row.orderedByName}
-                        {row.orderedAt ? ` · ${formatWhen(row.orderedAt)}` : ""}
+                    <div className="flex items-baseline gap-1.5">
+                      <p
+                        className={cn(
+                          "min-w-0 truncate text-[13px] font-medium leading-tight",
+                          row.ordered && "text-muted-foreground line-through",
+                        )}
+                      >
+                        {row.itemName}
                       </p>
-                    ) : null}
+                      <span className="shrink-0 text-[11px] font-semibold tabular-nums text-foreground">
+                        ×{formatQty(row.quantity)}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate text-[10px] leading-none text-muted-foreground">
+                      {row.createdByName}
+                      {when ? ` · ${when}` : ""}
+                      {row.note ? ` · ${row.note}` : ""}
+                      {row.ordered && row.orderedByName
+                        ? ` · ✓ ${row.orderedByName}`
+                        : ""}
+                    </p>
                   </div>
 
-                  {(canManage || (canWrite && !row.ordered)) && (
+                  {canRemove ? (
                     <button
                       type="button"
-                      className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive disabled:opacity-50"
+                      className="flex size-9 shrink-0 touch-manipulation items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-50"
                       disabled={busy}
                       aria-label={`Remove ${row.itemName}`}
                       onClick={() => void removeRow(row)}
                     >
                       {busy ? (
-                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                        <Loader2 className="size-3.5 animate-spin" aria-hidden />
                       ) : (
-                        <Trash2 className="size-4" aria-hidden />
+                        <Trash2 className="size-3.5" aria-hidden />
                       )}
                     </button>
-                  )}
+                  ) : null}
                 </li>
               );
             })}
           </ul>
-        </div>
-      )}
+        )}
+      </div>
 
       {canWrite ? (
         <OrderPadDrawer

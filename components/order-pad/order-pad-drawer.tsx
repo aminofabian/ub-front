@@ -35,7 +35,7 @@ function formatQty(v: number | string | null | undefined): string {
 }
 
 const cellClass = cn(
-  "h-9 w-full border-0 bg-transparent px-2.5 text-sm outline-none",
+  "h-8 w-full border-0 bg-transparent px-2 text-[13px] outline-none",
   "placeholder:text-muted-foreground/55",
   "focus:bg-primary/[0.04] focus:ring-1 focus:ring-inset focus:ring-primary/30",
 );
@@ -163,8 +163,8 @@ export function OrderPadDrawer({
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Items to order"
-      description="Name and quantity — one row per item."
+      title="Add to order"
+      description="One row per item."
       contextLabel="Order pad"
       icon={<ClipboardList className="size-4" aria-hidden />}
       width="default"
@@ -202,24 +202,24 @@ export function OrderPadDrawer({
         ) : null
       }
     >
-      <div className="space-y-5">
+      <div className="space-y-3">
         {canWrite ? (
           <div ref={sheetRef} className="border border-border">
             <div
               className={cn(
-                "grid grid-cols-[minmax(0,1fr)_4.5rem_2rem] border-b border-border bg-muted/40",
-                "text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+                "grid grid-cols-[minmax(0,1fr)_3.75rem_1.75rem] border-b border-border bg-muted/40",
+                "text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
               )}
             >
-              <span className="px-2.5 py-1.5">Item</span>
-              <span className="border-l border-border px-2.5 py-1.5 text-right">Qty</span>
+              <span className="px-2 py-1">Item</span>
+              <span className="border-l border-border px-2 py-1 text-right">Qty</span>
               <span className="border-l border-border" aria-hidden />
             </div>
 
             {lines.map((line, index) => (
               <div
                 key={line.key}
-                className="grid grid-cols-[minmax(0,1fr)_4.5rem_2rem] border-t border-border"
+                className="grid grid-cols-[minmax(0,1fr)_3.75rem_1.75rem] border-t border-border"
               >
                 <input
                   data-order-pad-name="1"
@@ -268,8 +268,8 @@ export function OrderPadDrawer({
               type="button"
               onClick={addLine}
               className={cn(
-                "flex w-full items-center gap-1.5 border-t border-border px-2.5 py-2",
-                "text-xs font-medium text-muted-foreground",
+                "flex w-full items-center gap-1.5 border-t border-border px-2 py-1.5",
+                "text-[11px] font-medium text-muted-foreground",
                 "hover:bg-muted/40 hover:text-foreground",
               )}
             >
@@ -280,50 +280,50 @@ export function OrderPadDrawer({
         ) : null}
 
         <section>
-          <div className="mb-1.5 flex items-baseline justify-between gap-2">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+          <div className="mb-1 flex items-baseline justify-between gap-2">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
               On the list
             </h3>
             {!existingLoading ? (
-              <span className="text-xs tabular-nums text-muted-foreground">
+              <span className="text-[10px] tabular-nums text-muted-foreground">
                 {existing.length}
               </span>
             ) : null}
           </div>
 
           {existingLoading ? (
-            <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 py-2 text-[11px] text-muted-foreground">
               <Loader2 className="size-3.5 animate-spin" aria-hidden />
               Loading…
             </div>
           ) : existing.length === 0 ? (
-            <p className="border border-dashed border-border/70 px-2.5 py-3 text-xs text-muted-foreground">
+            <p className="border border-dashed border-border/70 px-2 py-2 text-[11px] text-muted-foreground">
               Empty — fill rows above and save.
             </p>
           ) : (
             <div className="border border-border">
               <div
                 className={cn(
-                  "grid grid-cols-[minmax(0,1fr)_4.5rem_2rem] border-b border-border bg-muted/40",
-                  "text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+                  "grid grid-cols-[minmax(0,1fr)_3.75rem_1.75rem] border-b border-border bg-muted/40",
+                  "text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
                 )}
               >
-                <span className="px-2.5 py-1.5">Item</span>
-                <span className="border-l border-border px-2.5 py-1.5 text-right">Qty</span>
+                <span className="px-2 py-1">Item</span>
+                <span className="border-l border-border px-2 py-1 text-right">Qty</span>
                 <span className="border-l border-border" aria-hidden />
               </div>
               {existing.map((row) => (
                 <div
                   key={row.id}
-                  className="grid grid-cols-[minmax(0,1fr)_4.5rem_2rem] border-t border-border first:border-t-0"
+                  className="grid grid-cols-[minmax(0,1fr)_3.75rem_1.75rem] border-t border-border first:border-t-0"
                 >
-                  <div className="min-w-0 px-2.5 py-2">
-                    <p className="truncate text-sm leading-tight">{row.itemName}</p>
+                  <div className="min-w-0 px-2 py-1.5">
+                    <p className="truncate text-[13px] leading-tight">{row.itemName}</p>
                     <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
                       {row.createdByName}
                     </p>
                   </div>
-                  <div className="flex items-center justify-end border-l border-border px-2.5 text-sm tabular-nums">
+                  <div className="flex items-center justify-end border-l border-border px-2 text-[13px] tabular-nums">
                     {formatQty(row.quantity) || "—"}
                   </div>
                   <div className="flex items-center justify-center border-l border-border">
