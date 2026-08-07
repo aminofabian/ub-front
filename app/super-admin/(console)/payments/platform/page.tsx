@@ -83,8 +83,22 @@ export default function SuperAdminPlatformPaymentsPage() {
     <div className="space-y-8">
       <SuperAdminPageHeader
         title="Payment gateways"
-        description="Platform-wide switches for checkout. Tenants inherit enabled methods based on your configuration here."
+        description="Platform-wide on/off switches. API keys are not entered here — each business connects their own credentials under Payments → Settings."
       />
+
+      <Card className="border-border/70 bg-muted/20 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="font-heading text-base">How this works</CardTitle>
+          <CardDescription className="text-sm leading-relaxed">
+            <span className="font-medium text-foreground">1.</span> Enable a provider here
+            (e.g. Paystack).{" "}
+            <span className="font-medium text-foreground">2.</span> In a business dashboard,
+            go to <span className="font-medium text-foreground">Payments → Settings</span>,
+            add that provider, and paste their public/secret keys. Money settles to each
+            business&apos;s own merchant account — not the platform&apos;s.
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {gateways.map((gw) => (
@@ -111,6 +125,13 @@ export default function SuperAdminPlatformPaymentsPage() {
               </div>
               {gw.description ? (
                 <CardDescription className="line-clamp-3">{gw.description}</CardDescription>
+              ) : null}
+              {gw.gatewayType === "PAYSTACK" ? (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {gw.isEnabled
+                    ? "Enabled — tenants can connect Paystack keys in Payments → Settings."
+                    : "Enable to let tenants connect their own Paystack keys (cards, bank, mobile money)."}
+                </p>
               ) : null}
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground tabular-nums">
