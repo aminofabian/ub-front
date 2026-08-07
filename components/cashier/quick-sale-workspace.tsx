@@ -381,6 +381,7 @@ export function QuickSaleWorkspace({
   const [voidLoading, setVoidLoading] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [kioskPayAvailable, setKioskPayAvailable] = useState(false);
+  const [kioskPayHint, setKioskPayHint] = useState<string | null>(null);
   const [outboxCount, setOutboxCount] = useState(0);
   const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
   const [pendingSalesRefreshKey, setPendingSalesRefreshKey] = useState(0);
@@ -413,6 +414,7 @@ export function QuickSaleWorkspace({
   useEffect(() => {
     if (!online || !business?.id) {
       setKioskPayAvailable(false);
+      setKioskPayHint(null);
       return;
     }
     let cancelled = false;
@@ -420,13 +422,18 @@ export function QuickSaleWorkspace({
       try {
         const { fetchKioskPayPosAvailability } = await import("@/lib/api");
         const avail = await fetchKioskPayPosAvailability();
-        if (!cancelled) {
-          setKioskPayAvailable(Boolean(avail?.available));
-        }
+        if (cancelled) return;
+        setKioskPayAvailable(Boolean(avail?.available));
+        setKioskPayHint(
+          typeof avail?.reason === "string" && avail.reason.trim()
+            ? avail.reason.trim()
+            : null,
+        );
       } catch {
-        if (!cancelled) {
-          setKioskPayAvailable(false);
-        }
+        if (cancelled) return;
+        // Older backends may lack /pos — still show the tender; push validates.
+        setKioskPayAvailable(true);
+        setKioskPayHint(null);
       }
     })();
     return () => {
@@ -3684,6 +3691,7 @@ export function QuickSaleWorkspace({
           payMethod,
           setPayMethod,
           kioskPayAvailable,
+          kioskPayHint,
           mpesaRef,
           setMpesaRef,
           splitPay,

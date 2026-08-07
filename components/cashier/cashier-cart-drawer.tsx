@@ -119,8 +119,10 @@ export type CashierCartDrawerProps = {
 
   payMethod: SalePaymentMethod | "remote_bill" | "kiosk_pay";
   setPayMethod: (m: SalePaymentMethod | "remote_bill" | "kiosk_pay") => void;
-  /** Show Kiosk Pay tender (platform custody STK). */
+  /** Show Kiosk Pay tender (platform custody STK). Kept for status hints; tile always shows on web. */
   kioskPayAvailable?: boolean;
+  /** Optional setup hint when Kiosk Pay STK is not fully ready. */
+  kioskPayHint?: string | null;
   mpesaRef: string;
   setMpesaRef: (s: string) => void;
   splitPay: boolean;
@@ -280,7 +282,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onToggleWeighed,
     payMethod,
     setPayMethod,
-    kioskPayAvailable = false,
+    kioskPayHint = null,
     mpesaRef,
     setSplitPay,
     splitPay,
@@ -671,7 +673,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           hint="Your till STK"
                         />
                       ) : null}
-                      {!IS_DESKTOP && kioskPayAvailable ? (
+                      {!IS_DESKTOP ? (
                         <PayMethodTile
                           active={payMethod === "kiosk_pay"}
                           onClick={() => setPayMethod("kiosk_pay")}
@@ -850,8 +852,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           ) : null}
                           {payMethod === "kiosk_pay" ? (
                             <p className="text-[11px] text-muted-foreground">
-                              Payment settles to your Kiosk Pay balance (platform
-                              fee applies). Withdraw from Payments → Kiosk Pay.
+                              {kioskPayHint?.trim()
+                                ? kioskPayHint
+                                : "Payment settles to your Kiosk Pay balance (platform fee applies). Withdraw from Payments → Kiosk Pay."}
                             </p>
                           ) : null}
                           {stkPushStatus === "failed" ? (

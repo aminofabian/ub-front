@@ -9678,7 +9678,11 @@ export async function requestKioskPayWithdraw(body: {
 
 export type KioskPayPosAvailabilityRecord = {
   available: boolean;
+  platformEnabled?: boolean;
+  accountActive?: boolean;
+  stkConfigured?: boolean;
   currency: string;
+  reason?: string | null;
 };
 
 /** Cashier: whether to show the Kiosk Pay tender. */
