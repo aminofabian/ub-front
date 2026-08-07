@@ -153,7 +153,7 @@ import {
 } from "@/lib/pos-draft-store";
 
 function payMethodNeedsCustomer(
-  method: SalePaymentMethod | "remote_bill",
+  method: SalePaymentMethod | "remote_bill" | "kiosk_pay",
 ): boolean {
   return (
     method === "customer_credit" ||
@@ -161,6 +161,12 @@ function payMethodNeedsCustomer(
     method === "loyalty_redeem" ||
     method === "remote_bill"
   );
+}
+
+function isStkTender(
+  method: SalePaymentMethod | "remote_bill" | "kiosk_pay",
+): boolean {
+  return method === "mpesa_manual" || method === "kiosk_pay";
 }
 
 /** Attach customer whenever selected — including optional M-Pesa / cash links. */
@@ -374,6 +380,7 @@ export function QuickSaleWorkspace({
   const [loading, setLoading] = useState(false);
   const [voidLoading, setVoidLoading] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(false);
+  const [kioskPayAvailable, setKioskPayAvailable] = useState(false);
   const [outboxCount, setOutboxCount] = useState(0);
   const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
   const [pendingSalesRefreshKey, setPendingSalesRefreshKey] = useState(0);
@@ -402,6 +409,30 @@ export function QuickSaleWorkspace({
   useEffect(() => {
     setActiveCartId((current) => pickActiveCartId(carts, current));
   }, [carts]);
+
+  useEffect(() => {
+    if (!online || !business?.id) {
+      setKioskPayAvailable(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { fetchKioskPayPosAvailability } = await import("@/lib/api");
+        const avail = await fetchKioskPayPosAvailability();
+        if (!cancelled) {
+          setKioskPayAvailable(Boolean(avail?.available));
+        }
+      } catch {
+        if (!cancelled) {
+          setKioskPayAvailable(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [online, business?.id]);
 
   /** Update the active cart in-place within the carts array. */
   const updateActiveCart = useCallback(
@@ -771,14 +802,15 @@ export function QuickSaleWorkspace({
     (checkoutId: string, receipt: string) => {
       notifyStkPaymentConfirmed(checkoutId);
       // Till/STK verify wins even if Cash (or another method) was still selected —
-      // switch to M-Pesa so auto-complete records the sale against the receipt.
-      updateActiveCart({
-        payMethod: "mpesa_manual",
+      // switch to an STK tender so auto-complete records the sale against the receipt.
+      updateActiveCart((prev) => ({
+        ...prev,
+        payMethod: prev.payMethod === "kiosk_pay" ? "kiosk_pay" : "mpesa_manual",
         splitPay: false,
         stkPushStatus: "confirmed",
         stkPushError: "",
         mpesaRef: receipt,
-      });
+      }));
     },
     [notifyStkPaymentConfirmed, updateActiveCart],
   );
@@ -815,7 +847,8 @@ export function QuickSaleWorkspace({
   });
 
   const setPayMethod = useCallback(
-    (m: SalePaymentMethod | "remote_bill") => updateActiveCart({ payMethod: m }),
+    (m: SalePaymentMethod | "remote_bill" | "kiosk_pay") =>
+      updateActiveCart({ payMethod: m }),
     [updateActiveCart],
   );
   const setMpesaRef = useCallback(
@@ -2201,11 +2234,21 @@ export function QuickSaleWorkspace({
       });
       try {
         const { nextIdempotencyKey } = await import("@/lib/idempotency-key");
-        const { initiatePosStkPush } = await import("@/lib/api");
-        const result = await initiatePosStkPush(
-          { phoneNumber, amount: grandTotal, description: "POS sale" },
-          nextIdempotencyKey(),
-        );
+        const useKioskPay = payMethod === "kiosk_pay";
+        const api = await import("@/lib/api");
+        const result = useKioskPay
+          ? await api.initiateKioskPayPosStkPush(
+              {
+                phoneNumber,
+                amount: grandTotal,
+                description: "Kiosk Pay POS sale",
+              },
+              nextIdempotencyKey(),
+            )
+          : await api.initiatePosStkPush(
+              { phoneNumber, amount: grandTotal, description: "POS sale" },
+              nextIdempotencyKey(),
+            );
         if (!result.accepted || !result.checkoutRequestId) {
           throw new Error(result.message || "STK Push declined");
         }
@@ -2223,7 +2266,7 @@ export function QuickSaleWorkspace({
         });
       }
     },
-    [online, grandTotal, linkStkPhoneInBackground, updateActiveCart],
+    [online, grandTotal, linkStkPhoneInBackground, updateActiveCart, payMethod],
   );
 
   useEffect(() => {
@@ -2629,7 +2672,7 @@ export function QuickSaleWorkspace({
     let linkedCustomer = selectedCustomer;
     if (
       !splitPay &&
-      payMethod === "mpesa_manual" &&
+      isStkTender(payMethod) &&
       !linkedCustomer &&
       online &&
       isStkPhoneValid(stkAreaCode, stkPhone)
@@ -2733,11 +2776,13 @@ export function QuickSaleWorkspace({
     ) {
       payments.push({ method: "cash", amount: cashTendered });
     } else {
+      const saleMethod: SalePaymentMethod = isStkTender(payMethod)
+        ? "mpesa_manual"
+        : (payMethod as SalePaymentMethod);
       payments.push({
-        method: payMethod as SalePaymentMethod,
+        method: saleMethod,
         amount: grandTotal,
-        reference:
-          payMethod === "mpesa_manual" ? mpesaRef.trim() || null : null,
+        reference: isStkTender(payMethod) ? mpesaRef.trim() || null : null,
       });
     }
 
@@ -2864,7 +2909,7 @@ export function QuickSaleWorkspace({
           );
           return;
         }
-        const allowedMethods = new Set(["cash", "mpesa_manual"]);
+        const allowedMethods = new Set(["cash", "mpesa_manual", "kiosk_pay"]);
         const isAllowedMethod = splitPay || allowedMethods.has(payMethod);
         if (!isAllowedMethod) {
           setLoading(false);
@@ -2888,12 +2933,13 @@ export function QuickSaleWorkspace({
             ]
           : [
               {
-                method: payMethod,
+                method: (isStkTender(payMethod)
+                  ? "mpesa_manual"
+                  : "cash") as "cash" | "mpesa_manual",
                 amount: grandTotal,
-                reference:
-                  payMethod === "mpesa_manual"
-                    ? mpesaRef.trim() || undefined
-                    : undefined,
+                reference: isStkTender(payMethod)
+                  ? mpesaRef.trim() || undefined
+                  : undefined,
               },
             ];
 
@@ -3214,7 +3260,7 @@ export function QuickSaleWorkspace({
       autoCompleteMpesaRef.current = null;
       return;
     }
-    if (payMethod !== "mpesa_manual" || splitPay) {
+    if (!isStkTender(payMethod) || splitPay) {
       return;
     }
     const ref = mpesaRef.trim();
@@ -3637,6 +3683,7 @@ export function QuickSaleWorkspace({
           updateLine,
           payMethod,
           setPayMethod,
+          kioskPayAvailable,
           mpesaRef,
           setMpesaRef,
           splitPay,

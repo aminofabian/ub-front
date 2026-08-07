@@ -27,7 +27,7 @@ export type CartSession = {
   /** Server line IDs removed locally that still need DELETE on next sync. */
   removedServerLineIds: string[];
   lines: CartSessionLine[];
-  payMethod: SalePaymentMethod | "remote_bill";
+  payMethod: SalePaymentMethod | "remote_bill" | "kiosk_pay";
   mpesaRef: string;
   customerPhoneQuery: string;
   customerHits: CustomerRecord[];

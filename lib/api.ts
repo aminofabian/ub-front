@@ -9676,6 +9676,35 @@ export async function requestKioskPayWithdraw(body: {
   );
 }
 
+export type KioskPayPosAvailabilityRecord = {
+  available: boolean;
+  currency: string;
+};
+
+/** Cashier: whether to show the Kiosk Pay tender. */
+export async function fetchKioskPayPosAvailability(): Promise<KioskPayPosAvailabilityRecord> {
+  return request<KioskPayPosAvailabilityRecord>(
+    `${API_ROUTES.paymentKioskPay}/pos`,
+    { toast: false },
+  );
+}
+
+/** Cashier POS STK via platform Kiosk Pay (credits merchant wallet on confirm). */
+export async function initiateKioskPayPosStkPush(
+  body: { phoneNumber: string; amount: number | string; description?: string },
+  idempotencyKey: string,
+): Promise<PosStkPushResponseRecord> {
+  return request<PosStkPushResponseRecord>(
+    `${API_ROUTES.paymentKioskPay}/stk/push`,
+    {
+      method: "POST",
+      body,
+      idempotencyKey,
+      timeoutMs: 70_000,
+    },
+  );
+}
+
 export type {
   ContactMessageDetail,
   ContactMessageListItem,

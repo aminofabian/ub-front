@@ -128,8 +128,9 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
             Kiosk Pay
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Collect via Kiosk&apos;s Paystack — funds land in your Kiosk Pay balance.
-            Withdraw to M-Pesa anytime. You can still connect your own Paystack above.
+            Collect online via Kiosk&apos;s Paystack, or at the cashier via Kiosk Pay
+            STK — funds land in your Kiosk Pay balance. Withdraw to M-Pesa anytime.
+            You can still connect your own Paystack above.
           </p>
         </div>
         <Button

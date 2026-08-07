@@ -12,6 +12,7 @@ import {
   Smartphone,
   Trash2,
   UserRound,
+  Store,
   Wallet,
 } from "lucide-react";
 
@@ -71,7 +72,7 @@ type CartLineLike = {
 };
 
 function payMethodNeedsCustomer(
-  method: SalePaymentMethod | "remote_bill",
+  method: SalePaymentMethod | "remote_bill" | "kiosk_pay",
 ): boolean {
   return (
     method === "customer_credit" ||
@@ -79,6 +80,12 @@ function payMethodNeedsCustomer(
     method === "loyalty_redeem" ||
     method === "remote_bill"
   );
+}
+
+function isStkTender(
+  method: SalePaymentMethod | "remote_bill" | "kiosk_pay",
+): boolean {
+  return method === "mpesa_manual" || method === "kiosk_pay";
 }
 
 function lineSubtotal(line: CartLineLike): number {
@@ -110,8 +117,10 @@ export type CashierCartDrawerProps = {
   weighedToggleBusyItemId?: string | null;
   onToggleWeighed?: (lineKey: string) => void;
 
-  payMethod: SalePaymentMethod | "remote_bill";
-  setPayMethod: (m: SalePaymentMethod | "remote_bill") => void;
+  payMethod: SalePaymentMethod | "remote_bill" | "kiosk_pay";
+  setPayMethod: (m: SalePaymentMethod | "remote_bill" | "kiosk_pay") => void;
+  /** Show Kiosk Pay tender (platform custody STK). */
+  kioskPayAvailable?: boolean;
   mpesaRef: string;
   setMpesaRef: (s: string) => void;
   splitPay: boolean;
@@ -271,6 +280,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onToggleWeighed,
     payMethod,
     setPayMethod,
+    kioskPayAvailable = false,
     mpesaRef,
     setSplitPay,
     splitPay,
@@ -636,7 +646,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
 
                   {!splitPay &&
                   stkPushStatus === "awaiting_till" &&
-                  payMethod !== "mpesa_manual" ? (
+                  !isStkTender(payMethod) ? (
                     <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
                       Listening for M-Pesa till payment… If the customer pays
                       Buy Goods now, this sale completes automatically.
@@ -658,7 +668,16 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           onClick={() => setPayMethod("mpesa_manual")}
                           icon={<Smartphone className="size-3.5" aria-hidden />}
                           label="M-Pesa"
-                          hint="STK prompt"
+                          hint="Your till STK"
+                        />
+                      ) : null}
+                      {!IS_DESKTOP && kioskPayAvailable ? (
+                        <PayMethodTile
+                          active={payMethod === "kiosk_pay"}
+                          onClick={() => setPayMethod("kiosk_pay")}
+                          icon={<Store className="size-3.5" aria-hidden />}
+                          label="Kiosk Pay"
+                          hint="Platform STK"
                         />
                       ) : null}
                       {canCreateRemoteBill ? (
@@ -816,16 +835,23 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     </div>
                   ) : null}
 
-                  {!splitPay && payMethod === "mpesa_manual" ? (
+                  {!splitPay && isStkTender(payMethod) ? (
                     <div className="space-y-2.5 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
                       {stkPushStatus === "idle" ||
                       stkPushStatus === "failed" ||
                       stkPushStatus === "awaiting_till" ? (
                         <>
-                          {stkPushStatus === "awaiting_till" ? (
+                          {stkPushStatus === "awaiting_till" &&
+                          payMethod === "mpesa_manual" ? (
                             <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
                               Listening for till payment… Customer can pay Buy
                               Goods now (or send an STK prompt below).
+                            </p>
+                          ) : null}
+                          {payMethod === "kiosk_pay" ? (
+                            <p className="text-[11px] text-muted-foreground">
+                              Payment settles to your Kiosk Pay balance (platform
+                              fee applies). Withdraw from Payments → Kiosk Pay.
                             </p>
                           ) : null}
                           {stkPushStatus === "failed" ? (

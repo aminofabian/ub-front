@@ -273,6 +273,7 @@ export type CashierPosLayoutProps = {
     | "updateLine"
     | "payMethod"
     | "setPayMethod"
+    | "kioskPayAvailable"
     | "mpesaRef"
     | "setMpesaRef"
     | "splitPay"
