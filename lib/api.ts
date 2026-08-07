@@ -6704,7 +6704,7 @@ export async function postOrderPadItemsBatch(body: {
 }): Promise<OrderPadItemRecord[]> {
   return request<OrderPadItemRecord[]>(`/api/v1/inventory/order-pad/items/batch`, {
     method: "POST",
-    body: JSON.stringify(body),
+    body,
   });
 }
 
@@ -6714,7 +6714,7 @@ export async function postOrderPadItemOrdered(
 ): Promise<OrderPadItemRecord> {
   return request<OrderPadItemRecord>(
     `/api/v1/inventory/order-pad/items/${encodeURIComponent(itemId)}/ordered`,
-    { method: "POST", body: JSON.stringify({ ordered }) },
+    { method: "POST", body: { ordered } },
   );
 }
 
