@@ -42,6 +42,8 @@ type CashierCartSidePanelProps = {
   weighedToggleBusyItemId?: string | null;
   /** Buy Goods till-await is active for this cart. */
   tillListening?: boolean;
+  /** Block qty edits while M-Pesa payment is in flight / confirmed. */
+  cartFrozenForMpesa?: boolean;
   removeLine: (key: string) => void;
   updateLine: (
     key: string,
@@ -72,6 +74,7 @@ export function CashierCartSidePanel({
   allowWeighedToggle = false,
   weighedToggleBusyItemId = null,
   tillListening = false,
+  cartFrozenForMpesa = false,
   removeLine,
   updateLine,
   onCheckout,
@@ -189,6 +192,7 @@ export function CashierCartSidePanel({
                       itemLabel={full}
                       size="md"
                       allowFractions={line.item.isWeighed === true}
+                      disabled={cartFrozenForMpesa}
                       onChange={(next) =>
                         updateLine(line.key, "quantity", next)
                       }

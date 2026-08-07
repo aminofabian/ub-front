@@ -362,7 +362,15 @@ export function CashierQtyControl({
       : null;
 
   return (
-    <div ref={rootRef} className={cn("relative shrink-0", className)}>
+    <div
+      ref={rootRef}
+      className={cn(
+        "relative shrink-0",
+        disabled && "pointer-events-none opacity-40",
+        className,
+      )}
+      aria-disabled={disabled || undefined}
+    >
       <div
         className={cn(
           "inline-flex items-center border",
@@ -372,8 +380,9 @@ export function CashierQtyControl({
       >
         <button
           type="button"
+          disabled={disabled}
           className={cn(
-            "flex items-center justify-center text-muted-foreground hover:text-foreground",
+            "flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-50",
             btn,
           )}
           aria-label={
@@ -382,6 +391,7 @@ export function CashierQtyControl({
               : "Decrease quantity"
           }
           onClick={() => {
+            if (disabled) return;
             if (!allowFractions) {
               if (wholeQty <= 1) {
                 onRemove();
@@ -402,17 +412,21 @@ export function CashierQtyControl({
         {allowFractions ? (
           <button
             type="button"
+            disabled={disabled}
             className={cn(
               labelMin,
               "px-0.5 text-center text-xs font-bold tabular-nums leading-none",
-              "text-foreground underline-offset-2 hover:underline",
+              "text-foreground underline-offset-2 hover:underline disabled:no-underline",
               open && "text-[var(--pos-primary)]",
             )}
             aria-expanded={open}
             aria-controls={panelId}
             aria-haspopup="dialog"
             title="Split into a portion"
-            onClick={() => setOpen((v) => !v)}
+            onClick={() => {
+              if (disabled) return;
+              setOpen((v) => !v);
+            }}
           >
             {formatCartQtyLabel(quantity)}
           </button>
@@ -428,18 +442,20 @@ export function CashierQtyControl({
         )}
         <button
           type="button"
+          disabled={disabled}
           className={cn(
-            "flex items-center justify-center text-muted-foreground hover:text-foreground",
+            "flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-50",
             btn,
           )}
           aria-label="Increase quantity"
-          onClick={() =>
+          onClick={() => {
+            if (disabled) return;
             onChange(
               allowFractions
                 ? formatCartQtyValue(qNum + 1)
                 : String(wholeQty + 1),
-            )
-          }
+            );
+          }}
         >
           <Plus className="size-3.5" />
         </button>

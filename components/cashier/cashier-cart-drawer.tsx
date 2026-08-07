@@ -661,6 +661,14 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     </p>
                   ) : null}
 
+                  {cartFrozenForMpesa ? (
+                    <p className="rounded-xl border border-amber-200/70 bg-amber-50/90 px-3 py-2 text-[12px] font-medium text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+                      Cart locked while M-Pesa is in progress — scans and qty
+                      edits are blocked so the total cannot drift from what was
+                      paid. Switch tender to unlock before payment confirms.
+                    </p>
+                  ) : null}
+
                   {!splitPay ? (
                     <div className="grid grid-cols-2 gap-2">
                       <PayMethodTile

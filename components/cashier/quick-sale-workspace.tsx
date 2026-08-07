@@ -2264,6 +2264,7 @@ export function QuickSaleWorkspace({
         updateActiveCart({
           stkPushStatus: "failed",
           stkPushError: "Offline — cannot send STK Push",
+          stkLockedAmount: null,
         });
         return;
       }

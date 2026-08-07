@@ -53,6 +53,8 @@ export type RealtimeEventType =
   | "stock.depleted"
   | "price.changed"
   | "payment.confirmed"
+  | "stk.payment.settled"
+  | "kiosk_pay.balance.updated"
   | "sale.completed"
   | "supply.posted"
   | "shift.opened"
@@ -115,6 +117,7 @@ export interface RealtimeClientOptions {
   onPriceChanged?: FrameHandler;
   onPaymentConfirmed?: FrameHandler;
   onStkPaymentSettled?: FrameHandler;
+  onKioskPayBalanceUpdated?: FrameHandler;
   onSaleCompleted?: FrameHandler;
   onSupplyPosted?: FrameHandler;
   onShiftOpened?: FrameHandler;
@@ -153,6 +156,7 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "price.changed": "onPriceChanged",
   "payment.confirmed": "onPaymentConfirmed",
   "stk.payment.settled": "onStkPaymentSettled",
+  "kiosk_pay.balance.updated": "onKioskPayBalanceUpdated",
   "sale.completed": "onSaleCompleted",
   "supply.posted": "onSupplyPosted",
   "shift.opened": "onShiftOpened",
@@ -290,6 +294,7 @@ export type RealtimeListenerOptions = Pick<
   | "onPriceChanged"
   | "onPaymentConfirmed"
   | "onStkPaymentSettled"
+  | "onKioskPayBalanceUpdated"
   | "onSaleCompleted"
   | "onSupplyPosted"
   | "onShiftOpened"
@@ -317,6 +322,7 @@ const LISTENER_HANDLER_KEYS = [
   "onPriceChanged",
   "onPaymentConfirmed",
   "onStkPaymentSettled",
+  "onKioskPayBalanceUpdated",
   "onSaleCompleted",
   "onSupplyPosted",
   "onShiftOpened",
