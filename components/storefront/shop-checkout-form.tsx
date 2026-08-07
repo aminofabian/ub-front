@@ -926,6 +926,8 @@ export default function ShopCheckoutForm({
         {
           configId,
           email: customerEmail.trim() || undefined,
+          returnOrigin:
+            typeof window !== "undefined" ? window.location.origin : undefined,
         },
       );
       if (result.authorizationUrl) {

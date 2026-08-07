@@ -648,8 +648,8 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
         type: "steps",
         items: [
           "Open Settings → Payments in your Kiosk dashboard.",
-          "On the Paystack card, choose Test or Production, then paste your public key and secret key.",
-          "Save, then tap Test connection — it checks the keys and your account currency.",
+          "On the Paystack card, choose Test or Production, then paste your public key and secret key (prefixes must match the environment).",
+          "Save, then tap Test connection — it checks that the keys authenticate with Paystack.",
           "Activate the gateway when the test passes.",
         ],
       },
@@ -673,7 +673,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       },
       {
         type: "paragraph",
-        text: "Paystack appears on your storefront checkout as “Pay by card”. Customers are redirected to the Paystack page and returned to your checkout once payment is done. Your secret key stays encrypted and is never shown in the dashboard after you save it.",
+        text: "Paystack appears on your storefront checkout as “Pay by card”. Customers are redirected to the Paystack page and returned to your checkout once payment is done. Secret keys are encrypted at rest; only admins with payment settings access can re-view them when editing the connection.",
       },
     ],
   },

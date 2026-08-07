@@ -343,7 +343,7 @@ export type PublicPaystackCheckoutResult = {
 export async function initiatePublicWebOrderPaystackCheckout(
   slug: string,
   orderId: string,
-  body: { configId?: string; email?: string },
+  body: { configId?: string; email?: string; returnOrigin?: string },
 ): Promise<PublicPaystackCheckoutResult> {
   const s = sanitizeStorefrontSlug(slug);
   if (!s || !orderId.trim()) {
@@ -359,6 +359,7 @@ export async function initiatePublicWebOrderPaystackCheckout(
       body: JSON.stringify({
         configId: body.configId ?? null,
         email: body.email ?? null,
+        returnOrigin: body.returnOrigin ?? null,
       }),
     },
   );

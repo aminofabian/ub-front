@@ -126,6 +126,36 @@ export function GatewayConfigForm({
         return "Client ID, Client Secret, and API Key are required.";
       }
     }
+    if (gatewayType === "PAYSTACK") {
+      const sk = secretKey.trim();
+      const pk = publicKey.trim();
+      const mustHaveKeys =
+        !isEdit || credentialsUnreadable || sk !== "" || pk !== "";
+      if (mustHaveKeys) {
+        if (!isEdit || sk !== "") {
+          if (!sk.startsWith("sk_test_") && !sk.startsWith("sk_live_")) {
+            return "Secret key must start with sk_test_ or sk_live_.";
+          }
+        }
+        if (!isEdit || pk !== "") {
+          if (!pk.startsWith("pk_test_") && !pk.startsWith("pk_live_")) {
+            return "Public key must start with pk_test_ or pk_live_.";
+          }
+        }
+        const effectiveSk = sk || credentialSettings?.secretKey || "";
+        const effectivePk = pk || credentialSettings?.publicKey || "";
+        if (environment === "production") {
+          if (effectiveSk.startsWith("sk_test_") || effectivePk.startsWith("pk_test_")) {
+            return "Production requires live keys (sk_live_ / pk_live_).";
+          }
+        } else if (
+          effectiveSk.startsWith("sk_live_") ||
+          effectivePk.startsWith("pk_live_")
+        ) {
+          return "Sandbox requires test keys (sk_test_ / pk_test_).";
+        }
+      }
+    }
     return null;
   };
 
@@ -192,9 +222,9 @@ export function GatewayConfigForm({
           </label>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Sandbox and Production have different Client ID / Secret pairs. Switching
-          environment requires credentials from that environment&apos;s Applications
-          page.
+          {gatewayType === "PAYSTACK"
+            ? "Sandbox keys start with pk_test_ / sk_test_. Production keys start with pk_live_ / sk_live_. Do not mix them."
+            : "Sandbox and Production have different Client ID / Secret pairs. Switching environment requires credentials from that environment's Applications page."}
         </p>
       </FormDrawerFields>
 
@@ -279,7 +309,14 @@ export function GatewayConfigForm({
 
       {gatewayType === "PAYSTACK" && (
         <>
-          <FormDrawerFields legend="Secret Key *">
+          <FormDrawerFields
+            legend="Secret Key *"
+            hint={
+              environment === "production"
+                ? "From Paystack Dashboard → Settings → API Keys (sk_live_…)."
+                : "From Paystack Dashboard → Settings → API Keys (sk_test_…)."
+            }
+          >
             <input
               type="text"
               className={secretInputClass}
@@ -288,9 +325,17 @@ export function GatewayConfigForm({
               required={!isEdit || !credentialSettings?.hasSecretKey}
               autoComplete="off"
               spellCheck={false}
+              placeholder={environment === "production" ? "sk_live_…" : "sk_test_…"}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend="Public Key *">
+          <FormDrawerFields
+            legend="Public Key *"
+            hint={
+              environment === "production"
+                ? "Must match the live secret (pk_live_…)."
+                : "Must match the test secret (pk_test_…)."
+            }
+          >
             <input
               type="text"
               className={secretInputClass}
@@ -299,8 +344,19 @@ export function GatewayConfigForm({
               required={!isEdit || !credentialSettings?.hasPublicKey}
               autoComplete="off"
               spellCheck={false}
+              placeholder={environment === "production" ? "pk_live_…" : "pk_test_…"}
             />
           </FormDrawerFields>
+          <p className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            After you activate Paystack, register this webhook URL in the Paystack
+            dashboard (Settings → API Keys &amp; Webhooks):{" "}
+            <code className="break-all font-mono text-[11px]">
+              {"{API_BASE}"}/webhooks/paystack
+            </code>
+            . Use your platform API host (e.g.{" "}
+            <code className="font-mono text-[11px]">https://api.kiosk.ke/webhooks/paystack</code>
+            ).
+          </p>
         </>
       )}
 
