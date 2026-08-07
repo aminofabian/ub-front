@@ -289,6 +289,13 @@ export default function PaymentGatewaySettingsPage() {
         <DashboardFeedback kind="error" text={loadError} />
       ) : null}
 
+      <section
+        id="supplier-payouts"
+        className={DASHBOARD_SECTION_SURFACE}
+      >
+        <SupplierPayoutSettingsSection canWrite={canWrite} />
+      </section>
+
       <section className={DASHBOARD_TABLE_SURFACE}>
         <div className={DASHBOARD_TABLE_HEAD}>
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -590,10 +597,6 @@ export default function PaymentGatewaySettingsPage() {
             })}
           </ul>
         )}
-      </section>
-
-      <section className={DASHBOARD_SECTION_SURFACE}>
-        <SupplierPayoutSettingsSection canWrite={canWrite} />
       </section>
 
       <FormDrawer

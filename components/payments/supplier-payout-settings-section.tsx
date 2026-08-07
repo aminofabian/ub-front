@@ -130,7 +130,7 @@ export function SupplierPayoutSettingsSection({
           <p className="mt-1 text-sm text-muted-foreground">
             Pay vendors from Supplies via Send Money (e.g. KopoKopo M-Pesa). Disabled by default —
             turn on here and choose which connected gateway to use. Each supplier still needs an M-Pesa
-            payout phone on their profile.
+            payout phone on their profile. Override auto-pay times below (defaults 12:00 AM / 6:00 PM).
           </p>
         </div>
       </div>
@@ -209,67 +209,73 @@ export function SupplierPayoutSettingsSection({
                     </span>
                     <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
                       When on, PalMart sends M-Pesa via KopoKopo for unpaid supplies whose suppliers
-                      have an M-Pesa payout phone. Times use East Africa Time (Africa/Nairobi). Keep
-                      enough till balance.
+                      have an M-Pesa payout phone. Keep enough till balance.
                     </span>
                   </span>
                 </label>
 
-                {autoPayEnabled ? (
-                  <div className="space-y-2 border-t border-border/50 pt-2.5">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Payment times (EAT)
+                <div
+                  id="supplier-auto-pay-times"
+                  className="space-y-2 border-t border-border/50 pt-2.5"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Override payment times
                     </p>
-                    <ul className="space-y-2">
-                      {autoPayTimes.map((time, idx) => (
-                        <li key={`t-${idx}`} className="flex items-center gap-2">
-                          <input
-                            type="time"
-                            className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm"
-                            value={time}
-                            disabled={!canWrite || saving}
-                            onChange={(e) => {
-                              const next = [...autoPayTimes];
-                              next[idx] = e.target.value || "00:00";
-                              setAutoPayTimes(next);
-                            }}
-                          />
-                          {canWrite && autoPayTimes.length > 1 ? (
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
-                              disabled={saving}
-                              onClick={() =>
-                                setAutoPayTimes(autoPayTimes.filter((_, i) => i !== idx))
-                              }
-                              aria-label="Remove time"
-                            >
-                              <Trash2 className="size-4" aria-hidden />
-                            </Button>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                    {canWrite && autoPayTimes.length < 8 ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 gap-1.5 text-xs"
-                        disabled={saving}
-                        onClick={() => setAutoPayTimes([...autoPayTimes, "12:00"])}
-                      >
-                        <Plus className="size-3.5" aria-hidden />
-                        Add time
-                      </Button>
-                    ) : null}
-                    <p className="text-[11px] text-muted-foreground">
-                      Default is 12:00 AM and 6:00 PM. You can set up to 8 times per day.
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      Replace the default 12:00 AM and 6:00 PM schedule. Times use East Africa Time
+                      (Africa/Nairobi). Applies when auto-pay is on.
                     </p>
                   </div>
-                ) : null}
+                  <ul className="space-y-2">
+                    {autoPayTimes.map((time, idx) => (
+                      <li key={`t-${idx}`} className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm"
+                          value={time}
+                          disabled={!canWrite || saving}
+                          onChange={(e) => {
+                            const next = [...autoPayTimes];
+                            next[idx] = e.target.value || "00:00";
+                            setAutoPayTimes(next);
+                          }}
+                        />
+                        {canWrite && autoPayTimes.length > 1 ? (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+                            disabled={saving}
+                            onClick={() =>
+                              setAutoPayTimes(autoPayTimes.filter((_, i) => i !== idx))
+                            }
+                            aria-label="Remove time"
+                          >
+                            <Trash2 className="size-4" aria-hidden />
+                          </Button>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                  {canWrite && autoPayTimes.length < 8 ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1.5 text-xs"
+                      disabled={saving}
+                      onClick={() => setAutoPayTimes([...autoPayTimes, "12:00"])}
+                    >
+                      <Plus className="size-3.5" aria-hidden />
+                      Add time
+                    </Button>
+                  ) : null}
+                  <p className="text-[11px] text-muted-foreground">
+                    Up to 8 times per day. Save below to apply.
+                  </p>
+                </div>
               </div>
             </div>
           ) : null}

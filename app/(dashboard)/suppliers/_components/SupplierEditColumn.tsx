@@ -731,6 +731,17 @@ function SupplierSidebarPaymentSection({
           </label>
         ) : null}
 
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Auto-pay schedule (override 12:00 AM / 6:00 PM) is set for the whole business under{" "}
+          <a
+            href="/payments/settings#supplier-payouts"
+            className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+          >
+            Payments → Supplier payouts
+          </a>
+          .
+        </p>
+
         {canWrite && onSavePayout ? (
           <Button
             type="button"
