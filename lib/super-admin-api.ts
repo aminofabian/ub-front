@@ -317,6 +317,51 @@ export async function patchPlatformGateway(
   );
 }
 
+export type PlatformKioskPaySettingsRecord = {
+  enabled: boolean;
+  feePercent: number;
+  minWithdrawAmount: number;
+  dailyWithdrawLimit: number;
+  currency: string;
+  paystackEnvironment: string;
+  hasPaystackCredentials: boolean;
+  paystackPublicKeyHint: string | null;
+  kopokopoEnvironment: string;
+  hasKopokopoCredentials: boolean;
+  updatedAt: string | null;
+};
+
+export type PatchPlatformKioskPaySettingsPayload = {
+  enabled?: boolean;
+  feePercent?: number;
+  minWithdrawAmount?: number;
+  dailyWithdrawLimit?: number;
+  currency?: string;
+  paystackEnvironment?: string;
+  paystackPublicKey?: string;
+  paystackSecretKey?: string;
+  clearPaystackCredentials?: boolean;
+  kopokopoEnvironment?: string;
+  kopokopoClientId?: string;
+  kopokopoClientSecret?: string;
+  kopokopoApiKey?: string;
+  kopokopoTillNumber?: string;
+  clearKopokopoCredentials?: boolean;
+};
+
+export async function fetchPlatformKioskPaySettings(): Promise<PlatformKioskPaySettingsRecord> {
+  return saRequest<PlatformKioskPaySettingsRecord>(API_ROUTES.superAdminKioskPay);
+}
+
+export async function patchPlatformKioskPaySettings(
+  body: PatchPlatformKioskPaySettingsPayload,
+): Promise<PlatformKioskPaySettingsRecord> {
+  return saRequest<PlatformKioskPaySettingsRecord>(API_ROUTES.superAdminKioskPay, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function fetchSaDomains(
   businessId: string,
 ): Promise<SaDomainRow[]> {

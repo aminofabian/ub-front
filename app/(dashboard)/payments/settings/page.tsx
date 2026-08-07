@@ -25,6 +25,7 @@ import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
 import { GatewayStatusBadge } from "@/components/payments/gateway-status-badge";
 import { ManualMethodForm } from "@/components/payments/manual-method-form";
 import { SupplierPayoutSettingsSection } from "@/components/payments/supplier-payout-settings-section";
+import { KioskPaySettingsSection } from "@/components/payments/kiosk-pay-settings-section";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -560,6 +561,7 @@ export default function PaymentGatewaySettingsPage() {
         >
           {[
             { id: "accept-payments", label: "Accept payments" },
+            { id: "kiosk-pay", label: "Kiosk Pay" },
             { id: "supplier-payouts", label: "Pay suppliers" },
           ].map((item) => (
             <a
@@ -749,6 +751,7 @@ export default function PaymentGatewaySettingsPage() {
       </section>
 
       <SupplierPayoutSettingsSection canWrite={canWrite} />
+      <KioskPaySettingsSection canWrite={canWrite} />
 
       {/* Pick provider */}
       <FormDrawer

@@ -9589,6 +9589,93 @@ export async function fetchDisplayInstructions(): Promise<
   );
 }
 
+// ── Kiosk Pay (platform custody) ───────────────────────────────────
+
+export type KioskPayAccountRecord = {
+  id: string | null;
+  businessId: string;
+  status: string;
+  payoutPhone: string | null;
+  availableBalance: number;
+  pendingBalance: number;
+  lifetimeIn: number;
+  lifetimeOut: number;
+  feePercent: number;
+  platformFeePercent: number;
+  storefrontEnabled: boolean;
+  platformEnabled: boolean;
+  updatedAt: string | null;
+};
+
+export type KioskPayLedgerEntryRecord = {
+  id: string;
+  entryType: string;
+  direction: string;
+  amount: number;
+  currency: string;
+  availableDelta: number;
+  pendingDelta: number;
+  balanceAfterAvailable: number;
+  reference: string | null;
+  contextType: string | null;
+  contextId: string | null;
+  note: string | null;
+  createdAt: string;
+};
+
+export type KioskPayWithdrawalRecord = {
+  id: string;
+  amount: number;
+  currency: string;
+  phoneNumber: string;
+  status: string;
+  failureReason: string | null;
+  requestedAt: string;
+  completedAt: string | null;
+};
+
+export async function fetchKioskPayAccount(): Promise<KioskPayAccountRecord> {
+  return request<KioskPayAccountRecord>(API_ROUTES.paymentKioskPay);
+}
+
+export async function updateKioskPayAccount(body: {
+  activate?: boolean;
+  payoutPhone?: string | null;
+  storefrontEnabled?: boolean;
+}): Promise<KioskPayAccountRecord> {
+  return request<KioskPayAccountRecord>(API_ROUTES.paymentKioskPay, {
+    method: "PATCH",
+    body,
+  });
+}
+
+export async function fetchKioskPayLedger(
+  limit = 20,
+): Promise<KioskPayLedgerEntryRecord[]> {
+  return request<KioskPayLedgerEntryRecord[]>(
+    `${API_ROUTES.paymentKioskPay}/ledger?limit=${limit}`,
+  );
+}
+
+export async function fetchKioskPayWithdrawals(
+  limit = 20,
+): Promise<KioskPayWithdrawalRecord[]> {
+  return request<KioskPayWithdrawalRecord[]>(
+    `${API_ROUTES.paymentKioskPay}/withdrawals?limit=${limit}`,
+  );
+}
+
+export async function requestKioskPayWithdraw(body: {
+  amount: number;
+  phoneNumber?: string;
+  idempotencyKey?: string;
+}): Promise<KioskPayWithdrawalRecord> {
+  return request<KioskPayWithdrawalRecord>(
+    `${API_ROUTES.paymentKioskPay}/withdrawals`,
+    { method: "POST", body },
+  );
+}
+
 export type {
   ContactMessageDetail,
   ContactMessageListItem,

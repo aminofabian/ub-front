@@ -681,18 +681,25 @@ export function ShopCheckoutPaymentSection({
             Place your order, then continue to payment.
           </p>
         ) : null}
-        <Button
-          type="button"
-          className={cn(
-            "h-10 rounded-xl text-sm font-bold shadow-md",
-            dense ? "w-full px-4" : "w-full px-6 sm:w-auto",
-          )}
-          disabled={!orderPlaced || redirectBusy}
-          onClick={() => onRedirectPay(redirectMethods[0].configId)}
-        >
-          <CreditCard className="size-4" aria-hidden />
-          {redirectBusy ? "Opening payment page…" : "Continue to payment"}
-        </Button>
+        {redirectMethods.map((method) => (
+          <Button
+            key={method.configId}
+            type="button"
+            className={cn(
+              "h-10 rounded-xl text-sm font-bold shadow-md",
+              dense ? "w-full px-4" : "w-full px-6 sm:w-auto",
+            )}
+            disabled={!orderPlaced || redirectBusy}
+            onClick={() => onRedirectPay(method.configId)}
+          >
+            <CreditCard className="size-4" aria-hidden />
+            {redirectBusy
+              ? "Opening payment page…"
+              : method.gatewayType === "KIOSK_PAY"
+                ? "Pay with Kiosk Pay"
+                : `Pay with ${method.label || method.displayName || "card"}`}
+          </Button>
+        ))}
         {redirectMessage ? (
           <p className="text-xs font-medium text-destructive">{redirectMessage}</p>
         ) : null}
