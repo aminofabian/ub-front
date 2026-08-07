@@ -110,6 +110,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Profile",
       },
       {
+        href: APP_ROUTES.paymentsSettings,
+        label: "Payments",
+        group: "Profile",
+      },
+      {
         href: APP_ROUTES.businessConfiguration,
         label: "Operations",
         group: "Configuration",
@@ -315,7 +320,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     entryHref: APP_ROUTES.paymentsDayLedger,
     items: [
       { href: APP_ROUTES.paymentsDayLedger, label: "Day ledger" },
-      { href: APP_ROUTES.paymentsSettings, label: "Gateway settings" },
+      { href: APP_ROUTES.paymentsSettings, label: "Gateways & payouts" },
     ],
   },
   {

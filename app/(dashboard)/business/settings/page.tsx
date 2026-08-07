@@ -10,6 +10,7 @@ import {
   Building2,
   Clock,
   Coins,
+  CreditCard,
   Globe,
   MapPin,
   MessageCircle,
@@ -196,6 +197,12 @@ export default function BusinessSettingsPage() {
         />
         <DashboardQuickLinks
           links={[
+            {
+              href: APP_ROUTES.paymentsSettings,
+              label: "Payments",
+              desc: "Gateways & supplier payouts",
+              icon: CreditCard,
+            },
             {
               href: APP_ROUTES.businessConfiguration,
               label: "Configuration",
