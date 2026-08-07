@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CreditCard,
   Loader2,
+  MoreHorizontal,
   Pencil,
   Plus,
   RefreshCw,
@@ -16,11 +17,7 @@ import { toast } from "sonner";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   DASHBOARD_MAX,
-  DASHBOARD_SECTION_SURFACE,
-  DASHBOARD_TABLE_HEAD,
-  DASHBOARD_TABLE_SURFACE,
   DashboardFeedback,
-  DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { FormDrawer } from "@/components/form-drawer";
 import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
@@ -65,7 +62,8 @@ type DrawerState =
       config: GatewayConfigRecord;
       displayName: string;
       credentialSettings: GatewayCredentialSettingsRecord | null;
-    };
+    }
+  | { kind: "manage"; config: GatewayConfigRecord };
 
 function isManualGateway(config: GatewayConfigRecord) {
   return config.gatewayType === "MANUAL";
@@ -97,6 +95,14 @@ function gatewayDisplayName(
     available.find((a) => a.gatewayType === config.gatewayType)?.displayName ??
     config.gatewayType
   );
+}
+
+function gatewayGlyph(type: string) {
+  if (type === "KOPOKOPO") return "K";
+  if (type === "MPESA_STK" || type === "SAFARICOM") return "M";
+  if (type === "PAYSTACK") return "P";
+  if (type === "MANUAL") return "T";
+  return type.slice(0, 1).toUpperCase() || "?";
 }
 
 export default function PaymentGatewaySettingsPage() {
@@ -156,6 +162,18 @@ export default function PaymentGatewaySettingsPage() {
       ),
     [available],
   );
+
+  const activeCount = configs.filter((c) => c.status === "ACTIVE").length;
+  const draftOrErrorCount = configs.filter((c) =>
+    ["DRAFT", "ERROR", "TESTED", "TESTING"].includes(c.status),
+  ).length;
+  const kopokopoNeedsAttention = configs.some(
+    (c) => c.gatewayType === "KOPOKOPO" && c.status !== "ACTIVE",
+  );
+
+  const manageConfig =
+    drawer.kind === "manage" ? drawer.config : null;
+  const manageBusy = manageConfig ? rowBusyId === manageConfig.id : false;
 
   const closeDrawer = () => setDrawer({ kind: "closed" });
 
@@ -238,6 +256,11 @@ export default function PaymentGatewaySettingsPage() {
       await action();
       toast.success(successMessage);
       await reload();
+      setDrawer((prev) => {
+        if (prev.kind !== "manage") return prev;
+        // Refresh managed row from latest list after reload via effect below
+        return prev;
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Action failed.");
     } finally {
@@ -245,15 +268,106 @@ export default function PaymentGatewaySettingsPage() {
     }
   };
 
+  // Keep manage drawer in sync after reload
+  useEffect(() => {
+    if (drawer.kind !== "manage") return;
+    const next = configs.find((c) => c.id === drawer.config.id);
+    if (!next) {
+      setDrawer({ kind: "closed" });
+      return;
+    }
+    const prev = drawer.config;
+    if (
+      next.status !== prev.status ||
+      next.label !== prev.label ||
+      next.lastTestedAt !== prev.lastTestedAt ||
+      next.isDefault !== prev.isDefault
+    ) {
+      setDrawer({ kind: "manage", config: next });
+    }
+  }, [configs, drawer]);
+
+  const testConnection = async (config: GatewayConfigRecord) => {
+    setRowBusyId(config.id);
+    try {
+      const result = await testGatewayConnection(config.id);
+      if (result.success) {
+        toast.success(
+          config.status === "ACTIVE"
+            ? "Connection OK — gateway is ACTIVE."
+            : "Connection OK — click Activate, then Till webhooks.",
+        );
+      } else {
+        toast.error(
+          result.errorMessage ||
+            result.errorCode ||
+            "KopoKopo connection failed. Check Client ID, Secret, API Key, and environment.",
+        );
+      }
+      await reload();
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Connection test failed.",
+      );
+    } finally {
+      setRowBusyId(null);
+    }
+  };
+
+  const subscribeTills = async (config: GatewayConfigRecord) => {
+    setRowBusyId(config.id);
+    try {
+      let tills = ["3020127", "3502582"];
+      try {
+        const settings = await fetchGatewayCredentialSettings(config.id);
+        const fromCreds = [
+          ...(settings.tillNumber ?? "").split(/[,\s]+/),
+          ...(settings.webhookTillNumbers ?? "").split(/[,\s]+/),
+        ]
+          .map((t) => t.trim())
+          .filter((t) => /^\d{5,12}$/.test(t));
+        if (fromCreds.length > 0) {
+          tills = [...new Set(fromCreds)];
+        }
+      } catch {
+        /* use defaults */
+      }
+      const result = await subscribeGatewayWebhookTills(config.id, tills);
+      const ok = result.subscriptions.filter((s) => s.success).length;
+      const fail = result.subscriptions.filter((s) => !s.success);
+      if (fail.length === 0) {
+        toast.success(
+          `Webhook subscriptions active for ${ok} till(s). Callback: ${result.webhookUrl}`,
+          { duration: 12_000 },
+        );
+      } else {
+        toast.error(
+          `Subscribed ${ok}/${result.subscriptions.length}. ${fail.map((f) => `${f.tillNumber}: ${f.errorMessage}`).join("; ")}`,
+          { duration: 15_000 },
+        );
+      }
+      await reload();
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Could not subscribe webhooks.",
+      );
+    } finally {
+      setRowBusyId(null);
+    }
+  };
+
   if (!canRead) {
     return (
-      <div className={DASHBOARD_MAX}>
-        <DashboardPageHero
-          eyebrow="Payments"
-          title="Gateway settings"
-          description="Configure M-Pesa, card, and manual payment methods for your storefront and POS."
-          icon={CreditCard}
-        />
+      <div className={cn(DASHBOARD_MAX, "relative")}>
+        <header className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Payments
+          </h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Configure M-Pesa, card, and manual payment methods for your storefront
+            and POS.
+          </p>
+        </header>
         <DashboardFeedback
           kind="warning"
           text="You do not have permission to view payment gateway settings."
@@ -263,51 +377,24 @@ export default function PaymentGatewaySettingsPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX}>
-      <DashboardPageHero
-        eyebrow="Payments"
-        title="Gateway settings"
-        description="Connect online payment providers, add manual pay instructions, and control which methods are active on checkout."
-        icon={CreditCard}
-      >
-        {canWrite ? (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setDrawer({ kind: "pick" })}
-            >
-              <Plus className="size-4" aria-hidden />
-              Add payment method
-            </Button>
+    <div
+      className={cn(
+        DASHBOARD_MAX,
+        "relative before:pointer-events-none before:absolute before:-inset-x-6 before:-top-6 before:h-56 before:bg-[radial-gradient(ellipse_at_top,_rgba(15,118,110,0.09),_transparent_60%)] before:content-[''] dark:before:bg-[radial-gradient(ellipse_at_top,_rgba(45,212,191,0.07),_transparent_60%)]",
+      )}
+    >
+      <header className="relative space-y-4 border-b border-border/60 pb-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 max-w-2xl space-y-1.5">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
+              Payments
+            </h1>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Connect checkout providers, show till instructions to customers, and
+              control how you pay suppliers with M-Pesa.
+            </p>
           </div>
-        ) : null}
-      </DashboardPageHero>
-
-      {loadError ? (
-        <DashboardFeedback kind="error" text={loadError} />
-      ) : null}
-
-      <section
-        id="supplier-payouts"
-        className={DASHBOARD_SECTION_SURFACE}
-      >
-        <SupplierPayoutSettingsSection canWrite={canWrite} />
-      </section>
-
-      <section className={DASHBOARD_TABLE_SURFACE}>
-        <div className={DASHBOARD_TABLE_HEAD}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">
-                Configured methods
-              </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                API gateways must pass a connection test before activation.
-                Manual methods are active immediately.
-              </p>
-            </div>
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
@@ -322,84 +409,187 @@ export default function PaymentGatewaySettingsPage() {
               />
               Refresh
             </Button>
+            {canWrite ? (
+              <Button
+                type="button"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setDrawer({ kind: "pick" })}
+              >
+                <Plus className="size-4" aria-hidden />
+                Add method
+              </Button>
+            ) : null}
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex items-center gap-2 px-5 py-10 text-sm text-muted-foreground sm:px-6">
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-            Loading gateways…
+        <nav
+          aria-label="Payment settings sections"
+          className="flex flex-wrap gap-1"
+        >
+          {[
+            { id: "accept-payments", label: "Accept payments" },
+            { id: "supplier-payouts", label: "Pay suppliers" },
+          ].map((item) => (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              className="border border-border/70 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-teal-700/35 hover:bg-teal-50/50 hover:text-foreground dark:hover:bg-teal-950/30"
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
+
+        <dl className="grid gap-px overflow-hidden border border-border/70 bg-border/70 sm:grid-cols-3">
+          <div className="bg-card px-4 py-3">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Methods
+            </dt>
+            <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">
+              {loading ? "—" : configs.length}
+            </dd>
           </div>
-        ) : configs.length === 0 ? (
-          <div className="px-5 py-10 text-center sm:px-6">
-            <p className="text-sm text-muted-foreground">
-              No payment methods yet.
-              {canWrite
-                ? " Add M-Pesa STK, KopoKopo, Paystack, or manual till / paybill instructions."
-                : ""}
+          <div className="bg-card px-4 py-3">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Active
+            </dt>
+            <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-teal-800 dark:text-teal-200">
+              {loading ? "—" : activeCount}
+            </dd>
+          </div>
+          <div className="bg-card px-4 py-3">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Needs attention
+            </dt>
+            <dd
+              className={cn(
+                "mt-1 font-mono text-lg font-semibold tabular-nums",
+                draftOrErrorCount > 0
+                  ? "text-amber-800 dark:text-amber-200"
+                  : "text-foreground",
+              )}
+            >
+              {loading ? "—" : draftOrErrorCount}
+            </dd>
+          </div>
+        </dl>
+      </header>
+
+      {loadError ? (
+        <DashboardFeedback kind="error" text={loadError} />
+      ) : null}
+
+      <section id="accept-payments" className="relative scroll-mt-24 space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0 max-w-2xl">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+              Accept payments
+            </h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              API gateways need a successful connection test before activation.
+              Manual till / paybill methods go live immediately.
             </p>
           </div>
-        ) : (
-          <ul className="divide-y divide-border/60">
-            {configs.some(
-              (c) =>
-                c.gatewayType === "KOPOKOPO" && c.status !== "ACTIVE",
-            ) ? (
-              <li className="bg-amber-50/80 px-5 py-3 text-sm text-amber-950 sm:px-6 dark:bg-amber-950/30 dark:text-amber-100">
-                KopoKopo must be <strong>ACTIVE</strong> for STK and till
-                webhooks. Your KopoKopo row is not active — click{" "}
-                <strong>Test</strong> (fix credentials if it fails), then{" "}
-                <strong>Activate</strong>, then <strong>Till webhooks</strong>.
-                The Manual “Mpesa Till” row only shows a till on receipts; it
-                does not receive payments.
-              </li>
+        </div>
+
+        {kopokopoNeedsAttention ? (
+          <div
+            role="status"
+            className="border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+          >
+            <p className="font-semibold">KopoKopo is not active yet</p>
+            <p className="mt-1 text-xs leading-relaxed opacity-90">
+              Open <strong>Manage</strong> on the KopoKopo row →{" "}
+              <strong>Test</strong> → <strong>Activate</strong> →{" "}
+              <strong>Till webhooks</strong>. A Manual “Mpesa Till” row only prints
+              instructions; it does not receive payments.
+            </p>
+          </div>
+        ) : null}
+
+        {loading ? (
+          <div className="flex items-center gap-2 border border-border/70 bg-card px-4 py-10 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Loading payment methods…
+          </div>
+        ) : configs.length === 0 ? (
+          <div className="border border-dashed border-border bg-card px-5 py-12 text-center">
+            <span className="mx-auto flex size-12 items-center justify-center bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-100">
+              <CreditCard className="size-6" aria-hidden />
+            </span>
+            <p className="mt-4 text-sm font-semibold text-foreground">
+              No payment methods yet
+            </p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+              {canWrite
+                ? "Add KopoKopo for M-Pesa STK and supplier Send Money, or a manual till / paybill for receipt instructions."
+                : "Ask an admin to connect a payment gateway."}
+            </p>
+            {canWrite ? (
+              <Button
+                type="button"
+                size="sm"
+                className="mt-5 gap-1.5"
+                onClick={() => setDrawer({ kind: "pick" })}
+              >
+                <Plus className="size-4" aria-hidden />
+                Add your first method
+              </Button>
             ) : null}
+          </div>
+        ) : (
+          <ul className="divide-y divide-border/70 border border-border/80 bg-card">
             {configs.map((config) => {
               const busy = rowBusyId === config.id;
-              const api = !isManualGateway(config);
               const name = gatewayDisplayName(config, available);
-              const canTest =
-                api &&
-                canWrite &&
-                ["DRAFT", "ERROR", "TESTED", "ACTIVE"].includes(config.status);
-              const canActivate =
-                canWrite &&
-                (isManualGateway(config)
-                  ? config.status !== "ACTIVE"
-                  : config.status === "TESTED");
-              const canDeactivate =
-                canWrite && config.status === "ACTIVE";
-
               return (
                 <li
                   key={config.id}
-                  className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                  className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5"
                 >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-foreground">{config.label}</p>
-                      <GatewayStatusBadge status={config.status} />
-                      {config.isDefault ? (
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                          Default
-                        </span>
-                      ) : null}
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-10 shrink-0 items-center justify-center font-mono text-sm font-bold",
+                        config.status === "ACTIVE"
+                          ? "bg-teal-700 text-white"
+                          : config.status === "ERROR"
+                            ? "bg-destructive/15 text-destructive"
+                            : "bg-muted text-muted-foreground",
+                      )}
+                      aria-hidden
+                    >
+                      {gatewayGlyph(config.gatewayType)}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate font-medium text-foreground">
+                          {config.label}
+                        </p>
+                        <GatewayStatusBadge status={config.status} />
+                        {config.isDefault ? (
+                          <span className="bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                            Default
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {name}
+                        {config.lastTestedAt
+                          ? ` · Last tested ${new Date(config.lastTestedAt).toLocaleString()}`
+                          : ""}
+                      </p>
                     </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {name}
-                      {config.lastTestedAt
-                        ? ` · Last tested ${new Date(config.lastTestedAt).toLocaleString()}`
-                        : ""}
-                    </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 sm:justify-end">
                     {canWrite ? (
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="gap-1"
+                        className="gap-1.5"
                         disabled={busy}
                         onClick={() => void openEdit(config)}
                       >
@@ -407,190 +597,18 @@ export default function PaymentGatewaySettingsPage() {
                         Edit
                       </Button>
                     ) : null}
-                    {canTest ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="gap-1"
-                        disabled={busy}
-                        onClick={() => {
-                          void (async () => {
-                            setRowBusyId(config.id);
-                            try {
-                              const result = await testGatewayConnection(
-                                config.id,
-                              );
-                              if (result.success) {
-                                toast.success(
-                                  config.status === "ACTIVE"
-                                    ? "Connection OK — gateway is ACTIVE."
-                                    : "Connection OK — click Activate, then Till webhooks.",
-                                );
-                              } else {
-                                toast.error(
-                                  result.errorMessage ||
-                                    result.errorCode ||
-                                    "KopoKopo connection failed. Check Client ID, Secret, API Key, and environment.",
-                                );
-                              }
-                              await reload();
-                            } catch (e) {
-                              toast.error(
-                                e instanceof Error
-                                  ? e.message
-                                  : "Connection test failed.",
-                              );
-                            } finally {
-                              setRowBusyId(null);
-                            }
-                          })();
-                        }}
-                      >
-                        <Zap className="size-3.5" aria-hidden />
-                        Test
-                      </Button>
-                    ) : null}
-                    {canActivate ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={busy}
-                        onClick={() =>
-                          void runRowAction(
-                            config.id,
-                            () => activateGateway(config.id),
-                            "Gateway activated.",
-                          )
-                        }
-                      >
-                        Activate
-                      </Button>
-                    ) : null}
-                    {canDeactivate ? (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        disabled={busy}
-                        onClick={() =>
-                          void runRowAction(
-                            config.id,
-                            () => deactivateGateway(config.id),
-                            "Gateway deactivated.",
-                          )
-                        }
-                      >
-                        Deactivate
-                      </Button>
-                    ) : null}
-                    {canWrite &&
-                    config.gatewayType === "KOPOKOPO" &&
-                    config.status === "ACTIVE" ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="gap-1"
-                        disabled={busy}
-                        title="Subscribe buygoods webhooks for configured tills"
-                        onClick={() => {
-                          void (async () => {
-                            setRowBusyId(config.id);
-                            try {
-                              let tills = ["3020127", "3502582"];
-                              try {
-                                const settings =
-                                  await fetchGatewayCredentialSettings(
-                                    config.id,
-                                  );
-                                const fromCreds = [
-                                  ...(settings.tillNumber ?? "").split(
-                                    /[,\s]+/,
-                                  ),
-                                  ...(settings.webhookTillNumbers ?? "").split(
-                                    /[,\s]+/,
-                                  ),
-                                ]
-                                  .map((t) => t.trim())
-                                  .filter((t) => /^\d{5,12}$/.test(t));
-                                if (fromCreds.length > 0) {
-                                  tills = [...new Set(fromCreds)];
-                                }
-                              } catch {
-                                /* use defaults */
-                              }
-                              const result =
-                                await subscribeGatewayWebhookTills(
-                                  config.id,
-                                  tills,
-                                );
-                              const ok = result.subscriptions.filter(
-                                (s) => s.success,
-                              ).length;
-                              const fail = result.subscriptions.filter(
-                                (s) => !s.success,
-                              );
-                              if (fail.length === 0) {
-                                toast.success(
-                                  `Webhook subscriptions active for ${ok} till(s). Callback: ${result.webhookUrl}`,
-                                  { duration: 12_000 },
-                                );
-                              } else {
-                                toast.error(
-                                  `Subscribed ${ok}/${result.subscriptions.length}. ${fail.map((f) => `${f.tillNumber}: ${f.errorMessage}`).join("; ")}`,
-                                  { duration: 15_000 },
-                                );
-                              }
-                              await reload();
-                            } catch (e) {
-                              toast.error(
-                                e instanceof Error
-                                  ? e.message
-                                  : "Could not subscribe webhooks.",
-                              );
-                            } finally {
-                              setRowBusyId(null);
-                            }
-                          })();
-                        }}
-                      >
-                        <Webhook className="size-3.5" aria-hidden />
-                        Till webhooks
-                      </Button>
-                    ) : null}
-                    {canWrite ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        disabled={busy || config.status === "ACTIVE"}
-                        title={
-                          config.status === "ACTIVE"
-                            ? "Deactivate before deleting"
-                            : undefined
-                        }
-                        onClick={() => {
-                          showThemedConfirmToast({
-                            id: `delete-gateway-${config.id}`,
-                            title: `Delete “${config.label}”?`,
-                            description: "This cannot be undone.",
-                            confirmLabel: "Delete",
-                            onConfirm: () => {
-                              void runRowAction(
-                                config.id,
-                                () => deleteGatewayConfig(config.id),
-                                "Gateway removed.",
-                              );
-                            },
-                          });
-                        }}
-                      >
-                        <Trash2 className="size-3.5" aria-hidden />
-                        Delete
-                      </Button>
-                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={busy}
+                      onClick={() =>
+                        setDrawer({ kind: "manage", config })
+                      }
+                    >
+                      <MoreHorizontal className="size-3.5" aria-hidden />
+                      Manage
+                    </Button>
                   </div>
                 </li>
               );
@@ -599,6 +617,9 @@ export default function PaymentGatewaySettingsPage() {
         )}
       </section>
 
+      <SupplierPayoutSettingsSection canWrite={canWrite} />
+
+      {/* Pick provider */}
       <FormDrawer
         open={drawer.kind === "pick"}
         onOpenChange={(open) => {
@@ -606,6 +627,8 @@ export default function PaymentGatewaySettingsPage() {
         }}
         title="Add payment method"
         description="Choose a provider or add manual payment instructions for customers."
+        contextLabel="Payments"
+        icon={<Plus className="size-4" aria-hidden />}
         footer={
           <Button type="button" variant="outline" onClick={closeDrawer}>
             Cancel
@@ -617,11 +640,11 @@ export default function PaymentGatewaySettingsPage() {
             <li>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-lg border border-border/80 px-4 py-3 text-left text-sm transition-colors hover:bg-muted/40"
+                className="flex w-full items-center justify-between border border-border/80 bg-card px-4 py-3.5 text-left transition-colors hover:border-teal-700/35 hover:bg-teal-50/40 dark:hover:bg-teal-950/20"
                 onClick={() => setDrawer({ kind: "manual-create" })}
               >
                 <span>
-                  <span className="font-medium text-foreground">
+                  <span className="block text-sm font-medium text-foreground">
                     Manual payment
                   </span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">
@@ -636,7 +659,7 @@ export default function PaymentGatewaySettingsPage() {
             <li key={gw.gatewayType}>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-lg border border-border/80 px-4 py-3 text-left text-sm transition-colors hover:bg-muted/40"
+                className="flex w-full items-center justify-between border border-border/80 bg-card px-4 py-3.5 text-left transition-colors hover:border-teal-700/35 hover:bg-teal-50/40 dark:hover:bg-teal-950/20"
                 onClick={() =>
                   setDrawer({
                     kind: "api-create",
@@ -646,7 +669,7 @@ export default function PaymentGatewaySettingsPage() {
                 }
               >
                 <span>
-                  <span className="font-medium text-foreground">
+                  <span className="block text-sm font-medium text-foreground">
                     {gw.displayName}
                   </span>
                   {gw.description ? (
@@ -667,6 +690,183 @@ export default function PaymentGatewaySettingsPage() {
         </ul>
       </FormDrawer>
 
+      {/* Manage gateway actions */}
+      <FormDrawer
+        open={drawer.kind === "manage"}
+        onOpenChange={(open) => {
+          if (!open) closeDrawer();
+        }}
+        title={manageConfig?.label ?? "Manage method"}
+        description={
+          manageConfig
+            ? `${gatewayDisplayName(manageConfig, available)} · ${manageConfig.status}`
+            : undefined
+        }
+        contextLabel="Manage"
+        icon={<MoreHorizontal className="size-4" aria-hidden />}
+        width="wide"
+        footer={
+          <Button type="button" variant="outline" onClick={closeDrawer}>
+            Close
+          </Button>
+        }
+      >
+        {manageConfig ? (
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2 border border-border/70 bg-muted/20 px-3.5 py-3">
+              <GatewayStatusBadge status={manageConfig.status} />
+              {manageConfig.isDefault ? (
+                <span className="bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                  Default
+                </span>
+              ) : null}
+              {manageConfig.lastTestedAt ? (
+                <span className="text-xs text-muted-foreground">
+                  Last tested{" "}
+                  {new Date(manageConfig.lastTestedAt).toLocaleString()}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  Not tested yet
+                </span>
+              )}
+            </div>
+
+            {manageConfig.gatewayType === "KOPOKOPO" ? (
+              <ol className="list-decimal space-y-1.5 border border-border/70 bg-card px-4 py-3 pl-8 text-xs leading-relaxed text-muted-foreground">
+                <li>Edit credentials if needed, then Test connection.</li>
+                <li>Activate when the test succeeds.</li>
+                <li>Subscribe Till webhooks so till payments land in PalMart.</li>
+              </ol>
+            ) : null}
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {canWrite ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start gap-2"
+                  disabled={manageBusy}
+                  onClick={() => void openEdit(manageConfig)}
+                >
+                  <Pencil className="size-3.5" aria-hidden />
+                  Edit details
+                </Button>
+              ) : null}
+
+              {!isManualGateway(manageConfig) &&
+              canWrite &&
+              ["DRAFT", "ERROR", "TESTED", "ACTIVE"].includes(
+                manageConfig.status,
+              ) ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start gap-2"
+                  disabled={manageBusy}
+                  onClick={() => void testConnection(manageConfig)}
+                >
+                  <Zap className="size-3.5" aria-hidden />
+                  Test connection
+                </Button>
+              ) : null}
+
+              {canWrite &&
+              (isManualGateway(manageConfig)
+                ? manageConfig.status !== "ACTIVE"
+                : manageConfig.status === "TESTED") ? (
+                <Button
+                  type="button"
+                  className="justify-start gap-2"
+                  disabled={manageBusy}
+                  onClick={() =>
+                    void runRowAction(
+                      manageConfig.id,
+                      () => activateGateway(manageConfig.id),
+                      "Gateway activated.",
+                    )
+                  }
+                >
+                  Activate
+                </Button>
+              ) : null}
+
+              {canWrite && manageConfig.status === "ACTIVE" ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="justify-start gap-2"
+                  disabled={manageBusy}
+                  onClick={() =>
+                    void runRowAction(
+                      manageConfig.id,
+                      () => deactivateGateway(manageConfig.id),
+                      "Gateway deactivated.",
+                    )
+                  }
+                >
+                  Deactivate
+                </Button>
+              ) : null}
+
+              {canWrite &&
+              manageConfig.gatewayType === "KOPOKOPO" &&
+              manageConfig.status === "ACTIVE" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start gap-2 sm:col-span-2"
+                  disabled={manageBusy}
+                  onClick={() => void subscribeTills(manageConfig)}
+                >
+                  <Webhook className="size-3.5" aria-hidden />
+                  Subscribe till webhooks
+                </Button>
+              ) : null}
+
+              {canWrite ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="justify-start gap-2 text-destructive hover:text-destructive sm:col-span-2"
+                  disabled={manageBusy || manageConfig.status === "ACTIVE"}
+                  title={
+                    manageConfig.status === "ACTIVE"
+                      ? "Deactivate before deleting"
+                      : undefined
+                  }
+                  onClick={() => {
+                    showThemedConfirmToast({
+                      id: `delete-gateway-${manageConfig.id}`,
+                      title: `Delete “${manageConfig.label}”?`,
+                      description: "This cannot be undone.",
+                      confirmLabel: "Delete",
+                      onConfirm: () => {
+                        void runRowAction(
+                          manageConfig.id,
+                          () => deleteGatewayConfig(manageConfig.id),
+                          "Gateway removed.",
+                        );
+                      },
+                    });
+                  }}
+                >
+                  <Trash2 className="size-3.5" aria-hidden />
+                  Delete method
+                </Button>
+              ) : null}
+            </div>
+
+            {manageBusy ? (
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                Working…
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </FormDrawer>
+
       <FormDrawer
         open={drawer.kind === "manual-create"}
         onOpenChange={(open) => {
@@ -674,6 +874,7 @@ export default function PaymentGatewaySettingsPage() {
         }}
         title="Add manual payment"
         description="Shown on storefront checkout and order confirmations."
+        contextLabel="Payments"
         width="wide"
       >
         <ManualMethodForm
@@ -692,6 +893,7 @@ export default function PaymentGatewaySettingsPage() {
           }
         }}
         title="Edit manual payment"
+        contextLabel="Payments"
         width="wide"
       >
         {drawer.kind === "manual-edit" ? (
@@ -714,6 +916,7 @@ export default function PaymentGatewaySettingsPage() {
             ? `Connect ${drawer.displayName}`
             : "Connect gateway"
         }
+        contextLabel="Payments"
         width="wide"
       >
         {drawer.kind === "api-create" ? (
@@ -737,6 +940,7 @@ export default function PaymentGatewaySettingsPage() {
             ? `Edit ${drawer.displayName}`
             : "Edit gateway"
         }
+        contextLabel="Payments"
         width="wide"
       >
         {drawer.kind === "api-edit" ? (
