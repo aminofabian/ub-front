@@ -187,6 +187,10 @@ export type CashierCartDrawerProps = {
   setStkPhone: (s: string) => void;
   stkPushStatus: string;
   stkPushError: string;
+  /** Gateway-verified / locked M-Pesa amount (shown on confirm). */
+  stkLockedAmount?: number | null;
+  /** Block line edits / removes while STK or till payment is in flight. */
+  cartFrozenForMpesa?: boolean;
   onStkPush: (phoneNumber: string) => void;
   voidNotes: string;
   setVoidNotes: (s: string) => void;
@@ -337,6 +341,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     setStkPhone,
     stkPushStatus,
     stkPushError,
+    stkLockedAmount = null,
+    cartFrozenForMpesa = false,
     onStkPush,
     voidNotes,
     setVoidNotes,
@@ -952,8 +958,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             <div className="min-w-0 text-[12px] text-emerald-950 dark:text-emerald-50">
                               <p className="font-semibold">M-Pesa confirmed</p>
                               <p className="opacity-90">
-                                {currency} {grandTotal.toFixed(2)} — completing
-                                sale…
+                                {currency}{" "}
+                                {(stkLockedAmount != null && stkLockedAmount > 0
+                                  ? stkLockedAmount
+                                  : grandTotal
+                                ).toFixed(2)}{" "}
+                                — completing sale…
                               </p>
                             </div>
                           </div>
@@ -1556,6 +1566,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 itemLabel={full}
                                 size="sm"
                                 allowFractions={line.item.isWeighed === true}
+                                disabled={cartFrozenForMpesa}
                                 onChange={(next) =>
                                   updateLine(line.key, "quantity", next)
                                 }
@@ -1566,8 +1577,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               </span>
                               <button
                                 type="button"
-                                className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-destructive"
+                                className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-40"
                                 aria-label={`Remove ${full}`}
+                                disabled={cartFrozenForMpesa}
                                 onClick={() => removeLine(line.key)}
                               >
                                 <Trash2 className="size-3.5" />

@@ -101,6 +101,7 @@ import {
   cartSessionGrandTotal,
   cartSessionTabKind,
   cartSessionAgeMs,
+  isCartFrozenForMpesa,
   MAX_CARTS,
   type CartSession,
 } from "@/lib/cart-session";
@@ -745,8 +746,10 @@ export function QuickSaleWorkspace({
   const stkPushStatus = activeCart.stkPushStatus;
   const stkPushError = activeCart.stkPushError;
   const stkPushCheckoutId = activeCart.stkPushCheckoutId;
+  const stkLockedAmount = activeCart.stkLockedAmount ?? null;
   const stkAreaCode = activeCart.stkAreaCode;
   const stkPhone = activeCart.stkPhone;
+  const cartFrozenForMpesa = isCartFrozenForMpesa(stkPushStatus);
 
   const cartScopeBranchIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -806,18 +809,29 @@ export function QuickSaleWorkspace({
   }, []);
 
   const applyStkConfirmed = useCallback(
-    (checkoutId: string, receipt: string) => {
+    (checkoutId: string, receipt: string, verifiedAmount?: number | null) => {
       notifyStkPaymentConfirmed(checkoutId);
       // Till/STK verify wins even if Cash (or another method) was still selected —
       // switch to an STK tender so auto-complete records the sale against the receipt.
-      updateActiveCart((prev) => ({
-        ...prev,
-        payMethod: prev.payMethod === "kiosk_pay" ? "kiosk_pay" : "mpesa_manual",
-        splitPay: false,
-        stkPushStatus: "confirmed",
-        stkPushError: "",
-        mpesaRef: receipt,
-      }));
+      updateActiveCart((prev) => {
+        const locked =
+          verifiedAmount != null &&
+          Number.isFinite(verifiedAmount) &&
+          verifiedAmount > 0
+            ? roundMoney2(verifiedAmount)
+            : prev.stkLockedAmount != null && prev.stkLockedAmount > 0
+              ? prev.stkLockedAmount
+              : cartSessionGrandTotal(prev);
+        return {
+          ...prev,
+          payMethod: prev.payMethod === "kiosk_pay" ? "kiosk_pay" : "mpesa_manual",
+          splitPay: false,
+          stkPushStatus: "confirmed",
+          stkPushError: "",
+          mpesaRef: receipt,
+          stkLockedAmount: locked,
+        };
+      });
     },
     [notifyStkPaymentConfirmed, updateActiveCart],
   );
@@ -829,6 +843,7 @@ export function QuickSaleWorkspace({
         success?: boolean;
         gatewayTransactionId?: string;
         contextType?: string;
+        amount?: number | string;
       };
       if (!data?.success || data.contextType !== "POS_PAYMENT") {
         return;
@@ -849,7 +864,14 @@ export function QuickSaleWorkspace({
       ) {
         return;
       }
-      applyStkConfirmed(checkout, receipt);
+      const rawAmt = data.amount;
+      const verified =
+        rawAmt != null && rawAmt !== "" ? Number(rawAmt) : null;
+      applyStkConfirmed(
+        checkout,
+        receipt,
+        verified != null && Number.isFinite(verified) ? verified : null,
+      );
     },
   });
 
@@ -1952,6 +1974,12 @@ export function QuickSaleWorkspace({
       qty: number = 1,
       unitPrice: string = "",
     ): boolean => {
+      if (isCartFrozenForMpesa(stkPushStatusRef.current)) {
+        toast.error("Cart locked while M-Pesa payment is in progress.", {
+          description: "Switch payment method to edit lines, or wait for the sale to complete.",
+        });
+        return false;
+      }
       if (item.groupLabelOnly) {
         toast.error("Choose a specific product, not the group label.");
         return false;
@@ -2075,6 +2103,10 @@ export function QuickSaleWorkspace({
 
   const removeLine = useCallback(
     (key: string) => {
+      if (isCartFrozenForMpesa(stkPushStatusRef.current)) {
+        toast.error("Cart locked while M-Pesa payment is in progress.");
+        return;
+      }
       updateActiveCart((cart) => {
         const removed = cart.lines.find((l) => l.key === key);
         const nextRemoved = removed?.serverLineId
@@ -2179,6 +2211,10 @@ export function QuickSaleWorkspace({
 
   const updateLine = useCallback(
     (key: string, field: "quantity" | "unitPrice", value: string) => {
+      if (isCartFrozenForMpesa(stkPushStatusRef.current)) {
+        toast.error("Cart locked while M-Pesa payment is in progress.");
+        return;
+      }
       updateActiveCart((cart) => ({
         ...cart,
         lines: cart.lines.map((l) => {
@@ -2238,6 +2274,7 @@ export function QuickSaleWorkspace({
         stkPushStatus: "sending",
         stkPushError: "",
         stkPushCheckoutId: "",
+        stkLockedAmount: grandTotal,
       });
       try {
         const { nextIdempotencyKey } = await import("@/lib/idempotency-key");
@@ -2265,11 +2302,13 @@ export function QuickSaleWorkspace({
           // Don't show the KopoKopo checkout UUID as an M-Pesa ref — wait for the receipt.
           mpesaRef: "",
           stkPushError: "",
+          stkLockedAmount: grandTotal,
         });
       } catch (e) {
         updateActiveCart({
           stkPushStatus: "failed",
           stkPushError: e instanceof Error ? e.message : "STK Push failed",
+          stkLockedAmount: null,
         });
       }
     },
@@ -2297,11 +2336,19 @@ export function QuickSaleWorkspace({
             // Backend should only report success with an M-Pesa receipt; keep waiting.
             return;
           }
-          applyStkConfirmed(stkPushCheckoutId, receipt);
+          const rawAmt = status.amount;
+          const verified =
+            rawAmt != null && rawAmt !== "" ? Number(rawAmt) : null;
+          applyStkConfirmed(
+            stkPushCheckoutId,
+            receipt,
+            verified != null && Number.isFinite(verified) ? verified : null,
+          );
         } else if (status.failed) {
           updateActiveCart({
             stkPushStatus: "failed",
             stkPushError: status.failureReason ?? "M-Pesa payment failed",
+            stkLockedAmount: null,
           });
         }
       } catch {
@@ -2376,6 +2423,7 @@ export function QuickSaleWorkspace({
           stkPushStatus: "idle",
           stkPushCheckoutId: "",
           stkPushError: "",
+          stkLockedAmount: null,
         });
       }
       return;
@@ -2442,6 +2490,7 @@ export function QuickSaleWorkspace({
             stkPushCheckoutId: result.checkoutRequestId,
             stkPushError: "",
             mpesaRef: "",
+            stkLockedAmount: grandTotal,
           });
         } catch {
           /* STK path still available; webhook await is best-effort */
@@ -2690,6 +2739,21 @@ export function QuickSaleWorkspace({
         lastStkLinkedPhoneRef.current = phone254;
         updateActiveCart({ selectedCustomer: linkedCustomer });
       }
+    }
+
+    // Gateway-verified M-Pesa: refuse to complete if the cart drifted after payment.
+    if (
+      !splitPay &&
+      isStkTender(payMethod) &&
+      stkPushStatus === "confirmed" &&
+      stkLockedAmount != null &&
+      Math.abs(grandTotal - stkLockedAmount) > 1
+    ) {
+      setError(
+        `Cart total (${grandTotal.toFixed(2)}) does not match paid M-Pesa (${stkLockedAmount.toFixed(2)}). Switch payment method to edit the cart, then repay or start a new sale.`,
+      );
+      setNotice("");
+      return;
     }
 
     let cashTendered: number | null = null;
@@ -3234,6 +3298,8 @@ export function QuickSaleWorkspace({
     grandTotal,
     payMethod,
     mpesaRef,
+    stkPushStatus,
+    stkLockedAmount,
     splitPay,
     cashSplitStr,
     mpesaSplitStr,
@@ -3714,6 +3780,8 @@ export function QuickSaleWorkspace({
           setStkPhone,
           stkPushStatus,
           stkPushError,
+          stkLockedAmount,
+          cartFrozenForMpesa,
           onStkPush,
           canLookupCustomers,
           canManageCustomers,

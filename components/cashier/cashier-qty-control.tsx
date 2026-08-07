@@ -135,6 +135,7 @@ type CashierQtyControlProps = {
   /** Compact for dense cart rows. */
   size?: "sm" | "md";
   className?: string;
+  disabled?: boolean;
   onChange: (nextQty: string) => void;
   onRemove: () => void;
 };
@@ -145,6 +146,7 @@ export function CashierQtyControl({
   allowFractions = false,
   size = "md",
   className,
+  disabled = false,
   onChange,
   onRemove,
 }: CashierQtyControlProps) {

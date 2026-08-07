@@ -8992,6 +8992,8 @@ export type StkPushStatusRecord = {
   success: boolean;
   failed: boolean;
   pending: boolean;
+  /** Verified / awaited amount on the gateway push (KES). */
+  amount?: number | string | null;
 };
 
 export async function fetchPosStkPushStatus(

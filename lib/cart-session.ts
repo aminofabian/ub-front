@@ -50,12 +50,17 @@ export type CartSession = {
   groceryInvoiceId?: string;
   /** Grocery invoice barcode when this cart was loaded from a GI-* barcode. */
   groceryBarcode?: string;
-  /** STK Push status: idle | sending | sent | failed */
+  /** STK Push status: idle | sending | sent | awaiting_till | confirmed | failed */
   stkPushStatus: string;
   /** Gateway checkout request ID from STK push */
   stkPushCheckoutId: string;
   /** Last STK push error message */
   stkPushError: string;
+  /**
+   * Amount locked when STK/till payment was initiated or gateway-confirmed.
+   * Cart edits are blocked while payment is in flight; sale complete must match this.
+   */
+  stkLockedAmount: number | null;
   /** M-Pesa prompt phone (cashier STK). */
   stkAreaCode: string;
   stkPhone: string;
@@ -160,9 +165,20 @@ export function createEmptyCartSession(): CartSession {
     stkPushStatus: "idle",
     stkPushCheckoutId: "",
     stkPushError: "",
+    stkLockedAmount: null,
     stkAreaCode: "+254",
     stkPhone: "",
   };
+}
+
+/** True while M-Pesa STK/till payment is in flight or confirmed — cart lines must not change. */
+export function isCartFrozenForMpesa(stkPushStatus: string): boolean {
+  return (
+    stkPushStatus === "sending" ||
+    stkPushStatus === "sent" ||
+    stkPushStatus === "awaiting_till" ||
+    stkPushStatus === "confirmed"
+  );
 }
 
 /** Derive a display label: ticket #N, customer name, or New sale for blank carts. */
