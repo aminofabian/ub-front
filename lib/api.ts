@@ -8223,6 +8223,8 @@ export type SupplierPayoutSettingsRecord = {
   gatewayLabel: string | null;
   gatewayReady: boolean;
   autoPayEnabled: boolean;
+  /** Local HH:mm times in Africa/Nairobi (e.g. ["00:00","18:00"]). */
+  autoPayTimes: string[];
   selectableGateways: SupplierPayoutGatewayOptionRecord[];
 };
 
@@ -8230,6 +8232,7 @@ export type UpdateSupplierPayoutSettingsPayload = {
   enabled?: boolean;
   paymentGatewayConfigId?: string | null;
   autoPayEnabled?: boolean;
+  autoPayTimes?: string[];
 };
 
 export async function fetchSupplierPayoutSettings(): Promise<SupplierPayoutSettingsRecord> {
