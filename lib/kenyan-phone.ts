@@ -29,3 +29,25 @@ export function toKenyanLocal07(raw: string): string | null {
   }
   return null;
 }
+
+/** Canonical MSISDN without `+` (`2547XXXXXXXX`) for KopoKopo / STK. */
+export function toKenyanMsisdn254(raw: string): string | null {
+  const local = toKenyanLocal07(raw);
+  if (!local) return null;
+  return `254${local.slice(1)}`;
+}
+
+/**
+ * Pull the first Kenyan mobile from free-form remittance text
+ * (e.g. "send money: 0710514157").
+ */
+export function extractFirstKenyanMobile(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const matches = text.match(/(?:\+?254|0)?7\d{8}/g);
+  if (!matches) return null;
+  for (const m of matches) {
+    const msisdn = toKenyanMsisdn254(m);
+    if (msisdn) return msisdn;
+  }
+  return null;
+}

@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   looksLikeKenyanMobilePath,
   toKenyanLocal07,
+  toKenyanMsisdn254,
+  extractFirstKenyanMobile,
 } from "@/lib/kenyan-phone";
 
 describe("kenyan-phone", () => {
@@ -18,5 +20,16 @@ describe("kenyan-phone", () => {
     expect(toKenyanLocal07("254714282874")).toBe("0714282874");
     expect(toKenyanLocal07("0714282874")).toBe("0714282874");
     expect(toKenyanLocal07("714282874")).toBe("0714282874");
+  });
+
+  it("normalizes to 254 MSISDN", () => {
+    expect(toKenyanMsisdn254("0710514157")).toBe("254710514157");
+    expect(toKenyanMsisdn254("+254710514157")).toBe("254710514157");
+  });
+
+  it("extracts a mobile from remittance text", () => {
+    expect(extractFirstKenyanMobile("send money: 0710514157")).toBe("254710514157");
+    expect(extractFirstKenyanMobile("Paybill 123456 Acc 071")).toBeNull();
+    expect(extractFirstKenyanMobile(null)).toBeNull();
   });
 });

@@ -11,6 +11,11 @@ import {
   postOrderPadItemsBatch,
   type OrderPadItemRecord,
 } from "@/lib/api";
+import {
+  clearOrderPadDraft,
+  readOrderPadDraft,
+  writeOrderPadDraft,
+} from "@/lib/order-pad-draft-storage";
 import { cn } from "@/lib/utils";
 
 type DraftLine = {
@@ -25,6 +30,19 @@ function emptyLine(): DraftLine {
     itemName: "",
     quantity: "",
   };
+}
+
+function loadDraftLines(branchId: string): DraftLine[] {
+  const draft = readOrderPadDraft(branchId);
+  if (!draft?.lines.length) return [emptyLine()];
+  const lines = draft.lines
+    .filter((l) => typeof l.itemName === "string")
+    .map((l) => ({
+      key: l.key || emptyLine().key,
+      itemName: l.itemName ?? "",
+      quantity: l.quantity ?? "",
+    }));
+  return lines.length > 0 ? lines : [emptyLine()];
 }
 
 function formatQty(v: number | string | null | undefined): string {
@@ -62,6 +80,7 @@ export function OrderPadDrawer({
   const [existingLoading, setExistingLoading] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
+  const draftReady = useRef(false);
 
   const loadExisting = useCallback(async () => {
     const bid = branchId.trim();
@@ -83,9 +102,16 @@ export function OrderPadDrawer({
   useEffect(() => {
     if (!open) return;
     setError(null);
-    setLines([emptyLine()]);
+    draftReady.current = false;
+    setLines(loadDraftLines(branchId));
+    draftReady.current = true;
     void loadExisting();
-  }, [open, loadExisting]);
+  }, [open, branchId, loadExisting]);
+
+  useEffect(() => {
+    if (!open || !canWrite || !draftReady.current) return;
+    writeOrderPadDraft(branchId, lines);
+  }, [lines, open, branchId, canWrite]);
 
   const updateLine = (key: string, patch: Partial<DraftLine>) => {
     setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -134,6 +160,7 @@ export function OrderPadDrawer({
     setError(null);
     try {
       await postOrderPadItemsBatch({ branchId: bid, lines: payload });
+      clearOrderPadDraft(bid);
       setLines([emptyLine()]);
       await loadExisting();
       onSaved?.();
