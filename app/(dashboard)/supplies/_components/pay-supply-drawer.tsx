@@ -171,19 +171,32 @@ export function PaySupplyDrawer({
     selectedOpen.length === 1 ? selectedOpen[0]?.id : null;
   const kopokopoEligible =
     Boolean(payOptions?.kopokopoPayEligible) &&
-    singleSelectedId === row?.supplierInvoiceId &&
-    !multiSelect;
+    Boolean(singleSelectedId) &&
+    !multiSelect &&
+    // Pay-options are loaded for the drawer supply; only allow Send Money for that invoice
+    // (or when it is the sole selected open balance).
+    singleSelectedId === row?.supplierInvoiceId;
   const payoutPhone = payOptions?.payoutPhone?.trim() ?? supplier?.payoutPhone?.trim() ?? "";
   const paidFull = row ? row.paymentStatus === "PAID" : false;
+  /** Tenant has supplier Send Money turned on with an active gateway. */
+  const kopokopoPayoutsReady =
+    Boolean(payOptions?.supplierPayoutEnabled) &&
+    Boolean(payOptions?.supplierPayoutGatewayReady);
   const needsKopokopoSupplierSetup =
     Boolean(payOptions) &&
     !paidFull &&
     canPay &&
     !multiSelect &&
-    Boolean(payOptions?.supplierPayoutEnabled) &&
-    Boolean(payOptions?.supplierPayoutGatewayReady) &&
+    kopokopoPayoutsReady &&
     !Boolean(payOptions?.supplierMobilePayoutConfigured) &&
     !Boolean(payOptions?.kopokopoPayEligible);
+  /**
+   * When KopoKopo payouts are ready for this invoice, never let the primary CTA
+   * silently fall back to a ledger-only "record payment".
+   */
+  const primaryIsKopokopoSend = kopokopoEligible;
+  const blockPrimaryUntilKopokopoReady =
+    kopokopoPayoutsReady && !multiSelect && !kopokopoEligible;
   const paymentDetails = supplier?.paymentDetails?.trim() ?? "";
   const preferredMethod = resolvePaymentMethod(supplier?.paymentMethodPreferred);
   const supplierDeleted = Boolean(supplier?.deletedAt);
@@ -597,7 +610,7 @@ export function PaySupplyDrawer({
   };
 
   const initiateKopokopoPay = async () => {
-    if (!row || !canPay || !kopokopoEligible) {
+    if (!row || !canPay) {
       return;
     }
     setError(null);
@@ -621,7 +634,7 @@ export function PaySupplyDrawer({
     }
   };
 
-  const enableKopokopoPayout = async () => {
+  const enableKopokopoPayout = async (andSend: boolean) => {
     if (!row || !canWriteSupplier || supplierDeleted) {
       return;
     }
@@ -640,8 +653,16 @@ export function PaySupplyDrawer({
       setSupplier(updated);
       const options = await fetchSupplyPayOptions(row.supplierInvoiceId);
       setPayOptions(options);
+      if (andSend && options.kopokopoPayEligible) {
+        toast.success("KopoKopo payout enabled — sending M-Pesa…", {
+          description: `Paying ${toKenyanLocal07(msisdn) ?? msisdn}.`,
+        });
+        setEnablingKopokopo(false);
+        await initiateKopokopoPay();
+        return;
+      }
       toast.success("KopoKopo payout enabled", {
-        description: `M-Pesa will go to ${toKenyanLocal07(msisdn) ?? msisdn}.`,
+        description: `M-Pesa will go to ${toKenyanLocal07(msisdn) ?? msisdn}. Tap Send M-Pesa to pay.`,
       });
     } catch (e) {
       setError(
@@ -656,11 +677,28 @@ export function PaySupplyDrawer({
     if (!row) {
       return;
     }
-    if (kopokopoEligible && (kopokopoPhase === "idle" || kopokopoPhase === "failed")) {
+    // KopoKopo path: only initiate Send Money — never ledger-record as a fallback.
+    if (primaryIsKopokopoSend && (kopokopoPhase === "idle" || kopokopoPhase === "failed")) {
       void initiateKopokopoPay();
       return;
     }
-    // Always clear full open balances on the selected invoices.
+    if (blockPrimaryUntilKopokopoReady) {
+      if (needsKopokopoSupplierSetup) {
+        setError(
+          "Enable Send M-Pesa for this supplier above (M-Pesa payout phone), then pay. Use “Mark paid · no SMS” only if you already paid outside PalMart.",
+        );
+      } else if (multiSelect) {
+        setError(
+          "KopoKopo Send Money pays one invoice at a time. Select a single invoice, or use Mark paid if you already transferred funds.",
+        );
+      } else {
+        setError(
+          "KopoKopo payout isn’t ready for this supply yet. Check Payments → Supplier payouts, or record manually only if you already paid outside PalMart.",
+        );
+      }
+      return;
+    }
+    // Ledger-only path (KopoKopo supplier payouts not in use for this pay).
     setShowAdvanced(false);
     setCreditApplied("0");
     setPaymentMethod(preferredMethod);
@@ -703,8 +741,14 @@ export function PaySupplyDrawer({
     if (kopokopoPhase === "pending" || kopokopoPhase === "sending") {
       return "Sending M-Pesa…";
     }
-    if (kopokopoEligible) {
+    if (primaryIsKopokopoSend) {
       return `Send M-Pesa · ${formatSupplyMoney(rowBalanceOpen)}`;
+    }
+    if (needsKopokopoSupplierSetup) {
+      return "Set up M-Pesa payout above";
+    }
+    if (blockPrimaryUntilKopokopoReady) {
+      return "KopoKopo not ready";
     }
     if (multiSelect) {
       return `Clear ${selectedOpen.length} unpaid · ${formatSupplyMoney(payTotal)}`;
@@ -819,7 +863,14 @@ export function PaySupplyDrawer({
                   openInvoicesLoading ||
                   selectedOpen.length === 0 ||
                   kopokopoPhase === "pending" ||
-                  kopokopoPhase === "sending"
+                  kopokopoPhase === "sending" ||
+                  enablingKopokopo ||
+                  (blockPrimaryUntilKopokopoReady && needsKopokopoSupplierSetup)
+                }
+                title={
+                  needsKopokopoSupplierSetup
+                    ? "Use Enable & send M-Pesa in the KopoKopo card above"
+                    : undefined
                 }
               >
                 {busy || kopokopoPhase === "pending" || kopokopoPhase === "sending" ? (
@@ -1119,14 +1170,14 @@ export function PaySupplyDrawer({
                           type="button"
                           className="shrink-0 bg-emerald-600 hover:bg-emerald-700"
                           disabled={busy || enablingKopokopo || !kopokopoSetupPhone.trim()}
-                          onClick={() => void enableKopokopoPayout()}
+                          onClick={() => void enableKopokopoPayout(true)}
                         >
-                          {enablingKopokopo ? (
+                          {enablingKopokopo || kopokopoPhase === "sending" ? (
                             <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
                           ) : (
                             <Smartphone className="mr-2 size-4" aria-hidden />
                           )}
-                          Enable Send M-Pesa
+                          Enable &amp; send M-Pesa
                         </Button>
                       </div>
                     ) : (
@@ -1196,14 +1247,24 @@ export function PaySupplyDrawer({
                 </p>
               ) : (
                 <p className="text-center text-xs leading-relaxed text-muted-foreground">
-                  {kopokopoEligible ? (
+                  {primaryIsKopokopoSend ? (
                     <>
                       Tap{" "}
                       <span className="font-semibold text-foreground">Send M-Pesa</span> to pay{" "}
                       <span className="font-semibold text-foreground">{formatSupplyMoney(rowBalanceOpen)}</span>{" "}
-                      via KopoKopo. The ledger updates when KopoKopo confirms. Or use{" "}
+                      via KopoKopo. Money leaves your till when KopoKopo accepts the transfer; the
+                      ledger updates after confirmation. Use{" "}
                       <span className="font-semibold text-foreground">Mark paid · no SMS</span>{" "}
-                      if you already paid outside PalMart.
+                      only if you already paid outside PalMart.
+                    </>
+                  ) : needsKopokopoSupplierSetup ? (
+                    <>
+                      Supplier payouts are on. Use{" "}
+                      <span className="font-semibold text-foreground">Enable &amp; send M-Pesa</span>{" "}
+                      above to pay this supplier for real — the green confirm button will not record
+                      a fake payment. Or use{" "}
+                      <span className="font-semibold text-foreground">Mark paid · no SMS</span> if
+                      you already transferred funds yourself.
                     </>
                   ) : (
                     <>
