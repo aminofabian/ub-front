@@ -33,6 +33,7 @@ import {
   deleteGatewayConfig,
   fetchAvailableGateways,
   fetchDisplayInstructions,
+  fetchGatewayCheckouts,
   fetchGatewayConfigs,
   fetchGatewayCredentialSettings,
   type DisplayInstructionRecord,
@@ -41,6 +42,7 @@ import {
   updateGatewayConfig,
   type AvailableGatewayRecord,
   type CreateGatewayConfigPayload,
+  type GatewayCheckoutRecord,
   type GatewayConfigRecord,
   type GatewayCredentialSettingsRecord,
 } from "@/lib/api";
@@ -105,6 +107,52 @@ function gatewayGlyph(type: string) {
   return type.slice(0, 1).toUpperCase() || "?";
 }
 
+function checkoutStatusLabel(status: string | null): string {
+  switch (status) {
+    case "success":
+      return "Paid";
+    case "failed":
+      return "Failed";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return "Pending";
+  }
+}
+
+function CheckoutStatusBadge({ status }: { status: string | null }) {
+  const tone =
+    status === "success"
+      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+      : status === "failed"
+        ? "bg-destructive/10 text-destructive"
+        : status === "cancelled"
+          ? "bg-muted text-muted-foreground"
+          : "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+        tone,
+      )}
+    >
+      {checkoutStatusLabel(status)}
+    </span>
+  );
+}
+
+function formatCheckoutAmount(amount: number | null, currency: string | null) {
+  if (amount == null) return "—";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currency ?? "KES",
+    }).format(Number(amount));
+  } catch {
+    return String(amount);
+  }
+}
+
 export default function PaymentGatewaySettingsPage() {
   const { me } = useDashboard();
   const canRead = hasPermission(
@@ -126,6 +174,10 @@ export default function PaymentGatewaySettingsPage() {
   const [manualEditInitial, setManualEditInitial] = useState<
     Partial<{ label: string; displayInstructionsJson: string }> | undefined
   >(undefined);
+  const [checkoutRows, setCheckoutRows] = useState<GatewayCheckoutRecord[] | null>(
+    null,
+  );
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -174,6 +226,33 @@ export default function PaymentGatewaySettingsPage() {
   const manageConfig =
     drawer.kind === "manage" ? drawer.config : null;
   const manageBusy = manageConfig ? rowBusyId === manageConfig.id : false;
+
+  // Load recent Paystack checkout attempts when the Manage drawer opens on a
+  // PAYSTACK config (admin visibility of storefront Paystack orders).
+  useEffect(() => {
+    const config = drawer.kind === "manage" ? drawer.config : null;
+    if (!config || config.gatewayType !== "PAYSTACK") {
+      setCheckoutRows(null);
+      return;
+    }
+    let cancelled = false;
+    setCheckoutLoading(true);
+    fetchGatewayCheckouts(config.id, 10)
+      .then((rows) => {
+        if (cancelled) return;
+        setCheckoutRows(rows);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCheckoutRows([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCheckoutLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [drawer]);
 
   const closeDrawer = () => setDrawer({ kind: "closed" });
 
@@ -856,6 +935,51 @@ export default function PaymentGatewaySettingsPage() {
                 </Button>
               ) : null}
             </div>
+
+            {manageConfig.gatewayType === "PAYSTACK" ? (
+              <div className="space-y-2 border border-border/70 bg-card px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Recent Paystack checkouts
+                  </p>
+                  <RefreshCw className="size-3.5 text-muted-foreground" aria-hidden />
+                </div>
+                {checkoutLoading ? (
+                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="size-3 animate-spin" aria-hidden />
+                    Loading attempts…
+                  </p>
+                ) : !checkoutRows || checkoutRows.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No Paystack checkout attempts yet. Storefront “Pay by card”
+                    orders will appear here.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-border/60">
+                    {checkoutRows.map((row) => (
+                      <li
+                        key={row.id}
+                        className="flex flex-wrap items-center justify-between gap-2 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-mono text-xs font-medium text-foreground">
+                            {row.reference}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {formatCheckoutAmount(row.amount, row.currency)}
+                            {row.contextId
+                              ? ` · ${row.contextId.slice(0, 8).toUpperCase()}`
+                              : ""}
+                            {row.failureReason ? ` · ${row.failureReason}` : ""}
+                          </p>
+                        </div>
+                        <CheckoutStatusBadge status={row.status} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
 
             {manageBusy ? (
               <p className="flex items-center gap-2 text-xs text-muted-foreground">

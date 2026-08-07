@@ -887,6 +887,11 @@ export type PublicOnlinePaymentMethod = {
   gatewayType: string;
   label: string | null;
   displayName: string;
+  /**
+   * "stk" (phone prompt, e.g. KopoKopo) or "redirect" (hosted checkout,
+   * e.g. Paystack — opens an authorization URL instead of asking for a phone).
+   */
+  kind?: string;
 };
 
 export type PublicCheckoutPaymentOptions = {

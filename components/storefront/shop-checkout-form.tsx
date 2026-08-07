@@ -93,6 +93,7 @@ import {
   fetchPublicCheckoutPaymentOptionsBrowser,
   fetchPublicStorefrontBrowser,
   fetchPublicWebOrderPaymentStatus,
+  initiatePublicWebOrderPaystackCheckout,
   initiatePublicWebOrderStkPush,
 } from "@/lib/public-storefront-client";
 import { cn } from "@/lib/utils";
@@ -148,6 +149,47 @@ function shopperIsSignedIn(serverAuthenticated = false): boolean {
 }
 
 const CHECKOUT_PREFILL_KEY = "ub.checkoutPrefill.v1";
+
+/**
+ * Placed-order snapshot kept in sessionStorage so the Paystack hosted page can
+ * redirect back to /shop/checkout?order={id} and restore the payment-pending
+ * confirmation (the cart is cleared after checkout).
+ */
+const PAYSTACK_RETURN_KEY = "ub.shop.lastPlacedOrder.v1";
+
+function persistPlacedOrder(
+  result: PublicCheckoutResult,
+  receipt: CheckoutOrderReceipt | null,
+) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      PAYSTACK_RETURN_KEY,
+      JSON.stringify({ result, receipt }),
+    );
+  } catch {
+    /* storage unavailable — return-page restore degrades to the basic order view */
+  }
+}
+
+function readPlacedOrder(): {
+  result: PublicCheckoutResult;
+  receipt: CheckoutOrderReceipt | null;
+} | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(PAYSTACK_RETURN_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      result: PublicCheckoutResult;
+      receipt?: CheckoutOrderReceipt | null;
+    };
+    if (!parsed.result?.orderId) return null;
+    return { result: parsed.result, receipt: parsed.receipt ?? null };
+  } catch {
+    return null;
+  }
+}
 
 type CheckoutPrefill = {
   firstName: string;
@@ -489,6 +531,8 @@ export default function ShopCheckoutForm({
   const [stkBusy, setStkBusy] = useState(false);
   const [stkSent, setStkSent] = useState(false);
   const [stkMessage, setStkMessage] = useState<string | null>(null);
+  const [redirectBusy, setRedirectBusy] = useState(false);
+  const [redirectMessage, setRedirectMessage] = useState<string | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
@@ -800,9 +844,25 @@ export default function ShopCheckoutForm({
     }
   }, [loading, cart, tryPrefill]);
 
-  // Fetch payment options when cart loads
+  // Paystack return: the hosted page redirects back to /shop/checkout?order={id}.
+  // Restore the placed order snapshot so the payment-pending confirmation and
+  // status polling work (the cart was cleared after checkout).
   useEffect(() => {
-    if (!slug || !cart) return;
+    if (!slug || done) return;
+    if (typeof window === "undefined") return;
+    const orderParam = new URLSearchParams(window.location.search).get("order");
+    if (!orderParam) return;
+    const stored = readPlacedOrder();
+    if (!stored || stored.result.orderId !== orderParam) return;
+    setDone(stored.result);
+    if (stored.receipt) setOrderReceipt(stored.receipt);
+    setOrderPaymentMethod("mpesa");
+  }, [slug, done]);
+
+  // Fetch payment options when cart loads (or when a Paystack return restored an order).
+  useEffect(() => {
+    if (!slug) return;
+    if (!cart && !done) return;
     let cancelled = false;
     setPaymentOptionsReady(false);
     fetchPublicCheckoutPaymentOptionsBrowser(slug)
@@ -819,7 +879,7 @@ export default function ShopCheckoutForm({
     return () => {
       cancelled = true;
     };
-  }, [slug, cart]);
+  }, [slug, cart, done]);
 
   async function handleStkPay(configId: string, phoneNumber: string) {
     if (!done?.orderId) {
@@ -846,6 +906,41 @@ export default function ShopCheckoutForm({
       setStkMessage(err instanceof Error ? err.message : "Could not send M-Pesa prompt.");
     } finally {
       setStkBusy(false);
+    }
+  }
+
+  async function handleRedirectPay(configId: string) {
+    if (!done?.orderId) {
+      toast.message("Complete your purchase first", {
+        description:
+          "Place your order, then pay with card on the secure payment page.",
+      });
+      return;
+    }
+    setRedirectBusy(true);
+    setRedirectMessage(null);
+    try {
+      const result = await initiatePublicWebOrderPaystackCheckout(
+        slug,
+        done.orderId,
+        {
+          configId,
+          email: customerEmail.trim() || undefined,
+        },
+      );
+      if (result.authorizationUrl) {
+        window.location.assign(result.authorizationUrl);
+        return;
+      }
+      setRedirectMessage(
+        result.message ?? "Could not open Paystack checkout. Please try again.",
+      );
+    } catch (err) {
+      setRedirectMessage(
+        err instanceof Error ? err.message : "Could not open Paystack checkout.",
+      );
+    } finally {
+      setRedirectBusy(false);
     }
   }
 
@@ -1066,7 +1161,7 @@ export default function ShopCheckoutForm({
         cart.subtotal ??
         cart.lines.reduce((sum, line) => sum + (line.lineTotal ?? 0), 0);
 
-      setOrderReceipt({
+      const receipt: CheckoutOrderReceipt = {
         currency: cart.currency,
         subtotal: receiptSubtotal,
         lines: cart.lines.map((line) => ({ ...line })),
@@ -1081,7 +1176,8 @@ export default function ShopCheckoutForm({
           whatsAppNumber: whatsAppNumber.trim(),
           deliveryNotes: deliveryNotes.trim(),
         },
-      });
+      };
+      setOrderReceipt(receipt);
 
       clearWebCartHandle();
       notifyWebCartChanged();
@@ -1109,6 +1205,7 @@ export default function ShopCheckoutForm({
       paymentToastShown.current = false;
       setOrderPaymentMethod(activePaymentMethod);
       setDone(result);
+      persistPlacedOrder(result, receipt);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed.");
     } finally {
@@ -1348,6 +1445,9 @@ export default function ShopCheckoutForm({
                 stkMessage={stkMessage}
                 stkSent={stkSent}
                 onStkPay={handleStkPay}
+                redirectBusy={redirectBusy}
+                redirectMessage={redirectMessage}
+                onRedirectPay={handleRedirectPay}
                 orderPlaced
                 selectedMethod="mpesa"
                 amountDue={placedTotal}
@@ -2238,6 +2338,9 @@ export default function ShopCheckoutForm({
             onStkPay={
               paymentOptions.online.length > 0 ? handleStkPay : undefined
             }
+            redirectBusy={redirectBusy}
+            redirectMessage={redirectMessage}
+            onRedirectPay={handleRedirectPay}
             termsAccepted={termsAccepted}
             onTermsChange={handleTermsAgreementChange}
           />
@@ -2311,6 +2414,9 @@ export default function ShopCheckoutForm({
               onStkPay={
                 paymentOptions.online.length > 0 ? handleStkPay : undefined
               }
+              redirectBusy={redirectBusy}
+              redirectMessage={redirectMessage}
+              onRedirectPay={handleRedirectPay}
               orderPlaced={false}
             />
             </>

@@ -591,7 +591,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       "Connect M-Pesa credentials and review how settlements appear in Kiosk.",
     updatedAt: "2026-07-01",
     tags: ["mpesa", "settings", "payments"],
-    relatedSlugs: ["accept-mpesa-stk", "set-up-your-online-store"],
+    relatedSlugs: ["accept-mpesa-stk", "set-up-your-online-store", "accept-card-payments-paystack"],
     body: [
       {
         type: "paragraph",
@@ -610,6 +610,70 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
         type: "callout",
         tone: "info",
         text: "Only trusted admins should access payment credentials. Rotate keys if staff with access leave.",
+      },
+    ],
+  },
+  {
+    audience: "merchants",
+    categorySlug: "mpesa-payments",
+    slug: "accept-card-payments-paystack",
+    title: "Accept card payments with Paystack",
+    description:
+      "Connect your own Paystack account so customers can pay by card on your storefront.",
+    updatedAt: "2026-08-07",
+    tags: ["paystack", "card", "online payments", "payments"],
+    relatedSlugs: ["configure-payment-settings", "set-up-your-online-store"],
+    body: [
+      {
+        type: "paragraph",
+        text: "Paystack lets customers pay by card, bank transfer, or mobile money on a secure payment page. You connect your own Paystack account — money settles to your Paystack balance and then to your bank. Kiosk never holds the funds.",
+      },
+      {
+        type: "heading",
+        text: "Before you start",
+      },
+      {
+        type: "list",
+        items: [
+          "Create a Paystack account at paystack.com and complete business verification.",
+          "Find your API keys under Settings → API Keys & Webhooks in the Paystack dashboard.",
+          "You get two pairs: test keys (pk_test_ / sk_test_) and live keys (pk_live_ / sk_live_).",
+        ],
+      },
+      {
+        type: "heading",
+        text: "Connect Paystack in Kiosk",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Settings → Payments in your Kiosk dashboard.",
+          "On the Paystack card, choose Test or Production, then paste your public key and secret key.",
+          "Save, then tap Test connection — it checks the keys and your account currency.",
+          "Activate the gateway when the test passes.",
+        ],
+      },
+      {
+        type: "callout",
+        tone: "warning",
+        text: "Never mix key pairs: test keys with the Test environment and live keys with Production. Using a pk_test_ key under Production is rejected automatically.",
+      },
+      {
+        type: "heading",
+        text: "Register the webhook",
+      },
+      {
+        type: "paragraph",
+        text: "In the Paystack dashboard, open Settings → API Keys & Webhooks → Webhook URL and enter: {api-base}/webhooks/paystack — replacing {api-base} with your Kiosk API base URL. This is how Kiosk confirms payments and marks orders paid automatically.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "Start with a small real test: place a low-value order on your storefront, pay with a test card, and confirm the order shows Paid. Then switch to live keys for real sales.",
+      },
+      {
+        type: "paragraph",
+        text: "Paystack appears on your storefront checkout as “Pay by card”. Customers are redirected to the Paystack page and returned to your checkout once payment is done. Your secret key stays encrypted and is never shown in the dashboard after you save it.",
       },
     ],
   },

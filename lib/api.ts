@@ -9476,6 +9476,32 @@ export async function fetchGatewayCredentialSettings(
   );
 }
 
+/** Admin-facing hosted-checkout attempt (Paystack) for one gateway config. */
+export type GatewayCheckoutRecord = {
+  id: string;
+  gatewayType: string;
+  reference: string;
+  contextType: string;
+  contextId: string | null;
+  amount: number | null;
+  currency: string | null;
+  customerEmail: string | null;
+  status: string;
+  providerTransactionId: string | null;
+  failureReason: string | null;
+  createdAt: string;
+  confirmedAt: string | null;
+};
+
+export async function fetchGatewayCheckouts(
+  id: string,
+  limit = 10,
+): Promise<GatewayCheckoutRecord[]> {
+  return request<GatewayCheckoutRecord[]>(
+    `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/checkouts?limit=${limit}`,
+  );
+}
+
 export async function createGatewayConfig(
   body: CreateGatewayConfigPayload,
 ): Promise<GatewayConfigRecord> {

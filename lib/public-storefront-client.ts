@@ -331,6 +331,50 @@ export async function initiatePublicWebOrderStkPush(
   return data;
 }
 
+export type PublicPaystackCheckoutResult = {
+  checkoutId: string | null;
+  reference: string | null;
+  status: string | null;
+  authorizationUrl: string | null;
+  message: string | null;
+};
+
+/** Initialize a Paystack hosted checkout for a placed web order. */
+export async function initiatePublicWebOrderPaystackCheckout(
+  slug: string,
+  orderId: string,
+  body: { configId?: string; email?: string },
+): Promise<PublicPaystackCheckoutResult> {
+  const s = sanitizeStorefrontSlug(slug);
+  if (!s || !orderId.trim()) {
+    throw new Error("Missing store or order");
+  }
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/businesses/${encodeURIComponent(s)}/orders/${encodeURIComponent(orderId)}/paystack-checkout`,
+    ),
+    {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        configId: body.configId ?? null,
+        email: body.email ?? null,
+      }),
+    },
+  );
+  const data = (await res.json().catch(() => ({}))) as PublicPaystackCheckoutResult & {
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof data.message === "string" && data.message
+        ? data.message
+        : "Could not start Paystack checkout",
+    );
+  }
+  return data;
+}
+
 export type PublicWebOrderPaymentStatus = {
   orderStatus: string;
   paid: boolean;

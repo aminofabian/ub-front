@@ -1,6 +1,6 @@
 "use client";
 
-import { Banknote, Check, Copy, Smartphone, Sparkles, Truck, Zap } from "lucide-react";
+import { Banknote, Check, Copy, CreditCard, Smartphone, Sparkles, Truck, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -481,6 +481,9 @@ export function ShopCheckoutPaymentSection({
   stkMessage,
   stkSent,
   onStkPay,
+  redirectBusy,
+  redirectMessage,
+  onRedirectPay,
   orderPlaced = false,
   variant = "default",
   amountDue,
@@ -498,6 +501,9 @@ export function ShopCheckoutPaymentSection({
   stkMessage?: string | null;
   stkSent?: boolean;
   onStkPay?: (configId: string, phoneNumber: string) => void;
+  redirectBusy?: boolean;
+  redirectMessage?: string | null;
+  onRedirectPay?: (configId: string) => void;
   orderPlaced?: boolean;
   variant?: "default" | "floating" | "review";
   amountDue?: string | null;
@@ -509,6 +515,10 @@ export function ShopCheckoutPaymentSection({
 }) {
   const hasManual = manual.length > 0;
   const hasOnline = online.length > 0;
+  const stkMethods = online.filter((m) => m.kind !== "redirect");
+  const redirectMethods = online.filter((m) => m.kind === "redirect");
+  const hasStkMethods = stkMethods.length > 0;
+  const hasRedirectMethods = redirectMethods.length > 0 && Boolean(onRedirectPay);
   const floating = variant === "floating";
   const review = variant === "review";
   const dense = floating || review;
@@ -518,7 +528,7 @@ export function ShopCheckoutPaymentSection({
 
   if (!hasManual && !hasOnline && !payOnDeliveryAvailable) return null;
 
-  const stkPromptDisabled = hasOnline && !orderPlaced;
+  const stkPromptDisabled = hasStkMethods && !orderPlaced;
   const dockActions = Boolean(actionsInDock && orderPlaced && floating);
 
   const manualBlock =
@@ -544,7 +554,7 @@ export function ShopCheckoutPaymentSection({
     ) : null;
 
   const mpesaBlock =
-    hasOnline && onStkPay ? (
+    hasStkMethods && onStkPay ? (
       showMethodPicker ? (
         <PaymentMethodOption
           selected={mpesaSelected}
@@ -561,7 +571,7 @@ export function ShopCheckoutPaymentSection({
           compact={review}
         >
           <OnlineStkFields
-            methods={online}
+            methods={stkMethods}
             defaultAreaCode={defaultAreaCode}
             defaultPhone={defaultPhone}
             busy={stkBusy ?? false}
@@ -601,7 +611,7 @@ export function ShopCheckoutPaymentSection({
             </p>
           )}
           <OnlineStkFields
-            methods={online}
+            methods={stkMethods}
             defaultAreaCode={defaultAreaCode}
             defaultPhone={defaultPhone}
             busy={stkBusy ?? false}
@@ -647,10 +657,53 @@ export function ShopCheckoutPaymentSection({
       </PaymentMethodOption>
     ) : null;
 
+  const redirectBlock =
+    hasRedirectMethods && onRedirectPay ? (
+      <div
+        className={cn(
+          dense
+            ? cn("space-y-1.5", review ? "px-0.5" : "px-0.5 py-0.5")
+            : cn("space-y-2.5 p-4", CHECKOUT_PAYMENT_PANEL),
+        )}
+      >
+        {dense ? (
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            Or pay by card
+          </p>
+        ) : (
+          <PaymentSectionHeading title="Or pay by card" amountDue={amountDue} compact={false} />
+        )}
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Pay with card, bank transfer, or mobile money on the secure payment page.
+        </p>
+        {!orderPlaced ? (
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Place your order, then continue to payment.
+          </p>
+        ) : null}
+        <Button
+          type="button"
+          className={cn(
+            "h-10 rounded-xl text-sm font-bold shadow-md",
+            dense ? "w-full px-4" : "w-full px-6 sm:w-auto",
+          )}
+          disabled={!orderPlaced || redirectBusy}
+          onClick={() => onRedirectPay(redirectMethods[0].configId)}
+        >
+          <CreditCard className="size-4" aria-hidden />
+          {redirectBusy ? "Opening payment page…" : "Continue to payment"}
+        </Button>
+        {redirectMessage ? (
+          <p className="text-xs font-medium text-destructive">{redirectMessage}</p>
+        ) : null}
+      </div>
+    ) : null;
+
   return (
     <div className={cn("min-w-0 max-w-full", dense ? "space-y-1.5" : "space-y-3")}>
       {mpesaBlock}
       {showMethodPicker ? codBlock : null}
+      {redirectBlock}
       {!showMethodPicker && codSelected && payOnDeliveryAvailable ? (
         <div className={cn(CHECKOUT_PAY_SECONDARY, "flex items-start gap-2.5 p-3.5")}>
           <Truck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />

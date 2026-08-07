@@ -42,6 +42,9 @@ type Props = {
   areaCode: string;
   customerPhone: string;
   onStkPay?: (configId: string, phoneNumber: string) => void;
+  redirectBusy?: boolean;
+  redirectMessage?: string | null;
+  onRedirectPay?: (configId: string) => void;
   termsAccepted: boolean;
   onTermsChange: (accepted: boolean) => void;
 };
@@ -59,6 +62,9 @@ export function ShopCheckoutReviewPanel({
   areaCode,
   customerPhone,
   onStkPay,
+  redirectBusy,
+  redirectMessage,
+  onRedirectPay,
   termsAccepted,
   onTermsChange,
 }: Props) {
@@ -119,6 +125,9 @@ export function ShopCheckoutReviewPanel({
             onSelectMethod={onSelectPaymentMethod}
             payOnDeliveryAvailable={payOnDeliveryAvailable}
             onStkPay={onStkPay}
+            redirectBusy={redirectBusy}
+            redirectMessage={redirectMessage}
+            onRedirectPay={onRedirectPay}
             orderPlaced={false}
           />
         )}
