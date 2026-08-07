@@ -5,12 +5,15 @@ import { useState } from "react";
 import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
 
 import { LandingCta } from "./landing/landing-cta";
+import { LandingFaq } from "./landing/landing-faq";
 import { LandingFeatures } from "./landing/landing-features";
 import { LandingFindShopModal } from "./landing/landing-find-shop-modal";
 import { LandingFooter } from "./landing/landing-footer";
+import { LandingGuides } from "./landing/landing-guides";
 import { LandingHero } from "./landing/landing-hero";
 import { LandingHeroLogos } from "./landing/landing-hero-logos";
 import { LandingHowItWorks } from "./landing/landing-how-it-works";
+import { LandingKenya } from "./landing/landing-kenya";
 import { LandingNav } from "./landing/landing-nav";
 import { LandingPricing } from "./landing/landing-pricing";
 import { LandingSignupModal } from "./landing/landing-signup-modal";
@@ -50,10 +53,13 @@ export function TenantConsolePage() {
         <LandingHero onCreateShop={openSignup} />
         <LandingHeroLogos />
         <LandingFeatures onCreateShop={openSignup} />
+        <LandingKenya />
         <LandingHowItWorks />
         <LandingStats />
         <LandingTestimonials />
         <LandingPricing onCreateShop={openSignup} onTalkToUs={openTalk} />
+        <LandingFaq />
+        <LandingGuides />
         <LandingCta onCreateShop={openSignup} onTalkToUs={openTalk} />
       </main>
 

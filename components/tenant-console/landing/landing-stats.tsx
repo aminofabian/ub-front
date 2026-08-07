@@ -116,7 +116,7 @@ export function LandingStats() {
               One platform · four pillars
             </p>
             <h2 className="font-heading text-[clamp(26px,5vw,44px)] leading-[1.12] tracking-[-0.02em] text-[var(--kiosk-text)]">
-              The whole shop,
+              The whole Kenyan shop,
               <br className="hidden sm:block" /> one till.
             </h2>
           </div>

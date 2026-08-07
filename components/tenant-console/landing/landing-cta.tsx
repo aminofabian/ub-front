@@ -16,13 +16,13 @@ export function LandingCta({ onCreateShop, onTalkToUs }: LandingCtaProps) {
             Ready when you are
           </p>
           <h2 className="relative z-[1] mb-4 font-heading text-[clamp(28px,7vw,52px)] leading-[1.08] tracking-[-0.03em] text-[var(--kiosk-text)]">
-            Set up tonight.
+            Open your POS tonight.
             <br />
             Sell in the morning.
           </h2>
           <p className="relative z-[1] mx-auto mb-8 max-w-md text-base leading-[1.65] text-[var(--kiosk-text-soft)] sm:mb-10">
-            Start for free. No credit card, no commitment — your subdomain in
-            minutes.
+            Start free on Kiosk.ke — Kenya&apos;s point of sale with M-Pesa,
+            offline sales, and a storefront. No credit card.
           </p>
           <div className="relative z-[1] flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4">
             <button

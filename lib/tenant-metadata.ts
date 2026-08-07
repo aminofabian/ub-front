@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Metadata } from "next";
 
+import { APP_BASE_URL } from "@/lib/config";
 import {
   PLATFORM_APP_ICON_SRC,
   PLATFORM_FAVICON_SRC,
@@ -87,20 +88,30 @@ export function metadataFromTenantAndHost(
   host: string | null,
 ): Metadata {
   const metadataBase = metadataBaseFromHost(host);
+  const platformCanonical =
+    (APP_BASE_URL.replace(/\/+$/, "") || "https://kiosk.ke") + "/";
 
   const platform: Metadata = {
     metadataBase,
     title: {
       default: PLATFORM_TITLE,
-      template: `%s · ${PLATFORM_TITLE}`,
+      template: `%s · Kiosk.ke`,
     },
     description: PLATFORM_DESCRIPTION,
     keywords: [...PLATFORM_KEYWORDS],
     applicationName: PLATFORM_SITE_NAME,
+    category: "Point of Sale",
     icons: PLATFORM_ICONS,
     appleWebApp: {
       capable: true,
       title: "Kiosk POS",
+    },
+    alternates: {
+      canonical: platformCanonical,
+      languages: {
+        "en-KE": platformCanonical,
+        en: platformCanonical,
+      },
     },
     openGraph: {
       type: "website",
@@ -108,15 +119,15 @@ export function metadataFromTenantAndHost(
       description: PLATFORM_DESCRIPTION,
       siteName: PLATFORM_SITE_NAME,
       locale: "en_KE",
+      url: platformCanonical,
       images: [
         {
           url: "/opengraph-image",
           width: 1200,
           height: 630,
-          alt: PLATFORM_TITLE,
+          alt: "Kiosk.ke — POS system for Kenya with M-Pesa and offline sales",
         },
       ],
-      ...(metadataBase ? { url: metadataBase.href } : {}),
     },
     twitter: {
       card: "summary_large_image",
@@ -127,12 +138,22 @@ export function metadataFromTenantAndHost(
     robots: {
       index: true,
       follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-snippet": -1,
+        "max-image-preview": "large",
+        "max-video-preview": -1,
+      },
       "max-snippet": -1,
       "max-image-preview": "large",
     },
     other: {
       "og:type": "website",
       "theme-color": BRAND_THEME_COLOR,
+      "geo.region": "KE",
+      "geo.placename": "Kenya",
+      "content-language": "en-KE",
     },
   };
 

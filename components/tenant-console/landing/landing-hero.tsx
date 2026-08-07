@@ -12,7 +12,7 @@ type LandingHeroProps = {
 };
 
 const TRUST_SIGNALS = [
-  "Built with shop owners",
+  "Built for Kenyan shops",
   "M-Pesa STK at the counter",
   "Still sells when Wi‑Fi drops",
 ] as const;
@@ -76,7 +76,7 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
             />
 
             <h1 className="landing-reveal landing-reveal-delay-1 mb-3 font-heading text-[clamp(1.9rem,8.4vw,4rem)] leading-[1.05] tracking-[-0.03em] text-[var(--kiosk-text)] sm:mb-7">
-              The POS
+              POS for Kenya
               <br />
               <span className="relative mt-0.5 inline-block font-semibold text-[var(--kiosk-gold)] sm:mt-1">
                 that works as hard as you do.
@@ -85,13 +85,13 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
 
             <p className="landing-reveal landing-reveal-delay-2 mb-5 max-w-[26rem] text-[14px] leading-[1.55] text-[var(--kiosk-text-muted)] sm:mb-10 sm:text-[17px] sm:leading-[1.7] lg:max-w-[28rem]">
               <span className="md:hidden">
-                Scan barcodes, take M-Pesa at the counter, and keep selling when
-                the network drops.
+                The point of sale Kenyan shops run on — scan barcodes, take
+                M-Pesa at the counter, keep selling when the network drops.
               </span>
               <span className="hidden md:inline">
-                Kiosk is the point of sale, inventory, and online storefront for
-                Kenyan shops — scan barcodes, take M-Pesa at the counter, and
-                keep selling when the network drops.
+                Kiosk.ke is the POS system for Kenyan shops — barcode point of
+                sale, M-Pesa STK at the counter, offline-ready sales, inventory,
+                and an online storefront from one stock count.
               </span>
             </p>
 
@@ -289,7 +289,7 @@ function HeroCreativeStage() {
             <div className="hero-premium-frame relative overflow-hidden border border-[var(--kiosk-border)] border-x-0 bg-[var(--kiosk-elevated)] sm:border-x">
               <Image
                 src={SCREENSHOT.src}
-                alt="Kiosk point of sale built by shop owners — scan, M-Pesa STK, and in-store checkout"
+                alt="Kiosk POS Kenya — barcode point of sale with M-Pesa STK and offline checkout"
                 width={SCREENSHOT.width}
                 height={SCREENSHOT.height}
                 quality={95}

@@ -38,8 +38,8 @@ export function LandingHowItWorks() {
         <LandingSectionHeader
           index="01"
           label="Getting started"
-          title="Set up in an afternoon. Run it for years."
-          description="Three deliberate steps — no consultants, no six-week rollout."
+          title="Set up your POS in Kenya today."
+          description="Three deliberate steps — no consultants, no six-week rollout. Sell the same day."
           className={landingSectionHeaderMb}
           titleClassName="max-w-[560px]"
         />

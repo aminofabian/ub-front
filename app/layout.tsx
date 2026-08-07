@@ -96,7 +96,7 @@ export default async function RootLayout({
 
   return (
     <html
-      lang="en"
+      lang="en-KE"
       className={`${geistMono.variable} ${dmSans.variable} ${cormorant.variable} h-full antialiased`}
       suppressHydrationWarning
     >

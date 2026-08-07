@@ -204,10 +204,10 @@ export function LandingPricing({ onCreateShop, onTalkToUs }: LandingPricingProps
       <div className="relative mx-auto max-w-[1200px]">
         <LandingSectionHeader
           label="Pricing"
-          title="Simple pricing. No surprises."
-          description="Start free with 300 products and one cashier. Upgrade when your catalog or team grows."
+          title="POS pricing in Kenya. No surprises."
+          description="Start free with 300 products and one cashier. Paid plans in KES when your catalog or team grows."
           className={landingSectionHeaderMb}
-          titleClassName="max-w-[480px]"
+          titleClassName="max-w-[520px]"
         />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 xl:gap-3">

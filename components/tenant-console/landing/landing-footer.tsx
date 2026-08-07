@@ -23,20 +23,21 @@ const FOOTER_COLS = [
     label: "Product",
     links: [
       { label: "Features", href: "/#features" },
+      { label: "POS for Kenya", href: "/#kenya" },
       { label: "Pricing", href: "/#pricing" },
       { label: "How it works", href: "/#how" },
-      { label: "Stories", href: "/#stories" },
+      { label: "FAQ", href: "/#faq" },
       { label: "Desktop app", href: "/download" },
       { label: "Mobile apps", href: "/download#mobile" },
     ],
   },
   {
-    label: "Company",
+    label: "Learn",
     links: [
-      { label: "About", href: "#" },
+      { label: "Guides", href: "/#guides" },
       { label: "Blog", href: "/blog" },
-      { label: "Careers", href: "#" },
-      { label: "Press", href: "#" },
+      { label: "Top POS in Kenya", href: "/blog/top-10-pos-systems-kenya-2026" },
+      { label: "Stories", href: "/#stories" },
     ],
   },
   {
@@ -125,8 +126,9 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
                   plain
                 />
                 <p className="mt-5 max-w-[28rem] text-[15px] leading-[1.65] text-[var(--kiosk-text-muted)]">
-                  Point of sale built by people who sell at the counter — scan,
-                  take M-Pesa, and keep selling when the network drops.
+                  POS system for Kenya — barcode point of sale, M-Pesa STK at
+                  the counter, offline sales, and one inventory across every
+                  channel.
                 </p>
               </div>
 

@@ -37,8 +37,8 @@ export function LandingTestimonials() {
       <div className="relative mx-auto max-w-[1100px]">
         <LandingSectionHeader
           label="Stories"
-          title="Heard from the floor."
-          description="Scenarios we built for — told in the language of people who actually run the till."
+          title="Heard from Kenyan shop floors."
+          description="Scenarios we built for — multi-branch, offline tills, and shops going online."
           className={landingSectionHeaderMb}
         />
 

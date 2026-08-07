@@ -6,8 +6,8 @@ import { goldCtaClass, ghostCtaClass } from "./landing-styles";
 
 const PILLARS = [
   {
-    title: "Sell faster at the counter",
-    body: "Barcode scan, M-Pesa STK, cash, and split pay — checkout that keeps moving when the network drops.",
+    title: "Sell faster at the Kenyan counter",
+    body: "Barcode POS, M-Pesa STK, cash, and split pay — checkout that keeps moving when the network drops.",
   },
   {
     title: "Know your stock in real time",
@@ -15,11 +15,11 @@ const PILLARS = [
   },
   {
     title: "Open an online storefront",
-    body: "Your branded shop live in minutes. Same prices, same inventory, M-Pesa at checkout.",
+    body: "Your branded Kenyan shop live in minutes. Same prices, same inventory, M-Pesa at checkout.",
   },
   {
     title: "Run every branch from one place",
-    body: "Staff roles, shifts, suppliers, and transfers — one dashboard for every location.",
+    body: "Staff roles, shifts, suppliers, and transfers — one POS dashboard for every location in Kenya.",
   },
 ] as const;
 
@@ -34,12 +34,12 @@ export function LandingFeatures({ onCreateShop }: LandingFeaturesProps) {
       <div className="convert-inner">
         <header className="convert-head">
           <h2 className="convert-title">
-            Everything you need to sell today.
+            Everything a POS in Kenya needs.
             <span> Nothing you don’t.</span>
           </h2>
           <p className="convert-sub">
-            POS, inventory, storefront, and multi-branch — free to start. No
-            credit card. Your shop live in minutes.
+            Point of sale, inventory, storefront, and multi-branch — free to
+            start. No credit card. Your Kenyan shop live in minutes.
           </p>
           <div className="convert-actions">
             <button

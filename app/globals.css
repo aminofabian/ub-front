@@ -3415,6 +3415,212 @@ body:has(.landing-page) {
     color: var(--kiosk-text-faint);
 }
 
+/* ── Kenya audiences ── */
+.landing-page .landing-kenya-grid {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+}
+
+.landing-page .landing-kenya-item {
+    padding: 1.35rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+}
+
+.landing-page .landing-kenya-title {
+    margin: 0 0 0.4rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-kenya-body {
+    margin: 0;
+    max-width: 28rem;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--kiosk-text-soft);
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-kenya-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 2.5rem;
+        border-top: 0;
+    }
+
+    .landing-page .landing-kenya-item:nth-child(1),
+    .landing-page .landing-kenya-item:nth-child(2) {
+        border-top: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+    }
+
+    .landing-page .landing-kenya-item {
+        padding: 1.5rem 0;
+    }
+
+    .landing-page .landing-kenya-title {
+        font-size: 1.15rem;
+    }
+
+    .landing-page .landing-kenya-body {
+        font-size: 15px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .landing-page .landing-kenya-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0 2.75rem;
+    }
+
+    .landing-page .landing-kenya-item:nth-child(3) {
+        border-top: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+    }
+}
+
+/* ── FAQ ── */
+.landing-page .landing-faq {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+}
+
+.landing-page .landing-faq-item {
+    border-bottom: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+}
+
+.landing-page .landing-faq-q {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.15rem 0;
+    cursor: pointer;
+    list-style: none;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.35;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-faq-q::-webkit-details-marker {
+    display: none;
+}
+
+.landing-page .landing-faq-q::marker {
+    content: "";
+}
+
+.landing-page .landing-faq-icon {
+    flex-shrink: 0;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 1.1rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--kiosk-gold);
+    transition: transform 0.2s ease;
+}
+
+.landing-page .landing-faq-item[open] .landing-faq-icon {
+    transform: rotate(45deg);
+}
+
+.landing-page .landing-faq-a {
+    margin: 0 0 1.25rem;
+    max-width: 40rem;
+    padding-right: 2rem;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--kiosk-text-soft);
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-faq-q {
+        padding: 1.35rem 0;
+        font-size: 16px;
+    }
+
+    .landing-page .landing-faq-a {
+        font-size: 15px;
+    }
+}
+
+/* ── Guides (internal SEO links) ── */
+.landing-page .landing-guides {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+}
+
+.landing-page .landing-guide-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.landing-page .landing-guide-row:hover .landing-guide-title {
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-guide-row:hover .landing-guide-arrow {
+    color: var(--kiosk-gold);
+    transform: translateX(3px);
+}
+
+.landing-page .landing-guide-title {
+    margin: 0 0 0.3rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--kiosk-text);
+    transition: color 0.2s ease;
+}
+
+.landing-page .landing-guide-blurb {
+    margin: 0;
+    max-width: 36rem;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--kiosk-text-soft);
+}
+
+.landing-page .landing-guide-arrow {
+    flex-shrink: 0;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 1rem;
+    color: var(--kiosk-text-faint);
+    transition:
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-guide-row {
+        padding: 1.45rem 0;
+    }
+
+    .landing-page .landing-guide-title {
+        font-size: 1.15rem;
+    }
+
+    .landing-page .landing-guide-blurb {
+        font-size: 15px;
+    }
+}
+
 .landing-page .landing-cta-panel {
     position: relative;
     overflow: hidden;
