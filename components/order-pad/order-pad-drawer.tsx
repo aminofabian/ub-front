@@ -7,17 +7,14 @@ import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import {
   deleteOrderPadItem,
-  fetchItems,
   fetchOrderPadItems,
   postOrderPadItemsBatch,
-  type ItemSummaryRecord,
   type OrderPadItemRecord,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type DraftLine = {
   key: string;
-  itemId: string | null;
   itemName: string;
   quantity: string;
 };
@@ -25,7 +22,6 @@ type DraftLine = {
 function emptyLine(): DraftLine {
   return {
     key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    itemId: null,
     itemName: "",
     quantity: "",
   };
@@ -117,11 +113,10 @@ export function OrderPadDrawer({
     }
     const payload = lines
       .map((l) => ({
-        itemId: l.itemId,
         itemName: l.itemName.trim(),
         quantity: l.quantity.trim() ? Number(l.quantity) : null,
       }))
-      .filter((l) => l.itemId || l.itemName);
+      .filter((l) => l.itemName);
 
     if (payload.length === 0) {
       setError("Add at least one item name.");
@@ -222,17 +217,51 @@ export function OrderPadDrawer({
             </div>
 
             {lines.map((line, index) => (
-              <OrderPadSheetRow
+              <div
                 key={line.key}
-                index={index}
-                line={line}
-                branchId={branchId}
-                isLast={index === lines.length - 1}
-                canRemove={lines.length > 1}
-                onChange={(patch) => updateLine(line.key, patch)}
-                onRemove={() => removeLine(line.key)}
-                onAddLine={addLine}
-              />
+                className="grid grid-cols-[minmax(0,1fr)_4.5rem_2rem] border-t border-border"
+              >
+                <input
+                  data-order-pad-name="1"
+                  value={line.itemName}
+                  onChange={(e) => updateLine(line.key, { itemName: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (index === lines.length - 1 && line.itemName.trim()) addLine();
+                    }
+                  }}
+                  placeholder={index === 0 ? "Item name…" : ""}
+                  className={cellClass}
+                  autoComplete="off"
+                  aria-label={`Item ${index + 1}`}
+                />
+                <input
+                  inputMode="decimal"
+                  value={line.quantity}
+                  onChange={(e) => updateLine(line.key, { quantity: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (index === lines.length - 1) addLine();
+                    }
+                  }}
+                  className={cn(cellClass, "border-l border-border text-right tabular-nums")}
+                  aria-label={`Quantity ${index + 1}`}
+                />
+                <div className="flex items-center justify-center border-l border-border">
+                  {lines.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => removeLine(line.key)}
+                      className="p-1 text-muted-foreground/70 hover:text-destructive"
+                      aria-label={`Remove row ${index + 1}`}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                    </button>
+                  ) : null}
+                </div>
+              </div>
             ))}
 
             <button
@@ -321,162 +350,5 @@ export function OrderPadDrawer({
         </section>
       </div>
     </FormDrawer>
-  );
-}
-
-function OrderPadSheetRow({
-  index,
-  line,
-  branchId,
-  isLast,
-  canRemove,
-  onChange,
-  onRemove,
-  onAddLine,
-}: {
-  index: number;
-  line: DraftLine;
-  branchId: string;
-  isLast: boolean;
-  canRemove: boolean;
-  onChange: (patch: Partial<DraftLine>) => void;
-  onRemove: () => void;
-  onAddLine: () => void;
-}) {
-  const [hits, setHits] = useState<ItemSummaryRecord[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [openHits, setOpenHits] = useState(false);
-  const nameRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    const q = line.itemName.trim();
-    if (!q || line.itemId) {
-      setHits([]);
-      setSearching(false);
-      return;
-    }
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      setSearching(true);
-      void fetchItems(q, {
-        catalogScope: "SKUS_ONLY",
-        softAuth: true,
-        signal: controller.signal,
-        ...(branchId.trim() ? { branchId: branchId.trim() } : {}),
-      })
-        .then((rows) => {
-          if (!controller.signal.aborted) {
-            setHits(rows.slice(0, 6));
-            setOpenHits(true);
-          }
-        })
-        .catch(() => {
-          if (!controller.signal.aborted) setHits([]);
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setSearching(false);
-        });
-    }, 240);
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-  }, [line.itemName, branchId, line.itemId]);
-
-  const pickItem = (item: ItemSummaryRecord) => {
-    onChange({ itemId: item.id, itemName: item.name });
-    setHits([]);
-    setOpenHits(false);
-  };
-
-  return (
-    <div className="relative grid grid-cols-[minmax(0,1fr)_4.5rem_2rem] border-t border-border">
-      <div className="relative min-w-0">
-        <input
-          ref={nameRef}
-          data-order-pad-name="1"
-          value={line.itemName}
-          onChange={(e) => {
-            onChange({ itemName: e.target.value, itemId: null });
-            setOpenHits(true);
-          }}
-          onFocus={() => {
-            if (hits.length && !line.itemId) setOpenHits(true);
-          }}
-          onBlur={() => {
-            window.setTimeout(() => setOpenHits(false), 120);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              if (isLast && line.itemName.trim()) onAddLine();
-            }
-          }}
-          placeholder={index === 0 ? "Item name…" : ""}
-          className={cellClass}
-          autoComplete="off"
-          aria-label={`Item ${index + 1}`}
-        />
-        {searching ? (
-          <Loader2
-            className="pointer-events-none absolute right-2 top-1/2 size-3 -translate-y-1/2 animate-spin text-muted-foreground"
-            aria-hidden
-          />
-        ) : null}
-        {openHits && hits.length > 0 && !line.itemId ? (
-          <ul
-            className="absolute left-0 right-0 top-full z-30 max-h-40 overflow-auto border border-border bg-background shadow-md"
-            role="listbox"
-          >
-            {hits.map((hit) => (
-              <li key={hit.id}>
-                <button
-                  type="button"
-                  role="option"
-                  className="flex w-full items-baseline justify-between gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-muted/60"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => pickItem(hit)}
-                >
-                  <span className="min-w-0 truncate font-medium">{hit.name}</span>
-                  {hit.sku ? (
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
-                      {hit.sku}
-                    </span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-
-      <input
-        inputMode="decimal"
-        value={line.quantity}
-        onChange={(e) => onChange({ quantity: e.target.value })}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            if (isLast) onAddLine();
-          }
-        }}
-        placeholder=""
-        className={cn(cellClass, "border-l border-border text-right tabular-nums")}
-        aria-label={`Quantity ${index + 1}`}
-      />
-
-      <div className="flex items-center justify-center border-l border-border">
-        {canRemove ? (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="p-1 text-muted-foreground/70 hover:text-destructive"
-            aria-label={`Remove row ${index + 1}`}
-          >
-            <Trash2 className="size-3.5" aria-hidden />
-          </button>
-        ) : null}
-      </div>
-    </div>
   );
 }
