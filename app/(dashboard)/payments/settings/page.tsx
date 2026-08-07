@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CreditCard,
+  ExternalLink,
   Loader2,
   MoreHorizontal,
   Pencil,
@@ -120,6 +121,31 @@ function checkoutStatusLabel(status: string | null): string {
   }
 }
 
+/** External merchant dashboards — settlement / withdrawals happen there, not in Kiosk. */
+function providerDashboardUrl(
+  gatewayType: string,
+  environment: string | null | undefined,
+): { href: string; label: string } | null {
+  const production = (environment ?? "sandbox").toLowerCase() === "production";
+  if (gatewayType === "PAYSTACK") {
+    return {
+      href: "https://dashboard.paystack.com/#/login",
+      label: "Open Paystack Dashboard",
+    };
+  }
+  if (gatewayType === "KOPOKOPO") {
+    return {
+      href: production
+        ? "https://app.kopokopo.com"
+        : "https://sandbox.kopokopo.com",
+      label: production
+        ? "Open KopoKopo Dashboard"
+        : "Open KopoKopo Sandbox",
+    };
+  }
+  return null;
+}
+
 function CheckoutStatusBadge({ status }: { status: string | null }) {
   const tone =
     status === "success"
@@ -178,6 +204,7 @@ export default function PaymentGatewaySettingsPage() {
     null,
   );
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [manageEnvironment, setManageEnvironment] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -248,6 +275,31 @@ export default function PaymentGatewaySettingsPage() {
       })
       .finally(() => {
         if (!cancelled) setCheckoutLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [drawer]);
+
+  // Environment for dashboard links (sandbox vs production provider URLs).
+  useEffect(() => {
+    const config = drawer.kind === "manage" ? drawer.config : null;
+    if (
+      !config ||
+      (config.gatewayType !== "PAYSTACK" && config.gatewayType !== "KOPOKOPO")
+    ) {
+      setManageEnvironment(null);
+      return;
+    }
+    let cancelled = false;
+    fetchGatewayCredentialSettings(config.id)
+      .then((settings) => {
+        if (cancelled) return;
+        setManageEnvironment(settings.environment ?? "sandbox");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setManageEnvironment("sandbox");
       });
     return () => {
       cancelled = true;
@@ -818,6 +870,47 @@ export default function PaymentGatewaySettingsPage() {
                 <li>Subscribe Till webhooks so till payments land in PalMart.</li>
               </ol>
             ) : null}
+
+            {manageConfig.gatewayType === "PAYSTACK" ? (
+              <ol className="list-decimal space-y-1.5 border border-border/70 bg-card px-4 py-3 pl-8 text-xs leading-relaxed text-muted-foreground">
+                <li>Edit keys if needed, then Test connection.</li>
+                <li>Activate when the test succeeds.</li>
+                <li>
+                  Register your Kiosk webhook URL in the Paystack dashboard
+                  (Settings → API Keys &amp; Webhooks).
+                </li>
+              </ol>
+            ) : null}
+
+            {(() => {
+              const dash = providerDashboardUrl(
+                manageConfig.gatewayType,
+                manageEnvironment,
+              );
+              if (!dash) return null;
+              return (
+                <div className="space-y-3 border border-border/70 bg-muted/20 px-4 py-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      Settlement &amp; withdrawals
+                    </p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      Kiosk never holds your money. Payments settle to your{" "}
+                      {manageConfig.gatewayType === "PAYSTACK"
+                        ? "Paystack"
+                        : "KopoKopo"}{" "}
+                      account. Withdraw to your bank from their dashboard.
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" className="w-full justify-start gap-2" asChild>
+                    <a href={dash.href} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="size-3.5" aria-hidden />
+                      {dash.label}
+                    </a>
+                  </Button>
+                </div>
+              );
+            })()}
 
             <div className="grid gap-2 sm:grid-cols-2">
               {canWrite ? (

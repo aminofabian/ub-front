@@ -626,7 +626,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
     body: [
       {
         type: "paragraph",
-        text: "Paystack lets customers pay by card, bank transfer, or mobile money on a secure payment page. You connect your own Paystack account — money settles to your Paystack balance and then to your bank. Kiosk never holds the funds.",
+        text: "Paystack lets customers pay by card, bank transfer, or mobile money on a secure payment page. You connect your own Paystack account — money settles to your Paystack balance and then to your bank. Kiosk never holds the funds. Open Manage on the Paystack row in Payments → Settings for a link to the Paystack Dashboard (withdrawals happen there).",
       },
       {
         type: "heading",
