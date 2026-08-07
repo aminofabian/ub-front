@@ -20,6 +20,7 @@ import {
   ScanLine,
   Search,
   ShoppingCart,
+  ClipboardList,
   Truck,
   Users,
   Wallet,
@@ -28,6 +29,7 @@ import {
 import { toast } from "sonner";
 
 import { useOptionalPosTillLock } from "@/components/auth/pos-till-lock";
+import { OrderPadDrawer } from "@/components/order-pad/order-pad-drawer";
 import { Button } from "@/components/ui/button";
 import {
   fetchItems,
@@ -254,6 +256,8 @@ export type CashierPosLayoutProps = {
   allowReceiveSupply?: boolean;
   /** View / propose credit tab clearances from POS. */
   allowCreditTabs?: boolean;
+  /** Add lines to the shared order pad. */
+  allowOrderPad?: boolean;
   /** Mark cart lines as sold by weight (permission or admin flag). */
   allowWeighedToggle?: boolean;
   weighedToggleBusyItemId?: string | null;
@@ -923,6 +927,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowLinkSupplierProducts = false,
     allowReceiveSupply = false,
     allowCreditTabs = false,
+    allowOrderPad = false,
     allowWeighedToggle = false,
     weighedToggleBusyItemId = null,
     onToggleWeighed,
@@ -952,6 +957,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     name: string;
   } | null>(null);
   const [creditTabsOpen, setCreditTabsOpen] = useState(false);
+  const [orderPadOpen, setOrderPadOpen] = useState(false);
   const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
   const allowManageSuppliers =
     allowCreateSupplier || allowLinkSupplierProducts || allowReceiveSupply;
@@ -1120,6 +1126,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       !suppliersOpen &&
       !receiveTillOpen &&
       !creditTabsOpen &&
+      !orderPadOpen &&
       editPriceKey == null,
     onScan: applyBarcodeSearch,
     searchInputRef,
@@ -1421,6 +1428,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               >
                 <Users className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                 Tabs
+              </button>
+            ) : null}
+            {allowOrderPad ? (
+              <button
+                type="button"
+                onClick={() => setOrderPadOpen(true)}
+                className={POS_PRIMARY_CHIP_CLASS}
+              >
+                <ClipboardList className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                Order list
               </button>
             ) : null}
             {!online ? (
@@ -2309,6 +2326,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         brandTheme={dialogBrandTheme}
         currency={currency}
         receiptPrinter={cart.receiptPrinter}
+      />
+
+      <OrderPadDrawer
+        open={orderPadOpen}
+        onOpenChange={(o) => {
+          setOrderPadOpen(o);
+          if (!o) window.requestAnimationFrame(() => focusSearch());
+        }}
+        branchId={branchId}
+        canWrite={allowOrderPad}
       />
 
       <CashierEditPriceModal

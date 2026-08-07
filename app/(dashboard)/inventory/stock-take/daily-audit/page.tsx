@@ -7,6 +7,7 @@ import {
   Award,
   CheckCircle2,
   ChevronLeft,
+  ClipboardList,
   Loader2,
   Minus,
   PackagePlus,
@@ -47,6 +48,7 @@ import { canStockManagerSeeSystemStockDuringCount } from "@/lib/inventory-access
 import { cn } from "@/lib/utils";
 import { DailyAuditProductCard } from "../_components/DailyAuditProductCard";
 import { RestockDrawer } from "../_components/RestockDrawer";
+import { OrderPadDrawer } from "@/components/order-pad/order-pad-drawer";
 
 type SessionType = "morning" | "evening";
 
@@ -87,6 +89,7 @@ export default function DailyAuditPage() {
   const { me, business } = useDashboard();
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
   const canRead = hasPermission(me?.permissions, Permission.StocktakeRead);
+  const canWriteOrderPad = hasPermission(me?.permissions, Permission.OrderPadWrite);
   const canUploadImage =
     canRun || hasPermission(me?.permissions, Permission.CatalogItemsWrite);
   const canSeeSystemStock = canStockManagerSeeSystemStockDuringCount(me, business);
@@ -112,6 +115,7 @@ export default function DailyAuditPage() {
   const countInputRef = useRef<HTMLInputElement | null>(null);
   const lastScheduleRefreshAt = useRef(0);
   const [restockOpen, setRestockOpen] = useState(false);
+  const [orderPadOpen, setOrderPadOpen] = useState(false);
   const [restockLoading, setRestockLoading] = useState(false);
   const [restockOptions, setRestockOptions] = useState<
     StockTakeRestockSupplierOptionRecord[]
@@ -611,6 +615,20 @@ export default function DailyAuditPage() {
             <Award className="size-3.5" aria-hidden />
             Stats
           </Link>
+          {canWriteOrderPad ? (
+            <button
+              type="button"
+              onClick={() => setOrderPadOpen(true)}
+              className={cn(
+                "inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5",
+                "text-[11px] font-semibold text-muted-foreground",
+                "border border-border/70 bg-background/80 transition active:scale-[0.98]",
+              )}
+            >
+              <ClipboardList className="size-3.5" aria-hidden />
+              Order
+            </button>
+          ) : null}
         </div>
 
         {session && currentLine ? (
@@ -999,6 +1017,13 @@ export default function DailyAuditPage() {
           onSaved={setPendingRestock}
         />
       ) : null}
+
+      <OrderPadDrawer
+        open={orderPadOpen}
+        onOpenChange={setOrderPadOpen}
+        branchId={branchId}
+        canWrite={canWriteOrderPad}
+      />
     </div>
   );
 }

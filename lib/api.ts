@@ -6659,6 +6659,72 @@ export async function postStockTakeRestockMarkReceived(orderId: string): Promise
   );
 }
 
+/* ── Shared order pad (cashier / stock manager → admin checklist) ── */
+
+export type OrderPadItemRecord = {
+  id: string;
+  businessId: string;
+  branchId: string;
+  itemId: string | null;
+  itemName: string;
+  quantity: number | string | null;
+  note: string | null;
+  ordered: boolean;
+  orderedById: string | null;
+  orderedByName: string | null;
+  orderedAt: string | null;
+  createdById: string;
+  createdByName: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OrderPadLineInput = {
+  itemId?: string | null;
+  itemName?: string | null;
+  quantity?: number | string | null;
+  note?: string | null;
+};
+
+export async function fetchOrderPadItems(opts: {
+  branchId: string;
+  ordered?: boolean;
+}): Promise<OrderPadItemRecord[]> {
+  const params = new URLSearchParams();
+  params.set("branchId", opts.branchId.trim());
+  if (opts.ordered != null) params.set("ordered", String(opts.ordered));
+  return request<OrderPadItemRecord[]>(
+    `/api/v1/inventory/order-pad/items?${params}`,
+  );
+}
+
+export async function postOrderPadItemsBatch(body: {
+  branchId: string;
+  lines: OrderPadLineInput[];
+}): Promise<OrderPadItemRecord[]> {
+  return request<OrderPadItemRecord[]>(`/api/v1/inventory/order-pad/items/batch`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function postOrderPadItemOrdered(
+  itemId: string,
+  ordered: boolean,
+): Promise<OrderPadItemRecord> {
+  return request<OrderPadItemRecord>(
+    `/api/v1/inventory/order-pad/items/${encodeURIComponent(itemId)}/ordered`,
+    { method: "POST", body: JSON.stringify({ ordered }) },
+  );
+}
+
+export async function deleteOrderPadItem(itemId: string): Promise<void> {
+  await request<void>(
+    `/api/v1/inventory/order-pad/items/${encodeURIComponent(itemId)}`,
+    { method: "DELETE" },
+  );
+}
+
 export type SellPriceSuggestionRecord = {
   latestUnitCost: number | string | null;
   marginPercent: number | string | null;

@@ -81,6 +81,10 @@ export const Permission = {
   PosDraftsWrite: "pos.drafts.write",
   PosDraftsCancelOwn: "pos.drafts.cancel.own",
   PosDraftsCancelAny: "pos.drafts.cancel.any",
+  /** Shared to-order pad */
+  OrderPadWrite: "order_pad.write",
+  OrderPadRead: "order_pad.read",
+  OrderPadManage: "order_pad.manage",
 } as const;
 
 export function hasPermission(

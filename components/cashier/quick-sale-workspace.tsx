@@ -331,6 +331,7 @@ export function QuickSaleWorkspace({
     variant === "cashier" && canPathBWrite && canViewSuppliers;
   const allowCreditTabs =
     variant === "cashier" && canCashierClearTabs(me, business);
+  const allowOrderPad = hasPermission(me?.permissions, Permission.OrderPadWrite);
   const requirePhoneVerification = phoneVerificationRequiredForNewTab(business);
 
   const branchLockedRole =
@@ -3623,6 +3624,7 @@ export function QuickSaleWorkspace({
         allowLinkSupplierProducts={allowLinkSupplierProducts}
         allowReceiveSupply={allowReceiveSupply}
         allowCreditTabs={allowCreditTabs}
+        allowOrderPad={allowOrderPad}
         allowWeighedToggle={allowWeighedToggle}
         weighedToggleBusyItemId={weighedToggleBusyItemId}
         onToggleWeighed={toggleLineWeighed}

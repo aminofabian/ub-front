@@ -242,6 +242,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Counts & audits",
       },
       {
+        href: APP_ROUTES.inventoryOrderPad,
+        label: "Order pad",
+        group: "Counts & audits",
+      },
+      {
         href: APP_ROUTES.inventoryStockTake,
         label: "Stock take",
         group: "Counts & audits",
@@ -421,6 +426,7 @@ type NavGate = {
   canViewSupplyBatches: boolean;
   canViewStockTake: boolean;
   canApproveStockTake: boolean;
+  canViewOrderPad: boolean;
   canViewPricing: boolean;
   canViewShifts: boolean;
   canViewAnalytics: boolean;
@@ -599,6 +605,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canApproveStockTake;
   if (item.href === APP_ROUTES.inventoryStockTakeRestockOrders)
     return gate.canApproveStockTake;
+  if (item.href === APP_ROUTES.inventoryOrderPad) return gate.canViewOrderPad;
   if (item.href === APP_ROUTES.inventoryStockTakeInvestigations)
     return gate.canApproveStockTake;
   if (item.href === APP_ROUTES.inventoryStockTakeReconciliation)
@@ -704,6 +711,13 @@ const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
     label: "Counts",
     icon: ClipboardList,
     href: APP_ROUTES.inventoryStockTake,
+    matchSectionIds: ["inventory"],
+  },
+  {
+    id: "order-pad",
+    label: "Order",
+    icon: Package,
+    href: APP_ROUTES.inventoryOrderPad,
     matchSectionIds: ["inventory"],
   },
 ];
@@ -842,6 +856,10 @@ export function AppShell({ children }: AppShellProps) {
     me?.permissions,
     Permission.StocktakeApprove,
   );
+  const canViewOrderPad =
+    hasPermission(me?.permissions, Permission.OrderPadRead) ||
+    hasPermission(me?.permissions, Permission.OrderPadWrite) ||
+    hasPermission(me?.permissions, Permission.OrderPadManage);
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
   const groceryClerkStockAccess = groceryClerkStockAccessEnabled(business);
@@ -877,6 +895,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewSupplyBatches,
       canViewStockTake,
       canApproveStockTake,
+      canViewOrderPad,
       canViewPricing,
       canViewShifts,
       canViewAnalytics,
@@ -922,6 +941,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewSupplyBatches,
     canViewStockTake,
     canApproveStockTake,
+    canViewOrderPad,
     canViewPricing,
     canViewShifts,
     canViewAnalytics,
@@ -1027,6 +1047,9 @@ export function AppShell({ children }: AppShellProps) {
         STOCK_MANAGER_BOTTOM_TABS[3], // Audit
         STOCK_MANAGER_BOTTOM_TABS[4], // Counts
       );
+      if (canViewOrderPad) {
+        tabs.push(STOCK_MANAGER_BOTTOM_TABS[5]); // Order pad
+      }
       return tabs;
     }
     if (roleKey === "cashier") {
@@ -1124,6 +1147,7 @@ export function AppShell({ children }: AppShellProps) {
     canAddSupplies,
     stockManagerStockPage,
     stockManagerActivity,
+    canViewOrderPad,
   ]);
 
   // Which bottom tab is currently "active"

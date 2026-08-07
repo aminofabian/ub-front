@@ -27,6 +27,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.inventoryStockTakeInvestigations]: "Investigations",
     [APP_ROUTES.inventoryStockTakeRestock]: "Restock review",
     [APP_ROUTES.inventoryStockTakeRestockOrders]: "Restock orders",
+    [APP_ROUTES.inventoryOrderPad]: "Order pad",
     [APP_ROUTES.inventorySupplyBatches]: "Supply batches",
     [APP_ROUTES.inventoryCostIssues]: "Cost issues",
     [APP_ROUTES.purchasingAddSupplies]: "Receive supplies",
