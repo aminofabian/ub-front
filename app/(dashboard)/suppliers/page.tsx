@@ -29,6 +29,7 @@ import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-
 import { APP_ROUTES } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { supplierReceivePath } from "@/lib/supplier-slug";
+import { toast } from "sonner";
 import {
   addItemSupplierLink,
   createSupplier,
@@ -54,7 +55,6 @@ import {
   canWriteSuppliers,
 } from "@/lib/supplier-access";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import type { SupplierDuplicateMatch } from "@/lib/marketplace-api";
 
 import { SupplierCatalogColumn } from "./_components/SupplierCatalogColumn";
@@ -593,6 +593,35 @@ export default function SuppliersPage() {
     }
   };
 
+  const onSaveSupplierPayout = useCallback(
+    async (input: {
+      payoutType: "manual" | "mobile_wallet";
+      payoutPhone: string | null;
+    }) => {
+      if (!selectedId) return;
+      try {
+        const next = await patchSupplier(selectedId, {
+          payoutType: input.payoutType,
+          payoutPhone: input.payoutPhone,
+        });
+        setDetail(next);
+        setPatchDraft(supplierRecordToProfileDraft(next));
+        await refreshList();
+        toast.success(
+          input.payoutType === "mobile_wallet"
+            ? "KopoKopo M-Pesa payout enabled for this supplier."
+            : "KopoKopo M-Pesa payout turned off for this supplier.",
+        );
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not save payment settings.",
+        );
+        throw e;
+      }
+    },
+    [selectedId, refreshList],
+  );
+
   const refreshItemLinks = useCallback(async () => {
     if (!selectedId || !canReadCatalog) {
       return;
@@ -1042,6 +1071,7 @@ export default function SuppliersPage() {
                       }
                       onSelectInvoice={handleSelectInvoice}
                       purchaseHistoryRefreshKey={purchaseHistoryKey}
+                      onSavePayout={canWrite ? onSaveSupplierPayout : undefined}
                       onEditProfile={
                         canWrite
                           ? () => {
@@ -1187,6 +1217,7 @@ export default function SuppliersPage() {
               selectedInvoiceId={selectedInvoice?.supplierInvoiceId ?? null}
               onSelectInvoice={handleSelectInvoice}
               purchaseHistoryRefreshKey={purchaseHistoryKey}
+              onSavePayout={canWrite ? onSaveSupplierPayout : undefined}
               onEditProfile={
                 canWrite
                   ? () => {

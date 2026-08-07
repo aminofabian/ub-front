@@ -278,15 +278,26 @@ export function SupplierProfileFields({
               placeholder="Bank account, IBAN, SWIFT, PO references…"
             />
           </SupFormRow>
-          <SupFormRow label="KopoKopo payout">
-            <select
-              className={supFormCellSelect}
-              value={draft.payoutType}
-              onChange={(e) => onDraftChange({ payoutType: e.target.value })}
-            >
-              <option value="manual">Manual (record payment yourself)</option>
-              <option value="mobile_wallet">M-Pesa via KopoKopo Send Money</option>
-            </select>
+          <SupFormRow
+            label="KopoKopo M-Pesa"
+            hint="Turn on to pay this supplier from Supplies via Send Money."
+          >
+            <label className="flex cursor-pointer items-center gap-2.5 px-2 py-1.5">
+              <input
+                type="checkbox"
+                className="size-3.5 accent-emerald-600"
+                checked={draft.payoutType === "mobile_wallet"}
+                onChange={(e) =>
+                  onDraftChange({
+                    payoutType: e.target.checked ? "mobile_wallet" : "manual",
+                    ...(e.target.checked ? {} : { payoutPhone: "" }),
+                  })
+                }
+              />
+              <span className="text-sm text-foreground">
+                Pay this supplier via KopoKopo M-Pesa
+              </span>
+            </label>
           </SupFormRow>
           {draft.payoutType === "mobile_wallet" ? (
             <SupFormRow
@@ -298,7 +309,7 @@ export function SupplierProfileFields({
                 value={draft.payoutPhone}
                 onChange={(e) => onDraftChange({ payoutPhone: e.target.value })}
                 maxLength={32}
-                placeholder="2547XXXXXXXX"
+                placeholder="0710514157 or 2547XXXXXXXX"
                 inputMode="tel"
               />
             </SupFormRow>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Building2, PencilLine, Send, UserPlus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,6 +40,7 @@ export function SupplierEditColumn({
   onEditProfile,
   onAddContact,
   onDeposit,
+  onSavePayout,
   variant = "default",
   selectedInvoiceId = null,
   onSelectInvoice,
@@ -53,6 +54,11 @@ export function SupplierEditColumn({
   onEditProfile?: () => void;
   onAddContact?: () => void;
   onDeposit?: () => void;
+  /** Persist KopoKopo / M-Pesa payout settings from the supplier sidebar. */
+  onSavePayout?: (input: {
+    payoutType: "manual" | "mobile_wallet";
+    payoutPhone: string | null;
+  }) => Promise<void>;
   variant?: "default" | "sidebar";
   selectedInvoiceId?: string | null;
   onSelectInvoice?: (order: SupplierPurchaseHistoryOrderRecord) => void;
@@ -355,6 +361,13 @@ export function SupplierEditColumn({
       )}
 
       {!compact ? <SupplierCommercialSection s={detail} compact={compact} /> : null}
+
+      <SupplierSidebarPaymentSection
+        detail={detail}
+        canWrite={canWrite}
+        onSavePayout={onSavePayout}
+      />
+
       <SupplierPurchaseHistorySection
         key={purchaseHistoryRefreshKey}
         supplierId={detail.id}
@@ -363,10 +376,6 @@ export function SupplierEditColumn({
         onSelectInvoice={onSelectInvoice}
         historyLimit={compact ? 100 : 40}
       />
-
-      {compact ? (
-        <SupplierSidebarPaymentSection detail={detail} />
-      ) : null}
 
       {detail.notes?.trim() && compact ? (
         <SupFieldTable
@@ -599,16 +608,42 @@ function SupplierSidebarContactsDock({
   );
 }
 
-function SupplierSidebarPaymentSection({ detail }: { detail: SupplierRecord }) {
+function SupplierSidebarPaymentSection({
+  detail,
+  canWrite,
+  onSavePayout,
+}: {
+  detail: SupplierRecord;
+  canWrite?: boolean;
+  onSavePayout?: (input: {
+    payoutType: "manual" | "mobile_wallet";
+    payoutPhone: string | null;
+  }) => Promise<void>;
+}) {
   const paymentDetails = detail.paymentDetails?.trim();
   const creditTerms = formatCreditTerms(detail.creditTermsDays);
   const preferredPay = detail.paymentMethodPreferred?.trim();
-  const payoutPhone = detail.payoutPhone?.trim();
   const vatPin = detail.vatPin?.trim();
   const creditLimit =
     detail.creditLimit != null && Number.isFinite(detail.creditLimit)
       ? detail.creditLimit.toLocaleString(undefined, { maximumFractionDigits: 0 })
       : null;
+
+  const mpesaEnabled = detail.payoutType === "mobile_wallet";
+  const [mpesaOn, setMpesaOn] = useState(mpesaEnabled);
+  const [payoutPhone, setPayoutPhone] = useState(detail.payoutPhone?.trim() ?? "");
+  const [savingPayout, setSavingPayout] = useState(false);
+
+  useEffect(() => {
+    setMpesaOn(detail.payoutType === "mobile_wallet");
+    setPayoutPhone(detail.payoutPhone?.trim() ?? "");
+  }, [detail.id, detail.payoutType, detail.payoutPhone]);
+
+  const dirty =
+    mpesaOn !== mpesaEnabled ||
+    (mpesaOn
+      ? payoutPhone.trim() !== (detail.payoutPhone?.trim() ?? "")
+      : mpesaEnabled);
 
   const rows: { label: string; value: ReactNode }[] = [
     creditTerms ? { label: "Terms", value: creditTerms } : null,
@@ -623,14 +658,6 @@ function SupplierSidebarPaymentSection({ detail }: { detail: SupplierRecord }) {
           value: <span className="font-mono">{vatPin}</span>,
         }
       : null,
-    payoutPhone
-      ? {
-          label: detail.payoutType?.trim() || "Payout",
-          value: (
-            <TelLink phone={payoutPhone} className="font-mono" />
-          ),
-        }
-      : null,
     paymentDetails
       ? {
           label: "Remittance",
@@ -643,16 +670,89 @@ function SupplierSidebarPaymentSection({ detail }: { detail: SupplierRecord }) {
       : null,
   ].filter(Boolean) as { label: string; value: ReactNode }[];
 
-  if (rows.length === 0) return null;
+  const savePayout = async () => {
+    if (!onSavePayout) return;
+    if (mpesaOn && !payoutPhone.trim()) {
+      toast.error("Enter the supplier M-Pesa phone number.");
+      return;
+    }
+    setSavingPayout(true);
+    try {
+      await onSavePayout({
+        payoutType: mpesaOn ? "mobile_wallet" : "manual",
+        payoutPhone: mpesaOn ? payoutPhone.trim() : null,
+      });
+    } finally {
+      setSavingPayout(false);
+    }
+  };
 
   return (
-    <section>
+    <section className="space-y-0">
       <div className="border border-b-0 border-border bg-[#e8eef5] px-2 py-1 dark:bg-muted/40">
         <h3 className="text-[11px] font-semibold tracking-tight text-foreground">
           Payment
         </h3>
       </div>
-      <SupFieldTable rows={rows} />
+
+      <div className="space-y-2.5 border border-border bg-card px-2.5 py-2.5">
+        <label className="flex cursor-pointer items-start gap-2.5">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-3.5 accent-emerald-600"
+            checked={mpesaOn}
+            disabled={!canWrite || !onSavePayout || savingPayout}
+            onChange={(e) => setMpesaOn(e.target.checked)}
+          />
+          <span className="min-w-0">
+            <span className="block text-xs font-semibold text-foreground">
+              Pay this supplier via KopoKopo M-Pesa
+            </span>
+            <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+              When on, Supplies → Pay can Send Money to their M-Pesa (and auto-pay if enabled
+              under Payments settings).
+            </span>
+          </span>
+        </label>
+
+        {mpesaOn ? (
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              M-Pesa payout phone
+            </span>
+            <input
+              className="h-8 rounded-md border border-input bg-background px-2 font-mono text-xs"
+              value={payoutPhone}
+              onChange={(e) => setPayoutPhone(e.target.value)}
+              placeholder="0710514157 or 2547…"
+              inputMode="tel"
+              disabled={!canWrite || !onSavePayout || savingPayout}
+            />
+          </label>
+        ) : null}
+
+        {canWrite && onSavePayout ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 w-full text-xs"
+            disabled={savingPayout || !dirty}
+            onClick={() => void savePayout()}
+          >
+            {savingPayout ? "Saving…" : dirty ? "Save payment settings" : "Saved"}
+          </Button>
+        ) : !mpesaEnabled ? (
+          <p className="text-[11px] text-muted-foreground">
+            Open Edit profile to enable KopoKopo payout if you have write access.
+          </p>
+        ) : (
+          <p className="font-mono text-xs text-foreground">
+            {detail.payoutPhone?.trim() || "—"}
+          </p>
+        )}
+      </div>
+
+      {rows.length > 0 ? <SupFieldTable rows={rows} /> : null}
     </section>
   );
 }
