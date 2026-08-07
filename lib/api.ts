@@ -8222,12 +8222,14 @@ export type SupplierPayoutSettingsRecord = {
   gatewayType: string | null;
   gatewayLabel: string | null;
   gatewayReady: boolean;
+  autoPayEnabled: boolean;
   selectableGateways: SupplierPayoutGatewayOptionRecord[];
 };
 
 export type UpdateSupplierPayoutSettingsPayload = {
   enabled?: boolean;
   paymentGatewayConfigId?: string | null;
+  autoPayEnabled?: boolean;
 };
 
 export async function fetchSupplierPayoutSettings(): Promise<SupplierPayoutSettingsRecord> {

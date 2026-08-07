@@ -24,6 +24,7 @@ export function SupplierPayoutSettingsSection({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const [autoPayEnabled, setAutoPayEnabled] = useState(false);
   const [configId, setConfigId] = useState("");
 
   const reload = useCallback(async () => {
@@ -32,6 +33,7 @@ export function SupplierPayoutSettingsSection({
       const s = await fetchSupplierPayoutSettings();
       setSettings(s);
       setEnabled(s.enabled);
+      setAutoPayEnabled(Boolean(s.autoPayEnabled));
       setConfigId(s.paymentGatewayConfigId ?? "");
     } catch (e) {
       const msg =
@@ -42,12 +44,13 @@ export function SupplierPayoutSettingsSection({
         gatewayType: null,
         gatewayLabel: null,
         gatewayReady: false,
+        autoPayEnabled: false,
         selectableGateways: [],
       });
       toast.error(msg, {
         description:
           msg.includes("migration") || msg.includes("Database")
-            ? "Redeploy the API so database migrations V92/V93 can run."
+            ? "Redeploy the API so database migrations can run (including auto-pay)."
             : undefined,
         duration: 12_000,
       });
@@ -73,13 +76,17 @@ export function SupplierPayoutSettingsSection({
       const next = await updateSupplierPayoutSettings({
         enabled,
         paymentGatewayConfigId: enabled ? configId || null : null,
+        autoPayEnabled: enabled ? autoPayEnabled : false,
       });
       setSettings(next);
       setEnabled(next.enabled);
+      setAutoPayEnabled(Boolean(next.autoPayEnabled));
       setConfigId(next.paymentGatewayConfigId ?? "");
       toast.success(
         next.enabled
-          ? "Supplier payouts enabled."
+          ? next.autoPayEnabled
+            ? "Supplier payouts + auto-pay enabled."
+            : "Supplier payouts enabled."
           : "Supplier payouts disabled.",
       );
     } catch (e) {
@@ -120,7 +127,13 @@ export function SupplierPayoutSettingsSection({
               className="size-4 rounded border-input"
               checked={enabled}
               disabled={!canWrite || saving}
-              onChange={(e) => setEnabled(e.target.checked)}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setEnabled(on);
+                if (!on) {
+                  setAutoPayEnabled(false);
+                }
+              }}
             />
             <span className="text-sm font-medium text-foreground">
               Enable paying suppliers via payment gateway
@@ -128,7 +141,7 @@ export function SupplierPayoutSettingsSection({
           </label>
 
           {enabled ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                 Payout gateway
                 <select
@@ -150,7 +163,7 @@ export function SupplierPayoutSettingsSection({
                   No eligible gateway is active. Set up and activate a gateway above (KopoKopo must be
                   enabled for supplier payouts by your platform admin).
                 </p>
-              ) : settings?.gatewayReady ? (
+              ) : settings?.gatewayReady && configId ? (
                 <p className="text-xs text-emerald-800 dark:text-emerald-200">
                   Ready: {settings.gatewayLabel} ({settings.gatewayType})
                 </p>
@@ -159,6 +172,26 @@ export function SupplierPayoutSettingsSection({
                   Select an active gateway and save.
                 </p>
               )}
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 rounded border-input"
+                  checked={autoPayEnabled}
+                  disabled={!canWrite || saving || !configId}
+                  onChange={(e) => setAutoPayEnabled(e.target.checked)}
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-foreground">
+                    Auto-pay unpaid supply bills (12:00 AM &amp; 6:00 PM EAT)
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                    When on, PalMart sends M-Pesa via KopoKopo for unpaid supplies whose suppliers
+                    have an M-Pesa payout phone. Keep enough till balance — declines (e.g. insufficient
+                    funds) are skipped until the next run.
+                  </span>
+                </span>
+              </label>
             </div>
           ) : null}
 
