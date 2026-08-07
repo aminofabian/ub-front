@@ -5635,6 +5635,16 @@ export async function addSupplyBatchExpense(
   });
 }
 
+export async function deleteSupplyBatchExpense(
+  batchId: string,
+  expenseId: string,
+): Promise<void> {
+  await request(
+    `/api/v1/inventory/supply-batches/${encodeURIComponent(batchId.trim())}/expenses/${encodeURIComponent(expenseId.trim())}`,
+    { method: "DELETE" },
+  );
+}
+
 // ── Batch Analytics ─────────────────────────────────────────────────────────
 
 export type BatchSummaryCards = {
@@ -8028,6 +8038,13 @@ export type PathBSupplyInvoiceLineRecord = {
   wastageQty: number | string;
 };
 
+export type PathBSupplyExpenseRecord = {
+  id: string;
+  category: string;
+  amount: number | string;
+  description: string | null;
+};
+
 export type PatchPathBSupplyInvoiceLinePayload = {
   supplierInvoiceLineId: string;
   usableQty: number;
@@ -8049,6 +8066,11 @@ export type PathBSupplyInvoiceDetailRecord = {
   amountPaid: number | string;
   balanceOpen: number | string;
   paymentStatus: string;
+  /** Branch the receipt was posted into (for shelf-price updates). */
+  branchId?: string | null;
+  /** Linked supply batch for extra costs, when present. */
+  supplyBatchId?: string | null;
+  expenses?: PathBSupplyExpenseRecord[];
   lines: PathBSupplyInvoiceLineRecord[];
 };
 
