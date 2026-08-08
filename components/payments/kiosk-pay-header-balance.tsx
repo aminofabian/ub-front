@@ -167,23 +167,27 @@ export function KioskPayHeaderBalance({
             ? crypto.randomUUID()
             : `wd-${Date.now()}`,
       });
-      toast.success(
-        row.status === "SUCCESS"
-          ? "Withdrawal completed."
-          : "Withdrawal submitted — waiting for M-Pesa.",
-      );
-      setWithdrawAmount("");
-      setWithdrawOpen(false);
-      // Optimistic pending move; WS will confirm.
-      setAccount((prev) =>
-        prev
-          ? {
-              ...prev,
-              availableBalance: Math.max(0, Number(prev.availableBalance) - amount),
-              pendingBalance: Number(prev.pendingBalance) + amount,
-            }
-          : prev,
-      );
+      if (row.status === "FAILED") {
+        toast.error(row.failureReason || "Withdraw failed.");
+      } else {
+        toast.success(
+          row.status === "SUCCESS"
+            ? "Withdrawal completed."
+            : "Withdrawal submitted — waiting for M-Pesa.",
+        );
+        setWithdrawAmount("");
+        setWithdrawOpen(false);
+        // Optimistic pending move; WS will confirm.
+        setAccount((prev) =>
+          prev
+            ? {
+                ...prev,
+                availableBalance: Math.max(0, Number(prev.availableBalance) - amount),
+                pendingBalance: Number(prev.pendingBalance) + amount,
+              }
+            : prev,
+        );
+      }
       const refreshed = await fetchKioskPayAccount().catch(() => null);
       if (refreshed) setAccount(refreshed);
     } catch (e) {

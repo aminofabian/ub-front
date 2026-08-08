@@ -103,12 +103,16 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
             ? crypto.randomUUID()
             : `wd-${Date.now()}`,
       });
-      toast.success(
-        row.status === "SUCCESS"
-          ? "Withdrawal completed."
-          : "Withdrawal submitted — waiting for M-Pesa confirmation.",
-      );
-      setWithdrawAmount("");
+      if (row.status === "FAILED") {
+        toast.error(row.failureReason || "Withdraw failed.");
+      } else {
+        toast.success(
+          row.status === "SUCCESS"
+            ? "Withdrawal completed."
+            : "Withdrawal submitted — waiting for M-Pesa confirmation.",
+        );
+        setWithdrawAmount("");
+      }
       await reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Withdraw failed.");
