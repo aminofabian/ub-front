@@ -27,7 +27,7 @@ export default function SuperAdminPlatformPaymentsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [kioskSaving, setKioskSaving] = useState(false);
 
-  const [minWithdraw, setMinWithdraw] = useState("100");
+  const [minWithdraw, setMinWithdraw] = useState("20");
   const [dailyLimit, setDailyLimit] = useState("200000");
   const [paystackEnv, setPaystackEnv] = useState("sandbox");
   const [paystackPublic, setPaystackPublic] = useState("");
@@ -47,7 +47,7 @@ export default function SuperAdminPlatformPaymentsPage() {
       ]);
       setGateways(gws);
       setKioskPay(kp);
-      setMinWithdraw(String(kp.minWithdrawAmount ?? 100));
+      setMinWithdraw(String(kp.minWithdrawAmount ?? 20));
       setDailyLimit(String(kp.dailyWithdrawLimit ?? 200000));
       setPaystackEnv(kp.paystackEnvironment ?? "sandbox");
       setKopokopoEnv(kp.kopokopoEnvironment ?? "sandbox");
