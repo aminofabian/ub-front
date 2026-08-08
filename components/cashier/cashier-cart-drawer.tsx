@@ -189,10 +189,8 @@ export type CashierCartDrawerProps = {
   stkPushError: string;
   /** Gateway-verified / locked M-Pesa amount (shown on confirm). */
   stkLockedAmount?: number | null;
-  /** Block line edits / removes while STK or till payment is in flight. */
-  cartFrozenForMpesa?: boolean;
   onStkPush: (phoneNumber: string) => void;
-  /** Abandon in-flight STK / unlock cart (not used after payment confirms). */
+  /** Abandon in-flight STK / till listen. */
   onCancelInFlightMpesa?: () => void;
   voidNotes: string;
   setVoidNotes: (s: string) => void;
@@ -344,7 +342,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     stkPushStatus,
     stkPushError,
     stkLockedAmount = null,
-    cartFrozenForMpesa = false,
     onStkPush,
     onCancelInFlightMpesa,
     voidNotes,
@@ -665,28 +662,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     </p>
                   ) : null}
 
-                  {cartFrozenForMpesa ? (
-                    <div className="space-y-2 rounded-xl border border-amber-200/70 bg-amber-50/90 px-3 py-2 dark:border-amber-900/50 dark:bg-amber-950/30">
-                      <p className="text-[12px] font-medium text-amber-950 dark:text-amber-100">
-                        {stkPushStatus === "confirmed"
-                          ? "Cart locked — M-Pesa is confirmed. Completing the sale…"
-                          : "Cart locked while M-Pesa is in progress — scans and qty edits are blocked so the total cannot drift. Switch tender or cancel to unlock before payment confirms."}
-                      </p>
-                      {onCancelInFlightMpesa &&
-                      (stkPushStatus === "sending" ||
-                        stkPushStatus === "sent") ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-9 w-full rounded-xl border-amber-300/80 bg-white/80 text-xs font-semibold text-amber-950 hover:bg-white dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-50"
-                          onClick={onCancelInFlightMpesa}
-                        >
-                          Cancel M-Pesa & unlock cart
-                        </Button>
-                      ) : null}
-                    </div>
-                  ) : null}
-
                   {!splitPay ? (
                     <div className="grid grid-cols-2 gap-2">
                       <PayMethodTile
@@ -953,7 +928,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               className="h-10 w-full rounded-xl text-sm font-semibold text-muted-foreground"
                               onClick={onCancelInFlightMpesa}
                             >
-                              Cancel & unlock cart
+                              Cancel M-Pesa
                             </Button>
                           ) : null}
                         </div>
@@ -987,7 +962,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               className="h-10 w-full rounded-xl text-sm font-semibold text-muted-foreground"
                               onClick={onCancelInFlightMpesa}
                             >
-                              Cancel & unlock cart
+                              Cancel M-Pesa
                             </Button>
                           ) : null}
                         </div>
@@ -1614,7 +1589,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 itemLabel={full}
                                 size="sm"
                                 allowFractions={line.item.isWeighed === true}
-                                disabled={cartFrozenForMpesa}
                                 onChange={(next) =>
                                   updateLine(line.key, "quantity", next)
                                 }
@@ -1627,7 +1601,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 type="button"
                                 className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-40"
                                 aria-label={`Remove ${full}`}
-                                disabled={cartFrozenForMpesa}
                                 onClick={() => removeLine(line.key)}
                               >
                                 <Trash2 className="size-3.5" />

@@ -171,22 +171,8 @@ export function createEmptyCartSession(): CartSession {
   };
 }
 
-/** True while an STK prompt is committed or paid — cart lines must not change. */
-export function isCartFrozenForMpesa(stkPushStatus: string): boolean {
-  return (
-    stkPushStatus === "sending" ||
-    stkPushStatus === "sent" ||
-    stkPushStatus === "confirmed"
-  );
-}
-
-/** STK prompt in flight (not till-listen, not already paid). */
-export function isMpesaStkPromptInFlight(stkPushStatus: string): boolean {
-  return stkPushStatus === "sending" || stkPushStatus === "sent";
-}
-
 /**
- * Clear in-flight STK lock fields so the cashier can edit the cart or switch tender.
+ * Clear in-flight STK fields when the cashier abandons a prompt (tender switch / cancel).
  * Does not touch payMethod / phone. Callers should not use this after `confirmed`.
  */
 export function clearInFlightMpesaCartFields(reason = ""): Pick<

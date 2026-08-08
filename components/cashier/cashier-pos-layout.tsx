@@ -332,7 +332,6 @@ export type CashierPosLayoutProps = {
     | "stkPushStatus"
     | "stkPushError"
     | "stkLockedAmount"
-    | "cartFrozenForMpesa"
     | "onStkPush"
     | "onCancelInFlightMpesa"
     | "voidNotes"
@@ -1012,7 +1011,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const applyBarcodeSearch = useCallback(
     (code: string) => {
       if (tillLocked) return;
-      if (cart.cartFrozenForMpesa) return;
       const trimmed = code.trim();
       if (!trimmed) return;
 
@@ -1108,7 +1106,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     },
     [
       tillLocked,
-      cart.cartFrozenForMpesa,
       scanToCartEnabled,
       online,
       branchId,
@@ -1126,7 +1123,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   usePosBarcodeWedge({
     enabled:
       !tillLocked &&
-      !cart.cartFrozenForMpesa &&
       !drawerOpen &&
       !modalOpen &&
       !showScanner &&
@@ -2156,7 +2152,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           allowWeighedToggle={allowWeighedToggle}
           weighedToggleBusyItemId={weighedToggleBusyItemId}
           tillListening={cart.stkPushStatus === "awaiting_till"}
-          cartFrozenForMpesa={cart.cartFrozenForMpesa === true}
           removeLine={cart.removeLine}
           updateLine={cart.updateLine}
           onCheckout={() => setCheckoutDrawerOpen(true)}
