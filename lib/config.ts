@@ -125,6 +125,8 @@ export const APP_ROUTES = {
   paymentsSettings: "/payments/settings",
   /** Day tender tape — chronological sale payments for reconciling / following along. */
   paymentsDayLedger: "/payments/day",
+  /** Kiosk Pay wallet ledger + withdrawal history. */
+  paymentsKioskPay: "/payments/kiosk-pay",
   /** Desktop SKU: license, LAN sharing, local backups (DESKTOP_INSTALLATION.md). */
   desktopSettings: "/settings/desktop",
   tenantSuspended: "/_status/suspended",

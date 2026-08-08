@@ -316,11 +316,12 @@ const NAV_SECTIONS: readonly NavSection[] = [
     id: "payments",
     title: "Payments",
     shortLabel: "Pay",
-    blurb: "Day ledger and checkout gateways",
+    blurb: "Day ledger, Kiosk Pay, and checkout gateways",
     icon: CreditCard,
     entryHref: APP_ROUTES.paymentsDayLedger,
     items: [
       { href: APP_ROUTES.paymentsDayLedger, label: "Day ledger" },
+      { href: APP_ROUTES.paymentsKioskPay, label: "Kiosk Pay" },
       { href: APP_ROUTES.paymentsSettings, label: "Gateways & payouts" },
     ],
   },
@@ -474,6 +475,7 @@ function featureFlagAllows(
  */
 const DESKTOP_HIDDEN_NAV_HREFS: readonly string[] = [
   APP_ROUTES.paymentsSettings,
+  APP_ROUTES.paymentsKioskPay,
   APP_ROUTES.promoCampaigns,
   APP_ROUTES.businessDomains,
   APP_ROUTES.storefrontWebOrders,
@@ -628,6 +630,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   }
   if (item.href === APP_ROUTES.sales) return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.paymentsSettings)
+    return gate.canViewPaymentGateways;
+  if (item.href === APP_ROUTES.paymentsKioskPay)
     return gate.canViewPaymentGateways;
   if (item.href === APP_ROUTES.paymentsDayLedger)
     return gate.canViewSalesIntelligence;

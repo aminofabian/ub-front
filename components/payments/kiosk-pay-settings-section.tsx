@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
@@ -8,14 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   fetchKioskPayAccount,
-  fetchKioskPayLedger,
-  fetchKioskPayWithdrawals,
   requestKioskPayWithdraw,
   updateKioskPayAccount,
   type KioskPayAccountRecord,
-  type KioskPayLedgerEntryRecord,
-  type KioskPayWithdrawalRecord,
 } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -29,8 +27,6 @@ function money(n: number | null | undefined, currency = "KES") {
 
 export function KioskPaySettingsSection({ canWrite }: Props) {
   const [account, setAccount] = useState<KioskPayAccountRecord | null>(null);
-  const [ledger, setLedger] = useState<KioskPayLedgerEntryRecord[]>([]);
-  const [withdrawals, setWithdrawals] = useState<KioskPayWithdrawalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [payoutPhone, setPayoutPhone] = useState("");
@@ -41,16 +37,10 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const [acc, led, wds] = await Promise.all([
-        fetchKioskPayAccount(),
-        fetchKioskPayLedger(15).catch(() => []),
-        fetchKioskPayWithdrawals(10).catch(() => []),
-      ]);
+      const acc = await fetchKioskPayAccount();
       setAccount(acc);
       setPayoutPhone(acc.payoutPhone ?? "");
       setStorefrontEnabled(acc.storefrontEnabled);
-      setLedger(led);
-      setWithdrawals(wds);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not load Kiosk Pay.");
     } finally {
@@ -126,31 +116,6 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
     }
   };
 
-  const onRetryWithdraw = async (w: KioskPayWithdrawalRecord) => {
-    if (!canWrite) return;
-    setSaving(true);
-    try {
-      const row = await requestKioskPayWithdraw({
-        amount: w.amount,
-        phoneNumber: w.phoneNumber || undefined,
-        idempotencyKey:
-          typeof crypto !== "undefined" && "randomUUID" in crypto
-            ? crypto.randomUUID()
-            : `wd-${Date.now()}`,
-      });
-      toast.success(
-        row.status === "FAILED"
-          ? row.failureReason || "Withdraw failed."
-          : "Withdraw re-submitted.",
-      );
-      await reload();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not retry withdraw.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const active = account?.status === "ACTIVE";
   const platformOn = account?.platformEnabled === true;
 
@@ -167,15 +132,20 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
             M-Pesa anytime. You can still connect your own Paystack above.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={loading || saving}
-          onClick={() => void reload()}
-        >
-          Refresh
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" asChild>
+            <Link href={APP_ROUTES.paymentsKioskPay}>Ledger & withdrawals</Link>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={loading || saving}
+            onClick={() => void reload()}
+          >
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {loading && !account ? (
@@ -332,69 +302,29 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
                   Withdraw
                 </Button>
               </div>
-            </div>
-          ) : null}
-
-          {withdrawals.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Recent withdrawals
+              <p className="text-[11px] text-muted-foreground">
+                Full history lives on the{" "}
+                <Link
+                  href={APP_ROUTES.paymentsKioskPay}
+                  className="font-medium text-foreground underline underline-offset-2"
+                >
+                  Kiosk Pay activity
+                </Link>{" "}
+                page.
               </p>
-              <ul className="divide-y divide-border/60 border border-border/60">
-                {withdrawals.map((w) => (
-                  <li
-                    key={w.id}
-                    className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs"
-                  >
-                    <span className="font-medium tabular-nums">
-                      {money(w.amount, w.currency)} → {w.phoneNumber}
-                    </span>
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      {w.status}
-                      {w.failureReason ? ` · ${w.failureReason}` : ""}
-                      {w.status === "FAILED" && canWrite ? (
-                        <button
-                          type="button"
-                          disabled={saving}
-                          onClick={() => void onRetryWithdraw(w)}
-                          className="rounded-md border border-border/70 px-2 py-0.5 font-medium text-foreground hover:bg-muted/40"
-                        >
-                          Retry
-                        </button>
-                      ) : null}
-                    </span>
-                  </li>
-                ))}
-              </ul>
             </div>
-          ) : null}
-
-          {ledger.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Recent ledger
-              </p>
-              <ul className="divide-y divide-border/60 border border-border/60">
-                {ledger.map((e) => (
-                  <li
-                    key={e.id}
-                    className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs"
-                  >
-                    <span>
-                      {e.entryType}{" "}
-                      <span className="text-muted-foreground">
-                        {e.note ? `· ${e.note}` : ""}
-                      </span>
-                    </span>
-                    <span className="tabular-nums font-medium">
-                      {e.direction === "CREDIT" ? "+" : "−"}
-                      {money(e.amount, e.currency)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              View ledger and withdrawals on{" "}
+              <Link
+                href={APP_ROUTES.paymentsKioskPay}
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                Kiosk Pay activity
+              </Link>
+              .
+            </p>
+          )}
         </div>
       )}
     </section>

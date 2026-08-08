@@ -18,6 +18,7 @@ import {
   requestKioskPayWithdraw,
   type KioskPayAccountRecord,
 } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
 import { getRealtimeClient } from "@/lib/realtime";
 import { cn } from "@/lib/utils";
 
@@ -260,7 +261,13 @@ export function KioskPayHeaderBalance({
           <DialogHeader>
             <DialogTitle>Withdraw Kiosk Pay</DialogTitle>
             <DialogDescription>
-              Send funds to M-Pesa. Available: {money(available, currency)}.
+              Send funds to M-Pesa. Available: {money(available, currency)}.{" "}
+              <a
+                href={APP_ROUTES.paymentsKioskPay}
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                View ledger
+              </a>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-1">

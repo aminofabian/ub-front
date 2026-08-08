@@ -57,6 +57,8 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.users]: "Team",
     [APP_ROUTES.branches]: "Branches",
     [APP_ROUTES.paymentsSettings]: "Payments",
+    [APP_ROUTES.paymentsDayLedger]: "Day ledger",
+    [APP_ROUTES.paymentsKioskPay]: "Kiosk Pay",
     [APP_ROUTES.desktopSettings]: "Desktop",
   };
 

@@ -32,6 +32,7 @@ import {
   Tags,
   Truck,
   Users,
+  Wallet,
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
@@ -109,6 +110,7 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.shifts]: SlidersHorizontal,
   [APP_ROUTES.paymentsSettings]: CreditCard,
   [APP_ROUTES.paymentsDayLedger]: Receipt,
+  [APP_ROUTES.paymentsKioskPay]: Wallet,
   [APP_ROUTES.creditsOnTab]: CreditCard,
   [APP_ROUTES.customers]: Users,
   [APP_ROUTES.customerPhones]: Phone,
@@ -146,6 +148,7 @@ const RAIL_SHORT_LABEL_BY_HREF: Partial<Record<string, string>> = {
   [APP_ROUTES.purchasingApAging]: "AP",
   [APP_ROUTES.purchasingRecordPayment]: "Pay",
   [APP_ROUTES.paymentsDayLedger]: "Ledger",
+  [APP_ROUTES.paymentsKioskPay]: "Kiosk Pay",
   [APP_ROUTES.salesQuick]: "Sale",
   [APP_ROUTES.butcher]: "Counter",
   [APP_ROUTES.butcherSuppliers]: "Suppliers",
