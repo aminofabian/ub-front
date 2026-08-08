@@ -106,9 +106,11 @@ export function KioskPayHeaderBalance({
               lifetimeIn: 0,
               lifetimeOut: 0,
               feePercent: 0,
-              platformFeePercent: 1,
+              platformFeePercent: 0,
               storefrontEnabled: true,
               platformEnabled: true,
+              minWithdrawAmount: 0,
+              dailyWithdrawLimit: 0,
               updatedAt: null,
             };
           }

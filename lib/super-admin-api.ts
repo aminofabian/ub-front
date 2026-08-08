@@ -362,6 +362,57 @@ export async function patchPlatformKioskPaySettings(
   });
 }
 
+export type SaKioskPayAccountRow = {
+  id: string | null;
+  businessId: string;
+  status: string;
+  payoutPhone: string | null;
+  availableBalance: number;
+  pendingBalance: number;
+  lifetimeIn: number;
+  lifetimeOut: number;
+  feePercent: number;
+  platformFeePercent: number;
+  storefrontEnabled: boolean;
+  platformEnabled: boolean;
+  minWithdrawAmount: number;
+  dailyWithdrawLimit: number;
+  updatedAt: string | null;
+};
+
+export type SaKioskPayAccountSummary = {
+  accountCount: number;
+  totalAvailable: number;
+  totalPending: number;
+  totalLifetimeIn: number;
+  totalLifetimeOut: number;
+};
+
+export async function fetchSaKioskPayAccounts(
+  limit = 50,
+): Promise<SaKioskPayAccountRow[]> {
+  return saRequest<SaKioskPayAccountRow[]>(
+    `${API_ROUTES.superAdminKioskPay}/accounts?limit=${limit}`,
+  );
+}
+
+export async function fetchSaKioskPayAccountSummary(): Promise<SaKioskPayAccountSummary> {
+  return saRequest<SaKioskPayAccountSummary>(
+    `${API_ROUTES.superAdminKioskPay}/accounts/summary`,
+  );
+}
+
+export async function adjustSaKioskPayAccount(
+  businessId: string,
+  delta: number,
+  note: string,
+): Promise<SaKioskPayAccountRow> {
+  return saRequest<SaKioskPayAccountRow>(
+    `${API_ROUTES.superAdminKioskPay}/accounts/${encodeURIComponent(businessId)}/adjust`,
+    { method: "POST", body: JSON.stringify({ delta, note }) },
+  );
+}
+
 export async function fetchSaDomains(
   businessId: string,
 ): Promise<SaDomainRow[]> {

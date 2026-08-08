@@ -9606,6 +9606,8 @@ export type KioskPayAccountRecord = {
   platformFeePercent: number;
   storefrontEnabled: boolean;
   platformEnabled: boolean;
+  minWithdrawAmount: number;
+  dailyWithdrawLimit: number;
   updatedAt: string | null;
 };
 

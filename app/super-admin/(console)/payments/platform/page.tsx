@@ -1,24 +1,60 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CreditCard, Shield, Wallet } from "lucide-react";
+import { CreditCard, Loader2, Shield, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import {
   type PlatformGatewayRecord,
   type PatchPlatformGatewayPayload,
   type PlatformKioskPaySettingsRecord,
+  type SaKioskPayAccountRow,
+  type SaKioskPayAccountSummary,
+  adjustSaKioskPayAccount,
   fetchPlatformGateways,
+  fetchSaKioskPayAccountSummary,
+  fetchSaKioskPayAccounts,
   patchPlatformGateway,
   fetchPlatformKioskPaySettings,
   patchPlatformKioskPaySettings,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
+
+function money(n: number | null | undefined) {
+  const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
+  return `KES ${v.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function shortId(id: string) {
+  return id.length > 12 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
+}
+
+function SummaryTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-0.5 truncate font-heading text-sm font-semibold tabular-nums">{value}</p>
+    </div>
+  );
+}
 
 export default function SuperAdminPlatformPaymentsPage() {
   const [gateways, setGateways] = useState<PlatformGatewayRecord[]>([]);
@@ -26,6 +62,14 @@ export default function SuperAdminPlatformPaymentsPage() {
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [kioskSaving, setKioskSaving] = useState(false);
+
+  const [accounts, setAccounts] = useState<SaKioskPayAccountRow[]>([]);
+  const [accountSummary, setAccountSummary] = useState<SaKioskPayAccountSummary | null>(null);
+  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [adjustTarget, setAdjustTarget] = useState<SaKioskPayAccountRow | null>(null);
+  const [adjustDelta, setAdjustDelta] = useState("");
+  const [adjustNote, setAdjustNote] = useState("");
+  const [adjustSaving, setAdjustSaving] = useState(false);
 
   const [minWithdraw, setMinWithdraw] = useState("20");
   const [dailyLimit, setDailyLimit] = useState("200000");
@@ -40,19 +84,26 @@ export default function SuperAdminPlatformPaymentsPage() {
 
   const reload = useCallback(async () => {
     setLoadError("");
+    setAccountsLoading(true);
     try {
-      const [gws, kp] = await Promise.all([
+      const [gws, kp, accs, summ] = await Promise.all([
         fetchPlatformGateways(),
         fetchPlatformKioskPaySettings(),
+        fetchSaKioskPayAccounts(50).catch(() => []),
+        fetchSaKioskPayAccountSummary().catch(() => null),
       ]);
       setGateways(gws);
       setKioskPay(kp);
+      setAccounts(accs);
+      setAccountSummary(summ);
       setMinWithdraw(String(kp.minWithdrawAmount ?? 20));
       setDailyLimit(String(kp.dailyWithdrawLimit ?? 200000));
       setPaystackEnv(kp.paystackEnvironment ?? "sandbox");
       setKopokopoEnv(kp.kopokopoEnvironment ?? "sandbox");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Could not load platform payments.");
+    } finally {
+      setAccountsLoading(false);
     }
   }, []);
 
@@ -109,6 +160,32 @@ export default function SuperAdminPlatformPaymentsPage() {
       toast.error(e instanceof Error ? e.message : "Could not save Kiosk Pay.");
     } finally {
       setKioskSaving(false);
+    }
+  };
+
+  const onAdjust = async () => {
+    if (!adjustTarget) return;
+    const delta = Number(adjustDelta);
+    if (!Number.isFinite(delta) || delta === 0) {
+      toast.error("Enter a non-zero adjustment (negative debits, positive credits).");
+      return;
+    }
+    if (!adjustNote.trim()) {
+      toast.error("A note is required for the audit trail.");
+      return;
+    }
+    setAdjustSaving(true);
+    try {
+      await adjustSaKioskPayAccount(adjustTarget.businessId, delta, adjustNote.trim());
+      toast.success("Wallet adjusted.");
+      setAdjustTarget(null);
+      setAdjustDelta("");
+      setAdjustNote("");
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Adjustment failed.");
+    } finally {
+      setAdjustSaving(false);
     }
   };
 
@@ -273,6 +350,93 @@ export default function SuperAdminPlatformPaymentsPage() {
         </CardFooter>
       </Card>
 
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Wallet className="size-5 text-muted-foreground" aria-hidden />
+            <div>
+              <CardTitle className="font-heading text-base">Tenant wallets</CardTitle>
+              <CardDescription>
+                Platform custody float — reconcile PSP settlements against these totals.
+              </CardDescription>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={accountsLoading}
+            onClick={() => void reload()}
+          >
+            {accountsLoading ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              "Refresh"
+            )}
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {accountSummary ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <SummaryTile label="Accounts" value={String(accountSummary.accountCount)} />
+              <SummaryTile label="Available float" value={money(accountSummary.totalAvailable)} />
+              <SummaryTile label="Pending (withdraw)" value={money(accountSummary.totalPending)} />
+              <SummaryTile label="Lifetime in" value={money(accountSummary.totalLifetimeIn)} />
+              <SummaryTile label="Lifetime out" value={money(accountSummary.totalLifetimeOut)} />
+            </div>
+          ) : null}
+          {accounts.length > 0 ? (
+            <div className="overflow-x-auto rounded-lg border border-border/60">
+              <table className="w-full min-w-[680px] text-left text-xs">
+                <thead className="border-b border-border/60 bg-muted/20 text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Business</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
+                    <th className="px-3 py-2 text-right font-medium">Available</th>
+                    <th className="px-3 py-2 text-right font-medium">Pending</th>
+                    <th className="px-3 py-2 text-right font-medium">Lifetime in</th>
+                    <th className="px-3 py-2 text-right font-medium">Lifetime out</th>
+                    <th className="px-3 py-2 font-medium" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {accounts.map((a) => (
+                    <tr key={a.businessId}>
+                      <td className="px-3 py-2 font-mono">{shortId(a.businessId)}</td>
+                      <td className="px-3 py-2">
+                        <Badge variant={a.status === "ACTIVE" ? "success" : "secondary"}>
+                          {a.status}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {money(a.availableBalance)}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">{money(a.pendingBalance)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{money(a.lifetimeIn)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{money(a.lifetimeOut)}</td>
+                      <td className="px-3 py-2 text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setAdjustTarget(a);
+                            setAdjustDelta("");
+                            setAdjustNote("");
+                          }}
+                        >
+                          Adjust
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No tenant Kiosk Pay accounts yet.</p>
+          )}
+        </CardContent>
+      </Card>
+
       <Card className="border-border/70 bg-muted/20 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="font-heading text-base">BYO gateways</CardTitle>
@@ -340,6 +504,66 @@ export default function SuperAdminPlatformPaymentsPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      <Dialog
+        open={adjustTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setAdjustTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adjust Kiosk Pay wallet</DialogTitle>
+            <DialogDescription>
+              Business {adjustTarget ? shortId(adjustTarget.businessId) : ""} · available{" "}
+              {adjustTarget ? money(adjustTarget.availableBalance) : ""}. Positive credits;
+              negative debits.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-1">
+            <label className="space-y-1.5 text-sm">
+              <span className="text-xs font-medium text-muted-foreground">Delta (KES)</span>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                placeholder="e.g. -500 or 250.50"
+                value={adjustDelta}
+                disabled={adjustSaving}
+                onChange={(e) => setAdjustDelta(e.target.value)}
+                autoFocus
+              />
+            </label>
+            <label className="space-y-1.5 text-sm">
+              <span className="text-xs font-medium text-muted-foreground">Note (audit trail)</span>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                placeholder="e.g. refund for voided sale #123"
+                value={adjustNote}
+                disabled={adjustSaving}
+                onChange={(e) => setAdjustNote(e.target.value)}
+              />
+            </label>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={adjustSaving}
+              onClick={() => setAdjustTarget(null)}
+            >
+              Cancel
+            </Button>
+            <Button disabled={adjustSaving} onClick={() => void onAdjust()}>
+              {adjustSaving ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                "Apply adjustment"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

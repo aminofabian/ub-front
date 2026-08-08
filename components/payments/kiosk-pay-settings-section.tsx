@@ -93,6 +93,11 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
       toast.error("Enter a valid withdraw amount.");
       return;
     }
+    const min = account.minWithdrawAmount ?? 0;
+    if (min > 0 && amount < min) {
+      toast.error(`Minimum withdraw is ${money(min, "KES")}.`);
+      return;
+    }
     setSaving(true);
     try {
       const row = await requestKioskPayWithdraw({
@@ -116,6 +121,31 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
       await reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Withdraw failed.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onRetryWithdraw = async (w: KioskPayWithdrawalRecord) => {
+    if (!canWrite) return;
+    setSaving(true);
+    try {
+      const row = await requestKioskPayWithdraw({
+        amount: w.amount,
+        phoneNumber: w.phoneNumber || undefined,
+        idempotencyKey:
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `wd-${Date.now()}`,
+      });
+      toast.success(
+        row.status === "FAILED"
+          ? row.failureReason || "Withdraw failed."
+          : "Withdraw re-submitted.",
+      );
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not retry withdraw.");
     } finally {
       setSaving(false);
     }
@@ -267,6 +297,16 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Withdraw to M-Pesa
               </p>
+              {(account?.minWithdrawAmount ?? 0) > 0 || (account?.dailyWithdrawLimit ?? 0) > 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  {(account?.minWithdrawAmount ?? 0) > 0
+                    ? `Min ${money(account?.minWithdrawAmount ?? 0, "KES")} · `
+                    : ""}
+                  {(account?.dailyWithdrawLimit ?? 0) > 0
+                    ? `Daily limit ${money(account?.dailyWithdrawLimit ?? 0, "KES")}`
+                    : ""}
+                </p>
+              ) : null}
               <div className="grid gap-2 sm:grid-cols-3">
                 <input
                   type="number"
@@ -309,9 +349,19 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
                     <span className="font-medium tabular-nums">
                       {money(w.amount, w.currency)} → {w.phoneNumber}
                     </span>
-                    <span className="text-muted-foreground">
+                    <span className="flex items-center gap-2 text-muted-foreground">
                       {w.status}
                       {w.failureReason ? ` · ${w.failureReason}` : ""}
+                      {w.status === "FAILED" && canWrite ? (
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() => void onRetryWithdraw(w)}
+                          className="rounded-md border border-border/70 px-2 py-0.5 font-medium text-foreground hover:bg-muted/40"
+                        >
+                          Retry
+                        </button>
+                      ) : null}
                     </span>
                   </li>
                 ))}
