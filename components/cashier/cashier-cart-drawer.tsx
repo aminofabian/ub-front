@@ -659,8 +659,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   stkPushStatus === "awaiting_till" &&
                   !isStkTender(payMethod) ? (
                     <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
-                      Listening for M-Pesa till payment… If the customer pays
-                      Buy Goods now, this sale completes automatically.
+                      Listening for M-Pesa till payment… You can keep adding
+                      items. If the customer pays Buy Goods for this total, the
+                      sale completes automatically.
                     </p>
                   ) : null}
 
@@ -669,29 +670,18 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       <p className="text-[12px] font-medium text-amber-950 dark:text-amber-100">
                         {stkPushStatus === "confirmed"
                           ? "Cart locked — M-Pesa is confirmed. Completing the sale…"
-                          : stkPushStatus === "awaiting_till"
-                            ? "Cart locked while listening for till payment — close checkout to edit lines, or stop listening below."
-                            : "Cart locked while M-Pesa is in progress — scans and qty edits are blocked so the total cannot drift. Switch tender or cancel to unlock before payment confirms."}
+                          : "Cart locked while M-Pesa is in progress — scans and qty edits are blocked so the total cannot drift. Switch tender or cancel to unlock before payment confirms."}
                       </p>
                       {onCancelInFlightMpesa &&
                       (stkPushStatus === "sending" ||
-                        stkPushStatus === "sent" ||
-                        stkPushStatus === "awaiting_till") ? (
+                        stkPushStatus === "sent") ? (
                         <Button
                           type="button"
                           variant="outline"
                           className="h-9 w-full rounded-xl border-amber-300/80 bg-white/80 text-xs font-semibold text-amber-950 hover:bg-white dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-50"
-                          onClick={() => {
-                            onCancelInFlightMpesa();
-                            // Till-listen re-arms while checkout is open — close it so unlock sticks.
-                            if (stkPushStatus === "awaiting_till") {
-                              onOpenChange(false);
-                            }
-                          }}
+                          onClick={onCancelInFlightMpesa}
                         >
-                          {stkPushStatus === "awaiting_till"
-                            ? "Stop listening & unlock cart"
-                            : "Cancel M-Pesa & unlock cart"}
+                          Cancel M-Pesa & unlock cart
                         </Button>
                       ) : null}
                     </div>

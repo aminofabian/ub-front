@@ -171,12 +171,11 @@ export function createEmptyCartSession(): CartSession {
   };
 }
 
-/** True while M-Pesa STK/till payment is in flight or confirmed — cart lines must not change. */
+/** True while an STK prompt is committed or paid — cart lines must not change. */
 export function isCartFrozenForMpesa(stkPushStatus: string): boolean {
   return (
     stkPushStatus === "sending" ||
     stkPushStatus === "sent" ||
-    stkPushStatus === "awaiting_till" ||
     stkPushStatus === "confirmed"
   );
 }
