@@ -19,6 +19,10 @@ import {
   DashboardAccessDenied,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import {
+  KIOSK_PAY_WITHDRAW_PROVIDER_FEE_KES,
+  KioskPayWithdrawFeeNotice,
+} from "@/components/payments/kiosk-pay-withdraw-fee-notice";
 import { Button } from "@/components/ui/button";
 import {
   fetchKioskPayAccount,
@@ -274,7 +278,11 @@ export function KioskPayActivityPage() {
           </div>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             {active ? "Active" : account?.status ?? "—"}
-            <span className="text-muted-foreground/70"> · provider fees only</span>
+            <span className="text-muted-foreground/70">
+              {" "}
+              · ~{currency} {KIOSK_PAY_WITHDRAW_PROVIDER_FEE_KES} Safaricom/KopoKopo per
+              withdraw · not a Kiosk fee
+            </span>
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -447,17 +455,22 @@ export function KioskPayActivityPage() {
           </section>
         )
       ) : withdrawals.length === 0 ? (
-        <EmptyState
-          title="No withdrawals yet"
-          body="M-Pesa payouts from your Kiosk Pay balance list here."
-        />
+        <div className="space-y-2">
+          <KioskPayWithdrawFeeNotice currency={currency} />
+          <EmptyState
+            title="No withdrawals yet"
+            body="M-Pesa payouts from your Kiosk Pay balance list here."
+          />
+        </div>
       ) : filteredWithdrawals.length === 0 ? (
         <EmptyState
           title="Nothing in this filter"
           body="Try All, or clear Paid / Failed / Open."
         />
       ) : (
-        <section className={DASHBOARD_TABLE_SURFACE}>
+        <div className="space-y-2">
+          <KioskPayWithdrawFeeNotice currency={currency} />
+          <section className={DASHBOARD_TABLE_SURFACE}>
           <ul className="divide-y divide-border/50">
             {filteredWithdrawals.map((w) => {
               const bucket = withdrawBucket(w.status);
@@ -516,6 +529,7 @@ export function KioskPayActivityPage() {
             })}
           </ul>
         </section>
+        </div>
       )}
     </div>
   );

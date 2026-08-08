@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
+import { KioskPayWithdrawFeeNotice } from "@/components/payments/kiosk-pay-withdraw-fee-notice";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -128,8 +129,9 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Collect online via Kiosk&apos;s Paystack, or at the cashier via Kiosk Pay
-            STK — funds land in your Kiosk Pay balance (provider fees only). Withdraw to
-            M-Pesa anytime. You can still connect your own Paystack above.
+            STK — funds land in your Kiosk Pay balance. Withdraw to M-Pesa anytime
+            (about KES 50 Safaricom / KopoKopo fee per payout — not a Kiosk charge).
+            You can still connect your own Paystack above.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -193,7 +195,7 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
                   {active ? "Active" : "Off"}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  · provider fees only
+                  · no Kiosk withdraw fee
                 </span>
               </p>
             </div>
@@ -267,6 +269,7 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Withdraw to M-Pesa
               </p>
+              <KioskPayWithdrawFeeNotice />
               {(account?.minWithdrawAmount ?? 0) > 0 || (account?.dailyWithdrawLimit ?? 0) > 0 ? (
                 <p className="text-[11px] text-muted-foreground">
                   {(account?.minWithdrawAmount ?? 0) > 0

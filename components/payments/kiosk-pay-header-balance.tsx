@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { KioskPayWithdrawFeeNotice } from "@/components/payments/kiosk-pay-withdraw-fee-notice";
 import {
   fetchKioskPayAccount,
   requestKioskPayWithdraw,
@@ -270,6 +271,7 @@ export function KioskPayHeaderBalance({
               </a>
             </DialogDescription>
           </DialogHeader>
+          <KioskPayWithdrawFeeNotice currency={currency} />
           <div className="grid gap-3 py-1">
             <label className="space-y-1.5 text-sm">
               <span className="text-xs font-medium text-muted-foreground">
