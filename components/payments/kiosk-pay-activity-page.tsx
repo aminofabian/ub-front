@@ -2,10 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Loader2, RefreshCw, Wallet } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Check,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  Settings2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
-import { DashboardAccessDenied } from "@/components/dashboard-page-ui";
+import {
+  DASHBOARD_TABLE_SURFACE,
+  DashboardAccessDenied,
+} from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +35,7 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 type Tab = "ledger" | "withdrawals";
+type WithdrawFilter = "all" | "paid" | "failed" | "open";
 
 function money(n: number | null | undefined, currency = "KES") {
   const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
@@ -32,6 +45,14 @@ function money(n: number | null | undefined, currency = "KES") {
   })}`;
 }
 
+function moneyShort(n: number | null | undefined) {
+  const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
+  return v.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function fmtWhen(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -39,13 +60,33 @@ function fmtWhen(iso: string | null | undefined) {
   return d.toLocaleString("en-KE", {
     day: "numeric",
     month: "short",
-    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
 function entryLabel(type: string) {
+  switch (type) {
+    case "PAYMENT_CAPTURE":
+      return "In";
+    case "PROVIDER_FEE":
+      return "Fee";
+    case "PLATFORM_FEE":
+      return "Fee";
+    case "WITHDRAW_HOLD":
+      return "Hold";
+    case "WITHDRAW_SETTLE":
+      return "Out";
+    case "WITHDRAW_RELEASE":
+      return "Release";
+    case "ADJUSTMENT":
+      return "Adj";
+    default:
+      return type.replaceAll("_", " ").slice(0, 8);
+  }
+}
+
+function entryTitle(type: string) {
   switch (type) {
     case "PAYMENT_CAPTURE":
       return "Collection";
@@ -66,18 +107,36 @@ function entryLabel(type: string) {
   }
 }
 
-function statusTone(status: string) {
-  switch (status) {
-    case "SUCCESS":
-      return "text-emerald-700 dark:text-emerald-400";
-    case "FAILED":
-      return "text-red-700 dark:text-red-400";
-    case "PROCESSING":
-    case "REQUESTED":
-      return "text-amber-800 dark:text-amber-300";
-    default:
-      return "text-muted-foreground";
+function withdrawBucket(status: string): Exclude<WithdrawFilter, "all"> {
+  if (status === "SUCCESS") return "paid";
+  if (status === "FAILED") return "failed";
+  return "open";
+}
+
+function WithdrawStatusStamp({ status }: { status: string }) {
+  const bucket = withdrawBucket(status);
+  if (bucket === "paid") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-600/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-300">
+        <Check className="size-3 stroke-[2.5]" aria-hidden />
+        Paid
+      </span>
+    );
   }
+  if (bucket === "failed") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md bg-rose-600/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-rose-800 dark:bg-rose-400/15 dark:text-rose-300">
+        <X className="size-3 stroke-[2.5]" aria-hidden />
+        Failed
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-900 dark:bg-amber-400/15 dark:text-amber-200">
+      <Loader2 className="size-3 animate-spin" aria-hidden />
+      {status === "PROCESSING" ? "Sending" : "Queued"}
+    </span>
+  );
 }
 
 export function KioskPayActivityPage() {
@@ -86,7 +145,8 @@ export function KioskPayActivityPage() {
   const canWrite = hasPermission(me?.permissions, Permission.PaymentsGatewaysWrite);
   const currency = business?.currency?.trim() || "KES";
 
-  const [tab, setTab] = useState<Tab>("ledger");
+  const [tab, setTab] = useState<Tab>("withdrawals");
+  const [wdFilter, setWdFilter] = useState<WithdrawFilter>("all");
   const [account, setAccount] = useState<KioskPayAccountRecord | null>(null);
   const [ledger, setLedger] = useState<KioskPayLedgerEntryRecord[]>([]);
   const [withdrawals, setWithdrawals] = useState<KioskPayWithdrawalRecord[]>([]);
@@ -166,19 +226,25 @@ export function KioskPayActivityPage() {
 
   const available = Number(account?.availableBalance) || 0;
   const pending = Number(account?.pendingBalance) || 0;
+  const active = account?.status === "ACTIVE";
 
-  const tabs = useMemo(
-    () =>
-      [
-        { id: "ledger" as const, label: "Ledger", count: ledger.length },
-        {
-          id: "withdrawals" as const,
-          label: "Withdrawals",
-          count: withdrawals.length,
-        },
-      ] as const,
-    [ledger.length, withdrawals.length],
-  );
+  const wdCounts = useMemo(() => {
+    let paid = 0;
+    let failed = 0;
+    let open = 0;
+    for (const w of withdrawals) {
+      const b = withdrawBucket(w.status);
+      if (b === "paid") paid += 1;
+      else if (b === "failed") failed += 1;
+      else open += 1;
+    }
+    return { paid, failed, open, all: withdrawals.length };
+  }, [withdrawals]);
+
+  const filteredWithdrawals = useMemo(() => {
+    if (wdFilter === "all") return withdrawals;
+    return withdrawals.filter((w) => withdrawBucket(w.status) === wdFilter);
+  }, [withdrawals, wdFilter]);
 
   if (!canRead) {
     return (
@@ -190,25 +256,39 @@ export function KioskPayActivityPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 pb-16">
-      <header className="flex flex-wrap items-start justify-between gap-3">
+    <div className="mx-auto w-full max-w-3xl space-y-3 pb-16">
+      <header className="flex flex-wrap items-end justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
-            Kiosk Pay
-          </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Wallet ledger and withdrawal history
+          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+            <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
+              Kiosk Pay
+            </h1>
+            <span className="font-heading text-base font-semibold tabular-nums tracking-tight text-foreground sm:text-lg">
+              {loading && !account ? "—" : money(available, currency)}
+            </span>
+            {pending > 0.001 ? (
+              <span className="text-[11px] tabular-nums text-amber-800 dark:text-amber-300">
+                {money(pending, currency)} pending
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {active ? "Active" : account?.status ?? "—"}
+            <span className="text-muted-foreground/70"> · provider fees only</span>
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="h-8"
+            className="h-8 gap-1.5 px-2 text-xs"
             asChild
           >
-            <Link href={`${APP_ROUTES.paymentsSettings}#kiosk-pay`}>Settings</Link>
+            <Link href={`${APP_ROUTES.paymentsSettings}#kiosk-pay`}>
+              <Settings2 className="size-3.5" aria-hidden />
+              Settings
+            </Link>
           </Button>
           <Button
             type="button"
@@ -220,74 +300,82 @@ export function KioskPayActivityPage() {
             aria-label="Refresh"
           >
             {refreshing ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
             ) : (
-              <RefreshCw className="size-4" aria-hidden />
+              <RefreshCw className="size-3.5" aria-hidden />
             )}
           </Button>
         </div>
       </header>
 
-      <section className="grid gap-2 sm:grid-cols-3">
-        <div className="border border-border/70 bg-card px-3 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Available
-          </p>
-          <p className="mt-1 font-heading text-xl font-semibold tabular-nums">
-            {loading && !account ? "—" : money(available, currency)}
-          </p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="inline-flex rounded-lg border border-border/70 bg-muted/30 p-0.5">
+          {(
+            [
+              { id: "withdrawals" as const, label: "Withdrawals", n: wdCounts.all },
+              { id: "ledger" as const, label: "Ledger", n: ledger.length },
+            ] as const
+          ).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
+                tab === t.id
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t.label}
+              <span className="ml-1 tabular-nums opacity-60">{t.n}</span>
+            </button>
+          ))}
         </div>
-        <div className="border border-border/70 bg-card px-3 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Pending withdraw
-          </p>
-          <p className="mt-1 font-heading text-xl font-semibold tabular-nums">
-            {loading && !account ? "—" : money(pending, currency)}
-          </p>
-        </div>
-        <div className="border border-border/70 bg-card px-3 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Status
-          </p>
-          <p className="mt-1 flex items-center gap-2 text-sm font-medium">
-            <Wallet className="size-4 text-muted-foreground" aria-hidden />
-            {account?.status === "ACTIVE" ? "Active" : account?.status ?? "—"}
-            <span className="text-xs font-normal text-muted-foreground">
-              · provider fees only
-            </span>
-          </p>
-        </div>
-      </section>
 
-      <div className="flex gap-1 border-b border-border/60">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={cn(
-              "relative px-3 py-2 text-sm font-medium transition-colors",
-              tab === t.id
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t.label}
-            <span className="ml-1.5 tabular-nums text-xs text-muted-foreground">
-              {t.count}
-            </span>
-            {tab === t.id ? (
-              <span
-                className="absolute inset-x-2 bottom-0 h-0.5 bg-foreground"
-                aria-hidden
-              />
-            ) : null}
-          </button>
-        ))}
+        {tab === "withdrawals" && wdCounts.all > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {(
+              [
+                { id: "all" as const, label: "All", n: wdCounts.all },
+                { id: "paid" as const, label: "Paid", n: wdCounts.paid },
+                { id: "failed" as const, label: "Failed", n: wdCounts.failed },
+                { id: "open" as const, label: "Open", n: wdCounts.open },
+              ] as const
+            ).map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setWdFilter(f.id)}
+                disabled={f.n === 0 && f.id !== "all"}
+                className={cn(
+                  "rounded-md px-2 py-1 text-[11px] font-semibold tabular-nums transition-colors disabled:opacity-40",
+                  wdFilter === f.id
+                    ? f.id === "paid"
+                      ? "bg-emerald-600/15 text-emerald-900 dark:text-emerald-200"
+                      : f.id === "failed"
+                        ? "bg-rose-600/15 text-rose-900 dark:text-rose-200"
+                        : f.id === "open"
+                          ? "bg-amber-500/15 text-amber-950 dark:text-amber-100"
+                          : "bg-foreground text-background"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                )}
+              >
+                {f.label}
+                <span className="ml-1 opacity-70">{f.n}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {loading && !account ? (
-        <div className="flex items-center gap-2 border border-border/70 bg-card px-4 py-10 text-sm text-muted-foreground">
+        <div
+          className={cn(
+            DASHBOARD_TABLE_SURFACE,
+            "flex items-center gap-2 px-4 py-8 text-sm text-muted-foreground",
+          )}
+        >
           <Loader2 className="size-4 animate-spin" aria-hidden />
           Loading activity…
         </div>
@@ -295,101 +383,139 @@ export function KioskPayActivityPage() {
         ledger.length === 0 ? (
           <EmptyState
             title="No ledger entries yet"
-            body="Collections, fees, and withdrawals will show here as they settle."
+            body="Collections, fees, and withdrawals appear here as they settle."
           />
         ) : (
-          <ul className="divide-y divide-border/60 border border-border/70 bg-card">
-            {ledger.map((e) => (
-              <li
-                key={e.id}
-                className="flex flex-wrap items-start justify-between gap-2 px-3 py-2.5 text-sm"
-              >
-                <div className="min-w-0 space-y-0.5">
-                  <p className="font-medium text-foreground">
-                    {entryLabel(e.entryType)}
-                    {e.note ? (
-                      <span className="font-normal text-muted-foreground">
-                        {" "}
-                        · {e.note}
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className="text-[11px] tabular-nums text-muted-foreground">
-                    {fmtWhen(e.createdAt)}
-                    {e.reference ? ` · ${e.reference}` : ""}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p
-                    className={cn(
-                      "font-semibold tabular-nums",
-                      e.direction === "CREDIT"
-                        ? "text-emerald-700 dark:text-emerald-400"
-                        : "text-foreground",
-                    )}
+          <section className={DASHBOARD_TABLE_SURFACE}>
+            <ul className="divide-y divide-border/50">
+              {ledger.map((e) => {
+                const credit = e.direction === "CREDIT";
+                return (
+                  <li
+                    key={e.id}
+                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-3 py-1.5 sm:px-3.5 sm:py-2"
                   >
-                    {e.direction === "CREDIT" ? "+" : "−"}
-                    {money(e.amount, e.currency || currency)}
-                  </p>
-                  <p className="text-[11px] tabular-nums text-muted-foreground">
-                    Bal {money(e.balanceAfterAvailable, e.currency || currency)}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
+                    <span
+                      className={cn(
+                        "flex size-7 shrink-0 items-center justify-center rounded-md",
+                        credit
+                          ? "bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                      title={entryTitle(e.entryType)}
+                    >
+                      {credit ? (
+                        <ArrowDownLeft className="size-3.5" aria-hidden />
+                      ) : (
+                        <ArrowUpRight className="size-3.5" aria-hidden />
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                        <span className="rounded bg-muted/70 px-1 py-px text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                          {entryLabel(e.entryType)}
+                        </span>
+                        <span className="truncate text-xs font-medium text-foreground">
+                          {e.note || entryTitle(e.entryType)}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 truncate text-[10px] tabular-nums text-muted-foreground">
+                        {fmtWhen(e.createdAt)}
+                        {e.reference ? ` · ${e.reference}` : ""}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p
+                        className={cn(
+                          "text-sm font-semibold tabular-nums leading-none",
+                          credit
+                            ? "text-emerald-700 dark:text-emerald-400"
+                            : "text-foreground",
+                        )}
+                      >
+                        {credit ? "+" : "−"}
+                        {moneyShort(e.amount)}
+                      </p>
+                      <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
+                        → {moneyShort(e.balanceAfterAvailable)}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         )
       ) : withdrawals.length === 0 ? (
         <EmptyState
           title="No withdrawals yet"
-          body="M-Pesa payouts from your Kiosk Pay balance will list here."
+          body="M-Pesa payouts from your Kiosk Pay balance list here."
+        />
+      ) : filteredWithdrawals.length === 0 ? (
+        <EmptyState
+          title="Nothing in this filter"
+          body="Try All, or clear Paid / Failed / Open."
         />
       ) : (
-        <ul className="divide-y divide-border/60 border border-border/70 bg-card">
-          {withdrawals.map((w) => (
-            <li
-              key={w.id}
-              className="flex flex-wrap items-start justify-between gap-2 px-3 py-2.5 text-sm"
-            >
-              <div className="min-w-0 space-y-0.5">
-                <p className="font-medium tabular-nums text-foreground">
-                  {money(w.amount, w.currency || currency)} → {w.phoneNumber}
-                </p>
-                <p className="text-[11px] tabular-nums text-muted-foreground">
-                  {fmtWhen(w.requestedAt)}
-                  {w.completedAt ? ` · done ${fmtWhen(w.completedAt)}` : ""}
-                </p>
-                {w.failureReason ? (
-                  <p className="text-[11px] text-red-700 dark:text-red-400">
-                    {w.failureReason}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-col items-end gap-1.5">
-                <span
+        <section className={DASHBOARD_TABLE_SURFACE}>
+          <ul className="divide-y divide-border/50">
+            {filteredWithdrawals.map((w) => {
+              const bucket = withdrawBucket(w.status);
+              return (
+                <li
+                  key={w.id}
                   className={cn(
-                    "text-xs font-semibold uppercase tracking-wide",
-                    statusTone(w.status),
+                    "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 sm:gap-3 sm:px-3.5",
+                    bucket === "failed" &&
+                      "bg-rose-500/[0.06] dark:bg-rose-400/[0.07]",
+                    bucket === "paid" && "bg-emerald-500/[0.04] dark:bg-emerald-400/[0.05]",
+                    bucket === "open" && "bg-amber-500/[0.05] dark:bg-amber-400/[0.06]",
                   )}
                 >
-                  {w.status}
-                </span>
-                {w.status === "FAILED" && canWrite ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    disabled={retryingId === w.id}
-                    onClick={() => void onRetryWithdraw(w)}
-                  >
-                    {retryingId === w.id ? "Retrying…" : "Retry"}
-                  </Button>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ul>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <WithdrawStatusStamp status={w.status} />
+                      <span className="font-heading text-sm font-semibold tabular-nums tracking-tight text-foreground">
+                        {money(w.amount, w.currency || currency)}
+                      </span>
+                      <span className="truncate text-[11px] text-muted-foreground">
+                        → {w.phoneNumber}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
+                      {fmtWhen(w.requestedAt)}
+                      {w.completedAt && bucket === "paid"
+                        ? ` · paid ${fmtWhen(w.completedAt)}`
+                        : ""}
+                    </p>
+                    {w.failureReason && bucket === "failed" ? (
+                      <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-rose-800 dark:text-rose-300">
+                        {w.failureReason}
+                      </p>
+                    ) : null}
+                  </div>
+                  {bucket === "failed" && canWrite ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 shrink-0 gap-1 border-rose-300/60 px-2 text-[11px] text-rose-900 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-200 dark:hover:bg-rose-950/40"
+                      disabled={retryingId === w.id}
+                      onClick={() => void onRetryWithdraw(w)}
+                    >
+                      {retryingId === w.id ? (
+                        <Loader2 className="size-3 animate-spin" aria-hidden />
+                      ) : (
+                        <RotateCcw className="size-3" aria-hidden />
+                      )}
+                      Retry
+                    </Button>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
     </div>
   );
@@ -397,7 +523,12 @@ export function KioskPayActivityPage() {
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="border border-dashed border-border/70 bg-muted/15 px-4 py-10 text-center">
+    <div
+      className={cn(
+        DASHBOARD_TABLE_SURFACE,
+        "border-dashed px-4 py-8 text-center",
+      )}
+    >
       <p className="text-sm font-medium text-foreground">{title}</p>
       <p className="mt-1 text-xs text-muted-foreground">{body}</p>
     </div>
