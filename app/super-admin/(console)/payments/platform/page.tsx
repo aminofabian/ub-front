@@ -604,7 +604,9 @@ export default function SuperAdminPlatformPaymentsPage() {
                           </Badge>
                         </td>
                         <td className="max-w-[260px] px-3 py-2 text-muted-foreground">
-                          <span className="line-clamp-2">{w.failureReason ?? "—"}</span>
+                          <span className="line-clamp-2" title={w.failureReason ?? undefined}>
+                            {w.failureReason ?? "—"}
+                          </span>
                         </td>
                       </tr>
                     ))}
