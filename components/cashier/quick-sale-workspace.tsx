@@ -102,6 +102,8 @@ import {
   cartSessionTabKind,
   cartSessionAgeMs,
   isCartFrozenForMpesa,
+  isMpesaStkPromptInFlight,
+  clearInFlightMpesaCartFields,
   MAX_CARTS,
   type CartSession,
 } from "@/lib/cart-session";
@@ -875,9 +877,40 @@ export function QuickSaleWorkspace({
     },
   });
 
+  const cancelInFlightMpesa = useCallback(
+    (reason = "M-Pesa cancelled — cart unlocked") => {
+      const status = stkPushStatusRef.current;
+      // Confirmed means money landed — keep the cart locked until sale completes.
+      if (status === "confirmed" || !isCartFrozenForMpesa(status)) {
+        return;
+      }
+      autoCompleteMpesaRef.current = null;
+      stkConfirmedToastKey.current = null;
+      // Allow till-listen to re-arm after an intentional unlock (same amount/phone).
+      tillAwaitKeyRef.current = null;
+      updateActiveCart(clearInFlightMpesaCartFields(reason));
+    },
+    [updateActiveCart],
+  );
+
   const setPayMethod = useCallback(
-    (m: SalePaymentMethod | "remote_bill" | "kiosk_pay") =>
-      updateActiveCart({ payMethod: m }),
+    (m: SalePaymentMethod | "remote_bill" | "kiosk_pay") => {
+      // Unlock when leaving / changing tender while an STK prompt is pending.
+      // Confirmed payments stay locked until the sale completes.
+      if (isMpesaStkPromptInFlight(stkPushStatusRef.current)) {
+        autoCompleteMpesaRef.current = null;
+        stkConfirmedToastKey.current = null;
+        tillAwaitKeyRef.current = null;
+        updateActiveCart({
+          payMethod: m,
+          ...clearInFlightMpesaCartFields(
+            "M-Pesa cancelled — switched tender",
+          ),
+        });
+        return;
+      }
+      updateActiveCart({ payMethod: m });
+    },
     [updateActiveCart],
   );
   const setMpesaRef = useCallback(
@@ -910,7 +943,21 @@ export function QuickSaleWorkspace({
     [updateActiveCart],
   );
   const setSplitPay = useCallback(
-    (b: boolean) => updateActiveCart({ splitPay: b }),
+    (b: boolean) => {
+      if (b && isMpesaStkPromptInFlight(stkPushStatusRef.current)) {
+        autoCompleteMpesaRef.current = null;
+        stkConfirmedToastKey.current = null;
+        tillAwaitKeyRef.current = null;
+        updateActiveCart({
+          splitPay: true,
+          ...clearInFlightMpesaCartFields(
+            "M-Pesa cancelled — switched to split",
+          ),
+        });
+        return;
+      }
+      updateActiveCart({ splitPay: b });
+    },
     [updateActiveCart],
   );
   const setCashSplitStr = useCallback(
@@ -2359,7 +2406,19 @@ export function QuickSaleWorkspace({
     const interval = setInterval(() => void poll(), 4000);
     void poll();
     // Keep polling while the pay drawer / open-cart listen is active (matches backend buygoods window).
-    const stop = setTimeout(() => clearInterval(interval), 600_000);
+    const stop = setTimeout(() => {
+      clearInterval(interval);
+      if (cancelled) {
+        return;
+      }
+      // Stop waiting forever — unlock the cart so the cashier can continue.
+      // Checkout id is cleared so a late webhook cannot re-lock this cart.
+      updateActiveCart({
+        ...clearInFlightMpesaCartFields(
+          "Timed out waiting for M-Pesa — cart unlocked",
+        ),
+      });
+    }, 600_000);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -3784,6 +3843,8 @@ export function QuickSaleWorkspace({
           stkLockedAmount,
           cartFrozenForMpesa,
           onStkPush,
+          onCancelInFlightMpesa: () =>
+            cancelInFlightMpesa("M-Pesa cancelled — cart unlocked"),
           canLookupCustomers,
           canManageCustomers,
           canCreateRemoteBill,

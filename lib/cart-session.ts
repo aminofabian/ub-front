@@ -181,6 +181,32 @@ export function isCartFrozenForMpesa(stkPushStatus: string): boolean {
   );
 }
 
+/** STK prompt in flight (not till-listen, not already paid). */
+export function isMpesaStkPromptInFlight(stkPushStatus: string): boolean {
+  return stkPushStatus === "sending" || stkPushStatus === "sent";
+}
+
+/**
+ * Clear in-flight STK lock fields so the cashier can edit the cart or switch tender.
+ * Does not touch payMethod / phone. Callers should not use this after `confirmed`.
+ */
+export function clearInFlightMpesaCartFields(reason = ""): Pick<
+  CartSession,
+  | "stkPushStatus"
+  | "stkPushCheckoutId"
+  | "stkPushError"
+  | "stkLockedAmount"
+  | "mpesaRef"
+> {
+  return {
+    stkPushStatus: reason.trim() ? "failed" : "idle",
+    stkPushCheckoutId: "",
+    stkPushError: reason.trim(),
+    stkLockedAmount: null,
+    mpesaRef: "",
+  };
+}
+
 /** Derive a display label: ticket #N, customer name, or New sale for blank carts. */
 export function cartSessionLabel(cart: CartSession): string {
   if (cart.selectedCustomer?.name?.trim()) {

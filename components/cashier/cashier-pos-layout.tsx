@@ -334,6 +334,7 @@ export type CashierPosLayoutProps = {
     | "stkLockedAmount"
     | "cartFrozenForMpesa"
     | "onStkPush"
+    | "onCancelInFlightMpesa"
     | "voidNotes"
     | "setVoidNotes"
     | "onVoidLastSale"

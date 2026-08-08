@@ -192,6 +192,8 @@ export type CashierCartDrawerProps = {
   /** Block line edits / removes while STK or till payment is in flight. */
   cartFrozenForMpesa?: boolean;
   onStkPush: (phoneNumber: string) => void;
+  /** Abandon in-flight STK / unlock cart (not used after payment confirms). */
+  onCancelInFlightMpesa?: () => void;
   voidNotes: string;
   setVoidNotes: (s: string) => void;
   onVoidLastSale: () => void;
@@ -344,6 +346,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     stkLockedAmount = null,
     cartFrozenForMpesa = false,
     onStkPush,
+    onCancelInFlightMpesa,
     voidNotes,
     setVoidNotes,
     onVoidLastSale,
@@ -662,11 +665,36 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   ) : null}
 
                   {cartFrozenForMpesa ? (
-                    <p className="rounded-xl border border-amber-200/70 bg-amber-50/90 px-3 py-2 text-[12px] font-medium text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
-                      Cart locked while M-Pesa is in progress — scans and qty
-                      edits are blocked so the total cannot drift from what was
-                      paid. Switch tender to unlock before payment confirms.
-                    </p>
+                    <div className="space-y-2 rounded-xl border border-amber-200/70 bg-amber-50/90 px-3 py-2 dark:border-amber-900/50 dark:bg-amber-950/30">
+                      <p className="text-[12px] font-medium text-amber-950 dark:text-amber-100">
+                        {stkPushStatus === "confirmed"
+                          ? "Cart locked — M-Pesa is confirmed. Completing the sale…"
+                          : stkPushStatus === "awaiting_till"
+                            ? "Cart locked while listening for till payment — close checkout to edit lines, or stop listening below."
+                            : "Cart locked while M-Pesa is in progress — scans and qty edits are blocked so the total cannot drift. Switch tender or cancel to unlock before payment confirms."}
+                      </p>
+                      {onCancelInFlightMpesa &&
+                      (stkPushStatus === "sending" ||
+                        stkPushStatus === "sent" ||
+                        stkPushStatus === "awaiting_till") ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 w-full rounded-xl border-amber-300/80 bg-white/80 text-xs font-semibold text-amber-950 hover:bg-white dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-50"
+                          onClick={() => {
+                            onCancelInFlightMpesa();
+                            // Till-listen re-arms while checkout is open — close it so unlock sticks.
+                            if (stkPushStatus === "awaiting_till") {
+                              onOpenChange(false);
+                            }
+                          }}
+                        >
+                          {stkPushStatus === "awaiting_till"
+                            ? "Stop listening & unlock cart"
+                            : "Cancel M-Pesa & unlock cart"}
+                        </Button>
+                      ) : null}
+                    </div>
                   ) : null}
 
                   {!splitPay ? (
@@ -924,9 +952,21 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           </Button>
                         </>
                       ) : stkPushStatus === "sending" ? (
-                        <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3 text-center text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
-                          Sending M-Pesa prompt… (may take a few seconds if clearing a previous one)
-                        </p>
+                        <div className="space-y-2">
+                          <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3 text-center text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+                            Sending M-Pesa prompt… (may take a few seconds if clearing a previous one)
+                          </p>
+                          {onCancelInFlightMpesa ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-10 w-full rounded-xl text-sm font-semibold text-muted-foreground"
+                              onClick={onCancelInFlightMpesa}
+                            >
+                              Cancel & unlock cart
+                            </Button>
+                          ) : null}
+                        </div>
                       ) : stkPushStatus === "sent" ? (
                         <div className="space-y-2">
                           <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3 text-center text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
@@ -950,6 +990,16 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           >
                             Send prompt again
                           </Button>
+                          {onCancelInFlightMpesa ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-10 w-full rounded-xl text-sm font-semibold text-muted-foreground"
+                              onClick={onCancelInFlightMpesa}
+                            >
+                              Cancel & unlock cart
+                            </Button>
+                          ) : null}
                         </div>
                       ) : stkPushStatus === "confirmed" ? (
                         <div
