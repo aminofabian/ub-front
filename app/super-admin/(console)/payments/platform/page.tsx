@@ -24,13 +24,16 @@ import {
   type PlatformKioskPaySettingsRecord,
   type SaKioskPayAccountRow,
   type SaKioskPayAccountSummary,
+  type SaKioskPayWithdrawalRow,
   adjustSaKioskPayAccount,
   fetchPlatformGateways,
   fetchSaKioskPayAccountSummary,
   fetchSaKioskPayAccounts,
+  fetchSaKioskPayWithdrawals,
   patchPlatformGateway,
   fetchPlatformKioskPaySettings,
   patchPlatformKioskPaySettings,
+  resumeSaKioskPayWithdrawals,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +74,8 @@ export default function SuperAdminPlatformPaymentsPage() {
   const [adjustDelta, setAdjustDelta] = useState("");
   const [adjustNote, setAdjustNote] = useState("");
   const [adjustSaving, setAdjustSaving] = useState(false);
+  const [withdrawals, setWithdrawals] = useState<SaKioskPayWithdrawalRow[]>([]);
+  const [resumingFloat, setResumingFloat] = useState(false);
 
   const [minWithdraw, setMinWithdraw] = useState("20");
   const [dailyLimit, setDailyLimit] = useState("200000");
@@ -87,16 +92,18 @@ export default function SuperAdminPlatformPaymentsPage() {
     setLoadError("");
     setAccountsLoading(true);
     try {
-      const [gws, kp, accs, summ] = await Promise.all([
+      const [gws, kp, accs, summ, wds] = await Promise.all([
         fetchPlatformGateways(),
         fetchPlatformKioskPaySettings(),
         fetchSaKioskPayAccounts(50).catch(() => []),
         fetchSaKioskPayAccountSummary().catch(() => null),
+        fetchSaKioskPayWithdrawals(20).catch(() => []),
       ]);
       setGateways(gws);
       setKioskPay(kp);
       setAccounts(accs);
       setAccountSummary(summ);
+      setWithdrawals(wds);
       setMinWithdraw(String(kp.minWithdrawAmount ?? 20));
       setDailyLimit(String(kp.dailyWithdrawLimit ?? 200000));
       setPaystackEnv(kp.paystackEnvironment ?? "sandbox");
@@ -161,6 +168,20 @@ export default function SuperAdminPlatformPaymentsPage() {
       toast.error(e instanceof Error ? e.message : "Could not save Kiosk Pay.");
     } finally {
       setKioskSaving(false);
+    }
+  };
+
+  const resumeWithdrawals = async () => {
+    setResumingFloat(true);
+    try {
+      const next = await resumeSaKioskPayWithdrawals();
+      setKioskPay(next);
+      toast.success("Withdrawals resumed.");
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not resume withdrawals.");
+    } finally {
+      setResumingFloat(false);
     }
   };
 
@@ -310,6 +331,28 @@ export default function SuperAdminPlatformPaymentsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {kioskPay?.sendMoneyFloatConstrainedUntil ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+              <p>
+                Withdrawals are paused — the platform Send Money float is low
+                (KopoKopo rejected a transfer). Card collections settle to Paystack, so
+                top up the KopoKopo till or resume manually.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={resumingFloat || kioskSaving}
+                onClick={() => void resumeWithdrawals()}
+              >
+                {resumingFloat ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  "Resume withdrawals"
+                )}
+              </Button>
+            </div>
+          ) : null}
           <p className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
             No platform markup. Paystack / KopoKopo processing fees are deducted from
             the merchant&apos;s Kiosk Pay balance.
@@ -525,6 +568,51 @@ export default function SuperAdminPlatformPaymentsPage() {
           ) : (
             <p className="text-xs text-muted-foreground">No tenant Kiosk Pay accounts yet.</p>
           )}
+          {withdrawals.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Recent withdrawals
+              </p>
+              <div className="overflow-x-auto rounded-lg border border-border/60">
+                <table className="w-full min-w-[680px] text-left text-xs">
+                  <thead className="border-b border-border/60 bg-muted/20 text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Business</th>
+                      <th className="px-3 py-2 text-right font-medium">Amount</th>
+                      <th className="px-3 py-2 font-medium">Phone</th>
+                      <th className="px-3 py-2 font-medium">Status</th>
+                      <th className="px-3 py-2 font-medium">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {withdrawals.map((w) => (
+                      <tr key={w.id}>
+                        <td className="px-3 py-2 font-mono">{shortId(w.businessId)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{money(w.amount)}</td>
+                        <td className="px-3 py-2">{w.phoneNumber}</td>
+                        <td className="px-3 py-2">
+                          <Badge
+                            variant={
+                              w.status === "SUCCESS"
+                                ? "success"
+                                : w.status === "FAILED"
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                          >
+                            {w.status}
+                          </Badge>
+                        </td>
+                        <td className="max-w-[260px] px-3 py-2 text-muted-foreground">
+                          <span className="line-clamp-2">{w.failureReason ?? "—"}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

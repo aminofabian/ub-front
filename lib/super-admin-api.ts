@@ -328,6 +328,7 @@ export type PlatformKioskPaySettingsRecord = {
   paystackPublicKeyHint: string | null;
   kopokopoEnvironment: string;
   hasKopokopoCredentials: boolean;
+  sendMoneyFloatConstrainedUntil: string | null;
   updatedAt: string | null;
 };
 
@@ -347,6 +348,7 @@ export type PatchPlatformKioskPaySettingsPayload = {
   kopokopoApiKey?: string;
   kopokopoTillNumber?: string;
   clearKopokopoCredentials?: boolean;
+  clearSendMoneyFloatConstraint?: boolean;
 };
 
 export async function fetchPlatformKioskPaySettings(): Promise<PlatformKioskPaySettingsRecord> {
@@ -411,6 +413,33 @@ export async function adjustSaKioskPayAccount(
     `${API_ROUTES.superAdminKioskPay}/accounts/${encodeURIComponent(businessId)}/adjust`,
     { method: "POST", body: JSON.stringify({ delta, note }) },
   );
+}
+
+export type SaKioskPayWithdrawalRow = {
+  businessId: string;
+  id: string;
+  amount: number;
+  currency: string;
+  phoneNumber: string;
+  status: string;
+  failureReason: string | null;
+  requestedAt: string;
+  completedAt: string | null;
+};
+
+export async function fetchSaKioskPayWithdrawals(
+  limit = 20,
+): Promise<SaKioskPayWithdrawalRow[]> {
+  return saRequest<SaKioskPayWithdrawalRow[]>(
+    `${API_ROUTES.superAdminKioskPay}/withdrawals?limit=${limit}`,
+  );
+}
+
+export async function resumeSaKioskPayWithdrawals(): Promise<PlatformKioskPaySettingsRecord> {
+  return saRequest<PlatformKioskPaySettingsRecord>(API_ROUTES.superAdminKioskPay, {
+    method: "PATCH",
+    body: JSON.stringify({ clearSendMoneyFloatConstraint: true }),
+  });
 }
 
 export async function fetchSaDomains(

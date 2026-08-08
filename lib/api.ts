@@ -9628,6 +9628,7 @@ export type KioskPayLedgerEntryRecord = {
 };
 
 export type KioskPayWithdrawalRecord = {
+  businessId?: string;
   id: string;
   amount: number;
   currency: string;
