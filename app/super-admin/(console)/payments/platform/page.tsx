@@ -5,6 +5,7 @@ import { CreditCard, Loader2, Shield, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -189,6 +190,68 @@ export default function SuperAdminPlatformPaymentsPage() {
     }
   };
 
+  const clearPaystackCreds = () => {
+    showThemedConfirmToast({
+      id: "clear-paystack-kiosk",
+      title: "Clear Paystack credentials?",
+      description:
+        "Kiosk Pay storefront card payments will stop until new credentials are saved. POS STK via KopoKopo is unaffected.",
+      confirmLabel: "Clear credentials",
+      onConfirm: async () => {
+        setKioskSaving(true);
+        try {
+          const next = await patchPlatformKioskPaySettings({
+            enabled: kioskPay?.enabled,
+            feePercent: 0,
+            minWithdrawAmount: Number(minWithdraw),
+            dailyWithdrawLimit: Number(dailyLimit),
+            paystackEnvironment: paystackEnv,
+            kopokopoEnvironment: kopokopoEnv,
+            clearPaystackCredentials: true,
+          });
+          setKioskPay(next);
+          toast.success("Paystack credentials cleared.");
+          await reload();
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not clear credentials.");
+        } finally {
+          setKioskSaving(false);
+        }
+      },
+    });
+  };
+
+  const clearKopokopoCreds = () => {
+    showThemedConfirmToast({
+      id: "clear-kopokopo-kiosk",
+      title: "Clear KopoKopo credentials?",
+      description:
+        "Kiosk Pay withdrawals and POS STK collection will stop until new credentials are saved.",
+      confirmLabel: "Clear credentials",
+      onConfirm: async () => {
+        setKioskSaving(true);
+        try {
+          const next = await patchPlatformKioskPaySettings({
+            enabled: kioskPay?.enabled,
+            feePercent: 0,
+            minWithdrawAmount: Number(minWithdraw),
+            dailyWithdrawLimit: Number(dailyLimit),
+            paystackEnvironment: paystackEnv,
+            kopokopoEnvironment: kopokopoEnv,
+            clearKopokopoCredentials: true,
+          });
+          setKioskPay(next);
+          toast.success("KopoKopo credentials cleared.");
+          await reload();
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not clear credentials.");
+        } finally {
+          setKioskSaving(false);
+        }
+      },
+    });
+  };
+
   if (loadError) {
     return (
       <div className="space-y-8">
@@ -272,6 +335,7 @@ export default function SuperAdminPlatformPaymentsPage() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="space-y-2 rounded-lg border border-border/60 p-3">
+            <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium">
                 Paystack (collect){" "}
                 <span className="text-xs text-muted-foreground">
@@ -280,6 +344,19 @@ export default function SuperAdminPlatformPaymentsPage() {
                     : "· not configured"}
                 </span>
               </p>
+              {kioskPay?.hasPaystackCredentials ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 shrink-0 px-2 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={kioskSaving}
+                  onClick={clearPaystackCreds}
+                >
+                  Clear
+                </Button>
+              ) : null}
+            </div>
               <select
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                 value={paystackEnv}
@@ -302,12 +379,26 @@ export default function SuperAdminPlatformPaymentsPage() {
               />
             </div>
             <div className="space-y-2 rounded-lg border border-border/60 p-3">
+            <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium">
                 KopoKopo (withdraw){" "}
                 <span className="text-xs text-muted-foreground">
                   {kioskPay?.hasKopokopoCredentials ? "· configured" : "· not configured"}
                 </span>
               </p>
+              {kioskPay?.hasKopokopoCredentials ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 shrink-0 px-2 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={kioskSaving}
+                  onClick={clearKopokopoCreds}
+                >
+                  Clear
+                </Button>
+              ) : null}
+            </div>
               <select
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                 value={kopokopoEnv}
