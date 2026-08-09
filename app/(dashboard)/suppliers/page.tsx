@@ -494,8 +494,17 @@ export default function SuppliersPage() {
         ...(createDraft.payoutType.trim()
           ? { payoutType: createDraft.payoutType.trim() }
           : {}),
-        ...(createDraft.payoutPhone.trim()
+        ...(createDraft.payoutType === "mobile_wallet" && createDraft.payoutPhone.trim()
           ? { payoutPhone: createDraft.payoutPhone.trim() }
+          : {}),
+        ...(createDraft.payoutType === "till" && createDraft.payoutTillNumber.trim()
+          ? { payoutTillNumber: createDraft.payoutTillNumber.trim() }
+          : {}),
+        ...(createDraft.payoutType === "paybill" && createDraft.payoutPaybillNumber.trim()
+          ? {
+              payoutPaybillNumber: createDraft.payoutPaybillNumber.trim(),
+              payoutPaybillAccount: createDraft.payoutPaybillAccount.trim() || undefined,
+            }
           : {}),
       };
       const created = await createSupplier(body);
@@ -579,6 +588,18 @@ export default function SuppliersPage() {
           patchDraft.payoutType === "mobile_wallet"
             ? patchDraft.payoutPhone.trim() || null
             : null,
+        payoutTillNumber:
+          patchDraft.payoutType === "till"
+            ? patchDraft.payoutTillNumber.trim() || null
+            : null,
+        payoutPaybillNumber:
+          patchDraft.payoutType === "paybill"
+            ? patchDraft.payoutPaybillNumber.trim() || null
+            : null,
+        payoutPaybillAccount:
+          patchDraft.payoutType === "paybill"
+            ? patchDraft.payoutPaybillAccount.trim() || null
+            : null,
       });
       setDetail(next);
       setPatchDraft(supplierRecordToProfileDraft(next));
@@ -595,23 +616,33 @@ export default function SuppliersPage() {
 
   const onSaveSupplierPayout = useCallback(
     async (input: {
-      payoutType: "manual" | "mobile_wallet";
+      payoutType: "manual" | "mobile_wallet" | "till" | "paybill";
       payoutPhone: string | null;
+      payoutTillNumber: string | null;
+      payoutPaybillNumber: string | null;
+      payoutPaybillAccount: string | null;
     }) => {
       if (!selectedId) return;
       try {
         const next = await patchSupplier(selectedId, {
           payoutType: input.payoutType,
           payoutPhone: input.payoutPhone,
+          payoutTillNumber: input.payoutTillNumber,
+          payoutPaybillNumber: input.payoutPaybillNumber,
+          payoutPaybillAccount: input.payoutPaybillAccount,
         });
         setDetail(next);
         setPatchDraft(supplierRecordToProfileDraft(next));
         await refreshList();
-        toast.success(
+        const label =
           input.payoutType === "mobile_wallet"
             ? "KopoKopo M-Pesa payout enabled for this supplier."
-            : "KopoKopo M-Pesa payout turned off for this supplier.",
-        );
+            : input.payoutType === "till"
+              ? "KopoKopo till payout enabled for this supplier."
+              : input.payoutType === "paybill"
+                ? "KopoKopo paybill payout enabled for this supplier."
+                : "KopoKopo automated payout turned off for this supplier.";
+        toast.success(label);
       } catch (e) {
         toast.error(
           e instanceof Error ? e.message : "Could not save payment settings.",

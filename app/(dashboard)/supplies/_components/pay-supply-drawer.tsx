@@ -138,6 +138,12 @@ export function PaySupplyDrawer({
   const [kopokopoPhase, setKopokopoPhase] = useState<KopokopoPayPhase>("idle");
   const [kopokopoMessage, setKopokopoMessage] = useState<string | null>(null);
   const [kopokopoSetupPhone, setKopokopoSetupPhone] = useState("");
+  const [kopokopoSetupType, setKopokopoSetupType] = useState<
+    "mobile_wallet" | "till" | "paybill"
+  >("mobile_wallet");
+  const [kopokopoSetupTill, setKopokopoSetupTill] = useState("");
+  const [kopokopoSetupPaybill, setKopokopoSetupPaybill] = useState("");
+  const [kopokopoSetupPaybillAccount, setKopokopoSetupPaybillAccount] = useState("");
   const [enablingKopokopo, setEnablingKopokopo] = useState(false);
   const [openInvoices, setOpenInvoices] = useState<OpenSupplierInvoiceRow[]>([]);
   const [openInvoicesLoading, setOpenInvoicesLoading] = useState(false);
@@ -176,7 +182,32 @@ export function PaySupplyDrawer({
     // Pay-options are loaded for the drawer supply; only allow Send Money for that invoice
     // (or when it is the sole selected open balance).
     singleSelectedId === row?.supplierInvoiceId;
+  const payoutType =
+    payOptions?.payoutType?.trim() || supplier?.payoutType?.trim() || "";
   const payoutPhone = payOptions?.payoutPhone?.trim() ?? supplier?.payoutPhone?.trim() ?? "";
+  const payoutTillNumber =
+    payOptions?.payoutTillNumber?.trim() ?? supplier?.payoutTillNumber?.trim() ?? "";
+  const payoutPaybillNumber =
+    payOptions?.payoutPaybillNumber?.trim() ??
+    supplier?.payoutPaybillNumber?.trim() ??
+    "";
+  const payoutPaybillAccount =
+    payOptions?.payoutPaybillAccount?.trim() ??
+    supplier?.payoutPaybillAccount?.trim() ??
+    "";
+  const payoutDestinationLabel =
+    payoutType === "till" && payoutTillNumber
+      ? `Till ${payoutTillNumber}`
+      : payoutType === "paybill" && payoutPaybillNumber
+        ? `Paybill ${payoutPaybillNumber}${payoutPaybillAccount ? ` · ${payoutPaybillAccount}` : ""}`
+        : payoutType === "mobile_wallet" && payoutPhone
+          ? (toKenyanLocal07(payoutPhone) ?? payoutPhone)
+          : payoutPhone
+            ? (toKenyanLocal07(payoutPhone) ?? payoutPhone)
+            : "";
+  const hasPayoutDestination = Boolean(
+    payOptions?.supplierMobilePayoutConfigured || payoutDestinationLabel,
+  );
   const paidFull = row ? row.paymentStatus === "PAID" : false;
   /** Tenant has supplier Send Money turned on with an active gateway. */
   const kopokopoPayoutsReady =
@@ -262,6 +293,10 @@ export function PaySupplyDrawer({
           toKenyanLocal07(extractFirstKenyanMobile(s.paymentDetails) ?? "") ??
           "";
         setKopokopoSetupPhone(guessed);
+        setKopokopoSetupType("mobile_wallet");
+        setKopokopoSetupTill("");
+        setKopokopoSetupPaybill("");
+        setKopokopoSetupPaybillAccount("");
       })
       .catch((e) => {
         setSupplier(null);
@@ -638,31 +673,79 @@ export function PaySupplyDrawer({
     if (!row || !canWriteSupplier || supplierDeleted) {
       return;
     }
-    const msisdn = toKenyanMsisdn254(kopokopoSetupPhone.trim());
-    if (!msisdn) {
-      setError("Enter a valid Kenyan M-Pesa number (e.g. 0710514157).");
-      return;
+    let patch: {
+      payoutType: "mobile_wallet" | "till" | "paybill";
+      payoutPhone?: string | null;
+      payoutTillNumber?: string | null;
+      payoutPaybillNumber?: string | null;
+      payoutPaybillAccount?: string | null;
+    };
+    let destinationLabel = "";
+    if (kopokopoSetupType === "mobile_wallet") {
+      const msisdn = toKenyanMsisdn254(kopokopoSetupPhone.trim());
+      if (!msisdn) {
+        setError("Enter a valid Kenyan M-Pesa number (e.g. 0710514157).");
+        return;
+      }
+      patch = {
+        payoutType: "mobile_wallet",
+        payoutPhone: msisdn,
+        payoutTillNumber: null,
+        payoutPaybillNumber: null,
+        payoutPaybillAccount: null,
+      };
+      destinationLabel = toKenyanLocal07(msisdn) ?? msisdn;
+    } else if (kopokopoSetupType === "till") {
+      const till = kopokopoSetupTill.replace(/\D/g, "");
+      if (till.length < 5) {
+        setError("Enter a valid till number (at least 5 digits).");
+        return;
+      }
+      patch = {
+        payoutType: "till",
+        payoutPhone: null,
+        payoutTillNumber: till,
+        payoutPaybillNumber: null,
+        payoutPaybillAccount: null,
+      };
+      destinationLabel = `Till ${till}`;
+    } else {
+      const paybill = kopokopoSetupPaybill.replace(/\D/g, "");
+      const account = kopokopoSetupPaybillAccount.trim();
+      if (paybill.length < 5) {
+        setError("Enter a valid paybill number (at least 5 digits).");
+        return;
+      }
+      if (!account) {
+        setError("Enter the paybill account number.");
+        return;
+      }
+      patch = {
+        payoutType: "paybill",
+        payoutPhone: null,
+        payoutTillNumber: null,
+        payoutPaybillNumber: paybill,
+        payoutPaybillAccount: account,
+      };
+      destinationLabel = `Paybill ${paybill} · ${account}`;
     }
     setError(null);
     setEnablingKopokopo(true);
     try {
-      const updated = await patchSupplier(row.supplierId, {
-        payoutType: "mobile_wallet",
-        payoutPhone: msisdn,
-      });
+      const updated = await patchSupplier(row.supplierId, patch);
       setSupplier(updated);
       const options = await fetchSupplyPayOptions(row.supplierInvoiceId);
       setPayOptions(options);
       if (andSend && options.kopokopoPayEligible) {
-        toast.success("KopoKopo payout enabled — sending M-Pesa…", {
-          description: `Paying ${toKenyanLocal07(msisdn) ?? msisdn}.`,
+        toast.success("KopoKopo payout enabled — sending…", {
+          description: `Paying ${destinationLabel}.`,
         });
         setEnablingKopokopo(false);
         await initiateKopokopoPay();
         return;
       }
       toast.success("KopoKopo payout enabled", {
-        description: `M-Pesa will go to ${toKenyanLocal07(msisdn) ?? msisdn}. Tap Send M-Pesa to pay.`,
+        description: `Funds will go to ${destinationLabel}. Tap Send via KopoKopo to pay.`,
       });
     } catch (e) {
       setError(
@@ -685,7 +768,7 @@ export function PaySupplyDrawer({
     if (blockPrimaryUntilKopokopoReady) {
       if (needsKopokopoSupplierSetup) {
         setError(
-          "Enable Send M-Pesa for this supplier above (M-Pesa payout phone), then pay. Use “Mark paid · no SMS” only if you already paid outside PalMart.",
+          "Enable KopoKopo payout for this supplier above (phone, till, or paybill), then pay. Use “Mark paid · no SMS” only if you already paid outside PalMart.",
         );
       } else if (multiSelect) {
         setError(
@@ -739,13 +822,13 @@ export function PaySupplyDrawer({
 
   const confirmLabel = () => {
     if (kopokopoPhase === "pending" || kopokopoPhase === "sending") {
-      return "Sending M-Pesa…";
+      return "Sending via KopoKopo…";
     }
     if (primaryIsKopokopoSend) {
-      return `Send M-Pesa · ${formatSupplyMoney(rowBalanceOpen)}`;
+      return `Send via KopoKopo · ${formatSupplyMoney(rowBalanceOpen)}`;
     }
     if (needsKopokopoSupplierSetup) {
-      return "Set up M-Pesa payout above";
+      return "Set up KopoKopo payout above";
     }
     if (blockPrimaryUntilKopokopoReady) {
       return "KopoKopo not ready";
@@ -755,6 +838,13 @@ export function PaySupplyDrawer({
     }
     return `Confirm payment · ${formatSupplyMoney(payTotal > 0.009 ? payTotal : rowBalanceOpen)}`;
   };
+
+  const setupReady =
+    kopokopoSetupType === "mobile_wallet"
+      ? Boolean(kopokopoSetupPhone.trim())
+      : kopokopoSetupType === "till"
+        ? Boolean(kopokopoSetupTill.trim())
+        : Boolean(kopokopoSetupPaybill.trim() && kopokopoSetupPaybillAccount.trim());
 
   const viewingPaymentDetailsOnly = !(
     (payTotal > 0.009 || rowBalanceOpen > 0.009) &&
@@ -869,7 +959,7 @@ export function PaySupplyDrawer({
                 }
                 title={
                   needsKopokopoSupplierSetup
-                    ? "Use Enable & send M-Pesa in the KopoKopo card above"
+                    ? "Use Enable & send in the KopoKopo card above"
                     : undefined
                 }
               >
@@ -1106,15 +1196,19 @@ export function PaySupplyDrawer({
                   ? " Use Delete supply below to clear this unpaid receipt."
                   : ""}
               </p>
-            ) : paymentDetails || payoutPhone || needsKopokopoSupplierSetup ? (
+            ) : paymentDetails || hasPayoutDestination || needsKopokopoSupplierSetup ? (
               <div className="mt-3 space-y-3">
-                {payoutPhone ? (
+                {hasPayoutDestination ? (
                   <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
-                      KopoKopo M-Pesa payout
+                      {payoutType === "till"
+                        ? "KopoKopo till payout"
+                        : payoutType === "paybill"
+                          ? "KopoKopo paybill payout"
+                          : "KopoKopo M-Pesa payout"}
                     </p>
                     <p className="mt-1 font-mono text-sm font-semibold text-foreground">
-                      {toKenyanLocal07(payoutPhone) ?? payoutPhone}
+                      {payoutDestinationLabel || "—"}
                     </p>
                     {!paidFull && kopokopoEligible ? (
                       <p className="mt-1 text-xs text-muted-foreground">
@@ -1150,26 +1244,86 @@ export function PaySupplyDrawer({
                       Pay with KopoKopo
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Supplier payouts are on, but this supplier still needs an M-Pesa payout
-                      number. Remittance notes alone are not enough.
+                      Supplier payouts are on, but this supplier still needs a Send Money
+                      destination (M-Pesa phone, till, or paybill). Remittance notes alone are
+                      not enough.
                     </p>
                     {canWriteSupplier && !supplierDeleted ? (
-                      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
-                        <label className="flex min-w-0 flex-1 flex-col gap-1">
-                          <span className={supFieldLabel}>M-Pesa payout phone</span>
-                          <input
-                            className={cn(supInput, "font-mono")}
-                            value={kopokopoSetupPhone}
-                            onChange={(e) => setKopokopoSetupPhone(e.target.value)}
-                            placeholder="0710514157"
-                            inputMode="tel"
+                      <div className="mt-3 space-y-2">
+                        <label className="flex flex-col gap-1">
+                          <span className={supFieldLabel}>Destination</span>
+                          <select
+                            className={supInput}
+                            value={kopokopoSetupType}
+                            onChange={(e) =>
+                              setKopokopoSetupType(
+                                e.target.value as "mobile_wallet" | "till" | "paybill",
+                              )
+                            }
                             disabled={busy || enablingKopokopo}
-                          />
+                          >
+                            <option value="mobile_wallet">M-Pesa phone</option>
+                            <option value="till">Till (Buy Goods)</option>
+                            <option value="paybill">Paybill</option>
+                          </select>
                         </label>
+                        {kopokopoSetupType === "mobile_wallet" ? (
+                          <label className="flex flex-col gap-1">
+                            <span className={supFieldLabel}>M-Pesa payout phone</span>
+                            <input
+                              className={cn(supInput, "font-mono")}
+                              value={kopokopoSetupPhone}
+                              onChange={(e) => setKopokopoSetupPhone(e.target.value)}
+                              placeholder="0710514157"
+                              inputMode="tel"
+                              disabled={busy || enablingKopokopo}
+                            />
+                          </label>
+                        ) : null}
+                        {kopokopoSetupType === "till" ? (
+                          <label className="flex flex-col gap-1">
+                            <span className={supFieldLabel}>Till number</span>
+                            <input
+                              className={cn(supInput, "font-mono")}
+                              value={kopokopoSetupTill}
+                              onChange={(e) => setKopokopoSetupTill(e.target.value)}
+                              placeholder="e.g. 567890"
+                              inputMode="numeric"
+                              disabled={busy || enablingKopokopo}
+                            />
+                          </label>
+                        ) : null}
+                        {kopokopoSetupType === "paybill" ? (
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <label className="flex flex-col gap-1">
+                              <span className={supFieldLabel}>Paybill number</span>
+                              <input
+                                className={cn(supInput, "font-mono")}
+                                value={kopokopoSetupPaybill}
+                                onChange={(e) => setKopokopoSetupPaybill(e.target.value)}
+                                placeholder="e.g. 247247"
+                                inputMode="numeric"
+                                disabled={busy || enablingKopokopo}
+                              />
+                            </label>
+                            <label className="flex flex-col gap-1">
+                              <span className={supFieldLabel}>Account number</span>
+                              <input
+                                className={cn(supInput, "font-mono")}
+                                value={kopokopoSetupPaybillAccount}
+                                onChange={(e) =>
+                                  setKopokopoSetupPaybillAccount(e.target.value)
+                                }
+                                placeholder="Account / reference"
+                                disabled={busy || enablingKopokopo}
+                              />
+                            </label>
+                          </div>
+                        ) : null}
                         <Button
                           type="button"
-                          className="shrink-0 bg-emerald-600 hover:bg-emerald-700"
-                          disabled={busy || enablingKopokopo || !kopokopoSetupPhone.trim()}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 sm:w-auto"
+                          disabled={busy || enablingKopokopo || !setupReady}
                           onClick={() => void enableKopokopoPayout(true)}
                         >
                           {enablingKopokopo || kopokopoPhase === "sending" ? (
@@ -1177,14 +1331,14 @@ export function PaySupplyDrawer({
                           ) : (
                             <Smartphone className="mr-2 size-4" aria-hidden />
                           )}
-                          Enable &amp; send M-Pesa
+                          Enable &amp; send
                         </Button>
                       </div>
                     ) : (
                       <p className="mt-2 text-xs text-amber-800 dark:text-amber-200">
                         Ask someone with supplier edit access to set{" "}
-                        <span className="font-semibold">KopoKopo payout → M-Pesa</span> on this
-                        supplier, or open{" "}
+                        <span className="font-semibold">KopoKopo payout</span> (phone, till, or
+                        paybill) on this supplier, or open{" "}
                         <Link
                           href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(row.supplierId)}`}
                           className="font-semibold underline"
@@ -1201,7 +1355,7 @@ export function PaySupplyDrawer({
                     <Link href={APP_ROUTES.paymentsSettings} className="font-semibold underline">
                       Supplier payouts
                     </Link>{" "}
-                    and set this supplier&apos;s payout to M-Pesa.
+                    and set this supplier&apos;s payout destination.
                   </div>
                 ) : null}
                 {paymentDetails ? (
@@ -1250,7 +1404,7 @@ export function PaySupplyDrawer({
                   {primaryIsKopokopoSend ? (
                     <>
                       Tap{" "}
-                      <span className="font-semibold text-foreground">Send M-Pesa</span> to pay{" "}
+                      <span className="font-semibold text-foreground">Send via KopoKopo</span> to pay{" "}
                       <span className="font-semibold text-foreground">{formatSupplyMoney(rowBalanceOpen)}</span>{" "}
                       via KopoKopo. Money leaves your till when KopoKopo accepts the transfer; the
                       ledger updates after confirmation. Use{" "}
@@ -1260,7 +1414,7 @@ export function PaySupplyDrawer({
                   ) : needsKopokopoSupplierSetup ? (
                     <>
                       Supplier payouts are on. Use{" "}
-                      <span className="font-semibold text-foreground">Enable &amp; send M-Pesa</span>{" "}
+                      <span className="font-semibold text-foreground">Enable &amp; send</span>{" "}
                       above to pay this supplier for real — the green confirm button will not record
                       a fake payment. Or use{" "}
                       <span className="font-semibold text-foreground">Mark paid · no SMS</span> if

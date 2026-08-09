@@ -8202,8 +8202,13 @@ export type SupplyPayOptionsRecord = {
   supplierPayoutEnabled: boolean;
   supplierPayoutGatewayReady: boolean;
   supplierPayoutGatewayLabel: string | null;
+  /** True when supplier has any automated KopoKopo destination (phone, till, or paybill). */
   supplierMobilePayoutConfigured: boolean;
+  payoutType: string | null;
   payoutPhone: string | null;
+  payoutTillNumber: string | null;
+  payoutPaybillNumber: string | null;
+  payoutPaybillAccount: string | null;
   kopokopoPayEligible: boolean;
   pendingDisbursement: boolean;
   pendingDisbursementId: string | null;
@@ -8286,6 +8291,12 @@ export async function fetchSupplyDisbursementStatus(
   );
 }
 
+export type SupplierPayoutType =
+  | "manual"
+  | "mobile_wallet"
+  | "till"
+  | "paybill";
+
 export type SupplierRecord = {
   id: string;
   name: string;
@@ -8304,6 +8315,9 @@ export type SupplierRecord = {
   paymentDetails: string | null;
   payoutType: string | null;
   payoutPhone: string | null;
+  payoutTillNumber?: string | null;
+  payoutPaybillNumber?: string | null;
+  payoutPaybillAccount?: string | null;
   marketplaceSupplierId?: string | null;
   supplierNumber?: string | null;
   version: number;
@@ -8337,6 +8351,9 @@ export type CreateSupplierPayload = {
   paymentDetails?: string;
   payoutType?: string;
   payoutPhone?: string;
+  payoutTillNumber?: string;
+  payoutPaybillNumber?: string;
+  payoutPaybillAccount?: string;
 };
 
 export type PatchSupplierPayload = {
@@ -8353,6 +8370,9 @@ export type PatchSupplierPayload = {
   paymentDetails?: string;
   payoutType?: string;
   payoutPhone?: string | null;
+  payoutTillNumber?: string | null;
+  payoutPaybillNumber?: string | null;
+  payoutPaybillAccount?: string | null;
 };
 
 export type CreateSupplierContactPayload = {

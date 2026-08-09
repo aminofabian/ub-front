@@ -31,6 +31,9 @@ export type SupplierProfileDraft = {
   paymentDetails: string;
   payoutType: string;
   payoutPhone: string;
+  payoutTillNumber: string;
+  payoutPaybillNumber: string;
+  payoutPaybillAccount: string;
   /** Create flow only — used for duplicate check and optional primary contact. */
   contactName: string;
   contactPhone: string;
@@ -51,6 +54,9 @@ export const EMPTY_SUPPLIER_PROFILE: SupplierProfileDraft = {
   paymentDetails: "",
   payoutType: "manual",
   payoutPhone: "",
+  payoutTillNumber: "",
+  payoutPaybillNumber: "",
+  payoutPaybillAccount: "",
   contactName: "",
   contactPhone: "",
   contactEmail: "",
@@ -71,6 +77,9 @@ export function supplierRecordToProfileDraft(supplier: {
   paymentDetails?: string | null;
   payoutType?: string | null;
   payoutPhone?: string | null;
+  payoutTillNumber?: string | null;
+  payoutPaybillNumber?: string | null;
+  payoutPaybillAccount?: string | null;
 }): SupplierProfileDraft {
   return {
     name: supplier.name,
@@ -90,6 +99,9 @@ export function supplierRecordToProfileDraft(supplier: {
     paymentDetails: supplier.paymentDetails ?? "",
     payoutType: supplier.payoutType ?? "manual",
     payoutPhone: supplier.payoutPhone ?? "",
+    payoutTillNumber: supplier.payoutTillNumber ?? "",
+    payoutPaybillNumber: supplier.payoutPaybillNumber ?? "",
+    payoutPaybillAccount: supplier.payoutPaybillAccount ?? "",
     contactName: "",
     contactPhone: "",
     contactEmail: "",
@@ -279,25 +291,47 @@ export function SupplierProfileFields({
             />
           </SupFormRow>
           <SupFormRow
-            label="KopoKopo M-Pesa"
-            hint="Turn on to pay this supplier from Supplies via Send Money."
+            label="KopoKopo payout"
+            hint="Send Money destination when paying supplies (M-Pesa, till, or paybill)."
           >
-            <label className="flex cursor-pointer items-center gap-2.5 px-2 py-1.5">
-              <input
-                type="checkbox"
-                className="size-3.5 accent-emerald-600"
-                checked={draft.payoutType === "mobile_wallet"}
-                onChange={(e) =>
-                  onDraftChange({
-                    payoutType: e.target.checked ? "mobile_wallet" : "manual",
-                    ...(e.target.checked ? {} : { payoutPhone: "" }),
-                  })
-                }
-              />
-              <span className="text-sm text-foreground">
-                Pay this supplier via KopoKopo M-Pesa
-              </span>
-            </label>
+            <select
+              className={supFormCellSelect}
+              value={draft.payoutType || "manual"}
+              onChange={(e) => {
+                const next = e.target.value;
+                onDraftChange({
+                  payoutType: next,
+                  ...(next === "manual"
+                    ? {
+                        payoutPhone: "",
+                        payoutTillNumber: "",
+                        payoutPaybillNumber: "",
+                        payoutPaybillAccount: "",
+                      }
+                    : next === "mobile_wallet"
+                      ? {
+                          payoutTillNumber: "",
+                          payoutPaybillNumber: "",
+                          payoutPaybillAccount: "",
+                        }
+                      : next === "till"
+                        ? {
+                            payoutPhone: "",
+                            payoutPaybillNumber: "",
+                            payoutPaybillAccount: "",
+                          }
+                        : {
+                            payoutPhone: "",
+                            payoutTillNumber: "",
+                          }),
+                });
+              }}
+            >
+              <option value="manual">Off — record payments manually</option>
+              <option value="mobile_wallet">M-Pesa phone</option>
+              <option value="till">Till (Buy Goods)</option>
+              <option value="paybill">Paybill</option>
+            </select>
           </SupFormRow>
           {draft.payoutType === "mobile_wallet" ? (
             <SupFormRow
@@ -313,6 +347,50 @@ export function SupplierProfileFields({
                 inputMode="tel"
               />
             </SupFormRow>
+          ) : null}
+          {draft.payoutType === "till" ? (
+            <SupFormRow label="Till number" hint="Supplier Buy Goods till.">
+              <input
+                className={cn(supFormCellInput, "font-mono")}
+                value={draft.payoutTillNumber}
+                onChange={(e) =>
+                  onDraftChange({ payoutTillNumber: e.target.value })
+                }
+                maxLength={32}
+                placeholder="e.g. 567890"
+                inputMode="numeric"
+              />
+            </SupFormRow>
+          ) : null}
+          {draft.payoutType === "paybill" ? (
+            <>
+              <SupFormRow label="Paybill number">
+                <input
+                  className={cn(supFormCellInput, "font-mono")}
+                  value={draft.payoutPaybillNumber}
+                  onChange={(e) =>
+                    onDraftChange({ payoutPaybillNumber: e.target.value })
+                  }
+                  maxLength={32}
+                  placeholder="e.g. 247247"
+                  inputMode="numeric"
+                />
+              </SupFormRow>
+              <SupFormRow
+                label="Account number"
+                hint="Account / reference the paybill requires."
+              >
+                <input
+                  className={cn(supFormCellInput, "font-mono")}
+                  value={draft.payoutPaybillAccount}
+                  onChange={(e) =>
+                    onDraftChange({ payoutPaybillAccount: e.target.value })
+                  }
+                  maxLength={64}
+                  placeholder="Account or reference"
+                />
+              </SupFormRow>
+            </>
           ) : null}
         </SupFormTable>
       </SupFormSection>
