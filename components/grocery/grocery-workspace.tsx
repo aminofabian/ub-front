@@ -37,6 +37,7 @@ import {
   MapPin,
   Clock3,
   Keyboard,
+  MonitorSmartphone,
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
@@ -101,6 +102,8 @@ import {
 } from "./grocery-forwarded-invoices-panel";
 
 // ── Helpers ────────────────────────────────────────────────────────
+
+const SYSTEM_KEYBOARD_STORAGE_KEY = "palmart.grocery.system-keyboard";
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -319,6 +322,12 @@ export function GroceryWorkspace() {
   >({});
   const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  // Device preference: use the OS on-screen keyboard instead of the counter keypad.
+  const [useSystemKeyboard, setUseSystemKeyboard] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.localStorage.getItem(SYSTEM_KEYBOARD_STORAGE_KEY) === "1",
+  );
   const tileShelfPriceValues = useRef<Record<string, number>>({});
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -632,6 +641,18 @@ export function GroceryWorkspace() {
       searchInputRef.current?.focus();
     }
   }, [keyboardOpen]);
+
+  // Remember the keyboard preference for this device.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        SYSTEM_KEYBOARD_STORAGE_KEY,
+        useSystemKeyboard ? "1" : "0",
+      );
+    } catch {
+      // storage unavailable — the preference just won't persist
+    }
+  }, [useSystemKeyboard]);
 
   // Close the on-screen keyboard when the search is cleared — text goes from
   // non-empty to empty (X button, Clear key, or backspace to the end). Blur so
@@ -1005,10 +1026,12 @@ export function GroceryWorkspace() {
                 <input
                   ref={searchInputRef}
                   type="search"
-                  inputMode={keyboardOpen ? "none" : "search"}
+                  inputMode={!useSystemKeyboard && keyboardOpen ? "none" : "search"}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  onFocus={() => setKeyboardOpen(true)}
+                  onFocus={() => {
+                    if (!useSystemKeyboard) setKeyboardOpen(true);
+                  }}
                   placeholder={
                     activeDepartmentLabel
                       ? `Search ${activeDepartmentLabel}, scan barcode…`
@@ -1045,23 +1068,53 @@ export function GroceryWorkspace() {
                   <span className="hidden md:inline">Scan</span>
                 </button>
               </div>
+              {!useSystemKeyboard ? (
+                <button
+                  type="button"
+                  onClick={() => setKeyboardOpen((v) => !v)}
+                  aria-pressed={keyboardOpen}
+                  aria-label={keyboardOpen ? "Close on-screen keyboard" : "Open on-screen keyboard"}
+                  className={cn(
+                    "flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-none border px-2.5 text-xs font-medium transition-colors sm:px-3",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
+                    "touch-manipulation select-none",
+                    keyboardOpen
+                      ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]"
+                      : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,#fff_86%,var(--pos-paper,#f1ece3))] text-[var(--pos-ink,#1c1915)] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_30%,transparent)]",
+                  )}
+                >
+                  <Keyboard className="size-[17px]" strokeWidth={2.25} />
+                  <span className="hidden min-[420px]:inline">
+                    {keyboardOpen ? "Close" : "Keyboard"}
+                  </span>
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={() => setKeyboardOpen((v) => !v)}
-                aria-pressed={keyboardOpen}
-                aria-label={keyboardOpen ? "Close on-screen keyboard" : "Open on-screen keyboard"}
+                onClick={() => {
+                  const next = !useSystemKeyboard;
+                  setUseSystemKeyboard(next);
+                  if (next) setKeyboardOpen(false);
+                }}
+                aria-pressed={useSystemKeyboard}
+                aria-label={
+                  useSystemKeyboard
+                    ? "Using the device keyboard — tap to use the counter keypad"
+                    : "Use the device's default on-screen keyboard instead"
+                }
+                title="Use the device's default on-screen keyboard"
                 className={cn(
                   "flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-none border px-2.5 text-xs font-medium transition-colors sm:px-3",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
                   "touch-manipulation select-none",
-                  keyboardOpen
+                  useSystemKeyboard
                     ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]"
-                    : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,#fff_86%,var(--pos-paper,#f1ece3))] text-[var(--pos-ink,#1c1915)] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_30%,transparent)]",
+                    : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,#fff_86%,var(--pos-paper,#f1ece3))] text-muted-foreground hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_30%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
                 )}
               >
-                <Keyboard className="size-[17px]" strokeWidth={2.25} />
-                <span className="hidden min-[420px]:inline">
-                  {keyboardOpen ? "Close" : "Keyboard"}
+                <MonitorSmartphone className="size-[17px]" strokeWidth={2.25} />
+                <span className="hidden min-[480px]:inline">
+                  {useSystemKeyboard ? "System on" : "System"}
                 </span>
               </button>
             </div>
