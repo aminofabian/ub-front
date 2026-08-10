@@ -201,6 +201,7 @@ export async function StorefrontCatalogHome({
         heroBannerUrls={heroBannerUrls}
         showcaseImage={showcaseImage}
         storefront={storefront}
+        landingContent={tenant?.landingContent ?? null}
       />
     </>
   );

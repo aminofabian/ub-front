@@ -31,6 +31,8 @@ export type StoreHomeTemplateProps = {
   heroBannerUrls: string[] | null;
   showcaseImage: string | null;
   storefront: PublicStorefrontPayload | null;
+  /** Contact / hours CMS fields (also used by landing templates). */
+  landingContent?: LandingContent | null;
 };
 
 export type LandingTemplateProps = {

@@ -12,7 +12,8 @@ export type StoreThemeId =
   | "boutique-shelf"
   | "spirits-cellar"
   | "oxide"
-  | "tint-lab";
+  | "tint-lab"
+  | "milk-run";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -52,6 +53,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "spirits-cellar",
   "oxide",
   "tint-lab",
+  "milk-run",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -117,6 +119,15 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
     previewFrom: "#F6F1EA",
     previewTo: "#F2C9BF",
     accent: "#E2432C",
+  },
+  {
+    id: "milk-run",
+    kind: "store",
+    name: "Milk Run",
+    blurb: "Cream paper, ink borders, flap product cards — neighborhood shop energy.",
+    previewFrom: "#FFFCF5",
+    previewTo: "#FFC53D",
+    accent: "#E8412C",
   },
 ];
 

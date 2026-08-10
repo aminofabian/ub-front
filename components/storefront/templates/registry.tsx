@@ -9,6 +9,7 @@ import { NeighborhoodBoardLanding } from "@/components/storefront/templates/land
 import { BoutiqueShelfStoreHome } from "@/components/storefront/templates/store/boutique-shelf-home";
 import { ButcherBoardStoreHome } from "@/components/storefront/templates/store/butcher-board-home";
 import { MartStoreHome } from "@/components/storefront/templates/store/mart-home";
+import { MilkRunStoreHome } from "@/components/storefront/templates/store/milk-run-home";
 import { OxideStoreHome } from "@/components/storefront/templates/store/oxide-home";
 import { SpiritsCellarStoreHome } from "@/components/storefront/templates/store/spirits-cellar-home";
 import { TintLabStoreHome } from "@/components/storefront/templates/store/tint-lab-home";
@@ -33,6 +34,7 @@ const STORE_HOMES: Record<
   "spirits-cellar": SpiritsCellarStoreHome,
   oxide: OxideStoreHome,
   "tint-lab": TintLabStoreHome,
+  "milk-run": MilkRunStoreHome,
 };
 
 const LANDING_PAGES: Record<
@@ -52,7 +54,8 @@ export type StoreChromeVariant =
   | "dark"
   | "soft"
   | "oxide"
-  | "tint-lab";
+  | "tint-lab"
+  | "milk-run";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -74,6 +77,8 @@ export function resolveStoreChromeVariant(
       return "oxide";
     case "tint-lab":
       return "tint-lab";
+    case "milk-run":
+      return "milk-run";
     case "butcher-board":
     case "spirits-cellar":
       return "dark";

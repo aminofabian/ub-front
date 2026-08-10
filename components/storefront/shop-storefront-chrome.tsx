@@ -9,6 +9,9 @@ import { APP_ROUTES } from "@/lib/config";
 import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
 import { ShopCheckoutDrawer } from "@/components/storefront/shop-checkout-drawer";
 import { ShopLeadCaptureCard } from "@/components/storefront/shop-lead-capture-card";
+import { MilkRunHeader } from "@/components/storefront/templates/store/milk-run-header";
+import { milkRunFontVariables } from "@/components/storefront/templates/store/milk-run-fonts";
+import milkRunStyles from "@/components/storefront/templates/store/milk-run.module.css";
 import { OxideHeader } from "@/components/storefront/templates/store/oxide-header";
 import { oxideFontVariables } from "@/components/storefront/templates/store/oxide-fonts";
 import oxideStyles from "@/components/storefront/templates/store/oxide.module.css";
@@ -124,7 +127,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run";
   storeThemeId?: string | null;
   children: ReactNode;
 }) {
@@ -132,14 +135,17 @@ export function ShopStorefrontChrome({
   const compactChrome = useCompactStorefrontChrome();
   const isOxide = chromeVariant === "oxide";
   const isTintLab = chromeVariant === "tint-lab";
-  const isCustomChrome = isOxide || isTintLab;
+  const isMilkRun = chromeVariant === "milk-run";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const shellStyle: CSSProperties | undefined = isOxide && accentHex
     ? ({ ["--oxide-accent" as string]: accentHex } as CSSProperties)
     : isTintLab && accentHex
       ? ({ ["--tint-accent" as string]: accentHex } as CSSProperties)
-      : undefined;
+      : isMilkRun && accentHex
+        ? ({ ["--milk-accent" as string]: accentHex } as CSSProperties)
+        : undefined;
 
   return (
     <ShopCartProvider slug={slug}>
@@ -166,6 +172,13 @@ export function ShopStorefrontChrome({
               tintFontVariables,
               "[--storefront-paper:#F6F1EA]",
             ),
+          isMilkRun &&
+            cn(
+              milkRunStyles.root,
+              milkRunStyles.body,
+              milkRunFontVariables,
+              "[--storefront-paper:#FFFCF5]",
+            ),
         )}
         style={shellStyle}
       >
@@ -174,6 +187,12 @@ export function ShopStorefrontChrome({
       ) : null}
       {isTintLab && !compactChrome ? (
         <TintLabHeader storeName={headerTitle} />
+      ) : null}
+      {isMilkRun && !compactChrome ? (
+        <MilkRunHeader
+          storeName={headerTitle}
+          locationNote={locationHint}
+        />
       ) : null}
       {showDefaultChrome ? (
         <>

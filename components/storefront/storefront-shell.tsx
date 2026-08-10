@@ -90,6 +90,7 @@ export async function StorefrontShell({
         chromeVariant === "dark" && "bg-stone-950 dark:bg-stone-950",
         chromeVariant === "oxide" && "bg-[#EDEAE2] dark:bg-[#EDEAE2]",
         chromeVariant === "tint-lab" && "bg-[#F6F1EA] dark:bg-[#F6F1EA]",
+        chromeVariant === "milk-run" && "bg-[#FFFCF5] dark:bg-[#FFFCF5]",
       )}
     >
       {slug ? (
