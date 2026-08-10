@@ -966,7 +966,7 @@ export function GroceryWorkspace() {
       <div className="relative z-10 flex min-h-0 flex-1 flex-row">
         {/* ── FIRST COLUMN: Counter QWERTY keyboard (md+) ── */}
         {keyboardOpen && (
-          <div className="hidden min-h-0 w-[22rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_35%,transparent)] md:flex lg:w-[24rem] xl:w-[26rem]">
+          <div className="hidden min-h-0 w-[24rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_35%,transparent)] md:flex lg:w-[26rem] xl:w-[28rem]">
             <CounterKeyboard
               value={search}
               onChange={setSearch}
@@ -1070,7 +1070,7 @@ export function GroceryWorkspace() {
 
             <div
               className={cn(
-                "relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-2 sm:px-4 md:pb-4",
+                "grocery-scroll-thick relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-2 sm:px-4 md:pb-4",
                 showDepartmentRail && "sm:pl-14",
               )}
             >
@@ -1105,7 +1105,7 @@ export function GroceryWorkspace() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
                     {hits.map((item) => {
                       const d = lineDataByItem.get(item.id);
                       return (
@@ -1163,7 +1163,7 @@ export function GroceryWorkspace() {
                     ) : null}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
                     {browseCatalog.map((item) => {
                       const d = lineDataByItem.get(item.id);
                       return (
@@ -1188,7 +1188,7 @@ export function GroceryWorkspace() {
             )}
 
             {keyboardOpen && (
-              <div aria-hidden className="h-[20rem] md:hidden" />
+              <div aria-hidden className="h-[23rem] md:hidden" />
             )}
 
             </div>
@@ -1348,7 +1348,7 @@ export function GroceryWorkspace() {
             } as CSSProperties
           }
         >
-          <div className="mx-auto flex h-[19rem] w-full max-w-lg flex-col">
+          <div className="mx-auto flex h-[22rem] w-full max-w-lg flex-col">
             <CounterKeyboard
               value={search}
               onChange={setSearch}

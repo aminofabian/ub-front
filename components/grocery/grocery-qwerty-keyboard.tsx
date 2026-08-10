@@ -73,7 +73,7 @@ function QKey({
         onPress();
       }}
       className={cn(
-        "relative min-w-0 select-none overflow-hidden rounded-none border text-[13px] font-semibold tabular-nums",
+        "relative min-w-0 select-none overflow-hidden rounded-none border text-sm font-semibold tabular-nums",
         "transition-[transform,background-color,border-color] duration-100",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
         "touch-manipulation active:translate-y-px",
@@ -87,7 +87,7 @@ function QKey({
         className,
       )}
     >
-      <span className="relative z-[1] flex h-11 items-center justify-center">
+      <span className="relative z-[1] flex h-full items-center justify-center">
         {label}
       </span>
     </button>
@@ -141,7 +141,7 @@ export function CounterKeyboard({
       {/* Keys — rows stretch, so the pad fills whatever space it is given */}
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-1 p-2">
         {/* Digit row */}
-        <div className="flex h-11 shrink-0 gap-1">
+        <div className="flex h-14 shrink-0 gap-1">
           {DIGIT_ROW.map((d) => (
             <QKey
               key={d}
@@ -157,7 +157,7 @@ export function CounterKeyboard({
         {LETTER_ROWS.map((row) => (
           <div
             key={row.keys.join("")}
-            className="flex h-11 shrink-0 gap-1"
+            className="flex h-14 shrink-0 gap-1"
             style={
               row.indent > 0
                 ? { paddingLeft: `${row.indent * 10}%` }
@@ -177,20 +177,20 @@ export function CounterKeyboard({
         ))}
 
         {/* Controls */}
-        <div className="flex h-11 shrink-0 gap-1">
+        <div className="flex h-14 shrink-0 gap-1">
           <QKey
             label="Clear"
             ariaLabel="Clear search"
             variant="action"
             onPress={() => onChange("")}
-            className="flex-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
+            className="flex-1 text-xs font-semibold uppercase tracking-[0.14em]"
           />
           <QKey
             label="Space"
             ariaLabel="Space"
             variant="action"
             onPress={() => press(" ")}
-            className="flex-[2] text-[11px] font-semibold uppercase tracking-[0.14em]"
+            className="flex-[2] text-xs font-semibold uppercase tracking-[0.14em]"
           />
           <QKey
             label={<Delete className="size-4" />}
@@ -204,7 +204,7 @@ export function CounterKeyboard({
             ariaLabel="Done"
             variant="accent"
             onPress={onClose}
-            className="flex-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
+            className="flex-1 text-xs font-semibold uppercase tracking-[0.14em]"
           />
         </div>
       </div>

@@ -216,7 +216,7 @@ export function GroceryForwardedInvoicesPanel({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      <div className="grocery-scroll-thick flex-1 overflow-y-auto overscroll-contain">
         {invoices.map((invoice) => (
           <ForwardedInvoiceCard
             key={invoice.id}

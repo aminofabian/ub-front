@@ -287,7 +287,7 @@ export function GroceryInvoiceCart({
       </div>
 
       {/* ── Line Items ── */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      <div className="grocery-scroll-thick flex-1 overflow-y-auto overscroll-contain">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center px-8 py-16 text-center">
             <ShoppingBasket className="mb-3 size-10 text-muted-foreground/40" strokeWidth={1.5} />
