@@ -17,6 +17,10 @@ import {
 
 import { FormDrawerFields } from "@/components/form-drawer";
 import { TrustedTillsPanel } from "@/components/business/trusted-tills-panel";
+import {
+  MilkRunWhatsAppDialog,
+  milkRunNeedsWhatsApp,
+} from "@/components/storefront/milk-run-whatsapp-dialog";
 import { TemplatePicker } from "@/components/storefront/template-picker";
 import { StorefrontTemplatePreview } from "@/components/storefront/storefront-template-preview";
 import { Button } from "@/components/ui/button";
@@ -170,6 +174,8 @@ export function BusinessSettingsForm({
   const [dailyAuditSampleDraft, setDailyAuditSampleDraft] = useState(
     String(inventory.dailyAuditSampleSize),
   );
+  const [milkRunWaPromptOpen, setMilkRunWaPromptOpen] = useState(false);
+  const milkRunWaPromptedRef = useRef(false);
   const showOperations = variant === "all";
 
   useEffect(() => {
@@ -182,6 +188,21 @@ export function BusinessSettingsForm({
     }
     storefrontRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [focusStorefrontOnMount]);
+
+  useEffect(() => {
+    if (milkRunWaPromptedRef.current) return;
+    if (
+      storefront.enabled &&
+      milkRunNeedsWhatsApp(storefront.storeThemeId, storefront.landingWhatsapp)
+    ) {
+      milkRunWaPromptedRef.current = true;
+      setMilkRunWaPromptOpen(true);
+    }
+  }, [
+    storefront.enabled,
+    storefront.storeThemeId,
+    storefront.landingWhatsapp,
+  ]);
 
   function commitDailyAuditSampleSize(raw: string) {
     const parsed = Number(raw.trim());
@@ -348,13 +369,17 @@ export function BusinessSettingsForm({
                       ? storefront.storeThemeId
                       : storefront.landingTemplateId
                   }
-                  onChange={(id) =>
-                    setStorefront((s) =>
-                      s.enabled
-                        ? { ...s, storeThemeId: id }
-                        : { ...s, landingTemplateId: id },
-                    )
-                  }
+                  onChange={(id) => {
+                    setStorefront((s) => {
+                      if (!s.enabled) {
+                        return { ...s, landingTemplateId: id };
+                      }
+                      if (milkRunNeedsWhatsApp(id, s.landingWhatsapp)) {
+                        setMilkRunWaPromptOpen(true);
+                      }
+                      return { ...s, storeThemeId: id };
+                    });
+                  }}
                 />
                 <StorefrontTemplatePreview
                   kind={storefront.enabled ? "store" : "landing"}
@@ -366,6 +391,41 @@ export function BusinessSettingsForm({
                   previewUrl={storefrontPreviewUrl}
                 />
               </div>
+
+              {storefront.enabled && storefront.storeThemeId === "milk-run" ? (
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className={labelClass()} htmlFor="sf-milk-run-wa">
+                    WhatsApp (Milk Run)
+                  </label>
+                  <p className={hintClass()}>
+                    Customers use this number on your shop&apos;s chat button.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      id="sf-milk-run-wa"
+                      className={cn(inputClass(), "min-w-0 flex-1")}
+                      placeholder="254712345678"
+                      value={storefront.landingWhatsapp}
+                      onChange={(e) =>
+                        setStorefront((s) => ({
+                          ...s,
+                          landingWhatsapp: e.target.value,
+                        }))
+                      }
+                    />
+                    {!storefront.landingWhatsapp.trim() ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMilkRunWaPromptOpen(true)}
+                      >
+                        Add number
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               {!storefront.enabled ? (
                 <div className="grid gap-2.5 sm:grid-cols-2">
@@ -1267,6 +1327,24 @@ export function BusinessSettingsForm({
           </Button>
         </div>
       </div>
+
+      <MilkRunWhatsAppDialog
+        open={milkRunWaPromptOpen}
+        onOpenChange={setMilkRunWaPromptOpen}
+        initialWhatsapp={storefront.landingWhatsapp}
+        existingLandingContent={{
+          headline: storefront.landingHeadline.trim() || null,
+          subheadline: storefront.landingSubheadline.trim() || null,
+          phone: storefront.landingPhone.trim() || null,
+          hours: storefront.landingHours.trim() || null,
+          address: storefront.landingAddress.trim() || null,
+          ctaLabel: storefront.landingCtaLabel.trim() || null,
+          whatsapp: storefront.landingWhatsapp.trim() || null,
+        }}
+        onSaved={(whatsapp) => {
+          setStorefront((s) => ({ ...s, landingWhatsapp: whatsapp }));
+        }}
+      />
     </form>
   );
 }

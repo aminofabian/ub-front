@@ -14,6 +14,10 @@ import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { TemplatePicker } from "@/components/storefront/template-picker";
 import {
+  MilkRunWhatsAppDialog,
+  milkRunNeedsWhatsApp,
+} from "@/components/storefront/milk-run-whatsapp-dialog";
+import {
   BRANCH_COUNT_OPTIONS,
   ONLINE_STORE_OPTIONS,
   QUESTIONNAIRE_STEP_COUNT,
@@ -244,6 +248,10 @@ export function OnboardingQuestionnaire({
   const [landingTemplateId, setLandingTemplateId] = useState(
     initialAnswers.landingTemplateId ?? DEFAULT_LANDING_TEMPLATE_ID,
   );
+  const [landingWhatsapp, setLandingWhatsapp] = useState(
+    initialAnswers.landingWhatsapp ?? "",
+  );
+  const [milkRunWaPromptOpen, setMilkRunWaPromptOpen] = useState(false);
   const [displayName, setDisplayName] = useState(() => {
     const saved = initialAnswers.displayName?.trim();
     if (saved) {
@@ -522,12 +530,14 @@ export function OnboardingQuestionnaire({
           onContinue({
             storeThemeId,
             landingTemplateId: landingTemplateId || DEFAULT_LANDING_TEMPLATE_ID,
+            landingWhatsapp: landingWhatsapp.trim() || undefined,
           });
         } else {
           if (!landingTemplateId) return;
           onContinue({
             landingTemplateId,
             storeThemeId: storeThemeId || DEFAULT_STORE_THEME_ID,
+            landingWhatsapp: landingWhatsapp.trim() || undefined,
           });
         }
         break;
@@ -884,10 +894,20 @@ export function OnboardingQuestionnaire({
                   onChange={(id) => {
                     if (onlineStore === "yes") {
                       setStoreThemeId(id);
+                      if (milkRunNeedsWhatsApp(id, landingWhatsapp)) {
+                        setMilkRunWaPromptOpen(true);
+                      }
                     } else {
                       setLandingTemplateId(id);
                     }
                   }}
+                />
+                <MilkRunWhatsAppDialog
+                  open={milkRunWaPromptOpen}
+                  onOpenChange={setMilkRunWaPromptOpen}
+                  initialWhatsapp={landingWhatsapp}
+                  persist={false}
+                  onSaved={(whatsapp) => setLandingWhatsapp(whatsapp)}
                 />
               </>
             ) : null}

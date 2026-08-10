@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 
+import {
+  MilkRunWhatsAppDialog,
+  milkRunNeedsWhatsApp,
+} from "@/components/storefront/milk-run-whatsapp-dialog";
 import { TemplatePicker } from "@/components/storefront/template-picker";
 import { StorefrontTemplatePreview } from "@/components/storefront/storefront-template-preview";
 import { Button } from "@/components/ui/button";
@@ -39,6 +43,11 @@ export function BrandingTemplateSection({
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [waPromptOpen, setWaPromptOpen] = useState(false);
+  const waPromptedRef = useRef(false);
+
+  const landingWhatsapp =
+    business?.storefront?.landingContent?.whatsapp?.trim() || "";
 
   useEffect(() => {
     setStoreThemeId(normalizeStoreThemeId(business?.storefront?.storeThemeId));
@@ -49,6 +58,14 @@ export function BrandingTemplateSection({
     business?.storefront?.storeThemeId,
     business?.storefront?.landingTemplateId,
   ]);
+
+  useEffect(() => {
+    if (!enabled || waPromptedRef.current) return;
+    if (milkRunNeedsWhatsApp(storeThemeId, landingWhatsapp)) {
+      waPromptedRef.current = true;
+      setWaPromptOpen(true);
+    }
+  }, [enabled, storeThemeId, landingWhatsapp]);
 
   const previewUrl = business?.slug
     ? `https://${business.slug}.${PLATFORM_DOMAIN}/`
@@ -74,6 +91,15 @@ export function BrandingTemplateSection({
       const next = await fetchBusiness();
       onSaved?.(next);
       setFeedback("Template saved.");
+      if (
+        enabled &&
+        milkRunNeedsWhatsApp(
+          storeThemeId,
+          next.storefront?.landingContent?.whatsapp,
+        )
+      ) {
+        setWaPromptOpen(true);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save template.");
     } finally {
@@ -98,8 +124,15 @@ export function BrandingTemplateSection({
         kind={enabled ? "store" : "landing"}
         value={enabled ? storeThemeId : landingTemplateId}
         onChange={(id) => {
-          if (enabled) setStoreThemeId(normalizeStoreThemeId(id));
-          else setLandingTemplateId(normalizeLandingTemplateId(id));
+          if (enabled) {
+            const next = normalizeStoreThemeId(id);
+            setStoreThemeId(next);
+            if (milkRunNeedsWhatsApp(next, landingWhatsapp)) {
+              setWaPromptOpen(true);
+            }
+          } else {
+            setLandingTemplateId(normalizeLandingTemplateId(id));
+          }
           setFeedback(null);
         }}
       />
@@ -122,6 +155,16 @@ export function BrandingTemplateSection({
           )}
           Save template
         </Button>
+        {enabled && storeThemeId === "milk-run" && !landingWhatsapp ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setWaPromptOpen(true)}
+          >
+            Add WhatsApp
+          </Button>
+        ) : null}
         {feedback ? (
           <p className="text-xs text-emerald-700">{feedback}</p>
         ) : null}
@@ -131,6 +174,18 @@ export function BrandingTemplateSection({
           </p>
         ) : null}
       </div>
+
+      <MilkRunWhatsAppDialog
+        open={waPromptOpen}
+        onOpenChange={setWaPromptOpen}
+        initialWhatsapp={landingWhatsapp}
+        existingLandingContent={business?.storefront?.landingContent ?? null}
+        onSaved={async () => {
+          const next = await fetchBusiness();
+          onSaved?.(next);
+          setFeedback("WhatsApp saved for Milk Run.");
+        }}
+      />
     </section>
   );
 }

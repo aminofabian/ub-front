@@ -36,6 +36,8 @@ export type OnboardingQuestionnaireAnswers = {
   storeThemeId: string;
   /** Public landing / coming-soon template when store is off. */
   landingTemplateId: string;
+  /** Optional WhatsApp for themes that surface chat CTAs (e.g. milk-run). */
+  landingWhatsapp?: string;
   displayName: string;
   primaryColor: string;
   accentColor: string;

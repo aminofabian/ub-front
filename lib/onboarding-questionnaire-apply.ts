@@ -74,6 +74,13 @@ export async function applyOnboardingQuestionnaire(
         catalogBranchId: firstBranchId,
         storeThemeId,
         landingTemplateId,
+        ...(answers.landingWhatsapp?.trim()
+          ? {
+              landingContent: {
+                whatsapp: answers.landingWhatsapp.trim(),
+              },
+            }
+          : {}),
       },
     });
   } else {
@@ -81,6 +88,13 @@ export async function applyOnboardingQuestionnaire(
       storefront: {
         storeThemeId,
         landingTemplateId,
+        ...(answers.landingWhatsapp?.trim()
+          ? {
+              landingContent: {
+                whatsapp: answers.landingWhatsapp.trim(),
+              },
+            }
+          : {}),
       },
     });
   }
