@@ -21,10 +21,14 @@ export function MilkRunFloats({
   storeName: string;
 }) {
   const pathname = usePathname();
-  const { itemCount, cart, checkoutOpen, toggleDrawer, loading } = useShopCart();
+  const { itemCount, cart, checkoutOpen, checkoutChoiceOpen, toggleDrawer, loading } =
+    useShopCart();
 
   const hideCart =
-    pathname === APP_ROUTES.shopCheckout || checkoutOpen || (itemCount === 0 && !loading);
+    pathname === APP_ROUTES.shopCheckout ||
+    checkoutOpen ||
+    checkoutChoiceOpen ||
+    (itemCount === 0 && !loading);
 
   const subtotal =
     cart?.subtotal != null

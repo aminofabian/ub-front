@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   WEB_CART_CHANGED_EVENT,
@@ -22,6 +23,7 @@ import {
   type PublicWebCart,
   upsertWebCartLine,
 } from "@/lib/web-cart";
+import { APP_ROUTES } from "@/lib/config";
 
 /** Cart quantity from API — preserves up to 3 decimals for weighed SKUs. */
 export function cartLineQuantity(qty: number): number {
@@ -35,6 +37,11 @@ export function findCartLine(cart: PublicWebCart | null, itemId: string) {
   return cart?.lines.find((l) => l.itemId === id) ?? null;
 }
 
+type MilkRunCheckoutConfig = {
+  storeName: string;
+  whatsappDigits: string;
+};
+
 type ShopCartContextValue = {
   slug: string;
   cart: PublicWebCart | null;
@@ -44,6 +51,9 @@ type ShopCartContextValue = {
   itemCount: number;
   drawerOpen: boolean;
   checkoutOpen: boolean;
+  /** Milk Run dual-path checkout sheet. */
+  checkoutChoiceOpen: boolean;
+  milkRunCheckout: MilkRunCheckoutConfig | null;
   /** When set, mobile float shows only this line until user expands. */
   focusItemId: string | null;
   cartViewMode: "focus" | "all";
@@ -52,6 +62,10 @@ type ShopCartContextValue = {
   toggleDrawer: () => void;
   openCheckout: () => void;
   closeCheckout: () => void;
+  /** Theme-aware checkout entry (Milk Run may open till choice). */
+  requestCheckout: () => void;
+  closeCheckoutChoice: () => void;
+  beginOrdinaryCheckout: () => void;
   showAllCartItems: () => void;
   refresh: () => Promise<void>;
   /** Set absolute line quantity (0 removes). Updates shared cart state immediately. */
@@ -67,15 +81,20 @@ const ShopCartContext = createContext<ShopCartContextValue | null>(null);
 export function ShopCartProvider({
   slug,
   children,
+  milkRunCheckout = null,
 }: {
   slug: string;
   children: ReactNode;
+  /** When set with a WhatsApp number, checkout opens the Milk Run till choice. */
+  milkRunCheckout?: MilkRunCheckoutConfig | null;
 }) {
+  const router = useRouter();
   const [cart, setCart] = useState<PublicWebCart | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutChoiceOpen, setCheckoutChoiceOpen] = useState(false);
   const [focusItemId, setFocusItemId] = useState<string | null>(null);
   const [cartViewMode, setCartViewMode] = useState<"focus" | "all">("all");
 
@@ -223,8 +242,38 @@ export function ShopCartProvider({
     setDrawerOpen(false);
     setFocusItemId(null);
     setCartViewMode("all");
-    setCheckoutOpen(true);
+    setCheckoutChoiceOpen(false);
+    const desktop =
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 768px)").matches;
+    if (desktop) {
+      setCheckoutOpen(true);
+      return;
+    }
+    setCheckoutOpen(false);
+    router.push(APP_ROUTES.shopCheckout);
+  }, [router]);
+
+  const closeCheckoutChoice = useCallback(() => {
+    setCheckoutChoiceOpen(false);
   }, []);
+
+  const requestCheckout = useCallback(() => {
+    setDrawerOpen(false);
+    setFocusItemId(null);
+    setCartViewMode("all");
+    if (milkRunCheckout?.whatsappDigits) {
+      setCheckoutOpen(false);
+      setCheckoutChoiceOpen(true);
+      return;
+    }
+    openCheckout();
+  }, [milkRunCheckout, openCheckout]);
+
+  const beginOrdinaryCheckout = useCallback(() => {
+    setCheckoutChoiceOpen(false);
+    openCheckout();
+  }, [openCheckout]);
 
   const value = useMemo<ShopCartContextValue>(
     () => ({
@@ -236,12 +285,17 @@ export function ShopCartProvider({
       itemCount,
       drawerOpen,
       checkoutOpen,
+      checkoutChoiceOpen,
+      milkRunCheckout,
       focusItemId,
       cartViewMode,
       openDrawer: openFullCart,
       closeDrawer: closeCart,
       openCheckout,
       closeCheckout,
+      requestCheckout,
+      closeCheckoutChoice,
+      beginOrdinaryCheckout,
       toggleDrawer: () => {
         setDrawerOpen((open) => {
           if (open) {
@@ -283,12 +337,17 @@ export function ShopCartProvider({
       itemCount,
       drawerOpen,
       checkoutOpen,
+      checkoutChoiceOpen,
+      milkRunCheckout,
       focusItemId,
       cartViewMode,
       openFullCart,
       closeCart,
       openCheckout,
       closeCheckout,
+      requestCheckout,
+      closeCheckoutChoice,
+      beginOrdinaryCheckout,
       refresh,
       setLineQty,
       changeQty,

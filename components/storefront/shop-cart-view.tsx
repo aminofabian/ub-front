@@ -12,7 +12,8 @@ import { cartIsCheckoutReady } from "@/lib/web-cart";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 
 export default function ShopCartView({ slug }: { slug: string }) {
-  const { cart, loading, error, changeQty, removeLine } = useShopCart();
+  const { cart, loading, error, changeQty, removeLine, requestCheckout, milkRunCheckout } =
+    useShopCart();
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
   const [promo, setPromo] = useState("");
 
@@ -124,12 +125,23 @@ export default function ShopCartView({ slug }: { slug: string }) {
           </div>
 
           {cartIsCheckoutReady(cart) ? (
-            <Button asChild className="h-11 w-full rounded-xl text-sm font-semibold">
-              <Link href={APP_ROUTES.shopCheckout} className="gap-2">
+            milkRunCheckout?.whatsappDigits ? (
+              <Button
+                type="button"
+                className="h-11 w-full gap-2 rounded-xl text-sm font-semibold"
+                onClick={requestCheckout}
+              >
                 Proceed to checkout
                 <ArrowRight className="size-4" aria-hidden />
-              </Link>
-            </Button>
+              </Button>
+            ) : (
+              <Button asChild className="h-11 w-full rounded-xl text-sm font-semibold">
+                <Link href={APP_ROUTES.shopCheckout} className="gap-2">
+                  Proceed to checkout
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              </Button>
+            )
           ) : (
             <p className="text-sm text-muted-foreground">
               Checkout is available once every item in your cart has a price at this

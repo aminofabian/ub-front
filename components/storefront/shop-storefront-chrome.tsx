@@ -10,6 +10,7 @@ import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
 import { ShopCheckoutDrawer } from "@/components/storefront/shop-checkout-drawer";
 import { ShopLeadCaptureCard } from "@/components/storefront/shop-lead-capture-card";
 import { MilkRunHeader } from "@/components/storefront/templates/store/milk-run-header";
+import { MilkRunCheckoutChoice } from "@/components/storefront/templates/store/milk-run-checkout-choice";
 import { milkRunFontVariables } from "@/components/storefront/templates/store/milk-run-fonts";
 import milkRunStyles from "@/components/storefront/templates/store/milk-run.module.css";
 import { OxideHeader } from "@/components/storefront/templates/store/oxide-header";
@@ -25,6 +26,7 @@ import { ShopUtilityBar } from "@/components/storefront/shop-utility-bar";
 import { ShopCartProvider, useShopCart } from "@/hooks/use-shop-cart";
 import type { PublicCategory, PublicDeliveryArea } from "@/lib/public-storefront";
 import { formatDisplayPrice } from "@/lib/public-storefront";
+import { normalizeMilkRunWhatsApp } from "@/lib/milk-run-whatsapp-order";
 import { cn } from "@/lib/utils";
 
 function RailFallback() {
@@ -33,10 +35,10 @@ function RailFallback() {
 
 function FloatingCartButton({ accentHex }: { accentHex?: string | null }) {
   const pathname = usePathname();
-  const { itemCount, cart, drawerOpen, checkoutOpen, toggleDrawer, loading } =
+  const { itemCount, cart, drawerOpen, checkoutOpen, checkoutChoiceOpen, toggleDrawer, loading } =
     useShopCart();
 
-  if (pathname === APP_ROUTES.shopCheckout || checkoutOpen) {
+  if (pathname === APP_ROUTES.shopCheckout || checkoutOpen || checkoutChoiceOpen) {
     return null;
   }
   const accent =
@@ -117,6 +119,7 @@ export function ShopStorefrontChrome({
   deliveryAreas = [],
   chromeVariant = "default",
   storeThemeId,
+  whatsappNumber,
   children,
 }: {
   slug: string;
@@ -129,6 +132,8 @@ export function ShopStorefrontChrome({
   deliveryAreas?: PublicDeliveryArea[];
   chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run";
   storeThemeId?: string | null;
+  /** Tenant WhatsApp for Milk Run dual-path checkout. */
+  whatsappNumber?: string | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -139,6 +144,14 @@ export function ShopStorefrontChrome({
   const isCustomChrome = isOxide || isTintLab || isMilkRun;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
+  const milkRunDigits = isMilkRun
+    ? normalizeMilkRunWhatsApp(whatsappNumber)
+    : null;
+  const milkRunCheckout =
+    isMilkRun && milkRunDigits
+      ? { storeName: headerTitle, whatsappDigits: milkRunDigits }
+      : null;
+
   const shellStyle: CSSProperties | undefined = isOxide && accentHex
     ? ({ ["--oxide-accent" as string]: accentHex } as CSSProperties)
     : isTintLab && accentHex
@@ -148,7 +161,7 @@ export function ShopStorefrontChrome({
         : undefined;
 
   return (
-    <ShopCartProvider slug={slug}>
+    <ShopCartProvider slug={slug} milkRunCheckout={milkRunCheckout}>
       <div
         data-store-theme-id={storeThemeId ?? undefined}
         className={cn(
@@ -233,6 +246,7 @@ export function ShopStorefrontChrome({
       </div>
       <ShopCartDrawer />
       <ShopCheckoutDrawer />
+      {isMilkRun ? <MilkRunCheckoutChoice /> : null}
       {!isCustomChrome ? (
         <ShopLeadCaptureCard
           slug={slug}

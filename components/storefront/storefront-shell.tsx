@@ -105,6 +105,11 @@ export async function StorefrontShell({
           deliveryAreas={storefront?.deliveryAreas ?? []}
           chromeVariant={chromeVariant}
           storeThemeId={storeThemeId}
+          whatsappNumber={
+            tenant?.landingContent?.whatsapp ??
+            tenant?.landingContent?.phone ??
+            null
+          }
         >
           {children}
         </ShopStorefrontChrome>

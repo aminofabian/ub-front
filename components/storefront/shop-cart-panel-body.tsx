@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { ArrowRight, Check, ChevronRight, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Truck, X } from "lucide-react";
 
 import { ShopCartLinesScroll } from "@/components/storefront/shop-cart-lines-scroll";
 import { Button } from "@/components/ui/button";
-import { useMediaMd } from "@/hooks/use-media-md";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { useShopTillListen } from "@/hooks/use-shop-till-listen";
 import { joinProductNameParts } from "@/lib/catalog-display";
@@ -53,8 +51,6 @@ type Props = {
 };
 
 export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
-  const router = useRouter();
-  const isMd = useMediaMd();
   const {
     slug,
     cart,
@@ -67,7 +63,8 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
     focusItemId,
     cartViewMode,
     showAllCartItems,
-    openCheckout,
+    requestCheckout,
+    milkRunCheckout,
     drawerOpen,
   } = useShopCart();
 
@@ -117,11 +114,7 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
 
   function startCheckout() {
     onClose();
-    if (isMd) {
-      openCheckout();
-      return;
-    }
-    router.push(APP_ROUTES.shopCheckout);
+    requestCheckout();
   }
 
   const focusedLine = focusMode && cart ? cart.lines.find((l) => l.itemId === focusItemId) : null;
@@ -333,7 +326,7 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
                     )}
                     onClick={startCheckout}
                   >
-                    Checkout
+                    {milkRunCheckout ? "Pick a till" : "Checkout"}
                     <ArrowRight className="size-3.5" aria-hidden />
                   </Button>
                 ) : (

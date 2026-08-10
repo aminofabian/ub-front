@@ -633,3 +633,265 @@
   border: 2px solid var(--milk-ink);
   padding: 0 5px;
 }
+
+/* ---------- checkout choice: pick your till ---------- */
+.tillScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(43, 24, 16, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .tillScrim {
+    align-items: center;
+    padding: 24px;
+  }
+}
+
+.tillSheet {
+  width: min(100%, 720px);
+  max-height: min(92dvh, 740px);
+  overflow: auto;
+  background: var(--milk-cream);
+  color: var(--milk-ink);
+  border: 2px solid var(--milk-ink);
+  border-radius: 28px;
+  box-shadow: 0 18px 40px rgba(43, 24, 16, 0.28);
+  padding: 22px 18px 20px;
+  position: relative;
+  animation: tillRise 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tillSheet {
+    animation: none;
+  }
+}
+
+@keyframes tillRise {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tillClose {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 100px;
+  border: 2px solid var(--milk-ink);
+  background: var(--milk-cream);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-milk-mono), ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tillClose:active {
+  transform: translateY(1px);
+}
+
+.tillKicker {
+  font-family: var(--font-milk-mono), ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--milk-sunshine);
+  border: 2px solid var(--milk-ink);
+  border-radius: 100px;
+  display: inline-block;
+  padding: 4px 10px;
+  margin-bottom: 12px;
+}
+
+.tillTitle {
+  font-family: var(--font-milk-display), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(28px, 6vw, 40px);
+  line-height: 1.02;
+  margin: 0 0 8px;
+  padding-right: 40px;
+}
+
+.tillLead {
+  font-size: 15px;
+  line-height: 1.45;
+  opacity: 0.82;
+  margin: 0 0 18px;
+  max-width: 42ch;
+}
+
+.tillSummary {
+  font-family: var(--font-milk-mono), ui-monospace, monospace;
+  font-size: 12px;
+  border: 2px dashed rgba(43, 24, 16, 0.22);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.tillLanes {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .tillLanes {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+.tillLane {
+  position: relative;
+  padding-top: 22px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  display: block;
+  width: 100%;
+  animation: tillLaneIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tillLane:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tillLane {
+    animation: none;
+  }
+}
+
+@keyframes tillLaneIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tillLaneFlap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 26px;
+  clip-path: polygon(
+    0% 0%,
+    8.3% 48%,
+    16.6% 0%,
+    25% 48%,
+    33.3% 0%,
+    41.6% 48%,
+    50% 0%,
+    58.3% 48%,
+    66.6% 0%,
+    75% 48%,
+    83.3% 0%,
+    91.6% 48%,
+    100% 0%,
+    100% 100%,
+    0% 100%
+  );
+}
+
+.tillLaneBody {
+  background: var(--milk-cream);
+  border: 2px solid var(--milk-ink);
+  border-top: none;
+  border-radius: 0 0 22px 22px;
+  padding: 16px 14px 14px;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.tillLane:hover .tillLaneBody,
+.tillLane:focus-visible .tillLaneBody {
+  background: #fff8e8;
+  transform: translateY(-2px);
+}
+
+.tillLane:active .tillLaneBody {
+  transform: translateY(1px);
+}
+
+.tillLaneIcon {
+  width: 56px;
+  height: 48px;
+  margin-bottom: 10px;
+}
+
+.tillLaneName {
+  font-family: var(--font-milk-display), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.1;
+  margin: 0 0 6px;
+}
+
+.tillLaneDesc {
+  font-size: 13.5px;
+  line-height: 1.45;
+  opacity: 0.8;
+  margin: 0 0 14px;
+  flex: 1;
+}
+
+.tillLaneCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 100px;
+  border: 2px solid var(--milk-ink);
+  align-self: stretch;
+}
+
+.tillLaneChat .tillLaneCta {
+  background: var(--milk-wa);
+  color: #fff;
+}
+
+.tillLaneRegister .tillLaneCta {
+  background: var(--milk-ink);
+  color: var(--milk-cream);
+}
+
+.tillFoot {
+  margin-top: 16px;
+  font-size: 12px;
+  opacity: 0.65;
+  text-align: center;
+  line-height: 1.4;
+}
