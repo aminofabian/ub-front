@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Banknote, Building2, DoorClosed } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
+import { TillCountPad } from "@/components/shifts/till-count-pad";
 import {
   fetchDrawerBalances,
   fetchLastClosedShiftFloat,
@@ -168,6 +169,9 @@ export function DenominationRow({
   autoFocus,
   readOnly,
   expectedQty,
+  active,
+  onActivate,
+  suppressNativeKeyboard,
 }: {
   denomValue: number;
   label: string;
@@ -177,11 +181,27 @@ export function DenominationRow({
   readOnly?: boolean;
   /** Expected ledger quantity — renders an Exp / Short / Long hint when provided. */
   expectedQty?: number | null;
+  /** Highlighted when the till count pad is targeting this row. */
+  active?: boolean;
+  onActivate?: () => void;
+  /** Prefer the on-screen pad over the OS keyboard (tablets / tills). */
+  suppressNativeKeyboard?: boolean;
 }) {
   const total = denomValue * quantity;
   const diff = expectedQty != null ? quantity - expectedQty : null;
   return (
-    <div className="flex items-center justify-between gap-1.5 rounded-md border border-border/60 bg-background px-2 py-1 text-xs sm:gap-2 sm:px-2.5 sm:text-[13px]">
+    <div
+      className={cn(
+        "flex items-center justify-between gap-1.5 rounded-md border bg-background px-2 py-1 text-xs sm:gap-2 sm:px-2.5 sm:text-[13px]",
+        "transition-[border-color,box-shadow,background-color] duration-150",
+        active
+          ? "border-emerald-500/55 bg-emerald-500/[0.06] shadow-[0_0_0_1px_rgba(16,185,129,0.18)]"
+          : "border-border/60",
+      )}
+      onPointerDown={() => {
+        if (!readOnly) onActivate?.();
+      }}
+    >
       <span className="min-w-0 flex-1 truncate font-medium text-foreground">{label}</span>
       {diff != null ? (
         <span className="flex shrink-0 items-center gap-1">
@@ -205,21 +225,24 @@ export function DenominationRow({
       <input
         type="number"
         min={0}
-        inputMode="numeric"
+        inputMode={suppressNativeKeyboard ? "none" : "numeric"}
         autoFocus={autoFocus}
         disabled={readOnly}
         className={dashboardInputClass(
           false,
-          "h-7 w-[3.75rem] shrink-0 py-0 pr-1 text-right text-xs tabular-nums sm:w-16 sm:text-[13px]",
+          cn(
+            "h-7 w-[3.75rem] shrink-0 py-0 pr-1 text-right text-xs tabular-nums sm:w-16 sm:text-[13px]",
+            active && "border-emerald-500/50 ring-1 ring-emerald-500/25",
+          ),
         )}
         value={quantity || ""}
+        onFocus={() => onActivate?.()}
         onChange={(e) => {
           if (!onChange) return;
           const v = parseInt(e.target.value, 10);
           onChange(Number.isFinite(v) && v >= 0 ? v : 0);
         }}
-      />
-      <span className="w-[4.25rem] shrink-0 text-right text-[11px] tabular-nums text-muted-foreground sm:w-[4.5rem] sm:text-xs">
+      />      <span className="w-[4.25rem] shrink-0 text-right text-[11px] tabular-nums text-muted-foreground sm:w-[4.5rem] sm:text-xs">
         {moneyStr(total)}
       </span>
     </div>
@@ -241,6 +264,11 @@ export function DenominationTable({
   /** Expected ledger quantities per denomination — renders an Exp / Short / Long column. */
   expectedQuantities?: Record<number, number> | null;
 }) {
+  const [padOpen, setPadOpen] = useState(false);
+  const [activeDenom, setActiveDenom] = useState<number>(
+    KES_DENOMINATIONS[0].value,
+  );
+
   const notesTotal = KES_DENOMINATIONS.reduce(
     (sum, d) => sum + d.value * (quantities[d.value] || 0),
     0,
@@ -259,6 +287,31 @@ export function DenominationTable({
     0,
   );
 
+  const activeMeta =
+    KES_DENOMINATIONS.find((d) => d.value === activeDenom) ??
+    KES_DENOMINATIONS[0];
+  const activeQty = quantities[activeDenom] || 0;
+  const editable = !readOnly && !!onChange;
+
+  const activate = useCallback(
+    (denom: number) => {
+      if (!editable) return;
+      setActiveDenom(denom);
+      setPadOpen(true);
+    },
+    [editable],
+  );
+
+  const goNext = useCallback(() => {
+    const idx = KES_DENOMINATIONS.findIndex((d) => d.value === activeDenom);
+    if (idx < 0 || idx >= KES_DENOMINATIONS.length - 1) return;
+    setActiveDenom(KES_DENOMINATIONS[idx + 1].value);
+  }, [activeDenom]);
+
+  const canGoNext =
+    KES_DENOMINATIONS.findIndex((d) => d.value === activeDenom) <
+    KES_DENOMINATIONS.length - 1;
+
   return (
     <div className="space-y-1.5">
       <h4 className={cn(SHIFT_MODAL_SECTION_TITLE, "mb-1.5")}>{title}</h4>
@@ -270,17 +323,20 @@ export function DenominationTable({
             label={denom.label}
             quantity={quantities[denom.value] || 0}
             readOnly={readOnly}
+            active={editable && padOpen && activeDenom === denom.value}
+            suppressNativeKeyboard={editable && padOpen}
             expectedQty={
               expectedQuantities != null
                 ? (expectedQuantities[denom.value] ?? 0)
                 : null
             }
+            onActivate={() => activate(denom.value)}
             onChange={
               readOnly || !onChange
                 ? undefined
                 : (val) => onChange({ ...quantities, [denom.value]: val })
             }
-            autoFocus={i === 0 && !readOnly}
+            autoFocus={i === 0 && !readOnly && !padOpen}
           />
         ))}
       </div>
@@ -305,6 +361,76 @@ export function DenominationTable({
           <span className="tabular-nums">{moneyStr(notesTotal)}</span>
         </div>
       </div>
+
+      {editable ? (
+        <TillCountPad
+          open={padOpen}
+          onOpenChange={setPadOpen}
+          activeLabel={activeMeta.label}
+          value={activeQty}
+          hint={`${moneyStr(activeMeta.value * activeQty)} · ${activeMeta.type === "NOTE" ? "note" : "coin"}`}
+          onChange={(val) =>
+            onChange({ ...quantities, [activeDenom]: Math.floor(val) })
+          }
+          onNext={canGoNext ? goNext : undefined}
+          mode="quantity"
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/** Cash total field with the same collapsible till pad (non-KES / simple total). */
+function CashTotalWithPad({
+  label,
+  currency,
+  valueStr,
+  onChange,
+  autoFocus,
+  footer,
+}: {
+  label: string;
+  currency: string;
+  valueStr: string;
+  onChange: (next: string) => void;
+  autoFocus?: boolean;
+  footer?: ReactNode;
+}) {
+  const [padOpen, setPadOpen] = useState(false);
+  const numeric = Number(valueStr);
+  const safeValue = Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+
+  return (
+    <div className="space-y-1.5">
+      <h4 className={cn(SHIFT_MODAL_SECTION_TITLE, "mb-1.5")}>{label}</h4>
+      <input
+        type="number"
+        min={0}
+        step="any"
+        inputMode={padOpen ? "none" : "decimal"}
+        className={dashboardInputClass(
+          false,
+          cn(padOpen && "border-emerald-500/50 ring-1 ring-emerald-500/25"),
+        )}
+        value={valueStr}
+        onFocus={() => setPadOpen(true)}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="0"
+        autoFocus={autoFocus && !padOpen}
+      />      {footer}
+      <TillCountPad
+        open={padOpen}
+        onOpenChange={setPadOpen}
+        activeLabel={`${currency} total`}
+        value={safeValue}
+        hint={moneyStr(safeValue, currency)}
+        mode="decimal"
+        onChange={(val) => {
+          // Preserve up to 2 dp without forcing trailing zeros while typing via pad buffer.
+          const rounded = Math.round(val * 100) / 100;
+          onChange(Number.isFinite(rounded) ? String(rounded) : "0");
+        }}
+      />
     </div>
   );
 }
@@ -605,25 +731,18 @@ export function OpenShiftModal({
                   onChange={setQuantities}
                 />
               ) : (
-                <div className="space-y-1.5">
-                  <h4 className={cn(SHIFT_MODAL_SECTION_TITLE, "mb-1.5")}>
-                    Opening cash ({currency})
-                  </h4>
-                  <input
-                    type="number"
-                    min={0}
-                    step="any"
-                    inputMode="decimal"
-                    className={dashboardInputClass(false)}
-                    value={cashTotalStr}
-                    onChange={(e) => setCashTotalStr(e.target.value)}
-                    placeholder="0"
-                    autoFocus
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Total: {moneyStr(totalCash, currency)}
-                  </p>
-                </div>
+                <CashTotalWithPad
+                  label={`Opening cash (${currency})`}
+                  currency={currency}
+                  valueStr={cashTotalStr}
+                  onChange={setCashTotalStr}
+                  autoFocus
+                  footer={
+                    <p className="text-[11px] text-muted-foreground">
+                      Total: {moneyStr(totalCash, currency)}
+                    </p>
+                  }
+                />
               )}
               {useDenomBreakdown && prefillBusy ? (
                 <p className="mt-2 text-[11px] text-muted-foreground">
@@ -808,25 +927,18 @@ export function EditOpeningCountModal({
                   onChange={setQuantities}
                 />
               ) : (
-                <div className="space-y-1.5">
-                  <h4 className={cn(SHIFT_MODAL_SECTION_TITLE, "mb-1.5")}>
-                    Opening cash ({currency})
-                  </h4>
-                  <input
-                    type="number"
-                    min={0}
-                    step="any"
-                    inputMode="decimal"
-                    className={dashboardInputClass(false)}
-                    value={cashTotalStr}
-                    onChange={(e) => setCashTotalStr(e.target.value)}
-                    placeholder="0"
-                    autoFocus
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Total: {moneyStr(totalCash, currency)}
-                  </p>
-                </div>
+                <CashTotalWithPad
+                  label={`Opening cash (${currency})`}
+                  currency={currency}
+                  valueStr={cashTotalStr}
+                  onChange={setCashTotalStr}
+                  autoFocus
+                  footer={
+                    <p className="text-[11px] text-muted-foreground">
+                      Total: {moneyStr(totalCash, currency)}
+                    </p>
+                  }
+                />
               )}
             </div>
 
@@ -1199,28 +1311,21 @@ export function CloseShiftModal({
                   }
                 />
               ) : (
-                <div className="space-y-1.5">
-                  <h4 className={cn(SHIFT_MODAL_SECTION_TITLE, "mb-1.5")}>
-                    Closing cash ({currency})
-                  </h4>
-                  <input
-                    type="number"
-                    min={0}
-                    step="any"
-                    inputMode="decimal"
-                    className={dashboardInputClass(false)}
-                    value={cashTotalStr}
-                    onChange={(e) => {
-                      userEditedRef.current = true;
-                      setCashTotalStr(e.target.value);
-                    }}
-                    placeholder="0"
-                    autoFocus
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Note/coin breakdown is only available for KES.
-                  </p>
-                </div>
+                <CashTotalWithPad
+                  label={`Closing cash (${currency})`}
+                  currency={currency}
+                  valueStr={cashTotalStr}
+                  onChange={(next) => {
+                    userEditedRef.current = true;
+                    setCashTotalStr(next);
+                  }}
+                  autoFocus
+                  footer={
+                    <p className="text-[11px] text-muted-foreground">
+                      Note/coin breakdown is only available for KES.
+                    </p>
+                  }
+                />
               )}
               {draftRestoredHint ? (
                 <p className="mt-2 text-[11px] text-muted-foreground">
