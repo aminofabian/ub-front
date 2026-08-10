@@ -70,28 +70,33 @@ import {
   DrawoutModal,
   DRAWOUT_CATEGORIES,
 } from "@/components/shifts/shift-action-modals";
+import {
+  mktChip,
+  mktChipActive,
+  mktPosAccentBar,
+  mktPosHeader,
+  mktPosSearch,
+  mktPosShell,
+} from "@/app/marketplace/_components/marketplace-ui";
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * THE SHIFTS BOARD — direction contract
+ * THE SHIFTS BOARD — direction contract (marketplace shelf grammar)
  *
- * THESIS: one time-ranked departure board for the till. Shifts are rows on a
- *   fixed grid — cashier, branch, opened, float, variance — restyled by state,
- *   and the live shift is the board's "now" row. Refuses the three-panel
- *   console (list | analytics | details) that crushes content at laptop width.
+ * THESIS: one till board arranged like the supplier marketplace shelf —
+ *   passport header → search → chips → teal section bar → list rail + detail.
+ *   Refuses the three-panel console and soft dashboard cards.
  *
- * OWN-WORLD: the dashboard's quiet paper surface; rows as departure-board
- *   entries with a 2px state rail and fixed tabular columns; one accent
- *   (primary) for selection and the live strip; ledger figures in mono.
+ * OWN-WORLD: marketplace paper/ink/teal tokens (sharp corners, pos-primary
+ *   rails, chip filters); ledger figures stay mono.
  *
- * STORY: the manager scans the board, sees what is live, picks a row, and the
- *   detail pane gives the full cash story — overview, counts, drawouts —
- *   without a single element feeling cut off.
+ * STORY: the manager scans status chips, picks a shift from the board rail,
+ *   and the detail shelf shows the cash story.
  *
- * FIRST VIEWPORT: page header with actions; the open-shift "Now" banner; then
- *   the board: a list rail (~22rem) and a detail pane filling the rest.
+ * FIRST VIEWPORT: title + Products-style status tabs; search; branch chips;
+ *   teal "Board / Detail" bar; list + pane.
  *
- * FORM: split-flap concourse grammar (challenger) fused into the dashboard's
- *   Operate world; grounded candidate 5; seed 5d7b883e.
+ * FORM: marketplace shelf arrangement applied to shifts Operate task;
+ *   inherits live palmart.co.ke/marketplace chrome.
  *
  * FINISH: unreviewed and undocumented is unfinished; this build ends with the
  *   finish review, the verdict, and DESIGN.md.
@@ -118,8 +123,8 @@ const DRAWOUT_STATUS_BADGE: Record<string, string> = {
 /** Ledger convention: money renders in monospace tabular figures. */
 const NUM = "font-mono tabular-nums";
 
-/** Soft raised surface shared across the board's panels. */
-const CARD = "border border-border/60 bg-card shadow-sm";
+/** Marketplace-style sharp paper panel. */
+const CARD = mktPosShell;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -300,8 +305,8 @@ function VarianceLegend({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-medium text-muted-foreground",
-        className,
+        "flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-medium",
+        className ?? "text-muted-foreground",
       )}
     >
       {items.map((it) => (
@@ -499,20 +504,19 @@ function ShiftRow({
       onClick={onSelect}
       aria-pressed={isSelected}
       className={cn(
-        "group relative w-full overflow-hidden border text-left transition-all duration-150",
+        "group relative w-full overflow-hidden border text-left transition-[border-color,background-color,box-shadow] duration-150",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
         isSelected
-          ? "border-primary/40 bg-primary/[0.05] shadow-sm"
-          : "border-border/60 bg-card hover:border-border hover:bg-muted/30 hover:shadow-sm",
+          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-none"
+          : "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)] hover:bg-card hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
         compact && "p-2.5",
       )}
     >
       <span
         className={cn(
-          "absolute inset-y-0 left-0 w-0.5 transition-opacity duration-150",
-          isSelected
-            ? "opacity-100"
-            : "opacity-0 group-hover:opacity-60",
-          statusRailClass(shift.status),
+          "absolute inset-y-0 left-0 w-1 transition-opacity duration-150",
+          isSelected ? "bg-[var(--pos-primary-ink,#fff)]/35 opacity-100" : "opacity-0 group-hover:opacity-70",
+          !isSelected && statusRailClass(shift.status),
         )}
         aria-hidden
       />
@@ -521,23 +525,44 @@ function ShiftRow({
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <span
             className={cn(
-              "flex size-9 shrink-0 items-center justify-center border border-border/60 bg-muted/40 font-sans text-[11px] font-bold tracking-tight text-foreground",
+              "flex size-9 shrink-0 items-center justify-center border font-sans text-[11px] font-bold tracking-tight",
+              isSelected
+                ? "border-white/30 bg-white/15 text-[var(--pos-primary-ink,#fff)]"
+                : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] text-[var(--pos-ink,#1c1915)]",
             )}
             aria-hidden
           >
             {initials(shift.cashierName)}
           </span>
           <div className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold text-foreground">
+            <span
+              className={cn(
+                "block truncate text-sm font-semibold",
+                isSelected ? "text-[var(--pos-primary-ink,#fff)]" : "text-[var(--pos-ink,#1c1915)]",
+              )}
+            >
               {shift.cashierName}
             </span>
-            <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
+            <span
+              className={cn(
+                "mt-0.5 flex items-center gap-1 truncate text-xs",
+                isSelected
+                  ? "text-[var(--pos-primary-ink,#fff)]/75"
+                  : "text-muted-foreground",
+              )}
+            >
               <MapPin className="size-3 shrink-0" aria-hidden />
               <span className="truncate">{shift.branchName}</span>
             </span>
           </div>
         </div>
-        <StatusBadge status={shift.status} />
+        {isSelected ? (
+          <span className="inline-flex items-center border border-white/30 bg-white/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--pos-primary-ink,#fff)]">
+            {statusLabel(shift.status)}
+          </span>
+        ) : (
+          <StatusBadge status={shift.status} />
+        )}
       </div>
 
       <div
@@ -546,14 +571,39 @@ function ShiftRow({
           compact ? "mt-2" : "mt-2.5 px-3",
         )}
       >
-        <span className="inline-flex shrink-0 items-center gap-1 text-muted-foreground">
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1",
+            isSelected
+              ? "text-[var(--pos-primary-ink,#fff)]/75"
+              : "text-muted-foreground",
+          )}
+        >
           <Clock className="size-3" aria-hidden />
           <span className={NUM}>{fmtShortDate(shift.openedAt)}</span>
         </span>
-        <span className="h-3 w-px bg-border/70" aria-hidden />
-        <span className="inline-flex shrink-0 items-baseline gap-0.5 text-muted-foreground">
+        <span
+          className={cn("h-3 w-px", isSelected ? "bg-white/30" : "bg-border/70")}
+          aria-hidden
+        />
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-baseline gap-0.5",
+            isSelected
+              ? "text-[var(--pos-primary-ink,#fff)]/75"
+              : "text-muted-foreground",
+          )}
+        >
           <span>Float</span>
-          <span className={cn("font-medium text-foreground", NUM)}>
+          <span
+            className={cn(
+              "font-medium",
+              NUM,
+              isSelected
+                ? "text-[var(--pos-primary-ink,#fff)]"
+                : "text-foreground",
+            )}
+          >
             {moneyStrCompact(shift.openingFloat)}
           </span>
         </span>
@@ -565,12 +615,19 @@ function ShiftRow({
               className={cn(
                 "inline-flex shrink-0 items-center gap-1 border px-1.5 py-0.5 font-medium",
                 NUM,
-                varianceBgColor(v),
-                needsReview && "text-red-700 dark:text-red-300",
+                isSelected
+                  ? "border-white/30 bg-white/15 text-[var(--pos-primary-ink,#fff)]"
+                  : cn(
+                      varianceBgColor(v),
+                      needsReview && "text-red-700 dark:text-red-300",
+                    ),
               )}
             >
-              {needsReview ? (
-                <AlertTriangle className="size-3 text-red-600 dark:text-red-400" aria-label="Needs review" />
+              {needsReview && !isSelected ? (
+                <AlertTriangle
+                  className="size-3 text-red-600 dark:text-red-400"
+                  aria-label="Needs review"
+                />
               ) : null}
               {varNum >= 0 ? "+" : ""}
               {moneyStrCompact(v)}
@@ -579,7 +636,15 @@ function ShiftRow({
         ) : shift.status === "open" ? (
           <>
             <span className="ml-auto" aria-hidden />
-            <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" aria-hidden />
+            <ChevronRight
+              className={cn(
+                "size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5",
+                isSelected
+                  ? "text-[var(--pos-primary-ink,#fff)]/70"
+                  : "text-muted-foreground/50",
+              )}
+              aria-hidden
+            />
           </>
         ) : null}
       </div>
@@ -1775,84 +1840,57 @@ export default function ShiftsPage() {
   ];
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[1440px] flex-col gap-4 px-4 pb-16 sm:px-6 sm:gap-5">
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0">
-          <h1 className="font-heading text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-[1.75rem]">
-            Shifts
-          </h1>
-          <ActiveScopeSubtitle className="mt-1 text-xs" />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {currentOpenShift && canClose ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-none shadow-sm"
-                onClick={() => setDrawoutModal(true)}
+    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[1400px] flex-col gap-2 px-2 pb-10 sm:px-5 sm:pb-12">
+      {/* Passport trail — same grammar as marketplace */}
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-0.5 pt-1">
+        <p className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+          shifts
+          <span className="font-sans text-muted-foreground/80">
+            {" "}
+            · branch → board → count
+          </span>
+        </p>
+        {quickLinks.length > 0 ? (
+          <nav aria-label="Related pages" className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            {quickLinks.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="text-[11px] font-medium text-muted-foreground underline-offset-2 hover:text-[var(--pos-ink,#1c1915)] hover:underline"
               >
-                <HandCoins className="size-4" aria-hidden />
-                New drawout
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                className="rounded-none"
-                onClick={() => setCloseModal(true)}
-              >
-                Close shift
-              </Button>
-            </>
-          ) : null}
-          {canOpen ? (
-            <Button type="button" className="rounded-none shadow-sm" onClick={() => setOpenModal(true)}>
-              Open shift
-            </Button>
-          ) : null}
-        </div>
-      </header>
-
-      {/* ── Board toolbar links ───────────────────────────────── */}
-      {quickLinks.length > 0 ? (
-        <nav aria-label="Related pages" className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
-          {quickLinks.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="inline-flex items-center gap-1.5 px-1.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            >
-              <Icon className="size-3.5" aria-hidden />
-              {label}
-            </Link>
-          ))}
-        </nav>
-      ) : null}
+                {label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
+      </div>
 
       {(notice || error) ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
           {error ? <DashboardFeedback kind="error" text={error} /> : null}
         </div>
       ) : null}
 
-      {/* ── Live "now" row ─────────────────────────────────────── */}
+      {/* Live open shift — teal strip like marketplace section bars */}
       {currentOpenShift ? (
         <section
           aria-label="Open shift"
           className={cn(
-            "relative flex flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden border border-emerald-500/25 bg-emerald-500/[0.05] px-4 py-3",
+            "relative flex flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+            "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,var(--card))] px-3 py-2.5 sm:px-4",
           )}
         >
-          <span className="absolute inset-y-0 left-0 w-0.5 bg-emerald-500" aria-hidden />
-          <span className="relative flex items-center gap-2.5">
+          <span
+            className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
+            aria-hidden
+          />
+          <span className="relative flex items-center gap-2.5 pl-1">
             <span className="relative flex size-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" aria-hidden />
-              <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" aria-hidden />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--pos-primary,#0f766e)] opacity-60" aria-hidden />
+              <span className="relative inline-flex size-2.5 rounded-full bg-[var(--pos-primary,#0f766e)]" aria-hidden />
             </span>
-            <p className="text-sm font-semibold text-foreground">
+            <p className="text-sm font-semibold text-[var(--pos-ink,#1c1915)]">
               {currentOpenShift.openedByName || "Cashier"}
               <span className="font-normal text-muted-foreground"> at </span>
               {currentOpenShift.tillLabel || currentOpenShift.branchName}
@@ -1865,7 +1903,7 @@ export default function ShiftsPage() {
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Wallet className="size-3.5" aria-hidden />
             Float{" "}
-            <span className={cn("font-semibold text-foreground", NUM)}>
+            <span className={cn("font-semibold text-[var(--pos-ink,#1c1915)]", NUM)}>
               {moneyStr(currentOpenShift.openingCash)}
             </span>
           </p>
@@ -1896,247 +1934,317 @@ export default function ShiftsPage() {
         </section>
       ) : null}
 
-      {/* ── The board: list rail + detail pane ─────────────────── */}
-      <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-        {/* Board rail */}
-        <section
-          aria-label="Shift board"
-          className={cn(CARD, "flex min-h-[24rem] flex-col overflow-hidden md:min-h-0")}
-        >
-          {/* Rail toolbar */}
-          <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2.5">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="flex size-7 shrink-0 items-center justify-center border border-border/60 bg-muted/40 text-primary">
-                <Layers className="size-3.5" aria-hidden />
-              </span>
-              <h2 className="truncate text-sm font-semibold tracking-tight text-foreground">
-                Board
-              </h2>
-              <span className="inline-flex min-w-5 items-center justify-center border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-                {totalCount}
-              </span>
+      {/* Marketplace-style POS shell: header → search → chips → board */}
+      <div
+        className={cn(
+          mktPosShell,
+          "relative flex min-h-0 flex-1 flex-col",
+          "min-h-[min(82dvh,52rem)]",
+        )}
+      >
+        {/* Passport identity + search strip */}
+        <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 sm:px-3">
+          <span aria-hidden className={mktPosAccentBar} />
+          <div className="space-y-2 pl-2">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h1 className="text-[15px] font-semibold leading-tight text-[var(--pos-ink,#1c1915)] sm:text-base">
+                  {branchFilter
+                    ? branches.find((b) => b.id === branchFilter)?.name ?? "Shifts"
+                    : "All shifts"}
+                </h1>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {loading
+                    ? "Loading…"
+                    : `${filteredShifts.length} shift${filteredShifts.length === 1 ? "" : "s"}`}
+                  {statusFilter
+                    ? ` · ${STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label ?? statusFilter}`
+                    : ""}
+                  {totalCount > filteredShifts.length
+                    ? ` · ${totalCount} total`
+                    : ""}
+                </p>
+                <ActiveScopeSubtitle className="mt-0.5 text-[11px]" />
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                {canOpen ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 rounded-none px-3 text-[11px] font-semibold uppercase tracking-[0.08em]"
+                    onClick={() => setOpenModal(true)}
+                  >
+                    Open shift
+                  </Button>
+                ) : null}
+                {currentOpenShift && canClose ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 rounded-none px-3 text-[11px] font-semibold uppercase tracking-[0.08em]"
+                    onClick={() => setDrawoutModal(true)}
+                  >
+                    Drawout
+                  </Button>
+                ) : null}
+                <div
+                  role="tablist"
+                  aria-label="Shift status"
+                  className="flex rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]"
+                >
+                  {STATUS_OPTIONS.filter((o) =>
+                    ["", "open", "closed", "reconciled"].includes(o.value),
+                  ).map((opt) => {
+                    const active = statusFilter === opt.value;
+                    return (
+                      <button
+                        key={opt.value || "all"}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        className={cn(
+                          "inline-flex h-8 items-center rounded-none px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] transition sm:px-3",
+                          active
+                            ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                            : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
+                        )}
+                        onClick={() => setStatusFilter(opt.value)}
+                      >
+                        {opt.value === "" ? "All" : opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <VarianceLegend className="hidden sm:flex" />
-          </div>
 
-          {/* Filters */}
-          <div className="space-y-1.5 border-b border-border/50 bg-muted/10 p-2.5">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <div className="relative rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_82%,transparent)]">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
-                className={cn(dashboardInputClass(loading), "rounded-none pl-8 text-sm")}
-                placeholder="Search cashier or branch…"
+                className={mktPosSearch}
+                placeholder="Find a cashier or branch…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Search shifts"
               />
-            </div>
-            <div className="flex gap-1.5">
-              <select
-                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-none text-xs")}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                aria-label="Filter by status"
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-none text-xs")}
-                value={branchFilter}
-                disabled={isBranchLockedRole}
-                onChange={(e) => setBranchFilter(e.target.value)}
-                aria-label="Filter by branch"
-              >
-                {isBranchLockedRole ? null : (
-                  <option value="">All branches</option>
-                )}
-                {branches
-                  .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
-                  .map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Rows */}
-          <div className="flex-1 space-y-1.5 overflow-y-auto p-2.5">
-            {filteredShifts.map((s) => (
-              <ShiftRow
-                key={s.id}
-                shift={s}
-                isSelected={selectedShiftId === s.id}
-                onSelect={() => setSelectedShiftId(s.id)}
-              />
-            ))}
-            {filteredShifts.length === 0 && !loading ? (
-              <div className="flex flex-col items-center gap-2 py-10 text-center">
-                <Search className="size-5 text-muted-foreground/50" aria-hidden />
-                <p className="text-sm font-medium text-foreground">
-                  {shifts.length === 0 ? "No shifts yet" : "No shifts match"}
-                </p>
-                <p className="max-w-[16rem] text-xs leading-relaxed text-muted-foreground">
-                  {shifts.length === 0
-                    ? "Open a shift to begin tracking cash for the day."
-                    : "Broaden your search or clear the filters."}
-                </p>
-              </div>
-            ) : null}
-            {hasMore ? (
-              <div className="pt-1 text-center">
-                <Button
+              {search ? (
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="rounded-none"
-                  disabled={loading}
-                  onClick={() => loadShifts(page + 1, true)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-[var(--pos-ink,#1c1915)]"
+                  onClick={() => setSearch("")}
+                  aria-label="Clear search"
                 >
-                  {loading ? "Loading…" : "Load more"}
-                </Button>
+                  <X className="size-3.5" />
+                </button>
+              ) : null}
+            </div>
+
+            {/* Branch chips — marketplace Area row */}
+            {!isBranchLockedRole && branches.length > 0 ? (
+              <div className="flex flex-col gap-1.5 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2">
+                <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    1 · Branch
+                  </span>
+                  <button
+                    type="button"
+                    className={cn(mktChip, !branchFilter && mktChipActive)}
+                    onClick={() => setBranchFilter("")}
+                  >
+                    All
+                  </button>
+                  {branches
+                    .filter((b) => b.active !== false)
+                    .map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        className={cn(
+                          mktChip,
+                          branchFilter === b.id && mktChipActive,
+                        )}
+                        onClick={() =>
+                          setBranchFilter((cur) => (cur === b.id ? "" : b.id))
+                        }
+                      >
+                        {b.name}
+                      </button>
+                    ))}
+                </div>
+                {statusFilter === "suspended" ? null : (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      Status
+                    </span>
+                    {STATUS_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value || "all-status"}
+                        type="button"
+                        className={cn(
+                          mktChip,
+                          statusFilter === opt.value && mktChipActive,
+                        )}
+                        onClick={() => setStatusFilter(opt.value)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : null}
+            ) : (
+              <div className="flex items-center gap-2 overflow-x-auto border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] pt-2 pb-0.5">
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                  Status
+                </span>
+                {STATUS_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value || "all-status"}
+                    type="button"
+                    className={cn(
+                      mktChip,
+                      statusFilter === opt.value && mktChipActive,
+                    )}
+                    onClick={() => setStatusFilter(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Detail pane */}
-        <section
-          aria-label="Shift details"
-          className={cn(CARD, "hidden min-h-0 flex-col overflow-hidden md:flex")}
-        >
-          {selectedShift ? (
-            <div className="flex items-center gap-3 border-b border-border/50 px-4 py-2.5">
-              <span
-                className="flex size-9 shrink-0 items-center justify-center border border-border/60 bg-muted/40 font-sans text-[11px] font-bold tracking-tight text-foreground"
-                aria-hidden
-              >
-                {initials(selectedShift.cashierName)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <h3 className="truncate text-sm font-semibold leading-tight tracking-tight text-foreground">
-                  {selectedShift.cashierName}
+        {/* Teal section bar — marketplace "2 · Supplier | Shelf" */}
+        <div className={cn(mktPosHeader, "gap-2")}>
+          <span className="flex min-w-0 items-center gap-2">
+            <span>2 · Board</span>
+            <span className="font-mono font-normal tabular-nums opacity-80">
+              {filteredShifts.length}
+            </span>
+          </span>
+          <span className="hidden min-w-0 truncate font-sans text-[11px] font-semibold normal-case tracking-normal opacity-95 sm:inline">
+            {selectedShift
+              ? `${selectedShift.cashierName} · ${selectedShift.branchName}`
+              : "Select a shift"}
+          </span>
+          <VarianceLegend className="ml-auto hidden text-[var(--pos-primary-ink,#fff)]/85 sm:flex" />
+        </div>
+
+        {/* Board: list rail + detail shelf */}
+        <div className="grid min-h-0 flex-1 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+          <section
+            aria-label="Shift board"
+            className="flex min-h-0 flex-col border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] md:border-r"
+          >
+            <div className="flex-1 space-y-1 overflow-y-auto p-2">
+              {filteredShifts.map((s) => (
+                <ShiftRow
+                  key={s.id}
+                  shift={s}
+                  isSelected={selectedShiftId === s.id}
+                  onSelect={() =>
+                    setSelectedShiftId((cur) =>
+                      cur === s.id && typeof window !== "undefined" &&
+                      window.matchMedia("(max-width: 767px)").matches
+                        ? null
+                        : s.id,
+                    )
+                  }
+                />
+              ))}
+              {filteredShifts.length === 0 && !loading ? (
+                <div className="flex flex-col items-center gap-2 py-10 text-center">
+                  <Search className="size-5 text-muted-foreground/50" aria-hidden />
+                  <p className="text-sm font-medium text-[var(--pos-ink,#1c1915)]">
+                    {shifts.length === 0 ? "No shifts yet" : "No shifts match"}
+                  </p>
+                  <p className="max-w-[16rem] text-xs leading-relaxed text-muted-foreground">
+                    {shifts.length === 0
+                      ? "Open a shift to begin tracking cash for the day."
+                      : "Broaden your search or clear the filters."}
+                  </p>
+                </div>
+              ) : null}
+              {hasMore ? (
+                <div className="pt-1 text-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-none"
+                    disabled={loading}
+                    onClick={() => loadShifts(page + 1, true)}
+                  >
+                    {loading ? "Loading…" : "Load more"}
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          <section
+            aria-label="Shift details"
+            className="hidden min-h-0 flex-col overflow-hidden md:flex"
+          >
+            {selectedShift ? (
+              <div className="flex items-center gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-2.5">
+                <span
+                  className="flex size-9 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] font-sans text-[11px] font-bold tracking-tight text-[var(--pos-ink,#1c1915)]"
+                  aria-hidden
+                >
+                  {initials(selectedShift.cashierName)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-sm font-semibold leading-tight tracking-tight text-[var(--pos-ink,#1c1915)]">
+                    {selectedShift.cashierName}
+                  </h3>
+                  <p className="flex items-center gap-1 truncate text-[11px] leading-tight text-muted-foreground">
+                    <MapPin className="size-3 shrink-0" aria-hidden />
+                    <span className="truncate">{selectedShift.branchName}</span>
+                    <span aria-hidden>·</span>
+                    <span className={NUM}>{fmtShortDate(selectedShift.openedAt)}</span>
+                  </p>
+                </div>
+                <StatusBadge status={selectedShift.status} />
+              </div>
+            ) : (
+              <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-2.5">
+                <h3 className="text-sm font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
+                  Shift details
                 </h3>
-                <p className="flex items-center gap-1 truncate text-[11px] leading-tight text-muted-foreground">
-                  <MapPin className="size-3 shrink-0" aria-hidden />
-                  <span className="truncate">{selectedShift.branchName}</span>
-                  <span aria-hidden>·</span>
-                  <span className={NUM}>{fmtShortDate(selectedShift.openedAt)}</span>
+                <p className="text-[11px] text-muted-foreground">
+                  Pick a shift from the board
                 </p>
               </div>
-              <StatusBadge status={selectedShift.status} />
+            )}
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <ShiftDetail
+                shiftId={selectedShiftId}
+                canUpdateOpening={canUpdateOpening}
+                onOpeningUpdated={() => {
+                  setNotice("Opening count updated.");
+                  setDetailRefreshKey((n) => n + 1);
+                  void loadShifts(page, false);
+                }}
+              />
             </div>
-          ) : (
-            <div className="border-b border-border/50 px-4 py-2.5">
-              <h3 className="text-sm font-semibold tracking-tight text-foreground">
-                Shift details
-              </h3>
-            </div>
-          )}
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <ShiftDetail
-              shiftId={selectedShiftId}
-              canUpdateOpening={canUpdateOpening}
-              onOpeningUpdated={() => {
-                setNotice("Opening count updated.");
-                setDetailRefreshKey((n) => n + 1);
-                void loadShifts(page, false);
-              }}
-            />
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
 
-      {/* ── Mobile: rows + detail below ────────────────────────── */}
+      {/* Mobile detail sheet */}
       <div className="space-y-3 md:hidden">
-        <div className="flex items-center gap-2">
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <input
-              className={cn(dashboardInputClass(loading), "rounded-none pl-8 text-sm")}
-              placeholder="Search…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Search shifts"
-            />
-          </div>
-          {canOpen ? (
-            <Button
-              size="sm"
-              type="button"
-              className="shrink-0 rounded-none shadow-sm"
-              onClick={() => setOpenModal(true)}
-            >
-              Open
-            </Button>
-          ) : null}
-        </div>
-        <div className="flex gap-1.5">
-          <select
-            className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-none text-xs")}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            aria-label="Filter by status"
-          >
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 rounded-none text-xs")}
-            value={branchFilter}
-            disabled={isBranchLockedRole}
-            onChange={(e) => setBranchFilter(e.target.value)}
-            aria-label="Filter by branch"
-          >
-            {isBranchLockedRole ? null : (
-              <option value="">All branches</option>
-            )}
-            {branches
-              .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
-              .map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          {filteredShifts.map((s) => (
-            <ShiftRow
-              key={s.id}
-              shift={s}
-              isSelected={selectedShiftId === s.id}
-              onSelect={() =>
-                setSelectedShiftId(s.id === selectedShiftId ? null : s.id)
-              }
-              compact
-            />
-          ))}
-          {filteredShifts.length === 0 && !loading ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              {shifts.length === 0 ? "No shifts yet" : "No shifts match"}
-            </p>
-          ) : null}
-        </div>
         {selectedShiftId ? (
           <div className={cn(CARD, "overflow-hidden")}>
-            <div className="mb-1 flex items-center justify-between border-b border-border/50 px-3 py-2">
-              <h3 className="text-sm font-semibold tracking-tight text-foreground">
-                Shift details
-              </h3>
+            <div className={mktPosHeader}>
+              <span>Detail</span>
               <button
                 type="button"
                 onClick={() => setSelectedShiftId(null)}
                 aria-label="Close shift details"
-                className="p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="p-0.5 text-[var(--pos-primary-ink,#fff)]/90 hover:text-[var(--pos-primary-ink,#fff)]"
               >
                 <X className="size-4" />
               </button>

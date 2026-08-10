@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, createContext, useContext, type ReactNode } from "react";
 import { Banknote, Building2, DoorClosed } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -52,38 +52,73 @@ import { isPrefillOpeningFromLastCloseEnabled } from "@/lib/shift-settings";
 import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
-/** Centered shift / cash modals — dense layout to avoid inner scrolling on common viewports. */
+/** Centered shift / cash modals — marketplace paper shelf grammar. */
 const SHIFT_MODAL_CONTENT = cn(
-  "flex flex-col gap-0 overflow-visible p-0",
-  "border-border/50 shadow-[0_0_0_1px_rgba(0,0,0,0.04),0_24px_48px_-12px_rgba(0,0,0,0.16)]",
-  "dark:shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_24px_56px_-12px_rgba(0,0,0,0.45)]",
+  "flex max-h-[min(92dvh,52rem)] flex-col gap-0 overflow-hidden rounded-none p-0",
+  "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]",
+  "shadow-[4px_4px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
 );
 
 const SHIFT_MODAL_HEADER = cn(
-  "shrink-0 border-b border-border/45 bg-gradient-to-br from-muted/35 via-background to-background",
-  "px-4 pb-3 pt-3.5 shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.05)] sm:px-5 dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.05)]",
+  "shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+  "bg-[var(--pos-primary,#0f766e)] px-4 pb-3 pt-3.5 sm:px-5",
+  "text-[var(--pos-primary-ink,#fff)]",
 );
 
 const SHIFT_MODAL_ICON = cn(
-  "flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50",
-  "bg-gradient-to-b from-muted/55 to-muted/20 text-foreground shadow-sm ring-1 ring-black/[0.04] dark:from-muted/30 dark:to-muted/10 dark:ring-white/[0.06]",
+  "flex size-9 shrink-0 items-center justify-center rounded-none border border-white/25",
+  "bg-white/10 text-[var(--pos-primary-ink,#fff)]",
 );
 
-/** No overflow-auto — content is sized to fit; parent dialog may still clip on very short viewports. */
-const SHIFT_MODAL_BODY = "px-4 py-2.5 sm:px-5 sm:py-3";
+/** Scrollable middle — denominations scroll; pad stays pinned below. */
+const SHIFT_MODAL_BODY = "min-h-0 flex-1 overflow-y-auto px-4 py-2.5 sm:px-5 sm:py-3";
+
+const SHIFT_MODAL_PAD = cn(
+  "shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,transparent)] px-3 py-2 sm:px-4",
+);
 
 const SHIFT_MODAL_SECTION = cn(
-  "rounded-lg border border-border/50 bg-muted/[0.04] p-3 shadow-sm ring-1 ring-black/[0.02] dark:bg-muted/[0.06] dark:ring-white/[0.04]",
+  "rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+  "bg-[color-mix(in_srgb,#fff_70%,transparent)] p-3",
 );
 
 const SHIFT_MODAL_SECTION_TITLE = cn(
-  "mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+  "mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground",
 );
 
 const SHIFT_MODAL_FOOTER = cn(
-  "shrink-0 gap-2 border-t border-border/45 bg-gradient-to-t from-muted/25 to-background px-4 py-3 backdrop-blur-sm sm:px-5",
-  "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] dark:from-muted/15",
+  "shrink-0 gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-4 py-3 sm:px-5",
 );
+
+/** Pins the till count pad above modal actions so it is never below the fold. */
+const ShiftPadDockContext = createContext<{
+  setPad: (node: ReactNode) => void;
+  pad: ReactNode;
+} | null>(null);
+
+function useShiftPadDock() {
+  return useContext(ShiftPadDockContext);
+}
+
+function ShiftPadDockProvider({ children }: { children: ReactNode }) {
+  const [pad, setPad] = useState<ReactNode>(null);
+  const value = useMemo(() => ({ setPad, pad }), [pad]);
+  return (
+    <ShiftPadDockContext.Provider value={value}>
+      {children}
+    </ShiftPadDockContext.Provider>
+  );
+}
+
+/** Place between scroll body and DialogFooter inside ShiftPadDockProvider. */
+function ShiftPadDockSlot() {
+  const ctx = useShiftPadDock();
+  if (!ctx?.pad) return null;
+  return <div className={SHIFT_MODAL_PAD}>{ctx.pad}</div>;
+}
 
 /** All Kenyan KES denominations in display order (largest first). */
 export const KES_DENOMINATIONS = [
@@ -195,7 +230,7 @@ export function DenominationRow({
         "flex items-center justify-between gap-1.5 rounded-md border bg-background px-2 py-1 text-xs sm:gap-2 sm:px-2.5 sm:text-[13px]",
         "transition-[border-color,box-shadow,background-color] duration-150",
         active
-          ? "border-emerald-500/55 bg-emerald-500/[0.06] shadow-[0_0_0_1px_rgba(16,185,129,0.18)]"
+          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]"
           : "border-border/60",
       )}
       onPointerDown={() => {
@@ -264,10 +299,11 @@ export function DenominationTable({
   /** Expected ledger quantities per denomination — renders an Exp / Short / Long column. */
   expectedQuantities?: Record<number, number> | null;
 }) {
-  const [padOpen, setPadOpen] = useState(false);
+  const [padOpen, setPadOpen] = useState(true);
   const [activeDenom, setActiveDenom] = useState<number>(
     KES_DENOMINATIONS[0].value,
   );
+  const padDock = useShiftPadDock();
 
   const notesTotal = KES_DENOMINATIONS.reduce(
     (sum, d) => sum + d.value * (quantities[d.value] || 0),
@@ -311,6 +347,44 @@ export function DenominationTable({
   const canGoNext =
     KES_DENOMINATIONS.findIndex((d) => d.value === activeDenom) <
     KES_DENOMINATIONS.length - 1;
+
+  const padNode = useMemo(
+    () =>
+      editable ? (
+        <TillCountPad
+          open={padOpen}
+          onOpenChange={setPadOpen}
+          activeLabel={activeMeta.label}
+          value={activeQty}
+          hint={`${moneyStr(activeMeta.value * activeQty)} · ${activeMeta.type === "NOTE" ? "note" : "coin"}`}
+          onChange={(val) =>
+            onChange!({ ...quantities, [activeDenom]: Math.floor(val) })
+          }
+          onNext={canGoNext ? goNext : undefined}
+          mode="quantity"
+          className="mt-0"
+        />
+      ) : null,
+    [
+      editable,
+      padOpen,
+      activeMeta.label,
+      activeMeta.type,
+      activeMeta.value,
+      activeQty,
+      activeDenom,
+      quantities,
+      canGoNext,
+      goNext,
+      onChange,
+    ],
+  );
+
+  useEffect(() => {
+    if (!padDock) return;
+    padDock.setPad(padNode);
+    return () => padDock.setPad(null);
+  }, [padDock, padNode]);
 
   return (
     <div className="space-y-1.5">
@@ -362,20 +436,7 @@ export function DenominationTable({
         </div>
       </div>
 
-      {editable ? (
-        <TillCountPad
-          open={padOpen}
-          onOpenChange={setPadOpen}
-          activeLabel={activeMeta.label}
-          value={activeQty}
-          hint={`${moneyStr(activeMeta.value * activeQty)} · ${activeMeta.type === "NOTE" ? "note" : "coin"}`}
-          onChange={(val) =>
-            onChange({ ...quantities, [activeDenom]: Math.floor(val) })
-          }
-          onNext={canGoNext ? goNext : undefined}
-          mode="quantity"
-        />
-      ) : null}
+      {!padDock && padNode}
     </div>
   );
 }
@@ -396,9 +457,35 @@ function CashTotalWithPad({
   autoFocus?: boolean;
   footer?: ReactNode;
 }) {
-  const [padOpen, setPadOpen] = useState(false);
+  const [padOpen, setPadOpen] = useState(true);
   const numeric = Number(valueStr);
   const safeValue = Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+  const padDock = useShiftPadDock();
+
+  const padNode = useMemo(
+    () => (
+      <TillCountPad
+        open={padOpen}
+        onOpenChange={setPadOpen}
+        activeLabel={`${currency} total`}
+        value={safeValue}
+        hint={moneyStr(safeValue, currency)}
+        mode="decimal"
+        className="mt-0"
+        onChange={(val) => {
+          const rounded = Math.round(val * 100) / 100;
+          onChange(Number.isFinite(rounded) ? String(rounded) : "0");
+        }}
+      />
+    ),
+    [padOpen, currency, safeValue, onChange],
+  );
+
+  useEffect(() => {
+    if (!padDock) return;
+    padDock.setPad(padNode);
+    return () => padDock.setPad(null);
+  }, [padDock, padNode]);
 
   return (
     <div className="space-y-1.5">
@@ -417,20 +504,9 @@ function CashTotalWithPad({
         onChange={(e) => onChange(e.target.value)}
         placeholder="0"
         autoFocus={autoFocus && !padOpen}
-      />      {footer}
-      <TillCountPad
-        open={padOpen}
-        onOpenChange={setPadOpen}
-        activeLabel={`${currency} total`}
-        value={safeValue}
-        hint={moneyStr(safeValue, currency)}
-        mode="decimal"
-        onChange={(val) => {
-          // Preserve up to 2 dp without forcing trailing zeros while typing via pad buffer.
-          const rounded = Math.round(val * 100) / 100;
-          onChange(Number.isFinite(rounded) ? String(rounded) : "0");
-        }}
       />
+      {footer}
+      {!padDock && padNode}
     </div>
   );
 }
@@ -682,10 +758,10 @@ export function OpenShiftModal({
               <Building2 className="size-4 sm:size-[1.125rem]" />
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-2">
-              <DialogTitle className="font-heading text-base font-semibold tracking-tight sm:text-lg">
+              <DialogTitle className="font-heading text-base font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-lg">
                 Open New Shift
               </DialogTitle>
-              <DialogDescription className="text-xs leading-snug sm:text-[13px] sm:leading-relaxed">
+              <DialogDescription className="text-xs leading-snug text-[var(--pos-primary-ink,#fff)]/80 sm:text-[13px] sm:leading-relaxed">
                 {useDenomBreakdown
                   ? prefillFromLastClose
                     ? "Review the opening float (pre-filled from last close) and edit if needed."
@@ -696,100 +772,104 @@ export function OpenShiftModal({
           </DialogHeader>
         </div>
 
-        <div className={SHIFT_MODAL_BODY}>
-          <div className="space-y-3">
-            {/* Branch select */}
-            <div className="space-y-1.5">
-              <label className={dashboardFilterFieldLabelClass()}>
-                Register / Branch
-              </label>
-              <select
-                className={dashboardSelectClass(loading || prefillBusy)}
-                value={branchId}
-                disabled={!!lockedBranch}
-                onChange={(e) => setBranchId(e.target.value)}
-              >
-                {!lockedBranch ? (
-                  <option value="">— Select a branch —</option>
+        <ShiftPadDockProvider>
+          <div className={SHIFT_MODAL_BODY}>
+            <div className="space-y-3">
+              {/* Branch select */}
+              <div className="space-y-1.5">
+                <label className={dashboardFilterFieldLabelClass()}>
+                  Register / Branch
+                </label>
+                <select
+                  className={dashboardSelectClass(loading || prefillBusy)}
+                  value={branchId}
+                  disabled={!!lockedBranch}
+                  onChange={(e) => setBranchId(e.target.value)}
+                >
+                  {!lockedBranch ? (
+                    <option value="">— Select a branch —</option>
+                  ) : null}
+                  {branches
+                    .filter((b) => b.active)
+                    .filter((b) => !lockedBranch || b.id === lockedBranch)
+                    .map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className={SHIFT_MODAL_SECTION}>
+                {useDenomBreakdown ? (
+                  <DenominationTable
+                    title="Opening Float Count"
+                    quantities={quantities}
+                    onChange={setQuantities}
+                  />
+                ) : (
+                  <CashTotalWithPad
+                    label={`Opening cash (${currency})`}
+                    currency={currency}
+                    valueStr={cashTotalStr}
+                    onChange={setCashTotalStr}
+                    autoFocus
+                    footer={
+                      <p className="text-[11px] text-muted-foreground">
+                        Total: {moneyStr(totalCash, currency)}
+                      </p>
+                    }
+                  />
+                )}
+                {useDenomBreakdown && prefillBusy ? (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Loading last closing count…
+                  </p>
+                ) : useDenomBreakdown && prefillHint ? (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    {prefillHint}
+                  </p>
                 ) : null}
-                {branches
-                  .filter((b) => b.active)
-                  .filter((b) => !lockedBranch || b.id === lockedBranch)
-                  .map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
+              </div>
 
-            <div className={SHIFT_MODAL_SECTION}>
-              {useDenomBreakdown ? (
-                <DenominationTable
-                  title="Opening Float Count"
-                  quantities={quantities}
-                  onChange={setQuantities}
+              {/* Opening notes */}
+              <div className="space-y-1.5">
+                <label className={dashboardFilterFieldLabelClass()}>
+                  Notes{" "}
+                  <span className="font-normal normal-case tracking-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </label>
+                <input
+                  className={dashboardInputClass(loading)}
+                  placeholder="Any notes about this shift..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  maxLength={500}
                 />
-              ) : (
-                <CashTotalWithPad
-                  label={`Opening cash (${currency})`}
-                  currency={currency}
-                  valueStr={cashTotalStr}
-                  onChange={setCashTotalStr}
-                  autoFocus
-                  footer={
-                    <p className="text-[11px] text-muted-foreground">
-                      Total: {moneyStr(totalCash, currency)}
-                    </p>
-                  }
-                />
-              )}
-              {useDenomBreakdown && prefillBusy ? (
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  Loading last closing count…
-                </p>
-              ) : useDenomBreakdown && prefillHint ? (
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  {prefillHint}
-                </p>
-              ) : null}
-            </div>
+              </div>
 
-            {/* Opening notes */}
-            <div className="space-y-1.5">
-              <label className={dashboardFilterFieldLabelClass()}>
-                Notes{" "}
-                <span className="font-normal normal-case tracking-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </label>
-              <input
-                className={dashboardInputClass(loading)}
-                placeholder="Any notes about this shift..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                maxLength={500}
-              />
+              {error ? <DashboardFeedback kind="error" text={error} /> : null}
             </div>
-
-            {error ? <DashboardFeedback kind="error" text={error} /> : null}
           </div>
-        </div>
 
-        <DialogFooter className={SHIFT_MODAL_FOOTER}>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
+          <ShiftPadDockSlot />
+
+          <DialogFooter className={SHIFT_MODAL_FOOTER}>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              disabled={loading || prefillBusy}
+              onClick={handleOpen}
+            >
+              {loading ? "Opening..." : `Open Shift (${moneyStr(totalCash, currency)})`}
             </Button>
-          </DialogClose>
-          <Button
-            type="button"
-            disabled={loading || prefillBusy}
-            onClick={handleOpen}
-          >
-            {loading ? "Opening..." : `Open Shift (${moneyStr(totalCash, currency)})`}
-          </Button>
-        </DialogFooter>
+          </DialogFooter>
+        </ShiftPadDockProvider>
       </DialogContent>
     </Dialog>
   );
@@ -906,10 +986,10 @@ export function EditOpeningCountModal({
               <Banknote className="size-4 sm:size-[1.125rem]" />
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-2">
-              <DialogTitle className="font-heading text-base font-semibold tracking-tight sm:text-lg">
+              <DialogTitle className="font-heading text-base font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-lg">
                 Edit Opening Count
               </DialogTitle>
-              <DialogDescription className="text-xs leading-snug sm:text-[13px] sm:leading-relaxed">
+              <DialogDescription className="text-xs leading-snug text-[var(--pos-primary-ink,#fff)]/80 sm:text-[13px] sm:leading-relaxed">
                 Updates opening float only. Cash sales and drawouts are left as
                 recorded; expected closing shifts by the same opening delta.
               </DialogDescription>
@@ -917,76 +997,80 @@ export function EditOpeningCountModal({
           </DialogHeader>
         </div>
 
-        <div className={SHIFT_MODAL_BODY}>
-          <div className="space-y-3">
-            <div className={SHIFT_MODAL_SECTION}>
-              {useDenomBreakdown ? (
-                <DenominationTable
-                  title="Opening Count"
-                  quantities={quantities}
-                  onChange={setQuantities}
+        <ShiftPadDockProvider>
+          <div className={SHIFT_MODAL_BODY}>
+            <div className="space-y-3">
+              <div className={SHIFT_MODAL_SECTION}>
+                {useDenomBreakdown ? (
+                  <DenominationTable
+                    title="Opening Count"
+                    quantities={quantities}
+                    onChange={setQuantities}
+                  />
+                ) : (
+                  <CashTotalWithPad
+                    label={`Opening cash (${currency})`}
+                    currency={currency}
+                    valueStr={cashTotalStr}
+                    onChange={setCashTotalStr}
+                    autoFocus
+                    footer={
+                      <p className="text-[11px] text-muted-foreground">
+                        Total: {moneyStr(totalCash, currency)}
+                      </p>
+                    }
+                  />
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className={dashboardFilterFieldLabelClass()}>
+                  Notes{" "}
+                  <span className="font-normal normal-case tracking-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </label>
+                <input
+                  className={dashboardInputClass(loading)}
+                  placeholder="Opening notes..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  maxLength={500}
                 />
-              ) : (
-                <CashTotalWithPad
-                  label={`Opening cash (${currency})`}
-                  currency={currency}
-                  valueStr={cashTotalStr}
-                  onChange={setCashTotalStr}
-                  autoFocus
-                  footer={
-                    <p className="text-[11px] text-muted-foreground">
-                      Total: {moneyStr(totalCash, currency)}
-                    </p>
-                  }
+              </div>
+
+              <div className="space-y-1.5">
+                <label className={dashboardFilterFieldLabelClass()}>
+                  Reason for correction
+                </label>
+                <input
+                  className={dashboardInputClass(loading)}
+                  placeholder="e.g. Miscounted KES 500 notes at open"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  maxLength={500}
                 />
-              )}
-            </div>
+              </div>
 
-            <div className="space-y-1.5">
-              <label className={dashboardFilterFieldLabelClass()}>
-                Notes{" "}
-                <span className="font-normal normal-case tracking-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </label>
-              <input
-                className={dashboardInputClass(loading)}
-                placeholder="Opening notes..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                maxLength={500}
-              />
+              {error ? <DashboardFeedback kind="error" text={error} /> : null}
             </div>
-
-            <div className="space-y-1.5">
-              <label className={dashboardFilterFieldLabelClass()}>
-                Reason for correction
-              </label>
-              <input
-                className={dashboardInputClass(loading)}
-                placeholder="e.g. Miscounted KES 500 notes at open"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                maxLength={500}
-              />
-            </div>
-
-            {error ? <DashboardFeedback kind="error" text={error} /> : null}
           </div>
-        </div>
 
-        <DialogFooter className={SHIFT_MODAL_FOOTER}>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
+          <ShiftPadDockSlot />
+
+          <DialogFooter className={SHIFT_MODAL_FOOTER}>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" disabled={loading} onClick={handleSave}>
+              {loading
+                ? "Saving..."
+                : `Save (${moneyStr(totalCash, currency)})`}
             </Button>
-          </DialogClose>
-          <Button type="button" disabled={loading} onClick={handleSave}>
-            {loading
-              ? "Saving..."
-              : `Save (${moneyStr(totalCash, currency)})`}
-          </Button>
-        </DialogFooter>
+          </DialogFooter>
+        </ShiftPadDockProvider>
       </DialogContent>
     </Dialog>
   );
@@ -1248,19 +1332,20 @@ export function CloseShiftModal({
               <DoorClosed className="size-4 sm:size-[1.125rem]" />
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-2">
-              <DialogTitle className="font-heading text-base font-semibold tracking-tight sm:text-lg">
+              <DialogTitle className="font-heading text-base font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-lg">
                 Close Shift
               </DialogTitle>
-              <DialogDescription className="text-xs leading-snug sm:text-[13px] sm:leading-relaxed">
+              <DialogDescription className="text-xs leading-snug text-[var(--pos-primary-ink,#fff)]/80 sm:text-[13px] sm:leading-relaxed">
                 Count the closing cash by denomination.
               </DialogDescription>
             </div>
           </DialogHeader>
         </div>
 
-        <div className={SHIFT_MODAL_BODY}>
-          <div className="space-y-3">
-            {canSeeCashVarianceDetail ? (
+        <ShiftPadDockProvider>
+          <div className={SHIFT_MODAL_BODY}>
+            <div className="space-y-3">
+              {canSeeCashVarianceDetail ? (
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-lg border border-border/50 bg-gradient-to-br from-muted/25 to-muted/10 px-3 py-2 text-[11px] shadow-sm ring-1 ring-black/[0.03] sm:text-xs dark:ring-white/[0.05]">
                 <span>
                   <span className="text-muted-foreground">Expected</span>{" "}
@@ -1385,20 +1470,23 @@ export function CloseShiftModal({
               />
             </div>
 
-            {error ? <DashboardFeedback kind="error" text={error} /> : null}
+              {error ? <DashboardFeedback kind="error" text={error} /> : null}
+            </div>
           </div>
-        </div>
 
-        <DialogFooter className={SHIFT_MODAL_FOOTER}>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
+          <ShiftPadDockSlot />
+
+          <DialogFooter className={SHIFT_MODAL_FOOTER}>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" disabled={loading} onClick={handleClose}>
+              {loading ? "Closing..." : `Close Shift (${moneyStr(totalCash, currency)})`}
             </Button>
-          </DialogClose>
-          <Button type="button" disabled={loading} onClick={handleClose}>
-            {loading ? "Closing..." : `Close Shift (${moneyStr(totalCash, currency)})`}
-          </Button>
-        </DialogFooter>
+          </DialogFooter>
+        </ShiftPadDockProvider>
       </DialogContent>
     </Dialog>
   );
@@ -1510,10 +1598,10 @@ export function DrawoutModal({
               <Banknote className="size-4 sm:size-[1.125rem]" />
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-2">
-              <DialogTitle className="font-heading text-base font-semibold tracking-tight sm:text-lg">
+              <DialogTitle className="font-heading text-base font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-lg">
                 New Cash Drawout
               </DialogTitle>
-              <DialogDescription className="text-xs leading-snug sm:text-[13px] sm:leading-relaxed">
+              <DialogDescription className="text-xs leading-snug text-[var(--pos-primary-ink,#fff)]/80 sm:text-[13px] sm:leading-relaxed">
                 Record cash removed from the till during this shift.
               </DialogDescription>
             </div>

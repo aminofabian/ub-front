@@ -171,18 +171,18 @@ function PadKey({
         onPress();
       }}
       className={cn(
-        "relative select-none rounded-xl border text-base font-semibold tabular-nums",
+        "relative select-none rounded-none border text-base font-semibold tabular-nums",
         "transition-[transform,box-shadow,background-color,border-color] duration-150",
         "ease-[cubic-bezier(0.16,1,0.3,1)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
         "active:translate-y-px",
         wide ? "col-span-2" : null,
         variant === "digit" &&
-          "border-border/60 bg-gradient-to-b from-background to-muted/40 text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.65),0_2px_0_0_rgba(0,0,0,0.06),0_4px_10px_-4px_rgba(0,0,0,0.12)] dark:from-muted/30 dark:to-muted/10 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_2px_0_0_rgba(0,0,0,0.35)]",
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,#fff_88%,transparent)] text-[var(--pos-ink,#1c1915)] shadow-[1px_1px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
         variant === "action" &&
-          "border-border/55 bg-muted/50 text-foreground shadow-sm",
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_80%,transparent)] text-[var(--pos-ink,#1c1915)]",
         variant === "accent" &&
-          "border-emerald-600/30 bg-gradient-to-b from-emerald-500 to-emerald-700 text-white shadow-[0_3px_0_0_rgba(6,95,70,0.55),0_6px_14px_-6px_rgba(6,95,70,0.45)]",
+          "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
         variant === "ghost" &&
           "border-transparent bg-transparent text-muted-foreground shadow-none",
         pressed && "translate-y-0.5 shadow-none brightness-[0.97]",
@@ -274,11 +274,10 @@ export function TillCountPad({
   return (
     <div
       className={cn(
-        "relative mt-2 overflow-hidden rounded-xl border border-border/55",
-        "bg-[linear-gradient(180deg,rgba(15,23,42,0.03),transparent_28%),var(--background)]",
-        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_8px_24px_-16px_rgba(0,0,0,0.28)]",
-        "dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_28%),var(--background)]",
-        "dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_10px_28px_-16px_rgba(0,0,0,0.55)]",
+        "relative mt-2 overflow-hidden rounded-none border",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+        "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]",
+        "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]",
         className,
       )}
     >
@@ -290,34 +289,33 @@ export function TillCountPad({
         onClick={() => onOpenChange(!expanded)}
         className={cn(
           "group flex w-full items-center gap-2.5 px-3 py-2.5 text-left",
-          "transition-colors hover:bg-muted/30",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
+          "transition-colors hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
         )}
       >
         <span
           aria-hidden
           className={cn(
-            "relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-            "border border-border/60 bg-gradient-to-b from-muted/60 to-muted/20",
-            "shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]",
-            expanded && "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+            "relative flex h-8 w-8 shrink-0 items-center justify-center rounded-none",
+            "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+            "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)]",
+            expanded &&
+              "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
           )}
         >
           <Keyboard className="size-3.5" />
-          {/* Tiny drawer notch */}
-          <span className="absolute -bottom-0.5 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full bg-foreground/25" />
+          <span className="absolute -bottom-0.5 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-none bg-current opacity-40" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[12px] font-semibold tracking-tight text-foreground">
-            {expanded ? "Count pad open" : "Open count pad"}
+          <span className="block text-[12px] font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
+            {expanded ? "Count pad" : "Tap to use count pad"}
           </span>
           <span className="block truncate text-[11px] text-muted-foreground">
             {activeLabel
-              ? `Editing ${activeLabel}`
-              : "Tap a count, then type here — no physical keyboard needed"}
+              ? `Editing ${activeLabel} — use the keys below`
+              : "On-screen number pad for till counting"}
           </span>
         </span>
-        {/* Peeking keycaps when collapsed — invites the pull */}
         {!expanded ? (
           <span
             aria-hidden
@@ -326,7 +324,7 @@ export function TillCountPad({
             {["7", "8", "9"].map((d) => (
               <span
                 key={d}
-                className="flex h-5 w-4 items-center justify-center rounded-[5px] border border-border/50 bg-gradient-to-b from-background to-muted/50 text-[9px] font-semibold tabular-nums text-muted-foreground shadow-sm"
+                className="flex h-5 w-4 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,#fff_82%,transparent)] text-[9px] font-semibold tabular-nums text-muted-foreground"
               >
                 {d}
               </span>
