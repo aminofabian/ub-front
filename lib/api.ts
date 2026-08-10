@@ -7120,6 +7120,36 @@ export async function fetchShiftDetail(shiftId: string): Promise<ShiftRecord> {
   };
 }
 
+// ─── Cash Drawer Ledger (per-denomination expected balances) ────────────────
+
+export type DrawerBalanceRowRecord = {
+  denomination: number;
+  denominationType: string;
+  quantity: number;
+  total: number | string;
+};
+
+export type DrawerBalanceRecord = {
+  shiftId: string;
+  branchId: string;
+  openedBy: string;
+  expectedClosingCash: number | string;
+  /** Sum of denomination × quantity; reconciles to expectedClosingCash when consistent. */
+  ledgerTotal: number | string;
+  consistent: boolean;
+  balances: DrawerBalanceRowRecord[];
+};
+
+/** Expected per-denomination drawer balance (opening + ledger movements). */
+export async function fetchDrawerBalances(
+  shiftId: string,
+): Promise<DrawerBalanceRecord> {
+  return request<DrawerBalanceRecord>(
+    `/api/v1/shifts/${encodeURIComponent(shiftId)}/drawer-balances`,
+    { toast: false },
+  );
+}
+
 // ─── Cash Drawout Types & APIs ─────────────────────────────────────────────
 
 export type DrawoutRecord = {

@@ -42,11 +42,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   fetchBranches,
   fetchCurrentShift,
+  fetchDrawerBalances,
   fetchShiftDetail,
   fetchShiftDrawouts,
   fetchShifts,
   type BranchRecord,
   type DenominationRecord,
+  type DrawerBalanceRecord,
+  type DrawerBalanceRowRecord,
   type DrawoutRecord,
   type ShiftListItem,
   type ShiftRecord,
@@ -61,7 +64,6 @@ import {
   varianceColor,
   denomTotal,
   denomsToQuantities,
-  DenominationTable,
   OpenShiftModal,
   EditOpeningCountModal,
   CloseShiftModal,
@@ -643,29 +645,50 @@ function DenomStackList({
   );
 }
 
-/** Denomination comparison view (opening vs closing). */
+/** Denomination comparison view (opening vs closing, plus ledger-expected when available). */
 function DenominationComparison({
   openingDenoms,
   closingDenoms,
+  expectedDenoms,
   expectedClosingCash,
   countedClosingCash,
   closingVariance,
 }: {
   openingDenoms: DenominationRecord[];
   closingDenoms: DenominationRecord[];
+  /** Expected ledger quantities (opening + movements) per denomination. */
+  expectedDenoms?: DrawerBalanceRowRecord[];
   expectedClosingCash: number | string | null;
   countedClosingCash: number | string | null;
   closingVariance: number | string | null;
 }) {
   const openQty = denomsToQuantities(openingDenoms);
   const closeQty = denomsToQuantities(closingDenoms);
+  const expectedQty: Record<number, number> = {};
+  if (expectedDenoms) {
+    for (const row of expectedDenoms) {
+      expectedQty[row.denomination] = row.quantity;
+    }
+  }
+  const hasExpected = expectedDenoms != null && expectedDenoms.length > 0;
   const openTotal = denomTotal(openingDenoms);
   const closeTotal = denomTotal(closingDenoms);
+  const expectedTotal = Object.entries(expectedQty).reduce(
+    (sum, [denom, qty]) => sum + Number(denom) * qty,
+    0,
+  );
   const netChange = closeTotal - openTotal;
   const expected = toNum(expectedClosingCash);
   const counted = toNum(countedClosingCash);
   const variance = toNum(closingVariance);
   const showReconciliation = expected != null || counted != null || variance != null;
+
+  const deltaColor = (v: number) =>
+    v < 0
+      ? "text-red-600 dark:text-red-400"
+      : v > 0
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-muted-foreground";
 
   return (
     <div className="space-y-3">
@@ -692,6 +715,18 @@ function DenominationComparison({
                     qty · total
                   </span>
                 </th>
+                {hasExpected ? (
+                  <th
+                    scope="col"
+                    title="Opening + ledger movements"
+                    className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  >
+                    Expected
+                    <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/55">
+                      qty · total
+                    </span>
+                  </th>
+                ) : null}
                 <th
                   scope="col"
                   className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
@@ -703,21 +738,29 @@ function DenominationComparison({
                 </th>
                 <th
                   scope="col"
-                  title="Net cash movement during the shift (Closing − Opening)"
+                  title={
+                    hasExpected
+                      ? "Closing − Expected (per denomination)"
+                      : "Net cash movement during the shift (Closing − Opening)"
+                  }
                   className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
                 >
-                  Change
+                  {hasExpected ? "Variance" : "Change"}
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
               {KES_DENOMINATIONS.map((d) => {
                 const oQty = openQty[d.value] || 0;
+                const eQty = expectedQty[d.value] || 0;
                 const cQty = closeQty[d.value] || 0;
                 const oTotal = d.value * oQty;
+                const eTotal = d.value * eQty;
                 const cTotal = d.value * cQty;
                 const change = cTotal - oTotal;
-                const hasData = oQty > 0 || cQty > 0;
+                const deltaQty = hasExpected ? cQty - eQty : 0;
+                const deltaMoney = hasExpected ? cTotal - eTotal : 0;
+                const hasData = oQty > 0 || cQty > 0 || eQty !== 0;
                 if (!hasData) return null;
                 return (
                   <tr key={d.value} className="transition-colors hover:bg-muted/25">
@@ -733,6 +776,17 @@ function DenominationComparison({
                         {moneyStr(oTotal)}
                       </span>
                     </td>
+                    {hasExpected ? (
+                      <td className="whitespace-nowrap px-3 py-1.5 text-right sm:px-4">
+                        <span className="font-mono tabular-nums text-muted-foreground">
+                          {eQty}
+                        </span>
+                        <span className="mx-1 text-muted-foreground/40">·</span>
+                        <span className="font-mono tabular-nums text-foreground">
+                          {moneyStr(eTotal)}
+                        </span>
+                      </td>
+                    ) : null}
                     <td className="whitespace-nowrap px-3 py-1.5 text-right sm:px-4">
                       <span className="font-mono tabular-nums text-muted-foreground">
                         {cQty}
@@ -742,13 +796,40 @@ function DenominationComparison({
                         {moneyStr(cTotal)}
                       </span>
                     </td>
-                    <td
-                      className={cn(
-                        "px-3 py-1.5 text-right font-medium font-mono tabular-nums sm:px-4",
-                        changeColor(change),
+                    <td className="whitespace-nowrap px-3 py-1.5 text-right sm:px-4">
+                      {hasExpected ? (
+                        <span className="inline-flex items-center justify-end gap-1.5">
+                          {deltaQty !== 0 ? (
+                            <span
+                              className={cn(
+                                "rounded px-1 py-px text-[10px] font-semibold tabular-nums",
+                                deltaQty < 0
+                                  ? "bg-red-500/15 text-red-700 dark:text-red-300"
+                                  : "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+                              )}
+                            >
+                              {deltaQty < 0 ? `Short ${-deltaQty}` : `Long ${deltaQty}`}
+                            </span>
+                          ) : null}
+                          <span
+                            className={cn(
+                              "font-medium font-mono tabular-nums",
+                              deltaColor(deltaMoney),
+                            )}
+                          >
+                            {signedMoney(deltaMoney)}
+                          </span>
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "font-medium font-mono tabular-nums",
+                            changeColor(change),
+                          )}
+                        >
+                          {signedMoney(change)}
+                        </span>
                       )}
-                    >
-                      {signedMoney(change)}
                     </td>
                   </tr>
                 );
@@ -768,6 +849,17 @@ function DenominationComparison({
                     {moneyStr(openTotal)}
                   </span>
                 </td>
+                {hasExpected ? (
+                  <td className="whitespace-nowrap px-3 py-2 text-right sm:px-4">
+                    <span className="font-mono tabular-nums text-muted-foreground">
+                      {Object.values(expectedQty).reduce((a, b) => a + b, 0)}
+                    </span>
+                    <span className="mx-1 text-muted-foreground/40">·</span>
+                    <span className="font-mono tabular-nums text-foreground">
+                      {moneyStr(expectedTotal)}
+                    </span>
+                  </td>
+                ) : null}
                 <td className="whitespace-nowrap px-3 py-2 text-right sm:px-4">
                   <span className="font-mono tabular-nums text-muted-foreground">
                     {Object.values(closeQty).reduce((a, b) => a + b, 0)}
@@ -780,10 +872,10 @@ function DenominationComparison({
                 <td
                   className={cn(
                     "px-3 py-2 text-right font-mono tabular-nums sm:px-4",
-                    changeColor(netChange),
+                    hasExpected ? deltaColor(closeTotal - expectedTotal) : changeColor(netChange),
                   )}
                 >
-                  {signedMoney(netChange)}
+                  {hasExpected ? signedMoney(closeTotal - expectedTotal) : signedMoney(netChange)}
                 </td>
               </tr>
             </tfoot>
@@ -828,12 +920,66 @@ function DenominationComparison({
             </div>
           </dl>
           <p className="mt-2 border-t border-border/40 pt-2 text-[10px] leading-relaxed text-muted-foreground">
-            Variance = Counted − Expected. The{" "}
-            <span className="font-medium text-foreground">Change</span> column
-            above is Closing − Opening (cash movement), not variance.
+            {hasExpected
+              ? "Variance = Closing − Expected (opening + ledger movements). Short means notes/coins are missing; Long means they are in excess."
+              : "Variance = Counted − Expected. The Change column above is Closing − Opening (cash movement), not variance."}
           </p>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+// ─── Expected drawer (live ledger) ──────────────────────────────────────────
+
+/** Read-only live view of the ledger-projected drawer for an open shift. */
+function ExpectedDrawerCard({ balances }: { balances: DrawerBalanceRecord }) {
+  return (
+    <div className={cn(DASHBOARD_TABLE_SURFACE, "overflow-hidden")}>
+      <div className="flex items-center justify-between border-b border-border/50 bg-muted/25 px-3 py-2">
+        <span className="font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65">
+          Expected drawer · live
+        </span>
+        <span
+          className={cn(
+            "rounded px-1.5 py-px text-[10px] font-semibold",
+            balances.consistent
+              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+              : "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+          )}
+        >
+          {balances.consistent ? "Reconciled" : "Ledger drift"}
+        </span>
+      </div>
+      <div className="divide-y divide-border/40">
+        {KES_DENOMINATIONS.map((d) => {
+          const row = balances.balances.find(
+            (r) => r.denomination === d.value,
+          );
+          if (!row) return null;
+          return (
+            <div
+              key={d.value}
+              className="flex items-center justify-between px-3 py-1.5 text-xs"
+            >
+              <span className="font-medium text-foreground">{d.label}</span>
+              <span className="font-mono tabular-nums text-foreground">
+                {row.quantity}
+                <span className="mx-1 text-muted-foreground/40">·</span>
+                {moneyStr(row.total)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex items-center justify-between border-t border-border/50 bg-muted/30 px-3 py-2 text-xs font-semibold">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/65">
+          Total
+        </span>
+        <span className="font-mono tabular-nums text-foreground">
+          {moneyStr(balances.ledgerTotal)}
+        </span>
+      </div>
     </div>
   );
 }
@@ -1011,6 +1157,8 @@ function ShiftDetail({
   const [error, setError] = useState("");
   const [drawouts, setDrawouts] = useState<DrawoutRecord[]>([]);
   const [drawoutsLoading, setDrawoutsLoading] = useState(false);
+  const [expectedBalances, setExpectedBalances] =
+    useState<DrawerBalanceRecord | null>(null);
   const [editOpeningOpen, setEditOpeningOpen] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -1018,6 +1166,7 @@ function ShiftDetail({
     if (!shiftId) {
       setDetail(null);
       setDrawouts([]);
+      setExpectedBalances(null);
       setEditOpeningOpen(false);
       return;
     }
@@ -1044,6 +1193,15 @@ function ShiftDetail({
       .catch(() => undefined)
       .finally(() => {
         if (!cancelled) setDrawoutsLoading(false);
+      });
+
+    // Expected per-denomination balances (ledger projection) for the counts tab.
+    fetchDrawerBalances(shiftId)
+      .then((b) => {
+        if (!cancelled) setExpectedBalances(b);
+      })
+      .catch(() => {
+        if (!cancelled) setExpectedBalances(null);
       });
 
     return () => {
@@ -1253,19 +1411,20 @@ function ShiftDetail({
                 </Button>
               </div>
             ) : null}
-            {openingDenoms.length > 0 && closingDenoms.length > 0 ? (
+            {isOpenShift &&
+            expectedBalances &&
+            expectedBalances.balances.length > 0 ? (
+              <ExpectedDrawerCard balances={expectedBalances} />
+            ) : openingDenoms.length > 0 ||
+              closingDenoms.length > 0 ||
+              (expectedBalances?.balances.length ?? 0) > 0 ? (
               <DenominationComparison
                 openingDenoms={openingDenoms}
                 closingDenoms={closingDenoms}
+                expectedDenoms={expectedBalances?.balances ?? []}
                 expectedClosingCash={detail.expectedClosingCash}
                 countedClosingCash={detail.countedClosingCash}
                 closingVariance={detail.closingVariance}
-              />
-            ) : openingDenoms.length > 0 ? (
-              <DenominationTable
-                title="Opening Count"
-                quantities={denomsToQuantities(openingDenoms)}
-                readOnly
               />
             ) : (
               <p className="text-sm text-muted-foreground">

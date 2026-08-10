@@ -23,6 +23,7 @@ import {
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
+  fetchDrawerBalances,
   fetchLastClosedShiftFloat,
   initiateDrawout,
   patchShiftOpening,
@@ -31,6 +32,7 @@ import {
   type BranchRecord,
   type DenominationEntry,
   type DenominationRecord,
+  type DrawerBalanceRecord,
   type ShiftRecord,
 } from "@/lib/api";
 import {
@@ -165,6 +167,7 @@ export function DenominationRow({
   onChange,
   autoFocus,
   readOnly,
+  expectedQty,
 }: {
   denomValue: number;
   label: string;
@@ -172,11 +175,33 @@ export function DenominationRow({
   onChange?: (val: number) => void;
   autoFocus?: boolean;
   readOnly?: boolean;
+  /** Expected ledger quantity — renders an Exp / Short / Long hint when provided. */
+  expectedQty?: number | null;
 }) {
   const total = denomValue * quantity;
+  const diff = expectedQty != null ? quantity - expectedQty : null;
   return (
     <div className="flex items-center justify-between gap-1.5 rounded-md border border-border/60 bg-background px-2 py-1 text-xs sm:gap-2 sm:px-2.5 sm:text-[13px]">
       <span className="min-w-0 flex-1 truncate font-medium text-foreground">{label}</span>
+      {diff != null ? (
+        <span className="flex shrink-0 items-center gap-1">
+          <span className="text-[10px] tabular-nums text-muted-foreground">
+            Exp {expectedQty}
+          </span>
+          {diff !== 0 ? (
+            <span
+              className={cn(
+                "rounded px-1 py-px text-[10px] font-semibold tabular-nums",
+                diff > 0
+                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                  : "bg-red-500/15 text-red-700 dark:text-red-300",
+              )}
+            >
+              {diff > 0 ? `Long ${diff}` : `Short ${-diff}`}
+            </span>
+          ) : null}
+        </span>
+      ) : null}
       <input
         type="number"
         min={0}
@@ -207,11 +232,14 @@ export function DenominationTable({
   quantities,
   onChange,
   readOnly,
+  expectedQuantities,
 }: {
   title: string;
   quantities: Record<number, number>;
   onChange?: (qty: Record<number, number>) => void;
   readOnly?: boolean;
+  /** Expected ledger quantities per denomination — renders an Exp / Short / Long column. */
+  expectedQuantities?: Record<number, number> | null;
 }) {
   const notesTotal = KES_DENOMINATIONS.reduce(
     (sum, d) => sum + d.value * (quantities[d.value] || 0),
@@ -223,6 +251,11 @@ export function DenominationTable({
   );
   const coinsSum = KES_DENOMINATIONS.filter((d) => d.type === "COIN").reduce(
     (sum, d) => sum + d.value * (quantities[d.value] || 0),
+    0,
+  );
+  const expectedTotal = KES_DENOMINATIONS.reduce(
+    (sum, d) =>
+      sum + d.value * (expectedQuantities?.[d.value] ?? 0),
     0,
   );
 
@@ -237,6 +270,11 @@ export function DenominationTable({
             label={denom.label}
             quantity={quantities[denom.value] || 0}
             readOnly={readOnly}
+            expectedQty={
+              expectedQuantities != null
+                ? (expectedQuantities[denom.value] ?? 0)
+                : null
+            }
             onChange={
               readOnly || !onChange
                 ? undefined
@@ -256,6 +294,12 @@ export function DenominationTable({
           <span>Total Coins</span>
           <span className="tabular-nums font-medium">{moneyStr(coinsSum)}</span>
         </div>
+        {expectedQuantities != null ? (
+          <div className="flex justify-between text-muted-foreground">
+            <span>Expected</span>
+            <span className="tabular-nums font-medium">{moneyStr(expectedTotal)}</span>
+          </div>
+        ) : null}
         <div className="flex justify-between border-t border-border/35 pt-1 text-xs font-semibold sm:text-sm">
           <span>Total {title}</span>
           <span className="tabular-nums">{moneyStr(notesTotal)}</span>
@@ -867,6 +911,8 @@ export function CloseShiftModal({
   const [varianceReason, setVarianceReason] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [expectedBalances, setExpectedBalances] =
+    useState<DrawerBalanceRecord | null>(null);
 
   const setQuantitiesEdited = useCallback(
     (next: Record<number, number>) => {
@@ -975,6 +1021,36 @@ export function CloseShiftModal({
     quantities,
     cashTotalStr,
   ]);
+
+  // Expected per-denomination ledger balances for the variance column.
+  // Only managers/admins see expected figures (mirrors the total variance UI).
+  useEffect(() => {
+    if (!open || !shift || !useDenomBreakdown || !canSeeCashVarianceDetail) {
+      setExpectedBalances(null);
+      return;
+    }
+    let cancelled = false;
+    fetchDrawerBalances(shift.id)
+      .then((b) => {
+        if (!cancelled) setExpectedBalances(b);
+      })
+      .catch(() => {
+        if (!cancelled) setExpectedBalances(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, shift, useDenomBreakdown, canSeeCashVarianceDetail]);
+
+  const expectedQty = useMemo(() => {
+    const map = createEmptyDenominationQuantities();
+    if (expectedBalances) {
+      for (const row of expectedBalances.balances) {
+        map[row.denomination] = row.quantity;
+      }
+    }
+    return map;
+  }, [expectedBalances]);
 
   const totalCash = useMemo(() => {
     if (!useDenomBreakdown) {
@@ -1118,6 +1194,9 @@ export function CloseShiftModal({
                   title="Closing Float Count"
                   quantities={quantities}
                   onChange={setQuantitiesEdited}
+                  expectedQuantities={
+                    expectedBalances ? expectedQty : null
+                  }
                 />
               ) : (
                 <div className="space-y-1.5">
