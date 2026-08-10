@@ -29,6 +29,7 @@ export const APP_ROUTES = {
   businessSettings: "/business/settings",
   businessConfiguration: "/business/configuration",
   businessBranding: "/business/branding",
+  businessThemes: "/business/themes",
   businessMobile: "/business/mobile",
   businessDomains: "/business/domains",
   businessImport: "/business/import",

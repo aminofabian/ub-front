@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
   Globe,
+  LayoutTemplate,
   Loader2,
   Lock,
   MapPin,
@@ -25,7 +26,6 @@ import {
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
-import { BrandingTemplateSection } from "@/components/business/branding-template-section";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -844,6 +844,12 @@ function RelatedLinks() {
       icon: SlidersHorizontal,
     },
     {
+      href: APP_ROUTES.businessThemes,
+      label: "Themes",
+      desc: "Shop layout looks",
+      icon: LayoutTemplate,
+    },
+    {
       href: APP_ROUTES.businessDomains,
       label: "Domains",
       desc: "Custom hostnames",
@@ -1303,12 +1309,31 @@ export default function BrandingPage() {
             location={seoLocation}
           />
 
-          <BrandingTemplateSection
-            business={snapshot}
-            onSaved={(next) => {
-              setSnapshot(next);
-            }}
-          />
+          <Link
+            href={APP_ROUTES.businessThemes}
+            className={cn(
+              "group flex items-start gap-4 rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card to-muted/40 p-4 shadow-sm transition-all",
+              "hover:border-primary/30 hover:shadow-md",
+            )}
+          >
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <LayoutTemplate className="size-5" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-sm font-semibold">
+                Store themes
+                <ArrowRight
+                  className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-hidden
+                />
+              </span>
+              <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                Choose the layout for your live shop or coming-soon page — Milk
+                Run, Oxide, Mart aisles, and more. Stage looks side-by-side before
+                you save.
+              </span>
+            </span>
+          </Link>
         </div>
       </div>
 

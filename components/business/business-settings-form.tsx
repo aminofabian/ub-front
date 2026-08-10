@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import {
   AlertCircle,
+  ArrowRight,
   Banknote,
   ClipboardList,
   Loader2,
@@ -21,8 +23,6 @@ import {
   MilkRunWhatsAppDialog,
   milkRunNeedsWhatsApp,
 } from "@/components/storefront/milk-run-whatsapp-dialog";
-import { TemplatePicker } from "@/components/storefront/template-picker";
-import { StorefrontTemplatePreview } from "@/components/storefront/storefront-template-preview";
 import { Button } from "@/components/ui/button";
 import {
   MAX_FEATURED,
@@ -45,6 +45,11 @@ import {
   type StorefrontForm,
 } from "@/components/business/business-settings-types";
 import type { BranchRecord } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
+import {
+  landingTemplateMeta,
+  storeThemeMeta,
+} from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 
 function inputClass(disabled?: boolean) {
@@ -357,39 +362,49 @@ export function BusinessSettingsForm({
                   {storefront.enabled ? "Store theme" : "Landing page template"}
                 </p>
                 <p className={hintClass()}>
-                  {storefront.enabled
-                    ? "Layout package for your live online shop. Cart and checkout stay the same."
-                    : "Public page shown on your shop link while the storefront is off."}
+                  Layouts live on the Themes page — stage looks side-by-side,
+                  then save.
                 </p>
-                <TemplatePicker
-                  compact
-                  kind={storefront.enabled ? "store" : "landing"}
-                  value={
-                    storefront.enabled
-                      ? storefront.storeThemeId
-                      : storefront.landingTemplateId
-                  }
-                  onChange={(id) => {
-                    setStorefront((s) => {
-                      if (!s.enabled) {
-                        return { ...s, landingTemplateId: id };
-                      }
-                      if (milkRunNeedsWhatsApp(id, s.landingWhatsapp)) {
-                        setMilkRunWaPromptOpen(true);
-                      }
-                      return { ...s, storeThemeId: id };
-                    });
-                  }}
-                />
-                <StorefrontTemplatePreview
-                  kind={storefront.enabled ? "store" : "landing"}
-                  templateId={
-                    storefront.enabled
-                      ? storefront.storeThemeId
-                      : storefront.landingTemplateId
-                  }
-                  previewUrl={storefrontPreviewUrl}
-                />
+                <Link
+                  href={APP_ROUTES.businessThemes}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-xl border border-border/70 bg-background px-3 py-2.5 transition",
+                    "hover:border-primary/35 hover:bg-muted/40",
+                  )}
+                >
+                  <span
+                    className="h-10 w-14 shrink-0 rounded-lg shadow-inner"
+                    style={{
+                      background: `linear-gradient(135deg, ${
+                        storefront.enabled
+                          ? storeThemeMeta(storefront.storeThemeId).previewFrom
+                          : landingTemplateMeta(storefront.landingTemplateId)
+                              .previewFrom
+                      }, ${
+                        storefront.enabled
+                          ? storeThemeMeta(storefront.storeThemeId).previewTo
+                          : landingTemplateMeta(storefront.landingTemplateId)
+                              .previewTo
+                      })`,
+                    }}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">
+                      {storefront.enabled
+                        ? storeThemeMeta(storefront.storeThemeId).name
+                        : landingTemplateMeta(storefront.landingTemplateId)
+                            .name}
+                    </span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      Open Themes atelier to change
+                    </span>
+                  </span>
+                  <ArrowRight
+                    className="size-4 shrink-0 text-muted-foreground transition group-hover:text-foreground"
+                    aria-hidden
+                  />
+                </Link>
               </div>
 
               {storefront.enabled && storefront.storeThemeId === "milk-run" ? (

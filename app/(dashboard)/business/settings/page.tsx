@@ -12,6 +12,7 @@ import {
   Coins,
   CreditCard,
   Globe,
+  LayoutTemplate,
   MapPin,
   MessageCircle,
   Palette,
@@ -220,6 +221,12 @@ export default function BusinessSettingsPage() {
               label: "Branding",
               desc: "Logo & colors",
               icon: Palette,
+            },
+            {
+              href: APP_ROUTES.businessThemes,
+              label: "Themes",
+              desc: "Shop layouts",
+              icon: LayoutTemplate,
             },
             {
               href: APP_ROUTES.businessMobile,

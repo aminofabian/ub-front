@@ -8,9 +8,11 @@ import {
 import { cn } from "@/lib/utils";
 import { ExternalLink } from "lucide-react";
 
+import { ThemePreviewArt } from "@/components/storefront/theme-preview-art";
+
 /**
  * Dashboard preview card for the selected store theme or landing template.
- * Shows a gradient swatch + optional live storefront link (iframe when URL known).
+ * Uses illustrated sketches (iframes are often blocked by frame ancestors).
  */
 export function StorefrontTemplatePreview({
   kind,
@@ -20,7 +22,7 @@ export function StorefrontTemplatePreview({
 }: {
   kind: TemplateKind;
   templateId: string;
-  /** Absolute public storefront URL for live iframe preview. */
+  /** Absolute public storefront URL for live link. */
   previewUrl?: string | null;
   className?: string;
 }) {
@@ -32,7 +34,7 @@ export function StorefrontTemplatePreview({
   return (
     <div
       className={cn(
-        "overflow-hidden border border-border/60 bg-muted/20",
+        "overflow-hidden rounded-xl border border-border/60 bg-muted/20",
         className,
       )}
     >
@@ -53,31 +55,9 @@ export function StorefrontTemplatePreview({
           </a>
         ) : null}
       </div>
-      {previewUrl ? (
-        <div className="relative aspect-[16/10] w-full bg-background">
-          <iframe
-            title={`${meta.name} preview`}
-            src={previewUrl}
-            className="absolute inset-0 h-full w-full border-0"
-            loading="lazy"
-            sandbox="allow-same-origin allow-scripts allow-forms"
-          />
-        </div>
-      ) : (
-        <div
-          className="flex aspect-[16/10] items-end p-4"
-          style={{
-            background: `linear-gradient(145deg, ${meta.previewFrom}, ${meta.previewTo})`,
-          }}
-        >
-          <span
-            className="rounded-sm px-2 py-1 text-[11px] font-semibold text-white shadow-sm"
-            style={{ backgroundColor: meta.accent }}
-          >
-            {kind === "store" ? "Store theme" : "Landing"}
-          </span>
-        </div>
-      )}
+      <div className="p-2">
+        <ThemePreviewArt templateId={templateId} />
+      </div>
     </div>
   );
 }

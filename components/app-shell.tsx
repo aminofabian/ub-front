@@ -126,6 +126,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Configuration",
       },
       {
+        href: APP_ROUTES.businessThemes,
+        label: "Themes",
+        group: "Configuration",
+      },
+      {
         href: APP_ROUTES.businessMobile,
         label: "Store app",
         group: "Configuration",

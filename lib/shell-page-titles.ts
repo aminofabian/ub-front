@@ -53,6 +53,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.analyticsActivity]: "Activity",
     [APP_ROUTES.business]: "Business",
     [APP_ROUTES.businessBranding]: "Branding",
+    [APP_ROUTES.businessThemes]: "Themes",
     [APP_ROUTES.businessMobile]: "Store app",
     [APP_ROUTES.users]: "Team",
     [APP_ROUTES.branches]: "Branches",
