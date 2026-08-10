@@ -633,6 +633,19 @@ export function GroceryWorkspace() {
     }
   }, [keyboardOpen]);
 
+  // Close the on-screen keyboard when the search is cleared — text goes from
+  // non-empty to empty (X button, Clear key, or backspace to the end). Blur so
+  // the next tap on the search field re-focuses and re-opens the keyboard.
+  const prevSearchRef = useRef(search);
+  useEffect(() => {
+    const prev = prevSearchRef.current;
+    prevSearchRef.current = search;
+    if (keyboardOpen && prev.trim() !== "" && search.trim() === "") {
+      setKeyboardOpen(false);
+      searchInputRef.current?.blur();
+    }
+  }, [search, keyboardOpen]);
+
   // ── Draft sync ─────────────────────────────────────────────────────
 
   function scheduleDraftSync(delayMs = 300) {
@@ -995,6 +1008,7 @@ export function GroceryWorkspace() {
                   inputMode={keyboardOpen ? "none" : "search"}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  onFocus={() => setKeyboardOpen(true)}
                   placeholder={
                     activeDepartmentLabel
                       ? `Search ${activeDepartmentLabel}, scan barcode…`
