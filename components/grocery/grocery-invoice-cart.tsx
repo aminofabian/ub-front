@@ -74,7 +74,7 @@ function QuantityStepper({
   onIncrease: () => void;
 }) {
   return (
-    <div className="inline-flex select-none items-center rounded-lg border border-border bg-card p-0.5">
+    <div className="inline-flex select-none items-center rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card p-0.5">
       <button
         type="button"
         onClick={(e) => {
@@ -83,7 +83,7 @@ function QuantityStepper({
         }}
         disabled={value <= min}
         className={cn(
-          "flex size-8 items-center justify-center rounded-md text-foreground transition-colors touch-manipulation",
+          "flex size-8 items-center justify-center rounded-none text-foreground transition-colors touch-manipulation",
           "hover:bg-muted active:scale-95",
           "disabled:opacity-30 disabled:hover:bg-transparent",
         )}
@@ -100,7 +100,7 @@ function QuantityStepper({
           e.stopPropagation();
           onIncrease();
         }}
-        className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors touch-manipulation hover:bg-[var(--primary-hover)] active:scale-95"
+        className="flex size-8 items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] transition-colors touch-manipulation hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)] active:scale-95"
         aria-label="Increase quantity"
       >
         <Plus className="size-3.5" strokeWidth={2.5} />
@@ -213,11 +213,11 @@ export function GroceryInvoiceCart({
       {/* ── Header ── */}
       <div
         className={cn(
-          "flex shrink-0 items-center gap-3 border-b border-border px-4 sm:px-5",
+          "flex shrink-0 items-center gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 sm:px-5",
           compact ? "pt-1 pb-3" : "py-3",
         )}
       >
-        <div className="relative flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <div className="relative flex size-10 shrink-0 items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)]">
           <Receipt className="size-4" strokeWidth={2.25} />
           {!isEmpty && (
             <span className="absolute -right-1.5 -top-1.5 flex min-w-[1.1rem] items-center justify-center rounded-full bg-foreground px-1 text-[9px] font-semibold leading-none text-background tabular-nums">
@@ -315,7 +315,7 @@ export function GroceryInvoiceCart({
 
       {/* ── Footer: Totals + Generate ── */}
       {!isEmpty && (
-        <div className="shrink-0 border-t border-border bg-background">
+        <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-background">
           <div className="px-4 pt-3 sm:px-5">
             <button
               type="button"
@@ -361,7 +361,7 @@ export function GroceryInvoiceCart({
           </div>
 
           <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-1 sm:px-5">
-            <div className="mb-3 flex items-end justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
+            <div className="mb-3 flex items-end justify-between rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_60%,transparent)] px-4 py-3">
               <span className="text-xs text-muted-foreground">Total</span>
               <span className="text-2xl font-semibold tabular-nums text-foreground">
                 {formatShelfPriceLabel(grandTotal, currency) ??
@@ -375,9 +375,9 @@ export function GroceryInvoiceCart({
               onClick={onGenerate}
               disabled={loading || isEmpty}
               className={cn(
-                "flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-sm",
-                "transition-colors hover:bg-[var(--primary-hover)] active:scale-[0.98]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "flex w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] px-4 py-3.5 text-sm font-semibold text-[var(--pos-primary-ink,#fff)]",
+                "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_20%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)] active:scale-[0.98]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40 focus-visible:ring-offset-2",
                 "disabled:pointer-events-none disabled:opacity-50",
               )}
             >

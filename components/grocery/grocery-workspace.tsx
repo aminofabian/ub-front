@@ -1,5 +1,20 @@
 "use client";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+ * THE GROCERY COUNTER — marketplace shelf grammar (paper · ink · teal)
+ *
+ * THESIS: the counter is a till shelf — paper product tiles, a teal rail
+ *   header, and a department strip that reads like tickets clipped to the
+ *   shelf edge. Refuses the generic dashboard card look.
+ * OWN-WORLD: pos-paper ground, ink hairlines, sharp corners, teal rails and
+ *   active states, uppercase tracked micro-labels, tabular ledger figures.
+ * STORY: the clerk scans the shelf, taps a product to add it to the cart,
+ *   and the cart panel reads like the day's paper ledger.
+ * FIRST VIEWPORT: teal rail header (tenant mark, branch, clock, online);
+ *   paper search with scan; department ticket rail (left, md+); product
+ *   shelf tiles; right paper cart ledger.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
 import {
   useCallback,
   useEffect,
@@ -117,7 +132,7 @@ function LiveClock() {
   });
 
   return (
-    <span className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium tabular-nums text-muted-foreground sm:inline-flex">
+    <span className="hidden items-center gap-1.5 rounded-none border border-white/25 bg-white/10 px-2 py-1 text-xs font-medium tabular-nums text-[var(--pos-primary-ink,#fff)]/85 sm:inline-flex">
       <Clock3 className="size-3" />
       {time}
     </span>
@@ -170,17 +185,19 @@ function ProductCard({
           : `Add ${title} to cart`
       }
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-lg border bg-card text-left",
-        "transition-colors duration-150",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "group relative flex flex-col overflow-hidden rounded-none border text-left",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+        "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]",
+        "transition-[border-color,background-color,box-shadow] duration-150",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
         "touch-manipulation select-none",
         inCart
-          ? "border-primary/50 bg-primary/[0.03]"
-          : "border-border hover:border-primary/25",
+          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,transparent)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-primary,#0f766e)_24%,transparent)]"
+          : "hover:z-[1] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_34%,transparent)] hover:bg-card hover:shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
       )}
     >
       {/* Image area */}
-      <div className="relative aspect-square w-full overflow-hidden bg-muted">
+      <div className="relative aspect-square w-full overflow-hidden bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_60%,transparent)]">
         {thumb ? (
           <Image
             src={thumb}
@@ -200,7 +217,7 @@ function ProductCard({
         {inCart && (
           <span
             key={cartQty}
-            className="absolute right-1.5 top-1.5 z-[2] inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-semibold tabular-nums text-primary-foreground"
+            className="absolute right-1.5 top-1.5 z-[2] inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] px-1 text-[9px] font-semibold tabular-nums text-[var(--pos-primary-ink,#fff)]"
             aria-hidden
           >
             ×{cartQty}
@@ -218,7 +235,7 @@ function ProductCard({
           <div className="flex min-w-0 items-end justify-between gap-2">
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="flex items-baseline gap-1 leading-none">
-                <span className="truncate text-[13px] font-semibold tabular-nums text-primary">
+                <span className="truncate text-[13px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] dark:text-[#2dd4bf]">
                   {lineTotalSplit.amount}
                 </span>
                 {lineTotalSplit.code && (
@@ -843,7 +860,7 @@ export function GroceryWorkspace() {
     <div className="grocery-app-root relative flex h-[100dvh] min-h-0 w-full flex-col">
       <div
         className={cn(
-          "grocery-app-stage grocery-workspace relative mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col overflow-hidden bg-background",
+          "grocery-app-stage grocery-workspace grocery-market-paper relative mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col overflow-hidden",
         )}
         style={
           {
@@ -852,10 +869,10 @@ export function GroceryWorkspace() {
         }
       >
       {/* ── App header ── */}
-      <header className="relative z-30 shrink-0 border-b border-border bg-background pt-[env(safe-area-inset-top,0px)]">
+      <header className="relative z-30 shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[var(--pos-primary,#0f766e)] pt-[env(safe-area-inset-top,0px)] text-[var(--pos-primary-ink,#fff)]">
         <div className="relative flex items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card sm:size-11">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-none border border-white/25 bg-white/10 sm:size-11">
               <TenantLogo
                 brand={tenantTitle}
                 logoUrl={business?.branding?.logoUrl}
@@ -865,15 +882,15 @@ export function GroceryWorkspace() {
               />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--pos-primary-ink,#fff)]/70">
                 {tenantTitle}
               </p>
-              <h1 className="truncate font-heading text-lg font-semibold leading-tight tracking-tight text-foreground sm:text-xl">
+              <h1 className="truncate font-heading text-lg font-semibold leading-tight tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-xl">
                 Counter
               </h1>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--pos-primary-ink,#fff)]/75">
                 <span className="inline-flex min-w-0 items-center gap-1">
-                  <MapPin className="size-3 shrink-0 opacity-70" aria-hidden />
+                  <MapPin className="size-3 shrink-0 opacity-80" aria-hidden />
                   <span className="truncate font-medium">
                     {branchesLoading
                       ? "Loading…"
@@ -881,12 +898,12 @@ export function GroceryWorkspace() {
                   </span>
                 </span>
                 {activeDepartmentLabel ? (
-                  <span className="inline-flex items-center gap-1 border-l border-border/50 pl-2">
+                  <span className="inline-flex items-center gap-1 border-l border-white/20 pl-2">
                     {activeDepartmentLabel}
                   </span>
                 ) : null}
                 {cashierName ? (
-                  <span className="hidden border-l border-border/50 pl-2 sm:inline">
+                  <span className="hidden border-l border-white/20 pl-2 sm:inline">
                     {cashierName}
                   </span>
                 ) : null}
@@ -898,16 +915,16 @@ export function GroceryWorkspace() {
             <LiveClock />
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-medium uppercase tracking-wide",
+                "inline-flex items-center gap-1.5 rounded-none border px-2 py-1 text-[10px] font-medium uppercase tracking-wide",
                 online
-                  ? "bg-primary/10 text-primary"
-                  : "bg-muted text-muted-foreground",
+                  ? "border-white/25 bg-white/15 text-[var(--pos-primary-ink,#fff)]"
+                  : "border-white/15 bg-white/10 text-[var(--pos-primary-ink,#fff)]/80",
               )}
             >
               <span
                 className={cn(
                   "size-1.5 rounded-full",
-                  online ? "bg-primary" : "bg-muted-foreground",
+                  online ? "bg-white" : "bg-white/60",
                 )}
               />
               <span className="hidden min-[380px]:inline">
@@ -921,7 +938,7 @@ export function GroceryWorkspace() {
 
       {/* ── Error Toast ── */}
       {error && (
-        <div className="mx-3 mt-2 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive sm:mx-5">
+        <div className="mx-3 mt-2 flex items-center gap-2 rounded-none border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive sm:mx-5">
           <span className="flex-1">{error}</span>
           <button
             type="button"
@@ -939,9 +956,9 @@ export function GroceryWorkspace() {
         {/* ── LEFT: Product Browser ── */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col md:w-[58%] md:flex-none lg:w-[60%] xl:w-[62%]">
           {/* Sticky search */}
-          <div className="sticky top-0 z-20 shrink-0 border-b border-border bg-background px-3 pb-3 pt-2.5 sm:px-4 sm:pt-3">
+          <div className="sticky top-0 z-20 shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[var(--pos-paper,#f1ece3)] px-3 pb-3 pt-2.5 sm:px-4 sm:pt-3">
             <div className="flex items-center gap-2">
-              <div className="group relative flex h-11 flex-1 items-center gap-2 rounded-lg border border-border bg-card pl-3 pr-1.5 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/30 sm:h-12 sm:pl-3.5">
+              <div className="group relative flex h-11 flex-1 items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,#fff_86%,var(--pos-paper,#f1ece3))] pl-3 pr-1.5 focus-within:border-[var(--pos-primary,#0f766e)] focus-within:ring-2 focus-within:ring-[var(--pos-primary,#0f766e)]/25 sm:h-12 sm:pl-3.5">
                 <Search className="size-4 shrink-0 text-muted-foreground" />
                 <input
                   ref={searchInputRef}
@@ -960,7 +977,7 @@ export function GroceryWorkspace() {
                 {/* ⌘K hint */}
                 <kbd
                   aria-hidden
-                  className="mr-1 hidden h-6 select-none items-center gap-0.5 rounded border border-border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground md:inline-flex"
+                  className="mr-1 hidden h-6 select-none items-center gap-0.5 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-1.5 text-[10px] font-medium text-muted-foreground md:inline-flex"
                 >
                   <Command className="size-3" />K
                 </kbd>
@@ -977,7 +994,7 @@ export function GroceryWorkspace() {
                 <button
                   type="button"
                   onClick={() => setShowScanner(true)}
-                  className="ml-0.5 flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-[var(--primary-hover)]"
+                  className="ml-0.5 flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 text-xs font-medium text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]"
                   aria-label="Scan barcode"
                 >
                   <ScanLine className="size-[17px]" strokeWidth={2.25} />
@@ -1022,14 +1039,14 @@ export function GroceryWorkspace() {
             {/* Top fade for scroll cue */}
             <span
               aria-hidden
-              className="pointer-events-none sticky top-0 z-[1] -mb-2 block h-3 w-full bg-gradient-to-b from-background to-transparent"
+              className="pointer-events-none sticky top-0 z-[1] -mb-2 block h-3 w-full bg-gradient-to-b from-[var(--pos-paper,#f1ece3)] to-transparent"
             />
 
             {/* Search results */}
             {hasSearch && (
               <section className="mb-6">
                 {hits.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12 text-center">
+                  <div className="flex flex-col items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_20%,transparent)] py-12 text-center">
                     <Search className="mb-3 size-8 text-muted-foreground/50" strokeWidth={1.5} />
                     <p className="text-sm font-medium text-foreground">
                       {searchBanner ?? "No items match your search."}
@@ -1067,7 +1084,7 @@ export function GroceryWorkspace() {
             {showCatalog && (
               <section className="mb-6">
                 {!online ? (
-                  <div className="rounded-lg border border-border bg-muted/50 px-4 py-10 text-center">
+                  <div className="rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-4 py-10 text-center">
                     <WifiOff className="mx-auto mb-2 size-6 text-muted-foreground" />
                     <p className="text-sm font-medium text-foreground">
                       Offline
@@ -1079,7 +1096,7 @@ export function GroceryWorkspace() {
                     </p>
                   </div>
                 ) : browseCatalog.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12 text-center">
+                  <div className="flex flex-col items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_20%,transparent)] py-12 text-center">
                     <ShoppingBasket className="mb-3 size-8 text-muted-foreground/50" strokeWidth={1.5} />
                     <p className="text-sm font-medium text-foreground">
                       {departmentCatalogLoading
@@ -1128,7 +1145,7 @@ export function GroceryWorkspace() {
         {/* ── RIGHT: Cart side panel (iPad md+) ── */}
         <aside
           className={cn(
-            "hidden shrink-0 flex-col border-l border-border bg-muted/30 md:flex",
+            "hidden shrink-0 flex-col border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] md:flex",
             "md:w-[42%] lg:w-[40%] xl:w-[38%]",
             "relative pb-[var(--grocery-tab-clearance)]",
           )}
@@ -1187,11 +1204,11 @@ export function GroceryWorkspace() {
                 setCartPanelTab("sale");
                 setShowCartDrawer(true);
               }}
-              className="flex h-12 flex-1 items-center gap-3 rounded-lg border border-border bg-card pl-3 pr-3 shadow-sm"
+              className="flex h-12 flex-1 items-center gap-3 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] pl-3 pr-3 shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]"
             >
-              <span className="relative flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <span className="relative flex size-9 shrink-0 items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]">
                 <ShoppingBasket className="size-4" strokeWidth={2.25} />
-                <span className="absolute -right-1.5 -top-1.5 flex min-w-[1.1rem] items-center justify-center rounded-full bg-foreground px-1 text-[9px] font-semibold leading-none text-background tabular-nums">
+                <span className="absolute -right-1.5 -top-1.5 flex min-w-[1.1rem] items-center justify-center rounded-none bg-foreground px-1 text-[9px] font-semibold leading-none text-background tabular-nums">
                   {cartItemCount}
                 </span>
               </span>
@@ -1222,13 +1239,13 @@ export function GroceryWorkspace() {
             }
             disabled={loading}
             className={cn(
-              "flex h-12 shrink-0 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium sm:px-5",
+              "flex h-12 shrink-0 items-center justify-center gap-2 rounded-none px-4 text-sm font-medium sm:px-5",
               "transition-colors active:scale-[0.98]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               "disabled:pointer-events-none disabled:opacity-50",
               isEmptyCart
-                ? "border border-border bg-card text-foreground"
-                : "bg-primary text-primary-foreground hover:bg-[var(--primary-hover)]",
+                ? "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] text-foreground"
+                : "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
               isEmptyCart && "flex-1",
             )}
           >

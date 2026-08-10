@@ -164,18 +164,22 @@ export function GroceryInvoiceSuccess({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-[0_28px_80px_rgba(0,0,0,0.28),0_0_0_1px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04] dark:bg-card dark:ring-white/[0.06] animate-in zoom-in-95 fade-in duration-300">
-        {/* Top accent gradient */}
+      <div className="relative w-full max-w-md overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_90%,#f1ece3)] shadow-[4px_4px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent),0_28px_80px_rgba(0,0,0,0.28)] ring-1 ring-black/[0.04] dark:bg-card dark:ring-white/[0.06] animate-in zoom-in-95 fade-in duration-300">
+        {/* Teal shelf rail */}
         <div
           aria-hidden
-          className="absolute inset-x-0 top-0 h-32 bg-[radial-gradient(80%_120%_at_50%_0%,hsl(142_70%_92%/0.9),transparent_70%)] dark:bg-[radial-gradient(80%_120%_at_50%_0%,hsl(142_70%_22%/0.5),transparent_70%)]"
+          className="absolute inset-x-0 top-0 h-2 bg-[var(--pos-primary,#0f766e)]"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-2 h-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]"
         />
 
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-2xl bg-white/80 text-muted-foreground backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-200 hover:bg-white hover:text-foreground active:scale-90 dark:bg-white/10 dark:hover:bg-white/20"
+          className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_80%,transparent)] text-muted-foreground shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] transition-all duration-200 hover:bg-white hover:text-foreground active:scale-90 dark:bg-white/10 dark:hover:bg-white/20"
           aria-label="Close"
         >
           <X className="size-4" />
@@ -184,9 +188,9 @@ export function GroceryInvoiceSuccess({
         <div className="relative flex flex-col items-center px-6 pb-7 pt-12 text-center sm:px-8 sm:pt-14">
           {/* Success icon */}
           <div className="relative mb-5">
-            <div className="absolute inset-0 -m-3 rounded-[2.5rem] bg-emerald-400/20 blur-2xl dark:bg-emerald-400/15" />
-            <div className="relative flex size-20 items-center justify-center rounded-[1.75rem] bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-[0_12px_32px_-6px_rgba(16,185,129,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]">
-              <CheckCircle2 className="size-11 text-white" strokeWidth={2.25} />
+            <div className="absolute inset-0 -m-3 bg-[var(--pos-primary,#0f766e)]/15 blur-2xl dark:bg-[var(--pos-primary,#0f766e)]/20" />
+            <div className="relative flex size-20 items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] shadow-[3px_3px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]">
+              <CheckCircle2 className="size-11 text-[var(--pos-primary-ink,#fff)]" strokeWidth={2.25} />
             </div>
           </div>
 
@@ -201,7 +205,7 @@ export function GroceryInvoiceSuccess({
           </p>
 
           {/* Barcode */}
-          <div className="mt-6 w-full rounded-2xl border border-border/60 bg-white p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_2px_8px_rgba(0,0,0,0.04)] dark:bg-white">
+          <div className="mt-6 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-white p-5 shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] dark:bg-white">
             <div
               className="mx-auto flex max-w-[280px] justify-center"
               dangerouslySetInnerHTML={{ __html: barcodeSvg }}
@@ -212,7 +216,7 @@ export function GroceryInvoiceSuccess({
           </div>
 
           {/* Invoice summary */}
-          <div className="mt-5 w-full space-y-2.5 rounded-2xl border border-border/[0.08] bg-muted/[0.1] p-4 text-left">
+          <div className="mt-5 w-full space-y-2.5 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,transparent)] p-4 text-left">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
                 <ShoppingBasket className="size-3.5" />
@@ -246,7 +250,7 @@ export function GroceryInvoiceSuccess({
             <button
               type="button"
               onClick={() => window.print()}
-              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-border/60 bg-white px-4 text-[13.5px] font-semibold text-foreground shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.6)] transition-all duration-200 hover:bg-muted/50 hover:shadow-md active:scale-[0.97] touch-manipulation dark:bg-white/[0.02]"
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-white px-4 text-[13.5px] font-semibold text-foreground shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] transition-all duration-200 hover:bg-muted/50 active:scale-[0.97] touch-manipulation dark:bg-white/[0.02]"
             >
               <Printer className="size-4" />
               Print
@@ -254,12 +258,8 @@ export function GroceryInvoiceSuccess({
             <button
               type="button"
               onClick={onNewInvoice}
-              className="group relative flex h-12 flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[linear-gradient(135deg,hsl(var(--primary))_0%,color-mix(in_oklch,hsl(var(--primary))_88%,#fff)_50%,hsl(var(--primary))_100%)] px-4 text-[13.5px] font-bold text-white shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.45),inset_0_1px_0_hsl(0_0%_100%/0.2)] transition-all duration-200 hover:shadow-[0_12px_32px_-6px_hsl(var(--primary)/0.55)] active:scale-[0.97] touch-manipulation"
+              className="group relative flex h-12 flex-1 items-center justify-center gap-2 overflow-hidden rounded-none bg-[var(--pos-primary,#0f766e)] px-4 text-[13.5px] font-bold text-[var(--pos-primary-ink,#fff)] shadow-[3px_3px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] transition-all duration-200 hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)] active:scale-[0.97] touch-manipulation"
             >
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
-              />
               <PlusCircle className="size-4 transition-transform duration-200 group-hover:rotate-90" />
               New Sale
             </button>

@@ -98,7 +98,7 @@ function ForwardedInvoiceCard({
   }, [isTerminal, invoice.id, onDismiss]);
 
   return (
-    <div className="border-b border-border px-4 py-4 sm:px-5">
+    <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-4 sm:px-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <button
@@ -137,7 +137,7 @@ function ForwardedInvoiceCard({
           <button
             type="button"
             onClick={() => onViewInvoice(invoice)}
-            className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50"
+            className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] px-2.5 py-1.5 text-xs font-medium text-foreground hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_30%,transparent)]"
           >
             View
           </button>
@@ -246,15 +246,15 @@ export function GroceryCartTabs({
   forwardedCount,
 }: GroceryCartTabsProps) {
   return (
-    <div className="flex shrink-0 gap-1 border-b border-border px-3 py-2 sm:px-4">
+    <div className="flex shrink-0 gap-1 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 py-2 sm:px-4">
       <button
         type="button"
         onClick={() => onTabChange("sale")}
         className={cn(
-          "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
+          "flex flex-1 items-center justify-center gap-1.5 rounded-none px-3 py-2 text-xs font-semibold transition-colors",
           activeTab === "sale"
-            ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+            ? "border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+            : "border border-transparent text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
         )}
       >
         <Receipt className="size-3.5" />
@@ -264,16 +264,16 @@ export function GroceryCartTabs({
         type="button"
         onClick={() => onTabChange("forwarded")}
         className={cn(
-          "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
+          "flex flex-1 items-center justify-center gap-1.5 rounded-none px-3 py-2 text-xs font-semibold transition-colors",
           activeTab === "forwarded"
-            ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+            ? "border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+            : "border border-transparent text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
         )}
       >
         <Send className="size-3.5" />
         Forwarded
         {forwardedCount > 0 ? (
-          <span className="inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+          <span className="inline-flex min-w-[1.1rem] items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] px-1 text-[10px] font-bold text-[var(--pos-primary-ink,#fff)]">
             {forwardedCount > 9 ? "9+" : forwardedCount}
           </span>
         ) : null}

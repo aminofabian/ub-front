@@ -37,10 +37,11 @@ export function GroceryAppBottomNav({ activeTab }: GroceryAppBottomNavProps) {
       <div
         className={cn(
           "tablet-bottom-nav-dock pointer-events-auto flex w-full max-w-md items-stretch justify-between gap-1",
-          "rounded-[1.65rem] border border-white/25 bg-background/80 px-1.5 py-1.5",
-          "shadow-[0_12px_48px_-14px_rgba(0,0,0,0.35),0_0_0_1px_rgba(0,0,0,0.04)_inset]",
+          "rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] px-1.5 py-1.5",
+          "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
           "backdrop-blur-2xl backdrop-saturate-[1.8]",
-          "dark:border-white/10 dark:bg-background/70",
+          "dark:border-white/10 dark:bg-card/70",
         )}
       >
         {tabs.map((tab) => {
@@ -52,27 +53,30 @@ export function GroceryAppBottomNav({ activeTab }: GroceryAppBottomNavProps) {
               href={tab.href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "tablet-nav-tab flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 transition-colors",
+                "tablet-nav-tab flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-none px-1 py-1 transition-colors",
                 "active:scale-[0.97]",
-                isActive && "tablet-nav-tab-active",
+                isActive &&
+                  "tablet-nav-tab-active bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
               )}
             >
               <span
                 className={cn(
-                  "relative flex size-9 items-center justify-center rounded-xl transition-all duration-200 sm:size-10",
+                  "relative flex size-9 items-center justify-center rounded-none transition-all duration-200 sm:size-10",
                   isActive && "scale-105",
                 )}
               >
                 {isActive ? (
                   <span
-                    className="absolute inset-0 rounded-xl bg-primary/15 ring-1 ring-primary/25"
+                    className="absolute inset-0 rounded-none bg-white/10 ring-1 ring-white/25"
                     aria-hidden
                   />
                 ) : null}
                 <Icon
                   className={cn(
                     "relative size-[1.15rem] sm:size-5",
-                    isActive ? "text-foreground" : "text-muted-foreground",
+                    isActive
+                      ? "text-[var(--pos-primary-ink,#fff)]"
+                      : "text-muted-foreground",
                   )}
                   strokeWidth={isActive ? 2.25 : 2}
                   aria-hidden
@@ -81,7 +85,9 @@ export function GroceryAppBottomNav({ activeTab }: GroceryAppBottomNavProps) {
               <span
                 className={cn(
                   "max-w-[4.5rem] truncate text-[9px] font-semibold leading-none sm:text-[10px]",
-                  isActive ? "text-foreground" : "text-muted-foreground",
+                  isActive
+                    ? "text-[var(--pos-primary-ink,#fff)]"
+                    : "text-muted-foreground",
                 )}
               >
                 {tab.label}

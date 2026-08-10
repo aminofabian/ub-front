@@ -19,9 +19,12 @@ function departmentLabel(t: ItemTypeRecord): string {
 }
 
 /**
- * Vertical floating department filter for the grocery counter. Shown when the
- * clerk is assigned to more than one department so they can narrow the catalog
- * without leaving the POS surface.
+ * Vertical floating department filter for the grocery counter — a shelf-edge
+ * ticket rail in the marketplace paper/ink/teal grammar. The teal lip is the
+ * shelf edge; each department is a ticket clipped to it (punched hole, ink
+ * hairline, vertical label). The active ticket is teal with a notched bottom,
+ * like a pulled shelf ticket. Shown when the clerk is assigned to more than
+ * one department so they can narrow the catalog without leaving the POS.
  */
 export function GroceryDepartmentRail({
   departments,
@@ -35,11 +38,18 @@ export function GroceryDepartmentRail({
     <nav
       aria-label="Department filters"
       className={cn(
-        "pointer-events-auto flex w-[2.65rem] shrink-0 flex-col gap-1 rounded-xl border border-border/70 bg-card/95 p-1 shadow-lg backdrop-blur-sm",
-        "ring-1 ring-black/[0.04] dark:ring-white/[0.06]",
+        "pointer-events-auto relative flex w-[2.9rem] shrink-0 flex-col gap-1 overflow-hidden rounded-none border",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+        "bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] p-1 pt-2.5",
+        "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
         className,
       )}
     >
+      {/* Shelf lip */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-[var(--pos-primary,#0f766e)]"
+      />
       <DepartmentRailButton
         active={selectedId == null}
         label="All"
@@ -84,14 +94,24 @@ function DepartmentRailButton({
       title={title}
       aria-pressed={active}
       className={cn(
-        "relative flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-1 rounded-lg px-0.5 py-2 text-center transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+        "relative flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-1 rounded-none border px-0.5 py-2 text-center transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
         "touch-manipulation select-none",
         active
-          ? "bg-primary text-primary-foreground shadow-sm"
-          : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] [clip-path:polygon(0_0,100%_0,100%_calc(100%-6px),calc(50%+6px)_100%,calc(50%-6px)_100%,0_calc(100%-6px))]"
+          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] text-muted-foreground hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
       )}
     >
+      {/* Ticket punch hole */}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute left-1/2 top-1 -translate-x-1/2 size-1.5 rounded-full border",
+          active
+            ? "border-white/60 bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)]"
+            : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_35%,transparent)] bg-[var(--pos-paper,#f1ece3)]",
+        )}
+      />
       {icon}
       <span
         className="max-h-[4.5rem] w-full overflow-hidden text-[9px] font-semibold uppercase leading-[1.05] tracking-wide"
@@ -99,12 +119,6 @@ function DepartmentRailButton({
       >
         {label}
       </span>
-      {active ? (
-        <span
-          aria-hidden
-          className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary-foreground/70"
-        />
-      ) : null}
     </button>
   );
 }

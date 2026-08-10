@@ -4056,6 +4056,19 @@ body:has(.landing-page) {
     mix-blend-mode: soft-light;
 }
 
+/* ── Grocery counter — marketplace paper shelf atmosphere ───────────── */
+.grocery-market-paper {
+    --pos-paper: #f1ece3;
+    --pos-ink: #1c1915;
+    background-color: var(--pos-paper);
+}
+
+.dark .grocery-market-paper {
+    --pos-paper: color-mix(in srgb, var(--background) 88%, #2a2620);
+    --pos-ink: var(--foreground);
+    background-color: var(--pos-paper);
+}
+
 .pos-market-section-label {
     font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
     font-weight: 600;
