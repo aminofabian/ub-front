@@ -11,6 +11,7 @@ import {
   ChevronUp,
   X,
   WifiOff,
+  Keyboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
@@ -54,6 +55,10 @@ type GroceryInvoiceCartProps = {
   compact?: boolean;
   /** Optional close handler shown in compact (bottom sheet) variant. */
   onClose?: () => void;
+  /** Cart line targeted by the on-screen counter keypad. */
+  activeLineKey?: string | null;
+  /** Called when the clerk taps a line to point the keypad at it. */
+  onSelectLine?: (key: string) => void;
 };
 
 function round2(n: number): number {
@@ -118,6 +123,8 @@ function CartLineItem({
   onRemoveLine,
   isLast,
   isRecentlyAdded,
+  active,
+  onSelect,
 }: {
   line: GroceryCartLine;
   currency: string;
@@ -129,6 +136,9 @@ function CartLineItem({
   onRemoveLine: (key: string) => void;
   isLast: boolean;
   isRecentlyAdded?: boolean;
+  /** Keypad target — renders a teal ring + keypad chip. */
+  active?: boolean;
+  onSelect?: () => void;
 }) {
   const lineTotal = round2(line.quantity * line.unitPrice);
   const priceLabel = formatShelfPriceLabel(line.unitPrice, currency);
@@ -136,10 +146,14 @@ function CartLineItem({
 
   return (
     <div
+      onClick={onSelect}
       className={cn(
         "flex items-start gap-3 px-4 py-3 sm:px-5",
         !isLast && "border-b border-border",
         isRecentlyAdded && "bg-primary/[0.04]",
+        onSelect && "cursor-pointer touch-manipulation select-none",
+        active &&
+          "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,transparent)] ring-2 ring-inset ring-[var(--pos-primary,#0f766e)]/40",
       )}
     >
       <div className="min-w-0 flex-1">
@@ -166,12 +180,21 @@ function CartLineItem({
       </div>
 
       <div className="flex flex-col items-end gap-1.5 pt-0.5">
+        {active ? (
+          <span className="inline-flex items-center gap-1 rounded-none border border-[var(--pos-primary,#0f766e)]/40 bg-[var(--pos-primary,#0f766e)]/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--pos-primary,#0f766e)] dark:text-[#2dd4bf]">
+            <Keyboard className="size-3" />
+            Keypad
+          </span>
+        ) : null}
         <span className="text-sm font-semibold tabular-nums text-foreground">
           {totalLabel ?? `${currency} ${lineTotal.toFixed(2)}`}
         </span>
         <button
           type="button"
-          onClick={() => onRemoveLine(line.key)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemoveLine(line.key);
+          }}
           className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           aria-label="Remove item"
         >
@@ -203,6 +226,8 @@ export function GroceryInvoiceCart({
   recentlyAddedKey,
   compact,
   onClose,
+  activeLineKey,
+  onSelectLine,
 }: GroceryInvoiceCartProps) {
   const isEmpty = lines.length === 0;
   const cartItemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
@@ -307,6 +332,8 @@ export function GroceryInvoiceCart({
                 onRemoveLine={onRemoveLine}
                 isLast={i === lines.length - 1}
                 isRecentlyAdded={recentlyAddedKey === line.key}
+                active={activeLineKey === line.key}
+                onSelect={onSelectLine ? () => onSelectLine(line.key) : undefined}
               />
             ))}
           </div>

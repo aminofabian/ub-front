@@ -36,6 +36,7 @@ import {
   Command,
   MapPin,
   Clock3,
+  Keyboard,
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
@@ -92,6 +93,7 @@ import {
 } from "./grocery-invoice-cart";
 import { GroceryDepartmentRail } from "./grocery-department-rail";
 import { GroceryInvoiceSuccess } from "./grocery-invoice-success";
+import { TillCountPad } from "@/components/shifts/till-count-pad";
 import {
   GroceryCartTabs,
   GroceryForwardedInvoicesPanel,
@@ -316,6 +318,8 @@ export function GroceryWorkspace() {
     Record<string, string>
   >({});
   const [showCartDrawer, setShowCartDrawer] = useState(false);
+  const [keypadOpen, setKeypadOpen] = useState(false);
+  const [activeLineKey, setActiveLineKey] = useState<string | null>(null);
   const tileShelfPriceValues = useRef<Record<string, number>>({});
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -656,6 +660,7 @@ export function GroceryWorkspace() {
           ),
         );
         setRecentlyAddedKey(existingKey);
+        setActiveLineKey(existingKey);
       } else {
         const newLine: GroceryCartLine = {
           key: crypto.randomUUID(),
@@ -668,6 +673,7 @@ export function GroceryWorkspace() {
         };
         setLines((prev) => [...prev, newLine]);
         setRecentlyAddedKey(newLine.key);
+        setActiveLineKey(newLine.key);
       }
       setCartPulse((n) => n + 1);
       scheduleDraftSync();
@@ -695,6 +701,7 @@ export function GroceryWorkspace() {
     (key: string) => {
       const removed = lines.find((l) => l.key === key);
       setLines((prev) => prev.filter((l) => l.key !== key));
+      setActiveLineKey((prev) => (prev === key ? null : prev));
       if (removed?.serverLineId) {
         const serverLineId = removed.serverLineId;
         setDraftState((prev) => ({
@@ -854,6 +861,19 @@ export function GroceryWorkspace() {
     setHits([]);
   }, [beginNewSale]);
 
+  const activeLine = useMemo(() => {
+    if (lines.length === 0) return null;
+    const targetKey = activeLineKey ?? lines[lines.length - 1].key;
+    return lines.find((l) => l.key === targetKey) ?? lines[lines.length - 1];
+  }, [lines, activeLineKey]);
+
+  const goNextLine = useCallback(() => {
+    if (lines.length === 0) return;
+    const idx = lines.findIndex((l) => l.key === activeLine?.key);
+    const next = lines[(idx + 1) % lines.length];
+    setActiveLineKey(next.key);
+  }, [activeLine, lines]);
+
   // ── Render ───────────────────────────────────────────────────────
 
   return (
@@ -1001,13 +1021,36 @@ export function GroceryWorkspace() {
                   <span className="hidden md:inline">Scan</span>
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => setKeypadOpen((v) => !v)}
+                aria-pressed={keypadOpen}
+                aria-label={keypadOpen ? "Close on-screen keypad" : "Open on-screen keypad"}
+                className={cn(
+                  "flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-none border px-2.5 text-xs font-medium transition-colors sm:px-3",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
+                  "touch-manipulation select-none",
+                  keypadOpen
+                    ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]"
+                    : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,#fff_86%,var(--pos-paper,#f1ece3))] text-[var(--pos-ink,#1c1915)] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_30%,transparent)]",
+                )}
+              >
+                <Keyboard className="size-[17px]" strokeWidth={2.25} />
+                <span className="hidden min-[420px]:inline">
+                  {keypadOpen ? "Close" : "Keypad"}
+                </span>
+              </button>
             </div>
           </div>
 
           {/* Scrollable Product Area */}
           <div
             className="relative flex min-h-0 flex-1"
-            style={{ paddingBottom: `max(1rem, ${GROCERY_TAB_BAR_CLEARANCE})` }}
+            style={{
+              paddingBottom: keypadOpen
+                ? `calc(${GROCERY_TAB_BAR_CLEARANCE} + 26rem)`
+                : `max(1rem, ${GROCERY_TAB_BAR_CLEARANCE})`,
+            }}
           >
             {showDepartmentRail ? (
               <div className="pointer-events-none absolute left-2 top-1/2 z-20 hidden -translate-y-1/2 sm:block">
@@ -1173,6 +1216,8 @@ export function GroceryWorkspace() {
               recentlyAddedKey={recentlyAddedKey}
               counterNumber={showCounterNumber ? draftState.counterNumber : null}
               syncStatus={groceryDraftPersistence ? draftState.syncStatus : "idle"}
+              activeLineKey={activeLineKey}
+              onSelectLine={setActiveLineKey}
             />
           ) : (
             <div className="flex min-h-0 flex-1 flex-col">
@@ -1189,7 +1234,10 @@ export function GroceryWorkspace() {
 
       {/* ── Phone: floating cart dock above tab bar ── */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-3 pb-[var(--grocery-tab-clearance)] sm:px-4 md:hidden"
+        className={cn(
+          "pointer-events-none absolute inset-x-0 bottom-0 z-30 px-3 pb-[var(--grocery-tab-clearance)] sm:px-4 md:hidden",
+          keypadOpen && "hidden",
+        )}
         style={
           {
             "--grocery-tab-clearance": GROCERY_TAB_BAR_CLEARANCE,
@@ -1280,6 +1328,42 @@ export function GroceryWorkspace() {
         </div>
       </div>
 
+      {/* ── Counter keypad (flipped touch-laptop) ── */}
+      {keypadOpen && (
+        <div
+          className="absolute inset-x-0 bottom-0 z-30 px-3 pb-[calc(var(--grocery-tab-clearance)+0.75rem)] sm:px-4 md:right-auto md:left-0 md:w-[58%] lg:w-[60%] xl:w-[62%] animate-in slide-in-from-bottom duration-200"
+          style={
+            {
+              "--grocery-tab-clearance": GROCERY_TAB_BAR_CLEARANCE,
+            } as CSSProperties
+          }
+        >
+          <div className="mx-auto w-full max-w-xl">
+            <TillCountPad
+              open
+              onOpenChange={setKeypadOpen}
+              activeLabel={
+                activeLine ? `Qty — ${activeLine.label}` : "Quantity"
+              }
+              value={activeLine?.quantity ?? 0}
+              hint={
+                activeLine
+                  ? `${formatShelfPriceLabel(activeLine.quantity * activeLine.unitPrice, currency) ?? `${currency} ${round2(activeLine.quantity * activeLine.unitPrice).toFixed(2)}`} · ${formatShelfPriceLabel(activeLine.unitPrice, currency) ?? `${currency} ${activeLine.unitPrice.toFixed(2)}`} each`
+                  : "Add items to the cart, then tap a line to edit its quantity"
+              }
+              onChange={(val) => {
+                if (!activeLine) return;
+                updateLine(activeLine.key, "quantity", Math.floor(val));
+              }}
+              onNext={lines.length > 1 ? goNextLine : undefined}
+              nextLabel="Next line"
+              mode="quantity"
+              className="mt-0 shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]"
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Cart drawer (phones only) ── */}
       {showCartDrawer && (
         <div
@@ -1332,6 +1416,8 @@ export function GroceryWorkspace() {
                 onClose={() => setShowCartDrawer(false)}
                 counterNumber={showCounterNumber ? draftState.counterNumber : null}
                 syncStatus={groceryDraftPersistence ? draftState.syncStatus : "idle"}
+                activeLineKey={activeLineKey}
+                onSelectLine={setActiveLineKey}
               />
             ) : (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

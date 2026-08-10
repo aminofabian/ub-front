@@ -35,6 +35,8 @@ export type TillCountPadProps = {
   mode?: TillCountPadMode;
   /** Advance to the next denomination after a count. */
   onNext?: () => void;
+  /** Label for the advance action (e.g. "Next line" on the counter keypad). */
+  nextLabel?: string;
   /** Optional subtitle under the active label (e.g. line total). */
   hint?: string | null;
   className?: string;
@@ -204,6 +206,7 @@ export function TillCountPad({
   onChange,
   mode = "quantity",
   onNext,
+  nextLabel,
   hint,
   className,
   forceOpen = false,
@@ -475,7 +478,7 @@ export function TillCountPad({
                 <PadKey
                   label={
                     <span className="inline-flex items-center gap-1.5 text-[13px]">
-                      Next note
+                      {nextLabel ?? "Next note"}
                       <SkipForward className="size-3.5 opacity-80" />
                     </span>
                   }
