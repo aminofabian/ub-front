@@ -28,7 +28,7 @@ export function PulseHero({
   eyebrow: string;
   revenueLabel: string;
   revenue: string;
-  revenueBreakdown?: { cash: string; mpesa: string } | null;
+  revenueBreakdown?: { cash: string; mpesa: string; credit: string } | null;
   headline: string;
   trend?: string | null;
   trendTone?: "muted" | "positive" | "warning" | "negative";
@@ -118,6 +118,13 @@ export function PulseHero({
                 M-Pesa{" "}
                 <span className="font-medium text-[#141414]">
                   {revenueBreakdown.mpesa}
+                </span>
+              </span>
+              <span aria-hidden>·</span>
+              <span>
+                Credit{" "}
+                <span className="font-medium text-[#141414]">
+                  {revenueBreakdown.credit}
                 </span>
               </span>
             </p>

@@ -136,18 +136,22 @@ export type PaymentBreakdownRow = {
   totalAmount: number | string;
 };
 
-/** Sum cash and M-Pesa tender from a payments-by-method breakdown. */
+/** Sum cash, M-Pesa, and credit tender from a payments-by-method breakdown. */
 export function paymentTenderTotals(rows: PaymentBreakdownRow[]): {
   cash: number;
   mpesa: number;
+  credit: number;
 } {
   let cash = 0;
   let mpesa = 0;
+  let credit = 0;
   for (const row of rows) {
     const amount = toNum(row.totalAmount);
     const method = row.method.trim().toLowerCase();
     if (method === "cash") cash += amount;
     else if (method.includes("mpesa")) mpesa += amount;
+    else if (method === "customer_credit" || method === "credit")
+      credit += amount;
   }
-  return { cash, mpesa };
+  return { cash, mpesa, credit };
 }

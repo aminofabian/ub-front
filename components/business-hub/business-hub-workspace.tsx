@@ -626,8 +626,8 @@ export function BusinessHubWorkspace() {
   const ordersTrend = fmtTrendPct(orders ?? 0, prevOrders ?? 0);
   const revenueBreakdown = useMemo(() => {
     if (!canViewSalesIntelligence) return null;
-    const { cash, mpesa } = paymentTenderTotals(paymentBreakdown);
-    return { cash: money(cash), mpesa: money(mpesa) };
+    const { cash, mpesa, credit } = paymentTenderTotals(paymentBreakdown);
+    return { cash: money(cash), mpesa: money(mpesa), credit: money(credit) };
   }, [canViewSalesIntelligence, money, paymentBreakdown]);
   const revenueFooterTone = !revenueTrend
     ? "muted"
