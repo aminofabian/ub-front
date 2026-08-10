@@ -54,7 +54,9 @@ import { cn } from "@/lib/utils";
 
 /** Centered shift / cash modals — marketplace paper shelf grammar. */
 const SHIFT_MODAL_CONTENT = cn(
-  "flex max-h-[min(92dvh,52rem)] flex-col gap-0 overflow-hidden rounded-none p-0",
+  // overscroll-contain: swipes on the pinned pad/header/footer must never
+  // chain through into the page behind the modal (would scroll the page).
+  "flex max-h-[min(92dvh,52rem)] flex-col gap-0 overflow-hidden overscroll-contain rounded-none p-0",
   "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
   "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]",
   "shadow-[4px_4px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
@@ -72,7 +74,8 @@ const SHIFT_MODAL_ICON = cn(
 );
 
 /** Scrollable middle — denominations scroll; pad stays pinned below. */
-const SHIFT_MODAL_BODY = "min-h-0 flex-1 overflow-y-auto px-4 py-2.5 sm:px-5 sm:py-3";
+const SHIFT_MODAL_BODY =
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2.5 sm:px-5 sm:py-3";
 
 const SHIFT_MODAL_PAD = cn(
   "shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
@@ -224,6 +227,10 @@ export function DenominationRow({
 }) {
   const total = denomValue * quantity;
   const diff = expectedQty != null ? quantity - expectedQty : null;
+  // Tap-detection: record where the pointer landed so a touch scroll that
+  // starts on a row never opens/re-targets the count pad — only a real tap
+  // (small movement, no scroll takeover) activates the row.
+  const tapStart = useRef<{ x: number; y: number } | null>(null);
   return (
     <div
       className={cn(
@@ -233,8 +240,22 @@ export function DenominationRow({
           ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]"
           : "border-border/60",
       )}
-      onPointerDown={() => {
-        if (!readOnly) onActivate?.();
+      onPointerDown={(e) => {
+        tapStart.current = { x: e.clientX, y: e.clientY };
+      }}
+      onPointerUp={(e) => {
+        const start = tapStart.current;
+        tapStart.current = null;
+        if (!start || readOnly) return;
+        const dx = e.clientX - start.x;
+        const dy = e.clientY - start.y;
+        // Browsers cancel pointerup/click after a real scroll; this guards
+        // the gap where a swipe barely leaves the slop threshold.
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) return;
+        onActivate?.();
+      }}
+      onPointerCancel={() => {
+        tapStart.current = null;
       }}
     >
       <span className="min-w-0 flex-1 truncate font-medium text-foreground">{label}</span>
