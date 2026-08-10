@@ -884,7 +884,7 @@ export function GroceryWorkspace() {
     <div className="grocery-app-root relative flex h-[100dvh] min-h-0 w-full flex-col">
       <div
         className={cn(
-          "grocery-app-stage grocery-workspace grocery-market-paper relative flex min-h-0 w-full flex-1 flex-col overflow-hidden",
+          "grocery-app-stage grocery-workspace grocery-market-paper relative flex min-h-0 w-full flex-1 flex-col overflow-hidden touch-manipulation",
         )}
         style={
           {
@@ -1014,7 +1014,7 @@ export function GroceryWorkspace() {
                       ? `Search ${activeDepartmentLabel}, scan barcode…`
                       : "Search products, scan barcode…"
                   }
-                  className="h-full flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                  className="h-full flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
                   autoComplete="off"
                   aria-label="Search products"
                 />

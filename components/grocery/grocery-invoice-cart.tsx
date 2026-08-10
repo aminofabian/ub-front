@@ -137,7 +137,7 @@ function CartLineItem({
   return (
     <div
       className={cn(
-        "flex items-start gap-3 px-4 py-3 sm:px-5",
+        "flex items-start gap-3 px-4 py-3 sm:px-5 touch-manipulation select-none",
         !isLast && "border-b border-border",
         isRecentlyAdded && "bg-primary/[0.04]",
       )}

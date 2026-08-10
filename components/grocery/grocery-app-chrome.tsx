@@ -38,9 +38,8 @@ export function GroceryAppBottomNav({ activeTab }: GroceryAppBottomNavProps) {
         className={cn(
           "tablet-bottom-nav-dock pointer-events-auto flex w-full max-w-md items-stretch justify-between gap-1",
           "rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-          "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] px-1.5 py-1.5",
+          "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] px-1.5 py-1.5",
           "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
-          "backdrop-blur-2xl backdrop-saturate-[1.8]",
           "dark:border-white/10 dark:bg-card/70",
         )}
       >
