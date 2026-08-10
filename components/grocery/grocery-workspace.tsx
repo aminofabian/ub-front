@@ -871,7 +871,7 @@ export function GroceryWorkspace() {
     <div className="grocery-app-root relative flex h-[100dvh] min-h-0 w-full flex-col">
       <div
         className={cn(
-          "grocery-app-stage grocery-workspace grocery-market-paper relative mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col overflow-hidden",
+          "grocery-app-stage grocery-workspace grocery-market-paper relative flex min-h-0 w-full flex-1 flex-col overflow-hidden",
         )}
         style={
           {
@@ -964,8 +964,26 @@ export function GroceryWorkspace() {
 
       {/* ── Main Split View ── */}
       <div className="relative z-10 flex min-h-0 flex-1 flex-row">
+        {/* ── FIRST COLUMN: Counter QWERTY keyboard (md+) ── */}
+        {keyboardOpen && (
+          <div className="hidden min-h-0 w-[22rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_35%,transparent)] md:flex lg:w-[24rem] xl:w-[26rem]">
+            <CounterKeyboard
+              value={search}
+              onChange={setSearch}
+              onClose={() => setKeyboardOpen(false)}
+              className="border-l-0 border-r-0 shadow-none"
+            />
+          </div>
+        )}
         {/* ── LEFT: Product Browser ── */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col md:w-[58%] md:flex-none lg:w-[60%] xl:w-[62%]">
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-1 flex-col",
+            keyboardOpen
+              ? "md:w-auto lg:w-auto xl:w-auto"
+              : "md:w-[58%] md:flex-none lg:w-[60%] xl:w-[62%]",
+          )}
+        >
           {/* Sticky search */}
           <div className="sticky top-0 z-20 shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[var(--pos-paper,#f1ece3)] px-3 pb-3 pt-2.5 sm:px-4 sm:pt-3">
             <div className="flex items-center gap-2">
@@ -1038,11 +1056,7 @@ export function GroceryWorkspace() {
           {/* Scrollable Product Area */}
           <div
             className="relative flex min-h-0 flex-1"
-            style={{
-              paddingBottom: keyboardOpen
-                ? `calc(${GROCERY_TAB_BAR_CLEARANCE} + 17rem)`
-                : `max(1rem, ${GROCERY_TAB_BAR_CLEARANCE})`,
-            }}
+            style={{ paddingBottom: `max(1rem, ${GROCERY_TAB_BAR_CLEARANCE})` }}
           >
             {showDepartmentRail ? (
               <div className="pointer-events-none absolute left-2 top-1/2 z-20 hidden -translate-y-1/2 sm:block">
@@ -1173,6 +1187,10 @@ export function GroceryWorkspace() {
               </section>
             )}
 
+            {keyboardOpen && (
+              <div aria-hidden className="h-[20rem] md:hidden" />
+            )}
+
             </div>
           </div>
         </div>
@@ -1181,7 +1199,9 @@ export function GroceryWorkspace() {
         <aside
           className={cn(
             "hidden shrink-0 flex-col border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] md:flex",
-            "md:w-[42%] lg:w-[40%] xl:w-[38%]",
+            keyboardOpen
+              ? "md:w-[22rem] lg:w-[24rem] xl:w-[26rem]"
+              : "md:w-[42%] lg:w-[40%] xl:w-[38%]",
             "relative pb-[var(--grocery-tab-clearance)]",
           )}
         >
@@ -1318,21 +1338,22 @@ export function GroceryWorkspace() {
         </div>
       </div>
 
-      {/* ── Counter QWERTY keyboard (flipped touch-laptop) ── */}
+      {/* ── Counter QWERTY keyboard — phones (floating panel) ── */}
       {keyboardOpen && (
         <div
-          className="absolute inset-x-0 bottom-0 z-30 px-3 pb-[calc(var(--grocery-tab-clearance)+0.75rem)] sm:px-4 md:right-auto md:left-0 md:w-[58%] lg:w-[60%] xl:w-[62%]"
+          className="absolute inset-x-0 bottom-0 z-30 px-3 pb-[calc(var(--grocery-tab-clearance)+0.75rem)] sm:px-4 md:hidden"
           style={
             {
               "--grocery-tab-clearance": GROCERY_TAB_BAR_CLEARANCE,
             } as CSSProperties
           }
         >
-          <div className="mx-auto w-full max-w-lg">
+          <div className="mx-auto flex h-[19rem] w-full max-w-lg flex-col">
             <CounterKeyboard
               value={search}
               onChange={setSearch}
               onClose={() => setKeyboardOpen(false)}
+              className="flex-1"
             />
           </div>
         </div>
