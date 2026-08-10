@@ -108,13 +108,15 @@ export function MilkRunCard({
             <span className={styles.cardPlaceholder} aria-hidden />
           )}
         </Link>
-        <div className={styles.cardTop}>
+        <div className={styles.cardInfo}>
+          <div className={styles.cardTagRow}>
+            {tag ? <span className={styles.cardTag}>{tag}</span> : null}
+          </div>
           <Link href={href} className={styles.cardName}>
             {item.name}
           </Link>
-          {tag ? <span className={styles.cardTag}>{tag}</span> : null}
+          <p className={styles.cardMeta}>{meta}</p>
         </div>
-        <p className={styles.cardMeta}>{meta}</p>
         <div className={styles.cardFoot}>
           <span className={styles.price}>
             {item.price != null ? formatDisplayPrice(currency, item.price) : "—"}
