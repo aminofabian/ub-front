@@ -1038,7 +1038,11 @@ export function GroceryWorkspace() {
           {/* Scrollable Product Area */}
           <div
             className="relative flex min-h-0 flex-1"
-            style={{ paddingBottom: `max(1rem, ${GROCERY_TAB_BAR_CLEARANCE})` }}
+            style={{
+              paddingBottom: keyboardOpen
+                ? `calc(${GROCERY_TAB_BAR_CLEARANCE} + 17rem)`
+                : `max(1rem, ${GROCERY_TAB_BAR_CLEARANCE})`,
+            }}
           >
             {showDepartmentRail ? (
               <div className="pointer-events-none absolute left-2 top-1/2 z-20 hidden -translate-y-1/2 sm:block">
@@ -1316,11 +1320,22 @@ export function GroceryWorkspace() {
 
       {/* ── Counter QWERTY keyboard (flipped touch-laptop) ── */}
       {keyboardOpen && (
-        <CounterKeyboard
-          value={search}
-          onChange={setSearch}
-          onClose={() => setKeyboardOpen(false)}
-        />
+        <div
+          className="absolute inset-x-0 bottom-0 z-30 px-3 pb-[calc(var(--grocery-tab-clearance)+0.75rem)] sm:px-4 md:right-auto md:left-0 md:w-[58%] lg:w-[60%] xl:w-[62%]"
+          style={
+            {
+              "--grocery-tab-clearance": GROCERY_TAB_BAR_CLEARANCE,
+            } as CSSProperties
+          }
+        >
+          <div className="mx-auto w-full max-w-lg">
+            <CounterKeyboard
+              value={search}
+              onChange={setSearch}
+              onClose={() => setKeyboardOpen(false)}
+            />
+          </div>
+        </div>
       )}
 
       {/* ── Cart drawer (phones only) ── */}

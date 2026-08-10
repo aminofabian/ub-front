@@ -6,11 +6,12 @@ import { Delete, Keyboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Counter QWERTY — on-screen letter keyboard for the grocery counter on a
- * flipped touch laptop. Docks as a real layout band (never overlays the
- * product shelf) and types into the search field. Marketplace paper/ink/teal
- * grammar: sharp keys with ink hairlines, teal pressed flash, block shadows,
- * a teal shelf-edge rail and a live "Searching…" echo.
+ * Counter QWERTY — compact on-screen letter keyboard for the grocery counter
+ * on a flipped touch laptop. Renders as a self-contained floating panel (it
+ * reserves its own space below the product shelf, never covers it) and types
+ * into the search field. Marketplace paper/ink/teal grammar: sharp keys with
+ * ink hairlines, teal pressed flash, a block shadow, a teal shelf-edge rail
+ * and a live "Searching…" echo.
  */
 
 const DIGIT_ROW = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"] as const;
@@ -81,7 +82,7 @@ function QKey({
         onPress();
       }}
       className={cn(
-        "relative select-none rounded-none border text-sm font-semibold tabular-nums",
+        "relative select-none rounded-none border text-[13px] font-semibold tabular-nums",
         "transition-[transform,background-color,border-color] duration-100",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40",
         "touch-manipulation active:translate-y-px",
@@ -96,7 +97,7 @@ function QKey({
         className,
       )}
     >
-      <span className="relative z-[1] flex h-11 items-center justify-center sm:h-12">
+      <span className="relative z-[1] flex h-9 items-center justify-center">
         {label}
       </span>
     </button>
@@ -121,34 +122,35 @@ export function CounterKeyboard({
   return (
     <div
       className={cn(
-        "relative z-20 shrink-0 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-        "bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)] px-2 pb-[var(--grocery-tab-clearance)] pt-1.5 sm:px-3",
+        "relative rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+        "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)]",
+        "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
         className,
       )}
     >
-      {/* Shelf-edge rail + live search echo */}
-      <div className="mx-auto mb-1.5 flex w-full max-w-3xl items-center gap-2.5 px-0.5">
+      {/* Teal shelf rail + live search echo */}
+      <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-2.5 py-1">
         <span
           aria-hidden
-          className="h-1.5 w-10 shrink-0 bg-[var(--pos-primary,#0f766e)]"
+          className="h-1 w-8 shrink-0 bg-[var(--pos-primary,#0f766e)]"
         />
-        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-          On-screen keyboard
+        <span className="text-[8px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          Keyboard
         </span>
         <span
           aria-live="polite"
-          className="ml-auto inline-flex min-w-0 items-center gap-1.5 text-[10px] tabular-nums text-muted-foreground/80"
+          className="ml-auto inline-flex min-w-0 items-center gap-1 text-[10px] tabular-nums text-muted-foreground/80"
         >
           <Keyboard className="size-3 shrink-0" aria-hidden />
           <span className="truncate">
             {trimmed
               ? `Searching “${trimmed}”`
-              : "Type a product name or barcode"}
+              : "Product name or barcode"}
           </span>
         </span>
       </div>
 
-      <div className="mx-auto grid w-full max-w-3xl gap-1">
+      <div className="grid gap-1 p-2">
         {/* Digit row */}
         <div className="grid grid-cols-10 gap-1">
           {DIGIT_ROW.map((d) => (
