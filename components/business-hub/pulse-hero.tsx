@@ -17,6 +17,7 @@ export function PulseHero({
   eyebrow,
   revenueLabel,
   revenue,
+  revenueBreakdown,
   headline,
   trend,
   trendTone = "muted",
@@ -27,6 +28,7 @@ export function PulseHero({
   eyebrow: string;
   revenueLabel: string;
   revenue: string;
+  revenueBreakdown?: { cash: string; mpesa: string } | null;
   headline: string;
   trend?: string | null;
   trendTone?: "muted" | "positive" | "warning" | "negative";
@@ -102,6 +104,24 @@ export function PulseHero({
               </span>
             ) : null}
           </div>
+
+          {revenueBreakdown ? (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] tabular-nums text-[#666666]">
+              <span>
+                Cash{" "}
+                <span className="font-medium text-[#141414]">
+                  {revenueBreakdown.cash}
+                </span>
+              </span>
+              <span aria-hidden>·</span>
+              <span>
+                M-Pesa{" "}
+                <span className="font-medium text-[#141414]">
+                  {revenueBreakdown.mpesa}
+                </span>
+              </span>
+            </p>
+          ) : null}
 
           <p className="line-clamp-2 text-xs leading-snug text-[#5A5A5A]">
             {headline}

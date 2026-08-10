@@ -130,3 +130,24 @@ export function marginPct(
   if (revenue <= 0) return null;
   return (grossProfit / revenue) * 100;
 }
+
+export type PaymentBreakdownRow = {
+  method: string;
+  totalAmount: number | string;
+};
+
+/** Sum cash and M-Pesa tender from a payments-by-method breakdown. */
+export function paymentTenderTotals(rows: PaymentBreakdownRow[]): {
+  cash: number;
+  mpesa: number;
+} {
+  let cash = 0;
+  let mpesa = 0;
+  for (const row of rows) {
+    const amount = toNum(row.totalAmount);
+    const method = row.method.trim().toLowerCase();
+    if (method === "cash") cash += amount;
+    else if (method.includes("mpesa")) mpesa += amount;
+  }
+  return { cash, mpesa };
+}

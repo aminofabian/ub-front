@@ -66,6 +66,7 @@ import {
   buildChartCaption,
   buildPulseHeadline,
   marginPct,
+  paymentTenderTotals,
 } from "@/lib/business-hub/pulse-insights";
 import type { Period } from "@/lib/business-hub/types";
 import { cn } from "@/lib/utils";
@@ -86,6 +87,7 @@ import {
   fetchItemsPage,
   fetchCreditsActivitySummary,
   fetchOutstandingTabs,
+  fetchPaymentsByMethod,
   fetchRecentSales,
   fetchPathBSupplies,
   fetchSalesRegister,
@@ -101,6 +103,7 @@ import {
   type OutstandingTabRowRecord,
   type OwnerDashboardResponse,
   type PathBSupplyListRowRecord,
+  type PaymentMethodBreakdownRow,
   type ProfitAndLossResponse,
   type RecentSaleRow,
   type SalesRegisterResponse,
@@ -220,6 +223,9 @@ export function BusinessHubWorkspace() {
     useState<InventoryExpiryPipelineResponse | null>(null);
   const [catalogueCount, setCatalogueCount] = useState<number | null>(null);
   const [chartPoints, setChartPoints] = useState<DailyRevenuePoint[]>([]);
+  const [paymentBreakdown, setPaymentBreakdown] = useState<
+    PaymentMethodBreakdownRow[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
@@ -299,6 +305,7 @@ export function BusinessHubWorkspace() {
         creditTabsRes,
         creditSummaryRes,
         webOrdersRes,
+        paymentBreakdownRes,
       ] = await Promise.all([
         canViewOwnerSummary
           ? fetchDashboardOwnerSummary(branch, type).catch(() => null)
@@ -381,6 +388,14 @@ export function BusinessHubWorkspace() {
         canShowWebOrders
           ? fetchWebOrders(0, 50).catch(() => [] as WebOrderSummary[])
           : Promise.resolve([] as WebOrderSummary[]),
+        canViewSalesIntelligence
+          ? fetchPaymentsByMethod(
+              activeRange.from,
+              activeRange.to,
+              branch,
+              type,
+            ).catch(() => [] as PaymentMethodBreakdownRow[])
+          : Promise.resolve([] as PaymentMethodBreakdownRow[]),
       ]);
 
       if (gen !== loadGen.current) return;
@@ -398,6 +413,9 @@ export function BusinessHubWorkspace() {
       setCatalogueCount(itemsPage?.totalElements ?? null);
       setChartPoints(
         buildDailyRevenueSeries(chartReg?.days ?? [], chartFrom, chartTo),
+      );
+      setPaymentBreakdown(
+        Array.isArray(paymentBreakdownRes) ? paymentBreakdownRes : [],
       );
       setRecentTicks(
         ticksFromTransactions(
@@ -606,6 +624,11 @@ export function BusinessHubWorkspace() {
 
   const revenueTrend = fmtTrendPct(revenue, prevRevenue);
   const ordersTrend = fmtTrendPct(orders ?? 0, prevOrders ?? 0);
+  const revenueBreakdown = useMemo(() => {
+    if (!canViewSalesIntelligence) return null;
+    const { cash, mpesa } = paymentTenderTotals(paymentBreakdown);
+    return { cash: money(cash), mpesa: money(mpesa) };
+  }, [canViewSalesIntelligence, money, paymentBreakdown]);
   const revenueFooterTone = !revenueTrend
     ? "muted"
     : revenueTrend.startsWith("-") || revenueTrend.startsWith("<-")
@@ -1126,6 +1149,7 @@ export function BusinessHubWorkspace() {
                 eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
                 revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
                 revenue={money(revenue)}
+                revenueBreakdown={revenueBreakdown}
                 headline={headline}
                 trend={revenueTrend}
                 trendTone={revenueFooterTone}

@@ -6,6 +6,7 @@ import {
   buildPulseHeadline,
   chartWindowStats,
   marginPct,
+  paymentTenderTotals,
 } from "./pulse-insights";
 
 describe("chartWindowStats", () => {
@@ -73,5 +74,17 @@ describe("averageTicket / marginPct", () => {
     expect(averageTicket(1000, 0)).toBeNull();
     expect(marginPct(200, 50)).toBe(25);
     expect(marginPct(200, 50, "30")).toBe(30);
+  });
+});
+
+describe("paymentTenderTotals", () => {
+  it("sums cash and mpesa methods", () => {
+    expect(
+      paymentTenderTotals([
+        { method: "cash", totalAmount: 1200 },
+        { method: "mpesa_manual", totalAmount: 800 },
+        { method: "customer_credit", totalAmount: 500 },
+      ]),
+    ).toEqual({ cash: 1200, mpesa: 800 });
   });
 });
