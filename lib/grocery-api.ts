@@ -101,6 +101,12 @@ export type PayGroceryInvoiceRequest = {
   }>;
   /** Required when paying with customer_credit (tab). */
   customerId?: string;
+  /** Walk-up till lines added on top of the forwarded invoice. */
+  additionalLines?: Array<{
+    itemId: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
 };
 
 export type PayGroceryInvoiceResponse = {

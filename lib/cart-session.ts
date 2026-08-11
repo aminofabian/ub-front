@@ -76,6 +76,8 @@ export type CartSessionLine = {
   quantity: string;
   unitPrice: string;
   item: ItemSummaryRecord;
+  /** True when this line came from a locked grocery invoice (not walk-up). */
+  fromGroceryInvoice?: boolean;
 };
 
 export const MAX_CARTS = 8;

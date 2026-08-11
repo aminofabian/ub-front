@@ -82,6 +82,14 @@ import {
   GroceryApiError,
 } from "@/lib/grocery-api";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   getTopProducts,
   recordSaleLines,
   type TopProductRecord,
@@ -412,6 +420,13 @@ export function QuickSaleWorkspace({
   const [outboxCount, setOutboxCount] = useState(0);
   const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
   const [pendingSalesRefreshKey, setPendingSalesRefreshKey] = useState(0);
+  /** When the active cart already has lines, ask merge vs new cart for GI-* loads. */
+  const [invoicePlacementChoice, setInvoicePlacementChoice] = useState<{
+    barcode: string;
+    barcodeCode: string;
+    lineCount: number;
+    grandTotal: number;
+  } | null>(null);
   /** Incremented after successful auto-print so the checkout drawer closes. */
   const [checkoutCompletedKey, setCheckoutCompletedKey] = useState(0);
   const [outboxBusy, setOutboxBusy] = useState(false);
@@ -1151,14 +1166,19 @@ export function QuickSaleWorkspace({
     setVoidNotes("");
   }, []);
 
-  /** Load a grocery invoice by GI-* barcode into the till (reuse empty tab when possible). */
+  /** Load a grocery invoice by GI-* barcode into the till. */
   const loadGroceryInvoiceByBarcode = useCallback(
-    async (barcode: string) => {
+    async (
+      barcode: string,
+      opts?: { placement?: "auto" | "merge" | "new" },
+    ) => {
       const q = barcode.trim();
       if (!q || !q.startsWith("GI-") || !online) return;
 
       const bid = branchId?.trim();
       if (!bid) return;
+
+      const placement = opts?.placement ?? "auto";
 
       try {
         const invoice = await lookupGroceryInvoiceByBarcode(q);
@@ -1188,9 +1208,48 @@ export function QuickSaleWorkspace({
           setActiveCartId(alreadyOpen.id);
           setSearch("");
           setHits([]);
+          setInvoicePlacementChoice(null);
           toast.success(`Invoice ${invoice.barcodeCode} already open`, {
             duration: 3000,
           });
+          return;
+        }
+
+        const activeId = activeCartIdRef.current;
+        const active = currentCarts.find((c) => c.id === activeId);
+        const activeHasItems = (active?.lines.length ?? 0) > 0;
+
+        // Cart already has walk-up items — ask where to put the invoice.
+        if (placement === "auto" && activeHasItems) {
+          setInvoicePlacementChoice({
+            barcode: q,
+            barcodeCode: invoice.barcodeCode,
+            lineCount: invoice.lines.length,
+            grandTotal: Number(invoice.grandTotal) || 0,
+          });
+          setSearch("");
+          setHits([]);
+          return;
+        }
+
+        const effectivePlacement: "merge" | "new" =
+          placement === "new"
+            ? "new"
+            : placement === "merge"
+              ? "merge"
+              : activeHasItems
+                ? "new"
+                : "merge";
+
+        if (
+          effectivePlacement === "merge" &&
+          active?.groceryInvoiceId &&
+          active.groceryInvoiceId !== invoice.id
+        ) {
+          toast.error(
+            "This cart already has a different invoice. Open a new cart instead.",
+            { duration: 5000 },
+          );
           return;
         }
 
@@ -1207,6 +1266,7 @@ export function QuickSaleWorkspace({
         dismissCompletedSaleUi();
         setNotice("");
         setError("");
+        setInvoicePlacementChoice(null);
 
         let invoiceCustomer: CustomerRecord | null = null;
         if (invoice.customerId?.trim() && online && canLookupCustomers) {
@@ -1238,6 +1298,7 @@ export function QuickSaleWorkspace({
             label: l.itemName,
             quantity: qtyStr,
             unitPrice: String(l.unitPrice),
+            fromGroceryInvoice: true,
             item: {
               id: l.itemId,
               name: l.itemName,
@@ -1248,31 +1309,36 @@ export function QuickSaleWorkspace({
           };
         });
 
-        const activeId = activeCartIdRef.current;
-        const active = currentCarts.find((c) => c.id === activeId);
-        const reuseEmpty =
-          active != null &&
-          active.lines.length === 0 &&
-          !active.groceryInvoiceId;
-
-        const groceryCartPatch = {
-          label: invoice.barcodeCode,
-          lines: invoiceLines,
-          groceryInvoiceId: invoice.id,
-          groceryBarcode: invoice.barcodeCode,
-          selectedCustomer: invoiceCustomer,
-          customerPhoneQuery: invoicePhone,
-          customerHits: invoiceCustomer ? [invoiceCustomer] : [],
-          customerNoPhoneMatch: false,
+        const applyInvoiceCustomer = (cart: CartSession) => {
+          if (invoiceCustomer) {
+            return {
+              selectedCustomer: invoiceCustomer,
+              customerPhoneQuery: invoicePhone || cart.customerPhoneQuery,
+              customerHits: [invoiceCustomer],
+              customerNoPhoneMatch: false,
+            };
+          }
+          if (invoicePhone && !cart.selectedCustomer) {
+            return {
+              customerPhoneQuery: invoicePhone,
+            };
+          }
+          return {};
         };
 
-        if (reuseEmpty && active) {
+        if (effectivePlacement === "merge" && active) {
           setCarts((prev) =>
             prev.map((c) =>
               c.id === active.id
                 ? {
                     ...c,
-                    ...groceryCartPatch,
+                    label: c.lines.length
+                      ? c.label
+                      : invoice.barcodeCode,
+                    lines: [...c.lines, ...invoiceLines],
+                    groceryInvoiceId: invoice.id,
+                    groceryBarcode: invoice.barcodeCode,
+                    ...applyInvoiceCustomer(c),
                   }
                 : c,
             ),
@@ -1287,7 +1353,16 @@ export function QuickSaleWorkspace({
             return;
           }
           const fresh = createEmptyCartSession();
-          Object.assign(fresh, groceryCartPatch);
+          Object.assign(fresh, {
+            label: invoice.barcodeCode,
+            lines: invoiceLines,
+            groceryInvoiceId: invoice.id,
+            groceryBarcode: invoice.barcodeCode,
+            selectedCustomer: invoiceCustomer,
+            customerPhoneQuery: invoicePhone,
+            customerHits: invoiceCustomer ? [invoiceCustomer] : [],
+            customerNoPhoneMatch: false,
+          });
           setCarts((prev) => [...prev, fresh]);
           setActiveCartId(fresh.id);
         }
@@ -1295,11 +1370,9 @@ export function QuickSaleWorkspace({
         setSearch("");
         setHits([]);
         toast.success(
-          "Invoice " +
-            invoice.barcodeCode +
-            " loaded \u00b7 " +
-            invoice.lines.length +
-            " items",
+          effectivePlacement === "merge" && activeHasItems
+            ? `Added ${invoice.barcodeCode} to this cart · ${invoice.lines.length} items`
+            : `Invoice ${invoice.barcodeCode} loaded · ${invoice.lines.length} items`,
           { duration: 4000 },
         );
       } catch (e) {
@@ -3163,6 +3236,23 @@ export function QuickSaleWorkspace({
             ];
 
         try {
+          const additionalLines = lines
+            .filter((l) => !l.fromGroceryInvoice)
+            .map((l) => {
+              const q = parseQty(l.quantity);
+              const p = parseMoney(l.unitPrice);
+              if (q == null || p == null) return null;
+              const weighed = l.item?.isWeighed === true;
+              return {
+                itemId: l.itemId,
+                quantity: weighed
+                  ? Number(q.toFixed(WEIGHTED_QTY_DECIMALS))
+                  : Math.round(q),
+                unitPrice: p,
+              };
+            })
+            .filter((l): l is NonNullable<typeof l> => l != null);
+
           const result = await payGroceryInvoice(
             activeCart.groceryInvoiceId,
             {
@@ -3170,6 +3260,7 @@ export function QuickSaleWorkspace({
               ...(linkedCustomer?.id
                 ? { customerId: linkedCustomer.id }
                 : {}),
+              ...(additionalLines.length > 0 ? { additionalLines } : {}),
             },
             idem,
           );
@@ -3775,9 +3866,13 @@ export function QuickSaleWorkspace({
             />
           )}
           <PendingInvoicesPanel
-            onLoadInvoice={(barcode) =>
-              void loadGroceryInvoiceByBarcode(barcode)
+            onLoadInvoice={(barcode, placement) =>
+              void loadGroceryInvoiceByBarcode(
+                barcode,
+                placement ? { placement } : undefined,
+              )
             }
+            activeCartHasItems={activeCart.lines.length > 0}
             refreshKey={invoiceRefreshKey}
           />
         </div>
@@ -4028,6 +4123,51 @@ export function QuickSaleWorkspace({
           ) : null}
         </>
       ) : null}
+      <Dialog
+        open={invoicePlacementChoice != null}
+        onOpenChange={(open) => {
+          if (!open) setInvoicePlacementChoice(null);
+        }}
+      >
+        <DialogContent className="max-w-sm gap-4 p-5 sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add forwarded invoice</DialogTitle>
+            <DialogDescription>
+              {invoicePlacementChoice
+                ? `${invoicePlacementChoice.barcodeCode} · ${invoicePlacementChoice.lineCount} item${invoicePlacementChoice.lineCount === 1 ? "" : "s"} · ${currency} ${invoicePlacementChoice.grandTotal.toFixed(2)}. This cart already has items.`
+                : "This cart already has items."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:flex-col sm:space-x-0">
+            <button
+              type="button"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+              onClick={() => {
+                const choice = invoicePlacementChoice;
+                if (!choice) return;
+                void loadGroceryInvoiceByBarcode(choice.barcode, {
+                  placement: "merge",
+                });
+              }}
+            >
+              Add to this cart
+            </button>
+            <button
+              type="button"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
+              onClick={() => {
+                const choice = invoicePlacementChoice;
+                if (!choice) return;
+                void loadGroceryInvoiceByBarcode(choice.barcode, {
+                  placement: "new",
+                });
+              }}
+            >
+              Open in new cart
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

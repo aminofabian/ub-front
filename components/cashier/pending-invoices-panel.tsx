@@ -6,6 +6,7 @@ import {
   ClipboardList,
   ChevronDown,
   Loader2,
+  Plus,
   PlusCircle,
   Clock,
   User,
@@ -29,7 +30,12 @@ import {
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
 
 type PendingInvoicesPanelProps = {
-  onLoadInvoice: (barcode: string) => void;
+  onLoadInvoice: (
+    barcode: string,
+    placement?: "merge" | "new",
+  ) => void;
+  /** When true, show separate + (add to cart) and New cart actions. */
+  activeCartHasItems?: boolean;
   refreshKey?: number;
 };
 
@@ -103,6 +109,7 @@ function stkBadgeClass(status: string | null | undefined): string {
 
 export function PendingInvoicesPanel({
   onLoadInvoice,
+  activeCartHasItems = false,
   refreshKey = 0,
 }: PendingInvoicesPanelProps) {
   const { branchId, me } = useDashboard();
@@ -431,80 +438,160 @@ export function PendingInvoicesPanel({
                     const stkLabel = stkBadgeLabel(inv.lastStkStatus);
                     const isBusy = busyId === inv.id;
                     const showMarkPaid = markPaidId === inv.id;
+                    const barcode = inv.barcodeCode?.trim() ?? "";
+                    const loadOrWarn = (placement?: "merge" | "new") => {
+                      if (!barcode) {
+                        toast.error(
+                          "Invoice barcode missing — refresh the list.",
+                        );
+                        return;
+                      }
+                      onLoadInvoice(barcode, placement);
+                      setOpen(false);
+                    };
 
                     return (
                       <div key={inv.id} className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const barcode = inv.barcodeCode?.trim() ?? "";
-                            if (!barcode) {
-                              toast.error(
-                                "Invoice barcode missing — refresh the list.",
-                              );
-                              return;
-                            }
-                            onLoadInvoice(barcode);
-                            setOpen(false);
-                          }}
-                          className="flex w-full items-start gap-3 text-left transition-colors"
-                        >
-                          <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                            <ShoppingBag className="size-4 text-primary" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span
-                                className="truncate text-xs font-mono font-semibold text-foreground"
-                                title={inv.barcodeCode}
-                              >
-                                {inv.barcodeCode}
-                              </span>
-                              {inv.remote ? (
-                                <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
-                                  Remote
-                                </span>
-                              ) : null}
-                              <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                                {inv.lineCount}{" "}
-                                {inv.lineCount === 1 ? "item" : "items"}
-                              </span>
-                              {stkLabel ? (
+                        {activeCartHasItems ? (
+                          <div className="flex w-full items-start gap-2">
+                            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                              <ShoppingBag className="size-4 text-primary" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
                                 <span
-                                  className={cn(
-                                    "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
-                                    stkBadgeClass(inv.lastStkStatus),
-                                  )}
+                                  className="truncate text-xs font-mono font-semibold text-foreground"
+                                  title={inv.barcodeCode}
                                 >
-                                  {stkLabel}
+                                  {inv.barcodeCode}
                                 </span>
-                              ) : null}
-                            </div>
-                            <div className="mt-0.5 text-xs font-semibold text-foreground">
-                              {Number(inv.grandTotal).toLocaleString("en-KE", {
-                                style: "currency",
-                                currency: "KES",
-                              })}
-                            </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-                              {inv.customerPhone ? (
+                                {inv.remote ? (
+                                  <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
+                                    Remote
+                                  </span>
+                                ) : null}
+                                <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                  {inv.lineCount}{" "}
+                                  {inv.lineCount === 1 ? "item" : "items"}
+                                </span>
+                                {stkLabel ? (
+                                  <span
+                                    className={cn(
+                                      "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
+                                      stkBadgeClass(inv.lastStkStatus),
+                                    )}
+                                  >
+                                    {stkLabel}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="mt-0.5 text-xs font-semibold text-foreground">
+                                {Number(inv.grandTotal).toLocaleString("en-KE", {
+                                  style: "currency",
+                                  currency: "KES",
+                                })}
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                                {inv.customerPhone ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Phone className="size-2.5" />
+                                    {inv.customerPhone}
+                                  </span>
+                                ) : null}
                                 <span className="inline-flex items-center gap-1">
-                                  <Phone className="size-2.5" />
-                                  {inv.customerPhone}
+                                  <User className="size-2.5" />
+                                  {inv.createdByName || "Staff"}
                                 </span>
-                              ) : null}
-                              <span className="inline-flex items-center gap-1">
-                                <User className="size-2.5" />
-                                {inv.createdByName || "Staff"}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <Clock className="size-2.5" />
-                                {formatRelativeTime(inv.createdAt)}
-                              </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Clock className="size-2.5" />
+                                  {formatRelativeTime(inv.createdAt)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex shrink-0 flex-col items-stretch gap-1">
+                              <button
+                                type="button"
+                                title="Add to current cart"
+                                aria-label={`Add ${inv.barcodeCode} to current cart`}
+                                onClick={() => loadOrWarn("merge")}
+                                className="inline-flex size-8 items-center justify-center rounded-lg border border-border/60 bg-background text-foreground hover:bg-muted"
+                              >
+                                <Plus className="size-4" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Open in new cart"
+                                aria-label={`Open ${inv.barcodeCode} in a new cart`}
+                                onClick={() => loadOrWarn("new")}
+                                className="rounded-lg border border-border/60 bg-background px-2 py-1 text-[10px] font-semibold text-foreground hover:bg-muted"
+                              >
+                                New
+                              </button>
                             </div>
                           </div>
-                          <PlusCircle className="mt-1 size-4 shrink-0 text-muted-foreground" />
-                        </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => loadOrWarn()}
+                            className="flex w-full items-start gap-3 text-left transition-colors"
+                          >
+                            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                              <ShoppingBag className="size-4 text-primary" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span
+                                  className="truncate text-xs font-mono font-semibold text-foreground"
+                                  title={inv.barcodeCode}
+                                >
+                                  {inv.barcodeCode}
+                                </span>
+                                {inv.remote ? (
+                                  <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
+                                    Remote
+                                  </span>
+                                ) : null}
+                                <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                  {inv.lineCount}{" "}
+                                  {inv.lineCount === 1 ? "item" : "items"}
+                                </span>
+                                {stkLabel ? (
+                                  <span
+                                    className={cn(
+                                      "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
+                                      stkBadgeClass(inv.lastStkStatus),
+                                    )}
+                                  >
+                                    {stkLabel}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="mt-0.5 text-xs font-semibold text-foreground">
+                                {Number(inv.grandTotal).toLocaleString("en-KE", {
+                                  style: "currency",
+                                  currency: "KES",
+                                })}
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                                {inv.customerPhone ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Phone className="size-2.5" />
+                                    {inv.customerPhone}
+                                  </span>
+                                ) : null}
+                                <span className="inline-flex items-center gap-1">
+                                  <User className="size-2.5" />
+                                  {inv.createdByName || "Staff"}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Clock className="size-2.5" />
+                                  {formatRelativeTime(inv.createdAt)}
+                                </span>
+                              </div>
+                            </div>
+                            <PlusCircle className="mt-1 size-4 shrink-0 text-muted-foreground" />
+                          </button>
+                        )}
 
                         {inv.remote && (canPayInvoices || online) ? (
                           <div className="mt-2 space-y-2 pl-11">
