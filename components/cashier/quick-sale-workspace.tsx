@@ -3020,19 +3020,31 @@ export function QuickSaleWorkspace({
         if (walletPart > 0) {
           setLoading(false);
           setError(
-            "Grocery invoices can only be paid with cash, M-Pesa, or split (no wallet).",
+            "Grocery invoices can only be paid with cash, M-Pesa, credit, or split (no wallet).",
           );
           return;
         }
-        const allowedMethods = new Set(["cash", "mpesa_manual", "kiosk_pay"]);
+        const allowedMethods = new Set([
+          "cash",
+          "mpesa_manual",
+          "kiosk_pay",
+          "customer_credit",
+        ]);
         const isAllowedMethod = splitPay || allowedMethods.has(payMethod);
         if (!isAllowedMethod) {
           setLoading(false);
           setError(
-            "Grocery invoices can only be paid with cash, M-Pesa, or split.",
+            "Grocery invoices can only be paid with cash, M-Pesa, credit, or split.",
           );
           return;
         }
+
+        const groceryPayMethod =
+          payMethod === "customer_credit"
+            ? ("customer_credit" as const)
+            : isStkTender(payMethod)
+              ? ("mpesa_manual" as const)
+              : ("cash" as const);
 
         const groceryPayments = splitPay
           ? [
@@ -3048,9 +3060,7 @@ export function QuickSaleWorkspace({
             ]
           : [
               {
-                method: (isStkTender(payMethod)
-                  ? "mpesa_manual"
-                  : "cash") as "cash" | "mpesa_manual",
+                method: groceryPayMethod,
                 amount: grandTotal,
                 reference: isStkTender(payMethod)
                   ? mpesaRef.trim() || undefined
@@ -3061,7 +3071,12 @@ export function QuickSaleWorkspace({
         try {
           const result = await payGroceryInvoice(
             activeCart.groceryInvoiceId,
-            { payments: groceryPayments },
+            {
+              payments: groceryPayments,
+              ...(linkedCustomer?.id
+                ? { customerId: linkedCustomer.id }
+                : {}),
+            },
             idem,
           );
 

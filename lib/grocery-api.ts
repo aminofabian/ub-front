@@ -99,6 +99,8 @@ export type PayGroceryInvoiceRequest = {
     amount: number;
     reference?: string;
   }>;
+  /** Required when paying with customer_credit (tab). */
+  customerId?: string;
 };
 
 export type PayGroceryInvoiceResponse = {
