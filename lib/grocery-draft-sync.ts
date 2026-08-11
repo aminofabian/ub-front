@@ -77,6 +77,10 @@ export function applyGroceryDraftToLines(
       quantity: sl.quantity,
       unitPrice: sl.unitPrice,
       unitName: sl.unitName,
+      // Draft payload has no isWeighed — keep local flag, or infer from fractional qty.
+      isWeighed:
+        existing?.isWeighed === true ||
+        Math.abs(sl.quantity - Math.round(sl.quantity)) > 1e-9,
     };
   });
 

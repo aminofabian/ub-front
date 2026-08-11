@@ -44,7 +44,7 @@ import {
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useDashboard } from "@/components/dashboard-provider";
-import { useFeatureFlag } from "@/components/providers/tenant-provider";
+import { useFeatureFlag, useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
   GroceryAppBottomNav,
   GROCERY_TAB_BAR_CLEARANCE,
@@ -56,6 +56,7 @@ import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { cn } from "@/lib/utils";
 import {
   fetchItems,
+  setPosItemWeighed,
   type ItemSummaryRecord,
   itemListThumbnailUrl,
 } from "@/lib/api";
@@ -64,10 +65,15 @@ import {
   posCartLineSuffix,
 } from "@/lib/cashier-item-display";
 import {
+  formatCartQtyValue,
+} from "@/components/cashier/cashier-qty-control";
+import {
   formatShelfPriceLabel,
   splitShelfPriceDisplay,
 } from "@/lib/cashier-shelf-price";
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
+import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 
 import {
@@ -355,6 +361,12 @@ export function GroceryWorkspace() {
   const groceryDraftsEnabled = useFeatureFlag(GROCERY_DRAFT_FLAGS.enabled);
   const groceryDraftsShadow = useFeatureFlag(GROCERY_DRAFT_FLAGS.shadowWrites);
   const groceryDraftsUi = useFeatureFlag(GROCERY_DRAFT_FLAGS.uiVisible);
+  const featureFlags = useFeatureFlags();
+  const weighedToggleFlagEnabled =
+    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false;
+  const allowWeighedToggle =
+    hasPermission(effectiveMe?.permissions, Permission.CatalogItemsWrite) ||
+    weighedToggleFlagEnabled;
   const groceryDraftPersistence = groceryDraftsEnabled || groceryDraftsShadow;
   const showCounterNumber = groceryDraftsUi || groceryDraftsEnabled;
   const [cartPulse, setCartPulse] = useState(0);
@@ -695,13 +707,22 @@ export function GroceryWorkspace() {
 
   const addLine = useCallback(
     (item: ItemSummaryRecord) => {
+      const weighed = item.isWeighed === true;
       const existingIdx = lines.findIndex((l) => l.itemId === item.id);
       if (existingIdx >= 0) {
         const existingKey = lines[existingIdx].key;
         setLines((prev) =>
-          prev.map((l, i) =>
-            i === existingIdx ? { ...l, quantity: l.quantity + 1 } : l,
-          ),
+          prev.map((l, i) => {
+            if (i !== existingIdx) return l;
+            const nextQty = weighed
+              ? Number(formatCartQtyValue(l.quantity + 1))
+              : l.quantity + 1;
+            return {
+              ...l,
+              quantity: nextQty,
+              isWeighed: weighed || l.isWeighed === true,
+            };
+          }),
         );
         setRecentlyAddedKey(existingKey);
       } else {
@@ -712,7 +733,8 @@ export function GroceryWorkspace() {
             `${cashierItemPrimaryLabel(item)}${posCartLineSuffix(item)}`.trim(),
           quantity: 1,
           unitPrice: tileShelfPriceValues.current[item.id] ?? 0,
-          unitName: "",
+          unitName: weighed ? "kg" : "",
+          isWeighed: weighed,
         };
         setLines((prev) => [...prev, newLine]);
         setRecentlyAddedKey(newLine.key);
@@ -729,7 +751,12 @@ export function GroceryWorkspace() {
         prev.map((l) => {
           if (l.key !== key) return l;
           if (field === "quantity") {
-            return { ...l, quantity: Math.max(1, value) };
+            const weighed = l.isWeighed === true;
+            if (weighed) {
+              if (!Number.isFinite(value) || value <= 0) return l;
+              return { ...l, quantity: Number(formatCartQtyValue(value)) };
+            }
+            return { ...l, quantity: Math.max(1, Math.round(value)) };
           }
           return { ...l, unitPrice: Math.max(0, value) };
         }),
@@ -737,6 +764,85 @@ export function GroceryWorkspace() {
       scheduleDraftSync();
     },
     [scheduleDraftSync],
+  );
+
+  const [weighedToggleBusyItemId, setWeighedToggleBusyItemId] = useState<
+    string | null
+  >(null);
+
+  const toggleLineWeighed = useCallback(
+    async (lineKey: string) => {
+      if (!allowWeighedToggle) return;
+      if (!online) {
+        toast.error("Go online to change weighted selling.");
+        return;
+      }
+      const line = lines.find((l) => l.key === lineKey);
+      if (!line) return;
+      const next = line.isWeighed !== true;
+      setWeighedToggleBusyItemId(line.itemId);
+      try {
+        const updated = await setPosItemWeighed(line.itemId, next);
+        setLines((prev) =>
+          prev.map((l) => {
+            if (l.itemId !== line.itemId) return l;
+            let quantity = l.quantity;
+            if (!updated.isWeighed) {
+              quantity = Math.max(1, Math.round(l.quantity));
+            } else {
+              quantity = Number(formatCartQtyValue(l.quantity));
+            }
+            return {
+              ...l,
+              quantity,
+              isWeighed: updated.isWeighed,
+              unitName: updated.isWeighed
+                ? "kg"
+                : updated.unitType?.trim() || l.unitName,
+            };
+          }),
+        );
+        setHits((prev) =>
+          prev.map((h) =>
+            h.id === line.itemId
+              ? {
+                  ...h,
+                  isWeighed: updated.isWeighed,
+                  ...(updated.unitType
+                    ? { unitType: updated.unitType }
+                    : {}),
+                }
+              : h,
+          ),
+        );
+        setDepartmentCatalog((prev) =>
+          prev.map((h) =>
+            h.id === line.itemId
+              ? {
+                  ...h,
+                  isWeighed: updated.isWeighed,
+                  ...(updated.unitType
+                    ? { unitType: updated.unitType }
+                    : {}),
+                }
+              : h,
+          ),
+        );
+        toast.success(
+          updated.isWeighed
+            ? "Marked as weighted — tap the scissors to sell a half"
+            : "Weighted selling cleared",
+        );
+        scheduleDraftSync();
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not update weighted setting",
+        );
+      } finally {
+        setWeighedToggleBusyItemId(null);
+      }
+    },
+    [allowWeighedToggle, online, lines, scheduleDraftSync],
   );
 
   const removeLine = useCallback(
@@ -1295,6 +1401,9 @@ export function GroceryWorkspace() {
               lines={lines}
               onUpdateLine={updateLine}
               onRemoveLine={removeLine}
+              onToggleWeighed={toggleLineWeighed}
+              allowWeighedToggle={allowWeighedToggle}
+              weighedToggleBusyItemId={weighedToggleBusyItemId}
               onGenerate={onGenerate}
               onClearCart={clearCart}
               loading={loading}
@@ -1476,6 +1585,9 @@ export function GroceryWorkspace() {
                 lines={lines}
                 onUpdateLine={updateLine}
                 onRemoveLine={removeLine}
+                onToggleWeighed={toggleLineWeighed}
+                allowWeighedToggle={allowWeighedToggle}
+                weighedToggleBusyItemId={weighedToggleBusyItemId}
                 onGenerate={onGenerate}
                 onClearCart={clearCart}
                 loading={loading}

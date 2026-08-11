@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import {
-  Minus,
-  Plus,
   ShoppingBasket,
   Trash2,
   Receipt,
@@ -12,6 +10,12 @@ import {
   X,
   WifiOff,
 } from "lucide-react";
+import {
+  CashierQtyControl,
+  formatCartQtyLabel,
+  formatCartQtyValue,
+} from "@/components/cashier/cashier-qty-control";
+import { CashierWeighedToggle } from "@/components/cashier/cashier-weighed-toggle";
 import { cn } from "@/lib/utils";
 import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
 
@@ -24,6 +28,8 @@ export type GroceryCartLine = {
   quantity: number;
   unitPrice: number;
   unitName: string;
+  /** When true, fractional qty (½ watermelon, etc.) is allowed — matches sale API. */
+  isWeighed?: boolean;
 };
 
 type GroceryInvoiceCartProps = {
@@ -34,6 +40,10 @@ type GroceryInvoiceCartProps = {
     value: number,
   ) => void;
   onRemoveLine: (key: string) => void;
+  /** Optional: mark / clear sell-by-weight (same as cashier). */
+  onToggleWeighed?: (key: string) => void;
+  allowWeighedToggle?: boolean;
+  weighedToggleBusyItemId?: string | null;
   onGenerate: () => void;
   onClearCart?: () => void;
   loading: boolean;
@@ -60,55 +70,6 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-// ── Quantity Stepper ───────────────────────────────────────────────
-
-function QuantityStepper({
-  value,
-  min = 1,
-  onDecrease,
-  onIncrease,
-}: {
-  value: number;
-  min?: number;
-  onDecrease: () => void;
-  onIncrease: () => void;
-}) {
-  return (
-    <div className="inline-flex select-none items-center rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card p-0.5">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDecrease();
-        }}
-        disabled={value <= min}
-        className={cn(
-          "flex size-8 items-center justify-center rounded-none text-foreground transition-colors touch-manipulation",
-          "hover:bg-muted active:scale-95",
-          "disabled:opacity-30 disabled:hover:bg-transparent",
-        )}
-        aria-label="Decrease quantity"
-      >
-        <Minus className="size-3.5" strokeWidth={2.5} />
-      </button>
-      <span className="flex min-w-[2.25rem] items-center justify-center text-sm font-semibold tabular-nums text-foreground">
-        {value}
-      </span>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onIncrease();
-        }}
-        className="flex size-8 items-center justify-center rounded-none bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] transition-colors touch-manipulation hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)] active:scale-95"
-        aria-label="Increase quantity"
-      >
-        <Plus className="size-3.5" strokeWidth={2.5} />
-      </button>
-    </div>
-  );
-}
-
 // ── Cart Line Item ─────────────────────────────────────────────────
 
 function CartLineItem({
@@ -116,6 +77,9 @@ function CartLineItem({
   currency,
   onUpdateLine,
   onRemoveLine,
+  onToggleWeighed,
+  allowWeighedToggle,
+  weighedToggleBusy,
   isLast,
   isRecentlyAdded,
 }: {
@@ -127,12 +91,17 @@ function CartLineItem({
     value: number,
   ) => void;
   onRemoveLine: (key: string) => void;
+  onToggleWeighed?: (key: string) => void;
+  allowWeighedToggle?: boolean;
+  weighedToggleBusy?: boolean;
   isLast: boolean;
   isRecentlyAdded?: boolean;
 }) {
+  const weighed = line.isWeighed === true;
   const lineTotal = round2(line.quantity * line.unitPrice);
   const priceLabel = formatShelfPriceLabel(line.unitPrice, currency);
   const totalLabel = formatShelfPriceLabel(lineTotal, currency);
+  const qtyLabel = formatCartQtyLabel(line.quantity);
 
   return (
     <div
@@ -143,24 +112,48 @@ function CartLineItem({
       )}
     >
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
-          {line.label}
-        </p>
+        <div className="flex min-w-0 items-start gap-1.5">
+          <p className="min-w-0 flex-1 line-clamp-2 text-sm font-medium leading-snug text-foreground">
+            {line.label}
+          </p>
+          {allowWeighedToggle && onToggleWeighed ? (
+            <CashierWeighedToggle
+              weighed={weighed}
+              busy={weighedToggleBusy}
+              itemLabel={line.label}
+              onToggle={() => onToggleWeighed(line.key)}
+            />
+          ) : null}
+        </div>
 
         <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
           {priceLabel ?? `${currency} ${line.unitPrice.toFixed(2)}`}
-          {line.unitName ? ` · ${line.unitName}` : null}
+          {" × "}
+          {qtyLabel}
+          {weighed ? " kg" : ""}
+          {line.unitName && !weighed ? ` · ${line.unitName}` : null}
         </p>
 
         <div className="mt-2">
-          <QuantityStepper
-            value={line.quantity}
-            onDecrease={() =>
-              onUpdateLine(line.key, "quantity", Math.max(1, line.quantity - 1))
+          <CashierQtyControl
+            quantity={
+              weighed
+                ? formatCartQtyValue(line.quantity)
+                : String(Math.max(1, Math.round(line.quantity)))
             }
-            onIncrease={() =>
-              onUpdateLine(line.key, "quantity", line.quantity + 1)
-            }
+            itemLabel={line.label}
+            size="sm"
+            allowFractions={weighed}
+            onChange={(next) => {
+              const n = Number(next);
+              if (!Number.isFinite(n) || n <= 0) return;
+              onUpdateLine(
+                line.key,
+                "quantity",
+                weighed ? Number(formatCartQtyValue(n)) : Math.max(1, Math.round(n)),
+              );
+            }}
+            onRemove={() => onRemoveLine(line.key)}
           />
         </div>
       </div>
@@ -188,6 +181,9 @@ export function GroceryInvoiceCart({
   lines,
   onUpdateLine,
   onRemoveLine,
+  onToggleWeighed,
+  allowWeighedToggle = false,
+  weighedToggleBusyItemId = null,
   onGenerate,
   onClearCart,
   loading,
@@ -305,6 +301,9 @@ export function GroceryInvoiceCart({
                 currency={currency}
                 onUpdateLine={onUpdateLine}
                 onRemoveLine={onRemoveLine}
+                onToggleWeighed={onToggleWeighed}
+                allowWeighedToggle={allowWeighedToggle}
+                weighedToggleBusy={weighedToggleBusyItemId === line.itemId}
                 isLast={i === lines.length - 1}
                 isRecentlyAdded={recentlyAddedKey === line.key}
               />
