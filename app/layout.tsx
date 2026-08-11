@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, DM_Sans, Geist_Mono } from "next/font/google";
+import { DM_Sans, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
+import { cormorant } from "@/app/fonts/cormorant";
 import { TenantProvider } from "@/components/providers/tenant-provider";
 import { TenantFaviconSync } from "@/components/tenant-favicon-sync";
 import { TenantHostSync } from "@/components/tenant-host-sync";
@@ -28,14 +29,6 @@ const dmSans = DM_Sans({
   variable: "--font-dm-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  display: "swap",
-});
-
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  style: ["normal", "italic"],
   display: "swap",
 });
 

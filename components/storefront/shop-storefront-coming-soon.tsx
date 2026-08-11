@@ -13,7 +13,6 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { Cormorant_Garamond } from "next/font/google";
 import {
   ArrowRight,
   Check,
@@ -26,6 +25,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
+import { cormorant } from "@/app/fonts/cormorant";
 import { StorefrontSetupModal } from "@/components/storefront/storefront-setup-modal";
 import styles from "@/components/storefront/shop-storefront-coming-soon.module.css";
 import { buildComingSoonTheme, type ComingSoonTheme } from "@/lib/coming-soon-theme";
@@ -33,14 +33,6 @@ import { APP_ROUTES } from "@/lib/config";
 import { getSessionTokens } from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  style: ["normal", "italic"],
-  variable: "--font-cormorant",
-  display: "swap",
-});
 
 const PROMISES = [
   {
