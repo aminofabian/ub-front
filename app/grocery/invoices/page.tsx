@@ -24,9 +24,11 @@ import {
   LayoutGrid,
   Table2,
   ArrowDownUp,
+  LockKeyhole,
 } from "lucide-react";
 import Link from "next/link";
 
+import { usePosTillLock } from "@/components/auth/pos-till-lock";
 import {
   GroceryAppBottomNav,
   GROCERY_TAB_BAR_CLEARANCE,
@@ -154,6 +156,7 @@ function formatDateTime(iso?: string): string {
 
 export default function GroceryInvoicesPage() {
   const { branchId, business, branches } = useDashboard();
+  const { lock: lockCounter, locked: counterLocked } = usePosTillLock();
   const online = useOnlineStatus();
   const currency = business?.currency?.trim() || "KES";
   const branchName = useMemo(
@@ -495,6 +498,16 @@ export default function GroceryInvoicesPage() {
                 className={cn("size-3.5", refreshing && "animate-spin")}
               />
               <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => lockCounter({ reason: "manual" })}
+              disabled={counterLocked}
+              className="gap-1.5"
+            >
+              <LockKeyhole className="size-3.5" />
+              <span className="hidden sm:inline">Lock</span>
             </Button>
             <Button asChild size="sm" className="gap-1.5">
               <Link href="/grocery">

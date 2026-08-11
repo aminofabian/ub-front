@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-gate";
 import { PosSoftAuthScope } from "@/components/auth/pos-soft-auth-scope";
+import { PosTillLockProvider } from "@/components/auth/pos-till-lock";
 import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-guards";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
@@ -69,10 +70,12 @@ function GroceryLayoutInner({ children }: GroceryLayoutProps) {
       <GroceryRoleRedirects />
       <DashboardClientGuards />
       <DashboardProvider>
-        <RealtimeProvider>
-          {children}
-          <DashboardToaster />
-        </RealtimeProvider>
+        <PosTillLockProvider>
+          <RealtimeProvider>
+            {children}
+            <DashboardToaster />
+          </RealtimeProvider>
+        </PosTillLockProvider>
       </DashboardProvider>
     </>
   );

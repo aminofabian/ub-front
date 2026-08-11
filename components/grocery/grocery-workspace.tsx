@@ -37,9 +37,11 @@ import {
   MapPin,
   Clock3,
   Keyboard,
+  LockKeyhole,
   MonitorSmartphone,
 } from "lucide-react";
 
+import { usePosTillLock } from "@/components/auth/pos-till-lock";
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlag } from "@/components/providers/tenant-provider";
@@ -293,6 +295,7 @@ export function GroceryWorkspace() {
   } = useDashboard();
   const bootstrap = useSessionBootstrapSnapshot();
   const effectiveMe = me ?? bootstrap.me;
+  const { lock: lockCounter, locked: counterLocked } = usePosTillLock();
   const online = useOnlineStatus();
   const currency = business?.currency?.trim() || "KES";
   const cashierName = effectiveMe?.name?.trim() || "";
@@ -977,6 +980,16 @@ export function GroceryWorkspace() {
               </span>
             </span>
             <RealtimeConnectionIndicator />
+            <button
+              type="button"
+              disabled={counterLocked}
+              onClick={() => lockCounter({ reason: "manual" })}
+              className="inline-flex items-center gap-1.5 rounded-none border border-white/25 bg-white/15 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--pos-primary-ink,#fff)] transition-colors hover:bg-white/25 disabled:opacity-50"
+              aria-label="Lock counter"
+            >
+              <LockKeyhole className="size-3" aria-hidden />
+              <span className="hidden min-[380px]:inline">Lock</span>
+            </button>
           </div>
         </div>
       </header>
