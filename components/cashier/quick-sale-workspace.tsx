@@ -188,13 +188,24 @@ function roundKesWhole(n: number): number {
   return Math.round(n);
 }
 
-function isMpesaPaymentInFlight(status: string): boolean {
-  return (
-    status === "sending" ||
-    status === "sent" ||
-    status === "awaiting_till" ||
-    status === "confirmed"
-  );
+/**
+ * True only while an actual STK prompt is on the customer's phone.
+ * "awaiting_till" is a passive Buy Goods listener — the cart must stay
+ * editable (the listener re-registers with the new total on every edit).
+ */
+function isMpesaPromptInFlight(status: string): boolean {
+  return status === "sending" || status === "sent";
+}
+
+/** Message for a blocked cart edit, or null when editing is allowed. */
+function cartEditBlockedByMpesa(status: string): string | null {
+  if (isMpesaPromptInFlight(status)) {
+    return "An M-Pesa prompt is on the customer's phone. Cancel it to change the cart.";
+  }
+  if (status === "confirmed") {
+    return "M-Pesa already received — the sale is completing.";
+  }
+  return null;
 }
 
 function parseQty(raw: string): number | null {
@@ -2055,10 +2066,9 @@ export function QuickSaleWorkspace({
       const inflight = cartsRef.current.find(
         (c) => c.id === activeCartIdRef.current,
       )?.stkPushStatus;
-      if (isMpesaPaymentInFlight(inflight ?? "")) {
-        toast.error(
-          "Finish or cancel the M-Pesa payment before changing the cart.",
-        );
+      const blockedMsg = cartEditBlockedByMpesa(inflight ?? "");
+      if (blockedMsg) {
+        toast.error(blockedMsg);
         return false;
       }
       if (item.groupLabelOnly) {
@@ -2184,10 +2194,9 @@ export function QuickSaleWorkspace({
 
   const removeLine = useCallback(
     (key: string) => {
-      if (isMpesaPaymentInFlight(stkPushStatusRef.current)) {
-        toast.error(
-          "Finish or cancel the M-Pesa payment before changing the cart.",
-        );
+      const blockedMsg = cartEditBlockedByMpesa(stkPushStatusRef.current);
+      if (blockedMsg) {
+        toast.error(blockedMsg);
         return;
       }
       updateActiveCart((cart) => {
@@ -2294,10 +2303,9 @@ export function QuickSaleWorkspace({
 
   const updateLine = useCallback(
     (key: string, field: "quantity" | "unitPrice", value: string) => {
-      if (isMpesaPaymentInFlight(stkPushStatusRef.current)) {
-        toast.error(
-          "Finish or cancel the M-Pesa payment before changing the cart.",
-        );
+      const blockedMsg = cartEditBlockedByMpesa(stkPushStatusRef.current);
+      if (blockedMsg) {
+        toast.error(blockedMsg);
         return;
       }
       updateActiveCart((cart) => ({
