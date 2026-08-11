@@ -274,7 +274,7 @@ export function DenominationRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[2.4rem_minmax(0,1fr)] items-center gap-0.5 px-1 py-px sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:gap-1 sm:px-1.5",
+        "grid grid-cols-[3rem_6.5rem_minmax(0,1fr)] items-center gap-1 px-1.5 py-px",
         "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] last:border-b-0",
         "transition-[background-color] duration-150",
         hasQty
@@ -289,7 +289,7 @@ export function DenominationRow({
         {shortLabel}
       </p>
 
-      <div className="flex items-center justify-center gap-0.5">
+      <div className="flex w-[6.5rem] shrink-0 items-center justify-between gap-0.5">
         {editable ? (
           <button
             type="button"
@@ -300,7 +300,9 @@ export function DenominationRow({
           >
             <Minus className="size-3" strokeWidth={2.5} />
           </button>
-        ) : null}
+        ) : (
+          <span className="size-6 shrink-0" aria-hidden />
+        )}
         <input
           type="number"
           min={0}
@@ -311,7 +313,8 @@ export function DenominationRow({
           className={shiftFieldClass(
             readOnly,
             cn(
-              "h-6 w-10 shrink-0 px-0.5 py-0 text-center text-[11px] font-semibold tabular-nums sm:w-11",
+              "h-6 w-10 shrink-0 px-0.5 py-0 text-center text-[11px] font-semibold tabular-nums",
+              "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
               hasQty &&
                 "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,#fff_94%,transparent)]",
             ),
@@ -332,12 +335,14 @@ export function DenominationRow({
           >
             <Plus className="size-3" strokeWidth={2.5} />
           </button>
-        ) : null}
+        ) : (
+          <span className="size-6 shrink-0" aria-hidden />
+        )}
       </div>
 
       <span
         className={cn(
-          "hidden min-w-[3.25rem] text-right font-mono text-[10px] tabular-nums sm:inline",
+          "min-w-0 truncate text-right font-mono text-[10px] tabular-nums",
           hasQty
             ? "font-semibold text-[var(--pos-ink,#1c1915)]"
             : "text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
