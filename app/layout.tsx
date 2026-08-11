@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { cormorant } from "@/app/fonts/cormorant";
+import { dmSans } from "@/app/fonts/dm-sans";
+import { geistMono } from "@/app/fonts/geist-mono";
 import { TenantProvider } from "@/components/providers/tenant-provider";
 import { TenantFaviconSync } from "@/components/tenant-favicon-sync";
 import { TenantHostSync } from "@/components/tenant-host-sync";
@@ -19,18 +20,6 @@ import {
   resolveTenantContext,
 } from "@/lib/storefront-slug";
 import "./globals.css";
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  display: "swap",
-});
 
 const BRAND_THEME_COLOR = "#28A745";
 
