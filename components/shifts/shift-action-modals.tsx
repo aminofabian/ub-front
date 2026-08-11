@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Banknote, Building2, DoorClosed } from "lucide-react";
+import { Banknote, Building2, Coins, DoorClosed, Minus, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -51,42 +51,124 @@ import { cn } from "@/lib/utils";
 
 /** Centered shift / cash modals — marketplace paper shelf grammar. */
 const SHIFT_MODAL_CONTENT = cn(
-  // overscroll-contain: swipes on the pinned pad/header/footer must never
-  // chain through into the page behind the modal (would scroll the page).
-  "flex max-h-[min(92dvh,52rem)] flex-col gap-0 overflow-hidden overscroll-contain rounded-none p-0",
-  "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-  "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]",
-  "shadow-[4px_4px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+  "flex max-h-[min(92dvh,40rem)] w-full max-w-2xl flex-col gap-0 overflow-hidden overscroll-contain !rounded-none p-0",
+  "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_42%,var(--card))]",
+  "shadow-[4px_4px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
 );
 
 const SHIFT_MODAL_HEADER = cn(
-  "shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-  "bg-[var(--pos-primary,#0f766e)] px-4 pb-3 pt-3.5 sm:px-5",
+  "shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
+  "bg-[var(--pos-primary,#0f766e)] px-3 py-2 sm:px-4",
   "text-[var(--pos-primary-ink,#fff)]",
 );
 
 const SHIFT_MODAL_ICON = cn(
-  "flex size-9 shrink-0 items-center justify-center rounded-none border border-white/25",
+  "flex size-7 shrink-0 items-center justify-center rounded-none border border-white/30",
   "bg-white/10 text-[var(--pos-primary-ink,#fff)]",
 );
 
-/** Scrollable middle of shift open/close modals. */
+/** Tight body so the denomination grid fits without scrolling. */
 const SHIFT_MODAL_BODY =
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2.5 sm:px-5 sm:py-3";
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2 sm:px-4";
 
 const SHIFT_MODAL_SECTION = cn(
-  "rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-  "bg-[color-mix(in_srgb,#fff_70%,transparent)] p-3",
+  "rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+  "bg-[color-mix(in_srgb,#fff_88%,var(--pos-paper,#f1ece3))] overflow-hidden p-0",
+  "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]",
 );
 
 const SHIFT_MODAL_SECTION_TITLE = cn(
-  "mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground",
+  "text-[9px] font-bold uppercase tracking-[0.12em]",
+  "text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]",
 );
 
 const SHIFT_MODAL_FOOTER = cn(
-  "shrink-0 gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-  "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-4 py-3 sm:px-5",
+  "shrink-0 gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-3 py-2 sm:px-4",
 );
+
+const SHIFT_MODAL_BTN_OUTLINE = cn(
+  "rounded-none border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
+  "bg-[color-mix(in_srgb,#fff_80%,var(--pos-paper,#f1ece3))]",
+  "text-[var(--pos-ink,#1c1915)] shadow-none",
+  "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_85%,transparent)]",
+);
+
+const SHIFT_MODAL_BTN_PRIMARY = cn(
+  "rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_20%,transparent)]",
+  "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
+  "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
+  "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
+  "active:translate-x-px active:translate-y-px active:shadow-none",
+);
+
+const SHIFT_MODAL_CLOSE = cn(
+  "absolute right-2.5 top-2.5 z-50 inline-flex size-7 items-center justify-center rounded-none",
+  "border border-white/30 bg-white/10 text-[var(--pos-primary-ink,#fff)]",
+  "transition-colors hover:bg-white/20",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+);
+
+function ShiftModalClose() {
+  return (
+    <DialogClose aria-label="Close" className={SHIFT_MODAL_CLOSE}>
+      <X className="size-3.5" strokeWidth={2.25} />
+    </DialogClose>
+  );
+}
+
+/** Sharp shelf fields — overrides dashboard rounded-md / soft rings. */
+function shiftFieldClass(disabled?: boolean, className?: string) {
+  return dashboardInputClass(
+    disabled,
+    cn(
+      "rounded-none shadow-none",
+      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)]",
+      "bg-[color-mix(in_srgb,#fff_92%,var(--pos-paper,#f1ece3))]",
+      "text-[var(--pos-ink,#1c1915)]",
+      "placeholder:text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_38%,transparent)]",
+      "focus-visible:border-[var(--pos-primary,#0f766e)]",
+      "focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/25",
+      "focus-visible:ring-offset-0",
+      className,
+    ),
+  );
+}
+
+function shiftSelectClass(disabled?: boolean, className?: string) {
+  return dashboardSelectClass(
+    disabled,
+    cn(
+      "rounded-none shadow-none",
+      "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)]",
+      "bg-[color-mix(in_srgb,#fff_92%,var(--pos-paper,#f1ece3))]",
+      "focus-visible:border-[var(--pos-primary,#0f766e)]",
+      "focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/25",
+      "focus-visible:ring-offset-0",
+      className,
+    ),
+  );
+}
+
+const DENOM_STEPPER_BTN = cn(
+  "inline-flex size-6 shrink-0 items-center justify-center rounded-none border",
+  "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_75%,#fff)]",
+  "text-[var(--pos-ink,#1c1915)]",
+  "shadow-[1px_1px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+  "transition-[background-color,border-color,box-shadow,transform] duration-150",
+  "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)]",
+  "hover:bg-[color-mix(in_srgb,#fff_90%,var(--pos-paper,#f1ece3))]",
+  "active:translate-x-px active:translate-y-px active:shadow-none",
+  "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/35",
+  "disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none",
+);
+
+function shortDenomLabel(value: number): string {
+  return value.toLocaleString("en-KE");
+}
 
 /** All Kenyan KES denominations in display order (largest first). */
 export const KES_DENOMINATIONS = [
@@ -163,7 +245,7 @@ export function denomsToQuantities(
   }
   return map;
 }
-/** Denomination input row. */
+/** Denomination input row — compact qty steppers. */
 export function DenominationRow({
   denomValue,
   label,
@@ -180,34 +262,122 @@ export function DenominationRow({
   readOnly?: boolean;
 }) {
   const total = denomValue * quantity;
+  const hasQty = quantity > 0;
+  const editable = !readOnly && !!onChange;
+  const shortLabel = shortDenomLabel(denomValue);
+
+  const setQty = (next: number) => {
+    if (!onChange) return;
+    onChange(Math.max(0, Math.floor(next)));
+  };
+
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-1.5 rounded-md border border-border/60 bg-background px-2 py-1 text-xs sm:gap-2 sm:px-2.5 sm:text-[13px]",
+        "grid grid-cols-[2.4rem_minmax(0,1fr)] items-center gap-0.5 px-1 py-px sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:gap-1 sm:px-1.5",
+        "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] last:border-b-0",
+        "transition-[background-color] duration-150",
+        hasQty
+          ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
+          : "bg-transparent hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]",
       )}
     >
-      <span className="min-w-0 flex-1 truncate font-medium text-foreground">{label}</span>
-      <input
-        type="number"
-        min={0}
-        inputMode="numeric"
-        autoFocus={autoFocus}
-        disabled={readOnly}
-        className={dashboardInputClass(
-          false,
-          "h-7 w-[3.75rem] shrink-0 py-0 pr-1 text-right text-xs tabular-nums sm:w-16 sm:text-[13px]",
+      <p
+        className="truncate font-mono text-[11px] font-semibold tabular-nums tracking-tight text-[var(--pos-ink,#1c1915)] sm:text-[12px]"
+        title={label}
+      >
+        {shortLabel}
+      </p>
+
+      <div className="flex items-center justify-center gap-0.5">
+        {editable ? (
+          <button
+            type="button"
+            className={DENOM_STEPPER_BTN}
+            aria-label={`Decrease ${label}`}
+            disabled={quantity <= 0}
+            onClick={() => setQty(quantity - 1)}
+          >
+            <Minus className="size-3" strokeWidth={2.5} />
+          </button>
+        ) : null}
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          autoFocus={autoFocus}
+          disabled={readOnly}
+          aria-label={`${label} quantity`}
+          className={shiftFieldClass(
+            readOnly,
+            cn(
+              "h-6 w-10 shrink-0 px-0.5 py-0 text-center text-[11px] font-semibold tabular-nums sm:w-11",
+              hasQty &&
+                "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,#fff_94%,transparent)]",
+            ),
+          )}
+          value={quantity || ""}
+          placeholder="0"
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10);
+            setQty(Number.isFinite(v) && v >= 0 ? v : 0);
+          }}
+        />
+        {editable ? (
+          <button
+            type="button"
+            className={DENOM_STEPPER_BTN}
+            aria-label={`Increase ${label}`}
+            onClick={() => setQty(quantity + 1)}
+          >
+            <Plus className="size-3" strokeWidth={2.5} />
+          </button>
+        ) : null}
+      </div>
+
+      <span
+        className={cn(
+          "hidden min-w-[3.25rem] text-right font-mono text-[10px] tabular-nums sm:inline",
+          hasQty
+            ? "font-semibold text-[var(--pos-ink,#1c1915)]"
+            : "text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
         )}
-        value={quantity || ""}
-        onChange={(e) => {
-          if (!onChange) return;
-          const v = parseInt(e.target.value, 10);
-          onChange(Number.isFinite(v) && v >= 0 ? v : 0);
-        }}
-      />
-      <span className="w-[4.25rem] shrink-0 text-right text-[11px] tabular-nums text-muted-foreground sm:w-[4.5rem] sm:text-xs">
-        {moneyStr(total)}
+      >
+        {hasQty ? moneyStr(total) : "—"}
       </span>
     </div>
+  );
+}
+
+function DenominationGroup({
+  title,
+  icon,
+  total,
+  children,
+}: {
+  title: string;
+  icon: ReactNode;
+  total: number;
+  children: ReactNode;
+}) {
+  return (
+    <section className="min-w-0">
+      <div className="flex items-center justify-between gap-1 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_72%,transparent)] px-1.5 py-0.5">
+        <div className="flex items-center gap-1">
+          <span
+            className="flex size-4 items-center justify-center text-[var(--pos-primary,#0f766e)]"
+            aria-hidden
+          >
+            {icon}
+          </span>
+          <h5 className={SHIFT_MODAL_SECTION_TITLE}>{title}</h5>
+        </div>
+        <span className="font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+          {moneyStr(total)}
+        </span>
+      </div>
+      <div>{children}</div>
+    </section>
   );
 }
 
@@ -223,53 +393,69 @@ export function DenominationTable({
   onChange?: (qty: Record<number, number>) => void;
   readOnly?: boolean;
 }) {
-  const notesTotal = KES_DENOMINATIONS.reduce(
+  const notes = KES_DENOMINATIONS.filter((d) => d.type === "NOTE");
+  const coins = KES_DENOMINATIONS.filter((d) => d.type === "COIN");
+
+  const notesTotal = notes.reduce(
     (sum, d) => sum + d.value * (quantities[d.value] || 0),
     0,
   );
-  const notesSum = KES_DENOMINATIONS.filter((d) => d.type === "NOTE").reduce(
+  const coinsTotal = coins.reduce(
     (sum, d) => sum + d.value * (quantities[d.value] || 0),
     0,
   );
-  const coinsSum = KES_DENOMINATIONS.filter((d) => d.type === "COIN").reduce(
-    (sum, d) => sum + d.value * (quantities[d.value] || 0),
-    0,
-  );
+  const grandTotal = notesTotal + coinsTotal;
+
+  const renderRows = (
+    denoms: readonly { value: number; type: string; label: string }[],
+    startIndex: number,
+  ) =>
+    denoms.map((denom, i) => (
+      <DenominationRow
+        key={denom.value}
+        denomValue={denom.value}
+        label={denom.label}
+        quantity={quantities[denom.value] || 0}
+        readOnly={readOnly}
+        onChange={
+          readOnly || !onChange
+            ? undefined
+            : (val) => onChange({ ...quantities, [denom.value]: val })
+        }
+        autoFocus={startIndex + i === 0 && !readOnly}
+      />
+    ));
 
   return (
-    <div className="space-y-1.5">
-      <h4 className={cn(SHIFT_MODAL_SECTION_TITLE, "mb-1.5")}>{title}</h4>
-      <div className="grid grid-cols-1 gap-y-0.5 sm:grid-cols-2 sm:gap-x-2 sm:gap-y-0.5">
-        {KES_DENOMINATIONS.map((denom, i) => (
-          <DenominationRow
-            key={denom.value}
-            denomValue={denom.value}
-            label={denom.label}
-            quantity={quantities[denom.value] || 0}
-            readOnly={readOnly}
-            onChange={
-              readOnly || !onChange
-                ? undefined
-                : (val) => onChange({ ...quantities, [denom.value]: val })
-            }
-            autoFocus={i === 0 && !readOnly}
-          />
-        ))}
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[var(--pos-primary,#0f766e)] px-2 py-1.5 text-[var(--pos-primary-ink,#fff)]">
+        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--pos-primary-ink,#fff)]/75">
+          {title}
+        </p>
+        <p
+          key={grandTotal}
+          className="font-heading text-base font-semibold tabular-nums tracking-tight animate-in fade-in duration-150 sm:text-lg"
+        >
+          {moneyStr(grandTotal)}
+        </p>
       </div>
-      {/* Totals */}
-      <div className="mt-1.5 space-y-0.5 border-t border-border/40 pt-1.5 text-[11px] sm:text-xs">
-        <div className="flex justify-between text-muted-foreground">
-          <span>Total Notes</span>
-          <span className="tabular-nums font-medium">{moneyStr(notesSum)}</span>
-        </div>
-        <div className="flex justify-between text-muted-foreground">
-          <span>Total Coins</span>
-          <span className="tabular-nums font-medium">{moneyStr(coinsSum)}</span>
-        </div>
-        <div className="flex justify-between border-t border-border/35 pt-1 text-xs font-semibold sm:text-sm">
-          <span>Total {title}</span>
-          <span className="tabular-nums">{moneyStr(notesTotal)}</span>
-        </div>
+
+      <div className="grid grid-cols-2 divide-x divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
+        <DenominationGroup
+          title="Notes"
+          icon={<Banknote className="size-3" strokeWidth={2.25} />}
+          total={notesTotal}
+        >
+          {renderRows(notes, 0)}
+        </DenominationGroup>
+
+        <DenominationGroup
+          title="Coins"
+          icon={<Coins className="size-3" strokeWidth={2.25} />}
+          total={coinsTotal}
+        >
+          {renderRows(coins, notes.length)}
+        </DenominationGroup>
       </div>
     </div>
   );
@@ -289,15 +475,26 @@ function CashTotalField({
   autoFocus?: boolean;
   footer?: ReactNode;
 }) {
+  const numeric = Number(valueStr);
+  const safe = Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+
   return (
-    <div className="space-y-1.5">
-      <h4 className={cn(SHIFT_MODAL_SECTION_TITLE, "mb-1.5")}>{label}</h4>
+    <div className="space-y-2 p-2.5 sm:p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h4 className={SHIFT_MODAL_SECTION_TITLE}>{label}</h4>
+        <p className="font-heading text-base font-semibold tabular-nums tracking-tight text-[var(--pos-primary,#0f766e)] sm:text-lg">
+          {moneyStr(safe)}
+        </p>
+      </div>
       <input
         type="number"
         min={0}
         step="any"
         inputMode="decimal"
-        className={dashboardInputClass(false)}
+        className={shiftFieldClass(
+          false,
+          "h-10 text-sm font-semibold tabular-nums",
+        )}
         value={valueStr}
         onChange={(e) => onChange(e.target.value)}
         placeholder="0"
@@ -549,21 +746,22 @@ export function OpenShiftModal({
         if (!v) onClose();
       }}
     >
-      <DialogContent side="center" className={cn("max-w-xl", SHIFT_MODAL_CONTENT)}>
+      <DialogContent side="center" showCloseButton={false} className={SHIFT_MODAL_CONTENT}>
         <div className={SHIFT_MODAL_HEADER}>
+          <ShiftModalClose />
           <DialogHeader className="flex flex-row items-start gap-2.5 space-y-0 text-left sm:gap-3">
             <span className={SHIFT_MODAL_ICON} aria-hidden>
               <Building2 className="size-4 sm:size-[1.125rem]" />
             </span>
-            <div className="min-w-0 flex-1 space-y-0.5 pr-2">
-              <DialogTitle className="font-heading text-base font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-lg">
+            <div className="min-w-0 flex-1 space-y-0.5 pr-9">
+              <DialogTitle className="font-heading text-[15px] font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-base">
                 Open New Shift
               </DialogTitle>
-              <DialogDescription className="text-xs leading-snug text-[var(--pos-primary-ink,#fff)]/80 sm:text-[13px] sm:leading-relaxed">
+              <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
                 {useDenomBreakdown
                   ? prefillFromLastClose
-                    ? "Review the opening float (pre-filled from last close) and edit if needed."
-                    : "Count the opening float by denomination below."
+                    ? "Review the opening float (pre-filled from last close). Adjust any note or coin if needed."
+                    : "Count notes, then coins."
                   : `Enter the opening cash total in ${currency}. Note/coin breakdown is only available for KES.`}
               </DialogDescription>
             </div>
@@ -571,14 +769,14 @@ export function OpenShiftModal({
         </div>
 
           <div className={SHIFT_MODAL_BODY}>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Branch select */}
               <div className="space-y-1.5">
                 <label className={dashboardFilterFieldLabelClass()}>
                   Register / Branch
                 </label>
                 <select
-                  className={dashboardSelectClass(loading || prefillBusy)}
+                  className={shiftSelectClass(loading || prefillBusy)}
                   value={branchId}
                   disabled={!!lockedBranch}
                   onChange={(e) => setBranchId(e.target.value)}
@@ -600,7 +798,7 @@ export function OpenShiftModal({
               <div className={SHIFT_MODAL_SECTION}>
                 {useDenomBreakdown ? (
                   <DenominationTable
-                    title="Opening Float Count"
+                    title="Opening count"
                     quantities={quantities}
                     onChange={setQuantities}
                   />
@@ -611,22 +809,22 @@ export function OpenShiftModal({
                     onChange={setCashTotalStr}
                     autoFocus
                     footer={
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-[11px] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_50%,transparent)]">
                         Total: {moneyStr(totalCash, currency)}
                       </p>
                     }
                   />
                 )}
-                {useDenomBreakdown && prefillBusy ? (
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    Loading last closing count…
-                  </p>
-                ) : useDenomBreakdown && prefillHint ? (
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    {prefillHint}
-                  </p>
-                ) : null}
               </div>
+              {useDenomBreakdown && prefillBusy ? (
+                <p className="text-[11px] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
+                  Loading last closing count…
+                </p>
+              ) : useDenomBreakdown && prefillHint ? (
+                <p className="text-[11px] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
+                  {prefillHint}
+                </p>
+              ) : null}
 
               {/* Opening notes */}
               <div className="space-y-1.5">
@@ -637,7 +835,7 @@ export function OpenShiftModal({
                   </span>
                 </label>
                 <input
-                  className={dashboardInputClass(loading)}
+                  className={shiftFieldClass(loading)}
                   placeholder="Any notes about this shift..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -652,7 +850,7 @@ export function OpenShiftModal({
 
           <DialogFooter className={SHIFT_MODAL_FOOTER}>
             <DialogClose asChild>
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" className={SHIFT_MODAL_BTN_OUTLINE}>
                 Cancel
               </Button>
             </DialogClose>
@@ -660,6 +858,7 @@ export function OpenShiftModal({
               type="button"
               disabled={loading || prefillBusy}
               onClick={handleOpen}
+              className={SHIFT_MODAL_BTN_PRIMARY}
             >
               {loading ? "Opening..." : `Open Shift (${moneyStr(totalCash, currency)})`}
             </Button>
@@ -773,17 +972,18 @@ export function EditOpeningCountModal({
         if (!v) onClose();
       }}
     >
-      <DialogContent side="center" className={cn("max-w-xl", SHIFT_MODAL_CONTENT)}>
+      <DialogContent side="center" showCloseButton={false} className={SHIFT_MODAL_CONTENT}>
         <div className={SHIFT_MODAL_HEADER}>
+          <ShiftModalClose />
           <DialogHeader className="flex flex-row items-start gap-2.5 space-y-0 text-left sm:gap-3">
             <span className={SHIFT_MODAL_ICON} aria-hidden>
               <Banknote className="size-4 sm:size-[1.125rem]" />
             </span>
-            <div className="min-w-0 flex-1 space-y-0.5 pr-2">
-              <DialogTitle className="font-heading text-base font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-lg">
+            <div className="min-w-0 flex-1 space-y-0.5 pr-9">
+              <DialogTitle className="font-heading text-[15px] font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-base">
                 Edit Opening Count
               </DialogTitle>
-              <DialogDescription className="text-xs leading-snug text-[var(--pos-primary-ink,#fff)]/80 sm:text-[13px] sm:leading-relaxed">
+              <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
                 Updates opening float only. Cash sales and drawouts are left as
                 recorded; expected closing shifts by the same opening delta.
               </DialogDescription>
@@ -792,11 +992,11 @@ export function EditOpeningCountModal({
         </div>
 
           <div className={SHIFT_MODAL_BODY}>
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className={SHIFT_MODAL_SECTION}>
                 {useDenomBreakdown ? (
                   <DenominationTable
-                    title="Opening Count"
+                    title="Opening count"
                     quantities={quantities}
                     onChange={setQuantities}
                   />
@@ -823,7 +1023,7 @@ export function EditOpeningCountModal({
                   </span>
                 </label>
                 <input
-                  className={dashboardInputClass(loading)}
+                  className={shiftFieldClass(loading)}
                   placeholder="Opening notes..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -836,7 +1036,7 @@ export function EditOpeningCountModal({
                   Reason for correction
                 </label>
                 <input
-                  className={dashboardInputClass(loading)}
+                  className={shiftFieldClass(loading)}
                   placeholder="e.g. Miscounted KES 500 notes at open"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
@@ -851,11 +1051,11 @@ export function EditOpeningCountModal({
 
           <DialogFooter className={SHIFT_MODAL_FOOTER}>
             <DialogClose asChild>
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" className={SHIFT_MODAL_BTN_OUTLINE}>
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="button" disabled={loading} onClick={handleSave}>
+            <Button type="button" disabled={loading} onClick={handleSave} className={SHIFT_MODAL_BTN_PRIMARY}>
               {loading
                 ? "Saving..."
                 : `Save (${moneyStr(totalCash, currency)})`}
@@ -1083,94 +1283,108 @@ export function CloseShiftModal({
         if (!v) onClose();
       }}
     >
-      <DialogContent side="center" className={cn("max-w-xl", SHIFT_MODAL_CONTENT)}>
+      <DialogContent side="center" showCloseButton={false} className={SHIFT_MODAL_CONTENT}>
         <div className={SHIFT_MODAL_HEADER}>
+          <ShiftModalClose />
           <DialogHeader className="flex flex-row items-start gap-2.5 space-y-0 text-left sm:gap-3">
             <span className={SHIFT_MODAL_ICON} aria-hidden>
               <DoorClosed className="size-4 sm:size-[1.125rem]" />
             </span>
-            <div className="min-w-0 flex-1 space-y-0.5 pr-2">
-              <DialogTitle className="font-heading text-base font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-lg">
+            <div className="min-w-0 flex-1 space-y-0.5 pr-9">
+              <DialogTitle className="font-heading text-[15px] font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-base">
                 Close Shift
               </DialogTitle>
-              <DialogDescription className="text-xs leading-snug text-[var(--pos-primary-ink,#fff)]/80 sm:text-[13px] sm:leading-relaxed">
-                Count the closing cash by denomination.
+              <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
+                Count notes, then coins.
               </DialogDescription>
             </div>
           </DialogHeader>
         </div>
 
           <div className={SHIFT_MODAL_BODY}>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {canSeeCashVarianceDetail ? (
-              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-lg border border-border/50 bg-gradient-to-br from-muted/25 to-muted/10 px-3 py-2 text-[11px] shadow-sm ring-1 ring-black/[0.03] sm:text-xs dark:ring-white/[0.05]">
-                <span>
-                  <span className="text-muted-foreground">Expected</span>{" "}
-                  <span className="font-semibold tabular-nums text-foreground">
-                    {moneyStr(expected, currency)}
-                  </span>
-                </span>
-                <span>
-                  <span className="text-muted-foreground">Counted</span>{" "}
-                  <span className="font-semibold tabular-nums text-foreground">
-                    {moneyStr(totalCash, currency)}
-                  </span>
-                </span>
-                <span>
-                  <span className="text-muted-foreground">Variance</span>{" "}
-                  <span
-                    className={cn(
-                      "font-semibold tabular-nums",
-                      varianceColor(variance),
-                    )}
-                  >
-                    {variance >= 0 ? "+" : ""}
-                    {moneyStr(variance, currency)}
-                  </span>
-                </span>
-              </div>
-            ) : balanceMismatch ? (
-              <p
-                className="rounded-lg border border-amber-200/80 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100"
-                role="status"
-              >
-                Your cash count doesn’t match the expected till balance. Recheck
-                your {useDenomBreakdown ? "notes and coins" : "cash total"}
-                {showVarianceReason
-                  ? ", then add a short note below so an admin can review."
-                  : "."}
-              </p>
-            ) : null}
+                <div className="grid grid-cols-3 gap-px overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
+                  {(
+                    [
+                      {
+                        label: "Expected",
+                        value: moneyStr(expected, currency),
+                        tone: "text-[var(--pos-ink,#1c1915)]",
+                      },
+                      {
+                        label: "Counted",
+                        value: moneyStr(totalCash, currency),
+                        tone: "text-[var(--pos-ink,#1c1915)]",
+                      },
+                      {
+                        label: "Variance",
+                        value: `${variance >= 0 ? "+" : ""}${moneyStr(variance, currency)}`,
+                        tone: varianceColor(variance),
+                      },
+                    ] as const
+                  ).map((cell) => (
+                    <div
+                      key={cell.label}
+                      className="bg-[color-mix(in_srgb,#fff_88%,var(--pos-paper,#f1ece3))] px-2 py-1.5"
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_45%,transparent)]">
+                        {cell.label}
+                      </p>
+                      <p
+                        className={cn(
+                          "mt-1 text-[13px] font-semibold tabular-nums sm:text-sm",
+                          cell.tone,
+                        )}
+                      >
+                        {cell.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : balanceMismatch ? (
+                <p
+                  className="border border-amber-700/20 bg-amber-50 px-3 py-2.5 text-[12px] font-medium leading-snug text-amber-950 dark:border-amber-400/25 dark:bg-amber-950/35 dark:text-amber-100"
+                  role="status"
+                >
+                  Counted cash doesn’t match the expected till balance. Recheck
+                  your {useDenomBreakdown ? "notes and coins" : "cash total"}
+                  {showVarianceReason
+                    ? ", then add a short note below so an admin can review."
+                    : "."}
+                </p>
+              ) : null}
 
-            <div className={SHIFT_MODAL_SECTION}>
-              {useDenomBreakdown ? (
-                <DenominationTable
-                  title="Closing Float Count"
-                  quantities={quantities}
-                  onChange={setQuantitiesEdited}
-                />
-              ) : (
-                <CashTotalField
-                  label={`Closing cash (${currency})`}
-                  valueStr={cashTotalStr}
-                  onChange={(next) => {
-                    userEditedRef.current = true;
-                    setCashTotalStr(next);
-                  }}
-                  autoFocus
-                  footer={
-                    <p className="text-[11px] text-muted-foreground">
-                      Note/coin breakdown is only available for KES.
-                    </p>
-                  }
-                />
-              )}
+              <div className={SHIFT_MODAL_SECTION}>
+                {useDenomBreakdown ? (
+                  <DenominationTable
+                    title="Closing count"
+                    quantities={quantities}
+                    onChange={setQuantitiesEdited}
+                  />
+                ) : (
+                  <CashTotalField
+                    label={`Closing cash (${currency})`}
+                    valueStr={cashTotalStr}
+                    onChange={(next) => {
+                      userEditedRef.current = true;
+                      setCashTotalStr(next);
+                    }}
+                    autoFocus
+                    footer={
+                      <p className="text-[11px] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_50%,transparent)]">
+                        Note/coin breakdown is only available for KES.
+                      </p>
+                    }
+                  />
+                )}
+              </div>
+
               {draftRestoredHint ? (
-                <p className="mt-2 text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
                   Restored your unfinished closing count.
                 </p>
               ) : null}
-            </div>
 
             {/* Variance reason */}
             {showVarianceReason ? (
@@ -1186,7 +1400,7 @@ export function CloseShiftModal({
                     : "Note about the cash count *"}
                 </label>
                 <textarea
-                  className={dashboardTextareaClass(loading)}
+                  className={shiftFieldClass(loading, "min-h-[3.25rem] resize-y py-2")}
                   placeholder={
                     canSeeCashVarianceDetail
                       ? "Explain the significant variance..."
@@ -1204,15 +1418,15 @@ export function CloseShiftModal({
             ) : null}
 
             {/* Closing notes */}
-            <div className="space-y-1.5">
-              <label className={dashboardFilterFieldLabelClass()}>
+            <div className="space-y-1">
+              <label className={cn(dashboardFilterFieldLabelClass(), "text-[10px]")}>
                 Notes{" "}
                 <span className="font-normal normal-case tracking-normal text-muted-foreground">
                   (optional)
                 </span>
               </label>
               <input
-                className={dashboardInputClass(loading)}
+                className={shiftFieldClass(loading, "h-8 py-1.5 text-xs")}
                 placeholder="Closing notes..."
                 value={notes}
                 onChange={(e) => {
@@ -1230,11 +1444,11 @@ export function CloseShiftModal({
 
           <DialogFooter className={SHIFT_MODAL_FOOTER}>
             <DialogClose asChild>
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" className={SHIFT_MODAL_BTN_OUTLINE}>
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="button" disabled={loading} onClick={handleClose}>
+            <Button type="button" disabled={loading} onClick={handleClose} className={SHIFT_MODAL_BTN_PRIMARY}>
               {loading ? "Closing..." : `Close Shift (${moneyStr(totalCash, currency)})`}
             </Button>
           </DialogFooter>
@@ -1342,17 +1556,18 @@ export function DrawoutModal({
         if (!v) onClose();
       }}
     >
-      <DialogContent side="center" className={cn("max-w-lg", SHIFT_MODAL_CONTENT)}>
+      <DialogContent side="center" showCloseButton={false} className={cn(SHIFT_MODAL_CONTENT, "max-w-lg")}>
         <div className={SHIFT_MODAL_HEADER}>
+          <ShiftModalClose />
           <DialogHeader className="flex flex-row items-start gap-2.5 space-y-0 text-left sm:gap-3">
             <span className={SHIFT_MODAL_ICON} aria-hidden>
               <Banknote className="size-4 sm:size-[1.125rem]" />
             </span>
-            <div className="min-w-0 flex-1 space-y-0.5 pr-2">
-              <DialogTitle className="font-heading text-base font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-lg">
+            <div className="min-w-0 flex-1 space-y-0.5 pr-9">
+              <DialogTitle className="font-heading text-[15px] font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-base">
                 New Cash Drawout
               </DialogTitle>
-              <DialogDescription className="text-xs leading-snug text-[var(--pos-primary-ink,#fff)]/80 sm:text-[13px] sm:leading-relaxed">
+              <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
                 Record cash removed from the till during this shift.
               </DialogDescription>
             </div>
@@ -1365,7 +1580,7 @@ export function DrawoutModal({
               <div className="space-y-1.5">
                 <label className={dashboardFilterFieldLabelClass()}>Category</label>
                 <select
-                  className={dashboardSelectClass(loading)}
+                  className={shiftSelectClass(loading)}
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                 >
@@ -1385,7 +1600,7 @@ export function DrawoutModal({
                   min={1}
                   step="0.01"
                   inputMode="decimal"
-                  className={dashboardInputClass(loading, "tabular-nums")}
+                  className={shiftFieldClass(loading, "tabular-nums")}
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
@@ -1394,7 +1609,7 @@ export function DrawoutModal({
               <div className="space-y-1.5 sm:col-span-2">
                 <label className={dashboardFilterFieldLabelClass()}>Description</label>
                 <textarea
-                  className={dashboardTextareaClass(loading, "min-h-[3.25rem] py-2 text-sm")}
+                  className={shiftFieldClass(loading, "min-h-[3.25rem] resize-y py-2 text-sm")}
                   placeholder="What is this drawout for?"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -1405,7 +1620,7 @@ export function DrawoutModal({
               <div className="space-y-1.5 sm:col-span-2">
                 <label className={dashboardFilterFieldLabelClass()}>Recipient Name</label>
                 <input
-                  className={dashboardInputClass(loading)}
+                  className={shiftFieldClass(loading)}
                   placeholder="Who received the cash"
                   value={recipientName}
                   onChange={(e) => setRecipientName(e.target.value)}
@@ -1419,7 +1634,7 @@ export function DrawoutModal({
                   </span>
                 </label>
                 <input
-                  className={dashboardInputClass(loading)}
+                  className={shiftFieldClass(loading)}
                   placeholder="Phone or ID number"
                   value={recipientContact}
                   onChange={(e) => setRecipientContact(e.target.value)}
@@ -1433,7 +1648,7 @@ export function DrawoutModal({
                   </span>
                 </label>
                 <input
-                  className={dashboardInputClass(loading)}
+                  className={shiftFieldClass(loading)}
                   placeholder="Invoice or receipt #"
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
@@ -1451,11 +1666,11 @@ export function DrawoutModal({
 
         <DialogFooter className={SHIFT_MODAL_FOOTER}>
           <DialogClose asChild>
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" className={SHIFT_MODAL_BTN_OUTLINE}>
               Cancel
             </Button>
           </DialogClose>
-          <Button type="button" disabled={loading} onClick={handleSubmit}>
+          <Button type="button" disabled={loading} onClick={handleSubmit} className={SHIFT_MODAL_BTN_PRIMARY}>
             {loading ? "Submitting..." : "Submit Drawout"}
           </Button>
         </DialogFooter>
