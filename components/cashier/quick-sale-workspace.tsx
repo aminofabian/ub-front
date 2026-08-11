@@ -109,6 +109,7 @@ import {
   customerPhoneValidationMessage,
   isValidCustomerPhone,
 } from "@/lib/customer-phone";
+import { toKenyanMsisdn254 } from "@/lib/kenyan-phone";
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
 import { printPosReceipt } from "@/lib/desktop-print";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -180,6 +181,20 @@ function saleCustomerIdPatch(
 
 function roundMoney2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+/** KopoKopo / Safaricom STK charges whole shillings. */
+function roundKesWhole(n: number): number {
+  return Math.round(n);
+}
+
+function isMpesaPaymentInFlight(status: string): boolean {
+  return (
+    status === "sending" ||
+    status === "sent" ||
+    status === "awaiting_till" ||
+    status === "confirmed"
+  );
 }
 
 function parseQty(raw: string): number | null {
@@ -1182,25 +1197,42 @@ export function QuickSaleWorkspace({
         setNotice("");
         setError("");
 
+        let invoiceCustomer: CustomerRecord | null = null;
+        if (invoice.customerId?.trim() && online && canLookupCustomers) {
+          try {
+            invoiceCustomer = await fetchCustomerById(invoice.customerId.trim());
+          } catch {
+            invoiceCustomer = null;
+          }
+        }
+        const invoicePhone =
+          invoiceCustomer?.phones?.find((p) => p.primary)?.phone?.trim() ||
+          invoiceCustomer?.phones?.[0]?.phone?.trim() ||
+          invoice.customerPhone?.trim() ||
+          "";
+
         const invoiceLines = invoice.lines.map((l) => {
           const rawQty = Number(l.quantity);
           const qty =
             Number.isFinite(rawQty) && rawQty > 0 ? rawQty : 1;
-          // Grocery invoices are typically each-sold; treat as non-weighed so
-          // the till keeps whole-number qty (sale API rejects fractions).
-          const whole = Math.max(1, Math.round(qty));
+          // Prefer invoice quantity as posted; round only when nearly whole so
+          // sale API accepts non-weighed lines without drifting the total.
+          const nearlyWhole = Math.abs(qty - Math.round(qty)) < 0.001;
+          const qtyStr = nearlyWhole
+            ? String(Math.max(1, Math.round(qty)))
+            : formatCartQtyValue(qty);
           return {
             key: crypto.randomUUID(),
             itemId: l.itemId,
             label: l.itemName,
-            quantity: String(whole),
+            quantity: qtyStr,
             unitPrice: String(l.unitPrice),
             item: {
               id: l.itemId,
               name: l.itemName,
               sku: "",
               thumbnailUrl: null,
-              isWeighed: false,
+              isWeighed: !nearlyWhole,
             } as ItemSummaryRecord,
           };
         });
@@ -1212,16 +1244,24 @@ export function QuickSaleWorkspace({
           active.lines.length === 0 &&
           !active.groceryInvoiceId;
 
+        const groceryCartPatch = {
+          label: invoice.barcodeCode,
+          lines: invoiceLines,
+          groceryInvoiceId: invoice.id,
+          groceryBarcode: invoice.barcodeCode,
+          selectedCustomer: invoiceCustomer,
+          customerPhoneQuery: invoicePhone,
+          customerHits: invoiceCustomer ? [invoiceCustomer] : [],
+          customerNoPhoneMatch: false,
+        };
+
         if (reuseEmpty && active) {
           setCarts((prev) =>
             prev.map((c) =>
               c.id === active.id
                 ? {
                     ...c,
-                    label: invoice.barcodeCode,
-                    lines: invoiceLines,
-                    groceryInvoiceId: invoice.id,
-                    groceryBarcode: invoice.barcodeCode,
+                    ...groceryCartPatch,
                   }
                 : c,
             ),
@@ -1236,10 +1276,7 @@ export function QuickSaleWorkspace({
             return;
           }
           const fresh = createEmptyCartSession();
-          fresh.label = invoice.barcodeCode;
-          fresh.lines = invoiceLines;
-          fresh.groceryInvoiceId = invoice.id;
-          fresh.groceryBarcode = invoice.barcodeCode;
+          Object.assign(fresh, groceryCartPatch);
           setCarts((prev) => [...prev, fresh]);
           setActiveCartId(fresh.id);
         }
@@ -1260,7 +1297,7 @@ export function QuickSaleWorkspace({
         toast.error(msg, { duration: 5000 });
       }
     },
-    [online, branchId, dismissCompletedSaleUi],
+    [online, branchId, dismissCompletedSaleUi, canLookupCustomers],
   );
 
   /** Deep link: /cashier?invoice={barcode} */
@@ -1972,12 +2009,8 @@ export function QuickSaleWorkspace({
       if (!selectedCustomer) {
         return false;
       }
-      if (
-        payMethod === "customer_credit" &&
-        !isValidCustomerPhone(customerPhoneQuery)
-      ) {
-        return false;
-      }
+      // Phone field is only required when registering a new tab customer (no selection yet).
+      // Selected customers can complete even if the search box is empty/partial.
     }
     return true;
   }, [
@@ -2019,6 +2052,15 @@ export function QuickSaleWorkspace({
       qty: number = 1,
       unitPrice: string = "",
     ): boolean => {
+      const inflight = cartsRef.current.find(
+        (c) => c.id === activeCartIdRef.current,
+      )?.stkPushStatus;
+      if (isMpesaPaymentInFlight(inflight ?? "")) {
+        toast.error(
+          "Finish or cancel the M-Pesa payment before changing the cart.",
+        );
+        return false;
+      }
       if (item.groupLabelOnly) {
         toast.error("Choose a specific product, not the group label.");
         return false;
@@ -2142,6 +2184,12 @@ export function QuickSaleWorkspace({
 
   const removeLine = useCallback(
     (key: string) => {
+      if (isMpesaPaymentInFlight(stkPushStatusRef.current)) {
+        toast.error(
+          "Finish or cancel the M-Pesa payment before changing the cart.",
+        );
+        return;
+      }
       updateActiveCart((cart) => {
         const removed = cart.lines.find((l) => l.key === key);
         const nextRemoved = removed?.serverLineId
@@ -2246,6 +2294,12 @@ export function QuickSaleWorkspace({
 
   const updateLine = useCallback(
     (key: string, field: "quantity" | "unitPrice", value: string) => {
+      if (isMpesaPaymentInFlight(stkPushStatusRef.current)) {
+        toast.error(
+          "Finish or cancel the M-Pesa payment before changing the cart.",
+        );
+        return;
+      }
       updateActiveCart((cart) => ({
         ...cart,
         lines: cart.lines.map((l) => {
@@ -2302,11 +2356,12 @@ export function QuickSaleWorkspace({
       // Link customer by phone in the background — never delays the prompt.
       linkStkPhoneInBackground(phoneNumber);
       stkConfirmedToastKey.current = null;
+      const chargeAmount = roundKesWhole(grandTotal);
       updateActiveCart({
         stkPushStatus: "sending",
         stkPushError: "",
         stkPushCheckoutId: "",
-        stkLockedAmount: grandTotal,
+        stkLockedAmount: chargeAmount,
       });
       try {
         const { nextIdempotencyKey } = await import("@/lib/idempotency-key");
@@ -2316,13 +2371,17 @@ export function QuickSaleWorkspace({
           ? await api.initiateKioskPayPosStkPush(
               {
                 phoneNumber,
-                amount: grandTotal,
+                amount: chargeAmount,
                 description: "Kiosk Pay POS sale",
               },
               nextIdempotencyKey(),
             )
           : await api.initiatePosStkPush(
-              { phoneNumber, amount: grandTotal, description: "POS sale" },
+              {
+                phoneNumber,
+                amount: chargeAmount,
+                description: "POS sale",
+              },
               nextIdempotencyKey(),
             );
         if (!result.accepted || !result.checkoutRequestId) {
@@ -2334,7 +2393,7 @@ export function QuickSaleWorkspace({
           // Don't show the KopoKopo checkout UUID as an M-Pesa ref — wait for the receipt.
           mpesaRef: "",
           stkPushError: "",
-          stkLockedAmount: grandTotal,
+          stkLockedAmount: chargeAmount,
         });
       } catch (e) {
         updateActiveCart({
@@ -2450,7 +2509,7 @@ export function QuickSaleWorkspace({
       ? buildStkPhoneNumber(stkAreaCode, stkPhone)
       : "";
     const awaitKey = inStoreCheckout
-      ? `${grandTotal.toFixed(2)}|${phone}`
+      ? `${roundKesWhole(grandTotal).toFixed(2)}|${phone}`
       : "";
     tillListenDesiredRef.current = {
       listen: inStoreCheckout,
@@ -2506,7 +2565,7 @@ export function QuickSaleWorkspace({
           const { registerPosTillAwait } = await import("@/lib/api");
           const result = await registerPosTillAwait(
             {
-              amount: grandTotal,
+              amount: roundKesWhole(grandTotal),
               phoneNumber: phone || null,
             },
             nextIdempotencyKey(),
@@ -2534,7 +2593,7 @@ export function QuickSaleWorkspace({
             stkPushCheckoutId: result.checkoutRequestId,
             stkPushError: "",
             mpesaRef: "",
-            stkLockedAmount: grandTotal,
+            stkLockedAmount: roundKesWhole(grandTotal),
           });
         } catch {
           /* STK path still available; webhook await is best-effort */
@@ -2744,12 +2803,33 @@ export function QuickSaleWorkspace({
       setNotice("");
       return;
     }
+    let linkedCustomer = selectedCustomer;
     if (
       (!splitPay && payMethodNeedsCustomer(payMethod)) ||
       creditChangeToWallet ||
       (splitPay && (parseMoney(walletSplitStr) ?? 0) > 0)
     ) {
-      if (payMethod === "customer_credit" || creditChangeToWallet) {
+      // Prefer an already-selected customer; otherwise find-or-create from the phone field.
+      if (
+        !linkedCustomer &&
+        (payMethod === "customer_credit" ||
+          creditChangeToWallet ||
+          (splitPay && (parseMoney(walletSplitStr) ?? 0) > 0))
+      ) {
+        const msisdn = toKenyanMsisdn254(customerPhoneQuery);
+        if (msisdn && online) {
+          const ensured = await ensureCustomerForStkPhone(msisdn);
+          if (ensured) {
+            linkedCustomer = ensured;
+            updateActiveCart({ selectedCustomer: ensured });
+          }
+        }
+      }
+
+      if (
+        !linkedCustomer &&
+        (payMethod === "customer_credit" || creditChangeToWallet)
+      ) {
         const phoneErr = customerPhoneValidationMessage(customerPhoneQuery);
         if (phoneErr) {
           setError(phoneErr);
@@ -2757,7 +2837,7 @@ export function QuickSaleWorkspace({
           return;
         }
       }
-      if (!selectedCustomer) {
+      if (!linkedCustomer) {
         setError(
           creditChangeToWallet
             ? "Find and select a customer to credit change to their wallet."
@@ -2769,7 +2849,6 @@ export function QuickSaleWorkspace({
     }
 
     // M-Pesa: finish silent phone→customer link if background resolve is still pending.
-    let linkedCustomer = selectedCustomer;
     if (
       !splitPay &&
       isStkTender(payMethod) &&
@@ -2785,19 +2864,26 @@ export function QuickSaleWorkspace({
       }
     }
 
-    // Gateway-verified M-Pesa: refuse to complete if the cart drifted after payment.
+    // Verified M-Pesa amount wins. Allow small under/over vs cart (±1) and treat
+    // excess as change; only block when the cart is meaningfully higher than paid.
+    let mpesaPaymentAmount: number | null = null;
     if (
       !splitPay &&
       isStkTender(payMethod) &&
       stkPushStatus === "confirmed" &&
       stkLockedAmount != null &&
-      Math.abs(grandTotal - stkLockedAmount) > 1
+      stkLockedAmount > 0
     ) {
-      setError(
-        `Cart total (${grandTotal.toFixed(2)}) does not match paid M-Pesa (${stkLockedAmount.toFixed(2)}). Adjust the cart to match, or start a new sale.`,
-      );
-      setNotice("");
-      return;
+      const paid = roundMoney2(stkLockedAmount);
+      if (paid + 1 < grandTotal) {
+        setError(
+          `M-Pesa paid ${paid.toFixed(2)} but cart is ${grandTotal.toFixed(2)}. Remove items to match, or start a new sale.`,
+        );
+        setNotice("");
+        return;
+      }
+      // Cover the cart when paid is within tolerance under; keep overpay when paid is higher.
+      mpesaPaymentAmount = roundMoney2(Math.max(paid, grandTotal));
     }
 
     let cashTendered: number | null = null;
@@ -2896,7 +2982,7 @@ export function QuickSaleWorkspace({
         : (payMethod as SalePaymentMethod);
       payments.push({
         method: saleMethod,
-        amount: grandTotal,
+        amount: mpesaPaymentAmount ?? grandTotal,
         reference: isStkTender(payMethod) ? mpesaRef.trim() || null : null,
       });
     }
@@ -3061,7 +3147,7 @@ export function QuickSaleWorkspace({
           : [
               {
                 method: groceryPayMethod,
-                amount: grandTotal,
+                amount: mpesaPaymentAmount ?? grandTotal,
                 reference: isStkTender(payMethod)
                   ? mpesaRef.trim() || undefined
                   : undefined,
@@ -3384,6 +3470,8 @@ export function QuickSaleWorkspace({
     online,
     stkAreaCode,
     stkPhone,
+    ensureCustomerForStkPhone,
+    updateActiveCart,
   ]);
 
   // Auto-complete the sale once M-Pesa is gateway-verified (STK or till webhook).
