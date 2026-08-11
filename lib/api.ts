@@ -813,6 +813,8 @@ export type StockLevelsSettingsRecord = {
   allowActivityForStockManager?: boolean;
   /** Stock / restock pages for stock managers. Default on when absent. */
   allowStockPageForStockManager?: boolean;
+  /** Grocery counter Spoils mode. Default on when absent. */
+  allowSpoilsForGroceryClerk?: boolean;
 };
 
 export type SuppliersAccessSettingsRecord = {
@@ -825,6 +827,8 @@ export type SuppliersAccessSettingsRecord = {
 export type ReceiveStockSettingsRecord = {
   allowReceiveForCashier?: boolean;
   allowReceiveForStockManager?: boolean;
+  /** Grocery counter Stock in (Path B). Default on when absent. */
+  allowReceiveForGroceryClerk?: boolean;
 };
 
 export type CreditTabsSettingsRecord = {
@@ -948,6 +952,7 @@ export type StockLevelsPatchPayload = {
   allowNegativeStock?: boolean;
   allowActivityForStockManager?: boolean;
   allowStockPageForStockManager?: boolean;
+  allowSpoilsForGroceryClerk?: boolean;
 };
 
 export type SuppliersAccessPatchPayload = {
@@ -960,6 +965,7 @@ export type SuppliersAccessPatchPayload = {
 export type ReceiveStockPatchPayload = {
   allowReceiveForCashier?: boolean;
   allowReceiveForStockManager?: boolean;
+  allowReceiveForGroceryClerk?: boolean;
 };
 
 export type CreditTabsPatchPayload = {

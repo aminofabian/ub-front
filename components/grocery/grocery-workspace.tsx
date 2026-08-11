@@ -56,6 +56,7 @@ import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { cn } from "@/lib/utils";
 import {
   fetchItems,
+  postStandaloneWastage,
   setPosItemWeighed,
   type ItemSummaryRecord,
   itemListThumbnailUrl,
@@ -67,12 +68,22 @@ import {
 import {
   formatCartQtyValue,
 } from "@/components/cashier/cashier-qty-control";
+import { CashierReceiveTillDrawer } from "@/components/cashier/cashier-receive-till-drawer";
+import {
+  GroceryModeSwitcher,
+  groceryModeTitle,
+} from "@/components/grocery/grocery-mode-switcher";
+import { GroceryStockInPanel } from "@/components/grocery/grocery-stock-in-panel";
 import {
   formatShelfPriceLabel,
   splitShelfPriceDisplay,
 } from "@/lib/cashier-shelf-price";
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import {
+  groceryCounterModesAvailable,
+  type GroceryCounterMode,
+} from "@/lib/grocery-counter-access";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 
@@ -344,6 +355,55 @@ export function GroceryWorkspace() {
   const [lines, setLines] = useState<GroceryCartLine[]>([]);
   const [draftState, setDraftState] = useState<GroceryDraftState>(
     createGroceryDraftState(),
+  );
+  const [counterMode, setCounterMode] = useState<GroceryCounterMode>("sell");
+  const [parkedSell, setParkedSell] = useState<{
+    lines: GroceryCartLine[];
+    draft: GroceryDraftState;
+  } | null>(null);
+  const [parkedSpoils, setParkedSpoils] = useState<GroceryCartLine[] | null>(
+    null,
+  );
+  const [receiveTillOpen, setReceiveTillOpen] = useState(false);
+  const [receiveTillSupplier, setReceiveTillSupplier] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const availableModes = useMemo(
+    () => groceryCounterModesAvailable(effectiveMe, business),
+    [effectiveMe, business],
+  );
+
+  useEffect(() => {
+    if (!availableModes.includes(counterMode)) {
+      setCounterMode("sell");
+    }
+  }, [availableModes, counterMode]);
+
+  const switchCounterMode = useCallback(
+    (next: GroceryCounterMode) => {
+      if (next === counterMode) return;
+      if (counterMode === "sell") {
+        setParkedSell({ lines, draft: draftState });
+      } else if (counterMode === "spoils") {
+        setParkedSpoils(lines);
+      }
+      if (next === "sell") {
+        const parked = parkedSell;
+        setLines(parked?.lines ?? []);
+        setDraftState(parked?.draft ?? createGroceryDraftState());
+        setParkedSell(null);
+      } else if (next === "spoils") {
+        setLines(parkedSpoils ?? []);
+        setParkedSpoils(null);
+      } else {
+        // Stock in uses its own receive till — keep lines parked, clear active cart view.
+        setLines([]);
+      }
+      setShowCartDrawer(false);
+      setCounterMode(next);
+    },
+    [counterMode, lines, draftState, parkedSell, parkedSpoils],
   );
   const draftSyncTimer = useRef<number | null>(null);
   const draftHydratedRef = useRef(false);
@@ -685,7 +745,7 @@ export function GroceryWorkspace() {
   // ── Draft sync ─────────────────────────────────────────────────────
 
   function scheduleDraftSync(delayMs = 300) {
-    if (!groceryDraftPersistence || !online || !branchId) return;
+    if (counterMode !== "sell" || !groceryDraftPersistence || !online || !branchId) return;
     if (draftSyncTimer.current != null) {
       window.clearTimeout(draftSyncTimer.current);
     }
@@ -707,7 +767,15 @@ export function GroceryWorkspace() {
 
   const addLine = useCallback(
     (item: ItemSummaryRecord) => {
+      if (counterMode === "stockIn") {
+        toast.message("Pick a supplier in Stock in, then receive on the till.");
+        return;
+      }
       const weighed = item.isWeighed === true;
+      const buying =
+        item.buyingPrice != null ? Number(item.buyingPrice) : NaN;
+      const unitCost =
+        Number.isFinite(buying) && buying > 0 ? buying : undefined;
       const existingIdx = lines.findIndex((l) => l.itemId === item.id);
       if (existingIdx >= 0) {
         const existingKey = lines[existingIdx].key;
@@ -721,6 +789,7 @@ export function GroceryWorkspace() {
               ...l,
               quantity: nextQty,
               isWeighed: weighed || l.isWeighed === true,
+              unitCost: l.unitCost ?? unitCost,
             };
           }),
         );
@@ -735,14 +804,17 @@ export function GroceryWorkspace() {
           unitPrice: tileShelfPriceValues.current[item.id] ?? 0,
           unitName: weighed ? "kg" : "",
           isWeighed: weighed,
+          unitCost,
         };
         setLines((prev) => [...prev, newLine]);
         setRecentlyAddedKey(newLine.key);
       }
       setCartPulse((n) => n + 1);
-      scheduleDraftSync();
+      if (counterMode === "sell") {
+        scheduleDraftSync();
+      }
     },
-    [lines, scheduleDraftSync],
+    [lines, scheduleDraftSync, counterMode],
   );
 
   const updateLine = useCallback(
@@ -926,6 +998,46 @@ export function GroceryWorkspace() {
       setError("Add at least one item.");
       return;
     }
+
+    if (counterMode === "spoils") {
+      setLoading(true);
+      setError(null);
+      try {
+        let ok = 0;
+        for (const line of lines) {
+          const cost =
+            line.unitCost != null && line.unitCost > 0
+              ? line.unitCost
+              : line.unitPrice > 0
+                ? line.unitPrice
+                : 0.01;
+          await postStandaloneWastage({
+            branchId: bid,
+            itemId: line.itemId,
+            quantity: line.quantity,
+            unitCost: cost,
+            reason: "SPOILAGE",
+            wastageReason: "SPOILAGE",
+          });
+          ok += 1;
+        }
+        setLines([]);
+        setParkedSpoils(null);
+        toast.success(ok === 1 ? "Spoil recorded" : `${ok} spoils recorded`, {
+          description: "Stock written off as spoilage.",
+        });
+        setShowCartDrawer(false);
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message : "Could not record spoils";
+        setError(msg);
+        toast.error(msg);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     const missingPrices = lines.filter((l) => !l.unitPrice || l.unitPrice <= 0);
     if (missingPrices.length > 0) {
       setError("All items need a price. Tap items in the cart to set prices.");
@@ -975,6 +1087,7 @@ export function GroceryWorkspace() {
       }
       setLines([]);
       setDraftState(createGroceryDraftState());
+      setParkedSell(null);
       setForwardedInvoices((prev) => {
         if (prev.some((inv) => inv.id === invoice.id)) return prev;
         return [invoice, ...prev];
@@ -1000,7 +1113,7 @@ export function GroceryWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, lines, groceryDraftPersistence, draftState]);
+  }, [branchId, lines, groceryDraftPersistence, draftState, counterMode]);
 
   const onNewInvoice = useCallback(() => {
     beginNewSale();
@@ -1040,7 +1153,7 @@ export function GroceryWorkspace() {
                 {tenantTitle}
               </p>
               <h1 className="truncate font-heading text-lg font-semibold leading-tight tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-xl">
-                Counter
+                {groceryModeTitle(counterMode)}
               </h1>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--pos-primary-ink,#fff)]/75">
                 <span className="inline-flex min-w-0 items-center gap-1">
@@ -1065,7 +1178,14 @@ export function GroceryWorkspace() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
+            <GroceryModeSwitcher
+              mode={counterMode}
+              modes={availableModes}
+              onChange={switchCounterMode}
+              className="order-2 w-full sm:order-1 sm:w-auto"
+            />
+            <div className="order-1 flex shrink-0 items-center gap-1.5 sm:order-2">
             <LiveClock />
             <span
               className={cn(
@@ -1096,6 +1216,7 @@ export function GroceryWorkspace() {
               <LockKeyhole className="size-3" aria-hidden />
               <span className="hidden min-[380px]:inline">Lock</span>
             </button>
+            </div>
           </div>
         </div>
       </header>
@@ -1391,42 +1512,68 @@ export function GroceryWorkspace() {
             "relative pb-[var(--grocery-tab-clearance)]",
           )}
         >
-          <GroceryCartTabs
-            activeTab={cartPanelTab}
-            onTabChange={setCartPanelTab}
-            forwardedCount={forwardedInvoices.length}
-          />
-          {cartPanelTab === "sale" ? (
-            <GroceryInvoiceCart
-              lines={lines}
-              onUpdateLine={updateLine}
-              onRemoveLine={removeLine}
-              onToggleWeighed={toggleLineWeighed}
-              allowWeighedToggle={allowWeighedToggle}
-              weighedToggleBusyItemId={weighedToggleBusyItemId}
-              onGenerate={onGenerate}
-              onClearCart={clearCart}
-              loading={loading}
-              subtotal={subtotal}
-              grandTotal={grandTotal}
-              currency={currency}
-              branchName={activeBranchName}
-              cashierName={cashierName}
-              online={online}
-              pulseSignal={cartPulse}
-              recentlyAddedKey={recentlyAddedKey}
-              counterNumber={showCounterNumber ? draftState.counterNumber : null}
-              syncStatus={groceryDraftPersistence ? draftState.syncStatus : "idle"}
+          {counterMode === "stockIn" ? (
+            <GroceryStockInPanel
+              onOpenTill={(supplier) => {
+                setReceiveTillSupplier(supplier);
+                setReceiveTillOpen(true);
+              }}
             />
           ) : (
-            <div className="flex min-h-0 flex-1 flex-col">
-              <GroceryForwardedInvoicesPanel
-              invoices={forwardedInvoices}
-              onDismiss={dismissForwardedInvoice}
-              onViewInvoice={viewForwardedInvoice}
-              currency={currency}
-            />
-            </div>
+            <>
+              {counterMode === "sell" ? (
+                <GroceryCartTabs
+                  activeTab={cartPanelTab}
+                  onTabChange={setCartPanelTab}
+                  forwardedCount={forwardedInvoices.length}
+                />
+              ) : null}
+              {counterMode === "sell" && cartPanelTab !== "sale" ? (
+                <div className="flex min-h-0 flex-1 flex-col">
+                  <GroceryForwardedInvoicesPanel
+                    invoices={forwardedInvoices}
+                    onDismiss={dismissForwardedInvoice}
+                    onViewInvoice={viewForwardedInvoice}
+                    currency={currency}
+                  />
+                </div>
+              ) : (
+                <GroceryInvoiceCart
+                  lines={lines}
+                  onUpdateLine={updateLine}
+                  onRemoveLine={removeLine}
+                  onToggleWeighed={
+                    counterMode === "sell" ? toggleLineWeighed : undefined
+                  }
+                  allowWeighedToggle={
+                    counterMode === "sell" && allowWeighedToggle
+                  }
+                  weighedToggleBusyItemId={weighedToggleBusyItemId}
+                  onGenerate={onGenerate}
+                  onClearCart={clearCart}
+                  loading={loading}
+                  subtotal={subtotal}
+                  grandTotal={grandTotal}
+                  currency={currency}
+                  branchName={activeBranchName}
+                  cashierName={cashierName}
+                  online={online}
+                  pulseSignal={cartPulse}
+                  recentlyAddedKey={recentlyAddedKey}
+                  counterNumber={
+                    counterMode === "sell" && showCounterNumber
+                      ? draftState.counterNumber
+                      : null
+                  }
+                  syncStatus={
+                    counterMode === "sell" && groceryDraftPersistence
+                      ? draftState.syncStatus
+                      : "idle"
+                  }
+                  mode={counterMode === "spoils" ? "spoils" : "sell"}
+                />
+              )}
+            </>
           )}
         </aside>
       </div>
@@ -1575,53 +1722,82 @@ export function GroceryWorkspace() {
               <div className="h-1.5 w-12 rounded-full bg-zinc-300 dark:bg-white/15" />
             </div>
 
-            <GroceryCartTabs
-              activeTab={cartPanelTab}
-              onTabChange={setCartPanelTab}
-              forwardedCount={forwardedInvoices.length}
-            />
-            {cartPanelTab === "sale" ? (
-              <GroceryInvoiceCart
-                lines={lines}
-                onUpdateLine={updateLine}
-                onRemoveLine={removeLine}
-                onToggleWeighed={toggleLineWeighed}
-                allowWeighedToggle={allowWeighedToggle}
-                weighedToggleBusyItemId={weighedToggleBusyItemId}
-                onGenerate={onGenerate}
-                onClearCart={clearCart}
-                loading={loading}
-                subtotal={subtotal}
-                grandTotal={grandTotal}
-                currency={currency}
-                branchName={activeBranchName}
-                cashierName={cashierName}
-                online={online}
-                pulseSignal={cartPulse}
-                recentlyAddedKey={recentlyAddedKey}
-                compact
-                onClose={() => setShowCartDrawer(false)}
-                counterNumber={showCounterNumber ? draftState.counterNumber : null}
-                syncStatus={groceryDraftPersistence ? draftState.syncStatus : "idle"}
-              />
-            ) : (
+            {counterMode === "stockIn" ? (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <GroceryForwardedInvoicesPanel
-                  invoices={forwardedInvoices}
-                  onDismiss={dismissForwardedInvoice}
-                  onViewInvoice={viewForwardedInvoice}
-                  currency={currency}
+                <GroceryStockInPanel
+                  onOpenTill={(supplier) => {
+                    setReceiveTillSupplier(supplier);
+                    setReceiveTillOpen(true);
+                    setShowCartDrawer(false);
+                  }}
                 />
-                <div className="border-t border-border px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowCartDrawer(false)}
-                    className="w-full rounded-xl border border-border py-2.5 text-sm font-medium text-foreground"
-                  >
-                    Close
-                  </button>
-                </div>
               </div>
+            ) : (
+              <>
+                {counterMode === "sell" ? (
+                  <GroceryCartTabs
+                    activeTab={cartPanelTab}
+                    onTabChange={setCartPanelTab}
+                    forwardedCount={forwardedInvoices.length}
+                  />
+                ) : null}
+                {counterMode === "sell" && cartPanelTab !== "sale" ? (
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <GroceryForwardedInvoicesPanel
+                      invoices={forwardedInvoices}
+                      onDismiss={dismissForwardedInvoice}
+                      onViewInvoice={viewForwardedInvoice}
+                      currency={currency}
+                    />
+                    <div className="border-t border-border px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowCartDrawer(false)}
+                        className="w-full rounded-xl border border-border py-2.5 text-sm font-medium text-foreground"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <GroceryInvoiceCart
+                    lines={lines}
+                    onUpdateLine={updateLine}
+                    onRemoveLine={removeLine}
+                    onToggleWeighed={
+                      counterMode === "sell" ? toggleLineWeighed : undefined
+                    }
+                    allowWeighedToggle={
+                      counterMode === "sell" && allowWeighedToggle
+                    }
+                    weighedToggleBusyItemId={weighedToggleBusyItemId}
+                    onGenerate={onGenerate}
+                    onClearCart={clearCart}
+                    loading={loading}
+                    subtotal={subtotal}
+                    grandTotal={grandTotal}
+                    currency={currency}
+                    branchName={activeBranchName}
+                    cashierName={cashierName}
+                    online={online}
+                    pulseSignal={cartPulse}
+                    recentlyAddedKey={recentlyAddedKey}
+                    compact
+                    onClose={() => setShowCartDrawer(false)}
+                    counterNumber={
+                      counterMode === "sell" && showCounterNumber
+                        ? draftState.counterNumber
+                        : null
+                    }
+                    syncStatus={
+                      counterMode === "sell" && groceryDraftPersistence
+                        ? draftState.syncStatus
+                        : "idle"
+                    }
+                    mode={counterMode === "spoils" ? "spoils" : "sell"}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
@@ -1647,6 +1823,16 @@ export function GroceryWorkspace() {
           currency={currency}
         />
       )}
+
+      <CashierReceiveTillDrawer
+        open={receiveTillOpen}
+        onOpenChange={(open) => {
+          setReceiveTillOpen(open);
+          if (!open) setReceiveTillSupplier(null);
+        }}
+        supplierId={receiveTillSupplier?.id ?? null}
+        supplierName={receiveTillSupplier?.name}
+      />
 
       <GroceryAppBottomNav activeTab="counter" />
       </div>

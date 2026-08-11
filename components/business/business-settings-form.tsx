@@ -9,6 +9,7 @@ import {
   Banknote,
   ClipboardList,
   Loader2,
+  PackageX,
   Save,
   ScanLine,
   ShoppingCart,
@@ -984,6 +985,18 @@ export function BusinessSettingsForm({
                 description="Grocery clerks can open Stock and set on-hand quantities for their assigned branch."
               />
               <ToggleRow
+                checked={inventory.allowSpoilsForGroceryClerk}
+                onChange={(checked) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowSpoilsForGroceryClerk: checked,
+                  }))
+                }
+                icon={<PackageX className="size-4 text-muted-foreground" />}
+                title="Allow grocery clerks to record spoils"
+                description="Shows Spoils mode on the grocery counter. Tapping products builds a spoils cart; recording writes stock off as spoilage."
+              />
+              <ToggleRow
                 checked={inventory.allowNegativeStock}
                 onChange={(checked) =>
                   setInventory((previous) => ({
@@ -1027,6 +1040,18 @@ export function BusinessSettingsForm({
                 icon={<ShoppingCart className="size-4 text-muted-foreground" />}
                 title="Allow cashiers to receive stock"
                 description="Cashiers open tills from Cashier → Suppliers → Open till (drawer on the till — no page leave). Manifest drafts stay on the device until posted."
+              />
+              <ToggleRow
+                checked={inventory.allowReceiveForGroceryClerk}
+                onChange={(checked) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowReceiveForGroceryClerk: checked,
+                  }))
+                }
+                icon={<Truck className="size-4 text-muted-foreground" />}
+                title="Allow grocery clerks to stock in"
+                description="Shows Stock in mode on the grocery counter. Clerk picks a supplier, then receives into a Path B till (same as cashier receive)."
               />
             </FormDrawerFields>
           </SettingsAnchor>

@@ -36,5 +36,8 @@ export function canReceiveStock(
   if (isCashierRole(key)) {
     return settings?.allowReceiveForCashier !== false;
   }
+  if (key === "grocery_clerk") {
+    return settings?.allowReceiveForGroceryClerk !== false;
+  }
   return false;
 }

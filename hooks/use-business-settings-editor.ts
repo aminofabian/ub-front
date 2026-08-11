@@ -367,6 +367,7 @@ export function useBusinessSettingsEditor() {
                 inventory.allowActivityForStockManager,
               allowStockPageForStockManager:
                 inventory.allowStockPageForStockManager,
+              allowSpoilsForGroceryClerk: inventory.allowSpoilsForGroceryClerk,
             },
             suppliers: {
               allowSupplierWriteForStockManager:
@@ -382,6 +383,8 @@ export function useBusinessSettingsEditor() {
               allowReceiveForCashier: inventory.allowReceiveForCashier,
               allowReceiveForStockManager:
                 inventory.allowReceiveForStockManager,
+              allowReceiveForGroceryClerk:
+                inventory.allowReceiveForGroceryClerk,
             },
             creditTabs: {
               allowCashierTabClearance: inventory.allowCashierTabClearance,

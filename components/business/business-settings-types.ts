@@ -51,6 +51,7 @@ export type InventoryForm = {
   eveningEndsAt: string;
   allowStockEditForStockManager: boolean;
   allowStockEditForGroceryClerk: boolean;
+  allowSpoilsForGroceryClerk: boolean;
   allowNegativeStock: boolean;
   allowActivityForStockManager: boolean;
   allowStockPageForStockManager: boolean;
@@ -60,6 +61,7 @@ export type InventoryForm = {
   allowLinkProductsForCashier: boolean;
   allowReceiveForCashier: boolean;
   allowReceiveForStockManager: boolean;
+  allowReceiveForGroceryClerk: boolean;
   allowCashierTabClearance: boolean;
   requirePhoneVerificationForNewTabCustomers: boolean;
 };
@@ -160,6 +162,8 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   eveningEndsAt: DEFAULT_EVENING_ENDS_AT,
   allowStockEditForStockManager: false,
   allowStockEditForGroceryClerk: false,
+  /** Match backend: grocery counter Spoils defaults on. */
+  allowSpoilsForGroceryClerk: true,
   allowNegativeStock: false,
   /** Match backend: Activity + Stock pages default on for stock managers. */
   allowActivityForStockManager: true,
@@ -168,9 +172,10 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowSupplierWriteForCashier: false,
   allowLinkProductsForStockManager: false,
   allowLinkProductsForCashier: false,
-  /** Match backend: receive stock defaults on for cashier / stock manager. */
+  /** Match backend: receive stock defaults on for cashier / stock manager / grocery. */
   allowReceiveForCashier: true,
   allowReceiveForStockManager: true,
+  allowReceiveForGroceryClerk: true,
   /** Match backend: cashier tab clearance defaults off. */
   allowCashierTabClearance: false,
   /** Match backend: phone verification for new tabs defaults on. */
@@ -347,6 +352,8 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
     allowStockEditForGroceryClerk: Boolean(
       b?.inventory?.stockLevels?.allowStockEditForGroceryClerk,
     ),
+    allowSpoilsForGroceryClerk:
+      b?.inventory?.stockLevels?.allowSpoilsForGroceryClerk !== false,
     allowNegativeStock: Boolean(
       b?.inventory?.stockLevels?.allowNegativeStock,
     ),
@@ -370,6 +377,8 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
       b?.inventory?.receiveStock?.allowReceiveForCashier !== false,
     allowReceiveForStockManager:
       b?.inventory?.receiveStock?.allowReceiveForStockManager !== false,
+    allowReceiveForGroceryClerk:
+      b?.inventory?.receiveStock?.allowReceiveForGroceryClerk !== false,
     allowCashierTabClearance: Boolean(
       b?.inventory?.creditTabs?.allowCashierTabClearance,
     ),

@@ -27,6 +27,8 @@ export type GroceryCartLine = {
   unitName: string;
   /** When true, fractional qty (½ watermelon, etc.) is allowed — matches sale API. */
   isWeighed?: boolean;
+  /** Reference cost for spoils write-off (from catalog buyingPrice). */
+  unitCost?: number;
 };
 
 type GroceryInvoiceCartProps = {
@@ -61,6 +63,8 @@ type GroceryInvoiceCartProps = {
   compact?: boolean;
   /** Optional close handler shown in compact (bottom sheet) variant. */
   onClose?: () => void;
+  /** Counter mode — changes title / CTA copy. Default sell. */
+  mode?: "sell" | "spoils";
 };
 
 function round2(n: number): number {
@@ -242,15 +246,22 @@ export function GroceryInvoiceCart({
   recentlyAddedKey,
   compact,
   onClose,
+  mode = "sell",
 }: GroceryInvoiceCartProps) {
   const isEmpty = lines.length === 0;
   const cartItemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
   const lineCount = lines.length;
   const hasDiscount = Math.abs(subtotal - grandTotal) > 0.009;
-  const title =
-    counterNumber != null && counterNumber > 0
+  const isSpoils = mode === "spoils";
+  const title = isSpoils
+    ? "Spoils"
+    : counterNumber != null && counterNumber > 0
       ? `Counter #${counterNumber}`
       : "Current Sale";
+  const ctaLabel = isSpoils ? "Record spoils" : "Generate Invoice";
+  const footerHint = isSpoils
+    ? "Writes off stock as spoilage"
+    : "Pays at cashier";
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
@@ -365,11 +376,13 @@ export function GroceryInvoiceCart({
 
           <div className="mb-2 flex items-baseline justify-between gap-2">
             <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Total
+              {isSpoils ? "Write-off qty" : "Total"}
             </span>
             <span className="text-lg font-bold tabular-nums tracking-tight text-foreground">
-              {formatShelfPriceLabel(grandTotal, currency) ??
-                `${currency} ${grandTotal.toFixed(2)}`}
+              {isSpoils
+                ? formatCartQtyLabel(cartItemCount)
+                : (formatShelfPriceLabel(grandTotal, currency) ??
+                  `${currency} ${grandTotal.toFixed(2)}`)}
             </span>
           </div>
 
@@ -378,9 +391,11 @@ export function GroceryInvoiceCart({
             onClick={onGenerate}
             disabled={loading || isEmpty}
             className={cn(
-              "flex w-full items-center justify-center gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-3 py-2.5 text-[12px] font-semibold text-[var(--pos-primary-ink,#fff)]",
-              "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] transition-colors",
-              "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)] active:scale-[0.98]",
+              "flex w-full items-center justify-center gap-1.5 rounded-none px-3 py-2.5 text-[12px] font-semibold",
+              isSpoils
+                ? "bg-amber-800 text-amber-50 shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] hover:bg-amber-900"
+                : "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
+              "transition-colors active:scale-[0.98]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/40 focus-visible:ring-offset-1",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
@@ -395,8 +410,12 @@ export function GroceryInvoiceCart({
               </>
             ) : (
               <>
-                <Receipt className="size-3.5" strokeWidth={2.25} aria-hidden />
-                Generate Invoice
+                {isSpoils ? (
+                  <Trash2 className="size-3.5" strokeWidth={2.25} aria-hidden />
+                ) : (
+                  <Receipt className="size-3.5" strokeWidth={2.25} aria-hidden />
+                )}
+                {ctaLabel}
                 <span className="rounded-none bg-white/20 px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none">
                   {formatCartQtyLabel(cartItemCount)}
                 </span>
@@ -405,7 +424,7 @@ export function GroceryInvoiceCart({
           </button>
 
           <p className="mt-1.5 text-center text-[9px] leading-none text-muted-foreground">
-            Pays at cashier
+            {footerHint}
           </p>
         </footer>
       ) : null}
