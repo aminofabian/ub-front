@@ -12,6 +12,7 @@ import {
   Pencil,
   RefreshCw,
   Search,
+  Ban,
 } from "lucide-react";
 
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { AdjustSalePaymentDialog } from "@/components/sales/adjust-sale-payment-dialog";
+import { VoidSaleDialog } from "@/components/sales/void-sale-dialog";
 import {
   SalesFeedFilters,
   type SalesDatePreset,
@@ -92,6 +94,11 @@ function formatQty(q: number | string): string {
 
 function isRefunded(status: string | undefined): boolean {
   return (status?.toLowerCase() ?? "").includes("refund");
+}
+
+function isVoided(status: string | undefined): boolean {
+  const s = status?.toLowerCase() ?? "";
+  return s === "voided" || s.includes("void");
 }
 
 function formatSoldTime(
@@ -174,6 +181,8 @@ function TransactionRow({
   showRelativeTime,
   canAdjustPayment,
   onAdjustPayment,
+  canVoid,
+  onVoid,
 }: {
   tx: SaleTransaction;
   expanded: boolean;
@@ -182,31 +191,34 @@ function TransactionRow({
   showRelativeTime: boolean;
   canAdjustPayment: boolean;
   onAdjustPayment: () => void;
+  canVoid: boolean;
+  onVoid: () => void;
 }) {
   const refunded = isRefunded(tx.status);
+  const voided = isVoided(tx.status);
   const isOnline = tx.channel === "online_store";
   const [receiptLoading, setReceiptLoading] = useState(false);
-  const status = tx.status?.toLowerCase() ?? "";
   const showAdjust =
-    canAdjustPayment &&
-    !isOnline &&
-    !refunded &&
-    status !== "voided" &&
-    !status.includes("void");
+    canAdjustPayment && !isOnline && !refunded && !voided;
+  const showVoid = canVoid && !isOnline && !refunded && !voided;
   const meta = saleMetaParts(tx);
   const payment = formatSalePaymentDisplay(tx.paymentMethod, tx.paymentMethods);
   const person =
     (isOnline ? tx.customerName : tx.cashierName || tx.customerName)?.trim() || "—";
   const statusLabel = isOnline
     ? formatChannelLabel(tx.channel)
-    : refunded
-      ? "Refunded"
-      : "Completed";
+    : voided
+      ? "Voided"
+      : refunded
+        ? "Refunded"
+        : "Completed";
   const statusClass = isOnline
     ? "bg-sky-50 text-sky-800"
-    : refunded
-      ? "bg-destructive/10 text-destructive"
-      : "bg-emerald-50 text-emerald-800";
+    : voided
+      ? "bg-muted text-muted-foreground"
+      : refunded
+        ? "bg-destructive/10 text-destructive"
+        : "bg-emerald-50 text-emerald-800";
 
   const onDownloadReceipt = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -408,6 +420,21 @@ function TransactionRow({
                   Adjust payment
                 </Button>
               ) : null}
+              {showVoid ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-[11px] text-destructive/80 hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onVoid();
+                  }}
+                >
+                  <Ban className="size-3" aria-hidden />
+                  Void
+                </Button>
+              ) : null}
             </div>
           ) : (
             <p className="mt-2 text-[11px] text-muted-foreground">
@@ -457,11 +484,16 @@ export function TransactionsPage() {
     me?.permissions,
     Permission.SalesPaymentAdjust,
   );
+  const canVoid =
+    hasPermission(me?.permissions, Permission.SalesVoidAny) ||
+    hasPermission(me?.permissions, Permission.SalesVoidOwn);
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [branchId, setBranchId] = useState("");
   const [adjustSaleId, setAdjustSaleId] = useState<string | null>(null);
   const [adjustReceiptLabel, setAdjustReceiptLabel] = useState<string | undefined>();
+  const [voidSaleId, setVoidSaleId] = useState<string | null>(null);
+  const [voidReceiptLabel, setVoidReceiptLabel] = useState<string | undefined>();
   const [pdfLoading, setPdfLoading] = useState(false);
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   const { branchLocked } = useSyncBranchFilter({
@@ -932,6 +964,11 @@ export function TransactionsPage() {
                 setAdjustSaleId(tx.saleId);
                 setAdjustReceiptLabel(txDisplayNo(tx));
               }}
+              canVoid={canVoid}
+              onVoid={() => {
+                setVoidSaleId(tx.saleId);
+                setVoidReceiptLabel(txDisplayNo(tx));
+              }}
             />
           ))}
         </section>
@@ -948,6 +985,19 @@ export function TransactionsPage() {
           }
         }}
         onAdjusted={() => void load({ silent: true })}
+      />
+
+      <VoidSaleDialog
+        open={voidSaleId != null}
+        saleId={voidSaleId}
+        receiptLabel={voidReceiptLabel}
+        onOpenChange={(open) => {
+          if (!open) {
+            setVoidSaleId(null);
+            setVoidReceiptLabel(undefined);
+          }
+        }}
+        onVoided={() => void load({ silent: true })}
       />
     </div>
   );
