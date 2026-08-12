@@ -210,6 +210,11 @@ function CartLineItem({
                 : Math.max(1, Math.round(n)),
             );
           }}
+          onUnitPriceChange={(next) => {
+            const n = Number(next);
+            if (!Number.isFinite(n) || n <= 0) return;
+            onUpdateLine(line.key, "unitPrice", n);
+          }}
           onRemove={() => onRemoveLine(line.key)}
         />
         <button

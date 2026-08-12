@@ -194,6 +194,9 @@ export function CashierCartSidePanel({
                       onChange={(next) =>
                         updateLine(line.key, "quantity", next)
                       }
+                      onUnitPriceChange={(next) =>
+                        updateLine(line.key, "unitPrice", next)
+                      }
                       onRemove={() => removeLine(line.key)}
                     />
                   </li>

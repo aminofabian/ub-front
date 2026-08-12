@@ -86,12 +86,65 @@ export function roundCartMoney2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/** Spend→weight uses 2 dp kg (still within the sale API’s 3 dp cap). */
+export const SPEND_WEIGHT_DECIMALS = 2;
+const SPEND_QTY_FACTOR = 10 ** SPEND_WEIGHT_DECIMALS;
+const MIN_SPEND_QTY = 1 / SPEND_QTY_FACTOR;
+
 /** Round / stringify qty for cart lines (≤3 dp — sale API weighed limit). */
 export function formatCartQtyValue(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return "1";
   const rounded = Math.round(n * QTY_FACTOR) / QTY_FACTOR;
   if (rounded <= 0) return MIN_WEIGHTED_QTY.toFixed(WEIGHTED_QTY_DECIMALS);
   return String(Number(rounded.toFixed(WEIGHTED_QTY_DECIMALS)));
+}
+
+/** Round / stringify spend-derived weight (exactly 2 dp). */
+export function formatSpendQtyValue(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return MIN_SPEND_QTY.toFixed(SPEND_WEIGHT_DECIMALS);
+  const rounded = Math.round(n * SPEND_QTY_FACTOR) / SPEND_QTY_FACTOR;
+  if (rounded <= 0) return MIN_SPEND_QTY.toFixed(SPEND_WEIGHT_DECIMALS);
+  return rounded.toFixed(SPEND_WEIGHT_DECIMALS);
+}
+
+/**
+ * Customer pays exactly `amount`. Weight = round2(amount / shelfRate).
+ * Unit price is nudged so qty × unitPrice rounds to that same amount
+ * (shelf rate alone can land on 19.95 / 20.10).
+ */
+export function resolveSpendLine(
+  amount: number,
+  shelfUnitPrice: number,
+): { quantity: string; unitPrice: string; amount: number; qty: number } | null {
+  if (!(amount > 0) || !(shelfUnitPrice > 0)) return null;
+  if (!Number.isFinite(amount) || !Number.isFinite(shelfUnitPrice)) return null;
+
+  const target = roundCartMoney2(amount);
+  if (target <= 0) return null;
+
+  let qty = Math.round((target / shelfUnitPrice) * SPEND_QTY_FACTOR) / SPEND_QTY_FACTOR;
+  if (qty < MIN_SPEND_QTY) qty = MIN_SPEND_QTY;
+
+  let unitPrice = target / qty;
+  for (const dp of [2, 3, 4, 6] as const) {
+    const candidate = Number(unitPrice.toFixed(dp));
+    if (candidate > 0 && roundCartMoney2(qty * candidate) === target) {
+      unitPrice = candidate;
+      return {
+        quantity: formatSpendQtyValue(qty),
+        unitPrice: candidate.toFixed(dp),
+        amount: target,
+        qty,
+      };
+    }
+  }
+
+  return {
+    quantity: formatSpendQtyValue(qty),
+    unitPrice: String(unitPrice),
+    amount: target,
+    qty,
+  };
 }
 
 /** Pretty qty for till display (½ instead of 0.5). */
@@ -121,69 +174,6 @@ export function cartLineTotal(qty: number, unitPrice: number): number {
     return 0;
   }
   return roundCartMoney2(qty * unitPrice);
-}
-
-/**
- * Customer-wins: find qty (≤3 dp) such that round2(qty × unitPrice) equals
- * the keyed amount, keeping shelf price untouched (no price-override).
- */
-export function qtyForExactAmount(
-  amount: number,
-  unitPrice: number,
-  maxDeltaSteps = 120,
-): { qty: number; exact: boolean; achievedAmount: number } | null {
-  if (!(amount > 0) || !(unitPrice > 0)) return null;
-  if (!Number.isFinite(amount) || !Number.isFinite(unitPrice)) return null;
-
-  const target = roundCartMoney2(amount);
-  if (target < roundCartMoney2(MIN_WEIGHTED_QTY * unitPrice)) return null;
-
-  const ideal = target / unitPrice;
-  const center = Math.round(ideal * QTY_FACTOR);
-  let best: { qty: number; diff: number; total: number } | null = null;
-
-  for (let d = 0; d <= maxDeltaSteps; d++) {
-    const candidates = d === 0 ? [center] : [center - d, center + d];
-    for (const steps of candidates) {
-      if (steps < 1) continue;
-      const qty = steps / QTY_FACTOR;
-      const total = roundCartMoney2(qty * unitPrice);
-      const diff = Math.abs(total - target);
-      if (diff < 1e-9) {
-        return { qty, exact: true, achievedAmount: total };
-      }
-      if (!best || diff < best.diff - 1e-12) {
-        best = { qty, diff, total };
-      }
-    }
-  }
-
-  if (!best) return null;
-  return { qty: best.qty, exact: false, achievedAmount: best.total };
-}
-
-/** Nearby spend totals that land exactly at this shelf rate. */
-export function nearbyExactSpendAmounts(
-  around: number,
-  unitPrice: number,
-  limit = 4,
-): number[] {
-  if (!(unitPrice > 0) || !Number.isFinite(around)) return [];
-  const idealQty = Math.max(MIN_WEIGHTED_QTY, around / unitPrice);
-  const center = Math.round(idealQty * QTY_FACTOR);
-  const found: number[] = [];
-  const seen = new Set<number>();
-  for (let d = 0; d <= 400 && found.length < limit; d++) {
-    for (const steps of d === 0 ? [center] : [center - d, center + d]) {
-      if (steps < 1) continue;
-      const total = roundCartMoney2((steps / QTY_FACTOR) * unitPrice);
-      if (seen.has(total) || total <= 0) continue;
-      seen.add(total);
-      found.push(total);
-      if (found.length >= limit) break;
-    }
-  }
-  return found.sort((a, b) => Math.abs(a - around) - Math.abs(b - around));
 }
 
 function PortionPie({
@@ -232,6 +222,11 @@ type CashierQtyControlProps = {
   className?: string;
   disabled?: boolean;
   onChange: (nextQty: string) => void;
+  /**
+   * Spend mode may nudge unit price so qty × price = the keyed amount exactly.
+   * Wired on cashier / grocery carts that own the line’s unitPrice.
+   */
+  onUnitPriceChange?: (nextUnitPrice: string) => void;
   onRemove: () => void;
 };
 
@@ -245,6 +240,7 @@ export function CashierQtyControl({
   className,
   disabled = false,
   onChange,
+  onUnitPriceChange,
   onRemove,
 }: CashierQtyControlProps) {
   const [open, setOpen] = useState(false);
@@ -271,7 +267,8 @@ export function CashierQtyControl({
     const safe = nextQty > 0 ? nextQty : MIN_WEIGHTED_QTY;
     setDraftKg(formatCartQtyValue(safe));
     if (hasPrice) {
-      setDraftSpend(cartLineTotal(safe, priceNum).toFixed(2));
+      // String(20) not "20.00" / "20.10" — spend field stays what the line is.
+      setDraftSpend(String(cartLineTotal(safe, priceNum)));
     } else {
       setDraftSpend("");
     }
@@ -361,11 +358,13 @@ export function CashierQtyControl({
   };
 
   const applySpendAmount = (amount: number) => {
-    if (!hasPrice) return;
-    const hit = qtyForExactAmount(amount, priceNum);
-    if (!hit || hit.qty < MIN_WEIGHTED_QTY) return;
-    // Customer wins: charge the achievable line total (exact when possible).
-    applyQty(hit.qty);
+    if (!hasPrice || !allowFractions) return;
+    const line = resolveSpendLine(amount, priceNum);
+    if (!line) return;
+    // Keep the keyed amount exact; weight is 2 dp; unit price absorbs the rest.
+    onChange(line.quantity);
+    onUnitPriceChange?.(line.unitPrice);
+    setOpen(false);
   };
 
   const draftKgNum = parseDraftNumber(draftKg);
@@ -378,24 +377,12 @@ export function CashierQtyControl({
 
   const spendResolve =
     draftSpendNum != null && draftSpendNum > 0 && hasPrice
-      ? qtyForExactAmount(draftSpendNum, priceNum)
+      ? resolveSpendLine(draftSpendNum, priceNum)
       : null;
-
-  const spendSuggestions =
-    hasPrice &&
-    draftSpendNum != null &&
-    draftSpendNum > 0 &&
-    spendResolve &&
-    !spendResolve.exact
-      ? nearbyExactSpendAmounts(draftSpendNum, priceNum, 3).filter(
-          (a) => Math.abs(a - roundCartMoney2(draftSpendNum)) > 0.001,
-        )
-      : [];
 
   const canApplyWeight =
     draftKgNum != null && draftKgNum >= MIN_WEIGHTED_QTY;
-  const canApplySpend =
-    spendResolve != null && spendResolve.qty >= MIN_WEIGHTED_QTY;
+  const canApplySpend = spendResolve != null;
 
   const wholeQty = Math.max(1, Math.floor(qNum + 1e-9));
 
@@ -477,10 +464,12 @@ export function CashierQtyControl({
                       const n = parseDraftNumber(raw);
                       if (n != null && n > 0 && hasPrice) {
                         setDraftSpend(
-                          cartLineTotal(
-                            Number(formatCartQtyValue(n)),
-                            priceNum,
-                          ).toFixed(2),
+                          String(
+                            cartLineTotal(
+                              Number(formatCartQtyValue(n)),
+                              priceNum,
+                            ),
+                          ),
                         );
                       }
                     }}
@@ -559,19 +548,18 @@ export function CashierQtyControl({
                         value={draftSpend}
                         onChange={(e) => {
                           const raw = e.target.value;
+                          // Keep the typed amount as-is (e.g. "20", never rewrite to 20.10).
                           setDraftSpend(raw);
                           const n = parseDraftNumber(raw);
                           if (n != null && n > 0) {
-                            const hit = qtyForExactAmount(n, priceNum);
-                            if (hit) {
-                              setDraftKg(formatCartQtyValue(hit.qty));
-                            }
+                            const hit = resolveSpendLine(n, priceNum);
+                            if (hit) setDraftKg(hit.quantity);
                           }
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && canApplySpend && spendResolve) {
+                          if (e.key === "Enter" && canApplySpend && draftSpendNum) {
                             e.preventDefault();
-                            applyQty(spendResolve.qty);
+                            applySpendAmount(draftSpendNum);
                           }
                         }}
                         className="h-10 w-full rounded-xl border border-border/55 bg-card px-3 text-[15px] font-bold tabular-nums outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_25%,transparent)]"
@@ -580,42 +568,18 @@ export function CashierQtyControl({
                     </label>
                     <p className="px-0.5 text-[11px] tabular-nums text-muted-foreground">
                       {spendResolve ? (
-                        spendResolve.exact ? (
-                          <>
-                            Gives{" "}
-                            <span className="font-semibold text-foreground">
-                              {formatCartQtyLabel(spendResolve.qty)} kg
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            Closest{" "}
-                            <span className="font-semibold text-foreground">
-                              {currencyLabel}{" "}
-                              {spendResolve.achievedAmount.toFixed(2)}
-                            </span>
-                            {" · "}
-                            {formatCartQtyLabel(spendResolve.qty)} kg
-                          </>
-                        )
+                        <>
+                          Charges{" "}
+                          <span className="font-semibold text-foreground">
+                            {currencyLabel} {spendResolve.amount.toFixed(2)}
+                          </span>
+                          {" · "}
+                          {spendResolve.quantity} kg
+                        </>
                       ) : (
                         "Enter what the customer wants to spend"
                       )}
                     </p>
-                    {spendSuggestions.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {spendSuggestions.map((a) => (
-                          <button
-                            key={a}
-                            type="button"
-                            className="rounded-lg border border-border/45 bg-card px-2 py-1 text-[10px] font-semibold tabular-nums hover:border-border hover:bg-muted/35"
-                            onClick={() => applySpendAmount(a)}
-                          >
-                            Exact {a.toFixed(0)}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
                     <div className="flex flex-wrap gap-1">
                       {CART_SPEND_CHIPS.map((a) => {
                         const active =
@@ -631,7 +595,10 @@ export function CashierQtyControl({
                                 ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-[var(--pos-primary)]"
                                 : "border-border/45 bg-card hover:border-border hover:bg-muted/35",
                             )}
-                            onClick={() => applySpendAmount(a)}
+                            onClick={() => {
+                              setDraftSpend(String(a));
+                              applySpendAmount(a);
+                            }}
                           >
                             {a}
                           </button>
@@ -643,14 +610,12 @@ export function CashierQtyControl({
                       disabled={!canApplySpend}
                       className="flex h-9 w-full items-center justify-center rounded-xl bg-[var(--pos-primary)] text-[12px] font-semibold text-[var(--pos-primary-ink,#fff)] disabled:opacity-40"
                       onClick={() => {
-                        if (spendResolve) applyQty(spendResolve.qty);
+                        if (draftSpendNum != null) applySpendAmount(draftSpendNum);
                       }}
                     >
-                      {spendResolve?.exact
-                        ? "Apply spend"
-                        : spendResolve
-                          ? `Charge ${currencyLabel} ${spendResolve.achievedAmount.toFixed(2)}`
-                          : "Apply spend"}
+                      {spendResolve
+                        ? `Charge ${currencyLabel} ${spendResolve.amount.toFixed(2)}`
+                        : "Apply spend"}
                     </button>
                   </>
                 )}

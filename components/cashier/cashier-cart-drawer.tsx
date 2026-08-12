@@ -1594,6 +1594,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 onChange={(next) =>
                                   updateLine(line.key, "quantity", next)
                                 }
+                                onUnitPriceChange={(next) =>
+                                  updateLine(line.key, "unitPrice", next)
+                                }
                                 onRemove={() => removeLine(line.key)}
                               />
                               <span className="w-12 shrink-0 text-right text-[12px] font-bold tabular-nums">
