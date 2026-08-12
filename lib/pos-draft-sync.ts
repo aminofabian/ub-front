@@ -294,14 +294,19 @@ export async function resolveDraftConflictUseMine(
 /**
  * Merge locally mirrored tabs with server pending drafts on cashier load.
  * Local tabs with lines win unless matched to a server draft (then server metadata applied).
+ *
+ * When {@code dropUnmatchedDrafts} is true (online hydrate against the pending list),
+ * locals that still point at a server draft id but are no longer pending are dropped —
+ * cancelled/completed tickets must not resurrect as zombie cashier tabs.
  */
 export function mergeHydratedCartSessions(
   localCarts: CartSession[],
   serverDrafts: PosDraftResponse[],
-  opts?: { uiVisible?: boolean },
+  opts?: { uiVisible?: boolean; dropUnmatchedDrafts?: boolean },
 ): CartSession[] {
   const tabs: CartSession[] = [];
   const matchedDraftIds = new Set<string>();
+  const dropUnmatched = opts?.dropUnmatchedDrafts === true;
 
   for (const local of localCarts) {
     if (local.lines.length === 0 && !local.draftId) continue;
@@ -319,6 +324,9 @@ export function mergeHydratedCartSessions(
           opts,
         ),
       );
+    } else if (local.draftId && dropUnmatched) {
+      // Voided / paid / abandoned on the server — leave no cashier tab behind.
+      continue;
     } else {
       tabs.push(local);
       if (local.draftId) matchedDraftIds.add(local.draftId);
@@ -340,4 +348,25 @@ export function mergeHydratedCartSessions(
   const trailing =
     tabs.length < MAX_CARTS ? [createEmptyCartSession()] : [];
   return [...tabs, ...trailing];
+}
+
+/** Local cart ids that were dropped because their draft is no longer pending. */
+export function unmatchedMirroredCartIds(
+  localCarts: CartSession[],
+  serverDrafts: PosDraftResponse[],
+): string[] {
+  const pendingIds = new Set(serverDrafts.map((d) => d.id));
+  const pendingClientIds = new Set(
+    serverDrafts.map((d) => d.clientDraftId).filter(Boolean),
+  );
+  return localCarts
+    .filter((local) => {
+      if (!local.draftId) return false;
+      if (pendingIds.has(local.draftId)) return false;
+      if (local.clientDraftId && pendingClientIds.has(local.clientDraftId)) {
+        return false;
+      }
+      return true;
+    })
+    .map((c) => c.id);
 }

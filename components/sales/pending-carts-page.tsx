@@ -28,6 +28,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { useFeatureFlag } from "@/components/providers/tenant-provider";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { cn } from "@/lib/utils";
@@ -324,7 +325,9 @@ export function PendingCartsPage() {
     onCancelled: (frame) => {
       const ticket = frame.data?.ticketNumber;
       toast.info(
-        ticket ? `Ticket #${ticket} cancelled` : "A pending sale was cancelled",
+        ticket
+          ? `Ticket #${ticket} voided — cleared from tills`
+          : "A pending sale was voided",
       );
       void loadDrafts();
       // Close detail drawer if the cancelled draft is currently open
@@ -445,22 +448,35 @@ export function PendingCartsPage() {
     if (!detail || detail.status !== "pending") return;
     const isOwn = detail.createdBy === myId;
     if (!canCancelAny && !(canCancelOwn && isOwn)) {
-      toast.error("You cannot cancel this sale.");
+      toast.error("You cannot void this sale.");
       return;
     }
-    setCancelling(true);
-    try {
-      await cancelPosDraft(detail.id, "Cancelled from admin list");
-      toast.success(`Sale #${detail.ticketNumber} cancelled`);
-      closeDetail();
-      void loadDrafts();
-    } catch (e) {
-      toast.error(
-        e instanceof PosDraftApiError ? e.message : "Could not cancel sale",
-      );
-    } finally {
-      setCancelling(false);
-    }
+    const draft = detail;
+    showThemedConfirmToast({
+      id: `void-admin-pending-${draft.id}`,
+      title: `Void sale #${draft.ticketNumber}?`,
+      description:
+        "This voids the sale for every till — no tab, no resume. Audit keeps a cancelled record.",
+      confirmLabel: "Void sale",
+      confirmVariant: "destructive",
+      onConfirm: async () => {
+        setCancelling(true);
+        try {
+          await cancelPosDraft(draft.id, "Voided from admin list");
+          toast.success(`Sale #${draft.ticketNumber} voided`, {
+            description: "Wiped from every till — no tab, no resume.",
+          });
+          closeDetail();
+          void loadDrafts();
+        } catch (e) {
+          toast.error(
+            e instanceof PosDraftApiError ? e.message : "Could not void sale",
+          );
+        } finally {
+          setCancelling(false);
+        }
+      },
+    });
   }, [
     detail,
     canCancelAny,
@@ -966,7 +982,7 @@ export function PendingCartsPage() {
                     {cancelling ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : (
-                      "Cancel sale"
+                      "Void sale"
                     )}
                   </Button>
                 </div>

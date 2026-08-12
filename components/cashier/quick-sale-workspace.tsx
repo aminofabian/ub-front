@@ -14,6 +14,7 @@ import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { APP_ROUTES } from "@/lib/config";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { usePosDraftEvents } from "@/hooks/use-pos-draft-events";
 import { usePosEvents } from "@/hooks/use-pos-events";
 import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { useFeatureFlag } from "@/components/providers/tenant-provider";
@@ -151,6 +152,7 @@ import {
   mergeHydratedCartSessions,
   replayMirroredDraftsToServer,
   syncCartSessionToServer,
+  unmatchedMirroredCartIds,
 } from "@/lib/pos-draft-sync";
 import {
   enqueuePendingDraftComplete,
@@ -692,11 +694,19 @@ export function QuickSaleWorkspace({
             : [];
 
         if (localCarts.length > 0 || fullDrafts.length > 0) {
-          let merged = mergeHydratedCartSessions(
-            localCarts,
-            fullDrafts,
-            uiOpts,
-          );
+          // Drop local mirrors whose drafts are no longer pending (voided/paid).
+          if (cartLocalMirror && posDraftPersistence) {
+            const staleIds = unmatchedMirroredCartIds(localCarts, fullDrafts);
+            await Promise.all(
+              staleIds.map((cartId) =>
+                removeMirroredCart(bizId, bid, uid, cartId),
+              ),
+            );
+          }
+          let merged = mergeHydratedCartSessions(localCarts, fullDrafts, {
+            ...uiOpts,
+            dropUnmatchedDrafts: posDraftPersistence,
+          });
           if (
             posDraftPersistence &&
             localCarts.some((c) => c.lines.length > 0)
@@ -1085,6 +1095,97 @@ export function QuickSaleWorkspace({
     },
     [cartLocalMirror, business?.id, branchId, me?.id],
   );
+
+  /**
+   * Fully drop a till tab that points at a voided/paid draft — memory, IndexedDB,
+   * and any grocery invoice lock. Returns true when a matching tab was open here.
+   */
+  const purgeCartByDraftId = useCallback(
+    (draftId: string): boolean => {
+      const trimmed = draftId.trim();
+      if (!trimmed) return false;
+      const match = cartsRef.current.find((c) => c.draftId === trimmed);
+      if (!match) return false;
+
+      if (match.groceryInvoiceId && online) {
+        void unlockGroceryInvoice(match.groceryInvoiceId).catch(() => {});
+      }
+
+      const bizId = business?.id?.trim();
+      const bid = branchId.trim();
+      const uid = me?.id?.trim();
+      if (cartLocalMirror && bizId && bid && uid) {
+        void removeMirroredCart(bizId, bid, uid, match.id);
+      }
+
+      setCarts((prev) => {
+        const rest = prev.filter((c) => c.draftId !== trimmed);
+        const next = rest.length === 0 ? [createEmptyCartSession()] : rest;
+        setActiveCartId((current) =>
+          prev.some((c) => c.id === current && c.draftId === trimmed)
+            ? next[0].id
+            : current,
+        );
+        return next;
+      });
+      setPendingSalesRefreshKey((k) => k + 1);
+      return true;
+    },
+    [cartLocalMirror, business?.id, branchId, me?.id, online],
+  );
+
+  /** Drafts voided from this till's Pending panel — suppress duplicate realtime toasts. */
+  const locallyVoidedDraftIdsRef = useRef(new Set<string>());
+
+  const handleLocalDraftVoided = useCallback(
+    (draftId: string) => {
+      const trimmed = draftId.trim();
+      if (!trimmed) return;
+      locallyVoidedDraftIdsRef.current.add(trimmed);
+      purgeCartByDraftId(trimmed);
+      window.setTimeout(() => {
+        locallyVoidedDraftIdsRef.current.delete(trimmed);
+      }, 8_000);
+    },
+    [purgeCartByDraftId],
+  );
+
+  // Live void/pay from any till: wipe matching cashier tabs so cancelled sales vanish.
+  usePosDraftEvents({
+    onCancelled: (frame) => {
+      if (frame.delivery === "poll") return;
+      const eventBranch = String(frame.data?.branchId ?? "");
+      const bid = branchId.trim();
+      if (eventBranch && bid && eventBranch !== bid) return;
+
+      const draftId = String(frame.data?.draftId ?? "");
+      const ticket = frame.data?.ticketNumber;
+      const local = locallyVoidedDraftIdsRef.current.has(draftId);
+      const purged = purgeCartByDraftId(draftId);
+      if (!purged) {
+        setPendingSalesRefreshKey((k) => k + 1);
+      }
+      if (purged && !local) {
+        toast.message(
+          ticket != null && ticket !== ""
+            ? `Sale #${ticket} voided`
+            : "Sale voided",
+          { description: "Removed from your open tabs — it will not return." },
+        );
+      }
+    },
+    onCompleted: (frame) => {
+      if (frame.delivery === "poll") return;
+      const eventBranch = String(frame.data?.branchId ?? "");
+      const bid = branchId.trim();
+      if (eventBranch && bid && eventBranch !== bid) return;
+
+      const draftId = String(frame.data?.draftId ?? "");
+      if (!purgeCartByDraftId(draftId)) {
+        setPendingSalesRefreshKey((k) => k + 1);
+      }
+    },
+  });
 
   const openDraftIds = useMemo(
     () =>
@@ -3861,6 +3962,7 @@ export function QuickSaleWorkspace({
           {(posDraftsUi || posDraftsEnabled) && (
             <PendingSalesPanel
               onResumeDraft={(id) => void resumePosDraft(id)}
+              onDraftVoided={handleLocalDraftVoided}
               openDraftIds={openDraftIds}
               refreshKey={pendingSalesRefreshKey}
             />

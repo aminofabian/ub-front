@@ -10,10 +10,11 @@ import {
   Clock,
   User,
   ShoppingCart,
-  XCircle,
+  Ban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
@@ -25,13 +26,16 @@ import {
 
 type PendingSalesPanelProps = {
   onResumeDraft: (draftId: string) => void;
-  /** Server draft ids already open in cart tabs — hidden from the list. */
+  /** Fired after a sale is voided on the server so the till can drop matching tabs. */
+  onDraftVoided?: (draftId: string) => void;
+  /** Server draft ids already open in cart tabs — marked, still voidable. */
   openDraftIds?: string[];
   refreshKey?: number;
 };
 
 export function PendingSalesPanel({
   onResumeDraft,
+  onDraftVoided,
   openDraftIds = [],
   refreshKey = 0,
 }: PendingSalesPanelProps) {
@@ -66,8 +70,8 @@ export function PendingSalesPanel({
         status: "pending",
         hoursBack: 48,
       });
-      const list = (result.drafts ?? []).filter((d) => !openDraftSet.has(d.id));
-      setDrafts(list);
+      // Keep open-on-this-till drafts visible so they can be voided in one place.
+      setDrafts(result.drafts ?? []);
       if (!firstFetchDone.current) {
         firstFetchDone.current = true;
       }
@@ -76,7 +80,7 @@ export function PendingSalesPanel({
     } finally {
       setLoading(false);
     }
-  }, [branchId, online, openDraftSet]);
+  }, [branchId, online]);
 
   useEffect(() => {
     if (open) fetchDrafts();
@@ -90,32 +94,59 @@ export function PendingSalesPanel({
 
   const pendingCount = drafts.length;
 
-  const handleCancel = useCallback(
-    async (draft: PosDraftSummaryResponse, e: React.MouseEvent) => {
-      e.stopPropagation();
+  const voidDraft = useCallback(
+    async (draft: PosDraftSummaryResponse) => {
       const isOwn = draft.createdBy === myId;
       if (!canCancelAny && !(canCancelOwn && isOwn)) {
-        toast.error("You cannot cancel this sale.");
+        toast.error("You cannot void this sale.");
         return;
       }
       setCancellingId(draft.id);
       try {
-        await cancelPosDraft(draft.id, "Cancelled from pending list");
+        await cancelPosDraft(draft.id, "Voided from pending list");
         setDrafts((prev) => prev.filter((d) => d.id !== draft.id));
-        toast.success(`Sale #${draft.ticketNumber} cancelled`);
+        onDraftVoided?.(draft.id);
+        toast.success(`Sale #${draft.ticketNumber} voided`, {
+          description: "Wiped from every till — no tab, no resume.",
+        });
       } catch (err) {
         const msg =
           err instanceof PosDraftApiError
             ? err.message
             : err instanceof Error
               ? err.message
-              : "Could not cancel sale";
+              : "Could not void sale";
         toast.error(msg);
       } finally {
         setCancellingId(null);
       }
     },
-    [canCancelAny, canCancelOwn, myId],
+    [canCancelAny, canCancelOwn, myId, onDraftVoided],
+  );
+
+  const handleVoidClick = useCallback(
+    (draft: PosDraftSummaryResponse, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const isOwn = draft.createdBy === myId;
+      if (!canCancelAny && !(canCancelOwn && isOwn)) {
+        toast.error("You cannot void this sale.");
+        return;
+      }
+      const onThisTill = openDraftSet.has(draft.id);
+      showThemedConfirmToast({
+        id: `void-pending-sale-${draft.id}`,
+        title: `Void sale #${draft.ticketNumber}?`,
+        description: onThisTill
+          ? "This closes the tab on this till and voids the sale branch-wide. It will not come back."
+          : "This voids the sale for every till — no tab, no resume. Audit keeps a cancelled record.",
+        confirmLabel: "Void sale",
+        confirmVariant: "destructive",
+        onConfirm: () => {
+          void voidDraft(draft);
+        },
+      });
+    },
+    [canCancelAny, canCancelOwn, myId, openDraftSet, voidDraft],
   );
 
   return (
@@ -168,7 +199,7 @@ export function PendingSalesPanel({
                 </p>
               ) : drafts.length === 0 ? (
                 <p className="px-4 py-8 text-center text-xs text-muted-foreground">
-                  No other pending sales at this branch.
+                  No pending sales at this branch.
                 </p>
               ) : (
                 <div className="divide-y divide-border/30">
@@ -176,10 +207,14 @@ export function PendingSalesPanel({
                     const canCancel =
                       canCancelAny ||
                       (canCancelOwn && draft.createdBy === myId);
+                    const onThisTill = openDraftSet.has(draft.id);
                     return (
                       <div
                         key={draft.id}
-                        className="flex items-start gap-2 px-4 py-3 transition-colors hover:bg-muted/50"
+                        className={cn(
+                          "flex items-start gap-2 px-4 py-3 transition-colors hover:bg-muted/50",
+                          cancellingId === draft.id && "opacity-50",
+                        )}
                       >
                         <button
                           type="button"
@@ -193,7 +228,7 @@ export function PendingSalesPanel({
                             <ClipboardList className="size-4 text-primary" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <span className="text-xs font-mono font-semibold text-foreground">
                                 #{draft.ticketNumber}
                               </span>
@@ -201,6 +236,11 @@ export function PendingSalesPanel({
                                 {draft.lineCount}{" "}
                                 {draft.lineCount === 1 ? "item" : "items"}
                               </span>
+                              {onThisTill && (
+                                <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
+                                  On this till
+                                </span>
+                              )}
                             </div>
                             <div className="mt-0.5 text-xs font-semibold text-foreground">
                               {Number(draft.grandTotal).toLocaleString("en-KE", {
@@ -224,15 +264,15 @@ export function PendingSalesPanel({
                         {canCancel && (
                           <button
                             type="button"
-                            title="Cancel sale"
+                            title="Void sale"
                             disabled={cancellingId === draft.id}
-                            onClick={(e) => void handleCancel(draft, e)}
+                            onClick={(e) => handleVoidClick(draft, e)}
                             className="mt-1 shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                           >
                             {cancellingId === draft.id ? (
                               <Loader2 className="size-3.5 animate-spin" />
                             ) : (
-                              <XCircle className="size-3.5" />
+                              <Ban className="size-3.5" />
                             )}
                           </button>
                         )}
