@@ -19,6 +19,7 @@ import {
   getLocalTillCupsName,
   getLocalTillNetworkTarget,
   isTillPrintBridgeUp,
+  kickCashDrawerViaTillBridge,
   printEscPosViaTillBridge,
   TILL_BRIDGE_START_HINT,
 } from "@/lib/till-print-bridge";
@@ -189,6 +190,50 @@ export async function printPosReceipt(
       e instanceof Error ? e.message : "Could not reach the receipt printer.";
     toast.error(msg, { duration: 10_000 });
     throw e;
+  }
+}
+
+/**
+ * Open the cash drawer via the receipt printer (ESC/POS kick on RJ12).
+ * Call after a cash (or cash-split) tender — independent of receipt print.
+ * Quiet on missing printer / bridge (cashier can unlock manually).
+ */
+export async function kickCashDrawer(
+  printer?: LocalReceiptPrinterTarget | null,
+): Promise<boolean> {
+  if (IS_DESKTOP) {
+    try {
+      await apiRequest<void>(`/api/v1/desktop/devices/drawer/kick`, {
+        method: "POST",
+        toast: false,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const resolved = await resolvePrinterTarget(printer);
+  const cupsName = resolved?.cupsName?.trim() || "";
+  const host = resolved?.host?.trim() || "";
+  if (!cupsName && !host) {
+    return false;
+  }
+
+  const bridgeUp = await isTillPrintBridgeUp();
+  if (!bridgeUp) {
+    return false;
+  }
+
+  try {
+    await kickCashDrawerViaTillBridge({
+      name: cupsName || null,
+      host: host || null,
+      port: resolved?.port ?? 9100,
+    });
+    return true;
+  } catch {
+    return false;
   }
 }
 

@@ -10,6 +10,8 @@
  *   Windows       — spooler RAW via PowerShell Win32 WritePrinter
  *   All           — Ethernet/Wi‑Fi ESC/POS on TCP port 9100 (X-Printer-Host)
  *
+ * Also: POST /drawer/kick — ESC/POS cash-drawer pulse (same printer target headers).
+ *
  * Usage:
  *   Windows (recommended): run Install-Palmart-Print-Bridge.cmd once — autostarts hidden.
  *   Dev / manual: node scripts/till-print-bridge.mjs
@@ -63,6 +65,8 @@ const WIN_NAME_RE = /^[^\\/:*?"<>|]{1,200}$/;
 const HOST_RE = /^[A-Za-z0-9._:-]+$/;
 const MAX_BODY = 256_000;
 const DEFAULT_RAW_PORT = 9100;
+/** Standard ESC/POS pulse — drawer kick pin 2 (matches desktop devices.rs). */
+const DRAWER_KICK = Buffer.from([0x1b, 0x70, 0x00, 0x19, 0xfa]);
 
 /** Names that look like retail/thermal receipt printers (prefer when auto-picking). */
 const THERMAL_HINT_RE =
@@ -469,17 +473,24 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === "POST" && (url === "/print" || url === "/print/")) {
+  if (
+    req.method === "POST" &&
+    (url === "/print" ||
+      url === "/print/" ||
+      url === "/drawer/kick" ||
+      url === "/drawer/kick/")
+  ) {
+    const isDrawerKick = url === "/drawer/kick" || url === "/drawer/kick/";
     const netHost = req.headers["x-printer-host"]?.trim() || "";
     const netPort = parsePort(req.headers["x-printer-port"]);
     const cups = req.headers["x-printer-cups-name"]?.trim() || "";
 
-    const body = await readRequest(req);
-    if (body.length === 0) {
+    const body = isDrawerKick ? DRAWER_KICK : await readRequest(req);
+    if (!isDrawerKick && body.length === 0) {
       send(res, 400, "empty body");
       return;
     }
-    if (body.length > MAX_BODY) {
+    if (!isDrawerKick && body.length > MAX_BODY) {
       send(res, 413, "payload too large");
       return;
     }
@@ -499,6 +510,7 @@ const server = createServer(async (req, res) => {
             mode: "network",
             host: netHost,
             port: netPort,
+            ...(isDrawerKick ? { drawer: true } : {}),
           }),
           "application/json",
         );
@@ -523,6 +535,7 @@ const server = createServer(async (req, res) => {
           mode: IS_WIN ? "windows" : "cups",
           name: cups,
           platform: PLATFORM,
+          ...(isDrawerKick ? { drawer: true } : {}),
         }),
         "application/json",
       );
@@ -556,6 +569,7 @@ server.listen(PORT, HOST, () => {
     logLine("Windows spooler: PowerShell Get-Printer / WritePrinter (RAW)");
   }
   logLine("Network ESC/POS: X-Printer-Host (+ optional X-Printer-Port, default 9100)");
+  logLine("Cash drawer: POST /drawer/kick (same printer headers as /print)");
   if (LOG_FILE) {
     logLine(`Logging to ${LOG_FILE}`);
   } else if (IS_WIN) {

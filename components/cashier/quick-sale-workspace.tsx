@@ -120,7 +120,7 @@ import {
 } from "@/lib/customer-phone";
 import { toKenyanMsisdn254 } from "@/lib/kenyan-phone";
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
-import { printPosReceipt } from "@/lib/desktop-print";
+import { kickCashDrawer, printPosReceipt } from "@/lib/desktop-print";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 import {
@@ -3355,6 +3355,12 @@ export function QuickSaleWorkspace({
         recordTopSellers();
         clearCartAfterSale(soldCartId);
         setVoidNotes("");
+        if (payments.some((p) => p.method === "cash" && Number(p.amount) > 0)) {
+          void kickCashDrawer({
+            cupsName: receiptBranch?.receipt?.printerCupsName ?? null,
+            branchId: bid,
+          });
+        }
         await refreshOutbox();
         setPendingSalesRefreshKey((k) => k + 1);
         setNotice(
@@ -3568,20 +3574,29 @@ export function QuickSaleWorkspace({
             cashTendered,
             clientSoldAt: salePayload.clientSoldAt ?? undefined,
           });
-          const printed = await printPosReceipt(
-            sale.id,
-            undefined,
-            {
-              cupsName: receiptBranch?.receipt?.printerCupsName ?? null,
-              branchId: bid,
-            },
-            completedReceipt.cashReceived != null
-              ? {
-                  received: completedReceipt.cashReceived,
-                  change: completedReceipt.changeGiven ?? 0,
-                }
-              : null,
-          ).catch(() => false);
+          const printerTarget = {
+            cupsName: receiptBranch?.receipt?.printerCupsName ?? null,
+            branchId: bid,
+          };
+          const shouldKickDrawer = groceryPayments.some(
+            (p) => p.method === "cash" && Number(p.amount) > 0,
+          );
+          const [printed] = await Promise.all([
+            printPosReceipt(
+              sale.id,
+              undefined,
+              printerTarget,
+              completedReceipt.cashReceived != null
+                ? {
+                    received: completedReceipt.cashReceived,
+                    change: completedReceipt.changeGiven ?? 0,
+                  }
+                : null,
+            ).catch(() => false),
+            shouldKickDrawer
+              ? kickCashDrawer(printerTarget)
+              : Promise.resolve(false),
+          ]);
           if (printed) {
             dismissCompletedSaleUi();
             setCheckoutCompletedKey((key) => key + 1);
@@ -3717,20 +3732,29 @@ export function QuickSaleWorkspace({
           cashTendered,
           clientSoldAt: salePayload.clientSoldAt ?? undefined,
         });
-        const printed = await printPosReceipt(
-          sale.id,
-          undefined,
-          {
-            cupsName: receiptBranch?.receipt?.printerCupsName ?? null,
-            branchId: bid,
-          },
-          completedReceipt.cashReceived != null
-            ? {
-                received: completedReceipt.cashReceived,
-                change: completedReceipt.changeGiven ?? 0,
-              }
-            : null,
-        ).catch(() => false);
+        const printerTarget = {
+          cupsName: receiptBranch?.receipt?.printerCupsName ?? null,
+          branchId: bid,
+        };
+        const shouldKickDrawer = payments.some(
+          (p) => p.method === "cash" && Number(p.amount) > 0,
+        );
+        const [printed] = await Promise.all([
+          printPosReceipt(
+            sale.id,
+            undefined,
+            printerTarget,
+            completedReceipt.cashReceived != null
+              ? {
+                  received: completedReceipt.cashReceived,
+                  change: completedReceipt.changeGiven ?? 0,
+                }
+              : null,
+          ).catch(() => false),
+          shouldKickDrawer
+            ? kickCashDrawer(printerTarget)
+            : Promise.resolve(false),
+        ]);
         if (printed) {
           dismissCompletedSaleUi();
           setCheckoutCompletedKey((key) => key + 1);

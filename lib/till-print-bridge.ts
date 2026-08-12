@@ -214,5 +214,48 @@ export async function printEscPosViaTillBridge(
   }
 }
 
+/**
+ * Pulse the cash drawer via the receipt printer RJ12 port (ESC/POS kick).
+ * Uses the same printer target headers as {@link printEscPosViaTillBridge}.
+ */
+export async function kickCashDrawerViaTillBridge(
+  target: string | TillBridgePrintTarget,
+): Promise<void> {
+  const opts: TillBridgePrintTarget =
+    typeof target === "string" ? { name: target } : target ?? {};
+  const name = opts.name?.trim() || "";
+  const host = opts.host?.trim() || "";
+  const port =
+    opts.port != null && Number.isFinite(opts.port)
+      ? Math.trunc(opts.port)
+      : 9100;
+
+  if (!host && !name) {
+    throw new Error("No receipt printer configured for this branch.");
+  }
+
+  const headers: Record<string, string> = {};
+  if (host) {
+    headers["X-Printer-Host"] = host;
+    headers["X-Printer-Port"] = String(port > 0 ? port : 9100);
+  }
+  if (name) {
+    headers["X-Printer-Cups-Name"] = name;
+  }
+
+  const res = await fetch(`${TILL_PRINT_BRIDGE_URL}/drawer/kick`, {
+    method: "POST",
+    mode: "cors",
+    headers,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      text.trim() ||
+        `Till print bridge returned HTTP ${res.status} kicking the cash drawer.`,
+    );
+  }
+}
+
 export const TILL_BRIDGE_START_HINT =
   "The bridge must run on THIS computer (the one with the printer), not another PC. Windows 10/11: Install-Palmart-Print-Bridge.cmd. Windows 7: download the Windows 7 package and run Install-Palmart-Print-Bridge-Win7.cmd (no Node.js). macOS: Install Palmart Print Bridge.command. Linux: bash install-palmart-print-bridge.sh.";
