@@ -1589,6 +1589,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 itemLabel={full}
                                 size="sm"
                                 allowFractions={line.item.isWeighed === true}
+                                unitPrice={line.unitPrice}
+                                currency={currency}
                                 onChange={(next) =>
                                   updateLine(line.key, "quantity", next)
                                 }

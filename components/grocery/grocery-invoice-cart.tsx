@@ -197,6 +197,8 @@ function CartLineItem({
           itemLabel={line.label}
           size="sm"
           allowFractions={weighed}
+          unitPrice={line.unitPrice}
+          currency={currency}
           onChange={(next) => {
             const n = Number(next);
             if (!Number.isFinite(n) || n <= 0) return;

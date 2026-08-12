@@ -189,6 +189,8 @@ export function CashierCartSidePanel({
                       itemLabel={full}
                       size="md"
                       allowFractions={line.item.isWeighed === true}
+                      unitPrice={line.unitPrice}
+                      currency={currency}
                       onChange={(next) =>
                         updateLine(line.key, "quantity", next)
                       }
