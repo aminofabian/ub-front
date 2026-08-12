@@ -14,7 +14,6 @@ import {
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
   clearSessionTenantId,
-  finalizeClientSignOut,
   getSessionTenantId,
   setSessionTenantId,
 } from "@/lib/auth";
@@ -39,7 +38,6 @@ import {
   APP_ROUTES,
   slugDerivedShopUrl,
 } from "@/lib/config";
-import { checkLoginAudience } from "@/lib/login-audience";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import { cn } from "@/lib/utils";
@@ -104,22 +102,25 @@ function LoginPageContent() {
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
 
-  const resolveAfterStaffAuth = useCallback(async (): Promise<string> => {
-    const requestedNext = searchParams.get("next");
-    let me: Awaited<ReturnType<typeof fetchMe>>;
-    try {
-      me = await fetchMe();
-    } catch {
-      // store-session resolves role server-side when client fetch fails (iPad).
-      return requestedNext?.trim() ?? "";
-    }
-    const audience = checkLoginAudience(me, "staff");
-    if (!audience.ok) {
-      finalizeClientSignOut();
-      throw new Error(audience.message);
-    }
-    return resolvePostAuthDestination(me, requestedNext);
-  }, [searchParams]);
+  /**
+   * Password: honor `?next=` (including shop account). PIN: role home only —
+   * till sign-in should not bounce to the storefront.
+   */
+  const resolveAfterStaffAuth = useCallback(
+    async (opts?: { honorNext?: boolean }): Promise<string> => {
+      const honorNext = opts?.honorNext !== false;
+      const requestedNext = honorNext ? searchParams.get("next") : null;
+      let me: Awaited<ReturnType<typeof fetchMe>>;
+      try {
+        me = await fetchMe();
+      } catch {
+        // store-session resolves role server-side when client fetch fails (iPad).
+        return requestedNext?.trim() ?? "";
+      }
+      return resolvePostAuthDestination(me, requestedNext);
+    },
+    [searchParams],
+  );
 
   const persistTenantId = (raw: string) => {
     const id = raw.trim();
@@ -240,7 +241,7 @@ function LoginPageContent() {
       }
       persistTenantId(id);
       await loginWithPin(email, pin, branchId);
-      const pinDest = await resolveAfterStaffAuth();
+      const pinDest = await resolveAfterStaffAuth({ honorNext: false });
       const pinPath =
         pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest;
       await completeAuthAndNavigate(pinPath, tenant?.slug);

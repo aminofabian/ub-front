@@ -31,13 +31,37 @@ describe("resolvePostAuthDestination", () => {
     ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
   });
 
-  it("prefers role over requested next", () => {
+  it("prefers role over non-shop requested next", () => {
     expect(
       resolvePostAuthDestination(
         { role: { key: "grocery_clerk" } },
         APP_ROUTES.business,
       ),
     ).toBe(APP_ROUTES.grocery);
+  });
+
+  it("honours shop next over staff role (storefront password login)", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        APP_ROUTES.shopAccount,
+      ),
+    ).toBe(APP_ROUTES.shopAccount);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "grocery_clerk" } },
+        APP_ROUTES.shopAccount,
+      ),
+    ).toBe(APP_ROUTES.shopAccount);
+  });
+
+  it("honours shop next for buyers", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "buyer" } },
+        "/shop/cart",
+      ),
+    ).toBe("/shop/cart");
   });
 
   it("honours explicit next for non-role users", () => {

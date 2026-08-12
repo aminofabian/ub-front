@@ -12,8 +12,9 @@ export type LoginAudienceResult =
   | { ok: false; message: string; correctLoginPath: string };
 
 /**
- * Ensures the signed-in account matches the login portal in use.
- * Customers use `/login`; staff use `/login/staff`.
+ * Soft portal hint helpers (path detection). Password/PIN login does not block
+ * mismatched audiences after auth — destination routing handles that instead.
+ * Customers typically use `/login`; staff use `/login/staff` (PIN + office).
  */
 export function checkLoginAudience(
   me: LoginAudienceMe | null | undefined,

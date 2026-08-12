@@ -14,7 +14,6 @@ import {
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
   clearSessionTenantId,
-  finalizeClientSignOut,
   getSessionTenantId,
   setSessionTenantId,
 } from "@/lib/auth";
@@ -28,7 +27,6 @@ import {
   resolveBusinessByEmail,
 } from "@/lib/api";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
-import { checkLoginAudience } from "@/lib/login-audience";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import { cn } from "@/lib/utils";
@@ -68,11 +66,8 @@ function CustomerLoginPageContent() {
     } catch {
       return requestedNext?.trim() || APP_ROUTES.shopAccount;
     }
-    const audience = checkLoginAudience(me, "customer");
-    if (!audience.ok) {
-      finalizeClientSignOut();
-      throw new Error(audience.message);
-    }
+    // Password login: stay signed in and send the account to the right home
+    // (shop `?next=` wins). Do not force a staff-portal switch.
     return resolvePostAuthDestination(me, requestedNext);
   }, [searchParams]);
 

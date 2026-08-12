@@ -11,16 +11,35 @@ export type PostAuthMe = {
   role?: { key?: string | null } | null;
 };
 
+function isSafeAppPath(path: string): boolean {
+  return path.startsWith("/") && !path.startsWith("//");
+}
+
+/** Storefront destinations from `?next=` — password login should honor these. */
+export function isShopNextPath(path?: string | null): boolean {
+  const next = path?.trim() ?? "";
+  return (
+    isSafeAppPath(next) &&
+    (next === APP_ROUTES.shop || next.startsWith(`${APP_ROUTES.shop}/`))
+  );
+}
+
 /**
- * Where to send the user after sign-in. Role always wins over generic defaults
- * (e.g. grocery clerks → /grocery, not /business). Used on the server during
- * session finalize and on the client when fetchMe succeeds.
+ * Where to send the user after sign-in.
+ * Shop `?next=` paths win (password login from the storefront).
+ * Otherwise role homes beat generic defaults (clerks → till apps, not /business).
+ * Used on the server during session finalize and on the client when fetchMe succeeds.
  */
 export function resolvePostAuthDestination(
   me: PostAuthMe | null | undefined,
   requestedNext?: string | null,
   business?: BusinessRecord | null,
 ): string {
+  const requested = requestedNext?.trim() ?? "";
+  if (isShopNextPath(requested)) {
+    return requested;
+  }
+
   if (me && isBuyerAccount(me)) {
     return buyerHomePath();
   }
@@ -39,8 +58,7 @@ export function resolvePostAuthDestination(
     return APP_ROUTES.inventoryStockTakeDailyAudit;
   }
 
-  const requested = requestedNext?.trim() ?? "";
-  if (requested.startsWith("/") && !requested.startsWith("//")) {
+  if (isSafeAppPath(requested)) {
     return requested;
   }
 

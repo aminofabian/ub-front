@@ -6,10 +6,7 @@ import {
   SESSION_PRESENCE_MAX_AGE_SEC,
 } from "@/lib/auth-route-guard";
 import { APP_ROUTES, getServerApiOrigin } from "@/lib/config";
-import {
-  checkLoginAudience,
-  type LoginAudience,
-} from "@/lib/login-audience";
+import { type LoginAudience } from "@/lib/login-audience";
 import { fetchTenantContext } from "@/lib/public-storefront";
 import { formatApiProblemMessage } from "@/lib/problem";
 import {
@@ -144,14 +141,8 @@ export async function POST(request: NextRequest) {
     tenantHost,
   );
 
-  const audienceCheck = checkLoginAudience(
-    bootstrap.me as Parameters<typeof checkLoginAudience>[0],
-    audience,
-  );
-  if (!audienceCheck.ok) {
-    return loginErrorRedirect(request, audienceCheck.message, audience);
-  }
-
+  // Password login keeps the session and routes by role / shop `?next=`.
+  // Do not reject staff on customer login (or the reverse).
   const nextPath = resolveFinalizeDestination(bootstrap.me, requestedNext);
 
   const html = buildSessionFinalizeHtml({
