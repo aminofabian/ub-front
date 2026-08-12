@@ -199,6 +199,26 @@ export function clearInFlightMpesaCartFields(reason = ""): Pick<
   };
 }
 
+/** Prefix of a POS Buy Goods await checkout id (see GatewayStkPushService). */
+export const TILL_AWAIT_CHECKOUT_PREFIX = "till-await-";
+
+/** Server reason when a newer await on this till superseded an older one. */
+const TILL_AWAIT_REPLACED_REASON = "Replaced by a new till payment wait";
+
+/**
+ * A superseded till-await is not a payment failure — the till re-registers and keeps
+ * listening, so the cashier should never see an M-Pesa error for it.
+ */
+export function isTillAwaitReplaced(
+  checkoutId: string | null | undefined,
+  failureReason: string | null | undefined,
+): boolean {
+  return (
+    Boolean(checkoutId?.startsWith(TILL_AWAIT_CHECKOUT_PREFIX)) &&
+    (failureReason ?? "").trim() === TILL_AWAIT_REPLACED_REASON
+  );
+}
+
 /** Derive a display label: ticket #N, customer name, or New sale for blank carts. */
 export function cartSessionLabel(cart: CartSession): string {
   if (cart.selectedCustomer?.name?.trim()) {

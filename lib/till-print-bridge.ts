@@ -62,27 +62,61 @@ export type TillNetworkTarget = {
   port: number;
 };
 
-/** True when the till bridge responds on localhost (run `pnpm till-print-bridge`). */
+/**
+ * Error name used when a print job timed out. The bytes may already be spooled, so a
+ * job that fails this way must never be resent automatically.
+ */
+export const TILL_PRINT_TIMEOUT_ERROR = "TillPrintTimeoutError";
+
+/** Health check must not hang the checkout — the bridge is on localhost. */
+const BRIDGE_HEALTH_TIMEOUT_MS = 4_000;
+/** Spooling a receipt can take a moment on a busy Windows queue. */
+const BRIDGE_PRINT_TIMEOUT_MS = 25_000;
+const BRIDGE_DRAWER_TIMEOUT_MS = 8_000;
+
+/** Abort a bridge call rather than leaving the receipt hanging forever. */
+function bridgeTimeoutSignal(timeoutMs: number): {
+  signal: AbortSignal;
+  done: () => void;
+} {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  return { signal: controller.signal, done: () => window.clearTimeout(timer) };
+}
+
+/**
+ * True when the till bridge responds on localhost (run `pnpm till-print-bridge`).
+ * Retried once: a bridge still spooling the previous receipt can miss the first probe,
+ * and a false negative here silently skips the auto-print.
+ */
 export async function isTillPrintBridgeUp(): Promise<boolean> {
-  try {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
     const health = await fetchTillBridgeHealth();
-    return Boolean(health?.ok);
-  } catch {
-    return false;
+    if (health?.ok) {
+      return true;
+    }
+    if (attempt === 0) {
+      await new Promise((resolve) => window.setTimeout(resolve, 400));
+    }
   }
+  return false;
 }
 
 export async function fetchTillBridgeHealth(): Promise<TillBridgeHealth | null> {
+  const { signal, done } = bridgeTimeoutSignal(BRIDGE_HEALTH_TIMEOUT_MS);
   try {
     const res = await fetch(`${TILL_PRINT_BRIDGE_URL}/health`, {
       method: "GET",
       mode: "cors",
       cache: "no-store",
+      signal,
     });
     if (!res.ok) return null;
     return (await res.json()) as TillBridgeHealth;
   } catch {
     return null;
+  } finally {
+    done();
   }
 }
 
@@ -199,12 +233,29 @@ export async function printEscPosViaTillBridge(
     headers["X-Printer-Cups-Name"] = name;
   }
 
-  const res = await fetch(`${TILL_PRINT_BRIDGE_URL}/print`, {
-    method: "POST",
-    mode: "cors",
-    headers,
-    body: escpos,
-  });
+  const { signal, done } = bridgeTimeoutSignal(BRIDGE_PRINT_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${TILL_PRINT_BRIDGE_URL}/print`, {
+      method: "POST",
+      mode: "cors",
+      headers,
+      body: escpos,
+      signal,
+    });
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      // The job may already be spooled — callers must not retry and print twice.
+      const timeout = new Error(
+        "The receipt printer did not respond. Check that it is on, has paper, and is not paused.",
+      );
+      timeout.name = TILL_PRINT_TIMEOUT_ERROR;
+      throw timeout;
+    }
+    throw e;
+  } finally {
+    done();
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(
@@ -243,11 +294,18 @@ export async function kickCashDrawerViaTillBridge(
     headers["X-Printer-Cups-Name"] = name;
   }
 
-  const res = await fetch(`${TILL_PRINT_BRIDGE_URL}/drawer/kick`, {
-    method: "POST",
-    mode: "cors",
-    headers,
-  });
+  const { signal, done } = bridgeTimeoutSignal(BRIDGE_DRAWER_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${TILL_PRINT_BRIDGE_URL}/drawer/kick`, {
+      method: "POST",
+      mode: "cors",
+      headers,
+      signal,
+    });
+  } finally {
+    done();
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(

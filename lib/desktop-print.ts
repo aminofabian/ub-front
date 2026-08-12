@@ -23,6 +23,7 @@ import {
   kickCashDrawerViaTillBridge,
   printEscPosViaTillBridge,
   TILL_BRIDGE_START_HINT,
+  TILL_PRINT_TIMEOUT_ERROR,
 } from "@/lib/till-print-bridge";
 import { toast } from "sonner";
 
@@ -97,6 +98,22 @@ async function resolvePrinterTarget(
     port: printer?.port ?? null,
     branchId: branchId || printer?.branchId || null,
   };
+}
+
+/**
+ * Retry a receipt once. Skipped for print timeouts, where the job may already be
+ * spooled and a second attempt would hand the customer two receipts.
+ */
+async function withOneRetry(run: () => Promise<void>): Promise<void> {
+  try {
+    await run();
+  } catch (e) {
+    if (e instanceof Error && e.name === TILL_PRINT_TIMEOUT_ERROR) {
+      throw e;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 600));
+    await run();
+  }
 }
 
 async function prepareThermalEscPos(
@@ -200,16 +217,20 @@ export async function printPosReceipt(
   }
 
   try {
-    const escpos = await prepareThermalEscPos(
-      id,
-      widthMm,
-      cashTender,
-      openDrawer,
-    );
-    await printEscPosViaTillBridge(escpos, {
-      name: cupsName || null,
-      host: host || null,
-      port: resolved?.port ?? 9100,
+    // Retried once: building the ESC/POS needs an API round-trip, so a single slow
+    // response or bridge hiccup should not cost the cashier the automatic receipt.
+    await withOneRetry(async () => {
+      const escpos = await prepareThermalEscPos(
+        id,
+        widthMm,
+        cashTender,
+        openDrawer,
+      );
+      await printEscPosViaTillBridge(escpos, {
+        name: cupsName || null,
+        host: host || null,
+        port: resolved?.port ?? 9100,
+      });
     });
     // Separate kick is best-effort (older bridges return 404 — kick is already
     // in the print job above).

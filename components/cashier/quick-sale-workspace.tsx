@@ -111,6 +111,7 @@ import {
   cartSessionTabKind,
   cartSessionAgeMs,
   clearInFlightMpesaCartFields,
+  isTillAwaitReplaced,
   MAX_CARTS,
   type CartSession,
 } from "@/lib/cart-session";
@@ -2728,6 +2729,17 @@ export function QuickSaleWorkspace({
             verified != null && Number.isFinite(verified) ? verified : null,
           );
         } else if (status.failed) {
+          if (isTillAwaitReplaced(stkPushCheckoutId, status.failureReason)) {
+            // A newer await took over this till — re-register instead of showing a
+            // failure, otherwise the till silently stops listening for the payment.
+            tillAwaitKeyRef.current = null;
+            updateActiveCart({
+              stkPushStatus: "idle",
+              stkPushCheckoutId: "",
+              stkPushError: "",
+            });
+            return;
+          }
           updateActiveCart({
             stkPushStatus: "failed",
             stkPushError: status.failureReason ?? "M-Pesa payment failed",
