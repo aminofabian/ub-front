@@ -67,7 +67,7 @@ import {
   canLinkSupplierProducts,
   canWriteSuppliers,
 } from "@/lib/supplier-access";
-import { canCashierClearTabs, phoneVerificationRequiredForNewTab } from "@/lib/credit-tabs-access";
+import { canCashierClearTabs, canSearchCustomersByName, phoneVerificationRequiredForNewTab } from "@/lib/credit-tabs-access";
 import {
   countPendingSales,
   enqueuePendingSale,
@@ -377,6 +377,7 @@ export function QuickSaleWorkspace({
     variant === "cashier" && canCashierClearTabs(me, business);
   const allowOrderPad = hasPermission(me?.permissions, Permission.OrderPadWrite);
   const requirePhoneVerification = phoneVerificationRequiredForNewTab(business);
+  const allowSearchCustomersByName = canSearchCustomersByName(business);
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
@@ -1638,7 +1639,10 @@ export function QuickSaleWorkspace({
       setCustomerHits([]);
       return;
     }
-    if (payMethod === "customer_credit" || creditChangeToWallet) {
+    const tabOrWalletLookup =
+      payMethod === "customer_credit" || creditChangeToWallet;
+    const useNameSearch = tabOrWalletLookup && allowSearchCustomersByName;
+    if (tabOrWalletLookup && !useNameSearch) {
       const phoneErr = customerPhoneValidationMessage(q);
       if (phoneErr) {
         setError(phoneErr);
@@ -1654,7 +1658,7 @@ export function QuickSaleWorkspace({
     setError("");
     resetPhoneVerification();
     try {
-      const rows = await fetchCustomers(q);
+      const rows = await fetchCustomers(q, { flexible: useNameSearch });
       setCustomerHits(rows);
       updateActiveCart({
         customerNoPhoneMatch: rows.length === 0,
@@ -1677,6 +1681,7 @@ export function QuickSaleWorkspace({
     online,
     payMethod,
     creditChangeToWallet,
+    allowSearchCustomersByName,
     resetPhoneVerification,
     setCustomerHits,
     updateActiveCart,
@@ -4350,6 +4355,7 @@ export function QuickSaleWorkspace({
           phoneVerificationChannel,
           phoneVerificationCooldownUntil,
           requirePhoneVerificationForNewTabCustomers: requirePhoneVerification,
+          allowSearchCustomersByName,
           onSearchCustomers: () => void onSearchCustomers(),
           onSendPhoneVerification: () => void onSendPhoneVerification(),
           onRegisterCustomer: () => void onRegisterCustomer(),

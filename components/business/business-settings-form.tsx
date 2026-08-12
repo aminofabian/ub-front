@@ -1086,6 +1086,18 @@ export function BusinessSettingsForm({
                 title="Require phone verification for new tabs"
                 description="When enabled, cashiers must send a 4-digit code (SMS and WhatsApp) before opening a tab for a number that isn't already registered."
               />
+              <ToggleRow
+                checked={inventory.allowCashierSearchCustomersByName}
+                onChange={(checked) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowCashierSearchCustomersByName: checked,
+                  }))
+                }
+                icon={<Users className="size-4 text-muted-foreground" />}
+                title="Allow cashiers to search customers by name"
+                description="On Tab checkout, Find accepts a customer name as well as a phone number. Leave off to keep phone-only lookup."
+              />
             </FormDrawerFields>
           </SettingsAnchor>
 

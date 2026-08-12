@@ -27,6 +27,16 @@ export function phoneVerificationRequiredForNewTab(
 }
 
 /**
+ * When true, Tab checkout Find accepts name or phone.
+ * Default off — admin must opt in under Credit tabs settings.
+ */
+export function canSearchCustomersByName(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return Boolean(creditTabsSettings(business)?.allowCashierSearchCustomersByName);
+}
+
+/**
  * Cashier (and butcher cashier) may open the Tabs modal and propose clearances
  * when the admin toggle is on and they can read credit customers.
  */

@@ -390,6 +390,8 @@ export function useBusinessSettingsEditor() {
               allowCashierTabClearance: inventory.allowCashierTabClearance,
               requirePhoneVerificationForNewTabCustomers:
                 inventory.requirePhoneVerificationForNewTabCustomers,
+              allowCashierSearchCustomersByName:
+                inventory.allowCashierSearchCustomersByName,
             },
           };
           body.featureFlags = {

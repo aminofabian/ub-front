@@ -834,6 +834,8 @@ export type ReceiveStockSettingsRecord = {
 export type CreditTabsSettingsRecord = {
   allowCashierTabClearance?: boolean;
   requirePhoneVerificationForNewTabCustomers?: boolean;
+  /** When true, Tab checkout can find customers by name (or phone). Default off. */
+  allowCashierSearchCustomersByName?: boolean;
 };
 
 export type InventorySettingsRecord = {
@@ -971,6 +973,7 @@ export type ReceiveStockPatchPayload = {
 export type CreditTabsPatchPayload = {
   allowCashierTabClearance?: boolean;
   requirePhoneVerificationForNewTabCustomers?: boolean;
+  allowCashierSearchCustomersByName?: boolean;
 };
 
 export type InventoryPatchPayload = {
@@ -8673,16 +8676,19 @@ export async function verifyCustomerPhoneVerification(
 }
 
 export async function fetchCustomers(
-  phone?: string,
+  phoneOrQuery?: string,
   opts?: {
     page?: number;
     size?: number;
     createdFrom?: string;
     createdTo?: string;
+    /** When true, send as `q` (name or phone contains) instead of exact `phone`. */
+    flexible?: boolean;
   },
 ): Promise<CustomerRecord[]> {
   const page = await fetchCustomersPage({
-    phone,
+    phone: opts?.flexible ? undefined : phoneOrQuery,
+    q: opts?.flexible ? phoneOrQuery : undefined,
     page: opts?.page,
     size: opts?.size,
     createdFrom: opts?.createdFrom,
@@ -8693,6 +8699,8 @@ export async function fetchCustomers(
 
 export async function fetchCustomersPage(opts?: {
   phone?: string;
+  /** Name contains and/or phone digit contains. */
+  q?: string;
   page?: number;
   size?: number;
   createdFrom?: string;
@@ -8710,9 +8718,14 @@ export async function fetchCustomersPage(opts?: {
     page: String(opts?.page ?? 0),
     size: String(opts?.size ?? 100),
   });
-  const q = opts?.phone?.trim();
-  if (q) {
-    params.set("phone", q);
+  const flexible = opts?.q?.trim();
+  if (flexible) {
+    params.set("q", flexible);
+  } else {
+    const phone = opts?.phone?.trim();
+    if (phone) {
+      params.set("phone", phone);
+    }
   }
   const createdFrom = opts?.createdFrom?.trim();
   if (createdFrom) {

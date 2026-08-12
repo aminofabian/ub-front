@@ -159,6 +159,8 @@ export type CashierCartDrawerProps = {
   phoneVerificationCooldownUntil: number;
   /** When false, cashiers may register a new customer without OTP. */
   requirePhoneVerificationForNewTabCustomers?: boolean;
+  /** When true, Tab Find accepts name or phone. */
+  allowSearchCustomersByName?: boolean;
   onSearchCustomers: () => void;
   onSendPhoneVerification: () => void;
   onRegisterCustomer: () => void;
@@ -319,6 +321,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     phoneVerificationChannel,
     phoneVerificationCooldownUntil,
     requirePhoneVerificationForNewTabCustomers = true,
+    allowSearchCustomersByName = false,
     onSearchCustomers,
     onSendPhoneVerification,
     onRegisterCustomer,
@@ -1185,7 +1188,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               onSearchCustomers();
                             }
                           }}
-                          placeholder="Phone 2547… or 07…"
+                          placeholder={
+                            allowSearchCustomersByName &&
+                            (payMethod === "customer_credit" ||
+                              creditChangeToWallet)
+                              ? "Name or phone…"
+                              : "Phone 2547… or 07…"
+                          }
                           disabled={!online}
                         />
                         <Button
@@ -1195,8 +1204,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           disabled={
                             !online ||
                             customerSearchBusy ||
+                            !customerPhoneQuery.trim() ||
                             ((payMethod === "customer_credit" ||
                               creditChangeToWallet) &&
+                              !allowSearchCustomersByName &&
                               !isValidCustomerPhone(customerPhoneQuery))
                           }
                           onClick={onSearchCustomers}
@@ -1206,6 +1217,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       </div>
                       {(payMethod === "customer_credit" ||
                         creditChangeToWallet) &&
+                      !allowSearchCustomersByName &&
                       customerPhoneQuery.trim() &&
                       !isValidCustomerPhone(customerPhoneQuery) ? (
                         <p className="text-[11px] text-destructive">

@@ -141,6 +141,7 @@ export default function BusinessConfigurationPage() {
         editor.inventory.allowReceiveForStockManager,
         editor.inventory.allowReceiveForCashier,
         editor.inventory.allowCashierTabClearance,
+        editor.inventory.allowCashierSearchCustomersByName,
         editor.inventory.allowSupplierWriteForStockManager,
         editor.inventory.allowSupplierWriteForCashier,
         editor.inventory.allowLinkProductsForStockManager,

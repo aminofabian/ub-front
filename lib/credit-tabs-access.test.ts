@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BusinessRecord, MeResponse } from "@/lib/api";
 import { Permission } from "@/lib/permissions";
-import { canCashierClearTabs, phoneVerificationRequiredForNewTab } from "@/lib/credit-tabs-access";
+import { canCashierClearTabs, canSearchCustomersByName, phoneVerificationRequiredForNewTab } from "@/lib/credit-tabs-access";
 
 function me(roleKey: string, permissions: string[] = []): MeResponse {
   return {
@@ -91,6 +91,26 @@ describe("phoneVerificationRequiredForNewTab", () => {
     expect(
       phoneVerificationRequiredForNewTab(
         business(undefined, { requirePhoneVerificationForNewTabCustomers: false }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("canSearchCustomersByName", () => {
+  it("defaults off when absent", () => {
+    expect(canSearchCustomersByName({ name: "Shop" })).toBe(false);
+    expect(canSearchCustomersByName(null)).toBe(false);
+  });
+
+  it("respects admin toggle", () => {
+    expect(
+      canSearchCustomersByName(
+        business(undefined, { allowCashierSearchCustomersByName: true }),
+      ),
+    ).toBe(true);
+    expect(
+      canSearchCustomersByName(
+        business(undefined, { allowCashierSearchCustomersByName: false }),
       ),
     ).toBe(false);
   });

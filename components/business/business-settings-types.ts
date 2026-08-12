@@ -64,6 +64,7 @@ export type InventoryForm = {
   allowReceiveForGroceryClerk: boolean;
   allowCashierTabClearance: boolean;
   requirePhoneVerificationForNewTabCustomers: boolean;
+  allowCashierSearchCustomersByName: boolean;
 };
 
 export type PosDraftsForm = {
@@ -180,6 +181,8 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowCashierTabClearance: false,
   /** Match backend: phone verification for new tabs defaults on. */
   requirePhoneVerificationForNewTabCustomers: true,
+  /** Match backend: name search on Tab checkout defaults off. */
+  allowCashierSearchCustomersByName: false,
 };
 
 export const DEFAULT_POS_DRAFTS: PosDraftsForm = {
@@ -385,6 +388,9 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
     requirePhoneVerificationForNewTabCustomers:
       b?.inventory?.creditTabs?.requirePhoneVerificationForNewTabCustomers !==
       false,
+    allowCashierSearchCustomersByName: Boolean(
+      b?.inventory?.creditTabs?.allowCashierSearchCustomersByName,
+    ),
   };
 }
 
