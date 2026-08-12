@@ -88,12 +88,14 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 
 import {
+  cancelGroceryInvoice,
   createGroceryInvoice,
   fetchGroceryTopProducts,
   GroceryApiError,
   type GroceryInvoiceResponse,
   type GroceryTopProduct,
 } from "@/lib/grocery-api";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import {
   GROCERY_DRAFT_FLAGS,
   fetchGroceryDraft,
@@ -459,6 +461,13 @@ export function GroceryWorkspace() {
   >([]);
   const [cartPanelTab, setCartPanelTab] =
     useState<GroceryCartPanelTab>("sale");
+  const [voidingForwardedId, setVoidingForwardedId] = useState<string | null>(
+    null,
+  );
+  const canVoidForwarded = hasPermission(
+    effectiveMe?.permissions,
+    Permission.GroceryInvoicesCancel,
+  );
 
   // ── Derived ──────────────────────────────────────────────────────
 
@@ -961,6 +970,46 @@ export function GroceryWorkspace() {
   const viewForwardedInvoice = useCallback((invoice: GroceryInvoiceResponse) => {
     setGeneratedInvoice(invoice);
   }, []);
+
+  const voidForwardedInvoice = useCallback(
+    (invoice: GroceryInvoiceResponse) => {
+      if (!canVoidForwarded) {
+        toast.error("You cannot void this invoice.");
+        return;
+      }
+      showThemedConfirmToast({
+        id: `void-forwarded-invoice-${invoice.id}`,
+        title: `Void ${invoice.barcodeCode}?`,
+        description:
+          "This voids the invoice for every till — cashiers will lose the tab and cannot resume it.",
+        confirmLabel: "Void invoice",
+        confirmVariant: "destructive",
+        onConfirm: async () => {
+          setVoidingForwardedId(invoice.id);
+          try {
+            await cancelGroceryInvoice(invoice.id, {
+              reason: "Voided from forwarded list",
+            });
+            dismissForwardedInvoice(invoice.id);
+            toast.success(`Invoice ${invoice.barcodeCode} voided`, {
+              description: "Cleared from cashiers — it will not return.",
+            });
+          } catch (e) {
+            toast.error(
+              e instanceof GroceryApiError
+                ? e.message
+                : e instanceof Error
+                  ? e.message
+                  : "Could not void invoice",
+            );
+          } finally {
+            setVoidingForwardedId(null);
+          }
+        },
+      });
+    },
+    [canVoidForwarded, dismissForwardedInvoice],
+  );
 
   // Hydrate active draft on load when draft persistence is enabled.
   useEffect(() => {
@@ -1534,6 +1583,9 @@ export function GroceryWorkspace() {
                     invoices={forwardedInvoices}
                     onDismiss={dismissForwardedInvoice}
                     onViewInvoice={viewForwardedInvoice}
+                    onVoidInvoice={voidForwardedInvoice}
+                    voidingId={voidingForwardedId}
+                    canVoid={canVoidForwarded}
                     currency={currency}
                   />
                 </div>
@@ -1747,6 +1799,9 @@ export function GroceryWorkspace() {
                       invoices={forwardedInvoices}
                       onDismiss={dismissForwardedInvoice}
                       onViewInvoice={viewForwardedInvoice}
+                      onVoidInvoice={voidForwardedInvoice}
+                      voidingId={voidingForwardedId}
+                      canVoid={canVoidForwarded}
                       currency={currency}
                     />
                     <div className="border-t border-border px-4 py-3">

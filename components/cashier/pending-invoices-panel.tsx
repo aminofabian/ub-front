@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ClipboardList,
@@ -15,16 +15,20 @@ import {
   Send,
   Banknote,
   Smartphone,
+  Ban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import {
+  cancelGroceryInvoice,
   listGroceryInvoices,
   payGroceryInvoice,
   resendRemoteInvoiceStk,
+  GroceryApiError,
   type GroceryInvoiceSummaryResponse,
 } from "@/lib/grocery-api";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
@@ -34,6 +38,10 @@ type PendingInvoicesPanelProps = {
     barcode: string,
     placement?: "merge" | "new",
   ) => void;
+  /** Fired after an invoice is voided so the till can drop matching tabs. */
+  onInvoiceVoided?: (invoiceId: string) => void;
+  /** Invoice ids already open in cart tabs — marked, still voidable. */
+  openInvoiceIds?: string[];
   /** When true, show separate + (add to cart) and New cart actions. */
   activeCartHasItems?: boolean;
   refreshKey?: number;
@@ -109,6 +117,8 @@ function stkBadgeClass(status: string | null | undefined): string {
 
 export function PendingInvoicesPanel({
   onLoadInvoice,
+  onInvoiceVoided,
+  openInvoiceIds = [],
   activeCartHasItems = false,
   refreshKey = 0,
 }: PendingInvoicesPanelProps) {
@@ -122,11 +132,20 @@ export function PendingInvoicesPanel({
     me?.permissions,
     Permission.GroceryInvoicesPay,
   );
+  const canCancelInvoices = hasPermission(
+    me?.permissions,
+    Permission.GroceryInvoicesCancel,
+  );
+  const openInvoiceSet = useMemo(
+    () => new Set(openInvoiceIds),
+    [openInvoiceIds],
+  );
   const [open, setOpen] = useState(false);
   const [invoices, setInvoices] = useState<GroceryInvoiceSummaryResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [badgePulse, setBadgePulse] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [voidingId, setVoidingId] = useState<string | null>(null);
   const [markPaidId, setMarkPaidId] = useState<string | null>(null);
   const [mpesaRef, setMpesaRef] = useState("");
   const knownIds = useRef<Set<string>>(new Set());
@@ -353,6 +372,7 @@ export function PendingInvoicesPanel({
       removeInvoiceById(inv.id);
       setMarkPaidId(null);
       setMpesaRef("");
+      onInvoiceVoided?.(inv.id);
       toast.success(`Invoice ${inv.barcodeCode} marked paid`);
     } catch (e) {
       toast.error(
@@ -362,6 +382,61 @@ export function PendingInvoicesPanel({
       setBusyId(null);
     }
   };
+
+  const voidInvoice = useCallback(
+    async (inv: GroceryInvoiceSummaryResponse) => {
+      if (!canCancelInvoices || !online) {
+        toast.error("You cannot void this invoice.");
+        return;
+      }
+      setVoidingId(inv.id);
+      try {
+        await cancelGroceryInvoice(inv.id, {
+          reason: "Voided from pending invoices",
+        });
+        removeInvoiceById(inv.id);
+        onInvoiceVoided?.(inv.id);
+        toast.success(`Invoice ${inv.barcodeCode} voided`, {
+          description: "Wiped from every till — no tab, no resume.",
+        });
+      } catch (e) {
+        const msg =
+          e instanceof GroceryApiError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : "Could not void invoice";
+        toast.error(msg);
+      } finally {
+        setVoidingId(null);
+      }
+    },
+    [canCancelInvoices, online, onInvoiceVoided, removeInvoiceById],
+  );
+
+  const handleVoidClick = useCallback(
+    (inv: GroceryInvoiceSummaryResponse, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!canCancelInvoices) {
+        toast.error("You cannot void this invoice.");
+        return;
+      }
+      const onThisTill = openInvoiceSet.has(inv.id);
+      showThemedConfirmToast({
+        id: `void-pending-invoice-${inv.id}`,
+        title: `Void ${inv.barcodeCode}?`,
+        description: onThisTill
+          ? "This closes the tab on this till and voids the invoice branch-wide. It will not come back."
+          : "This voids the forwarded invoice for every till — no tab, no resume.",
+        confirmLabel: "Void invoice",
+        confirmVariant: "destructive",
+        onConfirm: () => {
+          void voidInvoice(inv);
+        },
+      });
+    },
+    [canCancelInvoices, openInvoiceSet, voidInvoice],
+  );
 
   const pendingCount = invoices.length;
 
@@ -436,9 +511,10 @@ export function PendingInvoicesPanel({
                 <div className="divide-y divide-border/30">
                   {invoices.map((inv) => {
                     const stkLabel = stkBadgeLabel(inv.lastStkStatus);
-                    const isBusy = busyId === inv.id;
+                    const isBusy = busyId === inv.id || voidingId === inv.id;
                     const showMarkPaid = markPaidId === inv.id;
                     const barcode = inv.barcodeCode?.trim() ?? "";
+                    const onThisTill = openInvoiceSet.has(inv.id);
                     const loadOrWarn = (placement?: "merge" | "new") => {
                       if (!barcode) {
                         toast.error(
@@ -450,8 +526,59 @@ export function PendingInvoicesPanel({
                       setOpen(false);
                     };
 
+                    const badges = (
+                      <>
+                        {inv.remote ? (
+                          <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
+                            Remote
+                          </span>
+                        ) : null}
+                        <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                          {inv.lineCount}{" "}
+                          {inv.lineCount === 1 ? "item" : "items"}
+                        </span>
+                        {onThisTill ? (
+                          <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
+                            On this till
+                          </span>
+                        ) : null}
+                        {stkLabel ? (
+                          <span
+                            className={cn(
+                              "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
+                              stkBadgeClass(inv.lastStkStatus),
+                            )}
+                          >
+                            {stkLabel}
+                          </span>
+                        ) : null}
+                      </>
+                    );
+
+                    const voidButton = canCancelInvoices ? (
+                      <button
+                        type="button"
+                        title="Void invoice"
+                        disabled={isBusy || !online}
+                        onClick={(e) => handleVoidClick(inv, e)}
+                        className="mt-1 shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                      >
+                        {voidingId === inv.id ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Ban className="size-3.5" />
+                        )}
+                      </button>
+                    ) : null;
+
                     return (
-                      <div key={inv.id} className="px-4 py-3">
+                      <div
+                        key={inv.id}
+                        className={cn(
+                          "px-4 py-3",
+                          voidingId === inv.id && "opacity-50",
+                        )}
+                      >
                         {activeCartHasItems ? (
                           <div className="flex w-full items-start gap-2">
                             <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -465,25 +592,7 @@ export function PendingInvoicesPanel({
                                 >
                                   {inv.barcodeCode}
                                 </span>
-                                {inv.remote ? (
-                                  <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
-                                    Remote
-                                  </span>
-                                ) : null}
-                                <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                                  {inv.lineCount}{" "}
-                                  {inv.lineCount === 1 ? "item" : "items"}
-                                </span>
-                                {stkLabel ? (
-                                  <span
-                                    className={cn(
-                                      "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
-                                      stkBadgeClass(inv.lastStkStatus),
-                                    )}
-                                  >
-                                    {stkLabel}
-                                  </span>
-                                ) : null}
+                                {badges}
                               </div>
                               <div className="mt-0.5 text-xs font-semibold text-foreground">
                                 {Number(inv.grandTotal).toLocaleString("en-KE", {
@@ -527,70 +636,59 @@ export function PendingInvoicesPanel({
                               >
                                 New
                               </button>
+                              {voidButton}
                             </div>
                           </div>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => loadOrWarn()}
-                            className="flex w-full items-start gap-3 text-left transition-colors"
-                          >
-                            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                              <ShoppingBag className="size-4 text-primary" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span
-                                  className="truncate text-xs font-mono font-semibold text-foreground"
-                                  title={inv.barcodeCode}
-                                >
-                                  {inv.barcodeCode}
-                                </span>
-                                {inv.remote ? (
-                                  <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
-                                    Remote
-                                  </span>
-                                ) : null}
-                                <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                                  {inv.lineCount}{" "}
-                                  {inv.lineCount === 1 ? "item" : "items"}
-                                </span>
-                                {stkLabel ? (
+                          <div className="flex items-start gap-2">
+                            <button
+                              type="button"
+                              onClick={() => loadOrWarn()}
+                              className="flex min-w-0 flex-1 items-start gap-3 text-left transition-colors"
+                            >
+                              <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                <ShoppingBag className="size-4 text-primary" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-1.5">
                                   <span
-                                    className={cn(
-                                      "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
-                                      stkBadgeClass(inv.lastStkStatus),
-                                    )}
+                                    className="truncate text-xs font-mono font-semibold text-foreground"
+                                    title={inv.barcodeCode}
                                   >
-                                    {stkLabel}
+                                    {inv.barcodeCode}
                                   </span>
-                                ) : null}
-                              </div>
-                              <div className="mt-0.5 text-xs font-semibold text-foreground">
-                                {Number(inv.grandTotal).toLocaleString("en-KE", {
-                                  style: "currency",
-                                  currency: "KES",
-                                })}
-                              </div>
-                              <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-                                {inv.customerPhone ? (
+                                  {badges}
+                                </div>
+                                <div className="mt-0.5 text-xs font-semibold text-foreground">
+                                  {Number(inv.grandTotal).toLocaleString(
+                                    "en-KE",
+                                    {
+                                      style: "currency",
+                                      currency: "KES",
+                                    },
+                                  )}
+                                </div>
+                                <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                                  {inv.customerPhone ? (
+                                    <span className="inline-flex items-center gap-1">
+                                      <Phone className="size-2.5" />
+                                      {inv.customerPhone}
+                                    </span>
+                                  ) : null}
                                   <span className="inline-flex items-center gap-1">
-                                    <Phone className="size-2.5" />
-                                    {inv.customerPhone}
+                                    <User className="size-2.5" />
+                                    {inv.createdByName || "Staff"}
                                   </span>
-                                ) : null}
-                                <span className="inline-flex items-center gap-1">
-                                  <User className="size-2.5" />
-                                  {inv.createdByName || "Staff"}
-                                </span>
-                                <span className="inline-flex items-center gap-1">
-                                  <Clock className="size-2.5" />
-                                  {formatRelativeTime(inv.createdAt)}
-                                </span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Clock className="size-2.5" />
+                                    {formatRelativeTime(inv.createdAt)}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                            <PlusCircle className="mt-1 size-4 shrink-0 text-muted-foreground" />
-                          </button>
+                              <PlusCircle className="mt-1 size-4 shrink-0 text-muted-foreground" />
+                            </button>
+                            {voidButton}
+                          </div>
                         )}
 
                         {inv.remote && (canPayInvoices || online) ? (
@@ -602,7 +700,7 @@ export function PendingInvoicesPanel({
                                 onClick={() => void handleResendStk(inv)}
                                 className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-[10px] font-semibold text-foreground hover:bg-muted disabled:opacity-50"
                               >
-                                {isBusy ? (
+                                {busyId === inv.id ? (
                                   <Loader2 className="size-3 animate-spin" />
                                 ) : (
                                   <Send className="size-3" />

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  Ban,
   CheckCircle2,
   Clock,
   Loader2,
@@ -24,6 +25,10 @@ type GroceryForwardedInvoicesPanelProps = {
   invoices: GroceryInvoiceResponse[];
   onDismiss: (invoiceId: string) => void;
   onViewInvoice: (invoice: GroceryInvoiceResponse) => void;
+  /** Void a still-pending forwarded invoice (cancel on the server). */
+  onVoidInvoice?: (invoice: GroceryInvoiceResponse) => void;
+  voidingId?: string | null;
+  canVoid?: boolean;
   currency?: string;
 };
 
@@ -55,7 +60,7 @@ function statusConfig(lifecycle: ForwardedLifecycle): {
       };
     case "cancelled":
       return {
-        label: "Cancelled",
+        label: "Voided",
         icon: <X className="size-3" />,
         tone: "text-red-600 dark:text-red-400",
       };
@@ -80,16 +85,23 @@ function ForwardedInvoiceCard({
   lifecycle,
   onDismiss,
   onViewInvoice,
+  onVoidInvoice,
+  voiding,
+  canVoid,
 }: {
   invoice: GroceryInvoiceResponse;
   currency: string;
   lifecycle: ForwardedLifecycle;
   onDismiss: (invoiceId: string) => void;
   onViewInvoice: (invoice: GroceryInvoiceResponse) => void;
+  onVoidInvoice?: (invoice: GroceryInvoiceResponse) => void;
+  voiding: boolean;
+  canVoid: boolean;
 }) {
   const itemCount = invoice.lines.reduce((sum, l) => sum + l.quantity, 0);
   const status = statusConfig(lifecycle);
   const isTerminal = ["paid", "cancelled", "expired"].includes(lifecycle);
+  const showVoid = canVoid && !isTerminal && onVoidInvoice != null;
 
   useEffect(() => {
     if (!isTerminal) return;
@@ -98,7 +110,12 @@ function ForwardedInvoiceCard({
   }, [isTerminal, invoice.id, onDismiss]);
 
   return (
-    <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-4 sm:px-5">
+    <div
+      className={cn(
+        "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-4 sm:px-5",
+        voiding && "opacity-50",
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <button
@@ -124,24 +141,42 @@ function ForwardedInvoiceCard({
             {status.label}
           </p>
         </div>
-        {isTerminal ? (
-          <button
-            type="button"
-            onClick={() => onDismiss(invoice.id)}
-            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Dismiss"
-          >
-            <X className="size-4" />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onViewInvoice(invoice)}
-            className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] px-2.5 py-1.5 text-xs font-medium text-foreground hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_30%,transparent)]"
-          >
-            View
-          </button>
-        )}
+        <div className="flex shrink-0 items-start gap-1">
+          {showVoid ? (
+            <button
+              type="button"
+              title="Void invoice"
+              disabled={voiding}
+              onClick={() => onVoidInvoice(invoice)}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+              aria-label={`Void ${invoice.barcodeCode}`}
+            >
+              {voiding ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Ban className="size-4" />
+              )}
+            </button>
+          ) : null}
+          {isTerminal ? (
+            <button
+              type="button"
+              onClick={() => onDismiss(invoice.id)}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Dismiss"
+            >
+              <X className="size-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onViewInvoice(invoice)}
+              className="rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] px-2.5 py-1.5 text-xs font-medium text-foreground hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_30%,transparent)]"
+            >
+              View
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -151,6 +186,9 @@ export function GroceryForwardedInvoicesPanel({
   invoices,
   onDismiss,
   onViewInvoice,
+  onVoidInvoice,
+  voidingId = null,
+  canVoid = false,
   currency = "KES",
 }: GroceryForwardedInvoicesPanelProps) {
   const [lifecycles, setLifecycles] = useState<
@@ -207,8 +245,8 @@ export function GroceryForwardedInvoicesPanel({
         <Send className="mb-3 size-10 text-muted-foreground/40" strokeWidth={1.5} />
         <p className="text-sm font-medium text-foreground">No forwarded invoices</p>
         <p className="mt-1 max-w-[18rem] text-xs text-muted-foreground">
-          Invoices you send to the cashier appear here until they are paid or
-          expire.
+          Invoices you send to the cashier appear here until they are paid,
+          voided, or expire.
         </p>
       </div>
     );
@@ -222,9 +260,14 @@ export function GroceryForwardedInvoicesPanel({
             key={invoice.id}
             invoice={invoice}
             currency={currency}
-            lifecycle={lifecycles[invoice.id] ?? lifecycleFromStatus(invoice.status)}
+            lifecycle={
+              lifecycles[invoice.id] ?? lifecycleFromStatus(invoice.status)
+            }
             onDismiss={onDismiss}
             onViewInvoice={onViewInvoice}
+            onVoidInvoice={onVoidInvoice}
+            voiding={voidingId === invoice.id}
+            canVoid={canVoid}
           />
         ))}
       </div>

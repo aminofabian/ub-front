@@ -358,7 +358,7 @@ function InvoicesTable({
                       e.stopPropagation();
                       onCancelInvoice(inv.id);
                     }}
-                    aria-label="Cancel invoice"
+                    aria-label="Void invoice"
                     className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
                     <XCircle className="size-3.5" />
@@ -469,7 +469,7 @@ function InvoicesGrid({
                   className="text-xs gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   <XCircle className="size-3.5" />
-                  Cancel
+                  Void
                 </Button>
               )}
             </div>

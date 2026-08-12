@@ -381,21 +381,24 @@ export default function GroceryInvoicesPage() {
   const onCancelInvoice = (id: string) => {
     showThemedConfirmToast({
       id: `cancel-grocery-invoice-${id}`,
-      title: "Cancel this invoice?",
-      description: "This cannot be undone.",
-      confirmLabel: "Cancel invoice",
+      title: "Void this invoice?",
+      description:
+        "This voids the invoice for every till — no tab, no resume.",
+      confirmLabel: "Void invoice",
       onConfirm: async () => {
         setCancelling(true);
         try {
           await cancelGroceryInvoice(id, {
-            reason: "Cancelled by staff from dashboard",
+            reason: "Voided by staff from dashboard",
           });
-          toast.success("Invoice cancelled");
+          toast.success("Invoice voided", {
+            description: "Cleared from cashiers — it will not return.",
+          });
           if (viewingInvoice?.id === id) setViewingInvoice(null);
           void fetchInvoices({ silent: true });
         } catch (e) {
           const msg =
-            e instanceof GroceryApiError ? e.message : "Failed to cancel invoice";
+            e instanceof GroceryApiError ? e.message : "Failed to void invoice";
           toast.error(msg);
         } finally {
           setCancelling(false);

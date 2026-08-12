@@ -1187,6 +1187,72 @@ export function QuickSaleWorkspace({
     },
   });
 
+  /**
+   * Drop a till tab that holds a voided/paid/expired grocery invoice.
+   * Also best-effort cancels any linked POS draft so it does not linger in Pending.
+   */
+  const purgeCartByGroceryInvoiceId = useCallback(
+    (invoiceId: string): boolean => {
+      const trimmed = invoiceId.trim();
+      if (!trimmed) return false;
+      const match = cartsRef.current.find(
+        (c) => c.groceryInvoiceId === trimmed,
+      );
+      if (!match) return false;
+
+      if (match.draftId && online) {
+        void cancelPosDraft(
+          match.draftId,
+          "Voided with grocery invoice",
+        ).catch(() => {});
+      }
+
+      const bizId = business?.id?.trim();
+      const bid = branchId.trim();
+      const uid = me?.id?.trim();
+      if (cartLocalMirror && bizId && bid && uid) {
+        void removeMirroredCart(bizId, bid, uid, match.id);
+      }
+
+      setCarts((prev) => {
+        const rest = prev.filter((c) => c.groceryInvoiceId !== trimmed);
+        const next = rest.length === 0 ? [createEmptyCartSession()] : rest;
+        setActiveCartId((current) =>
+          prev.some((c) => c.id === current && c.groceryInvoiceId === trimmed)
+            ? next[0].id
+            : current,
+        );
+        return next;
+      });
+      setInvoiceRefreshKey((k) => k + 1);
+      return true;
+    },
+    [cartLocalMirror, business?.id, branchId, me?.id, online],
+  );
+
+  const locallyVoidedInvoiceIdsRef = useRef(new Set<string>());
+
+  const handleLocalInvoiceVoided = useCallback(
+    (invoiceId: string) => {
+      const trimmed = invoiceId.trim();
+      if (!trimmed) return;
+      locallyVoidedInvoiceIdsRef.current.add(trimmed);
+      purgeCartByGroceryInvoiceId(trimmed);
+      window.setTimeout(() => {
+        locallyVoidedInvoiceIdsRef.current.delete(trimmed);
+      }, 8_000);
+    },
+    [purgeCartByGroceryInvoiceId],
+  );
+
+  const openInvoiceIds = useMemo(
+    () =>
+      carts
+        .map((c) => c.groceryInvoiceId)
+        .filter((id): id is string => id != null && id.length > 0),
+    [carts],
+  );
+
   const openDraftIds = useMemo(
     () =>
       carts
@@ -1505,10 +1571,12 @@ export function QuickSaleWorkspace({
     window.history.replaceState({}, "", url.toString());
   }, [searchParams, online, branchId, loadGroceryInvoiceByBarcode]);
 
-  /** Refresh the pending-invoices badge on realtime grocery invoice events. */
+  /** Refresh pending invoices + purge open tabs when an invoice is voided/paid. */
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { type?: string } | undefined;
+      const detail = (e as CustomEvent).detail as
+        | { type?: string; data?: Record<string, unknown> }
+        | undefined;
       if (!detail?.type) return;
       if (
         [
@@ -1522,10 +1590,28 @@ export function QuickSaleWorkspace({
       ) {
         setInvoiceRefreshKey((k) => k + 1);
       }
+      if (["paid", "cancelled", "expired"].includes(detail.type)) {
+        const invoiceId = String(detail.data?.invoiceId ?? "");
+        if (!invoiceId) return;
+        const barcode =
+          detail.data?.barcodeCode != null
+            ? String(detail.data.barcodeCode)
+            : "";
+        const local = locallyVoidedInvoiceIdsRef.current.has(invoiceId);
+        const purged = purgeCartByGroceryInvoiceId(invoiceId);
+        if (purged && detail.type === "cancelled" && !local) {
+          toast.message(
+            barcode ? `Invoice ${barcode} voided` : "Invoice voided",
+            {
+              description: "Removed from your open tabs — it will not return.",
+            },
+          );
+        }
+      }
     };
     window.addEventListener("grocery-invoice-event", handler);
     return () => window.removeEventListener("grocery-invoice-event", handler);
-  }, []);
+  }, [purgeCartByGroceryInvoiceId]);
 
   const refreshOutbox = useCallback(async () => {
     if (!isSaleOutboxSupported()) {
@@ -3974,6 +4060,8 @@ export function QuickSaleWorkspace({
                 placement ? { placement } : undefined,
               )
             }
+            onInvoiceVoided={handleLocalInvoiceVoided}
+            openInvoiceIds={openInvoiceIds}
             activeCartHasItems={activeCart.lines.length > 0}
             refreshKey={invoiceRefreshKey}
           />
