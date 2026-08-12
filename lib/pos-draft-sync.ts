@@ -49,10 +49,13 @@ export function applyPosDraftToCart(
   draft: PosDraftResponse,
   opts?: { uiVisible?: boolean },
 ): CartSession {
+  const remaining = [...cart.lines];
   const lines: CartSessionLine[] = draft.lines.map((sl) => {
-    const existing = cart.lines.find(
-      (l) => l.serverLineId === sl.id || l.itemId === sl.itemId,
-    );
+    let idx = remaining.findIndex((l) => l.serverLineId === sl.id);
+    if (idx < 0) {
+      idx = remaining.findIndex((l) => l.itemId === sl.itemId);
+    }
+    const existing = idx >= 0 ? remaining.splice(idx, 1)[0] : undefined;
     return {
       key: existing?.key ?? crypto.randomUUID(),
       itemId: sl.itemId,
@@ -60,6 +63,8 @@ export function applyPosDraftToCart(
       quantity: String(sl.quantity),
       unitPrice: String(sl.unitPrice),
       serverLineId: sl.id,
+      // Keep grocery-invoice markers so pay does not double-count invoice lines.
+      fromGroceryInvoice: existing?.fromGroceryInvoice,
       item: existing?.item ?? {
         id: sl.itemId,
         name: sl.itemName,
@@ -86,6 +91,10 @@ export function applyPosDraftToCart(
     removedServerLineIds: [],
     label,
     lines,
+    // Preserve GI-* cart linkage across draft sync (not stored on the draft).
+    groceryInvoiceId: cart.groceryInvoiceId,
+    groceryBarcode: cart.groceryBarcode,
+    groceryInvoiceGrandTotal: cart.groceryInvoiceGrandTotal,
   };
 }
 

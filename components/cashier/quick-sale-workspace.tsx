@@ -580,6 +580,9 @@ export function QuickSaleWorkspace({
             id: snapshot.id,
             label: snapshot.label,
             createdAt: snapshot.createdAt,
+            groceryInvoiceId: snapshot.groceryInvoiceId,
+            groceryBarcode: snapshot.groceryBarcode,
+            groceryInvoiceGrandTotal: snapshot.groceryInvoiceGrandTotal,
           };
           updateCartById(cartId, () => merged);
           if (cartLocalMirror && bizId && uid) {
@@ -1505,6 +1508,8 @@ export function QuickSaleWorkspace({
                     lines: [...c.lines, ...invoiceLines],
                     groceryInvoiceId: invoice.id,
                     groceryBarcode: invoice.barcodeCode,
+                    groceryInvoiceGrandTotal:
+                      Number(invoice.grandTotal) || 0,
                     ...applyInvoiceCustomer(c),
                   }
                 : c,
@@ -1525,6 +1530,7 @@ export function QuickSaleWorkspace({
             lines: invoiceLines,
             groceryInvoiceId: invoice.id,
             groceryBarcode: invoice.barcodeCode,
+            groceryInvoiceGrandTotal: Number(invoice.grandTotal) || 0,
             selectedCustomer: invoiceCustomer,
             customerPhoneQuery: invoicePhone,
             customerHits: invoiceCustomer ? [invoiceCustomer] : [],
@@ -2459,6 +2465,15 @@ export function QuickSaleWorkspace({
         toast.error(blockedMsg);
         return;
       }
+      const target = cartsRef.current
+        .flatMap((c) => c.lines.map((l) => ({ cartId: c.id, line: l })))
+        .find((x) => x.line.key === key);
+      if (target?.line.fromGroceryInvoice) {
+        toast.error(
+          "Invoice lines can’t be removed here. Cancel the invoice at grocery, or add extra items only.",
+        );
+        return;
+      }
       updateActiveCart((cart) => {
         const removed = cart.lines.find((l) => l.key === key);
         const nextRemoved = removed?.serverLineId
@@ -2566,6 +2581,15 @@ export function QuickSaleWorkspace({
       const blockedMsg = cartEditBlockedByMpesa(stkPushStatusRef.current);
       if (blockedMsg) {
         toast.error(blockedMsg);
+        return;
+      }
+      const target = cartsRef.current
+        .flatMap((c) => c.lines)
+        .find((l) => l.key === key);
+      if (target?.fromGroceryInvoice) {
+        toast.error(
+          "Invoice lines can’t be edited here. Add walk-up items separately if needed.",
+        );
         return;
       }
       updateActiveCart((cart) => ({
@@ -3400,6 +3424,62 @@ export function QuickSaleWorkspace({
               ? ("mpesa_manual" as const)
               : ("cash" as const);
 
+        const hasInvoiceMarks = lines.some((l) => l.fromGroceryInvoice);
+        // If draft sync stripped markers, sending every cart line as
+        // additionalLines would double the invoice on the server.
+        if (
+          !hasInvoiceMarks &&
+          lines.length > 0 &&
+          typeof activeCart.groceryInvoiceGrandTotal === "number" &&
+          grandTotal > roundMoney2(activeCart.groceryInvoiceGrandTotal) + 0.01
+        ) {
+          setLoading(false);
+          setError(
+            "This grocery invoice cart is out of sync. Close it and scan the GI barcode again before paying.",
+          );
+          return;
+        }
+
+        const additionalLines = (
+          hasInvoiceMarks
+            ? lines.filter((l) => !l.fromGroceryInvoice)
+            : []
+        )
+          .map((l) => {
+            const q = parseQty(l.quantity);
+            const p = parseMoney(l.unitPrice);
+            if (q == null || p == null) return null;
+            const weighed = l.item?.isWeighed === true;
+            return {
+              itemId: l.itemId,
+              quantity: weighed
+                ? Number(q.toFixed(WEIGHTED_QTY_DECIMALS))
+                : Math.round(q),
+              unitPrice: p,
+            };
+          })
+          .filter((l): l is NonNullable<typeof l> => l != null);
+
+        // Server charges stored invoice lines + additionalLines only.
+        // Cart UI total can drift (edited invoice lines, lost flags after sync).
+        const additionalTotal = roundMoney2(
+          additionalLines.reduce(
+            (sum, l) => sum + roundMoney2(l.quantity * l.unitPrice),
+            0,
+          ),
+        );
+        const invoiceBase =
+          typeof activeCart.groceryInvoiceGrandTotal === "number" &&
+          Number.isFinite(activeCart.groceryInvoiceGrandTotal)
+            ? roundMoney2(activeCart.groceryInvoiceGrandTotal)
+            : roundMoney2(Math.max(0, grandTotal - additionalTotal));
+        const groceryCoverTotal = roundMoney2(invoiceBase + additionalTotal);
+        if (groceryCoverTotal <= 0) {
+          setLoading(false);
+          setError("Grocery invoice total must be positive.");
+          return;
+        }
+
         const groceryPayments = splitPay
           ? [
               {
@@ -3415,31 +3495,27 @@ export function QuickSaleWorkspace({
           : [
               {
                 method: groceryPayMethod,
-                amount: mpesaPaymentAmount ?? grandTotal,
+                amount: mpesaPaymentAmount ?? groceryCoverTotal,
                 reference: isStkTender(payMethod)
                   ? mpesaRef.trim() || undefined
                   : undefined,
               },
             ];
 
-        try {
-          const additionalLines = lines
-            .filter((l) => !l.fromGroceryInvoice)
-            .map((l) => {
-              const q = parseQty(l.quantity);
-              const p = parseMoney(l.unitPrice);
-              if (q == null || p == null) return null;
-              const weighed = l.item?.isWeighed === true;
-              return {
-                itemId: l.itemId,
-                quantity: weighed
-                  ? Number(q.toFixed(WEIGHTED_QTY_DECIMALS))
-                  : Math.round(q),
-                unitPrice: p,
-              };
-            })
-            .filter((l): l is NonNullable<typeof l> => l != null);
+        if (splitPay) {
+          const splitSum = roundMoney2(
+            groceryPayments.reduce((s, p) => s + p.amount, 0),
+          );
+          if (Math.abs(splitSum - groceryCoverTotal) > 0.001) {
+            setLoading(false);
+            setError(
+              `Split amounts (${splitSum.toFixed(2)}) must equal invoice total (${groceryCoverTotal.toFixed(2)}).`,
+            );
+            return;
+          }
+        }
 
+        try {
           const result = await payGroceryInvoice(
             activeCart.groceryInvoiceId,
             {

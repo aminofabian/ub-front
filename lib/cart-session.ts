@@ -50,6 +50,11 @@ export type CartSession = {
   groceryInvoiceId?: string;
   /** Grocery invoice barcode when this cart was loaded from a GI-* barcode. */
   groceryBarcode?: string;
+  /**
+   * Server invoice grand total at load time. Grocery pay must cover this
+   * (plus any walk-up additionalLines) — not the editable cart UI total.
+   */
+  groceryInvoiceGrandTotal?: number;
   /** STK Push status: idle | sending | sent | awaiting_till | confirmed | failed */
   stkPushStatus: string;
   /** Gateway checkout request ID from STK push */
