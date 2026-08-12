@@ -4240,9 +4240,25 @@ body:has(.landing-page) {
     animation: pos-line-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes pos-scale-tick {
+    from {
+        transform: scale(0.92);
+        opacity: 0.55;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-pos-scale-tick {
+    animation: pos-scale-tick 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .animate-pos-cart-pulse,
-    .animate-pos-line-in {
+    .animate-pos-line-in,
+    .animate-pos-scale-tick {
         animation: none;
     }
 }
