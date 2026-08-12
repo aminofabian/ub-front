@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import {
   appendCashTenderEscPos,
+  appendDrawerKickEscPos,
   type CashTenderEscPos,
 } from "@/lib/escpos-cash-tender";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -36,6 +37,14 @@ export type LocalReceiptPrinterTarget = {
   port?: number | null;
   /** When set, re-fetch branch receipt settings if cupsName is missing. */
   branchId?: string | null;
+};
+
+export type PrintPosReceiptOptions = {
+  /**
+   * Append ESC/POS cash-drawer kick to the print job (and also try a
+   * separate /drawer/kick). Use for cash / cash-split tenders.
+   */
+  openDrawer?: boolean;
 };
 
 function hasCupsTarget(target?: LocalReceiptPrinterTarget | null): boolean {
@@ -94,18 +103,21 @@ async function prepareThermalEscPos(
   saleId: string,
   widthMm: number,
   cashTender?: CashTenderEscPos | null,
+  openDrawer?: boolean,
 ): Promise<Blob> {
   const escpos = await fetchSaleReceiptThermal(
     saleId,
     widthMm,
     cashTender?.received ?? null,
   );
-  if (!cashTender || cashTender.received <= 0) {
-    return escpos;
+  let raw = new Uint8Array(await escpos.arrayBuffer());
+  if (cashTender && cashTender.received > 0) {
+    raw = new Uint8Array(appendCashTenderEscPos(raw, cashTender, widthMm));
   }
-  const raw = new Uint8Array(await escpos.arrayBuffer());
-  const patched = appendCashTenderEscPos(raw, cashTender, widthMm);
-  return new Blob([new Uint8Array(patched)], { type: "application/octet-stream" });
+  if (openDrawer) {
+    raw = new Uint8Array(appendDrawerKickEscPos(raw));
+  }
+  return new Blob([raw], { type: "application/octet-stream" });
 }
 
 /**
@@ -120,14 +132,18 @@ async function prepareThermalEscPos(
  *
  * Pass `cashTender` when the on-screen receipt shows Received / Change so
  * thermal print matches even before the API has persisted cash_received.
+ * Pass `opts.openDrawer` for cash tenders so the drawer opens with the receipt
+ * (works even on older till bridges that lack POST /drawer/kick).
  */
 export async function printPosReceipt(
   saleId: string,
   widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
   printer?: LocalReceiptPrinterTarget | null,
   cashTender?: CashTenderEscPos | null,
+  opts?: PrintPosReceiptOptions,
 ): Promise<boolean> {
   const id = saleId.trim();
+  const openDrawer = Boolean(opts?.openDrawer);
   if (!id) {
     window.print();
     return false;
@@ -143,6 +159,9 @@ export async function printPosReceipt(
         `/api/v1/desktop/devices/print/sale/${encodeURIComponent(id)}?${params}`,
         { method: "POST", toast: false },
       );
+      if (openDrawer) {
+        void kickCashDrawer(printer);
+      }
       toast.success("Sent to receipt printer.");
       return true;
     } catch (e) {
@@ -164,6 +183,10 @@ export async function printPosReceipt(
       "No receipt printer configured. Use Detect printers on the till, or set the printer name under Branches → Receipt details.",
       { duration: 10_000 },
     );
+    if (openDrawer) {
+      // Still try kick in case a local override exists later — will no-op quietly.
+      void kickCashDrawer(printer);
+    }
     return false;
   }
 
@@ -177,12 +200,27 @@ export async function printPosReceipt(
   }
 
   try {
-    const escpos = await prepareThermalEscPos(id, widthMm, cashTender);
+    const escpos = await prepareThermalEscPos(
+      id,
+      widthMm,
+      cashTender,
+      openDrawer,
+    );
     await printEscPosViaTillBridge(escpos, {
       name: cupsName || null,
       host: host || null,
       port: resolved?.port ?? 9100,
     });
+    // Separate kick is best-effort (older bridges return 404 — kick is already
+    // in the print job above).
+    if (openDrawer) {
+      void kickCashDrawer({
+        cupsName: cupsName || null,
+        host: host || null,
+        port: resolved?.port ?? 9100,
+        branchId: resolved?.branchId ?? printer?.branchId ?? null,
+      });
+    }
     toast.success("Sent to receipt printer.");
     return true;
   } catch (e) {

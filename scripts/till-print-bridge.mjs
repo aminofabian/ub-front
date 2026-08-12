@@ -65,8 +65,11 @@ const WIN_NAME_RE = /^[^\\/:*?"<>|]{1,200}$/;
 const HOST_RE = /^[A-Za-z0-9._:-]+$/;
 const MAX_BODY = 256_000;
 const DEFAULT_RAW_PORT = 9100;
-/** Standard ESC/POS pulse — drawer kick pin 2 (matches desktop devices.rs). */
-const DRAWER_KICK = Buffer.from([0x1b, 0x70, 0x00, 0x19, 0xfa]);
+/** Standard ESC/POS pulse — drawer kick pin 2 then pin 5 (RJ12 wirings). */
+const DRAWER_KICK = Buffer.from([
+  0x1b, 0x70, 0x00, 0x19, 0xfa, // pin 2
+  0x1b, 0x70, 0x01, 0x19, 0xfa, // pin 5
+]);
 
 /** Names that look like retail/thermal receipt printers (prefer when auto-picking). */
 const THERMAL_HINT_RE =

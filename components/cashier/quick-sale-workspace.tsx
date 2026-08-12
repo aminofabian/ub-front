@@ -3581,22 +3581,21 @@ export function QuickSaleWorkspace({
           const shouldKickDrawer = groceryPayments.some(
             (p) => p.method === "cash" && Number(p.amount) > 0,
           );
-          const [printed] = await Promise.all([
-            printPosReceipt(
-              sale.id,
-              undefined,
-              printerTarget,
-              completedReceipt.cashReceived != null
-                ? {
-                    received: completedReceipt.cashReceived,
-                    change: completedReceipt.changeGiven ?? 0,
-                  }
-                : null,
-            ).catch(() => false),
-            shouldKickDrawer
-              ? kickCashDrawer(printerTarget)
-              : Promise.resolve(false),
-          ]);
+          const printed = await printPosReceipt(
+            sale.id,
+            undefined,
+            printerTarget,
+            completedReceipt.cashReceived != null
+              ? {
+                  received: completedReceipt.cashReceived,
+                  change: completedReceipt.changeGiven ?? 0,
+                }
+              : null,
+            { openDrawer: shouldKickDrawer },
+          ).catch(() => false);
+          if (!printed && shouldKickDrawer) {
+            void kickCashDrawer(printerTarget);
+          }
           if (printed) {
             dismissCompletedSaleUi();
             setCheckoutCompletedKey((key) => key + 1);
@@ -3739,22 +3738,21 @@ export function QuickSaleWorkspace({
         const shouldKickDrawer = payments.some(
           (p) => p.method === "cash" && Number(p.amount) > 0,
         );
-        const [printed] = await Promise.all([
-          printPosReceipt(
-            sale.id,
-            undefined,
-            printerTarget,
-            completedReceipt.cashReceived != null
-              ? {
-                  received: completedReceipt.cashReceived,
-                  change: completedReceipt.changeGiven ?? 0,
-                }
-              : null,
-          ).catch(() => false),
-          shouldKickDrawer
-            ? kickCashDrawer(printerTarget)
-            : Promise.resolve(false),
-        ]);
+        const printed = await printPosReceipt(
+          sale.id,
+          undefined,
+          printerTarget,
+          completedReceipt.cashReceived != null
+            ? {
+                received: completedReceipt.cashReceived,
+                change: completedReceipt.changeGiven ?? 0,
+              }
+            : null,
+          { openDrawer: shouldKickDrawer },
+        ).catch(() => false);
+        if (!printed && shouldKickDrawer) {
+          void kickCashDrawer(printerTarget);
+        }
         if (printed) {
           dismissCompletedSaleUi();
           setCheckoutCompletedKey((key) => key + 1);
