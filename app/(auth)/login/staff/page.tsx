@@ -1,9 +1,9 @@
 "use client";
 
-import { Eye, EyeOff, KeyRound, Loader2, Mail } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
@@ -17,47 +17,26 @@ import {
   getSessionTenantId,
   setSessionTenantId,
 } from "@/lib/auth";
+import { looksLikeStaffPin } from "@/lib/auth-secret";
 import {
   AUTH_TENANT_RESOLVE_ERROR,
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
-  fetchLoginBranches,
   fetchMe,
   loginWithPassword,
   loginWithPin,
   onboardBusiness,
   resolveBusinessByEmail,
-  type LoginBranchOption,
 } from "@/lib/api";
 import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
-import {
-  APP_ROUTES,
-  slugDerivedShopUrl,
-} from "@/lib/config";
+import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import { cn } from "@/lib/utils";
-
-/** Server prefetches dashboard data, then redirects (works when client fetch fails). */
-const AUTH_MODE = {
-  password: "password",
-  pin: "pin",
-} as const;
-
-type AuthMode = (typeof AUTH_MODE)[keyof typeof AUTH_MODE];
-
-/** `?mode=office` (or `password`) opens the Office tab; anything else stays on Till. */
-function authModeFromSearchParam(raw: string | null): AuthMode {
-  const value = raw?.trim().toLowerCase() ?? "";
-  if (value === "office" || value === AUTH_MODE.password) {
-    return AUTH_MODE.password;
-  }
-  return AUTH_MODE.pin;
-}
 
 const primaryCtaClass =
   "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60";
@@ -73,23 +52,12 @@ function LoginPageContent() {
   const passwordMinLength = tenant?.authConfig?.passwordPolicy?.minLength ?? 8;
   const tenantGreeting =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
-  // Default Till (PIN); `?mode=office` selects Office. Init from searchParams
-  // (same pattern as email) so server + client stay aligned under Suspense.
-  const [mode, setMode] = useState<AuthMode>(() =>
-    authModeFromSearchParam(searchParams.get("mode")),
-  );
   const [, ensureTenantResolved] = useTenantIdPrefill(tenant?.tenantId);
   const [email, setEmail] = useState(
     () => searchParams.get("email")?.trim() ?? "",
   );
-  const [password, setPassword] = useState("");
-  const [pin, setPin] = useState("");
-  const [branchId, setBranchId] = useState("");
-  const [branchOptions, setBranchOptions] = useState<LoginBranchOption[]>([]);
-  const [branchesLoading, setBranchesLoading] = useState(true);
-  const [manualBranchEntry, setManualBranchEntry] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPin, setShowPin] = useState(false);
+  const [secret, setSecret] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
     () => searchParams.get("error")?.trim() ?? "",
   );
@@ -101,6 +69,7 @@ function LoginPageContent() {
   const { countries } = useSelfServeCountries();
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
+  const secretIsPin = looksLikeStaffPin(secret);
 
   /**
    * Password: honor `?next=` (including shop account). PIN: role home only —
@@ -131,55 +100,21 @@ function LoginPageContent() {
     }
   };
 
-  const switchMode = (next: AuthMode) => {
-    setMode(next);
-    setErrorMessage("");
+  const redirectToTenantStaffLogin = (shopUrl: string) => {
+    window.location.assign(
+      `${shopUrl}${APP_ROUTES.staffLogin}?email=${encodeURIComponent(email)}`,
+    );
   };
 
-  // PIN login: load the tenant's branches so the cashier can pick a branch by
-  // name instead of pasting a UUID. Falls back to manual entry on failure.
-  useEffect(() => {
-    if (mode !== AUTH_MODE.pin) {
-      return;
-    }
-    let cancelled = false;
-    setBranchesLoading(true);
-    void (async () => {
-      try {
-        const id = await ensureTenantResolved();
-        if (id?.trim()) {
-          setSessionTenantId(id);
-        }
-        const list = await fetchLoginBranches();
-        if (!cancelled) {
-          setBranchOptions(list);
-          if (list.length === 1) {
-            setBranchId(list[0].id);
-          }
-        }
-      } catch {
-        if (!cancelled) {
-          setBranchOptions([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setBranchesLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [mode, ensureTenantResolved]);
-
-  const onPasswordLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setErrorMessage("");
 
     let navigatedAway = false;
+    const usePin = looksLikeStaffPin(secret);
     try {
-      if (password.length < passwordMinLength) {
+      if (!usePin && secret.length < passwordMinLength) {
         setErrorMessage(
           `Password must be at least ${passwordMinLength} characters.`,
         );
@@ -193,9 +128,7 @@ function LoginPageContent() {
           const shopUrl = slugDerivedShopUrl(biz.slug);
           if (shopUrl) {
             navigatedAway = true;
-            window.location.assign(
-              `${shopUrl}${APP_ROUTES.staffLogin}?email=${encodeURIComponent(email)}`,
-            );
+            redirectToTenantStaffLogin(shopUrl);
             return;
           }
         }
@@ -203,52 +136,26 @@ function LoginPageContent() {
         return;
       }
       persistTenantId(id);
-      await loginWithPassword(email, password);
-      const dest = await resolveAfterStaffAuth();
-      await completeAuthAndNavigate(dest, tenant?.slug);
-      navigatedAway = true;
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Login failed.");
-    } finally {
-      if (!navigatedAway) {
-        setIsSubmitting(false);
-      }
-    }
-  };
 
-  const onPinLogin = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setErrorMessage("");
-
-    let navigatedAway = false;
-    try {
-      const id = await ensureTenantResolved();
-      if (!id?.trim()) {
-        const biz = await resolveBusinessByEmail(email);
-        if (biz?.slug) {
-          const shopUrl = slugDerivedShopUrl(biz.slug);
-          if (shopUrl) {
-            navigatedAway = true;
-            window.location.assign(
-              `${shopUrl}${APP_ROUTES.staffLogin}?email=${encodeURIComponent(email)}`,
-            );
-            return;
-          }
-        }
-        setShowOnboarding(true);
-        return;
+      if (usePin) {
+        await loginWithPin(email, secret.trim());
+        const pinDest = await resolveAfterStaffAuth({ honorNext: false });
+        const pinPath =
+          pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest;
+        await completeAuthAndNavigate(pinPath, tenant?.slug);
+      } else {
+        await loginWithPassword(email, secret);
+        const dest = await resolveAfterStaffAuth();
+        await completeAuthAndNavigate(dest, tenant?.slug);
       }
-      persistTenantId(id);
-      await loginWithPin(email, pin, branchId);
-      const pinDest = await resolveAfterStaffAuth({ honorNext: false });
-      const pinPath =
-        pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest;
-      await completeAuthAndNavigate(pinPath, tenant?.slug);
       navigatedAway = true;
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "PIN login failed.",
+        error instanceof Error
+          ? error.message
+          : usePin
+            ? "PIN login failed."
+            : "Login failed.",
       );
     } finally {
       if (!navigatedAway) {
@@ -263,7 +170,6 @@ function LoginPageContent() {
     setErrorMessage("");
 
     try {
-      // Determine the host to associate with the new business
       const urlQ = searchParams.get("url");
       const hostQ = searchParams.get("host");
       const queryCombined =
@@ -307,13 +213,8 @@ function LoginPageContent() {
         return;
       }
 
-      // Persist the new tenant ID
       setSessionTenantId(result.tenantId);
 
-      // Redirect to signup on the new business subdomain.
-      // The business was just created — no user account exists yet, so
-      // auto-login would always fail. The signup page will pick up
-      // the tenant from session and prefill the email.
       const shopUrl = slugDerivedShopUrl(result.slug);
       const signupParams = new URLSearchParams();
       if (email.trim()) signupParams.set("email", email.trim());
@@ -339,19 +240,6 @@ function LoginPageContent() {
     }
   };
 
-  const modeTab = (active: boolean) =>
-    cn(
-      "flex flex-1 flex-col items-start gap-0.5 rounded-xl px-3.5 py-3 text-left transition",
-      active
-        ? "bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] shadow-sm"
-        : "text-muted-foreground hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]",
-    );
-
-  const soleBranch =
-    !manualBranchEntry && branchOptions.length === 1
-      ? branchOptions[0]
-      : null;
-
   return (
     <AuthSplitShell tenant={tenant}>
       <AuthPageHeader
@@ -360,11 +248,7 @@ function LoginPageContent() {
             ? `Staff sign-in · ${tenantGreeting}`
             : "Staff sign-in"
         }
-        description={
-          mode === AUTH_MODE.pin
-            ? "Cashiers and till users: pick your branch, then enter email and PIN."
-            : "Owners and office staff: sign in with email and password."
-        }
+        description="Email plus your PIN or password — same form either way. Your branch is applied automatically."
       />
 
       {/* Onboarding CTA — only on landing page. */}
@@ -459,331 +343,111 @@ function LoginPageContent() {
         </>
       ) : (
         <>
-          <div
-            role="tablist"
-            aria-label="Sign-in method"
-            className="mt-5 flex gap-1 rounded-2xl border border-black/[0.08] bg-black/[0.03] p-1 dark:border-white/10 dark:bg-white/[0.04]"
+          <form
+            className="mt-6 space-y-4"
+            action={LOGIN_BRIDGE}
+            method="POST"
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
+              void onSubmit(event);
+            }}
           >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === AUTH_MODE.pin}
-              className={modeTab(mode === AUTH_MODE.pin)}
-              onClick={() => switchMode(AUTH_MODE.pin)}
-            >
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
-                <KeyRound className="size-3.5 shrink-0" aria-hidden />
-                Till
-              </span>
-              <span
-                className={cn(
-                  "text-[11px] leading-snug",
-                  mode === AUTH_MODE.pin
-                    ? "text-[var(--auth-accent-ink)]/75"
-                    : "text-muted-foreground",
-                )}
-              >
-                PIN for cashiers
-              </span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === AUTH_MODE.password}
-              className={modeTab(mode === AUTH_MODE.password)}
-              onClick={() => switchMode(AUTH_MODE.password)}
-            >
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
-                <Mail className="size-3.5 shrink-0" aria-hidden />
-                Office
-              </span>
-              <span
-                className={cn(
-                  "text-[11px] leading-snug",
-                  mode === AUTH_MODE.password
-                    ? "text-[var(--auth-accent-ink)]/75"
-                    : "text-muted-foreground",
-                )}
-              >
-                Email &amp; password
-              </span>
-            </button>
-          </div>
-
-          {mode === AUTH_MODE.password ? (
-            <form
-              className="mt-5 space-y-4"
-              action={LOGIN_BRIDGE}
-              method="POST"
-              noValidate
-              onSubmit={(event) => {
-                event.preventDefault();
-                void onPasswordLogin(event);
-              }}
-            >
+            <input
+              type="hidden"
+              name="tenantId"
+              value={tenant?.tenantId ?? getSessionTenantId() ?? ""}
+            />
+            <input type="hidden" name="next" value={loginNextHint} />
+            <input type="hidden" name="audience" value="staff" />
+            <div>
+              <label className={fieldLabelClass} htmlFor="login-email">
+                Email
+              </label>
               <input
-                type="hidden"
-                name="tenantId"
-                value={tenant?.tenantId ?? getSessionTenantId() ?? ""}
+                id="login-email"
+                className={authInputClassName}
+                type="email"
+                name="email"
+                placeholder="you@business.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                autoComplete="username"
+                autoFocus
+                required
               />
-              <input type="hidden" name="next" value={loginNextHint} />
-              <input type="hidden" name="audience" value="staff" />
-              <div>
-                <label className={fieldLabelClass} htmlFor="login-email">
-                  Email
+            </div>
+            <div>
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <label
+                  className="text-[13px] font-medium text-foreground"
+                  htmlFor="login-secret"
+                >
+                  PIN or password
                 </label>
+                <Link
+                  href={APP_ROUTES.forgotPassword}
+                  className="text-xs font-medium text-[var(--auth-accent)] hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
                 <input
-                  id="login-email"
-                  className={authInputClassName}
-                  type="email"
-                  name="email"
-                  placeholder="you@business.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  autoComplete="username"
-                  autoFocus
-                  required
-                />
-              </div>
-              <div>
-                <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <label
-                    className="text-[13px] font-medium text-foreground"
-                    htmlFor="login-password"
-                  >
-                    Password
-                  </label>
-                  <Link
-                    href={APP_ROUTES.forgotPassword}
-                    className="text-xs font-medium text-[var(--auth-accent)] hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <input
-                    id="login-password"
-                    className={cn(authInputClassName, "pr-12")}
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    placeholder="Your password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    autoComplete="current-password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground transition hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/10"
-                    onClick={() => setShowPassword((s) => !s)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-              {errorMessage ? (
-                <AuthAlert variant="error">{errorMessage}</AuthAlert>
-              ) : null}
-              <button
-                type="submit"
-                className={primaryCtaClass}
-                disabled={isSubmitting}
-                aria-busy={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    Signing in…
-                  </>
-                ) : (
-                  "Sign in"
-                )}
-              </button>
-            </form>
-          ) : (
-            <form
-              className="mt-5 space-y-4"
-              noValidate
-              onSubmit={(event) => {
-                event.preventDefault();
-                void onPinLogin(event);
-              }}
-            >
-              {soleBranch ? (
-                <div className="rounded-xl bg-black/[0.03] px-3.5 py-2.5 text-sm dark:bg-white/[0.05]">
-                  <span className="text-muted-foreground">Branch · </span>
-                  <span className="font-medium text-foreground">
-                    {soleBranch.name}
-                  </span>
-                </div>
-              ) : branchesLoading ? (
-                <div className="flex items-center gap-2 rounded-xl bg-black/[0.03] px-3.5 py-3 text-sm text-muted-foreground dark:bg-white/[0.05]">
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                  Loading branches…
-                </div>
-              ) : (
-                <div>
-                  <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <label
-                      className="text-[13px] font-medium text-foreground"
-                      htmlFor={
-                        manualBranchEntry || branchOptions.length === 0
-                          ? "pin-branch-id"
-                          : "pin-branch-select"
-                      }
-                    >
-                      Branch
-                    </label>
-                    {branchOptions.length > 0 ? (
-                      <button
-                        type="button"
-                        className="text-xs font-medium text-[var(--auth-accent)] hover:underline"
-                        onClick={() => {
-                          setManualBranchEntry((prev) => {
-                            const goingManual = !prev;
-                            if (goingManual) {
-                              setBranchId("");
-                            } else if (branchOptions.length === 1) {
-                              setBranchId(branchOptions[0].id);
-                            } else {
-                              setBranchId("");
-                            }
-                            return goingManual;
-                          });
-                        }}
-                      >
-                        {manualBranchEntry
-                          ? "Choose from list"
-                          : "Enter ID"}
-                      </button>
-                    ) : null}
-                  </div>
-                  {branchOptions.length > 0 && !manualBranchEntry ? (
-                    <select
-                      id="pin-branch-select"
-                      className={authInputClassName}
-                      value={branchId}
-                      onChange={(event) => setBranchId(event.target.value)}
-                      required
-                    >
-                      <option value="" disabled>
-                        Which branch are you at?
-                      </option>
-                      {branchOptions.map((branch) => (
-                        <option key={branch.id} value={branch.id}>
-                          {branch.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <>
-                      <input
-                        id="pin-branch-id"
-                        className={authInputClassName}
-                        type="text"
-                        placeholder="Paste branch ID"
-                        value={branchId}
-                        onChange={(event) => setBranchId(event.target.value)}
-                        autoComplete="off"
-                        required
-                      />
-                      {branchOptions.length === 0 ? (
-                        <p className="mt-1.5 text-xs text-muted-foreground">
-                          Branch list unavailable — ask a manager for the
-                          branch ID, or use Office login.
-                        </p>
-                      ) : null}
-                    </>
+                  id="login-secret"
+                  className={cn(
+                    authInputClassName,
+                    "pr-12 transition-[letter-spacing,font-size]",
+                    secretIsPin &&
+                      "text-center text-2xl font-semibold tracking-[0.35em]",
                   )}
-                </div>
-              )}
-
-              <div>
-                <label className={fieldLabelClass} htmlFor="pin-login-email">
-                  Your email
-                </label>
-                <input
-                  id="pin-login-email"
-                  className={authInputClassName}
-                  type="email"
-                  placeholder="cashier@business.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  autoComplete="username"
-                  autoFocus={!soleBranch}
+                  type={showSecret ? "text" : "password"}
+                  name="password"
+                  placeholder={secretIsPin ? "••••" : "PIN or password"}
+                  value={secret}
+                  onChange={(event) => setSecret(event.target.value)}
+                  autoComplete="current-password"
+                  inputMode={secretIsPin ? "numeric" : "text"}
                   required
                 />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground transition hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/10"
+                  onClick={() => setShowSecret((s) => !s)}
+                  aria-label={showSecret ? "Hide secret" : "Show secret"}
+                >
+                  {showSecret ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
-
-              <div>
-                <label className={fieldLabelClass} htmlFor="pin-value">
-                  PIN
-                </label>
-                <div className="relative">
-                  <input
-                    id="pin-value"
-                    className={cn(
-                      authInputClassName,
-                      "pr-12 text-center text-2xl font-semibold tracking-[0.35em]",
-                    )}
-                    type={showPin ? "text" : "password"}
-                    placeholder="••••"
-                    value={pin}
-                    onChange={(event) => {
-                      const next = event.target.value.replace(/\D/g, "").slice(0, 6);
-                      setPin(next);
-                    }}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={6}
-                    autoComplete="one-time-code"
-                    autoFocus={Boolean(soleBranch)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground transition hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/10"
-                    onClick={() => setShowPin((s) => !s)}
-                    aria-label={showPin ? "Hide PIN" : "Show PIN"}
-                  >
-                    {showPin ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-                <p className="mt-1.5 text-center text-xs text-muted-foreground">
-                  4–6 digit till code
-                </p>
-              </div>
-
-              {errorMessage ? (
-                <AuthAlert variant="error">{errorMessage}</AuthAlert>
-              ) : null}
-
-              <button
-                type="submit"
-                className={primaryCtaClass}
-                disabled={isSubmitting}
-                aria-busy={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    Unlocking…
-                  </>
-                ) : (
-                  "Unlock till"
-                )}
-              </button>
-            </form>
-          )}
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {secretIsPin
+                  ? "Recognized as a till PIN — your assigned branch is used automatically."
+                  : "4–6 digit PIN for the till, or your office password."}
+              </p>
+            </div>
+            {errorMessage ? (
+              <AuthAlert variant="error">{errorMessage}</AuthAlert>
+            ) : null}
+            <button
+              type="submit"
+              className={primaryCtaClass}
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  Signing in…
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </button>
+          </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Shopping online?{" "}

@@ -265,16 +265,12 @@ export function PosTillLockProvider({ children }: PosTillLockProviderProps) {
       const mode: PosTillUnlockMode = normalized.mode ?? "same";
       const method: PosTillUnlockMethod = normalized.method ?? "pin";
       const ctx = readTillUnlockContext();
-      // PIN login is bound to the user's assigned branch; password login is not.
+      // PIN login resolves the staff member's assigned branch on the server.
       const branchIdForContext =
         me?.branchId?.trim() ||
         ctx?.branchId?.trim() ||
-        branchId.trim();
-      if (method === "pin" && !branchIdForContext) {
-        throw new Error(
-          "Branch missing. Use Password unlock, or full sign out.",
-        );
-      }
+        branchId.trim() ||
+        undefined;
       if (mode === "same" && !ctx) {
         throw new Error(
           "Unlock context missing. Use full sign out, then sign in again.",

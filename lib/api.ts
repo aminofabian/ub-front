@@ -1942,13 +1942,21 @@ export async function loginWithPassword(
 export async function loginWithPin(
   email: string,
   pin: string,
-  branchId: string,
+  branchId?: string | null,
 ): Promise<void> {
   // Ensure X-Till-Device-Id is present for audit + trusted-till policy.
   getOrCreateTillDeviceId();
+  const trimmedBranch = branchId?.trim() || "";
+  const body: { email: string; pin: string; branchId?: string } = {
+    email,
+    pin,
+  };
+  if (trimmedBranch) {
+    body.branchId = trimmedBranch;
+  }
   const payload = await request<LoginResponse>(API_ROUTES.loginPin, {
     method: "POST",
-    body: { email, pin, branchId },
+    body,
     requiresAuth: false,
     toast: false,
   });
@@ -1964,13 +1972,21 @@ export async function loginWithPin(
 export async function unlockWithPinSession(
   email: string,
   pin: string,
-  branchId: string,
+  branchId?: string | null,
 ): Promise<boolean> {
   getOrCreateTillDeviceId();
+  const trimmedBranch = branchId?.trim() || "";
+  const body: { email: string; pin: string; branchId?: string } = {
+    email,
+    pin,
+  };
+  if (trimmedBranch) {
+    body.branchId = trimmedBranch;
+  }
   try {
     const payload = await request<LoginResponse>(API_ROUTES.unlockPin, {
       method: "POST",
-      body: { email, pin, branchId },
+      body,
       requiresAuth: false,
       toast: false,
     });

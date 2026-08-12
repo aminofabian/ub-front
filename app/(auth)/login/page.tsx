@@ -24,8 +24,10 @@ import {
 import {
   fetchMe,
   loginWithPassword,
+  loginWithPin,
   resolveBusinessByEmail,
 } from "@/lib/api";
+import { looksLikeStaffPin } from "@/lib/auth-secret";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
@@ -58,18 +60,20 @@ function CustomerLoginPageContent() {
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
 
-  const resolveAfterCustomerAuth = useCallback(async (): Promise<string> => {
-    const requestedNext = searchParams.get("next");
-    let me: Awaited<ReturnType<typeof fetchMe>>;
-    try {
-      me = await fetchMe();
-    } catch {
-      return requestedNext?.trim() || APP_ROUTES.shopAccount;
-    }
-    // Password login: stay signed in and send the account to the right home
-    // (shop `?next=` wins). Do not force a staff-portal switch.
-    return resolvePostAuthDestination(me, requestedNext);
-  }, [searchParams]);
+  const resolveAfterAuth = useCallback(
+    async (opts?: { honorNext?: boolean }): Promise<string> => {
+      const honorNext = opts?.honorNext !== false;
+      const requestedNext = honorNext ? searchParams.get("next") : null;
+      let me: Awaited<ReturnType<typeof fetchMe>>;
+      try {
+        me = await fetchMe();
+      } catch {
+        return requestedNext?.trim() || APP_ROUTES.shopAccount;
+      }
+      return resolvePostAuthDestination(me, requestedNext);
+    },
+    [searchParams],
+  );
 
   const persistTenantId = (raw: string) => {
     const id = raw.trim();
@@ -80,14 +84,15 @@ function CustomerLoginPageContent() {
     }
   };
 
-  const onPasswordLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setErrorMessage("");
 
     let navigatedAway = false;
+    const usePin = looksLikeStaffPin(password);
     try {
-      if (password.length < passwordMinLength) {
+      if (!usePin && password.length < passwordMinLength) {
         setErrorMessage(
           `Password must be at least ${passwordMinLength} characters.`,
         );
@@ -112,9 +117,17 @@ function CustomerLoginPageContent() {
         return;
       }
       persistTenantId(id);
-      await loginWithPassword(email, password);
-      const dest = await resolveAfterCustomerAuth();
-      await completeAuthAndNavigate(dest, tenant?.slug);
+      if (usePin) {
+        await loginWithPin(email, password.trim());
+        const pinDest = await resolveAfterAuth({ honorNext: false });
+        const pinPath =
+          pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest;
+        await completeAuthAndNavigate(pinPath, tenant?.slug);
+      } else {
+        await loginWithPassword(email, password);
+        const dest = await resolveAfterAuth();
+        await completeAuthAndNavigate(dest, tenant?.slug);
+      }
       navigatedAway = true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Login failed.");
@@ -133,7 +146,7 @@ function CustomerLoginPageContent() {
             ? `Sign in to ${tenantGreeting}`
             : "Customer sign-in"
         }
-        description="Track orders, wallet, and your shop account with email and password."
+        description="Email plus your password — or a staff PIN if you have one. No mode switch."
       />
 
       <form
@@ -143,7 +156,7 @@ function CustomerLoginPageContent() {
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          void onPasswordLogin(event);
+          void onSubmit(event);
         }}
       >
         <input
@@ -176,7 +189,7 @@ function CustomerLoginPageContent() {
               className="text-[13px] font-medium text-foreground"
               htmlFor="login-password"
             >
-              Password
+              PIN or password
             </label>
             <Link
               href={APP_ROUTES.forgotPassword}
@@ -188,20 +201,28 @@ function CustomerLoginPageContent() {
           <div className="relative">
             <input
               id="login-password"
-              className={cn(authInputClassName, "pr-12")}
+              className={cn(
+                authInputClassName,
+                "pr-12 transition-[letter-spacing,font-size]",
+                looksLikeStaffPin(password) &&
+                  "text-center text-2xl font-semibold tracking-[0.35em]",
+              )}
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="Your password"
+              placeholder={
+                looksLikeStaffPin(password) ? "••••" : "PIN or password"
+              }
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
+              inputMode={looksLikeStaffPin(password) ? "numeric" : "text"}
               required
             />
             <button
               type="button"
               className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground transition hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/10"
               onClick={() => setShowPassword((s) => !s)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? "Hide secret" : "Show secret"}
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4" />
