@@ -26,6 +26,7 @@ import {
   patchSupplier,
   postSupplierPayment,
   postSupplyKopokopoPay,
+  cancelSupplyDisbursement,
   type OpenSupplierInvoiceRow,
   type PathBSupplyListRowRecord,
   type SupplierRecord,
@@ -81,9 +82,8 @@ function paymentMethodLabel(method: string): string {
 
 type KopokopoPayPhase = "idle" | "sending" | "pending" | "success" | "failed";
 
-/** Stop polling the drawer; backend marks stale pending after ~3 min too. */
+/** Keep polling while the drawer is open; KopoKopo Pending stays Pending until they settle or you cancel. */
 const DISBURSEMENT_POLL_INTERVAL_MS = 2500;
-const DISBURSEMENT_POLL_MAX_MS = 3 * 60 * 1000;
 
 type PaySupplyDrawerProps = {
   open: boolean;
@@ -145,6 +145,7 @@ export function PaySupplyDrawer({
   const [kopokopoSetupPaybill, setKopokopoSetupPaybill] = useState("");
   const [kopokopoSetupPaybillAccount, setKopokopoSetupPaybillAccount] = useState("");
   const [enablingKopokopo, setEnablingKopokopo] = useState(false);
+  const [cancellingDisbursement, setCancellingDisbursement] = useState(false);
   const [openInvoices, setOpenInvoices] = useState<OpenSupplierInvoiceRow[]>([]);
   const [openInvoicesLoading, setOpenInvoicesLoading] = useState(false);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
@@ -407,9 +408,15 @@ export function PaySupplyDrawer({
     void fetchSupplyPayOptions(row.supplierInvoiceId)
       .then((o) => {
         setPayOptions(o);
-        if (o.pendingDisbursement) {
+        if ((o.latestDisbursementStatus ?? "").toLowerCase() === "pending" || o.pendingDisbursement) {
           setKopokopoPhase("pending");
-          setKopokopoMessage("M-Pesa payment in progress — waiting for KopoKopo confirmation.");
+          setKopokopoMessage(
+            o.latestDisbursementMessage
+              ?? "Pending — waiting for KopoKopo / M-Pesa confirmation.",
+          );
+        } else if ((o.latestDisbursementStatus ?? "").toLowerCase() === "failed") {
+          setKopokopoPhase("failed");
+          setKopokopoMessage(o.latestDisbursementMessage ?? "KopoKopo payment failed.");
         }
       })
       .catch(() => setPayOptions(null))
@@ -447,16 +454,39 @@ export function PaySupplyDrawer({
       setError(status.message ?? "KopoKopo payment failed.");
       return;
     }
+    if (s === "cancelled") {
+      setKopokopoPhase("idle");
+      setKopokopoMessage(null);
+      return;
+    }
     setKopokopoPhase("pending");
     setKopokopoMessage(
-      status.message ?? "M-Pesa payment in progress — waiting for KopoKopo confirmation.",
+      status.message ?? "Pending — waiting for KopoKopo / M-Pesa confirmation.",
     );
   };
 
-  const stopWaitingForKopokopo = (message: string) => {
-    setKopokopoPhase("failed");
-    setKopokopoMessage(message);
-    setError(message);
+  const cancelKopokopoPayment = async () => {
+    if (!row || cancellingDisbursement) return;
+    setCancellingDisbursement(true);
+    setError(null);
+    try {
+      const status = await cancelSupplyDisbursement(row.supplierInvoiceId);
+      const s = (status.status ?? "").toLowerCase();
+      if (s === "success") {
+        applyDisbursementStatus(status);
+        return;
+      }
+      setKopokopoPhase("idle");
+      setKopokopoMessage(null);
+      toast.success("Payment cancelled", {
+        description:
+          "PalMart stopped waiting. Retry Send M-Pesa only if the supplier was not paid.",
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not cancel this payment.");
+    } finally {
+      setCancellingDisbursement(false);
+    }
   };
 
   useEffect(() => {
@@ -464,16 +494,7 @@ export function PaySupplyDrawer({
       return;
     }
     let cancelled = false;
-    const startedAt = Date.now();
     const poll = async () => {
-      if (Date.now() - startedAt >= DISBURSEMENT_POLL_MAX_MS) {
-        if (!cancelled) {
-          stopWaitingForKopokopo(
-            "Stopped waiting after 3 minutes. Check KopoKopo whether M-Pesa was sent, then retry or record the payment manually.",
-          );
-        }
-        return;
-      }
       try {
         const status = await fetchSupplyDisbursementStatus(row.supplierInvoiceId);
         if (cancelled) {
@@ -481,7 +502,7 @@ export function PaySupplyDrawer({
         }
         applyDisbursementStatus(status);
       } catch {
-        /* keep polling until timeout */
+        /* keep polling until cancel or confirm */
       }
     };
     void poll();
@@ -653,14 +674,13 @@ export function PaySupplyDrawer({
     setKopokopoPhase("sending");
     try {
       const result = await postSupplyKopokopoPay(row.supplierInvoiceId);
-      setKopokopoPhase("pending");
-      setKopokopoMessage(
-        result.message ?? "M-Pesa payment sent — waiting for KopoKopo confirmation.",
-      );
-      toast.info("M-Pesa sent", {
-        description: result.message ?? "Waiting for KopoKopo to confirm the transfer.",
-        duration: 6000,
-      });
+      applyDisbursementStatus(result);
+      if ((result.status ?? "").toLowerCase() !== "success") {
+        toast.info("Pending", {
+          description: result.message ?? "Waiting for KopoKopo / M-Pesa confirmation.",
+          duration: 6000,
+        });
+      }
     } catch (e) {
       setKopokopoPhase("failed");
       setError(e instanceof Error ? e.message : "Could not start KopoKopo payment.");
@@ -821,7 +841,10 @@ export function PaySupplyDrawer({
   };
 
   const confirmLabel = () => {
-    if (kopokopoPhase === "pending" || kopokopoPhase === "sending") {
+    if (kopokopoPhase === "pending") {
+      return "Pending…";
+    }
+    if (kopokopoPhase === "sending") {
       return "Sending via KopoKopo…";
     }
     if (primaryIsKopokopoSend) {
@@ -906,18 +929,17 @@ export function PaySupplyDrawer({
               Delete supply
             </Button>
           ) : null}
-          {kopokopoPhase === "pending" ? (
+          {kopokopoPhase === "pending" || kopokopoPhase === "failed" ? (
             <Button
               type="button"
               variant="secondary"
-              disabled={busy}
-              onClick={() =>
-                stopWaitingForKopokopo(
-                  "Stopped waiting on this screen. If M-Pesa did not go through, retry Send M-Pesa or record the payment manually.",
-                )
-              }
+              disabled={busy || cancellingDisbursement}
+              onClick={() => void cancelKopokopoPayment()}
             >
-              Stop waiting
+              {cancellingDisbursement ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : null}
+              Cancel payment
             </Button>
           ) : null}
           {!paidFull && (payTotal > 0.009 || rowBalanceOpen > 0.009) && canPay ? (
@@ -1384,16 +1406,27 @@ export function PaySupplyDrawer({
           {!paidFull && canPay ? (
             <>
               {kopokopoPhase === "pending" ? (
-                <p className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-center text-sm text-foreground">
-                  <Loader2 className="mr-2 inline size-4 animate-spin align-[-2px]" aria-hidden />
-                  {kopokopoMessage ?? "Waiting for M-Pesa confirmation…"}
+                <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-center text-sm text-foreground">
+                  <span className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    Pending
+                  </span>
+                  <span className="mt-1 block text-sm">
+                    {kopokopoMessage ?? "Waiting for KopoKopo / M-Pesa confirmation."}
+                  </span>
                   <span className="mt-1 block text-xs text-muted-foreground">
-                    Polling stops after 3 minutes, when KopoKopo confirms, or if you tap Stop waiting.
+                    Stays pending until KopoKopo confirms, declines, or you cancel this payment.
                   </span>
                 </p>
               ) : kopokopoPhase === "failed" && kopokopoMessage ? (
-                <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-center text-sm text-amber-950 dark:text-amber-100">
-                  {kopokopoMessage}
+                <p className="rounded-lg border border-rose-500/30 bg-rose-500/5 px-3 py-2.5 text-center text-sm text-rose-950 dark:text-rose-100">
+                  <span className="block text-[11px] font-semibold uppercase tracking-wide">
+                    Failed
+                  </span>
+                  <span className="mt-1 block">{kopokopoMessage}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Cancel this attempt to send again, or record the payment manually.
+                  </span>
                 </p>
               ) : kopokopoPhase === "success" ? (
                 <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-center text-sm text-emerald-900 dark:text-emerald-100">

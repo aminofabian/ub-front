@@ -10,6 +10,7 @@ import {
   IdCard,
   KeyRound,
   Loader2,
+  LogOut,
   MapPin,
   Package,
   Pencil,
@@ -46,6 +47,7 @@ import {
   fetchRoles,
   fetchUserPin,
   fetchUsers,
+  forceLogoutUser,
   setUserItemTypes,
   setUserPassword,
   setUserPin,
@@ -437,6 +439,7 @@ export default function UsersPage() {
   const [savingNameId, setSavingNameId] = useState<string | null>(null);
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const [signingOutId, setSigningOutId] = useState<string | null>(null);
   const [nameEditUserId, setNameEditUserId] = useState<string | null>(null);
   const [roleEditUserId, setRoleEditUserId] = useState<string | null>(null);
   const [branchEditUserId, setBranchEditUserId] = useState<string | null>(null);
@@ -679,7 +682,8 @@ export default function UsersPage() {
     showThemedConfirmToast({
       id: `deactivate-user-${userId}`,
       title: "Deactivate this user?",
-      description: "They will lose access until re-invited.",
+      description:
+        "They are signed out of every device and lose access until re-invited.",
       confirmLabel: "Deactivate",
       onConfirm: async () => {
         setDeactivatingId(userId);
@@ -696,6 +700,38 @@ export default function UsersPage() {
           });
         } finally {
           setDeactivatingId(null);
+        }
+      },
+    });
+  };
+
+  const onForceLogout = (userId: string, email: string) => {
+    showThemedConfirmToast({
+      id: `force-logout-user-${userId}`,
+      title: "Sign this user out everywhere?",
+      description: `${email} will be signed out of every device and till. Their password and PIN keep working, so they can sign back in.`,
+      confirmLabel: "Sign out",
+      onConfirm: async () => {
+        setSigningOutId(userId);
+        setFeedback(null);
+        try {
+          const { revokedSessions } = await forceLogoutUser(userId);
+          setFeedback({
+            kind: "success",
+            text:
+              revokedSessions > 0
+                ? `Signed out of ${revokedSessions} ${
+                    revokedSessions === 1 ? "session" : "sessions"
+                  }.`
+                : "That user was already signed out everywhere.",
+          });
+        } catch (error) {
+          setFeedback({
+            kind: "error",
+            text: error instanceof Error ? error.message : "Sign out failed.",
+          });
+        } finally {
+          setSigningOutId(null);
         }
       },
     });
@@ -1793,6 +1829,25 @@ export default function UsersPage() {
                                       label={`View PIN for ${user.email}`}
                                       disabled={credentialsBusy}
                                       onClick={() => void onViewPin(user.id)}
+                                    />
+                                  ) : null}
+                                  {/* Self-signout would 401 this page mid-action. */}
+                                  {user.id !== me?.id ? (
+                                    <ActionIconButton
+                                      icon={
+                                        signingOutId === user.id
+                                          ? Loader2
+                                          : LogOut
+                                      }
+                                      label={`Sign ${user.email} out of all devices`}
+                                      spinning={signingOutId === user.id}
+                                      disabled={
+                                        credentialsBusy ||
+                                        signingOutId === user.id
+                                      }
+                                      onClick={() =>
+                                        void onForceLogout(user.id, user.email)
+                                      }
                                     />
                                   ) : null}
                                 </>

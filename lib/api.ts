@@ -2990,6 +2990,23 @@ export async function deactivateUser(userId: string): Promise<void> {
   await request(`${API_ROUTES.users}/${userId}/deactivate`, { method: "POST" });
 }
 
+/**
+ * Signs a user out of every device. Their password/PIN still works, so this is
+ * for lost devices and abandoned sessions — deactivate to remove access.
+ */
+export async function forceLogoutUser(
+  userId: string,
+): Promise<{ revokedSessions: number }> {
+  const payload = await request<{ revokedSessions?: number }>(
+    `${API_ROUTES.users}/${userId}/force-logout`,
+    { method: "POST" },
+  );
+  return {
+    revokedSessions:
+      typeof payload?.revokedSessions === "number" ? payload.revokedSessions : 0,
+  };
+}
+
 /** Admin sets a user's password (no current-password check). */
 export async function setUserPassword(
   userId: string,
@@ -8267,6 +8284,8 @@ export type SupplyPayOptionsRecord = {
   kopokopoPayEligible: boolean;
   pendingDisbursement: boolean;
   pendingDisbursementId: string | null;
+  latestDisbursementStatus?: string | null;
+  latestDisbursementMessage?: string | null;
 };
 
 export type SupplierPayoutGatewayOptionRecord = {
@@ -8343,6 +8362,15 @@ export async function fetchSupplyDisbursementStatus(
 ): Promise<SupplyKopokopoPayRecord> {
   return request<SupplyKopokopoPayRecord>(
     `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}/disbursement-status`,
+  );
+}
+
+export async function cancelSupplyDisbursement(
+  invoiceId: string,
+): Promise<SupplyKopokopoPayRecord> {
+  return request<SupplyKopokopoPayRecord>(
+    `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}/disbursement-cancel`,
+    { method: "POST" },
   );
 }
 
