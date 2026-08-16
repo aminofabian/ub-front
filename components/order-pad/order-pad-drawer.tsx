@@ -345,8 +345,8 @@ export function OrderPadDrawer({
                   className="grid grid-cols-[minmax(0,1fr)_3.75rem_1.75rem] border-t border-border first:border-t-0"
                 >
                   <div className="min-w-0 px-2 py-1.5">
-                    <p className="truncate text-[13px] leading-tight">{row.itemName}</p>
-                    <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                    <p className="break-words text-[13px] leading-snug">{row.itemName}</p>
+                    <p className="mt-0.5 break-words text-[10px] leading-snug text-muted-foreground">
                       {row.createdByName}
                     </p>
                   </div>

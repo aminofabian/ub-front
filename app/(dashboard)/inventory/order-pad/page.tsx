@@ -179,7 +179,7 @@ export default function OrderPadPage() {
 
   return (
     <div className="mx-auto w-full max-w-lg">
-      <div className="overflow-hidden border border-border bg-card">
+      <div className="border border-border bg-card">
         {/* Compact header */}
         <header className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
           <ClipboardList
@@ -331,7 +331,7 @@ export default function OrderPadPage() {
                 <li
                   key={row.id}
                   className={cn(
-                    "flex items-center gap-2 px-2 py-1.5",
+                    "flex items-start gap-2 px-2 py-1.5",
                     row.ordered && "bg-muted/20",
                   )}
                 >
@@ -362,21 +362,21 @@ export default function OrderPadPage() {
                     />
                   )}
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-1.5">
+                  <div className="min-w-0 flex-1 py-1.5">
+                    <div className="flex items-start gap-1.5">
                       <p
                         className={cn(
-                          "min-w-0 truncate text-[13px] font-medium leading-tight",
+                          "min-w-0 flex-1 break-words text-[13px] font-medium leading-snug",
                           row.ordered && "text-muted-foreground line-through",
                         )}
                       >
                         {row.itemName}
                       </p>
-                      <span className="shrink-0 text-[11px] font-semibold tabular-nums text-foreground">
+                      <span className="shrink-0 pt-px text-[11px] font-semibold tabular-nums text-foreground">
                         ×{formatQty(row.quantity)}
                       </span>
                     </div>
-                    <p className="mt-0.5 truncate text-[10px] leading-none text-muted-foreground">
+                    <p className="mt-0.5 break-words text-[10px] leading-snug text-muted-foreground">
                       {row.createdByName}
                       {when ? ` · ${when}` : ""}
                       {row.note ? ` · ${row.note}` : ""}
@@ -389,7 +389,7 @@ export default function OrderPadPage() {
                   {canRemove ? (
                     <button
                       type="button"
-                      className="flex size-9 shrink-0 touch-manipulation items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-50"
+                      className="mt-0 flex size-9 shrink-0 touch-manipulation items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-50"
                       disabled={busy}
                       aria-label={`Remove ${row.itemName}`}
                       onClick={() => void removeRow(row)}
