@@ -8,21 +8,19 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
-import { RefreshCw, ShoppingCart, Zap } from "lucide-react";
+import { BarChart3, Filter, RefreshCw, X } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   useSessionItemType,
   useSyncBranchFilter,
 } from "@/hooks/use-session-scope";
-import { DashboardFeedback, DASHBOARD_MAX_WIDE } from "@/components/dashboard-page-ui";
-import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
+import { DashboardFeedback } from "@/components/dashboard-page-ui";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
 import {
   ANALYTICS_PRESET_LABELS,
   type DatePreset,
-  formatDateRangeLabel,
   parseISODate,
   presetRange,
   toISODate,
@@ -45,6 +43,12 @@ import {
   type RevenueByCategoryRow,
   type StaffPerformanceRow,
 } from "@/lib/api";
+
+const NAVY = "#0c3a66";
+const NAVY_DEEP = "#082c4f";
+const BAR_BLUE = "#3d8fd4";
+const BAR_ORANGE = "#ef8a1c";
+const SLICE_BLUE = "#2f7ec4";
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -95,137 +99,51 @@ function monthsCovered(
   return out;
 }
 
-function useSettlingNumber(value: number): number {
-  const [shown, setShown] = useState(value);
-  const fromRef = useRef(value);
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      fromRef.current = value;
-      setShown(value);
-      return;
-    }
-    const from = fromRef.current;
-    const start = performance.now();
-    const duration = 220;
-    let frame = 0;
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / duration);
-      const ease = 1 - (1 - t) ** 3;
-      const next = from + (value - from) * ease;
-      setShown(next);
-      if (t < 1) frame = requestAnimationFrame(tick);
-      else fromRef.current = value;
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [value]);
-  return shown;
-}
-
-function ChipRail({
-  legend,
-  name,
-  items,
-  value,
-  onChange,
+function WhiteCard({
+  children,
+  className,
 }: {
-  legend: string;
-  name: string;
-  items: { id: string; label: string }[];
-  value: string;
-  onChange: (id: string) => void;
+  children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <fieldset className="min-w-0">
-      <legend className="sr-only">{legend}</legend>
-      <div
-        role="radiogroup"
-        aria-label={legend}
-        className="flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {items.map((item) => {
-          const selected = value === item.id;
-          return (
-            <label
-              key={item.id || `${name}-all`}
-              className={cn(
-                "inline-flex h-7 shrink-0 cursor-pointer items-center rounded-md border px-2.5 text-[11px] font-medium transition-colors duration-150",
-                selected
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border/70 bg-background text-foreground/80 hover:border-foreground/25 hover:bg-muted hover:text-foreground",
-              )}
-            >
-              <input
-                type="radio"
-                name={name}
-                className="sr-only"
-                checked={selected}
-                onChange={() => onChange(item.id)}
-              />
-              {item.label}
-            </label>
-          );
-        })}
-      </div>
-    </fieldset>
+    <div
+      className={cn(
+        "rounded-[14px] bg-white text-[#111] shadow-[0_2px_8px_rgba(0,0,0,0.18)]",
+        className,
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
-function MixTrack({
-  cogs,
-  profit,
-  revenue,
-  money,
+function ChartCard({
+  title,
+  children,
 }: {
-  cogs: number;
-  profit: number;
-  revenue: number;
-  money: (n: number) => string;
+  title: string;
+  children: React.ReactNode;
 }) {
-  const total = Math.max(revenue, cogs + profit, 1);
-  const cogsPct = Math.max(0, Math.min(100, (cogs / total) * 100));
-  const profitPct = Math.max(0, Math.min(100 - cogsPct, (profit / total) * 100));
-  const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-
   return (
-    <div className="space-y-1.5">
-      <div
-        className="flex h-2 overflow-hidden rounded-full bg-muted"
-        role="img"
-        aria-label={`Cost ${money(cogs)}, profit ${money(profit)}, margin ${margin.toFixed(0)} percent`}
-      >
-        <div
-          className="h-full bg-foreground/25 transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
-          style={{ width: `${cogsPct}%` }}
-        />
-        <div
-          className="h-full bg-primary transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
-          style={{ width: `${profitPct}%` }}
-        />
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-        <span>
-          Cost {money(cogs)}
-          <span className="mx-2 text-border">·</span>
-          Profit {money(profit)}
-        </span>
-        <span className="tabular-nums text-foreground">
-          {margin.toFixed(0)}% margin
-        </span>
-      </div>
-    </div>
+    <WhiteCard className="flex min-h-0 flex-col px-3 pb-3 pt-3 sm:px-4">
+      <h2 className="mb-2 text-center text-[13px] font-bold uppercase tracking-[0.04em] text-[#111]">
+        {title}
+      </h2>
+      <div className="min-h-0 flex-1">{children}</div>
+    </WhiteCard>
   );
 }
 
 function EmptyPlot({ children }: { children: React.ReactNode }) {
   return (
-    <p className="flex h-44 items-center justify-center px-3 text-center text-xs text-muted-foreground">
+    <p className="flex h-44 items-center justify-center px-4 text-center text-xs text-[#4a5568]">
       {children}
     </p>
   );
 }
 
-function ColumnPlot({
+function ColumnChart({
   items,
   formatValue,
   empty,
@@ -237,26 +155,36 @@ function ColumnPlot({
   if (items.length === 0) return <EmptyPlot>{empty}</EmptyPlot>;
   const max = Math.max(...items.map((i) => Math.abs(i.value)), 1);
   return (
-    <ul className="flex h-[13.5rem] items-end gap-1 sm:gap-1.5">
+    <ul className="flex h-[15.5rem] items-end gap-1 pb-8 sm:gap-1.5">
       {items.map((item, index) => {
-        const pct = Math.max((Math.abs(item.value) / max) * 100, item.value ? 3 : 0);
+        const pct = Math.max(
+          (Math.abs(item.value) / max) * 100,
+          item.value ? 6 : 0,
+        );
         const lead = index === 0;
         return (
-          <li key={item.key} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="w-full truncate text-center text-[10px] font-medium tabular-nums text-foreground">
+          <li
+            key={item.key}
+            className="relative flex min-w-0 flex-1 flex-col items-center"
+          >
+            <span className="mb-1 w-full truncate text-center text-[10px] font-semibold tabular-nums text-[#111]">
               {formatValue(item.value)}
             </span>
-            <div className="flex h-36 w-full items-end justify-center">
+            <div className="flex h-36 w-full items-end justify-center sm:h-40">
               <div
-                className={cn(
-                  "w-[70%] max-w-11 origin-bottom rounded-t-[3px] transition-[height] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
-                  lead ? "bg-primary" : "bg-foreground/20",
-                )}
-                style={{ height: `${pct}%` }}
+                className="w-[68%] max-w-12 rounded-t-[2px]"
+                style={{
+                  height: `${pct}%`,
+                  background: lead ? BAR_ORANGE : BAR_BLUE,
+                  boxShadow: "3px 4px 0 rgba(0,0,0,0.18)",
+                }}
                 title={`${item.label}: ${formatValue(item.value)}`}
               />
             </div>
-            <span className="w-full truncate text-center text-[10px] leading-tight text-muted-foreground">
+            <span
+              className="absolute bottom-0 left-1/2 w-[4.5rem] origin-top truncate text-center text-[10px] leading-tight text-[#222]"
+              style={{ transform: "translateX(-50%) rotate(-32deg)" }}
+            >
               {item.label}
             </span>
           </li>
@@ -266,7 +194,7 @@ function ColumnPlot({
   );
 }
 
-function CustomerPlot({
+function CustomerTrend({
   points,
   incompleteKey,
 }: {
@@ -276,18 +204,17 @@ function CustomerPlot({
   if (points.length === 0) {
     return (
       <EmptyPlot>
-        Named customers who bought in this window will plot here. Walk-in sales
-        are not counted.
+        Named customers who bought in this window will plot here.
       </EmptyPlot>
     );
   }
   const max = Math.max(...points.map((p) => p.value), 1);
   const w = 360;
-  const h = 168;
-  const padX = 16;
-  const padY = 22;
+  const h = 176;
+  const padX = 18;
+  const padY = 24;
   const innerW = w - padX * 2;
-  const innerH = h - padY * 2;
+  const innerH = h - padY * 2 - 14;
   const coords = points.map((p, i) => {
     const x =
       points.length === 1
@@ -296,88 +223,185 @@ function CustomerPlot({
     const y = padY + innerH - (p.value / max) * innerH;
     return { ...p, x, y };
   });
-  const line = coords
-    .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
-    .join(" ");
-  const area = `${line} L ${coords[coords.length - 1].x.toFixed(1)} ${padY + innerH} L ${coords[0].x.toFixed(1)} ${padY + innerH} Z`;
+  const splitAt = incompleteKey
+    ? Math.max(
+        0,
+        coords.findIndex((c) => c.key === incompleteKey) - 1,
+      )
+    : coords.length - 1;
+  const solid = coords.slice(0, Math.max(splitAt + 1, 1));
+  const tail = coords.slice(Math.max(splitAt, 0));
+  const toPath = (pts: typeof coords) =>
+    pts
+      .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
+      .join(" ");
 
   return (
     <div>
       <svg
         viewBox={`0 0 ${w} ${h}`}
-        className="h-44 w-full"
+        className="h-48 w-full"
         role="img"
         aria-label="Customers by month"
       >
-        <path d={area} className="fill-primary/12" />
-        <path
-          d={line}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          className="text-primary"
-        />
+        {solid.length > 1 ? (
+          <path
+            d={toPath(solid)}
+            fill="none"
+            stroke={NAVY}
+            strokeWidth="2.4"
+            strokeLinejoin="round"
+          />
+        ) : null}
+        {tail.length > 1 ? (
+          <path
+            d={toPath(tail)}
+            fill="none"
+            stroke={BAR_ORANGE}
+            strokeWidth="2.6"
+            strokeLinejoin="round"
+          />
+        ) : null}
         {coords.map((c) => {
           const incomplete = incompleteKey != null && c.key === incompleteKey;
           return (
             <g key={c.key}>
-              <circle
-                cx={c.x}
-                cy={c.y}
-                r={incomplete ? 4.5 : 3}
-                className={incomplete ? "fill-foreground" : "fill-primary"}
-              />
+              {incomplete ? (
+                <rect
+                  x={c.x - 16}
+                  y={c.y - 22}
+                  width="32"
+                  height="16"
+                  rx="3"
+                  fill={SLICE_BLUE}
+                />
+              ) : null}
               <text
                 x={c.x}
-                y={c.y - 9}
+                y={incomplete ? c.y - 11 : c.y - 10}
                 textAnchor="middle"
-                className="fill-foreground text-[9px] font-medium"
+                fill={incomplete ? "#fff" : "#111"}
+                fontSize="10"
+                fontWeight="700"
               >
                 {c.value.toLocaleString("en-KE")}
               </text>
+              <circle
+                cx={c.x}
+                cy={c.y}
+                r={incomplete ? 4.5 : 3.2}
+                fill={incomplete ? BAR_ORANGE : NAVY}
+              />
             </g>
           );
         })}
-      </svg>
-      <div className="flex justify-between px-1">
         {coords.map((c) => (
-          <span key={c.key} className="text-[10px] text-muted-foreground">
+          <text
+            key={`${c.key}-lbl`}
+            x={c.x}
+            y={h - 4}
+            textAnchor="middle"
+            fill="#222"
+            fontSize="11"
+          >
             {c.label}
-          </span>
+          </text>
         ))}
-      </div>
+      </svg>
     </div>
   );
 }
 
-function PlotCell({
+function SlicerPanel({
   title,
-  children,
+  name,
+  items,
+  value,
+  onChange,
+  onClear,
 }: {
   title: string;
-  children: React.ReactNode;
+  name: string;
+  items: { id: string; label: string }[];
+  value: string;
+  onChange: (id: string) => void;
+  onClear?: () => void;
 }) {
   return (
-    <section className="min-w-0 p-4 sm:p-5">
-      <h2 className="mb-3 text-[11px] font-semibold tracking-[-0.02em] text-foreground">
-        {title}
-      </h2>
-      {children}
+    <section
+      className="overflow-hidden rounded-[14px]"
+      style={{ background: NAVY_DEEP }}
+    >
+      <div className="flex items-center justify-between px-3 py-2">
+        <h2 className="text-[15px] font-semibold text-white">{title}</h2>
+        <div className="flex items-center gap-1.5 text-white/90">
+          <Filter className="size-3.5" aria-hidden />
+          {onClear ? (
+            <button
+              type="button"
+              onClick={onClear}
+              className="rounded p-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+              aria-label={`Clear ${title}`}
+            >
+              <X className="size-3.5" />
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <div className="flex max-h-52 flex-col gap-2 overflow-y-auto px-3 pb-3">
+        {items.map((item) => {
+          const selected = value === item.id;
+          return (
+            <label key={item.id || `${name}-all`} className="block">
+              <input
+                type="radio"
+                name={name}
+                className="sr-only"
+                checked={selected}
+                onChange={() => onChange(item.id)}
+              />
+              <span
+                className={cn(
+                  "flex min-h-9 cursor-pointer items-center justify-center rounded-full px-3 py-1.5 text-center text-[13px] font-medium text-white transition-colors",
+                  selected
+                    ? "ring-2 ring-white/80"
+                    : "hover:brightness-110",
+                )}
+                style={{ background: SLICE_BLUE }}
+              >
+                {item.label}
+              </span>
+            </label>
+          );
+        })}
+      </div>
     </section>
   );
 }
 
 function BoardSkeleton() {
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")} aria-busy="true">
-      <div className="h-10 w-64 rounded-md bg-muted" />
-      <div className="h-20 rounded-xl bg-muted/70" />
-      <div className="h-28 rounded-xl bg-muted/50" />
-      <div className="grid gap-px overflow-hidden rounded-xl bg-border/60 sm:grid-cols-2">
+    <div
+      className="mx-auto w-full max-w-[1100px] rounded-[18px] p-4 pb-10 sm:p-5"
+      style={{ background: NAVY }}
+      aria-busy="true"
+    >
+      <div className="mb-4 h-10 w-2/3 rounded bg-white/10" />
+      <div className="mb-3 grid grid-cols-2 gap-3 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-56 bg-muted/40" />
+          <div key={i} className="h-20 rounded-[14px] bg-white/90" />
         ))}
+      </div>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13.5rem]">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-56 rounded-[14px] bg-white/90" />
+          ))}
+        </div>
+        <div className="space-y-3">
+          <div className="h-36 rounded-[14px] bg-white/10" />
+          <div className="h-36 rounded-[14px] bg-white/10" />
+        </div>
       </div>
       <span className="sr-only">Loading sales performance</span>
     </div>
@@ -391,7 +415,7 @@ export function AnalyticsWorkspace({
   activityHref?: string | null;
   showCategoryTable?: boolean;
 } = {}) {
-  const { business, setBranchId: setHeaderBranchId } = useDashboard();
+  const { business, me, setBranchId: setHeaderBranchId } = useDashboard();
   const { itemTypeId: headerItemTypeId } = useSessionItemType();
   const currency = business?.currency?.trim() || "KES";
   const money = useCallback(
@@ -443,13 +467,6 @@ export function AnalyticsWorkspace({
     }
     return presetRange(preset);
   }, [preset, customFrom, customTo]);
-
-  const rangeLabel = useMemo(() => {
-    if (!dateRange) {
-      return preset === "custom" ? "Choose a start and end date." : "";
-    }
-    return formatDateRangeLabel(dateRange.from, dateRange.to);
-  }, [dateRange, preset]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -549,7 +566,6 @@ export function AnalyticsWorkspace({
     ? totalRevenue - totalProfit
     : toNum(pl?.cogs);
   const totalCustomers = customerTrend?.totalDistinct ?? 0;
-  const settlingProfit = useSettlingNumber(totalProfit);
 
   const productBars = itemsByProfit.map((row) => ({
     key: row.itemId,
@@ -559,7 +575,7 @@ export function AnalyticsWorkspace({
 
   const staffBars = [...staffPerf]
     .sort((a, b) => toNum(b.totalRevenue) - toNum(a.totalRevenue))
-    .slice(0, 8)
+    .slice(0, 6)
     .map((row) => ({
       key: row.userId,
       label: row.userName,
@@ -593,215 +609,209 @@ export function AnalyticsWorkspace({
   const incompleteMonth =
     dateRange && dateRange.to === todayStr ? currentMonthKey : undefined;
 
-  const categoryChips = [
+  const categoryItems = [
     { id: "", label: "All categories" },
     ...categories.map((c) => ({ id: c.id, label: c.name })),
   ];
-  const branchChips = [
+  const branchItems = [
     ...(branchLocked ? [] : [{ id: "", label: "All branches" }]),
     ...branches.map((b) => ({ id: b.id, label: b.name })),
   ];
 
-  const categoryName =
-    categories.find((c) => c.id === categoryId)?.name ?? "All categories";
-  const branchName =
-    branches.find((b) => b.id === branchId)?.name ??
-    (branchId ? branchId : "All branches");
-
   if (loading) return <BoardSkeleton />;
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")}>
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <h1 className="font-heading text-3xl font-medium tracking-[-0.03em] text-foreground sm:text-4xl">
-            Sales performance
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {rangeLabel
-              ? `${rangeLabel} · ${categoryName} · ${branchName}`
-              : "Set a period to read the till."}
-          </p>
-          <ActiveScopeSubtitle className="text-[11px] text-muted-foreground" />
+    <div className="mx-auto w-full max-w-[1100px] pb-16">
+      {error ? (
+        <div className="mb-3">
+          <DashboardFeedback kind="error" text={error} />
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {activityHref ? (
-            <Link
-              href={activityHref}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border/70 bg-background px-2.5 text-[11px] font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-            >
-              <Zap className="size-3.5" aria-hidden />
-              Activity
-            </Link>
-          ) : null}
-          <Link
-            href={APP_ROUTES.salesTransactions}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border/70 bg-background px-2.5 text-[11px] font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-          >
-            <ShoppingCart className="size-3.5" aria-hidden />
-            Transactions
-          </Link>
-        </div>
-      </header>
+      ) : null}
 
-      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      <div
+        className={cn(
+          "overflow-hidden rounded-[18px] p-3 sm:p-4",
+          refreshing && "opacity-80",
+        )}
+        style={{ background: NAVY }}
+      >
+        <header className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white">
+              <BarChart3 className="size-6 text-[#111]" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <h1 className="truncate text-[1.35rem] font-extrabold uppercase leading-none tracking-[0.04em] text-white sm:text-[1.7rem]">
+                Sales performance dashboard
+              </h1>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {ANALYTICS_PRESET_LABELS.filter((p) => p.key !== "custom").map(
+                  ({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setPreset(key)}
+                      className={cn(
+                        "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white",
+                        preset === key ? "ring-2 ring-white" : "opacity-80 hover:opacity-100",
+                      )}
+                      style={{ background: SLICE_BLUE }}
+                    >
+                      {label}
+                    </button>
+                  ),
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPreset("custom")}
+                  className={cn(
+                    "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white",
+                    preset === "custom" ? "ring-2 ring-white" : "opacity-80 hover:opacity-100",
+                  )}
+                  style={{ background: SLICE_BLUE }}
+                >
+                  Custom
+                </button>
+                <button
+                  type="button"
+                  className="flex size-6 items-center justify-center rounded-full text-white/90 hover:bg-white/10"
+                  onClick={() => {
+                    setRefreshing(true);
+                    void load();
+                  }}
+                  disabled={refreshing}
+                  aria-label="Refresh"
+                >
+                  <RefreshCw
+                    className={cn("size-3.5", refreshing && "animate-spin")}
+                    aria-hidden
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1 text-right">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-white/90">
+              {me?.name || business?.name || ""}
+            </p>
+            {activityHref ? (
+              <Link
+                href={activityHref}
+                className="text-[11px] text-white/80 underline-offset-2 hover:text-white hover:underline"
+              >
+                Activity
+              </Link>
+            ) : null}
+          </div>
+        </header>
 
-      <div className="sticky top-0 z-20 -mx-1 space-y-3 border-b border-border/70 bg-background px-1 py-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <ChipRail
-            legend="Period"
-            name="analytics-period"
-            items={ANALYTICS_PRESET_LABELS.map(({ key, label }) => ({
-              id: key,
-              label,
-            }))}
-            value={preset}
-            onChange={(id) => setPreset(id as DatePreset)}
-          />
-          <button
-            type="button"
-            className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border/70 bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-40"
-            onClick={() => {
-              setRefreshing(true);
-              void load();
-            }}
-            disabled={refreshing}
-            aria-label="Refresh"
-          >
-            <RefreshCw
-              className={cn("size-3.5", refreshing && "animate-spin")}
-              aria-hidden
-            />
-          </button>
-        </div>
         {preset === "custom" ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <div className="mb-3 flex flex-wrap items-center gap-2 px-1 text-[11px] text-white">
+            <label className="flex items-center gap-1.5">
               From
               <input
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-8 rounded-md border border-border/70 bg-background px-2 text-xs font-medium text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+                className="h-7 rounded-md border-0 bg-white px-2 text-xs text-[#111]"
               />
             </label>
-            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <label className="flex items-center gap-1.5">
               To
               <input
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="h-8 rounded-md border border-border/70 bg-background px-2 text-xs font-medium text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+                className="h-7 rounded-md border-0 bg-white px-2 text-xs text-[#111]"
               />
             </label>
           </div>
         ) : null}
-        <div className="grid gap-2 lg:grid-cols-2">
-          <ChipRail
-            legend="Category"
-            name="analytics-category"
-            items={categoryChips}
-            value={categoryId}
-            onChange={setCategoryId}
-          />
-          <ChipRail
-            legend="Branch"
-            name="analytics-branch"
-            items={branchChips}
-            value={branchId}
-            onChange={onChangeBranch}
-          />
-        </div>
-      </div>
 
-      <div
-        className={cn(
-          "space-y-5 transition-opacity duration-200",
-          refreshing && "opacity-60",
-        )}
-      >
-        <section className="grid gap-6 border-b border-border/60 pb-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-end">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13.75rem]">
           <div className="min-w-0 space-y-3">
-            <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-              Profit
-            </p>
-            <p className="font-heading text-4xl font-medium tabular-nums tracking-[-0.03em] text-foreground sm:text-5xl">
-              {money(settlingProfit)}
-            </p>
-            <MixTrack
-              cogs={totalCogs}
-              profit={totalProfit}
-              revenue={totalRevenue}
-              money={money}
-            />
-          </div>
-          <dl className="grid grid-cols-3 gap-4">
-            <div>
-              <dt className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                Revenue
-              </dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-foreground sm:text-xl">
-                {money(totalRevenue)}
-              </dd>
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              {[
+                { label: "Total Revenue", value: money(totalRevenue) },
+                {
+                  label: "Total Cost Of Goods Sold",
+                  value: money(totalCogs),
+                },
+                { label: "Total profit", value: money(totalProfit) },
+                {
+                  label: "Total Customer",
+                  value: totalCustomers.toLocaleString("en-KE"),
+                },
+              ].map((kpi) => (
+                <WhiteCard key={kpi.label} className="px-4 py-3">
+                  <p className="text-[13px] font-medium text-[#111]">{kpi.label}</p>
+                  <p className="mt-2 text-center text-[1.65rem] font-extrabold tabular-nums leading-none tracking-tight text-[#111]">
+                    {kpi.value}
+                  </p>
+                </WhiteCard>
+              ))}
             </div>
-            <div>
-              <dt className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                Cost
-              </dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-foreground sm:text-xl">
-                {money(totalCogs)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                Customers
-              </dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-foreground sm:text-xl">
-                {totalCustomers.toLocaleString("en-KE")}
-              </dd>
-            </div>
-          </dl>
-        </section>
 
-        <div className="grid overflow-hidden rounded-xl border border-border/70 bg-card md:grid-cols-2">
-          <PlotCell title="Product by profit">
-            <ColumnPlot
-              items={productBars}
-              formatValue={money}
-              empty="Sell through this slice and products will rank here by profit."
+            <div className="grid gap-3 md:grid-cols-2">
+              <ChartCard title="Product by profit">
+                <ColumnChart
+                  items={productBars}
+                  formatValue={money}
+                  empty="No product profit in this slice."
+                />
+              </ChartCard>
+              <ChartCard title="Sales by revenue">
+                <ColumnChart
+                  items={staffBars}
+                  formatValue={money}
+                  empty="No cashier sales in this slice."
+                />
+              </ChartCard>
+              <ChartCard title="Branch by COGS">
+                <ColumnChart
+                  items={cogsBars}
+                  formatValue={money}
+                  empty="No cost of goods in this slice."
+                />
+              </ChartCard>
+              <ChartCard title="Monthly customers trend">
+                <CustomerTrend
+                  points={customerPoints}
+                  incompleteKey={incompleteMonth}
+                />
+              </ChartCard>
+            </div>
+          </div>
+
+          <aside className="flex flex-col gap-3">
+            <SlicerPanel
+              title="Category"
+              name="analytics-category"
+              items={categoryItems}
+              value={categoryId}
+              onChange={setCategoryId}
+              onClear={() => setCategoryId("")}
             />
-          </PlotCell>
-          <PlotCell title="Sales by revenue">
-            <ColumnPlot
-              items={staffBars}
-              formatValue={money}
-              empty="Completed sales will rank cashiers here."
+            <SlicerPanel
+              title="Branch"
+              name="analytics-branch"
+              items={branchItems}
+              value={branchId}
+              onChange={onChangeBranch}
+              onClear={branchLocked ? undefined : () => onChangeBranch("")}
             />
-          </PlotCell>
-          <PlotCell title="Branch by cost">
-            <ColumnPlot
-              items={cogsBars}
-              formatValue={money}
-              empty="Cost of goods will split across branches here."
-            />
-          </PlotCell>
-          <PlotCell title="Monthly customers">
-            <CustomerPlot
-              points={customerPoints}
-              incompleteKey={incompleteMonth}
-            />
-          </PlotCell>
+          </aside>
         </div>
       </div>
 
       {showCategoryTable ? (
-        <section className="overflow-hidden rounded-xl border border-border/70">
-          <h2 className="border-b border-border/60 px-4 py-2.5 text-sm font-semibold tracking-[-0.02em]">
+        <WhiteCard className="mt-4 overflow-hidden">
+          <h2 className="border-b border-[#e5e7eb] px-4 py-2.5 text-sm font-semibold">
             Net revenue by category
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-left text-sm">
-              <thead className="border-b border-border/60 bg-muted/40 text-[11px] text-muted-foreground">
+              <thead className="border-b border-[#e5e7eb] bg-[#f4f6f8] text-[11px] text-[#4a5568]">
                 <tr>
                   <th className="px-3 py-2 font-medium">Category</th>
                   <th className="px-3 py-2 text-right font-medium">
@@ -815,14 +825,17 @@ export function AnalyticsWorkspace({
                   <tr>
                     <td
                       colSpan={3}
-                      className="px-3 py-6 text-center text-muted-foreground"
+                      className="px-3 py-6 text-center text-[#4a5568]"
                     >
                       No category rows for this window.
                     </td>
                   </tr>
                 ) : (
                   categoryRevenue.map((row) => (
-                    <tr key={row.categoryId} className="border-b border-border/50 last:border-0">
+                    <tr
+                      key={row.categoryId}
+                      className="border-b border-[#eef1f4] last:border-0"
+                    >
                       <td className="px-3 py-2">{row.categoryName}</td>
                       <td className="px-3 py-2 text-right tabular-nums">
                         {money(row.netRevenue)}
@@ -836,7 +849,7 @@ export function AnalyticsWorkspace({
               </tbody>
             </table>
           </div>
-        </section>
+        </WhiteCard>
       ) : null}
     </div>
   );
