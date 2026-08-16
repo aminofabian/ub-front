@@ -204,7 +204,7 @@ function CustomerTrend({
   if (points.length === 0) {
     return (
       <EmptyPlot>
-        Named customers who bought in this window will plot here.
+        Completed sales in this window will plot here.
       </EmptyPlot>
     );
   }
