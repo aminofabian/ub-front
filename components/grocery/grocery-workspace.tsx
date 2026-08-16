@@ -1507,7 +1507,7 @@ export function GroceryWorkspace() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
+                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-6 lg:grid-cols-8">
                     {hits.map((item) => {
                       const d = lineDataByItem.get(item.id);
                       return (
@@ -1566,7 +1566,7 @@ export function GroceryWorkspace() {
                     ) : null}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
+                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-6 lg:grid-cols-8">
                     {browseCatalog.map((item) => {
                       const d = lineDataByItem.get(item.id);
                       return (

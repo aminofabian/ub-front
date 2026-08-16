@@ -22,7 +22,6 @@ import {
   formatDisplayPrice,
   hasCatalogPrice,
 } from "@/lib/public-storefront";
-import { SHOP_PRODUCT_GRID_CLASS } from "@/components/storefront/shop-product-grid-layout";
 import { cn } from "@/lib/utils";
 
 const CARD_SHELL =
@@ -122,7 +121,7 @@ export default function ShopProductGrid({
   const animateFrom = newFromIndex ?? 0;
 
   return (
-    <ul className={SHOP_PRODUCT_GRID_CLASS}>
+    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:grid-cols-4 lg:gap-3 xl:grid-cols-5">
       {visibleItems.map((item, index) => {
         const isNew = index >= animateFrom;
         const variantSubtitle = formatCatalogVariantSubtitle(item.variantName);
@@ -152,8 +151,8 @@ export default function ShopProductGrid({
                     src={item.imageUrl}
                     alt=""
                     fill
-                    className="object-contain p-2 transition-transform duration-300 ease-out group-hover:scale-[1.04] sm:p-2.5"
-                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 20vw, 12.5vw"
+                    className="object-contain p-3 transition-transform duration-300 ease-out group-hover:scale-[1.04] sm:p-3.5"
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                     unoptimized
                   />
                 ) : (
@@ -165,10 +164,10 @@ export default function ShopProductGrid({
                 ) : null}
               </Link>
 
-              <div className="flex min-h-0 flex-1 flex-col gap-1.5 px-2 pb-2 pt-1.5 sm:px-2.5 sm:pb-2.5">
+              <div className="flex min-h-0 flex-1 flex-col gap-2 px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
                 <Link
                   href={shopItemPathFromCard(item)}
-                  className="line-clamp-2 text-xs font-medium leading-snug tracking-tight text-[var(--storefront-ink,#141816)] transition-colors hover:text-primary"
+                  className="text-[13px] font-medium leading-snug tracking-tight text-[var(--storefront-ink,#141816)] transition-colors hover:text-primary"
                   title={title}
                 >
                   {title}
@@ -176,7 +175,7 @@ export default function ShopProductGrid({
 
                 <div className="mt-auto flex items-center justify-between gap-2">
                   {priceLabel ? (
-                    <p className="shrink-0 text-xs font-bold tabular-nums tracking-tight text-[var(--storefront-ink,#141816)]">
+                    <p className="shrink-0 text-[13px] font-bold tabular-nums tracking-tight text-[var(--storefront-ink,#141816)]">
                       {priceLabel}
                     </p>
                   ) : (

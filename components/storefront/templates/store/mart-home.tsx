@@ -60,6 +60,23 @@ export function MartStoreHome(props: StoreHomeTemplateProps) {
               primaryHex={primaryHex}
               accentHex={accentHex}
             />
+
+            <section id="shop-catalog" className="scroll-mt-24 pt-1">
+              <ShopCatalogWithMore
+                key={`${q ?? ""}\0${categoryId ?? ""}\0${typeId ?? ""}\0${categoryPathSlug ?? ""}`}
+                slug={slug}
+                currency={currency}
+                initialItems={catalogItems}
+                initialNextCursor={nextCursor}
+                initialTotalCount={totalCount}
+                q={q}
+                categoryId={categoryId}
+                typeId={typeId}
+                categoryHeading={categoryHeading}
+                categoryPathSlug={categoryPathSlug}
+                accentHex={accentHex}
+              />
+            </section>
           </main>
 
           <aside className="hidden lg:col-span-3 lg:block">
@@ -74,23 +91,6 @@ export function MartStoreHome(props: StoreHomeTemplateProps) {
             </div>
           </aside>
         </div>
-
-        <section id="shop-catalog" className="scroll-mt-24 pt-4">
-          <ShopCatalogWithMore
-            key={`${q ?? ""}\0${categoryId ?? ""}\0${typeId ?? ""}\0${categoryPathSlug ?? ""}`}
-            slug={slug}
-            currency={currency}
-            initialItems={catalogItems}
-            initialNextCursor={nextCursor}
-            initialTotalCount={totalCount}
-            q={q}
-            categoryId={categoryId}
-            typeId={typeId}
-            categoryHeading={categoryHeading}
-            categoryPathSlug={categoryPathSlug}
-            accentHex={accentHex}
-          />
-        </section>
       </div>
     </div>
   );
