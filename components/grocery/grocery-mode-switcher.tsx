@@ -1,6 +1,6 @@
 "use client";
 
-import { PackagePlus, ShoppingBasket, Trash2 } from "lucide-react";
+import { PackagePlus, PencilLine, ShoppingBasket, Trash2 } from "lucide-react";
 
 import type { GroceryCounterMode } from "@/lib/grocery-counter-access";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,11 @@ const MODE_META: Record<
     label: "Stock in",
     icon: PackagePlus,
     hint: "Receive delivery",
+  },
+  stockEdit: {
+    label: "Edit stock",
+    icon: PencilLine,
+    hint: "Set on-hand quantity",
   },
 };
 
@@ -87,6 +92,8 @@ export function groceryModeTitle(mode: GroceryCounterMode): string {
       return "Spoils";
     case "stockIn":
       return "Stock in";
+    case "stockEdit":
+      return "Edit stock";
     default:
       return "Counter";
   }

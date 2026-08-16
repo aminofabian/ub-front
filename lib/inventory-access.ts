@@ -153,7 +153,7 @@ export function canEditStockLevels(
     );
   }
   if (roleKey === "grocery_clerk") {
-    return Boolean(settings?.allowStockEditForGroceryClerk);
+    return groceryClerkStockAccessEnabled(business);
   }
   return false;
 }
@@ -173,7 +173,7 @@ export function canViewStockLevels(
     return true;
   }
   if (roleKey === "grocery_clerk") {
-    return Boolean(stockLevelsSettings(business)?.allowStockEditForGroceryClerk);
+    return groceryClerkStockAccessEnabled(business);
   }
   return false;
 }
@@ -181,7 +181,7 @@ export function canViewStockLevels(
 export function groceryClerkStockAccessEnabled(
   business: BusinessRecord | null | undefined,
 ): boolean {
-  return Boolean(stockLevelsSettings(business)?.allowStockEditForGroceryClerk);
+  return stockLevelsSettings(business)?.allowStockEditForGroceryClerk !== false;
 }
 
 export function allowNegativeStockForSales(

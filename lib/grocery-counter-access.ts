@@ -1,7 +1,7 @@
 import type { BusinessRecord, MeResponse } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 
-export type GroceryCounterMode = "sell" | "spoils" | "stockIn";
+export type GroceryCounterMode = "sell" | "spoils" | "stockIn" | "stockEdit";
 
 function roleKey(me: MeResponse | null | undefined): string {
   return me?.role?.key?.trim().toLowerCase() ?? "";
@@ -19,6 +19,13 @@ export function groceryClerkStockInEnabled(
   business: BusinessRecord | null | undefined,
 ): boolean {
   return business?.inventory?.receiveStock?.allowReceiveForGroceryClerk !== false;
+}
+
+/** Edit on-hand on grocery counter — default on when unset; admin can turn off. */
+export function groceryClerkStockEditEnabled(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return business?.inventory?.stockLevels?.allowStockEditForGroceryClerk !== false;
 }
 
 export function canRecordGrocerySpoils(
@@ -48,6 +55,19 @@ export function canGroceryStockIn(
   return groceryClerkStockInEnabled(business);
 }
 
+export function canGroceryEditStock(
+  me: MeResponse | null | undefined,
+  business: BusinessRecord | null | undefined,
+): boolean {
+  if (hasPermission(me?.permissions, Permission.InventoryWrite)) {
+    return groceryClerkStockEditEnabled(business);
+  }
+  if (roleKey(me) !== "grocery_clerk") {
+    return false;
+  }
+  return groceryClerkStockEditEnabled(business);
+}
+
 export function groceryCounterModesAvailable(
   me: MeResponse | null | undefined,
   business: BusinessRecord | null | undefined,
@@ -55,5 +75,6 @@ export function groceryCounterModesAvailable(
   const modes: GroceryCounterMode[] = ["sell"];
   if (canRecordGrocerySpoils(me, business)) modes.push("spoils");
   if (canGroceryStockIn(me, business)) modes.push("stockIn");
+  if (canGroceryEditStock(me, business)) modes.push("stockEdit");
   return modes;
 }

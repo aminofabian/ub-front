@@ -549,7 +549,7 @@ export function BusinessConfigurationForm({
             }
             icon={<Warehouse className="size-4" aria-hidden />}
             title="Allow grocery clerks to edit stock"
-            description="Grocery clerks can open Stock and set on-hand quantities for their assigned branch."
+            description="Shows Edit stock next to Stock in on the grocery counter. Clerks tap a product to set on-hand. Turn off to hide the mode."
           />
           <PolicySwitch
             checked={inventory.allowSpoilsForGroceryClerk}

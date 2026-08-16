@@ -74,6 +74,8 @@ import {
   groceryModeTitle,
 } from "@/components/grocery/grocery-mode-switcher";
 import { GroceryStockInPanel } from "@/components/grocery/grocery-stock-in-panel";
+import { GroceryStockEditDialog } from "@/components/grocery/grocery-stock-edit-dialog";
+import { GroceryStockEditPanel } from "@/components/grocery/grocery-stock-edit-panel";
 import {
   formatShelfPriceLabel,
   splitShelfPriceDisplay,
@@ -85,6 +87,7 @@ import {
   type GroceryCounterMode,
 } from "@/lib/grocery-counter-access";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { itemStockQty } from "@/lib/apply-item-on-hand";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 
 import {
@@ -174,6 +177,7 @@ function ProductCard({
   cartQty = 0,
   cartLineTotal = 0,
   currency,
+  showOnHand = false,
 }: {
   item: ItemSummaryRecord;
   shelfLine: string;
@@ -181,6 +185,7 @@ function ProductCard({
   cartQty?: number;
   cartLineTotal?: number;
   currency: string;
+  showOnHand?: boolean;
 }) {
   const thumb = itemListThumbnailUrl(item);
   const title = cashierItemPrimaryLabel(item);
@@ -190,6 +195,7 @@ function ProductCard({
     amount !== CASHIER_POS_UI_COPY.tileShelfEmpty &&
     amount !== CASHIER_POS_UI_COPY.tileShelfLoading;
   const inCart = cartQty > 0;
+  const onHand = itemStockQty(item.stockQty);
   // Running total label — only meaningful when we actually know a unit price.
   // If shelf price is still loading/unknown, fall back to showing just the
   // count so we don't render "0 KES" totals.
@@ -206,9 +212,11 @@ function ProductCard({
       type="button"
       onClick={onPick}
       aria-label={
-        inCart
-          ? `${title} — ${cartQty} in cart. Tap to add another.`
-          : `Add ${title} to cart`
+        showOnHand
+          ? `${title} — ${onHand} on hand. Tap to set quantity.`
+          : inCart
+            ? `${title} — ${cartQty} in cart. Tap to add another.`
+            : `Add ${title} to cart`
       }
       className={cn(
         "group relative flex flex-col overflow-hidden rounded-none border text-left",
@@ -256,6 +264,11 @@ function ProductCard({
         <p className="line-clamp-2 text-[11px] font-medium leading-snug text-foreground">
           {title}
         </p>
+        {showOnHand ? (
+          <p className="text-[10px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+            {onHand} on hand
+          </p>
+        ) : null}
 
         {lineTotalSplit ? (
           <div className="flex min-w-0 items-end justify-between gap-2">
@@ -371,6 +384,13 @@ export function GroceryWorkspace() {
     id: string;
     name: string;
   } | null>(null);
+  const [stockEditItem, setStockEditItem] = useState<ItemSummaryRecord | null>(
+    null,
+  );
+  const [lastStockEdit, setLastStockEdit] = useState<{
+    label: string;
+    qty: number;
+  } | null>(null);
   const availableModes = useMemo(
     () => groceryCounterModesAvailable(effectiveMe, business),
     [effectiveMe, business],
@@ -399,7 +419,7 @@ export function GroceryWorkspace() {
         setLines(parkedSpoils ?? []);
         setParkedSpoils(null);
       } else {
-        // Stock in uses its own receive till — keep lines parked, clear active cart view.
+        // Stock in / edit stock — keep lines parked, clear active cart view.
         setLines([]);
       }
       setShowCartDrawer(false);
@@ -778,6 +798,10 @@ export function GroceryWorkspace() {
     (item: ItemSummaryRecord) => {
       if (counterMode === "stockIn") {
         toast.message("Pick a supplier in Stock in, then receive on the till.");
+        return;
+      }
+      if (counterMode === "stockEdit") {
+        setStockEditItem(item);
         return;
       }
       const weighed = item.isWeighed === true;
@@ -1170,6 +1194,28 @@ export function GroceryWorkspace() {
     setHits([]);
   }, [beginNewSale]);
 
+  const applyStockEdit = useCallback(
+    (itemId: string, qty: number) => {
+      const patch = (list: ItemSummaryRecord[]) =>
+        list.map((row) =>
+          row.id === itemId ? { ...row, stockQty: qty } : row,
+        );
+      setDepartmentCatalog(patch);
+      setHits(patch);
+      const source =
+        stockEditItem?.id === itemId
+          ? stockEditItem
+          : departmentCatalog.find((r) => r.id === itemId) ??
+            hits.find((r) => r.id === itemId);
+      const label = source
+        ? cashierItemPrimaryLabel(source)
+        : "Item";
+      setLastStockEdit({ label, qty });
+      toast.success(`${label} set to ${qty.toLocaleString("en-KE")}.`);
+    },
+    [departmentCatalog, hits, stockEditItem],
+  );
+
   // ── Render ───────────────────────────────────────────────────────
 
   return (
@@ -1477,6 +1523,7 @@ export function GroceryWorkspace() {
                           cartQty={d?.qty ?? 0}
                           cartLineTotal={d?.total ?? 0}
                           currency={currency}
+                          showOnHand={counterMode === "stockEdit"}
                         />
                       );
                     })}
@@ -1535,6 +1582,7 @@ export function GroceryWorkspace() {
                           cartQty={d?.qty ?? 0}
                           cartLineTotal={d?.total ?? 0}
                           currency={currency}
+                          showOnHand={counterMode === "stockEdit"}
                         />
                       );
                     })}
@@ -1567,6 +1615,11 @@ export function GroceryWorkspace() {
                 setReceiveTillSupplier(supplier);
                 setReceiveTillOpen(true);
               }}
+            />
+          ) : counterMode === "stockEdit" ? (
+            <GroceryStockEditPanel
+              lastLabel={lastStockEdit?.label}
+              lastQty={lastStockEdit?.qty}
             />
           ) : (
             <>
@@ -1784,6 +1837,13 @@ export function GroceryWorkspace() {
                   }}
                 />
               </div>
+            ) : counterMode === "stockEdit" ? (
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <GroceryStockEditPanel
+                  lastLabel={lastStockEdit?.label}
+                  lastQty={lastStockEdit?.qty}
+                />
+              </div>
             ) : (
               <>
                 {counterMode === "sell" ? (
@@ -1887,6 +1947,14 @@ export function GroceryWorkspace() {
         }}
         supplierId={receiveTillSupplier?.id ?? null}
         supplierName={receiveTillSupplier?.name}
+      />
+
+      <GroceryStockEditDialog
+        open={stockEditItem != null}
+        item={stockEditItem}
+        branchId={branchId?.trim() ?? ""}
+        onClose={() => setStockEditItem(null)}
+        onSaved={applyStockEdit}
       />
 
       <GroceryAppBottomNav activeTab="counter" />

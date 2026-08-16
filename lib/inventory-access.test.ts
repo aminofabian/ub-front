@@ -84,6 +84,30 @@ describe("inventory-access", () => {
     expect(canEditStockLevels(me, businessWithStockEdits)).toBe(true);
   });
 
+  it("grants grocery clerk stock access by default when the toggle is unset", () => {
+    const me: MeResponse = {
+      role: { key: "grocery_clerk" },
+      permissions: [],
+    };
+    expect(canViewStockLevels(me, { name: "Test" })).toBe(true);
+    expect(canEditStockLevels(me, { name: "Test" })).toBe(true);
+  });
+
+  it("hides grocery clerk stock access when the admin override is off", () => {
+    const me: MeResponse = {
+      role: { key: "grocery_clerk" },
+      permissions: [],
+    };
+    const business: BusinessRecord = {
+      name: "Test",
+      inventory: {
+        stockLevels: { allowStockEditForGroceryClerk: false },
+      },
+    };
+    expect(canViewStockLevels(me, business)).toBe(false);
+    expect(canEditStockLevels(me, business)).toBe(false);
+  });
+
   it("hides irrelevant stock quick links for restricted roles", () => {
     const stockManager: MeResponse = {
       role: { key: "stock_manager" },
