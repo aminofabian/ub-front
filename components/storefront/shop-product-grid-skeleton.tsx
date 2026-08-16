@@ -32,12 +32,8 @@ export function ShopProductGridSkeleton({
   className?: string;
 }) {
   return (
-    <div className="@container">
     <ul
-      className={cn(
-        SHOP_PRODUCT_GRID_CLASS,
-        className,
-      )}
+      className={cn(SHOP_PRODUCT_GRID_CLASS, className)}
       aria-busy="true"
       aria-label="Loading products"
     >
@@ -45,6 +41,5 @@ export function ShopProductGridSkeleton({
         <ShopProductCardSkeleton key={i} />
       ))}
     </ul>
-    </div>
   );
 }

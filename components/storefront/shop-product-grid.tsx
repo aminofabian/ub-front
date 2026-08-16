@@ -122,7 +122,6 @@ export default function ShopProductGrid({
   const animateFrom = newFromIndex ?? 0;
 
   return (
-    <div className="@container">
     <ul className={SHOP_PRODUCT_GRID_CLASS}>
       {visibleItems.map((item, index) => {
         const isNew = index >= animateFrom;
@@ -154,7 +153,7 @@ export default function ShopProductGrid({
                     alt=""
                     fill
                     className="object-contain p-2 transition-transform duration-300 ease-out group-hover:scale-[1.04] sm:p-2.5"
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 12.5vw"
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 20vw, 12.5vw"
                     unoptimized
                   />
                 ) : (
@@ -211,6 +210,5 @@ export default function ShopProductGrid({
         );
       })}
     </ul>
-    </div>
   );
 }
