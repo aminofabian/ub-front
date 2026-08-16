@@ -5046,6 +5046,80 @@ export async function fetchStaffPerformance(
   );
 }
 
+export type BranchCogsRow = {
+  branchId: string;
+  branchName: string;
+  cogs: number | string;
+};
+
+export async function fetchCogsByBranch(
+  from?: string,
+  to?: string,
+  categoryId?: string,
+  branchId?: string,
+  itemTypeId?: string,
+): Promise<BranchCogsRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (categoryId?.trim()) params.set("categoryId", categoryId.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
+  const qs = params.toString();
+  return request<BranchCogsRow[]>(
+    `/api/v1/sales/intelligence/cogs-by-branch${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function fetchItemsByProfit(
+  from?: string,
+  to?: string,
+  opts?: {
+    categoryId?: string;
+    branchId?: string;
+    itemTypeId?: string;
+    limit?: number;
+  },
+): Promise<ItemRevenueRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (opts?.categoryId?.trim()) params.set("categoryId", opts.categoryId.trim());
+  if (opts?.branchId?.trim()) params.set("branchId", opts.branchId.trim());
+  if (opts?.itemTypeId?.trim()) params.set("itemTypeId", opts.itemTypeId.trim());
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  return request<ItemRevenueRow[]>(
+    `/api/v1/sales/intelligence/items-by-profit${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type MonthlyCustomerRow = {
+  year: number;
+  month: number;
+  customerCount: number;
+};
+
+export type CustomerTrendResponse = {
+  totalDistinct: number;
+  months: MonthlyCustomerRow[];
+};
+
+export async function fetchCustomersByMonth(
+  from?: string,
+  to?: string,
+  branchId?: string,
+): Promise<CustomerTrendResponse> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const qs = params.toString();
+  return request<CustomerTrendResponse>(
+    `/api/v1/sales/intelligence/customers-by-month${qs ? `?${qs}` : ""}`,
+  );
+}
+
 export type FinancePulseResponse = {
   date: string;
   branchId: string | null;
