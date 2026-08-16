@@ -1,24 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
-  BarChart3,
-  RefreshCw,
-  ShoppingCart,
-  Zap,
-} from "lucide-react";
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import Link from "next/link";
+import { RefreshCw, ShoppingCart, Zap } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   useSessionItemType,
   useSyncBranchFilter,
 } from "@/hooks/use-session-scope";
-import {
-  DashboardLoading,
-  DashboardFeedback,
-  DASHBOARD_MAX_WIDE,
-} from "@/components/dashboard-page-ui";
+import { DashboardFeedback, DASHBOARD_MAX_WIDE } from "@/components/dashboard-page-ui";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
@@ -54,7 +51,10 @@ function toNum(n: number | string | null | undefined): number {
   return typeof n === "number" ? n : Number(n);
 }
 
-function compactMoney(n: number | string | null | undefined, currency: string): string {
+function compactMoney(
+  n: number | string | null | undefined,
+  currency: string,
+): string {
   const val = toNum(n);
   const abs = Math.abs(val);
   const sign = val < 0 ? "−" : "";
@@ -79,7 +79,10 @@ function monthLabel(year: number, month: number): string {
   });
 }
 
-function monthsCovered(from: string, to: string): { year: number; month: number }[] {
+function monthsCovered(
+  from: string,
+  to: string,
+): { year: number; month: number }[] {
   const start = parseISODate(from);
   const end = parseISODate(to);
   const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
@@ -92,32 +95,137 @@ function monthsCovered(from: string, to: string): { year: number; month: number 
   return out;
 }
 
-function ChartFrame({
-  title,
-  children,
+function useSettlingNumber(value: number): number {
+  const [shown, setShown] = useState(value);
+  const fromRef = useRef(value);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      fromRef.current = value;
+      setShown(value);
+      return;
+    }
+    const from = fromRef.current;
+    const start = performance.now();
+    const duration = 220;
+    let frame = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const ease = 1 - (1 - t) ** 3;
+      const next = from + (value - from) * ease;
+      setShown(next);
+      if (t < 1) frame = requestAnimationFrame(tick);
+      else fromRef.current = value;
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  return shown;
+}
+
+function ChipRail({
+  legend,
+  name,
+  items,
+  value,
+  onChange,
 }: {
-  title: string;
-  children: React.ReactNode;
+  legend: string;
+  name: string;
+  items: { id: string; label: string }[];
+  value: string;
+  onChange: (id: string) => void;
 }) {
   return (
-    <section className="flex min-h-0 flex-col rounded-xl border border-border/60 bg-card p-3 shadow-sm sm:p-4">
-      <h2 className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">
-        {title}
-      </h2>
-      <div className="min-h-0 flex-1">{children}</div>
-    </section>
+    <fieldset className="min-w-0">
+      <legend className="sr-only">{legend}</legend>
+      <div
+        role="radiogroup"
+        aria-label={legend}
+        className="flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {items.map((item) => {
+          const selected = value === item.id;
+          return (
+            <label
+              key={item.id || `${name}-all`}
+              className={cn(
+                "inline-flex h-7 shrink-0 cursor-pointer items-center rounded-md border px-2.5 text-[11px] font-medium transition-colors duration-150",
+                selected
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border/70 bg-background text-foreground/80 hover:border-foreground/25 hover:bg-muted hover:text-foreground",
+              )}
+            >
+              <input
+                type="radio"
+                name={name}
+                className="sr-only"
+                checked={selected}
+                onChange={() => onChange(item.id)}
+              />
+              {item.label}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 
-function EmptyChart({ message }: { message: string }) {
+function MixTrack({
+  cogs,
+  profit,
+  revenue,
+  money,
+}: {
+  cogs: number;
+  profit: number;
+  revenue: number;
+  money: (n: number) => string;
+}) {
+  const total = Math.max(revenue, cogs + profit, 1);
+  const cogsPct = Math.max(0, Math.min(100, (cogs / total) * 100));
+  const profitPct = Math.max(0, Math.min(100 - cogsPct, (profit / total) * 100));
+  const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
   return (
-    <p className="flex h-40 items-center justify-center px-4 text-center text-xs text-muted-foreground">
-      {message}
+    <div className="space-y-1.5">
+      <div
+        className="flex h-2 overflow-hidden rounded-full bg-muted"
+        role="img"
+        aria-label={`Cost ${money(cogs)}, profit ${money(profit)}, margin ${margin.toFixed(0)} percent`}
+      >
+        <div
+          className="h-full bg-foreground/25 transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+          style={{ width: `${cogsPct}%` }}
+        />
+        <div
+          className="h-full bg-primary transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+          style={{ width: `${profitPct}%` }}
+        />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+        <span>
+          Cost {money(cogs)}
+          <span className="mx-2 text-border">·</span>
+          Profit {money(profit)}
+        </span>
+        <span className="tabular-nums text-foreground">
+          {margin.toFixed(0)}% margin
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function EmptyPlot({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="flex h-44 items-center justify-center px-3 text-center text-xs text-muted-foreground">
+      {children}
     </p>
   );
 }
 
-function LabeledBars({
+function ColumnPlot({
   items,
   formatValue,
   empty,
@@ -126,26 +234,23 @@ function LabeledBars({
   formatValue: (n: number) => string;
   empty: string;
 }) {
-  if (items.length === 0) return <EmptyChart message={empty} />;
-  const max = Math.max(...items.map((i) => i.value), 1);
+  if (items.length === 0) return <EmptyPlot>{empty}</EmptyPlot>;
+  const max = Math.max(...items.map((i) => Math.abs(i.value)), 1);
   return (
-    <ul className="flex h-52 items-end gap-1.5 sm:h-56 sm:gap-2">
+    <ul className="flex h-[13.5rem] items-end gap-1 sm:gap-1.5">
       {items.map((item, index) => {
-        const pct = Math.max((item.value / max) * 100, item.value > 0 ? 4 : 0);
+        const pct = Math.max((Math.abs(item.value) / max) * 100, item.value ? 3 : 0);
         const lead = index === 0;
         return (
-          <li
-            key={item.key}
-            className="flex min-w-0 flex-1 flex-col items-center gap-1.5"
-          >
-            <span className="w-full truncate text-center text-[10px] font-semibold tabular-nums text-foreground">
+          <li key={item.key} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="w-full truncate text-center text-[10px] font-medium tabular-nums text-foreground">
               {formatValue(item.value)}
             </span>
-            <div className="flex h-36 w-full items-end sm:h-40">
+            <div className="flex h-36 w-full items-end justify-center">
               <div
                 className={cn(
-                  "mx-auto w-[72%] max-w-12 rounded-t-sm transition-[height] duration-200",
-                  lead ? "bg-chart-4" : "bg-primary/80",
+                  "w-[70%] max-w-11 origin-bottom rounded-t-[3px] transition-[height] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
+                  lead ? "bg-primary" : "bg-foreground/20",
                 )}
                 style={{ height: `${pct}%` }}
                 title={`${item.label}: ${formatValue(item.value)}`}
@@ -161,7 +266,7 @@ function LabeledBars({
   );
 }
 
-function CustomerLine({
+function CustomerPlot({
   points,
   incompleteKey,
 }: {
@@ -170,15 +275,17 @@ function CustomerLine({
 }) {
   if (points.length === 0) {
     return (
-      <EmptyChart message="No named customers bought in this window." />
+      <EmptyPlot>
+        Named customers who bought in this window will plot here. Walk-in sales
+        are not counted.
+      </EmptyPlot>
     );
   }
   const max = Math.max(...points.map((p) => p.value), 1);
-  const min = 0;
-  const w = 320;
-  const h = 160;
-  const padX = 18;
-  const padY = 18;
+  const w = 360;
+  const h = 168;
+  const padX = 16;
+  const padY = 22;
   const innerW = w - padX * 2;
   const innerH = h - padY * 2;
   const coords = points.map((p, i) => {
@@ -186,26 +293,29 @@ function CustomerLine({
       points.length === 1
         ? padX + innerW / 2
         : padX + (i / (points.length - 1)) * innerW;
-    const y = padY + innerH - ((p.value - min) / (max - min || 1)) * innerH;
+    const y = padY + innerH - (p.value / max) * innerH;
     return { ...p, x, y };
   });
-  const d = coords
+  const line = coords
     .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
     .join(" ");
+  const area = `${line} L ${coords[coords.length - 1].x.toFixed(1)} ${padY + innerH} L ${coords[0].x.toFixed(1)} ${padY + innerH} Z`;
 
   return (
-    <div className="space-y-1">
+    <div>
       <svg
         viewBox={`0 0 ${w} ${h}`}
         className="h-44 w-full"
         role="img"
         aria-label="Customers by month"
       >
+        <path d={area} className="fill-primary/12" />
         <path
-          d={d}
+          d={line}
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.25"
+          strokeWidth="2"
+          strokeLinejoin="round"
           className="text-primary"
         />
         {coords.map((c) => {
@@ -215,14 +325,14 @@ function CustomerLine({
               <circle
                 cx={c.x}
                 cy={c.y}
-                r={incomplete ? 5 : 3.5}
-                className={incomplete ? "fill-chart-4" : "fill-primary"}
+                r={incomplete ? 4.5 : 3}
+                className={incomplete ? "fill-foreground" : "fill-primary"}
               />
               <text
                 x={c.x}
-                y={c.y - 10}
+                y={c.y - 9}
                 textAnchor="middle"
-                className="fill-foreground text-[9px] font-semibold"
+                className="fill-foreground text-[9px] font-medium"
               >
                 {c.value.toLocaleString("en-KE")}
               </text>
@@ -232,10 +342,7 @@ function CustomerLine({
       </svg>
       <div className="flex justify-between px-1">
         {coords.map((c) => (
-          <span
-            key={c.key}
-            className="text-[10px] text-muted-foreground"
-          >
+          <span key={c.key} className="text-[10px] text-muted-foreground">
             {c.label}
           </span>
         ))}
@@ -244,53 +351,36 @@ function CustomerLine({
   );
 }
 
-function Slicer({
+function PlotCell({
   title,
-  name,
-  options,
-  value,
-  onChange,
-  allLabel,
+  children,
 }: {
   title: string;
-  name: string;
-  options: { id: string; label: string }[];
-  value: string;
-  onChange: (id: string) => void;
-  allLabel?: string;
+  children: React.ReactNode;
 }) {
-  const items = allLabel
-    ? [{ id: "", label: allLabel }, ...options]
-    : options;
   return (
-    <fieldset className="rounded-xl border border-border/60 bg-card p-3 shadow-sm">
-      <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">
+    <section className="min-w-0 p-4 sm:p-5">
+      <h2 className="mb-3 text-[11px] font-semibold tracking-[-0.02em] text-foreground">
         {title}
-      </legend>
-      <div className="mt-1 flex max-h-40 flex-col gap-0.5 overflow-y-auto sm:max-h-none">
-        {items.map((item) => {
-          const selected = value === item.id;
-          return (
-            <label
-              key={item.id || "all"}
-              className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-sm",
-                selected ? "bg-primary/10 text-foreground" : "text-foreground/90 hover:bg-muted/60",
-              )}
-            >
-              <input
-                type="radio"
-                name={name}
-                checked={selected}
-                onChange={() => onChange(item.id)}
-                className="size-3.5 accent-primary"
-              />
-              <span className="truncate">{item.label}</span>
-            </label>
-          );
-        })}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function BoardSkeleton() {
+  return (
+    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")} aria-busy="true">
+      <div className="h-10 w-64 rounded-md bg-muted" />
+      <div className="h-20 rounded-xl bg-muted/70" />
+      <div className="h-28 rounded-xl bg-muted/50" />
+      <div className="grid gap-px overflow-hidden rounded-xl bg-border/60 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-56 bg-muted/40" />
+        ))}
       </div>
-    </fieldset>
+      <span className="sr-only">Loading sales performance</span>
+    </div>
   );
 }
 
@@ -326,6 +416,7 @@ export function AnalyticsWorkspace({
     allowAll: true,
   });
   const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   const onChangeBranch = useCallback(
     (id: string) => {
@@ -342,9 +433,8 @@ export function AnalyticsWorkspace({
   const [staffPerf, setStaffPerf] = useState<StaffPerformanceRow[]>([]);
   const [itemsByProfit, setItemsByProfit] = useState<ItemRevenueRow[]>([]);
   const [branchCogs, setBranchCogs] = useState<BranchCogsRow[]>([]);
-  const [customerTrend, setCustomerTrend] = useState<CustomerTrendResponse | null>(
-    null,
-  );
+  const [customerTrend, setCustomerTrend] =
+    useState<CustomerTrendResponse | null>(null);
 
   const dateRange = useMemo(() => {
     if (preset === "custom") {
@@ -363,7 +453,8 @@ export function AnalyticsWorkspace({
 
   const load = useCallback(async () => {
     setError(null);
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
+    else setRefreshing(true);
     try {
       const [branchList, categoryList] = await Promise.all([
         fetchBranches(),
@@ -420,11 +511,9 @@ export function AnalyticsWorkspace({
             branchFilter,
             typeFilter,
           ).catch(() => []),
-          fetchCustomersByMonth(
-            dateRange.from,
-            dateRange.to,
-            branchFilter,
-          ).catch(() => null),
+          fetchCustomersByMonth(dateRange.from, dateRange.to, branchFilter).catch(
+            () => null,
+          ),
         ]);
 
       setPl(plRes);
@@ -433,6 +522,7 @@ export function AnalyticsWorkspace({
       setItemsByProfit(Array.isArray(itemsRes) ? itemsRes : []);
       setBranchCogs(Array.isArray(cogsRes) ? cogsRes : []);
       setCustomerTrend(customersRes);
+      hasLoadedRef.current = true;
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load analytics.",
@@ -459,6 +549,7 @@ export function AnalyticsWorkspace({
     ? totalRevenue - totalProfit
     : toNum(pl?.cogs);
   const totalCustomers = customerTrend?.totalDistinct ?? 0;
+  const settlingProfit = useSettlingNumber(totalProfit);
 
   const productBars = itemsByProfit.map((row) => ({
     key: row.itemId,
@@ -502,23 +593,34 @@ export function AnalyticsWorkspace({
   const incompleteMonth =
     dateRange && dateRange.to === todayStr ? currentMonthKey : undefined;
 
-  if (loading && !refreshing) {
-    return (
-      <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")}>
-        <DashboardLoading label="Loading sales performance…" />
-      </div>
-    );
-  }
+  const categoryChips = [
+    { id: "", label: "All categories" },
+    ...categories.map((c) => ({ id: c.id, label: c.name })),
+  ];
+  const branchChips = [
+    ...(branchLocked ? [] : [{ id: "", label: "All branches" }]),
+    ...branches.map((b) => ({ id: b.id, label: b.name })),
+  ];
+
+  const categoryName =
+    categories.find((c) => c.id === categoryId)?.name ?? "All categories";
+  const branchName =
+    branches.find((b) => b.id === branchId)?.name ??
+    (branchId ? branchId : "All branches");
+
+  if (loading) return <BoardSkeleton />;
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-4 pb-16")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")}>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+        <div className="min-w-0 space-y-1">
+          <h1 className="font-heading text-3xl font-medium tracking-[-0.03em] text-foreground sm:text-4xl">
             Sales performance
           </h1>
           <p className="text-sm text-muted-foreground">
-            {rangeLabel || "Revenue, cost, profit, and who is selling."}
+            {rangeLabel
+              ? `${rangeLabel} · ${categoryName} · ${branchName}`
+              : "Set a period to read the till."}
           </p>
           <ActiveScopeSubtitle className="text-[11px] text-muted-foreground" />
         </div>
@@ -526,7 +628,7 @@ export function AnalyticsWorkspace({
           {activityHref ? (
             <Link
               href={activityHref}
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-border/55 bg-background px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border/70 bg-background px-2.5 text-[11px] font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             >
               <Zap className="size-3.5" aria-hidden />
               Activity
@@ -534,14 +636,31 @@ export function AnalyticsWorkspace({
           ) : null}
           <Link
             href={APP_ROUTES.salesTransactions}
-            className="inline-flex h-8 items-center gap-1 rounded-md border border-border/55 bg-background px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border/70 bg-background px-2.5 text-[11px] font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           >
             <ShoppingCart className="size-3.5" aria-hidden />
             Transactions
           </Link>
+        </div>
+      </header>
+
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+
+      <div className="sticky top-0 z-20 -mx-1 space-y-3 border-b border-border/70 bg-background px-1 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <ChipRail
+            legend="Period"
+            name="analytics-period"
+            items={ANALYTICS_PRESET_LABELS.map(({ key, label }) => ({
+              id: key,
+              label,
+            }))}
+            value={preset}
+            onChange={(id) => setPreset(id as DatePreset)}
+          />
           <button
             type="button"
-            className="flex size-8 items-center justify-center rounded-md border border-border/55 bg-background text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+            className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border/70 bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-40"
             onClick={() => {
               setRefreshing(true);
               void load();
@@ -555,139 +674,139 @@ export function AnalyticsWorkspace({
             />
           </button>
         </div>
-      </header>
-
-      {error ? <DashboardFeedback kind="error" text={error} /> : null}
-
-      <div className="flex flex-wrap items-center gap-1">
-        {ANALYTICS_PRESET_LABELS.map(({ key, label, hint }) => (
-          <button
-            key={key}
-            type="button"
-            title={hint}
-            onClick={() => setPreset(key)}
-            className={cn(
-              "h-7 shrink-0 rounded-md border px-2.5 text-[11px] font-medium transition-colors",
-              preset === key
-                ? "border-primary/30 bg-primary text-primary-foreground"
-                : "border-border/50 bg-background text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {preset === "custom" ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            From
-            <input
-              type="date"
-              value={customFrom}
-              onChange={(e) => setCustomFrom(e.target.value)}
-              className="h-8 rounded-md border border-border/55 bg-background px-2 text-xs font-medium text-foreground outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
-            />
-          </label>
-          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            To
-            <input
-              type="date"
-              value={customTo}
-              onChange={(e) => setCustomTo(e.target.value)}
-              className="h-8 rounded-md border border-border/55 bg-background px-2 text-xs font-medium text-foreground outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
-            />
-          </label>
-        </div>
-      ) : null}
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: "Total revenue", value: money(totalRevenue) },
-          { label: "Total cost of goods", value: money(totalCogs) },
-          { label: "Total profit", value: money(totalProfit) },
-          {
-            label: "Customers",
-            value: totalCustomers.toLocaleString("en-KE"),
-          },
-        ].map((kpi) => (
-          <div
-            key={kpi.label}
-            className="rounded-xl border border-border/60 bg-card px-4 py-3 shadow-sm"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {kpi.label}
-            </p>
-            <p className="mt-1 text-xl font-bold tabular-nums tracking-tight text-foreground sm:text-2xl">
-              {kpi.value}
-            </p>
+        {preset === "custom" ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              From
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="h-8 rounded-md border border-border/70 bg-background px-2 text-xs font-medium text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              To
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="h-8 rounded-md border border-border/70 bg-background px-2 text-xs font-medium text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+              />
+            </label>
           </div>
-        ))}
-      </div>
-
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13.5rem]">
-        <div className="grid gap-3 md:grid-cols-2">
-          <ChartFrame title="Product by profit">
-            <LabeledBars
-              items={productBars}
-              formatValue={money}
-              empty="No product profit in this slice."
-            />
-          </ChartFrame>
-          <ChartFrame title="Sales by revenue">
-            <LabeledBars
-              items={staffBars}
-              formatValue={money}
-              empty="No cashier sales in this slice."
-            />
-          </ChartFrame>
-          <ChartFrame title="Branch by COGS">
-            <LabeledBars
-              items={cogsBars}
-              formatValue={money}
-              empty="No cost of goods in this slice."
-            />
-          </ChartFrame>
-          <ChartFrame title="Monthly customers">
-            <CustomerLine
-              points={customerPoints}
-              incompleteKey={incompleteMonth}
-            />
-          </ChartFrame>
-        </div>
-
-        <aside className="flex flex-col gap-3">
-          <Slicer
-            title="Category"
+        ) : null}
+        <div className="grid gap-2 lg:grid-cols-2">
+          <ChipRail
+            legend="Category"
             name="analytics-category"
-            allLabel="All categories"
-            options={categories.map((c) => ({ id: c.id, label: c.name }))}
+            items={categoryChips}
             value={categoryId}
             onChange={setCategoryId}
           />
-          <Slicer
-            title="Branch"
+          <ChipRail
+            legend="Branch"
             name="analytics-branch"
-            allLabel={branchLocked ? undefined : "All branches"}
-            options={branches.map((b) => ({ id: b.id, label: b.name }))}
+            items={branchChips}
             value={branchId}
             onChange={onChangeBranch}
           />
-        </aside>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "space-y-5 transition-opacity duration-200",
+          refreshing && "opacity-60",
+        )}
+      >
+        <section className="grid gap-6 border-b border-border/60 pb-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-end">
+          <div className="min-w-0 space-y-3">
+            <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+              Profit
+            </p>
+            <p className="font-heading text-4xl font-medium tabular-nums tracking-[-0.03em] text-foreground sm:text-5xl">
+              {money(settlingProfit)}
+            </p>
+            <MixTrack
+              cogs={totalCogs}
+              profit={totalProfit}
+              revenue={totalRevenue}
+              money={money}
+            />
+          </div>
+          <dl className="grid grid-cols-3 gap-4">
+            <div>
+              <dt className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                Revenue
+              </dt>
+              <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-foreground sm:text-xl">
+                {money(totalRevenue)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                Cost
+              </dt>
+              <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-foreground sm:text-xl">
+                {money(totalCogs)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                Customers
+              </dt>
+              <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-foreground sm:text-xl">
+                {totalCustomers.toLocaleString("en-KE")}
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <div className="grid overflow-hidden rounded-xl border border-border/70 bg-card md:grid-cols-2">
+          <PlotCell title="Product by profit">
+            <ColumnPlot
+              items={productBars}
+              formatValue={money}
+              empty="Sell through this slice and products will rank here by profit."
+            />
+          </PlotCell>
+          <PlotCell title="Sales by revenue">
+            <ColumnPlot
+              items={staffBars}
+              formatValue={money}
+              empty="Completed sales will rank cashiers here."
+            />
+          </PlotCell>
+          <PlotCell title="Branch by cost">
+            <ColumnPlot
+              items={cogsBars}
+              formatValue={money}
+              empty="Cost of goods will split across branches here."
+            />
+          </PlotCell>
+          <PlotCell title="Monthly customers">
+            <CustomerPlot
+              points={customerPoints}
+              incompleteKey={incompleteMonth}
+            />
+          </PlotCell>
+        </div>
       </div>
 
       {showCategoryTable ? (
-        <section className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
-          <div className="flex items-center gap-2 border-b border-border/50 px-4 py-2.5">
-            <BarChart3 className="size-3.5 text-muted-foreground" aria-hidden />
-            <h2 className="text-sm font-semibold">Net revenue by category</h2>
-          </div>
+        <section className="overflow-hidden rounded-xl border border-border/70">
+          <h2 className="border-b border-border/60 px-4 py-2.5 text-sm font-semibold tracking-[-0.02em]">
+            Net revenue by category
+          </h2>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-left text-sm">
-              <thead className="border-b bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
+              <thead className="border-b border-border/60 bg-muted/40 text-[11px] text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">Category</th>
-                  <th className="px-3 py-2 text-right font-medium">Net revenue</th>
+                  <th className="px-3 py-2 text-right font-medium">
+                    Net revenue
+                  </th>
                   <th className="px-3 py-2 text-right font-medium">Profit</th>
                 </tr>
               </thead>
@@ -703,7 +822,7 @@ export function AnalyticsWorkspace({
                   </tr>
                 ) : (
                   categoryRevenue.map((row) => (
-                    <tr key={row.categoryId} className="border-b last:border-0">
+                    <tr key={row.categoryId} className="border-b border-border/50 last:border-0">
                       <td className="px-3 py-2">{row.categoryName}</td>
                       <td className="px-3 py-2 text-right tabular-nums">
                         {money(row.netRevenue)}
