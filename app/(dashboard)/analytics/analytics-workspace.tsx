@@ -45,10 +45,13 @@ import {
 } from "@/lib/api";
 
 const NAVY = "#0c3a66";
-const NAVY_DEEP = "#082c4f";
+const NAVY_DEEP = "#071e36";
 const BAR = "#2a6aa3";
 const BAR_LEAD = "#0c3a66";
-const SLICE = "#1e5a94";
+const SLICE = "#16487a";
+const INK = "#0c3a66";
+const MUTED = "#3a5570";
+const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -108,10 +111,8 @@ function WhiteCard({
 }) {
   return (
     <div
-      className={cn(
-        "rounded-none bg-white text-[#111] shadow-[0_2px_8px_rgba(0,0,0,0.18)]",
-        className,
-      )}
+      className={cn("rounded-none bg-white", className)}
+      style={{ boxShadow: "0 4px 14px rgba(7, 30, 54, 0.22)" }}
     >
       {children}
     </div>
@@ -126,8 +127,11 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <WhiteCard className="flex min-h-0 flex-col px-3 pb-3 pt-3 sm:px-4">
-      <h2 className="mb-2 text-center text-[13px] font-bold uppercase tracking-[0.04em]" style={{ color: NAVY }}>
+    <WhiteCard className="flex min-h-0 flex-col px-4 pb-4 pt-5">
+      <h2
+        className="mb-3 text-center text-[12px] font-semibold uppercase tracking-[-0.02em]"
+        style={{ color: INK }}
+      >
         {title}
       </h2>
       <div className="min-h-0 flex-1">{children}</div>
@@ -137,7 +141,10 @@ function ChartCard({
 
 function EmptyPlot({ children }: { children: React.ReactNode }) {
   return (
-    <p className="flex h-44 items-center justify-center px-4 text-center text-xs text-[#4a5568]">
+    <p
+      className="flex h-44 items-center justify-center px-4 text-center text-xs leading-relaxed"
+      style={{ color: MUTED }}
+    >
       {children}
     </p>
   );
@@ -155,7 +162,7 @@ function ColumnChart({
   if (items.length === 0) return <EmptyPlot>{empty}</EmptyPlot>;
   const max = Math.max(...items.map((i) => Math.abs(i.value)), 1);
   return (
-    <ul className="flex h-[15.5rem] items-end gap-1 pb-8 sm:gap-1.5">
+    <ul className="flex h-[16.5rem] items-end gap-1.5">
       {items.map((item, index) => {
         const pct = Math.max(
           (Math.abs(item.value) / max) * 100,
@@ -165,25 +172,31 @@ function ColumnChart({
         return (
           <li
             key={item.key}
-            className="relative flex min-w-0 flex-1 flex-col items-center"
+            className="flex min-w-0 flex-1 flex-col items-center gap-1.5"
           >
-            <span className="mb-1 w-full truncate text-center text-[10px] font-semibold tabular-nums text-[#111]">
+            <span
+              className="w-full truncate text-center text-[10px] font-semibold tabular-nums tracking-[-0.02em]"
+              style={{ color: INK }}
+            >
               {formatValue(item.value)}
             </span>
             <div className="flex h-36 w-full items-end justify-center sm:h-40">
               <div
-                className="w-[68%] max-w-12"
+                className="w-[70%] max-w-11 origin-bottom motion-reduce:transition-none"
                 style={{
-                  height: `${pct}%`,
+                  height: "100%",
+                  transform: `scaleY(${pct / 100})`,
                   background: lead ? BAR_LEAD : BAR,
-                  boxShadow: "3px 4px 0 rgba(0,0,0,0.18)",
+                  boxShadow: "2px 4px 6px rgba(7, 30, 54, 0.28)",
+                  transition: `transform 200ms ${EASE}`,
                 }}
                 title={`${item.label}: ${formatValue(item.value)}`}
               />
             </div>
             <span
-              className="absolute bottom-0 left-1/2 w-[4.5rem] origin-top truncate text-center text-[10px] leading-tight text-[#222]"
-              style={{ transform: "translateX(-50%) rotate(-32deg)" }}
+              className="line-clamp-2 h-8 w-full text-center text-[10px] leading-tight"
+              style={{ color: MUTED }}
+              title={item.label}
             >
               {item.label}
             </span>
@@ -280,7 +293,7 @@ function CustomerTrend({
                 x={c.x}
                 y={incomplete ? c.y - 11 : c.y - 10}
                 textAnchor="middle"
-                fill={incomplete ? "#fff" : "#111"}
+                fill={incomplete ? "#fff" : INK}
                 fontSize="10"
                 fontWeight="700"
               >
@@ -302,7 +315,7 @@ function CustomerTrend({
             x={c.x}
             y={h - 4}
             textAnchor="middle"
-            fill="#222"
+            fill={MUTED}
             fontSize="11"
           >
             {c.label}
@@ -329,19 +342,18 @@ function SlicerPanel({
   onClear?: () => void;
 }) {
   return (
-    <section
-      className="overflow-hidden rounded-none"
-      style={{ background: NAVY_DEEP }}
-    >
-      <div className="flex items-center justify-between px-3 py-2">
-        <h2 className="text-[15px] font-semibold text-white">{title}</h2>
-        <div className="flex items-center gap-1.5 text-white/90">
+    <section className="overflow-hidden rounded-none" style={{ background: NAVY_DEEP }}>
+      <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
+        <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-white">
+          {title}
+        </h2>
+        <div className="flex items-center gap-1 text-white/90">
           <Filter className="size-3.5" aria-hidden />
           {onClear ? (
             <button
               type="button"
               onClick={onClear}
-              className="p-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+              className="flex size-8 items-center justify-center hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               aria-label={`Clear ${title}`}
             >
               <X className="size-3.5" />
@@ -349,7 +361,7 @@ function SlicerPanel({
           ) : null}
         </div>
       </div>
-      <div className="flex max-h-52 flex-col gap-2 overflow-y-auto px-3 pb-3">
+      <div className="flex max-h-56 flex-col gap-1.5 overflow-y-auto px-3 pb-3">
         {items.map((item) => {
           const selected = value === item.id;
           return (
@@ -357,18 +369,23 @@ function SlicerPanel({
               <input
                 type="radio"
                 name={name}
-                className="sr-only"
+                className="peer sr-only"
                 checked={selected}
                 onChange={() => onChange(item.id)}
               />
               <span
                 className={cn(
-                  "flex min-h-9 cursor-pointer items-center justify-center px-3 py-1.5 text-center text-[13px] font-medium text-white transition-colors",
+                  "flex min-h-11 cursor-pointer items-center justify-center px-3 py-2 text-center text-[13px] font-medium tracking-[-0.02em] transition-colors duration-150",
+                  "peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#071e36]",
                   selected
-                    ? "ring-2 ring-white/80"
-                    : "hover:brightness-110",
+                    ? "bg-white"
+                    : "text-white hover:bg-white/10",
                 )}
-                style={{ background: SLICE }}
+                style={
+                  selected
+                    ? { color: INK }
+                    : { background: SLICE, color: "#fff" }
+                }
               >
                 {item.label}
               </span>
@@ -383,7 +400,7 @@ function SlicerPanel({
 function BoardSkeleton() {
   return (
     <div
-      className="mx-auto w-full max-w-[1100px] rounded-none p-4 pb-10 sm:p-5"
+      className="mx-auto w-full max-w-[1280px] rounded-none p-4 pb-10 sm:p-5"
       style={{ background: NAVY }}
       aria-busy="true"
     >
@@ -622,7 +639,7 @@ export function AnalyticsWorkspace({
   if (loading) return <BoardSkeleton />;
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] pb-16">
+    <div className="mx-auto w-full max-w-[1280px] pb-16">
       {error ? (
         <div className="mb-3">
           <DashboardFeedback kind="error" text={error} />
@@ -631,129 +648,108 @@ export function AnalyticsWorkspace({
 
       <div
         className={cn(
-          "overflow-hidden rounded-none p-3 sm:p-4",
+          "overflow-hidden rounded-none p-4 sm:p-5",
           refreshing && "opacity-80",
         )}
         style={{ background: NAVY }}
       >
-        <header className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
+        <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center bg-white">
+            <span className="flex size-12 shrink-0 items-center justify-center bg-white">
               <BarChart3 className="size-6" aria-hidden style={{ color: NAVY }} />
             </span>
-            <div className="min-w-0">
-              <h1 className="truncate text-[1.35rem] font-extrabold uppercase leading-none tracking-[0.04em] text-white sm:text-[1.7rem]">
-                Sales performance dashboard
-              </h1>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {ANALYTICS_PRESET_LABELS.filter((p) => p.key !== "custom").map(
-                  ({ key, label }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setPreset(key)}
-                      className={cn(
-                        "h-6 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white",
-                        preset === key ? "ring-2 ring-white" : "opacity-80 hover:opacity-100",
-                      )}
-                      style={{ background: SLICE }}
-                    >
-                      {label}
-                    </button>
-                  ),
-                )}
-                <button
-                  type="button"
-                  onClick={() => setPreset("custom")}
-                  className={cn(
-                    "h-6 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white",
-                    preset === "custom" ? "ring-2 ring-white" : "opacity-80 hover:opacity-100",
-                  )}
-                  style={{ background: SLICE }}
-                >
-                  Custom
-                </button>
-                <button
-                  type="button"
-                  className="flex size-6 items-center justify-center text-white/90 hover:bg-white/10"
-                  onClick={() => {
-                    setRefreshing(true);
-                    void load();
-                  }}
-                  disabled={refreshing}
-                  aria-label="Refresh"
-                >
-                  <RefreshCw
-                    className={cn("size-3.5", refreshing && "animate-spin")}
-                    aria-hidden
-                  />
-                </button>
-              </div>
-            </div>
+            <h1 className="min-w-0 font-sans text-[1.4rem] font-bold uppercase leading-tight tracking-[-0.02em] text-white sm:text-[1.75rem]">
+              Sales performance dashboard
+            </h1>
           </div>
-          <div className="flex flex-col items-end gap-1 text-right">
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-white/90">
+          <div className="flex items-center gap-3">
+            <p className="hidden text-[11px] font-medium uppercase tracking-[-0.02em] text-white/85 sm:block">
               {me?.name || business?.name || ""}
             </p>
             {activityHref ? (
               <Link
                 href={activityHref}
-                className="text-[11px] text-white/80 underline-offset-2 hover:text-white hover:underline"
+                className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 Activity
               </Link>
             ) : null}
+            <button
+              type="button"
+              className="flex size-11 items-center justify-center text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
+              onClick={() => {
+                setRefreshing(true);
+                void load();
+              }}
+              disabled={refreshing}
+              aria-label="Refresh"
+            >
+              <RefreshCw
+                className={cn("size-4", refreshing && "animate-spin")}
+                aria-hidden
+              />
+            </button>
           </div>
         </header>
 
         {preset === "custom" ? (
-          <div className="mb-3 flex flex-wrap items-center gap-2 px-1 text-[11px] text-white">
-            <label className="flex items-center gap-1.5">
+          <div className="mb-4 flex flex-wrap items-center gap-3 text-[12px] text-white">
+            <label className="flex items-center gap-2">
               From
               <input
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-7 rounded-none border-0 bg-white px-2 text-xs text-[#111]"
+                className="h-11 rounded-none border-0 bg-white px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                style={{ color: INK }}
               />
             </label>
-            <label className="flex items-center gap-1.5">
+            <label className="flex items-center gap-2">
               To
               <input
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="h-7 rounded-none border-0 bg-white px-2 text-xs text-[#111]"
+                className="h-11 rounded-none border-0 bg-white px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                style={{ color: INK }}
               />
             </label>
           </div>
         ) : null}
 
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13.75rem]">
-          <div className="min-w-0 space-y-3">
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]">
+          <div className="min-w-0 space-y-4">
+            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
               {[
-                { label: "Total Revenue", value: money(totalRevenue) },
+                { label: "Total revenue", value: money(totalRevenue) },
                 {
-                  label: "Total Cost Of Goods Sold",
+                  label: "Total cost of goods sold",
                   value: money(totalCogs),
                 },
                 { label: "Total profit", value: money(totalProfit) },
                 {
-                  label: "Total Customer",
+                  label: "Total customers",
                   value: totalCustomers.toLocaleString("en-KE"),
                 },
               ].map((kpi) => (
-                <WhiteCard key={kpi.label} className="px-4 py-3">
-                  <p className="text-[13px] font-medium" style={{ color: NAVY }}>{kpi.label}</p>
-                  <p className="mt-2 text-center text-[1.65rem] font-extrabold tabular-nums leading-none tracking-tight" style={{ color: NAVY }}>
+                <WhiteCard key={kpi.label} className="flex min-h-[5.5rem] flex-col justify-between px-4 py-3">
+                  <p
+                    className="text-[12px] font-medium leading-snug tracking-[-0.02em]"
+                    style={{ color: MUTED }}
+                  >
+                    {kpi.label}
+                  </p>
+                  <p
+                    className="text-[1.55rem] font-bold tabular-nums leading-none tracking-[-0.03em] sm:text-[1.7rem]"
+                    style={{ color: INK }}
+                  >
                     {kpi.value}
                   </p>
                 </WhiteCard>
               ))}
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <ChartCard title="Product by profit">
                 <ColumnChart
                   items={productBars}
@@ -784,7 +780,17 @@ export function AnalyticsWorkspace({
             </div>
           </div>
 
-          <aside className="flex flex-col gap-3">
+          <aside className="flex flex-col gap-4 lg:sticky lg:top-3 lg:self-start">
+            <SlicerPanel
+              title="Period"
+              name="analytics-period"
+              items={ANALYTICS_PRESET_LABELS.map(({ key, label }) => ({
+                id: key,
+                label,
+              }))}
+              value={preset}
+              onChange={(id) => setPreset(id as DatePreset)}
+            />
             <SlicerPanel
               title="Category"
               name="analytics-category"
@@ -807,12 +813,15 @@ export function AnalyticsWorkspace({
 
       {showCategoryTable ? (
         <WhiteCard className="mt-4 overflow-hidden">
-          <h2 className="border-b border-[#e5e7eb] px-4 py-2.5 text-sm font-semibold">
+          <h2
+            className="border-b px-4 py-3 text-sm font-semibold tracking-[-0.02em]"
+            style={{ color: INK, borderColor: "#d5deea" }}
+          >
             Net revenue by category
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-left text-sm">
-              <thead className="border-b border-[#e5e7eb] bg-[#f4f6f8] text-[11px] text-[#4a5568]">
+              <thead className="border-b text-[11px]" style={{ color: MUTED, borderColor: "#d5deea", background: "#eef3f8" }}>
                 <tr>
                   <th className="px-3 py-2 font-medium">Category</th>
                   <th className="px-3 py-2 text-right font-medium">
@@ -826,7 +835,8 @@ export function AnalyticsWorkspace({
                   <tr>
                     <td
                       colSpan={3}
-                      className="px-3 py-6 text-center text-[#4a5568]"
+                      className="px-3 py-6 text-center"
+                      style={{ color: MUTED }}
                     >
                       No category rows for this window.
                     </td>
