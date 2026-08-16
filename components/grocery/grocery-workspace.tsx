@@ -39,6 +39,9 @@ import {
   Keyboard,
   LockKeyhole,
   MonitorSmartphone,
+  Camera,
+  Loader2,
+  ImagePlus,
 } from "lucide-react";
 
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
@@ -58,6 +61,7 @@ import {
   fetchItems,
   postStandaloneWastage,
   setPosItemWeighed,
+  uploadItemImageFile,
   type ItemSummaryRecord,
   itemListThumbnailUrl,
 } from "@/lib/api";
@@ -170,6 +174,80 @@ function LiveClock() {
 
 // ── Product Card ───────────────────────────────────────────────────
 
+function ProductCardAddPhotoButton({
+  itemId,
+  itemName,
+  onUploaded,
+}: {
+  itemId: string;
+  itemName: string;
+  onUploaded: (imageUrl: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFile(file: File | null | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose a photo (JPG, PNG, or HEIC).");
+      return;
+    }
+    setUploading(true);
+    try {
+      const saved = await uploadItemImageFile(itemId, file, {
+        altText: itemName,
+        primary: true,
+      });
+      const url = saved.secureUrl?.trim();
+      if (!url) {
+        toast.error("Upload finished but no image URL was returned.");
+        return;
+      }
+      onUploaded(url);
+      toast.success("Photo updated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not upload photo");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={uploading}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          inputRef.current?.click();
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="absolute bottom-1 right-1 z-[3] flex size-7 items-center justify-center rounded-none border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px] transition-colors hover:bg-black/70 disabled:opacity-70"
+        aria-label={`Update photo for ${itemName}`}
+        title="Update photo"
+      >
+        {uploading ? (
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+        ) : (
+          <Camera className="size-3.5" aria-hidden />
+        )}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          void handleFile(e.target.files?.[0]);
+        }}
+      />
+    </>
+  );
+}
+
 function ProductCard({
   item,
   shelfLine,
@@ -178,6 +256,8 @@ function ProductCard({
   cartLineTotal = 0,
   currency,
   showOnHand = false,
+  canEditImage = false,
+  onImageUploaded,
 }: {
   item: ItemSummaryRecord;
   shelfLine: string;
@@ -186,6 +266,8 @@ function ProductCard({
   cartLineTotal?: number;
   currency: string;
   showOnHand?: boolean;
+  canEditImage?: boolean;
+  onImageUploaded?: (itemId: string, imageUrl: string) => void;
 }) {
   const thumb = itemListThumbnailUrl(item);
   const title = cashierItemPrimaryLabel(item);
@@ -257,6 +339,14 @@ function ProductCard({
             ×{cartQty}
           </span>
         )}
+
+        {canEditImage && onImageUploaded ? (
+          <ProductCardAddPhotoButton
+            itemId={item.id}
+            itemName={title}
+            onUploaded={(url) => onImageUploaded(item.id, url)}
+          />
+        ) : null}
       </div>
 
       {/* Info */}
@@ -336,9 +426,15 @@ export function GroceryWorkspace() {
     business?.name?.trim() ||
     "Grocery";
   const primaryColor = business?.branding?.primaryColor;
+  const roleKey = effectiveMe?.role?.key?.trim().toLowerCase() ?? "";
+  const isOwnerOrAdmin = roleKey === "owner" || roleKey === "admin";
+  const canEditProductImages =
+    isOwnerOrAdmin &&
+    hasPermission(effectiveMe?.permissions, Permission.CatalogItemsWrite);
 
   // Item browser state
   const [search, setSearch] = useState("");
+  const [imageEditMode, setImageEditMode] = useState(false);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<
     string | null
   >(null);
@@ -1216,6 +1312,26 @@ export function GroceryWorkspace() {
     [departmentCatalog, hits, stockEditItem],
   );
 
+  const applyProductImage = useCallback(
+    (itemId: string, imageUrl: string) => {
+      const patch = (list: ItemSummaryRecord[]) =>
+        list.map((row) =>
+          row.id === itemId
+            ? { ...row, thumbnailUrl: imageUrl, imageKey: imageUrl }
+            : row,
+        );
+      setDepartmentCatalog(patch);
+      setHits(patch);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!canEditProductImages && imageEditMode) {
+      setImageEditMode(false);
+    }
+  }, [canEditProductImages, imageEditMode]);
+
   // ── Render ───────────────────────────────────────────────────────
 
   return (
@@ -1281,6 +1397,29 @@ export function GroceryWorkspace() {
               className="order-2 w-full sm:order-1 sm:w-auto"
             />
             <div className="order-1 flex shrink-0 items-center gap-1.5 sm:order-2">
+            {canEditProductImages ? (
+              <button
+                type="button"
+                onClick={() => setImageEditMode((v) => !v)}
+                aria-pressed={imageEditMode}
+                title={
+                  imageEditMode
+                    ? "Turn off photo editing"
+                    : "Update product photos"
+                }
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-none border px-2 py-1 text-[10px] font-medium uppercase tracking-wide transition-colors",
+                  imageEditMode
+                    ? "border-white bg-white text-[var(--pos-primary,#0f766e)] shadow-sm"
+                    : "border-white/25 bg-white/15 text-[var(--pos-primary-ink,#fff)] hover:bg-white/25",
+                )}
+              >
+                <ImagePlus className="size-3" aria-hidden />
+                <span className="hidden min-[420px]:inline">
+                  {imageEditMode ? "Photos on" : "Photos"}
+                </span>
+              </button>
+            ) : null}
             <LiveClock />
             <span
               className={cn(
@@ -1524,6 +1663,8 @@ export function GroceryWorkspace() {
                           cartLineTotal={d?.total ?? 0}
                           currency={currency}
                           showOnHand={counterMode === "stockEdit"}
+                          canEditImage={imageEditMode}
+                          onImageUploaded={applyProductImage}
                         />
                       );
                     })}
@@ -1583,6 +1724,8 @@ export function GroceryWorkspace() {
                           cartLineTotal={d?.total ?? 0}
                           currency={currency}
                           showOnHand={counterMode === "stockEdit"}
+                          canEditImage={imageEditMode}
+                          onImageUploaded={applyProductImage}
                         />
                       );
                     })}
