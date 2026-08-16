@@ -46,9 +46,9 @@ import {
 
 const NAVY = "#0c3a66";
 const NAVY_DEEP = "#082c4f";
-const BAR_BLUE = "#3d8fd4";
-const BAR_ORANGE = "#ef8a1c";
-const SLICE_BLUE = "#2f7ec4";
+const BAR = "#2a6aa3";
+const BAR_LEAD = "#0c3a66";
+const SLICE = "#1e5a94";
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -109,7 +109,7 @@ function WhiteCard({
   return (
     <div
       className={cn(
-        "rounded-[14px] bg-white text-[#111] shadow-[0_2px_8px_rgba(0,0,0,0.18)]",
+        "rounded-none bg-white text-[#111] shadow-[0_2px_8px_rgba(0,0,0,0.18)]",
         className,
       )}
     >
@@ -127,7 +127,7 @@ function ChartCard({
 }) {
   return (
     <WhiteCard className="flex min-h-0 flex-col px-3 pb-3 pt-3 sm:px-4">
-      <h2 className="mb-2 text-center text-[13px] font-bold uppercase tracking-[0.04em] text-[#111]">
+      <h2 className="mb-2 text-center text-[13px] font-bold uppercase tracking-[0.04em]" style={{ color: NAVY }}>
         {title}
       </h2>
       <div className="min-h-0 flex-1">{children}</div>
@@ -172,10 +172,10 @@ function ColumnChart({
             </span>
             <div className="flex h-36 w-full items-end justify-center sm:h-40">
               <div
-                className="w-[68%] max-w-12 rounded-t-[2px]"
+                className="w-[68%] max-w-12"
                 style={{
                   height: `${pct}%`,
-                  background: lead ? BAR_ORANGE : BAR_BLUE,
+                  background: lead ? BAR_LEAD : BAR,
                   boxShadow: "3px 4px 0 rgba(0,0,0,0.18)",
                 }}
                 title={`${item.label}: ${formatValue(item.value)}`}
@@ -250,16 +250,16 @@ function CustomerTrend({
             fill="none"
             stroke={NAVY}
             strokeWidth="2.4"
-            strokeLinejoin="round"
+            strokeLinejoin="miter"
           />
         ) : null}
         {tail.length > 1 ? (
           <path
             d={toPath(tail)}
             fill="none"
-            stroke={BAR_ORANGE}
+            stroke={BAR_LEAD}
             strokeWidth="2.6"
-            strokeLinejoin="round"
+            strokeLinejoin="miter"
           />
         ) : null}
         {coords.map((c) => {
@@ -272,8 +272,8 @@ function CustomerTrend({
                   y={c.y - 22}
                   width="32"
                   height="16"
-                  rx="3"
-                  fill={SLICE_BLUE}
+                  rx="0"
+                  fill={NAVY}
                 />
               ) : null}
               <text
@@ -286,11 +286,12 @@ function CustomerTrend({
               >
                 {c.value.toLocaleString("en-KE")}
               </text>
-              <circle
-                cx={c.x}
-                cy={c.y}
-                r={incomplete ? 4.5 : 3.2}
-                fill={incomplete ? BAR_ORANGE : NAVY}
+              <rect
+                x={c.x - (incomplete ? 4 : 3)}
+                y={c.y - (incomplete ? 4 : 3)}
+                width={incomplete ? 8 : 6}
+                height={incomplete ? 8 : 6}
+                fill={incomplete ? BAR_LEAD : NAVY}
               />
             </g>
           );
@@ -329,7 +330,7 @@ function SlicerPanel({
 }) {
   return (
     <section
-      className="overflow-hidden rounded-[14px]"
+      className="overflow-hidden rounded-none"
       style={{ background: NAVY_DEEP }}
     >
       <div className="flex items-center justify-between px-3 py-2">
@@ -340,7 +341,7 @@ function SlicerPanel({
             <button
               type="button"
               onClick={onClear}
-              className="rounded p-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+              className="p-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
               aria-label={`Clear ${title}`}
             >
               <X className="size-3.5" />
@@ -362,12 +363,12 @@ function SlicerPanel({
               />
               <span
                 className={cn(
-                  "flex min-h-9 cursor-pointer items-center justify-center rounded-full px-3 py-1.5 text-center text-[13px] font-medium text-white transition-colors",
+                  "flex min-h-9 cursor-pointer items-center justify-center px-3 py-1.5 text-center text-[13px] font-medium text-white transition-colors",
                   selected
                     ? "ring-2 ring-white/80"
                     : "hover:brightness-110",
                 )}
-                style={{ background: SLICE_BLUE }}
+                style={{ background: SLICE }}
               >
                 {item.label}
               </span>
@@ -382,25 +383,25 @@ function SlicerPanel({
 function BoardSkeleton() {
   return (
     <div
-      className="mx-auto w-full max-w-[1100px] rounded-[18px] p-4 pb-10 sm:p-5"
+      className="mx-auto w-full max-w-[1100px] rounded-none p-4 pb-10 sm:p-5"
       style={{ background: NAVY }}
       aria-busy="true"
     >
-      <div className="mb-4 h-10 w-2/3 rounded bg-white/10" />
+      <div className="mb-4 h-10 w-2/3 bg-white/10" />
       <div className="mb-3 grid grid-cols-2 gap-3 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-20 rounded-[14px] bg-white/90" />
+          <div key={i} className="h-20 bg-white/90" />
         ))}
       </div>
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13.5rem]">
         <div className="grid gap-3 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-56 rounded-[14px] bg-white/90" />
+            <div key={i} className="h-56 bg-white/90" />
           ))}
         </div>
         <div className="space-y-3">
-          <div className="h-36 rounded-[14px] bg-white/10" />
-          <div className="h-36 rounded-[14px] bg-white/10" />
+          <div className="h-36 bg-white/10" />
+          <div className="h-36 bg-white/10" />
         </div>
       </div>
       <span className="sr-only">Loading sales performance</span>
@@ -630,15 +631,15 @@ export function AnalyticsWorkspace({
 
       <div
         className={cn(
-          "overflow-hidden rounded-[18px] p-3 sm:p-4",
+          "overflow-hidden rounded-none p-3 sm:p-4",
           refreshing && "opacity-80",
         )}
         style={{ background: NAVY }}
       >
         <header className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white">
-              <BarChart3 className="size-6 text-[#111]" aria-hidden />
+            <span className="flex size-11 shrink-0 items-center justify-center bg-white">
+              <BarChart3 className="size-6" aria-hidden style={{ color: NAVY }} />
             </span>
             <div className="min-w-0">
               <h1 className="truncate text-[1.35rem] font-extrabold uppercase leading-none tracking-[0.04em] text-white sm:text-[1.7rem]">
@@ -652,10 +653,10 @@ export function AnalyticsWorkspace({
                       type="button"
                       onClick={() => setPreset(key)}
                       className={cn(
-                        "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white",
+                        "h-6 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white",
                         preset === key ? "ring-2 ring-white" : "opacity-80 hover:opacity-100",
                       )}
-                      style={{ background: SLICE_BLUE }}
+                      style={{ background: SLICE }}
                     >
                       {label}
                     </button>
@@ -665,16 +666,16 @@ export function AnalyticsWorkspace({
                   type="button"
                   onClick={() => setPreset("custom")}
                   className={cn(
-                    "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white",
+                    "h-6 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white",
                     preset === "custom" ? "ring-2 ring-white" : "opacity-80 hover:opacity-100",
                   )}
-                  style={{ background: SLICE_BLUE }}
+                  style={{ background: SLICE }}
                 >
                   Custom
                 </button>
                 <button
                   type="button"
-                  className="flex size-6 items-center justify-center rounded-full text-white/90 hover:bg-white/10"
+                  className="flex size-6 items-center justify-center text-white/90 hover:bg-white/10"
                   onClick={() => {
                     setRefreshing(true);
                     void load();
@@ -713,7 +714,7 @@ export function AnalyticsWorkspace({
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-7 rounded-md border-0 bg-white px-2 text-xs text-[#111]"
+                className="h-7 rounded-none border-0 bg-white px-2 text-xs text-[#111]"
               />
             </label>
             <label className="flex items-center gap-1.5">
@@ -722,7 +723,7 @@ export function AnalyticsWorkspace({
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="h-7 rounded-md border-0 bg-white px-2 text-xs text-[#111]"
+                className="h-7 rounded-none border-0 bg-white px-2 text-xs text-[#111]"
               />
             </label>
           </div>
@@ -744,8 +745,8 @@ export function AnalyticsWorkspace({
                 },
               ].map((kpi) => (
                 <WhiteCard key={kpi.label} className="px-4 py-3">
-                  <p className="text-[13px] font-medium text-[#111]">{kpi.label}</p>
-                  <p className="mt-2 text-center text-[1.65rem] font-extrabold tabular-nums leading-none tracking-tight text-[#111]">
+                  <p className="text-[13px] font-medium" style={{ color: NAVY }}>{kpi.label}</p>
+                  <p className="mt-2 text-center text-[1.65rem] font-extrabold tabular-nums leading-none tracking-tight" style={{ color: NAVY }}>
                     {kpi.value}
                   </p>
                 </WhiteCard>
