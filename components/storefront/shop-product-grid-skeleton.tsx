@@ -1,3 +1,4 @@
+import { SHOP_PRODUCT_GRID_CLASS } from "@/components/storefront/shop-product-grid-layout";
 import { cn } from "@/lib/utils";
 
 function ShopProductCardSkeleton() {
@@ -8,11 +9,10 @@ function ShopProductCardSkeleton() {
           className="aspect-square w-full animate-pulse bg-[linear-gradient(180deg,#fafbfa_0%,#f3f5f3_100%)]"
           aria-hidden
         />
-        <div className="flex flex-1 flex-col gap-2.5 px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
-          <div className="min-h-[3.75rem] space-y-1.5">
+        <div className="flex flex-1 flex-col gap-1.5 px-2 pb-2 pt-1.5 sm:px-2.5 sm:pb-2.5">
+          <div className="min-h-[2.25rem] space-y-1.5">
             <div className="h-3.5 w-[90%] animate-pulse rounded-sm bg-[var(--storefront-rule,#e4e6e4)]" aria-hidden />
             <div className="h-3.5 w-[70%] animate-pulse rounded-sm bg-[var(--storefront-rule,#e4e6e4)] opacity-80" aria-hidden />
-            <div className="h-3.5 w-[45%] animate-pulse rounded-sm bg-[var(--storefront-rule,#e4e6e4)] opacity-60" aria-hidden />
           </div>
           <div className="mt-auto flex items-center justify-between gap-2">
             <div className="h-3.5 w-[4.5rem] animate-pulse rounded-sm bg-[var(--storefront-rule,#e4e6e4)]" aria-hidden />
@@ -32,9 +32,10 @@ export function ShopProductGridSkeleton({
   className?: string;
 }) {
   return (
+    <div className="@container">
     <ul
       className={cn(
-        "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:grid-cols-4 lg:gap-3 xl:grid-cols-5",
+        SHOP_PRODUCT_GRID_CLASS,
         className,
       )}
       aria-busy="true"
@@ -44,5 +45,6 @@ export function ShopProductGridSkeleton({
         <ShopProductCardSkeleton key={i} />
       ))}
     </ul>
+    </div>
   );
 }
