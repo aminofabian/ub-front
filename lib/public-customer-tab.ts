@@ -352,6 +352,24 @@ export type PublicTabKplcHistory = {
   purchaseAvailable: boolean;
   purchaseMessage: string;
   tokens: PublicTabKplcToken[];
+  stats?: PublicTabKplcStats | null;
+};
+
+export type PublicTabKplcMonthSpend = {
+  yearMonth: string;
+  label: string;
+  amount: number | string;
+  units: number | string;
+  tokenCount: number;
+};
+
+export type PublicTabKplcStats = {
+  thisMonthAmount: number | string;
+  thisMonthUnits: number | string;
+  thisMonthCount: number;
+  allTimeAmount: number | string;
+  allTimeCount: number;
+  months: PublicTabKplcMonthSpend[];
 };
 
 export async function fetchPublicTabKplcConfig(

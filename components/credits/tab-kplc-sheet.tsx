@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Copy, Loader2, X, Zap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BarChart3, Check, ChevronDown, Copy, Loader2, List, X, Zap } from "lucide-react";
 
 import {
   fetchPublicTabKplcConfig,
   fetchPublicTabKplcTokens,
   removePublicTabKplcMeter,
   type PublicTabKplcConfig,
+  type PublicTabKplcMonthSpend,
+  type PublicTabKplcStats,
   type PublicTabKplcToken,
 } from "@/lib/public-customer-tab";
 import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
@@ -18,6 +20,9 @@ const fieldClass =
 
 const btnPrimaryClass =
   "flex w-full items-center justify-center gap-2 py-3 text-[15px] font-semibold transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tab-card)] active:opacity-85 disabled:cursor-not-allowed disabled:opacity-45";
+
+const comingSoonMuted =
+  "color-mix(in_oklab, var(--tab-bg) 72%, var(--tab-fg))";
 
 function money(n: number, currency = "KES") {
   return formatMoneyCompact(n, resolveCurrencyCode(currency));
@@ -49,8 +54,7 @@ function toAmount(value: number | string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function formatTokenDate(iso: string | null): string {
-  if (!iso) return "Date unknown";
+function formatAbsoluteTokenDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "Date unknown";
   return new Intl.DateTimeFormat("en-KE", {
@@ -63,38 +67,94 @@ function formatTokenDate(iso: string | null): string {
   }).format(date);
 }
 
-const comingSoonMuted =
-  "color-mix(in_oklab, var(--tab-bg) 72%, var(--tab-fg))";
+function formatRelativeTokenTime(iso: string | null, nowMs = Date.now()): string {
+  if (!iso) return "Date unknown";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Date unknown";
+  const diffMs = nowMs - date.getTime();
+  if (diffMs < 45_000) return "Just now";
+  const minutes = Math.round(diffMs / 60_000);
+  if (minutes < 60) {
+    return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
+  }
+  const hours = Math.round(diffMs / 3_600_000);
+  if (hours < 24) {
+    return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+  }
+  const days = Math.round(diffMs / 86_400_000);
+  if (days < 45) {
+    return days === 1 ? "1 day ago" : `${days} days ago`;
+  }
+  return new Intl.DateTimeFormat("en-KE", {
+    timeZone: "Africa/Nairobi",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
 
-function TokenSlipSlots({ compact = false }: { compact?: boolean }) {
-  return (
-    <div
-      className={cn("flex items-end justify-between gap-1.5", compact ? "mt-3" : "mt-4")}
-      aria-hidden
-    >
-      {Array.from({ length: 5 }, (_, group) => (
-        <span
-          key={group}
-          className="flex gap-[3px] motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500 motion-safe:ease-out"
-          style={{ animationDelay: `${group * 70}ms` }}
-        >
-          {Array.from({ length: 4 }, (_, i) => (
-            <span
-              key={i}
-              className={cn("inline-block border", compact ? "h-4 w-[0.45rem]" : "h-5 w-[0.55rem]")}
-              style={{
-                borderColor: "color-mix(in_oklab, var(--tab-bg) 38%, transparent)",
-                backgroundColor:
-                  group === 4 && i === 3
-                    ? "color-mix(in_oklab, var(--tab-bg) 28%, transparent)"
-                    : "transparent",
-              }}
-            />
-          ))}
-        </span>
-      ))}
-    </div>
+function monthKey(iso: string): string | null {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-KE", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  if (!year || !month) return null;
+  return `${year}-${month}`;
+}
+
+function monthLabel(yearMonth: string): string {
+  const [year, month] = yearMonth.split("-").map(Number);
+  const date = new Date(Date.UTC(year, (month ?? 1) - 1, 15, 12));
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "UTC",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function statsFromTokens(tokens: PublicTabKplcToken[]): PublicTabKplcStats {
+  const buckets = new Map<string, PublicTabKplcMonthSpend>();
+  let allTimeAmount = 0;
+  let allTimeCount = 0;
+  for (const token of tokens) {
+    if (!token.purchasedAt) continue;
+    const key = monthKey(token.purchasedAt);
+    if (!key) continue;
+    const amount = toAmount(token.amount) ?? 0;
+    const units = toAmount(token.units) ?? 0;
+    const current = buckets.get(key) ?? {
+      yearMonth: key,
+      label: monthLabel(key),
+      amount: 0,
+      units: 0,
+      tokenCount: 0,
+    };
+    buckets.set(key, {
+      ...current,
+      amount: Number(current.amount) + amount,
+      units: Number(current.units) + units,
+      tokenCount: current.tokenCount + 1,
+    });
+    allTimeAmount += amount;
+    allTimeCount += 1;
+  }
+  const months = [...buckets.values()].sort((a, b) =>
+    a.yearMonth < b.yearMonth ? 1 : -1,
   );
+  const nowKey = monthKey(new Date().toISOString());
+  const thisMonth = months.find((m) => m.yearMonth === nowKey);
+  return {
+    thisMonthAmount: thisMonth ? Number(thisMonth.amount) : 0,
+    thisMonthUnits: thisMonth ? Number(thisMonth.units) : 0,
+    thisMonthCount: thisMonth?.tokenCount ?? 0,
+    allTimeAmount,
+    allTimeCount,
+    months,
+  };
 }
 
 function ComingSoonBuy({ compact }: { compact: boolean }) {
@@ -102,14 +162,14 @@ function ComingSoonBuy({ compact }: { compact: boolean }) {
     <div
       className={cn(
         "bg-[var(--tab-fg)] text-[var(--tab-bg)]",
-        compact ? "px-3 py-3" : "px-3 py-4",
+        compact ? "px-3 py-2.5" : "px-3 py-4",
       )}
       role="status"
     >
       <p
         className={cn(
           "font-semibold tracking-[-0.03em]",
-          compact ? "text-[1.25rem] leading-none" : "text-[1.75rem] leading-[0.95]",
+          compact ? "text-[1.0625rem] leading-none" : "text-[1.75rem] leading-[0.95]",
         )}
       >
         Coming soon
@@ -117,21 +177,176 @@ function ComingSoonBuy({ compact }: { compact: boolean }) {
       <p
         className={cn(
           "font-semibold tracking-[-0.02em]",
-          compact ? "mt-1.5 text-[13px]" : "mt-2 text-[15px]",
+          compact ? "mt-1 text-[13px]" : "mt-2 text-[15px]",
         )}
       >
         Buy a token from this tab
       </p>
-      <TokenSlipSlots compact={compact} />
-      <p
-        className={cn("leading-snug", compact ? "mt-2.5 text-[12px]" : "mt-3 text-[13px]")}
-        style={{ color: comingSoonMuted }}
-      >
-        {compact
-          ? "Look up stays open. Paying for a new token here is next."
-          : "Look up any token already on this meter. Paying for a new one here is next."}
-      </p>
+      {compact ? (
+        <p className="mt-1.5 text-[12px] leading-snug" style={{ color: comingSoonMuted }}>
+          Look up stays open. Paying here is next.
+        </p>
+      ) : (
+        <p className="mt-3 text-[13px] leading-snug" style={{ color: comingSoonMuted }}>
+          Look up any token already on this meter. Paying for a new one here is next.
+        </p>
+      )}
     </div>
+  );
+}
+
+function CopyTokenButton({
+  tokenNo,
+  copied,
+  inverted,
+  onCopy,
+}: {
+  tokenNo: string;
+  copied: boolean;
+  inverted?: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      className={cn(
+        "mt-2 flex w-full items-center justify-between gap-2 px-2.5 py-2.5 text-left",
+        inverted
+          ? "border border-[color-mix(in_oklab,var(--tab-bg)_28%,transparent)] bg-[color-mix(in_oklab,var(--tab-bg)_10%,transparent)]"
+          : "border border-[var(--tab-border)] bg-[var(--tab-card)]",
+      )}
+    >
+      <span className="min-w-0 font-mono text-[13px] font-semibold tabular-nums tracking-wide">
+        {formatTokenNo(tokenNo)}
+      </span>
+      <span
+        className={cn(
+          "flex shrink-0 items-center gap-1 text-[12px] font-medium",
+          inverted ? "text-[color-mix(in_oklab,var(--tab-bg)_72%,var(--tab-fg))]" : "text-[var(--tab-muted)]",
+        )}
+      >
+        {copied ? (
+          <>
+            <Check className="size-3.5" aria-hidden />
+            Copied
+          </>
+        ) : (
+          <>
+            <Copy className="size-3.5" aria-hidden />
+            Copy
+          </>
+        )}
+      </span>
+    </button>
+  );
+}
+
+function ConceptList({
+  token,
+  inverted,
+}: {
+  token: PublicTabKplcToken;
+  inverted?: boolean;
+}) {
+  if (!token.concepts?.length) return null;
+  return (
+    <ul
+      className={cn(
+        "mt-2 space-y-1.5 border-t pt-2",
+        inverted
+          ? "border-[color-mix(in_oklab,var(--tab-bg)_22%,transparent)]"
+          : "border-[var(--tab-border)]",
+      )}
+    >
+      {token.concepts.map((concept, index) => {
+        const line = toAmount(concept.amount);
+        return (
+          <li
+            key={`${concept.code}-${index}`}
+            className="flex items-baseline justify-between gap-3 text-[12px]"
+          >
+            <span
+              className="min-w-0"
+              style={
+                inverted
+                  ? { color: comingSoonMuted }
+                  : { color: "var(--tab-muted)" }
+              }
+            >
+              {concept.label}
+            </span>
+            <span className="shrink-0 tabular-nums">
+              {line != null ? money(line) : "—"}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function SpendTape({ stats }: { stats: PublicTabKplcStats }) {
+  const months = stats.months;
+  const peak = months.reduce((max, month) => {
+    const amount = toAmount(month.amount) ?? 0;
+    return amount > max ? amount : max;
+  }, 0);
+  if (months.length === 0) {
+    return (
+      <p className="mt-3 text-[13px] leading-snug text-[var(--tab-muted)]">
+        No monthly spend yet. Look up a meter to start the tape.
+      </p>
+    );
+  }
+  return (
+    <ol className="mt-3 divide-y divide-[var(--tab-border)] border-y border-[var(--tab-border)]">
+      {months.map((month, index) => {
+        const amount = toAmount(month.amount) ?? 0;
+        const units = toAmount(month.units);
+        const width = peak > 0 ? Math.max(6, Math.round((amount / peak) * 100)) : 6;
+        const lead = index === 0;
+        return (
+          <li
+            key={month.yearMonth}
+            className={cn("px-3 py-3", lead && "bg-[var(--tab-fg)] text-[var(--tab-bg)]")}
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[15px] font-semibold tracking-[-0.02em]">
+                {month.label}
+              </p>
+              <p className="shrink-0 text-[15px] font-semibold tabular-nums">
+                {money(amount)}
+              </p>
+            </div>
+            <div
+              className="mt-2 h-1.5 w-full"
+              style={{
+                backgroundColor: lead
+                  ? "color-mix(in_oklab, var(--tab-bg) 22%, transparent)"
+                  : "var(--tab-border)",
+              }}
+              aria-hidden
+            >
+              <div
+                className="h-full"
+                style={{
+                  width: `${width}%`,
+                  backgroundColor: lead ? "var(--tab-bg)" : "var(--tab-fg)",
+                }}
+              />
+            </div>
+            <p
+              className="mt-1.5 text-[12px]"
+              style={{ color: lead ? comingSoonMuted : "var(--tab-muted)" }}
+            >
+              {month.tokenCount} token{month.tokenCount === 1 ? "" : "s"}
+              {units != null ? ` · ${units.toLocaleString("en-KE")} kWh` : ""}
+            </p>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -153,11 +368,13 @@ export function TabKplcSheet({
   const [config, setConfig] = useState<PublicTabKplcConfig | null>(null);
   const [meter, setMeter] = useState("");
   const [tokens, setTokens] = useState<PublicTabKplcToken[] | null>(null);
+  const [stats, setStats] = useState<PublicTabKplcStats | null>(null);
   const [loadedMeter, setLoadedMeter] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [view, setView] = useState<"tokens" | "stats">("tokens");
   const copiedTimer = useRef<number | null>(null);
   const openedFor = useRef<string | null>(null);
 
@@ -171,8 +388,10 @@ export function TabKplcSheet({
     let stopped = false;
     setError(null);
     setTokens(null);
+    setStats(null);
     setLoadedMeter(null);
     setExpanded(null);
+    setView("tokens");
     setBusy(true);
     fetchPublicTabKplcConfig(tabPhone)
       .then(async (next) => {
@@ -223,6 +442,7 @@ export function TabKplcSheet({
     try {
       const history = await fetchPublicTabKplcTokens(phone, digits);
       setTokens(history.tokens);
+      setStats(history.stats ?? statsFromTokens(history.tokens));
       setLoadedMeter(history.meterNumber);
       setMeter(history.meterNumber);
       const fresh = await fetchPublicTabKplcConfig(phone);
@@ -233,6 +453,7 @@ export function TabKplcSheet({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load tokens for this meter.");
       setTokens(null);
+      setStats(null);
       setLoadedMeter(null);
     } finally {
       setBusy(false);
@@ -249,6 +470,7 @@ export function TabKplcSheet({
         const fallback = next.meters[0]?.meterNumber ?? "";
         setMeter(fallback);
         setTokens(null);
+        setStats(null);
         setLoadedMeter(null);
         if (fallback) {
           await lookup(tabPhone, fallback);
@@ -273,6 +495,12 @@ export function TabKplcSheet({
     }
   }
 
+  const resolvedStats = useMemo(() => {
+    if (stats?.months?.length) return stats;
+    if (tokens?.length) return statsFromTokens(tokens);
+    return stats;
+  }, [stats, tokens]);
+
   if (!open) return null;
 
   const meters = config?.meters ?? [];
@@ -280,6 +508,9 @@ export function TabKplcSheet({
   const canLookup = meterLooksValid(meter) && !busy;
   const sameLoadedMeter =
     loadedMeter != null && digitsOnly(meter) === loadedMeter;
+  const latest = tokens?.[0] ?? null;
+  const older = tokens?.slice(1) ?? [];
+  const canShowStats = Boolean(resolvedStats && (resolvedStats.months.length > 0 || (tokens && tokens.length > 0)));
 
   return (
     <div
@@ -304,22 +535,49 @@ export function TabKplcSheet({
           <div className="h-1 w-10 bg-[var(--tab-border)]" />
         </div>
 
-        <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-2">
+        <div className="flex shrink-0 items-center justify-between gap-2 px-4 pb-2">
           <h2
             id={`${fieldIdPrefix}-kplc-title`}
-            className="flex items-center gap-2 text-[1.0625rem] font-semibold tracking-[-0.02em]"
+            className="flex min-w-0 items-center gap-2 text-[1.0625rem] font-semibold tracking-[-0.02em]"
           >
-            <Zap className="size-4" aria-hidden />
+            <Zap className="size-4 shrink-0" aria-hidden />
             KPLC tokens
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex size-9 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)]"
-            aria-label="Close"
-          >
-            <X className="size-4" aria-hidden />
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            {canShowStats ? (
+              <button
+                type="button"
+                onClick={() => setView((next) => (next === "stats" ? "tokens" : "stats"))}
+                className={cn(
+                  "inline-flex h-9 items-center gap-1.5 border px-2.5 text-[13px] font-semibold",
+                  view === "stats"
+                    ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                    : "border-[var(--tab-border)] text-[var(--tab-fg)]",
+                )}
+                aria-pressed={view === "stats"}
+              >
+                {view === "stats" ? (
+                  <>
+                    <List className="size-3.5" aria-hidden />
+                    Tokens
+                  </>
+                ) : (
+                  <>
+                    <BarChart3 className="size-3.5" aria-hidden />
+                    Stats
+                  </>
+                )}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex size-9 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)]"
+              aria-label="Close"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3">
@@ -329,7 +587,7 @@ export function TabKplcSheet({
 
           <label
             htmlFor={`${fieldIdPrefix}-kplc-meter`}
-            className="mt-3 mb-1.5 block text-[13px] font-medium"
+            className="mt-4 mb-1.5 block text-[13px] font-medium"
           >
             Meter number
           </label>
@@ -348,38 +606,37 @@ export function TabKplcSheet({
           />
 
           {meters.length > 0 ? (
-            <ul className="mt-2 space-y-1">
+            <ul className="mt-2 flex flex-wrap gap-1">
               {meters.map((saved) => {
                 const selected = digitsOnly(meter) === saved.meterNumber;
                 return (
-                  <li key={saved.meterNumber}>
-                    <div className="flex items-stretch gap-1">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          setMeter(saved.meterNumber);
-                          void lookup(tabPhone, saved.meterNumber);
-                        }}
-                        className={cn(
-                          "flex min-h-10 min-w-0 flex-1 items-center px-3 text-left text-[14px] font-semibold tabular-nums disabled:opacity-40",
-                          selected
-                            ? "border border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
-                            : "border border-[var(--tab-border)] bg-[var(--tab-input)]",
-                        )}
-                      >
-                        {formatMeterDisplay(saved.meterNumber)}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void forget(saved.meterNumber)}
-                        className="flex size-10 shrink-0 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)] disabled:opacity-40"
-                        aria-label={`Remove meter ${formatMeterDisplay(saved.meterNumber)}`}
-                      >
-                        <X className="size-3.5" aria-hidden />
-                      </button>
-                    </div>
+                  <li key={saved.meterNumber} className="flex min-w-0">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        setMeter(saved.meterNumber);
+                        setView("tokens");
+                        void lookup(tabPhone, saved.meterNumber);
+                      }}
+                      className={cn(
+                        "min-h-10 min-w-0 px-3 text-[13px] font-semibold tabular-nums disabled:opacity-40",
+                        selected
+                          ? "bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                          : "border border-[var(--tab-border)] bg-[var(--tab-input)]",
+                      )}
+                    >
+                      {formatMeterDisplay(saved.meterNumber)}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void forget(saved.meterNumber)}
+                      className="flex size-10 shrink-0 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)] disabled:opacity-40"
+                      aria-label={`Remove meter ${formatMeterDisplay(saved.meterNumber)}`}
+                    >
+                      <X className="size-3.5" aria-hidden />
+                    </button>
                   </li>
                 );
               })}
@@ -406,8 +663,24 @@ export function TabKplcSheet({
             </p>
           ) : null}
 
-          {tokens && loadedMeter ? (
-            <section className="mt-4">
+          {view === "stats" && resolvedStats ? (
+            <section className="mt-5">
+              <h3 className="text-[15px] font-semibold tracking-[-0.02em]">
+                Monthly spend
+              </h3>
+              <p className="mt-1 text-[13px] leading-snug text-[var(--tab-muted)]">
+                {resolvedStats.allTimeCount} token
+                {resolvedStats.allTimeCount === 1 ? "" : "s"} on this meter
+                {toAmount(resolvedStats.allTimeAmount) != null
+                  ? ` · ${money(toAmount(resolvedStats.allTimeAmount)!)} all time`
+                  : ""}
+              </p>
+              <SpendTape stats={resolvedStats} />
+            </section>
+          ) : null}
+
+          {view === "tokens" && tokens && loadedMeter ? (
+            <section className="mt-5">
               <h3 className="text-[15px] font-semibold tracking-[-0.02em]">
                 Recent tokens
               </h3>
@@ -416,91 +689,75 @@ export function TabKplcSheet({
                   No tokens on {formatMeterDisplay(loadedMeter)} yet.
                 </p>
               ) : (
-                <ul className="mt-2 divide-y divide-[var(--tab-border)] border-y border-[var(--tab-border)] bg-[var(--tab-bg)]">
-                  {tokens.map((token) => {
-                    const key = `${token.tokenNo}-${token.purchasedAt ?? ""}`;
-                    const openRow = expanded === key;
-                    const amount = toAmount(token.amount);
-                    const units = toAmount(token.units);
-                    return (
-                      <li key={key}>
-                        <div className="px-3 py-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setExpanded(openRow ? null : key)}
-                              className="min-w-0 flex-1 text-left"
-                              aria-expanded={openRow}
-                            >
-                              <p className="text-[15px] font-semibold tabular-nums">
-                                {amount != null ? money(amount) : "Token"}
-                                {units != null ? (
-                                  <span className="font-medium text-[var(--tab-muted)]">
-                                    {" "}
-                                    · {units.toLocaleString("en-KE")} kWh
-                                  </span>
-                                ) : null}
-                              </p>
-                              <p className="mt-0.5 text-[12px] text-[var(--tab-muted)]">
-                                {formatTokenDate(token.purchasedAt)}
-                                {token.paymentMethod ? ` · ${token.paymentMethod}` : ""}
-                              </p>
-                            </button>
-                            <ChevronDown
-                              className={cn(
-                                "mt-1 size-3.5 shrink-0 text-[var(--tab-muted)] transition-transform duration-200",
-                                openRow && "rotate-180",
-                              )}
-                              aria-hidden
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => void copyToken(token.tokenNo)}
-                            className="mt-2 flex w-full items-center justify-between gap-2 border border-[var(--tab-border)] bg-[var(--tab-card)] px-2.5 py-2 text-left"
-                          >
-                            <span className="min-w-0 font-mono text-[13px] font-semibold tabular-nums tracking-wide">
-                              {formatTokenNo(token.tokenNo)}
-                            </span>
-                            <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-[var(--tab-muted)]">
-                              {copied === token.tokenNo ? (
-                                <>
-                                  <Check className="size-3.5" aria-hidden />
-                                  Copied
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="size-3.5" aria-hidden />
-                                  Copy
-                                </>
-                              )}
-                            </span>
-                          </button>
-                          {openRow && token.concepts?.length ? (
-                            <ul className="mt-2 space-y-1.5 border-t border-[var(--tab-border)] pt-2">
-                              {token.concepts.map((concept, index) => {
-                                const line = toAmount(concept.amount);
-                                return (
-                                  <li
-                                    key={`${concept.code}-${index}`}
-                                    className="flex items-baseline justify-between gap-3 text-[12px]"
+                <div className="mt-3">
+                  {latest ? (
+                    <LatestToken
+                      token={latest}
+                      copied={copied === latest.tokenNo}
+                      expanded={expanded === `${latest.tokenNo}-${latest.purchasedAt ?? ""}`}
+                      onToggle={() => {
+                        const key = `${latest.tokenNo}-${latest.purchasedAt ?? ""}`;
+                        setExpanded((cur) => (cur === key ? null : key));
+                      }}
+                      onCopy={() => void copyToken(latest.tokenNo)}
+                    />
+                  ) : null}
+                  {older.length > 0 ? (
+                    <ol className="mt-2 divide-y divide-[var(--tab-border)] border-y border-[var(--tab-border)]">
+                      {older.map((token) => {
+                        const key = `${token.tokenNo}-${token.purchasedAt ?? ""}`;
+                        const openRow = expanded === key;
+                        const amount = toAmount(token.amount);
+                        const units = toAmount(token.units);
+                        return (
+                          <li key={key} className="px-0 py-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setExpanded(openRow ? null : key)}
+                                className="min-w-0 flex-1 text-left"
+                                aria-expanded={openRow}
+                              >
+                                <p className="text-[15px] font-semibold tracking-[-0.02em]">
+                                  <time
+                                    dateTime={token.purchasedAt ?? undefined}
+                                    title={
+                                      token.purchasedAt
+                                        ? formatAbsoluteTokenDate(token.purchasedAt)
+                                        : undefined
+                                    }
                                   >
-                                    <span className="min-w-0 text-[var(--tab-muted)]">
-                                      {concept.label}
-                                    </span>
-                                    <span className="shrink-0 tabular-nums">
-                                      {line != null ? money(line) : "—"}
-                                    </span>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          ) : null}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                                    {formatRelativeTokenTime(token.purchasedAt)}
+                                  </time>
+                                </p>
+                                <p className="mt-0.5 text-[13px] tabular-nums text-[var(--tab-muted)]">
+                                  {amount != null ? money(amount) : "Token"}
+                                  {units != null
+                                    ? ` · ${units.toLocaleString("en-KE")} kWh`
+                                    : ""}
+                                  {token.paymentMethod ? ` · ${token.paymentMethod}` : ""}
+                                </p>
+                              </button>
+                              <ChevronDown
+                                className={cn(
+                                  "mt-1 size-3.5 shrink-0 text-[var(--tab-muted)] transition-transform duration-200",
+                                  openRow && "rotate-180",
+                                )}
+                                aria-hidden
+                              />
+                            </div>
+                            <CopyTokenButton
+                              tokenNo={token.tokenNo}
+                              copied={copied === token.tokenNo}
+                              onCopy={() => void copyToken(token.tokenNo)}
+                            />
+                            {openRow ? <ConceptList token={token} /> : null}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  ) : null}
+                </div>
               )}
             </section>
           ) : null}
@@ -510,7 +767,10 @@ export function TabKplcSheet({
           <button
             type="button"
             disabled={!canLookup}
-            onClick={() => void lookup(tabPhone, meter)}
+            onClick={() => {
+              setView("tokens");
+              void lookup(tabPhone, meter);
+            }}
             className={btnPrimaryClass}
             style={{
               backgroundColor: "var(--tab-cta-bg)",
@@ -531,5 +791,69 @@ export function TabKplcSheet({
         </div>
       </div>
     </div>
+  );
+}
+
+function LatestToken({
+  token,
+  copied,
+  expanded,
+  onToggle,
+  onCopy,
+}: {
+  token: PublicTabKplcToken;
+  copied: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  onCopy: () => void;
+}) {
+  const amount = toAmount(token.amount);
+  const units = toAmount(token.units);
+  return (
+    <article className="bg-[var(--tab-fg)] px-3 py-3.5 text-[var(--tab-bg)]">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-start justify-between gap-3 text-left"
+        aria-expanded={expanded}
+      >
+        <div className="min-w-0">
+          <p className="text-[1.25rem] font-semibold leading-none tracking-[-0.03em]">
+            <time
+              dateTime={token.purchasedAt ?? undefined}
+              title={
+                token.purchasedAt ? formatAbsoluteTokenDate(token.purchasedAt) : undefined
+              }
+            >
+              {formatRelativeTokenTime(token.purchasedAt)}
+            </time>
+          </p>
+          <p className="mt-2 text-[14px] font-semibold tabular-nums">
+            {amount != null ? money(amount) : "Latest token"}
+            {units != null ? ` · ${units.toLocaleString("en-KE")} kWh` : ""}
+          </p>
+        </div>
+        <ChevronDown
+          className={cn(
+            "mt-1 size-4 shrink-0 transition-transform duration-200",
+            expanded && "rotate-180",
+          )}
+          style={{ color: comingSoonMuted }}
+          aria-hidden
+        />
+      </button>
+      <CopyTokenButton
+        tokenNo={token.tokenNo}
+        copied={copied}
+        inverted
+        onCopy={onCopy}
+      />
+      {token.paymentMethod ? (
+        <p className="mt-2 text-[12px]" style={{ color: comingSoonMuted }}>
+          {token.paymentMethod}
+        </p>
+      ) : null}
+      {expanded ? <ConceptList token={token} inverted /> : null}
+    </article>
   );
 }
