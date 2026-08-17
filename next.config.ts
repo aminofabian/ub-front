@@ -90,9 +90,17 @@ const REALTIME_WS_ORIGIN = (
   process.env.NEXT_PUBLIC_REALTIME_WS_ORIGIN?.trim() || BACKEND_ORIGIN
 ).replace(/\/+$/, "");
 
+/** Baked into the client so tills can detect a newer cloud deploy and force reload. */
+const CLIENT_BUILD_ID =
+  process.env.VERCEL_DEPLOYMENT_ID?.trim() ||
+  process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
+  process.env.GITHUB_SHA?.trim() ||
+  "dev";
+
 const cloudOnlyConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_REALTIME_WS_ORIGIN: REALTIME_WS_ORIGIN,
+    NEXT_PUBLIC_CLIENT_BUILD_ID: CLIENT_BUILD_ID,
   },
   images: {
     qualities: [75, 95],
@@ -155,6 +163,7 @@ const desktopConfig: NextConfig = {
   },
   env: {
     NEXT_PUBLIC_REALTIME_WS_ORIGIN: "",
+    NEXT_PUBLIC_CLIENT_BUILD_ID: CLIENT_BUILD_ID,
   },
   async redirects() {
     return [overviewRedirectTrailing];

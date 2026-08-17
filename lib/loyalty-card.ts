@@ -46,9 +46,11 @@ export function escapeHtml(value: string): string {
 export function formatLoyaltyMemberId(customerId: string): string {
   const hex = customerId.replace(/[^0-9a-f]/gi, "").toLowerCase();
   if (!hex) return "0000 0000 0000";
-  let n = 0n;
+  let n = BigInt(0);
+  const radix = BigInt(16);
+  const modulus = BigInt(1000000000000);
   for (const ch of hex.slice(0, 16)) {
-    n = (n * 16n + BigInt(Number.parseInt(ch, 16))) % 1_000_000_000_000n;
+    n = (n * radix + BigInt(Number.parseInt(ch, 16))) % modulus;
   }
   const s = n.toString().padStart(12, "0");
   return `${s.slice(0, 4)} ${s.slice(4, 8)} ${s.slice(8, 12)}`;

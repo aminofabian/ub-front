@@ -60,6 +60,12 @@ import {
   USER_API_UNREACHABLE_MESSAGE,
 } from "@/lib/ops-client-log";
 import {
+  isHtmlLikeApiBody,
+  isStaleClientFlagged,
+  notifyStaleClient,
+  StaleClientError,
+} from "@/lib/stale-client";
+import {
   DESKTOP_LICENSE_READ_ONLY_TYPE,
   isDesktopLicenseWriteBlocked,
 } from "@/lib/desktop-license-gate";
@@ -103,6 +109,9 @@ export class ApiRequestError extends Error {
 
 function notifyHttpErrorToast(message: string) {
   if (typeof window === "undefined" || !message.trim()) {
+    return;
+  }
+  if (isStaleClientFlagged()) {
     return;
   }
   if (isOpsInfraMessage(message)) {
@@ -171,10 +180,7 @@ async function resolveUnauthorizedResponse(
   execute: () => Promise<Response>,
   options?: { requiresAuth?: boolean; toast?: boolean; softAuth?: boolean },
 ): Promise<Response> {
-  const payload = await response
-    .clone()
-    .json()
-    .catch(() => ({}));
+  const payload = await readApiJson(response.clone());
   const problem = parseProblem(payload);
 
   // Definitive dead-account signals: the user record itself is gone / locked.
@@ -1362,6 +1368,27 @@ function throwUnreachable(path?: string): never {
   throw new ApiUnreachableError(detail);
 }
 
+async function readApiJson(response: Response): Promise<unknown> {
+  const contentType = response.headers.get("content-type");
+  const text = await response.text();
+  if (isHtmlLikeApiBody(contentType, text)) {
+    notifyStaleClient();
+    throw new StaleClientError();
+  }
+  if (!text.trim()) {
+    return {};
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    if (isHtmlLikeApiBody(contentType, text) || text.trim().startsWith("<")) {
+      notifyStaleClient();
+      throw new StaleClientError();
+    }
+    return {};
+  }
+}
+
 /**
  * Granular outcome of a refresh attempt.
  *
@@ -1442,8 +1469,11 @@ async function postRefreshRequest(): Promise<Response> {
 async function applyRefreshResponse(response: Response): Promise<RefreshOutcome> {
   let payload: LoginResponse;
   try {
-    payload = (await response.json()) as LoginResponse;
-  } catch {
+    payload = (await readApiJson(response)) as LoginResponse;
+  } catch (error) {
+    if (error instanceof StaleClientError) {
+      throw error;
+    }
     return { kind: "network" };
   }
   if (!applyAuthSessionPayload(payload)) {
@@ -1693,7 +1723,7 @@ async function request<T>(
   }
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
+    const payload = await readApiJson(response);
     if (
       signOutClientForProblem(response.status, payload, {
         requiresAuth,
@@ -1713,7 +1743,7 @@ async function request<T>(
     return {} as T;
   }
 
-  return (await response.json()) as T;
+  return (await readApiJson(response)) as T;
 }
 
 /** Authenticated JSON API helper (for focused client modules). */
@@ -1752,7 +1782,7 @@ async function requestMultipartJson<T>(
   }
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
+    const payload = await readApiJson(response);
     if (signOutClientForProblem(response.status, payload, { softAuth: soft })) {
       throw new ApiRequestError(
         formatApiProblemMessage(payload),
@@ -1763,7 +1793,7 @@ async function requestMultipartJson<T>(
     failRequest(response.status, payload);
   }
 
-  return (await response.json()) as T;
+  return (await readApiJson(response)) as T;
 }
 
 export type CsvImportLineErrorRecord = { line: number; message: string };
@@ -1906,7 +1936,7 @@ async function requestBinary(path: string): Promise<Blob> {
   }
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
+    const payload = await readApiJson(response);
     if (signOutClientForProblem(response.status, payload, { softAuth: soft })) {
       throw new ApiRequestError(
         formatApiProblemMessage(payload),

@@ -1,7 +1,7 @@
 // Phase 9 Slice 5: PWA service worker — caches the app shell and serves
 // stale-while-revalidate for API calls when offline.
 
-const CACHE_VERSION = "palmart-v7";
+const CACHE_VERSION = "palmart-v8";
 const STATIC_CACHE = `palmart-static-${CACHE_VERSION}`;
 const API_CACHE = `palmart-api-${CACHE_VERSION}`;
 
@@ -75,6 +75,12 @@ self.addEventListener("fetch", (event) => {
 
   // Never intercept API traffic — auth and tenant resolve must always hit the network.
   if (url.pathname.startsWith("/api/")) return;
+
+  // Hashed Next.js assets change every deploy; cache-first serves missing chunks.
+  if (url.pathname.startsWith("/_next/")) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
 
   // Static assets: cache-first with network update
   if (request.destination === "script" ||

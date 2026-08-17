@@ -13,3 +13,7 @@
  * grepping the codebase.
  */
 export const IS_DESKTOP = process.env.NEXT_PUBLIC_RUNTIME === "desktop";
+
+/** Deployment id baked into this JS bundle (see next.config.ts). */
+export const CLIENT_BUILD_ID =
+  process.env.NEXT_PUBLIC_CLIENT_BUILD_ID?.trim() || "dev";
