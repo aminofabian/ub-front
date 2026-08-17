@@ -1,12 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ChevronDown,
-  Printer,
-} from "lucide-react";
+import { CheckCircle2, ChevronDown, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 import { TillBridgeDownloadButton } from "@/components/cashier/till-bridge-download-button";
@@ -37,8 +32,8 @@ type TillPrinterStatusProps = {
 };
 
 /**
- * Cloud cashier only — shows whether this till PC can print ESC/POS + auto-cut.
- * When ready, collapses behind a small Printer button so Detect remains available.
+ * Cloud cashier — paper receipts are optional.
+ * Default: a quiet chip. Setup (download / detect) stays behind a tap.
  */
 export function TillPrinterStatus({
   cupsName,
@@ -54,6 +49,7 @@ export function TillPrinterStatus({
   const [health, setHealth] = useState<TillBridgeHealth | null>(null);
   const [saving, setSaving] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
 
   useEffect(() => {
     setLocalName(getLocalTillCupsName());
@@ -86,6 +82,7 @@ export function TillPrinterStatus({
   const winEngineStale =
     health?.platform === "win32" &&
     health.printEngine !== REQUIRED_WIN_PRINT_ENGINE;
+  const printerReady = Boolean(bridgeUp && effectiveName && !winEngineStale);
 
   const handleSelect = useCallback(
     async (name: string) => {
@@ -124,139 +121,107 @@ export function TillPrinterStatus({
 
   if (IS_DESKTOP) return null;
 
-  // Still probing localhost — show download so tills are never stuck without a link.
-  if (bridgeUp === null) {
-    return (
-      <div
-        className={cn(
-          compact
-            ? "inline-flex max-w-full flex-col gap-1 text-[11px] text-muted-foreground"
-            : "flex flex-col gap-2 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground",
-          className,
-        )}
-      >
-        <p className="font-medium text-foreground">Checking print bridge…</p>
-        <TillBridgeDownloadButton compact={compact} update />
-      </div>
-    );
-  }
+  const chipClass = cn(
+    "inline-flex max-w-full items-center gap-1.5",
+    compact && "h-6 px-2 text-[11px]",
+  );
 
-  if (!bridgeUp || winEngineStale) {
-    return (
-      <div
-        role="alert"
-        className={cn(
-          compact
-            ? "inline-flex max-w-full flex-col gap-1.5 text-[11px] text-destructive"
-            : "flex flex-col gap-2 rounded-lg border border-destructive/35 bg-destructive/[0.07] px-3 py-2 text-xs text-destructive",
-          className,
-        )}
-      >
-        <div className="flex items-start gap-1.5">
-          <AlertTriangle
-            className={cn("shrink-0", compact ? "mt-0.5 size-3" : "mt-0.5 size-3.5")}
-            aria-hidden
-          />
-          <div className="min-w-0 space-y-0.5">
-            <p className="font-semibold">
-              {winEngineStale
-                ? "Print bridge outdated on this PC"
-                : "Print bridge not installed on this PC"}
-            </p>
-            <p className={cn(compact ? "text-destructive/80" : "text-destructive/90")}>
-              {winEngineStale ? (
-                <>
-                  Download the latest bridge, run the installer again (need{" "}
-                  <strong className="font-semibold">{REQUIRED_WIN_PRINT_ENGINE}</strong>
-                  ), then confirm{" "}
-                  <span className="font-mono text-[10px]">
-                    http://127.0.0.1:19500/health
-                  </span>
-                  .
-                </>
-              ) : (
-                <>
-                  Download and run the installer once. On Windows 7 click{" "}
-                  <strong className="font-semibold">Windows 7 (no Node)</strong>
-                  {" - "}do not install Node.js. Then Detect printers.
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-        <TillBridgeDownloadButton compact={compact} update={winEngineStale} />
-      </div>
-    );
-  }
+  const panelClass = cn(
+    compact
+      ? "flex flex-col gap-1.5 rounded-md border border-border/50 bg-background px-2.5 py-2 text-[11px]"
+      : "flex flex-col gap-2 rounded-lg border border-border/60 bg-background px-3 py-2.5 text-xs",
+  );
 
-  if (!effectiveName) {
-    return (
-      <div
-        role="status"
-        className={cn(
-          compact
-            ? "inline-flex max-w-full flex-col gap-1 text-[11px] text-amber-900 dark:text-amber-100"
-            : "flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-500/[0.08] px-3 py-2 text-xs text-amber-950 dark:text-amber-50",
-          className,
-        )}
-      >
-        <div className="flex items-start gap-1.5">
-          <Printer
-            className={cn("shrink-0", compact ? "mt-0.5 size-3" : "mt-0.5 size-3.5")}
-            aria-hidden
-          />
-          {compact ? (
-            <span>
-              <span className="font-semibold">Printer not set</span>
-              <span className="text-muted-foreground"> — detect on this PC</span>
-            </span>
-          ) : (
-            <p>
-              <span className="font-semibold">Receipt printer not configured.</span>{" "}
-              Detect printers on this PC, or set one under{" "}
-              <strong>Branches → Receipt details</strong>.
-            </p>
-          )}
-        </div>
+  const setupTools = (
+    <div className="flex flex-col gap-1.5 border-t border-border/50 pt-1.5">
+      {!bridgeUp || winEngineStale ? (
+        <TillBridgeDownloadButton compact={compact} update={Boolean(winEngineStale)} />
+      ) : null}
+      {bridgeUp ? (
         <CupsPrinterPicker
           compact={compact}
+          value={effectiveName}
           disabled={saving}
           onSelect={(n) => void handleSelect(n)}
         />
-        <TillBridgeDownloadButton compact={compact} update />
+      ) : null}
+    </div>
+  );
+
+  if (printerReady) {
+    return (
+      <div className={cn("inline-flex max-w-full flex-col gap-1", className)}>
+        <Button
+          type="button"
+          variant="outline"
+          size={compact ? "xs" : "sm"}
+          className={chipClass}
+          aria-expanded={panelOpen}
+          aria-controls="till-printer-panel"
+          onClick={() => setPanelOpen((open) => !open)}
+        >
+          <CheckCircle2
+            className={cn(
+              "shrink-0 text-[var(--pos-primary)]",
+              compact ? "size-3" : "size-3.5",
+            )}
+            aria-hidden
+          />
+          <Printer className={cn("shrink-0", compact ? "size-3" : "size-3.5")} aria-hidden />
+          <span className="min-w-0 truncate font-medium">{effectiveName}</span>
+          <ChevronDown
+            className={cn(
+              "size-3 shrink-0 text-muted-foreground transition-transform",
+              panelOpen && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </Button>
+        {panelOpen ? (
+          <div
+            id="till-printer-panel"
+            role="region"
+            aria-label="Receipt printer options"
+            className={panelClass}
+          >
+            <p className="text-muted-foreground">Change printer, or update the helper on this PC.</p>
+            <CupsPrinterPicker
+              compact={compact}
+              value={effectiveName}
+              disabled={saving}
+              onSelect={(n) => void handleSelect(n)}
+            />
+            <TillBridgeDownloadButton compact={compact} update />
+          </div>
+        ) : null}
       </div>
     );
   }
 
-  // Printer configured + bridge up — collapse behind a button; Detect + update stay available.
   return (
     <div className={cn("inline-flex max-w-full flex-col gap-1", className)}>
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size={compact ? "xs" : "sm"}
         className={cn(
-          "inline-flex max-w-full items-center gap-1.5",
-          compact && "h-6 px-2 text-[11px]",
+          chipClass,
+          "text-muted-foreground hover:text-foreground",
         )}
         aria-expanded={panelOpen}
         aria-controls="till-printer-panel"
-        onClick={() => setPanelOpen((open) => !open)}
+        onClick={() => {
+          setPanelOpen((open) => {
+            if (open) setSetupOpen(false);
+            return !open;
+          });
+        }}
       >
-        <CheckCircle2
-          className={cn(
-            "shrink-0 text-[var(--pos-primary)]",
-            compact ? "size-3" : "size-3.5",
-          )}
-          aria-hidden
-        />
         <Printer className={cn("shrink-0", compact ? "size-3" : "size-3.5")} aria-hidden />
-        <span className="min-w-0 truncate font-medium">
-          {effectiveName}
-        </span>
+        <span className="min-w-0 truncate font-medium">Receipts on screen</span>
         <ChevronDown
           className={cn(
-            "size-3 shrink-0 text-muted-foreground transition-transform",
+            "size-3 shrink-0 text-muted-foreground/70 transition-transform",
             panelOpen && "rotate-180",
           )}
           aria-hidden
@@ -266,23 +231,25 @@ export function TillPrinterStatus({
         <div
           id="till-printer-panel"
           role="region"
-          aria-label="Receipt printer options"
-          className={cn(
-            compact
-              ? "flex flex-col gap-1 rounded-md border border-border/50 bg-background/90 px-2 py-1.5 text-[11px]"
-              : "flex flex-col gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs",
-          )}
+          aria-label="Paper receipts are optional"
+          className={panelClass}
         >
-          <p className="text-muted-foreground">
-            Change printer, or update the print bridge on this PC.
+          <p className="font-medium text-foreground">You can sell without a printer.</p>
+          <p className="leading-snug text-muted-foreground">
+            After checkout, the receipt stays on this screen. Show the customer,
+            or print later if you connect a printer.
           </p>
-          <CupsPrinterPicker
-            compact={compact}
-            value={effectiveName}
-            disabled={saving}
-            onSelect={(n) => void handleSelect(n)}
-          />
-          <TillBridgeDownloadButton compact={compact} update />
+          {!setupOpen ? (
+            <button
+              type="button"
+              className="self-start text-left font-medium text-foreground underline-offset-2 hover:underline"
+              onClick={() => setSetupOpen(true)}
+            >
+              Connect a printer
+            </button>
+          ) : (
+            setupTools
+          )}
         </div>
       ) : null}
     </div>

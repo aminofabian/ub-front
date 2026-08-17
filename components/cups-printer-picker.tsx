@@ -70,9 +70,11 @@ export function CupsPrinterPicker({
     try {
       const health = await fetchTillBridgeHealth();
       if (!health?.ok) {
-        const msg = `Till Print Bridge is not running. ${TILL_BRIDGE_START_HINT}`;
+        const msg = compact
+          ? "Printer helper is not running on this PC. Download it first, then detect."
+          : `Till Print Bridge is not running. ${TILL_BRIDGE_START_HINT}`;
         setError(msg);
-        toast.error(msg, { duration: 12_000 });
+        toast.error(msg, { duration: compact ? 8_000 : 12_000 });
         setPrinters(null);
         return;
       }

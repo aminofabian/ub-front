@@ -46,6 +46,8 @@ export type PrintPosReceiptOptions = {
    * separate /drawer/kick). Use for cash / cash-split tenders.
    */
   openDrawer?: boolean;
+  /** Skip toasts — used for automatic post-sale print so cashiers can sell without a printer. */
+  quiet?: boolean;
 };
 
 function hasCupsTarget(target?: LocalReceiptPrinterTarget | null): boolean {
@@ -161,6 +163,7 @@ export async function printPosReceipt(
 ): Promise<boolean> {
   const id = saleId.trim();
   const openDrawer = Boolean(opts?.openDrawer);
+  const quiet = Boolean(opts?.quiet);
   if (!id) {
     window.print();
     return false;
@@ -179,14 +182,16 @@ export async function printPosReceipt(
       if (openDrawer) {
         void kickCashDrawer(printer);
       }
-      toast.success("Sent to receipt printer.");
+      if (!quiet) toast.success("Sent to receipt printer.");
       return true;
     } catch (e) {
-      toast.error(
-        e instanceof Error
-          ? e.message
-          : "Could not reach the printer. Check Settings → Desktop & LAN → Printer.",
-      );
+      if (!quiet) {
+        toast.error(
+          e instanceof Error
+            ? e.message
+            : "Could not reach the printer. Check Settings → Desktop & LAN → Printer.",
+        );
+      }
       throw e;
     }
   }
@@ -196,10 +201,11 @@ export async function printPosReceipt(
   const host = resolved?.host?.trim() || "";
 
   if (!cupsName && !host) {
-    toast.message(
-      "No receipt printer configured. Use Detect printers on the till, or set the printer name under Branches → Receipt details.",
-      { duration: 10_000 },
-    );
+    if (!quiet) {
+      toast.message("No printer on this till. The receipt is on screen.", {
+        duration: 6_000,
+      });
+    }
     if (openDrawer) {
       // Still try kick in case a local override exists later — will no-op quietly.
       void kickCashDrawer(printer);
@@ -209,10 +215,12 @@ export async function printPosReceipt(
 
   const bridgeUp = await isTillPrintBridgeUp();
   if (!bridgeUp) {
-    toast.error(
-      `Till Print Bridge is not running on this PC. ${TILL_BRIDGE_START_HINT}`,
-      { duration: 14_000 },
-    );
+    if (!quiet) {
+      toast.message(
+        "Printer helper is not running. The receipt is on screen — you can still sell.",
+        { duration: 7_000 },
+      );
+    }
     return false;
   }
 
@@ -242,12 +250,14 @@ export async function printPosReceipt(
         branchId: resolved?.branchId ?? printer?.branchId ?? null,
       });
     }
-    toast.success("Sent to receipt printer.");
+    if (!quiet) toast.success("Sent to receipt printer.");
     return true;
   } catch (e) {
-    const msg =
-      e instanceof Error ? e.message : "Could not reach the receipt printer.";
-    toast.error(msg, { duration: 10_000 });
+    if (!quiet) {
+      const msg =
+        e instanceof Error ? e.message : "Could not reach the receipt printer.";
+      toast.error(msg, { duration: 10_000 });
+    }
     throw e;
   }
 }

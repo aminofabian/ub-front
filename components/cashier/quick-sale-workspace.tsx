@@ -3608,7 +3608,7 @@ export function QuickSaleWorkspace({
                   change: completedReceipt.changeGiven ?? 0,
                 }
               : null,
-            { openDrawer: shouldKickDrawer },
+            { openDrawer: shouldKickDrawer, quiet: true },
           ).catch(() => false);
           if (!printed && shouldKickDrawer) {
             void kickCashDrawer(printerTarget);
@@ -3765,7 +3765,7 @@ export function QuickSaleWorkspace({
                 change: completedReceipt.changeGiven ?? 0,
               }
             : null,
-          { openDrawer: shouldKickDrawer },
+          { openDrawer: shouldKickDrawer, quiet: true },
         ).catch(() => false);
         if (!printed && shouldKickDrawer) {
           void kickCashDrawer(printerTarget);

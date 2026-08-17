@@ -25,16 +25,12 @@ type TillBridgeDownloadButtonProps = {
 
 function toastForOs(os: TillBridgeDownloadOs): string {
   if (os === "windows7") {
-    return "Download started. Unzip, run Install-Palmart-Print-Bridge-Win7.cmd (no Node.js). Then Detect printers. Use Chrome 109 on Windows 7.";
+    return "Download started. Unzip and run the Windows 7 installer, then Detect printers.";
   }
   if (os === "windows") {
-    return "Download started. Unzip, run Install-Palmart-Print-Bridge.cmd. On Windows 7 the same zip auto-switches to the no-Node installer.";
+    return "Download started. Unzip and run the installer, then Detect printers.";
   }
-  return "Download started. Unzip, run the installer once, then come back and Detect printers.";
-}
-
-function isWindowsFamily(os: TillBridgeDownloadOs): boolean {
-  return os === "windows" || os === "windows7";
+  return "Download started. Unzip, run the installer once, then Detect printers.";
 }
 
 /**
@@ -49,16 +45,14 @@ export function TillBridgeDownloadButton({
   const resolved = os ?? detectTillBridgeDownloadOs();
   const label = update
     ? resolved === "windows7"
-      ? "Update bridge (Win7)"
+      ? "Update helper (Windows 7)"
       : resolved === "windows"
-        ? "Update print bridge"
-        : `Update bridge (${tillBridgeDownloadLabel(resolved)})`
+        ? "Update printer helper"
+        : `Update helper (${tillBridgeDownloadLabel(resolved)})`
     : tillBridgeDownloadLabel(resolved);
-  const windowsFamily = isWindowsFamily(resolved);
-
   const onDownload = (target: TillBridgeDownloadOs) => {
     downloadTillPrintBridge(target);
-    toast.message(toastForOs(target), { duration: 12_000 });
+    toast.message(toastForOs(target), { duration: 8_000 });
   };
 
   return (
@@ -73,18 +67,6 @@ export function TillBridgeDownloadButton({
           <Download className="size-3.5" aria-hidden />
           {label}
         </Button>
-        {windowsFamily ? (
-          <Button
-            type="button"
-            variant="outline"
-            size={compact ? "xs" : "sm"}
-            onClick={() => onDownload("windows7")}
-            title="PowerShell bridge - no Node.js"
-          >
-            <Download className="size-3.5" aria-hidden />
-            {update ? "Update Win7 (no Node)" : "Windows 7 (no Node)"}
-          </Button>
-        ) : null}
       </div>
       {!compact ? (
         <p className="text-[10px] text-muted-foreground">
@@ -102,7 +84,7 @@ export function TillBridgeDownloadButton({
             href={TILL_BRIDGE_DOWNLOADS.windows7}
             download
           >
-            Windows 7 (no Node)
+            Windows 7
           </a>
           {" · "}
           <a className="underline" href={TILL_BRIDGE_DOWNLOADS.linux} download>
@@ -117,13 +99,7 @@ export function TillBridgeDownloadButton({
             direct link
           </a>
         </p>
-      ) : (
-        <p className="text-[10px] leading-snug text-muted-foreground">
-          Windows 7: use{" "}
-          <strong className="font-medium text-foreground">Windows 7 (no Node)</strong>{" "}
-          - do not install Node.js.
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }
