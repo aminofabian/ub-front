@@ -14,6 +14,8 @@ import Link from "next/link";
 import {
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   FileCheck2,
   Loader2,
   Moon,
@@ -371,6 +373,8 @@ const btnPrimaryClass =
 const btnSecondaryClass =
   "flex w-full items-center justify-center gap-2 border border-[var(--tab-border)] py-3 text-[14px] font-medium text-[var(--tab-muted)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] active:bg-[var(--tab-bg)] disabled:opacity-45";
 
+const PURCHASE_PAGE_SIZE = 8;
+
 function PortalSkeleton() {
   return (
     <div className="flex flex-1 flex-col animate-pulse">
@@ -417,11 +421,11 @@ function PurchaseRow({
   const displayAmount = toNum(row.grandTotal) || tabCharged;
 
   return (
-    <li className="overflow-hidden border-b border-[var(--tab-border)] last:border-b-0 bg-[var(--tab-bg)]">
+    <li className="overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start gap-3 px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] active:bg-[var(--tab-bg)]"
+        className="flex w-full items-start gap-3 px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] active:bg-[var(--tab-chip)]"
         aria-expanded={open}
       >
         <div className="min-w-0 flex-1">
@@ -878,7 +882,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [payPhone, setPayPhone] = useState(phone);
   const [paySheetOpen, setPaySheetOpen] = useState(false);
   const [payMode, setPayMode] = useState<PayMode>("stk");
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyPage, setHistoryPage] = useState(0);
   const [reference, setReference] = useState("");
   const [manualSubmitted, setManualSubmitted] = useState(false);
   const [manualBalanceAtSubmit, setManualBalanceAtSubmit] = useState<
@@ -941,6 +945,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const reload = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setHistoryPage(0);
     const data = await fetchPublicCustomerTab(phone);
     if (!data) {
       setNotFound(true);
@@ -1172,6 +1177,17 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     });
   }
   const purchaseCount = tab?.purchases?.length ?? 0;
+  const historyPageCount = Math.max(1, Math.ceil(purchaseCount / PURCHASE_PAGE_SIZE));
+  const historyPageSafe = Math.min(historyPage, historyPageCount - 1);
+  const historyRows = (tab?.purchases ?? []).slice(
+    historyPageSafe * PURCHASE_PAGE_SIZE,
+    historyPageSafe * PURCHASE_PAGE_SIZE + PURCHASE_PAGE_SIZE,
+  );
+  const historyFrom = purchaseCount === 0 ? 0 : historyPageSafe * PURCHASE_PAGE_SIZE + 1;
+  const historyTo = Math.min(
+    purchaseCount,
+    historyPageSafe * PURCHASE_PAGE_SIZE + historyRows.length,
+  );
   const tabStats = useMemo(
     () => computeTabStats(tab?.purchases ?? []),
     [tab?.purchases],
@@ -1498,42 +1514,49 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
 
             {purchaseCount > 0 ? (
               <section className="mt-5 flex flex-1 flex-col">
-                <div className="flex items-center justify-between border-y border-[var(--tab-border)] px-4 py-3">
+                <div className="flex items-baseline justify-between gap-3 border-y border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3">
                   <h3 className="text-[15px] font-semibold tracking-[-0.02em]">
-                    Recent purchases
+                    Purchases
                   </h3>
-                  <button
-                    type="button"
-                    onClick={() => setHistoryOpen((open) => !open)}
-                    className="text-[13px] font-medium text-[var(--tab-muted)]"
-                  >
-                    {historyOpen ? "Show less" : "Show all"}
-                  </button>
+                  <p className="text-[13px] tabular-nums text-[var(--tab-muted)]">
+                    {historyFrom}–{historyTo} of {purchaseCount}
+                  </p>
                 </div>
-                <ul
-                  className={cn(
-                    "divide-y divide-[var(--tab-border)] border-b border-[var(--tab-border)] bg-[var(--tab-card)] transition-[max-height] duration-300 ease-out",
-                    historyOpen ? "max-h-[2000px]" : "max-h-[280px] overflow-hidden",
-                  )}
-                >
-                  {(historyOpen ? tab!.purchases : tab!.purchases.slice(0, 4)).map(
-                    (row) => (
-                      <PurchaseRow
-                        key={row.saleId}
-                        row={row}
-                        currency={currency}
-                      />
-                    ),
-                  )}
+                <ul className="divide-y divide-[var(--tab-border)] border-b border-[var(--tab-border)] bg-[var(--tab-card)]">
+                  {historyRows.map((row) => (
+                    <PurchaseRow
+                      key={row.saleId}
+                      row={row}
+                      currency={currency}
+                    />
+                  ))}
                 </ul>
-                {!historyOpen && purchaseCount > 4 ? (
-                  <button
-                    type="button"
-                    onClick={() => setHistoryOpen(true)}
-                    className="border-b border-[var(--tab-border)] px-4 py-3 text-center text-[13px] font-medium text-[var(--tab-muted)] active:bg-[var(--tab-card)]"
-                  >
-                    View all {purchaseCount} purchases
-                  </button>
+                {historyPageCount > 1 ? (
+                  <div className="flex items-center justify-between gap-3 border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-2 py-2">
+                    <button
+                      type="button"
+                      disabled={historyPageSafe <= 0}
+                      onClick={() => setHistoryPage((page) => Math.max(0, page - 1))}
+                      className="inline-flex min-h-10 items-center gap-1 px-2 text-[13px] font-medium text-[var(--tab-fg)] disabled:text-[var(--tab-muted)] disabled:opacity-40"
+                    >
+                      <ChevronLeft className="size-4" aria-hidden />
+                      Newer
+                    </button>
+                    <p className="text-[13px] tabular-nums text-[var(--tab-muted)]">
+                      {historyPageSafe + 1} / {historyPageCount}
+                    </p>
+                    <button
+                      type="button"
+                      disabled={historyPageSafe >= historyPageCount - 1}
+                      onClick={() =>
+                        setHistoryPage((page) => Math.min(historyPageCount - 1, page + 1))
+                      }
+                      className="inline-flex min-h-10 items-center gap-1 px-2 text-[13px] font-medium text-[var(--tab-fg)] disabled:text-[var(--tab-muted)] disabled:opacity-40"
+                    >
+                      Older
+                      <ChevronRight className="size-4" aria-hidden />
+                    </button>
+                  </div>
                 ) : null}
               </section>
             ) : null}
