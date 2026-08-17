@@ -22,6 +22,8 @@ import {
   Smartphone,
   Store,
   Sun,
+  Wallet,
+  Zap,
 } from "lucide-react";
 
 import { looksLikeKenyanMobilePath, toKenyanLocal07 } from "@/lib/kenyan-phone";
@@ -156,40 +158,8 @@ function formatPhoneDisplay(raw: string): string {
   return raw;
 }
 
-function ServiceMarkAirtime() {
-  return (
-    <span className="flex h-8 items-end gap-[3px]" aria-hidden>
-      {[10, 14, 18, 22].map((h) => (
-        <span key={h} className="w-[5px] bg-current" style={{ height: `${h}px` }} />
-      ))}
-    </span>
-  );
-}
-
-function ServiceMarkTokens() {
-  return (
-    <span className="flex h-8 w-[2.85rem] items-end justify-between" aria-hidden>
-      {Array.from({ length: 5 }, (_, group) => (
-        <span key={group} className="flex gap-[2px]">
-          <span className="h-5 w-[3px] bg-current" />
-          <span
-            className="h-5 w-[3px] bg-current"
-            style={{ opacity: group === 4 ? 0.35 : 1 }}
-          />
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function ServiceMarkWallet() {
-  return (
-    <span className="flex h-8 w-8 flex-col justify-end gap-1" aria-hidden>
-      <span className="h-2 w-full border border-current" />
-      <span className="h-3.5 w-full bg-current" />
-    </span>
-  );
-}
+const serviceIconClass = "size-5";
+const serviceIconStroke = 1.75;
 
 type ServicePadItem = {
   key: string;
@@ -212,11 +182,17 @@ function TabServicePad({ items }: { items: ServicePadItem[] }) {
           type="button"
           onClick={item.onClick}
           className={cn(
-            "flex min-h-[8.5rem] flex-col items-start justify-between gap-5 px-3.5 py-3.5 text-left active:bg-[var(--tab-bg)]",
+            "flex min-h-[7.75rem] flex-col items-start justify-between gap-4 px-3.5 py-3.5 text-left transition-colors duration-150",
+            "hover:bg-[color-mix(in_oklab,var(--tab-focus)_6%,var(--tab-card))] active:bg-[color-mix(in_oklab,var(--tab-focus)_10%,var(--tab-card))]",
             index > 0 && "border-l border-[var(--tab-border)]",
           )}
         >
-          <span className="text-[var(--tab-fg)]">{item.mark}</span>
+          <span
+            className="flex size-10 items-center justify-center rounded-xl bg-[color-mix(in_oklab,var(--tab-focus)_12%,var(--tab-chip))] text-[var(--tab-focus)]"
+            aria-hidden
+          >
+            {item.mark}
+          </span>
           <span className="min-w-0">
             <span className="block text-[15px] font-semibold tracking-[-0.02em]">
               {item.label}
@@ -343,17 +319,29 @@ function portalSurfaceStyle(
   const isDark = theme === "dark";
   return {
     ...storefrontVars,
-    ["--tab-bg" as string]: isDark ? "#0a0a0a" : "#e8e8e8",
-    ["--tab-fg" as string]: isDark ? "#fafafa" : "#0a0a0a",
-    ["--tab-muted" as string]: isDark ? "#a3a3a3" : "#525252",
-    ["--tab-card" as string]: isDark ? "#141414" : "#ffffff",
-    ["--tab-border" as string]: isDark ? "#2a2a2a" : "#cfcfcf",
-    ["--tab-input" as string]: isDark ? "#0f0f0f" : "#ffffff",
-    ["--tab-chip" as string]: isDark ? "#1a1a1a" : "#f5f5f5",
+    ["--tab-bg" as string]: isDark
+      ? `color-mix(in oklab, ${primary} 14%, #0a0c0b)`
+      : `color-mix(in oklab, ${primary} 7%, #f3f4f2)`,
+    ["--tab-fg" as string]: isDark ? "#f7faf8" : "#122017",
+    ["--tab-muted" as string]: isDark
+      ? `color-mix(in oklab, ${primary} 22%, #c5cdc8)`
+      : `color-mix(in oklab, ${primary} 18%, #4b554f)`,
+    ["--tab-card" as string]: isDark
+      ? `color-mix(in oklab, ${primary} 8%, #121614)`
+      : "#ffffff",
+    ["--tab-border" as string]: isDark
+      ? `color-mix(in oklab, ${primary} 22%, #2a2e2c)`
+      : `color-mix(in oklab, ${primary} 14%, #d5d8d4)`,
+    ["--tab-input" as string]: isDark ? "#0f1211" : "#ffffff",
+    ["--tab-chip" as string]: isDark
+      ? `color-mix(in oklab, ${primary} 12%, #1a1e1c)`
+      : `color-mix(in oklab, ${primary} 6%, #f4f6f4)`,
     ["--tab-cta-bg" as string]: isDark ? "#fafafa" : primary,
     ["--tab-cta-fg" as string]: isDark ? "#0a0a0a" : "#ffffff",
-    ["--tab-success-fg" as string]: isDark ? "#86efac" : "#166534",
-    ["--tab-success-bg" as string]: isDark ? "#052e16" : "#ecfdf5",
+    ["--tab-success-fg" as string]: isDark ? "#86efac" : primary,
+    ["--tab-success-bg" as string]: isDark
+      ? `color-mix(in oklab, ${primary} 28%, #052e16)`
+      : `color-mix(in oklab, ${primary} 12%, white)`,
     ["--tab-error-fg" as string]: isDark ? "#fca5a5" : "#b91c1c",
     ["--tab-error-bg" as string]: isDark ? "#450a0a" : "#fef2f2",
     ["--tab-focus" as string]: primary,
@@ -375,20 +363,35 @@ const btnSecondaryClass =
 
 const PURCHASE_PAGE_SIZE = 8;
 
+function TabStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] font-medium text-[var(--tab-muted)]">{label}</dt>
+      <dd className="mt-1 truncate text-[15px] font-semibold tabular-nums tracking-[-0.02em]">
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 function PortalSkeleton() {
   return (
     <div className="flex flex-1 flex-col animate-pulse">
-      <div className="border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-8">
-        <div className="h-3 w-28 bg-[var(--tab-border)]" />
-        <div className="mt-4 h-10 w-48 bg-[var(--tab-border)]" />
-        <div className="mt-5 h-3 w-40 bg-[var(--tab-border)]" />
+      <div className="border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-7">
+        <div className="h-10 w-44 bg-[var(--tab-border)]" />
+        <div className="mt-3 h-3 w-36 bg-[var(--tab-border)]" />
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-2.5 w-14 bg-[var(--tab-border)]" />
+              <div className="h-4 w-20 bg-[var(--tab-border)]" />
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="border-b border-[var(--tab-border)] px-4 py-4">
-        <div className="h-3 w-full max-w-xs bg-[var(--tab-border)]" />
-      </div>
-      <div className="mt-4 space-y-0 divide-y divide-[var(--tab-border)] border-y border-[var(--tab-border)] bg-[var(--tab-card)]">
+      <div className="mt-5 space-y-0 divide-y divide-[var(--tab-border)] border-y border-[var(--tab-border)] bg-[var(--tab-card)]">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="flex items-center justify-between px-4 py-3.5">
+          <div key={i} className="flex items-center justify-between px-4 py-4">
             <div className="space-y-2">
               <div className="h-3.5 w-36 bg-[var(--tab-border)]" />
               <div className="h-2.5 w-24 bg-[var(--tab-border)]" />
@@ -421,16 +424,18 @@ function PurchaseRow({
   const displayAmount = toNum(row.grandTotal) || tabCharged;
 
   return (
-    <li className="overflow-hidden">
+    <li className="overflow-hidden odd:bg-[color-mix(in_oklab,var(--tab-focus)_4.5%,var(--tab-card))]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start gap-3 px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] active:bg-[var(--tab-chip)]"
+        className="flex w-full items-start gap-3 px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] active:bg-[var(--tab-chip)]"
         aria-expanded={open}
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <p className="truncate text-[14px] font-semibold">{headline}</p>
+            <p className="truncate text-[15px] font-semibold tracking-[-0.02em]">
+              {headline}
+            </p>
             <ChevronDown
               className={cn(
                 "size-3.5 shrink-0 text-[var(--tab-muted)] transition-transform duration-200",
@@ -438,7 +443,7 @@ function PurchaseRow({
               )}
             />
           </div>
-          <p className="mt-0.5 text-[12px] text-[var(--tab-muted)]">
+          <p className="mt-1 text-[12px] leading-snug text-[var(--tab-muted)]">
             {fmtDate(row.soldAt)}
             {row.receiptNo != null ? <span> · #{row.receiptNo}</span> : null}
             {walletCredited > 0 ? (
@@ -452,7 +457,7 @@ function PurchaseRow({
             ) : null}
           </p>
         </div>
-        <p className="shrink-0 text-[14px] font-semibold tabular-nums">
+        <p className="shrink-0 text-[15px] font-semibold tabular-nums tracking-[-0.02em]">
           {fmtMoney(displayAmount, currency)}
         </p>
       </button>
@@ -1155,7 +1160,9 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       label: "Airtime",
       hint: formatPhoneDisplay(phone),
       onClick: () => setAirtimeSheetOpen(true),
-      mark: <ServiceMarkAirtime />,
+      mark: (
+        <Smartphone className={serviceIconClass} strokeWidth={serviceIconStroke} />
+      ),
     });
   }
   if (showKplc) {
@@ -1164,7 +1171,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       label: "Tokens",
       hint: "Look up",
       onClick: () => setKplcSheetOpen(true),
-      mark: <ServiceMarkTokens />,
+      mark: <Zap className={serviceIconClass} strokeWidth={serviceIconStroke} />,
     });
   }
   if (showWalletTopUp) {
@@ -1173,7 +1180,9 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       label: "Wallet",
       hint: wallet > 0 ? fmtMoney(wallet, currency) : "Add credit",
       onClick: () => setWalletSheetOpen(true),
-      mark: <ServiceMarkWallet />,
+      mark: (
+        <Wallet className={serviceIconClass} strokeWidth={serviceIconStroke} />
+      ),
     });
   }
   const purchaseCount = tab?.purchases?.length ?? 0;
@@ -1341,19 +1350,17 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       style={surfaceStyle}
     >
       <div
-        className="h-[2px] w-full shrink-0"
-        style={{ backgroundColor: primary }}
-        aria-hidden
-      />
-      <div
         className={cn(
-          "mx-auto flex min-h-[calc(100dvh-2px)] w-full max-w-lg flex-col",
+          "mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col",
           showPay ? "pb-[calc(5.5rem+env(safe-area-inset-bottom))]" : "",
         )}
       >
-        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--tab-border)] bg-[var(--tab-bg)] px-4 py-3 pt-[max(0.65rem,env(safe-area-inset-top))]">
+        <header
+          className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 pt-[max(0.7rem,env(safe-area-inset-top))] text-white"
+          style={{ backgroundColor: primary }}
+        >
           {branding.logoUrl ? (
-            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden border border-[var(--tab-border)] bg-[var(--tab-card)]">
+            <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/15 ring-1 ring-white/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={branding.logoUrl}
@@ -1363,41 +1370,38 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </div>
           ) : (
             <div
-              className="flex size-10 shrink-0 items-center justify-center text-sm font-bold text-white"
-              style={{ backgroundColor: primary }}
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-sm font-bold ring-1 ring-white/20"
               aria-hidden
             >
               {displayShop.slice(0, 1).toUpperCase()}
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[1rem] font-semibold leading-tight tracking-[-0.02em]">
+            <h1 className="truncate text-[1.05rem] font-semibold leading-tight tracking-[-0.02em]">
               {displayShop}
             </h1>
-            <p className="truncate text-[13px] text-[var(--tab-muted)]">
+            <p className="truncate text-[13px] text-white/80">
               {firstName && !loading && !notFound
                 ? `${firstName}'s tab`
                 : "Your tab"}
             </p>
           </div>
-          <div className="flex shrink-0 items-center">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex size-9 shrink-0 items-center justify-center border border-[var(--tab-border)] bg-[var(--tab-card)] text-[var(--tab-fg)] active:bg-[var(--tab-bg)]"
-              aria-label={
-                portalTheme === "dark"
-                  ? "Switch to light theme"
-                  : "Switch to dark theme"
-              }
-            >
-              {portalTheme === "dark" ? (
-                <Sun className="size-4" />
-              ) : (
-                <Moon className="size-4" />
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/12 text-white ring-1 ring-white/25 transition-colors duration-150 hover:bg-white/20 active:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            aria-label={
+              portalTheme === "dark"
+                ? "Switch to light theme"
+                : "Switch to dark theme"
+            }
+          >
+            {portalTheme === "dark" ? (
+              <Sun className="size-4" strokeWidth={1.75} />
+            ) : (
+              <Moon className="size-4" strokeWidth={1.75} />
+            )}
+          </button>
         </header>
 
         {loading ? (
@@ -1446,14 +1450,19 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             <section
               ref={walletSectionRef}
               id="wallet"
-              className="border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-6"
+              className="border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-7"
             >
               <div className="flex items-end justify-between gap-4">
                 <div className="min-w-0">
-                  <h2 className="text-[1.75rem] font-semibold leading-none tabular-nums tracking-[-0.03em]">
+                  <h2
+                    className={cn(
+                      "text-[2.65rem] font-bold leading-none tabular-nums tracking-[-0.035em]",
+                      owed <= 0 && "text-[var(--tab-success-fg)]",
+                    )}
+                  >
                     {fmtMoney(owed, currency)}
                   </h2>
-                  <p className="mt-2 text-[14px] text-[var(--tab-muted)]">
+                  <p className="mt-2.5 text-[14px] text-[var(--tab-muted)]">
                     {owed > 0
                       ? `Balance owed to ${displayShop}`
                       : wallet > 0
@@ -1462,38 +1471,41 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   </p>
                 </div>
                 {wallet > 0 ? (
-                  <div className="shrink-0 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2 text-right">
-                    <p className="text-[13px] font-medium text-[var(--tab-muted)]">
+                  <div className="shrink-0 rounded-xl bg-[color-mix(in_oklab,var(--tab-focus)_10%,var(--tab-chip))] px-3 py-2 text-right">
+                    <p className="text-[11px] font-medium text-[var(--tab-muted)]">
                       Wallet
                     </p>
-                    <p className="mt-0.5 text-[15px] font-semibold tabular-nums">
+                    <p className="mt-0.5 text-[15px] font-semibold tabular-nums text-[var(--tab-success-fg)]">
                       {fmtMoney(wallet, currency)}
                     </p>
                   </div>
                 ) : null}
               </div>
               {tabStats.purchaseCount > 0 ? (
-                <p className="mt-5 text-[13px] leading-relaxed text-[var(--tab-muted)]">
-                  {tabStats.purchaseCount} visit
-                  {tabStats.purchaseCount === 1 ? "" : "s"}
-                  {" · "}
-                  {fmtMoney(tabStats.totalCredit, currency)} lifetime
-                  {tabStats.lastPurchaseAt ? (
-                    <>
-                      {" · "}
-                      Last visit{" "}
-                      {fmtRelativeVisit(tabStats.lastPurchaseAt).toLowerCase()}
-                    </>
-                  ) : null}
-                  {tabStats.monthAmount > 0 ? (
-                    <>
-                      {" · "}
-                      {fmtMoney(tabStats.monthAmount, currency)} this month
-                    </>
-                  ) : null}
-                </p>
+                <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
+                  <TabStat
+                    label="Visits"
+                    value={String(tabStats.purchaseCount)}
+                  />
+                  <TabStat
+                    label="Lifetime"
+                    value={fmtMoney(tabStats.totalCredit, currency)}
+                  />
+                  <TabStat
+                    label="Last visit"
+                    value={
+                      tabStats.lastPurchaseAt
+                        ? fmtRelativeVisit(tabStats.lastPurchaseAt)
+                        : "—"
+                    }
+                  />
+                  <TabStat
+                    label="This month"
+                    value={fmtMoney(tabStats.monthAmount, currency)}
+                  />
+                </dl>
               ) : (
-                <p className="mt-5 text-[13px] text-[var(--tab-muted)]">
+                <p className="mt-6 text-[13px] text-[var(--tab-muted)]">
                   {wallet > 0
                     ? "Wallet ready for your next visit."
                     : "No purchases on this tab yet."}
@@ -1504,8 +1516,8 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             <TabServicePad items={servicePadItems} />
 
             {owed <= 0 ? (
-              <div className="mx-4 mt-4 flex items-center gap-2.5 border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3.5 py-3 text-[13px] font-medium text-[var(--tab-success-fg)]">
-                <CheckCircle2 className="size-4 shrink-0" />
+              <div className="mx-4 mt-4 flex items-center gap-2.5 rounded-xl bg-[var(--tab-success-bg)] px-3.5 py-3.5 text-[13px] font-medium text-[var(--tab-success-fg)]">
+                <CheckCircle2 className="size-4 shrink-0" strokeWidth={1.75} />
                 {wallet > 0
                   ? `All clear — ${fmtMoney(wallet, currency)} wallet credit available.`
                   : "All settled — nothing owed."}
@@ -1513,12 +1525,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             ) : null}
 
             {purchaseCount > 0 ? (
-              <section className="mt-5 flex flex-1 flex-col">
-                <div className="flex items-baseline justify-between gap-3 border-y border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3">
-                  <h3 className="text-[15px] font-semibold tracking-[-0.02em]">
+              <section className="mt-6 flex flex-1 flex-col">
+                <div className="flex items-baseline justify-between gap-3 border-y border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5">
+                  <h3 className="text-[17px] font-semibold tracking-[-0.02em]">
                     Purchases
                   </h3>
-                  <p className="text-[13px] tabular-nums text-[var(--tab-muted)]">
+                  <p className="text-[12px] tabular-nums text-[var(--tab-muted)]">
                     {historyFrom}–{historyTo} of {purchaseCount}
                   </p>
                 </div>
