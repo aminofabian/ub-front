@@ -197,6 +197,22 @@ export async function submitPublicTabManualPayment(
   return readJson<PublicTabManualPayment>(res);
 }
 
+export type PublicTabAirtimeRecents = {
+  recipients: string[];
+  payers: string[];
+  lastRecipient: string | null;
+  lastPayer: string | null;
+  lastAmount: number | null;
+};
+
+export const EMPTY_TAB_AIRTIME_RECENTS: PublicTabAirtimeRecents = {
+  recipients: [],
+  payers: [],
+  lastRecipient: null,
+  lastPayer: null,
+  lastAmount: null,
+};
+
 export type PublicTabAirtimeConfig = {
   available: boolean;
   minAmount: number;
@@ -204,7 +220,31 @@ export type PublicTabAirtimeConfig = {
   currency: string;
   quickAmounts: number[];
   reason: string | null;
+  recents?: PublicTabAirtimeRecents | null;
 };
+
+function toPositiveAmount(value: unknown): number | null {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+export function tabAirtimeRecentsFromConfig(
+  config: PublicTabAirtimeConfig | null | undefined,
+): PublicTabAirtimeRecents {
+  const recents = config?.recents;
+  if (!recents) return EMPTY_TAB_AIRTIME_RECENTS;
+  const recipients = Array.isArray(recents.recipients)
+    ? recents.recipients.map(String)
+    : [];
+  const payers = Array.isArray(recents.payers) ? recents.payers.map(String) : [];
+  return {
+    recipients,
+    payers,
+    lastRecipient: recents.lastRecipient ? String(recents.lastRecipient) : null,
+    lastPayer: recents.lastPayer ? String(recents.lastPayer) : null,
+    lastAmount: toPositiveAmount(recents.lastAmount),
+  };
+}
 
 export type PublicTabAirtimeOrder = {
   orderId: string;

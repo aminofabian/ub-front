@@ -15,13 +15,14 @@ import {
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
-import { Button } from "@/components/ui/button";
 import {
+  DialogClose,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import styles from "./cashier-airtime-drawer.module.css";
 import {
   fetchAirtimeAvailability,
   fetchAirtimeOrder,
@@ -44,12 +45,30 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
-const fieldClass = (extra?: string) =>
-  cn(
-    "rounded-xl border border-border/55 bg-background px-3 text-[17px] shadow-sm",
-    "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_45%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_18%,transparent)]",
-    extra,
+function Caption({
+  description,
+  hideDescription,
+}: {
+  description: string;
+  hideDescription?: boolean;
+}) {
+  return (
+    <div className={styles.caption}>
+      <DialogHeader className="space-y-0 p-0 pr-0 text-left">
+        <DialogTitle className={styles.title}>
+          <Signal className="size-4 shrink-0" aria-hidden />
+          Sell airtime
+        </DialogTitle>
+        <DialogDescription className={hideDescription ? "sr-only" : styles.lede}>
+          {description}
+        </DialogDescription>
+      </DialogHeader>
+      <DialogClose aria-label="Close" className={styles.close}>
+        <X className="size-3.5" strokeWidth={2.25} />
+      </DialogClose>
+    </div>
   );
+}
 
 type Tender = "CASH" | "MPESA" | "TAB";
 
@@ -98,44 +117,11 @@ function PayMethodTile({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={cn(
-        "flex min-h-[4.25rem] flex-col items-start justify-center gap-1 rounded-2xl border px-3 py-2.5 text-left transition-all duration-200",
-        "disabled:cursor-not-allowed disabled:opacity-40",
-        active
-          ? "scale-[1.02] border-transparent text-[var(--pos-primary-ink)] shadow-md"
-          : "border-border/50 bg-background/80 text-foreground hover:border-border hover:bg-card hover:shadow-sm",
-      )}
-      style={
-        active
-          ? {
-              backgroundColor: "var(--pos-primary)",
-              boxShadow:
-                "0 10px 28px -12px color-mix(in srgb, var(--pos-primary) 55%, transparent)",
-            }
-          : undefined
-      }
+      className={cn(styles.tile, active && styles.tileOn)}
     >
-      <span
-        className={cn(
-          "inline-flex size-7 items-center justify-center rounded-lg",
-          active
-            ? "bg-[color-mix(in_srgb,var(--pos-primary-ink)_14%,transparent)]"
-            : "bg-muted/70 text-muted-foreground",
-        )}
-      >
-        {icon}
-      </span>
-      <span className="text-[13px] font-semibold leading-none">{label}</span>
-      {hint ? (
-        <span
-          className={cn(
-            "text-[11px] leading-tight",
-            active ? "opacity-80" : "text-muted-foreground",
-          )}
-        >
-          {hint}
-        </span>
-      ) : null}
+      <span className={styles.tileIcon}>{icon}</span>
+      <span className={styles.tileLabel}>{label}</span>
+      {hint ? <span className={styles.tileHint}>{hint}</span> : null}
     </button>
   );
 }
@@ -399,9 +385,12 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center gap-2 px-4 py-10 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" aria-hidden />
-        Checking airtime…
+      <div className={styles.root}>
+        <Caption description="Checking the Kiosk Pay wallet." />
+        <div className={styles.center}>
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+          Checking airtime…
+        </div>
       </div>
     );
   }
@@ -412,36 +401,24 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
     const awaiting = order.status === "AWAITING_PAYMENT";
     const sending = !settled && !failed && !awaiting;
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="shrink-0 border-b border-border/50 px-4 py-4 pr-12">
-          <DialogHeader className="space-y-1 text-left">
-            <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-              <Signal className="size-4 text-muted-foreground" aria-hidden />
-              Sell airtime
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              Airtime sale in progress
-            </DialogDescription>
-          </DialogHeader>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div className={styles.root}>
+        <Caption description="Airtime sale in progress" hideDescription />
+        <div className={styles.body}>
           <div
             className={cn(
-              "flex items-start gap-3 rounded-2xl border px-3.5 py-3.5",
-              settled
-                ? "border-emerald-300/60 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30"
-                : failed
-                  ? "border-rose-300/60 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30"
-                  : "border-sky-200 bg-sky-50 dark:border-sky-900 dark:bg-sky-950/30",
+              styles.status,
+              settled && styles.statusOk,
+              failed && styles.statusBad,
+              !settled && !failed && styles.statusWait,
             )}
           >
             <span className="mt-0.5 shrink-0">
               {settled ? (
-                <Check className="size-5 text-emerald-700 dark:text-emerald-300" aria-hidden />
+                <Check className="size-5" aria-hidden />
               ) : failed ? (
-                <X className="size-5 text-rose-700 dark:text-rose-300" aria-hidden />
+                <X className="size-5" aria-hidden />
               ) : (
-                <Loader2 className="size-5 animate-spin text-sky-700 dark:text-sky-300" aria-hidden />
+                <Loader2 className="size-5 animate-spin" aria-hidden />
               )}
             </span>
             <div className="min-w-0 flex-1">
@@ -449,7 +426,7 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
                 {money(order.amount, order.currency || currency)} to{" "}
                 {formatPhoneDisplay(order.phoneNumber)}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className={cn("mt-1 text-sm", styles.muted)}>
                 {settled
                   ? order.tender === "TAB"
                     ? "Delivered and charged to their tab."
@@ -465,77 +442,60 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
                         : "Sent to the telco. This usually lands in a few seconds."}
               </p>
               {settled && order.commission > 0 ? (
-                <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                <p className="mt-2 inline-flex items-center gap-1 text-xs font-semibold">
                   <Sparkles className="size-3.5" aria-hidden />
                   You earned {money(order.commission, order.currency || currency)}
                 </p>
               ) : null}
               {order.receipt ? (
-                <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">
+                <p className={cn("mt-1 truncate font-mono text-[11px]", styles.muted)}>
                   {order.receipt}
                 </p>
               ) : null}
             </div>
           </div>
         </div>
-        <div className="shrink-0 border-t border-border/50 px-4 py-3">
-          <p className="mb-2 text-center text-[11px] text-muted-foreground">
+        <div className={styles.foot}>
+          <p className={cn("mb-2 text-center text-[11px]", styles.muted)}>
             Wallet now {money(availability?.walletBalance, currency)}
           </p>
-          <Button type="button" className="h-12 w-full rounded-xl" onClick={startNext}>
+          <button type="button" className={styles.cta} onClick={startNext}>
             Sell another
-          </Button>
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div
-        className="relative shrink-0 overflow-hidden px-4 pb-4 pt-5"
-        style={{
-          background:
-            "linear-gradient(160deg, color-mix(in srgb, var(--pos-primary) 18%, transparent) 0%, transparent 70%)",
-        }}
-      >
-        <DialogHeader className="relative min-w-0 pr-8">
-          <DialogTitle className="flex items-center gap-2 text-base font-semibold tracking-tight">
-            <Signal className="size-4 text-muted-foreground" aria-hidden />
-            Sell airtime
-          </DialogTitle>
-          <DialogDescription className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Any network. Your Kiosk Pay wallet funds the top-up; they pay you
-            cash, M-Pesa, or tab.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="relative mt-3 flex items-baseline gap-2">
-          <span className="text-[2.4rem] font-bold leading-none tracking-tight tabular-nums text-foreground">
+    <div className={styles.root}>
+      <Caption description="Any network. Your Kiosk Pay wallet funds the top-up; they pay you cash, M-Pesa, or tab." />
+      <div className={styles.ledger}>
+        <div className={styles.balance}>
+          <span className={styles.balanceValue}>
             {amountValid ? amountValue.toFixed(0) : (availability?.walletBalance ?? 0).toFixed(0)}
           </span>
-          <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+          <span className={styles.balanceUnit}>
             {amountValid ? currency : `${currency} wallet`}
           </span>
         </div>
-        <p className="relative mt-2 text-[11px] font-medium text-muted-foreground">
+        <p className={styles.earned}>
           Earned today {money(availability?.commissionEarnedToday, currency)}
         </p>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
-        <div className="space-y-4">
+      <div className={styles.body}>
+        <div className={styles.stack}>
           {blocked ? (
-            <p className="flex items-start gap-2 rounded-xl border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            <p className={styles.warn}>
               <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
               {availability?.reason || "Airtime is not available right now."}
             </p>
           ) : null}
 
           <fieldset disabled={blocked} className="min-w-0">
-            <legend className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Network
-            </legend>
-            <div className="mt-2 grid grid-cols-3 gap-2">
+            <legend className={styles.label}>Network</legend>
+            <div className={styles.grid3}>
               {KENYAN_NETWORKS.slice(0, 3).map((n) => {
                 const selected = network === n.id;
                 return (
@@ -547,19 +507,14 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
                       setNetwork(n.id);
                       setNetworkTouched(true);
                     }}
-                    className={cn(
-                      "min-h-12 rounded-xl border px-2 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-40",
-                      selected
-                        ? "border-transparent bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] shadow-sm"
-                        : "border-border/50 bg-background hover:bg-card",
-                    )}
+                    className={cn(styles.chip, selected && styles.chipOn)}
                   >
                     {n.label}
                   </button>
                 );
               })}
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className={cn(styles.grid2, "mt-1.5")}>
               {KENYAN_NETWORKS.slice(3).map((n) => {
                 const selected = network === n.id;
                 return (
@@ -571,12 +526,7 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
                       setNetwork(n.id);
                       setNetworkTouched(true);
                     }}
-                    className={cn(
-                      "min-h-12 rounded-xl border px-2 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-40",
-                      selected
-                        ? "border-transparent bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] shadow-sm"
-                        : "border-border/50 bg-background hover:bg-card",
-                    )}
+                    className={cn(styles.chip, selected && styles.chipOn)}
                   >
                     {n.label}
                   </button>
@@ -585,45 +535,36 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
             </div>
           </fieldset>
 
-          <label className="block space-y-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Customer phone
-            </span>
+          <label className="block">
+            <span className={styles.label}>Customer phone</span>
             <input
               type="tel"
               inputMode="tel"
               autoFocus
-              className={fieldClass("h-12 w-full font-heading tabular-nums tracking-wide")}
+              className={cn(styles.field, "font-heading tracking-wide")}
               placeholder="07…"
               value={phone}
               disabled={blocked}
               onChange={(e) => setPhone(e.target.value)}
             />
             {networkMismatch ? (
-              <p className="text-[12px] font-medium text-amber-800 dark:text-amber-200">
+              <p className={cn(styles.amber, "mt-1.5")}>
                 That number looks like {detectedFromPhone}, not{" "}
                 {KENYAN_NETWORKS.find((n) => n.id === network)?.label}.
               </p>
             ) : null}
           </label>
 
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Amount
-            </span>
-            <div className="flex flex-wrap gap-1.5">
+          <div>
+            <span className={styles.label}>Amount</span>
+            <div className={styles.quickRow}>
               {quickAmounts.map((a) => (
                 <button
                   key={a}
                   type="button"
                   disabled={blocked}
                   onClick={() => setAmount(String(a))}
-                  className={cn(
-                    "min-h-10 rounded-xl border px-3 py-1.5 text-sm font-semibold tabular-nums transition-colors disabled:opacity-40",
-                    Number(amount) === a
-                      ? "border-transparent bg-foreground text-background"
-                      : "border-border/70 text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                  )}
+                  className={cn(styles.quick, Number(amount) === a && styles.quickOn)}
                 >
                   {whole(a)}
                 </button>
@@ -634,7 +575,7 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
               inputMode="numeric"
               min={availability?.minAmount ?? 1}
               step="1"
-              className={fieldClass("h-12 w-full font-heading tabular-nums")}
+              className={cn(styles.field, "font-heading")}
               placeholder={`${whole(availability?.minAmount)}–${whole(availability?.maxSellableNow)}`}
               value={amount}
               disabled={blocked}
@@ -643,41 +584,37 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
                 if (e.key === "Enter" && canSubmit) void submit();
               }}
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className={styles.hint}>
               {whole(availability?.minAmount)}–{whole(availability?.maxAmount)} per
               sale · {money(availability?.dailyRemaining, currency)} left today
             </p>
           </div>
 
           {overSellable ? (
-            <p className="text-xs font-medium text-rose-800 dark:text-rose-300">
+            <p className={styles.danger}>
               You can send up to {money(availability?.maxSellableNow, currency)} right
               now — top up the wallet to go higher.
             </p>
           ) : quote && !quote.sellable && quote.reason ? (
-            <p className="text-xs font-medium text-rose-800 dark:text-rose-300">
-              {quote.reason}
-            </p>
+            <p className={styles.danger}>{quote.reason}</p>
           ) : quote?.sellable ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-300/50 bg-emerald-50/70 px-3 py-2 text-xs dark:border-emerald-800/70 dark:bg-emerald-950/25">
-              <span className="text-emerald-900 dark:text-emerald-200">
+            <div className={styles.quote}>
+              <span>
                 Wallet after{" "}
                 <strong className="font-semibold tabular-nums">
                   {money(quote.walletBalanceAfter, currency)}
                 </strong>
               </span>
-              <span className="inline-flex items-center gap-1 font-semibold text-emerald-800 dark:text-emerald-300">
+              <span className="inline-flex items-center gap-1 font-semibold">
                 <Sparkles className="size-3.5" aria-hidden />+
                 {money(quote.commission, currency)} for you
               </span>
             </div>
           ) : null}
 
-          <section className="space-y-2.5">
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              How are they paying?
-            </h3>
-            <div className={cn("grid gap-2", canLookupCustomers ? "grid-cols-3" : "grid-cols-2")}>
+          <section>
+            <h3 className={styles.label}>How are they paying?</h3>
+            <div className={cn(styles.gridPay, canLookupCustomers && styles.three)}>
               <PayMethodTile
                 active={tender === "CASH"}
                 onClick={() => setTender("CASH")}
@@ -706,22 +643,20 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
             </div>
 
             {tender === "CASH" ? (
-              <p className="rounded-xl border border-border/50 bg-card/90 px-3 py-2.5 text-[12px] text-muted-foreground">
+              <p className={cn(styles.note, "mt-2.5")}>
                 Collect {amountValid ? money(amountValue, currency) : "the face value"}{" "}
                 from them. Your wallet still funds the telco and keeps the commission.
               </p>
             ) : null}
 
             {tender === "MPESA" ? (
-              <div className="space-y-2 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
-                <label className="block space-y-1.5">
-                  <span className="text-[11px] font-medium text-muted-foreground">
-                    M-Pesa number
-                  </span>
+              <div className={cn(styles.panel, "mt-2.5")}>
+                <label className="block">
+                  <span className={styles.label}>M-Pesa number</span>
                   <input
                     type="tel"
                     inputMode="tel"
-                    className={fieldClass("h-12 w-full font-heading tabular-nums")}
+                    className={cn(styles.field, "font-heading")}
                     placeholder="07…"
                     value={payer}
                     disabled={blocked}
@@ -731,21 +666,21 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
                     }}
                   />
                 </label>
-                <p className="text-[11px] text-muted-foreground">
+                <p className={styles.hint}>
                   They pay your till first. Airtime sends after the PIN goes through.
                 </p>
               </div>
             ) : null}
 
             {tender === "TAB" ? (
-              <div className="space-y-2 rounded-2xl border border-border/50 bg-card/90 p-3 shadow-sm">
+              <div className={cn(styles.panel, "mt-2.5")}>
                 {selectedCustomer ? (
-                  <div className="flex items-start justify-between gap-2 rounded-xl bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] px-3 py-2.5">
+                  <div className={styles.customer}>
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-semibold">
                         {selectedCustomer.name}
                       </p>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className={cn("text-[11px]", styles.muted)}>
                         Tab owed{" "}
                         {money(Number(selectedCustomer.credit?.balanceOwed), currency)}
                         {selectedCustomer.credit?.creditLimit != null
@@ -755,7 +690,7 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
                     </div>
                     <button
                       type="button"
-                      className="text-[11px] font-semibold text-[var(--pos-primary)]"
+                      className={styles.link}
                       onClick={() => {
                         setSelectedCustomer(null);
                         setCustomerHits([]);
@@ -767,9 +702,9 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2">
+                    <div className={styles.row}>
                       <input
-                        className={fieldClass("h-11 min-w-0 flex-1 text-sm")}
+                        className={cn(styles.field, "h-11 min-w-0 flex-1 text-sm")}
                         value={customerQuery}
                         onChange={(e) => setCustomerQuery(e.target.value)}
                         onKeyDown={(e) => {
@@ -781,31 +716,30 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
                         placeholder="Name or phone…"
                         disabled={!online}
                       />
-                      <Button
+                      <button
                         type="button"
-                        variant="secondary"
-                        className="h-11 rounded-xl px-3 text-sm font-semibold"
+                        className={cn(styles.find, styles.findSecondary)}
                         disabled={!online || customerBusy || !customerQuery.trim()}
                         onClick={() => void searchCustomers(customerQuery)}
                       >
                         {customerBusy ? "…" : "Find"}
-                      </Button>
+                      </button>
                     </div>
                     {customerHits.length > 0 ? (
-                      <ul className="max-h-36 space-y-1 overflow-y-auto">
+                      <ul className="max-h-36 overflow-y-auto">
                         {customerHits.map((c) => (
                           <li key={c.id}>
                             <button
                               type="button"
-                              className="w-full rounded-xl px-3 py-2.5 text-left text-[13px] hover:bg-muted/50"
+                              className={styles.hit}
                               onClick={() => setSelectedCustomer(c)}
                             >
                               {c.name}
-                              <span className="ml-1.5 text-muted-foreground">
+                              <span className={cn("ml-1.5", styles.muted)}>
                                 {customerPrimaryPhone(c.phones)}
                               </span>
                               {c.credit ? (
-                                <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                                <span className={cn("mt-0.5 block text-[11px]", styles.muted)}>
                                   Tab owed {money(Number(c.credit.balanceOwed), currency)}
                                 </span>
                               ) : null}
@@ -814,14 +748,14 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
                         ))}
                       </ul>
                     ) : customerNoMatch ? (
-                      <p className="text-[12px] text-muted-foreground">
+                      <p className={cn("text-[12px]", styles.muted)}>
                         No customer on that number — open a tab from checkout first.
                       </p>
                     ) : null}
                   </>
                 )}
                 {tabWouldExceed ? (
-                  <p className="text-[12px] font-medium text-rose-800 dark:text-rose-300">
+                  <p className={styles.danger}>
                     That would pass this customer&apos;s credit limit.
                   </p>
                 ) : null}
@@ -829,21 +763,19 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
             ) : null}
           </section>
 
-          {error ? (
-            <p className="text-xs font-medium text-rose-800 dark:text-rose-300">{error}</p>
-          ) : null}
+          {error ? <p className={styles.danger}>{error}</p> : null}
           {!online ? (
-            <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+            <p className={styles.amber}>
               You&apos;re offline — airtime needs a live connection.
             </p>
           ) : null}
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-border/50 px-4 py-3">
-        <Button
+      <div className={styles.foot}>
+        <button
           type="button"
-          className="h-12 w-full rounded-xl text-sm font-semibold"
+          className={styles.cta}
           disabled={!canSubmit}
           onClick={() => void submit()}
         >
@@ -853,7 +785,7 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
             <Signal className="size-4" aria-hidden />
           )}
           {ctaLabel}
-        </Button>
+        </button>
       </div>
     </div>
   );

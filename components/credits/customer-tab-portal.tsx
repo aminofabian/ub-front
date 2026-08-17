@@ -946,6 +946,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     void reload();
   }, [reload]);
 
+  const reloadAirtimeConfig = useCallback(() => {
+    fetchPublicTabAirtimeConfig(phone).then((config) => {
+      setAirtimeConfig(config);
+    });
+  }, [phone]);
+
   useEffect(() => {
     if (loading || notFound) {
       setAirtimeConfig(null);
@@ -1735,6 +1741,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           config={airtimeConfig}
           keyboardInset={airtimeKeyboardInset}
           fieldIdPrefix={fieldIdPrefix}
+          onDelivered={reloadAirtimeConfig}
         />
       ) : null}
     </div>

@@ -6,6 +6,7 @@ import { CheckCircle2, ChevronDown, Loader2, Smartphone, X } from "lucide-react"
 import {
   createPublicTabAirtimeOrder,
   fetchPublicTabAirtimeOrder,
+  tabAirtimeRecentsFromConfig,
   type PublicTabAirtimeConfig,
   type PublicTabAirtimeOrder,
 } from "@/lib/public-customer-tab";
@@ -17,11 +18,6 @@ import {
   type KenyanNetwork,
 } from "@/lib/kenyan-phone";
 import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
-import {
-  readTabAirtimeRecents,
-  rememberTabAirtimeSale,
-  type TabAirtimeRecents,
-} from "@/lib/tab-airtime-recents";
 import { cn } from "@/lib/utils";
 
 const fieldClass =
@@ -219,6 +215,7 @@ type Props = {
   config: PublicTabAirtimeConfig;
   keyboardInset: number;
   fieldIdPrefix: string;
+  onDelivered?: () => void;
 };
 
 /**
@@ -234,9 +231,13 @@ export function TabAirtimeSheet({
   config,
   keyboardInset,
   fieldIdPrefix,
+  onDelivered,
 }: Props) {
   const currency = config.currency || "KES";
   const defaultPhone = toKenyanLocal07(tabPhone) || tabPhone;
+  const recents = tabAirtimeRecentsFromConfig(config);
+  const configRef = useRef(config);
+  configRef.current = config;
   const [amount, setAmount] = useState("");
   const [otherAmount, setOtherAmount] = useState(false);
   const [recipient, setRecipient] = useState(defaultPhone);
@@ -248,16 +249,16 @@ export function TabAirtimeSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<PublicTabAirtimeOrder | null>(null);
-  const [recents, setRecents] = useState<TabAirtimeRecents>(() =>
-    readTabAirtimeRecents(tabPhone),
-  );
   const [openPicker, setOpenPicker] = useState<"recipient" | "payer" | null>(null);
-  const rememberedRef = useRef<string | null>(null);
+  const notifiedDeliveredRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    const stored = readTabAirtimeRecents(tabPhone);
-    setRecents(stored);
+    const stored = tabAirtimeRecentsFromConfig(configRef.current);
+    const chips = (configRef.current.quickAmounts?.length
+      ? configRef.current.quickAmounts.map(Number)
+      : [20, 50, 100, 250, 500, 1000]
+    ).filter((n) => Number.isFinite(n));
     const nextRecipient = stored.lastRecipient || defaultPhone;
     const nextPayer = stored.lastPayer || defaultPhone;
     setRecipient(nextRecipient);
@@ -266,10 +267,6 @@ export function TabAirtimeSheet({
     setNetworkTouched(false);
     if (stored.lastAmount && stored.lastAmount > 0) {
       setAmount(String(stored.lastAmount));
-      const chips = (config.quickAmounts?.length
-        ? config.quickAmounts.map(Number)
-        : [20, 50, 100, 250, 500, 1000]
-      ).filter((n) => Number.isFinite(n));
       setOtherAmount(!chips.some((n) => Math.abs(n - stored.lastAmount!) < 0.001));
     } else {
       setAmount("");
@@ -279,8 +276,8 @@ export function TabAirtimeSheet({
     setError(null);
     setOrder(null);
     setOpenPicker(null);
-    rememberedRef.current = null;
-  }, [open, defaultPhone, tabPhone, config.quickAmounts]);
+    notifiedDeliveredRef.current = null;
+  }, [open, defaultPhone]);
 
   const amountNum = Number.parseFloat(amount);
   const min = Number(config.minAmount) || 1;
@@ -380,17 +377,10 @@ export function TabAirtimeSheet({
 
   useEffect(() => {
     if (!order?.delivered) return;
-    if (rememberedRef.current === order.orderId) return;
-    rememberedRef.current = order.orderId;
-    setRecents(
-      rememberTabAirtimeSale(
-        tabPhone,
-        order.phoneNumber || recipient,
-        payer,
-        Number(order.amount) || amountNum,
-      ),
-    );
-  }, [order, tabPhone, recipient, payer, amountNum]);
+    if (notifiedDeliveredRef.current === order.orderId) return;
+    notifiedDeliveredRef.current = order.orderId;
+    onDelivered?.();
+  }, [order, onDelivered]);
 
   const submit = async () => {
     if (!canSubmit || network == null) return;

@@ -78,12 +78,12 @@ export function AirtimeQuickAction({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           side="right"
-          overlayClassName="bg-black/45 backdrop-blur-[3px] dark:bg-black/55"
+          overlayClassName="bg-[rgba(0,0,0,0.5)]"
           className={cn(
-            "max-w-[min(100%,26rem)] gap-0 border-border/40 p-0 shadow-2xl sm:max-w-[26rem]",
-            "flex flex-col overflow-hidden bg-[color-mix(in_srgb,var(--background)_92%,var(--pos-primary)_3%)]",
+            "max-w-[min(100%,26rem)] gap-0 rounded-none border-l border-[#cfc6b4] p-0 shadow-none sm:max-w-[26rem] sm:!rounded-none",
+            "flex flex-col overflow-hidden bg-[#f3eee4] dark:border-[#3f3a32] dark:bg-[#161410]",
           )}
-          showCloseButton
+          showCloseButton={false}
         >
           {open ? (
             <CashierAirtimeDrawer channel={channel} currency={currency} />
