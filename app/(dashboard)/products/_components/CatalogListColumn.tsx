@@ -32,6 +32,8 @@ type Props = {
   onBulkChangeDepartment?: () => void;
   onAddFromCatalog?: () => void;
   canAddFromCatalog?: boolean;
+  onCreateNew?: () => void;
+  canCreateNew?: boolean;
 };
 
 const ROW_TYPE_LEGEND: {
@@ -55,6 +57,8 @@ export function CatalogListColumn({
   onBulkChangeDepartment,
   onAddFromCatalog,
   canAddFromCatalog = false,
+  onCreateNew,
+  canCreateNew = false,
 }: Props) {
   const selectionCount = catalog.rowSelection.size;
   const hasSelection = selectionCount > 0;
@@ -250,6 +254,8 @@ export function CatalogListColumn({
           }
           onAddFromCatalog={onAddFromCatalog}
           canAddFromCatalog={canAddFromCatalog}
+          onCreateNew={onCreateNew}
+          canCreateNew={canCreateNew}
         />
         {catalog.displayRows.length > 0 ? (
           <CatalogLetterJumpRail

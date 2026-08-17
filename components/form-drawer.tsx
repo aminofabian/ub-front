@@ -539,9 +539,13 @@ export function FormDrawerFields({
         "relative overflow-hidden",
         sharp || compact
           ? cn(
-              "space-y-2.5 bg-background shadow-none",
+              "bg-background shadow-none",
+              compact ? "space-y-2" : "space-y-2.5",
               embedded
-                ? "rounded-none border-0 p-3"
+                ? cn(
+                    "rounded-none border-0",
+                    compact ? "p-2.5" : "p-3",
+                  )
                 : "rounded-none border border-border p-2.5",
             )
           : cn(
@@ -567,7 +571,7 @@ export function FormDrawerFields({
           className={cn(
             "block w-full border-b px-0.5",
             sharp || compact
-              ? "border-border pb-2"
+              ? cn("border-border", compact ? "pb-1.5" : "pb-2")
               : "border-border/35 pb-3 font-heading text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
           )}
         >
@@ -601,7 +605,7 @@ export function FormDrawerFields({
       ) : null}
       <div
         className={cn(
-          compact || sharp ? "space-y-2.5" : "space-y-3 pl-1 pt-1",
+          compact ? "space-y-2" : sharp ? "space-y-2.5" : "space-y-3 pl-1 pt-1",
         )}
       >
         {children}

@@ -92,12 +92,17 @@ export function PackageVariantsSection({
         <label className="flex cursor-pointer items-start gap-2">
           <input
             type="checkbox"
-            className={cn("size-4 rounded-none border-input", compact ? "mt-0.5" : "mt-1")}
+            className={cn("size-3.5 rounded-none border-input", compact ? "mt-0.5" : "mt-1")}
             checked={enabled}
             onChange={(e) => onEnabledChange(e.target.checked)}
           />
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-[13px] font-semibold tracking-tight text-foreground">
+            <span
+              className={cn(
+                "flex items-center gap-1.5 tracking-tight text-foreground",
+                compact ? "text-[12px] font-semibold" : "text-[13px] font-semibold",
+              )}
+            >
               <Boxes className="size-3.5 text-foreground/50" />
               Sell in different units
             </span>
@@ -108,7 +113,7 @@ export function PackageVariantsSection({
               )}
             >
               {compact
-                ? `Selling units share stock with this product (e.g. 1 tray = 30 ${baseUnitHint}s).`
+                ? `Shared stock (e.g. 1 tray = 30 ${baseUnitHint}s).`
                 : `Add selling units (single, tray, crate, …) with their own price and barcode. Stock is shared with this product — e.g. 1 tray = 30 ${baseUnitHint}s deducted from the same inventory.`}
             </span>
           </span>

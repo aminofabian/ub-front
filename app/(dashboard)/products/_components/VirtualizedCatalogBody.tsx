@@ -9,9 +9,7 @@ import {
   useRef,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Package, PackagePlus } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
+import { Library, PackagePlus, Plus } from "lucide-react";
 
 import { itemListThumbnailUrl, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -73,6 +71,8 @@ export type VirtualizedCatalogBodyProps = {
   catalogEmpty?: boolean;
   onAddFromCatalog?: () => void;
   canAddFromCatalog?: boolean;
+  onCreateNew?: () => void;
+  canCreateNew?: boolean;
 };
 
 function FixNamePill() {
@@ -174,6 +174,8 @@ export const VirtualizedCatalogBody = forwardRef<
     catalogEmpty = false,
     onAddFromCatalog,
     canAddFromCatalog = false,
+    onCreateNew,
+    canCreateNew = false,
   },
   ref,
 ) {
@@ -293,33 +295,117 @@ export const VirtualizedCatalogBody = forwardRef<
         {initialLoading ? (
           <CatalogListSkeleton density={density} />
         ) : rows.length === 0 ? (
-          <div className="mx-3 my-10 flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/50 bg-muted/10 px-5 py-8 text-center sm:mx-4">
-            <div className="flex size-10 items-center justify-center rounded-lg border border-border/45 bg-background/80">
-              <Package className="size-4 text-muted-foreground/45" aria-hidden />
-            </div>
-            <div className="max-w-[18rem] space-y-1">
-              <p className="text-sm font-semibold text-foreground">
-                {catalogEmpty ? "Your catalog is empty" : "No products match"}
-              </p>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {catalogEmpty
-                  ? "Get started quickly by importing common products from the shared catalog, or add your first product manually."
-                  : "Broaden search or reset filters in the sidebar."}
-              </p>
-            </div>
-            {catalogEmpty && canAddFromCatalog && onAddFromCatalog ? (
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  type="button"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={onAddFromCatalog}
-                >
-                  <PackagePlus className="size-4" aria-hidden />
-                  Add from catalog
-                </Button>
+          <div className="mx-3 my-8 flex flex-col items-stretch sm:mx-4 sm:my-10">
+            {catalogEmpty ? (
+              <div className="mx-auto w-full max-w-md space-y-4">
+                <div className="space-y-1 text-center">
+                  <p className="text-sm font-semibold tracking-tight text-foreground">
+                    Your catalog is empty
+                  </p>
+                  <p className="text-xs leading-relaxed text-foreground/50">
+                    Pick how you want to add the first products.
+                  </p>
+                </div>
+
+                <div className="overflow-hidden rounded-none border border-border bg-background shadow-none divide-y divide-border">
+                  {canAddFromCatalog && onAddFromCatalog ? (
+                    <button
+                      type="button"
+                      onClick={onAddFromCatalog}
+                      className="group flex w-full items-start gap-3 bg-foreground px-3.5 py-3.5 text-left text-background transition hover:bg-foreground/92 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center border border-background/25 bg-background/10">
+                        <Library className="size-4" aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1 space-y-0.5">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="text-[13px] font-semibold tracking-tight">
+                            Browse shared catalog
+                          </span>
+                          <PackagePlus
+                            className="size-3.5 shrink-0 opacity-70 transition group-hover:translate-x-0.5 group-hover:opacity-100"
+                            aria-hidden
+                          />
+                        </span>
+                        <span className="block text-[11px] leading-snug text-background/70">
+                          Import common products — names, barcodes, and prices
+                          already filled in.
+                        </span>
+                      </span>
+                    </button>
+                  ) : null}
+
+                  {canCreateNew && onCreateNew ? (
+                    <button
+                      type="button"
+                      onClick={onCreateNew}
+                      className={cn(
+                        "group flex w-full items-start gap-3 px-3.5 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        canAddFromCatalog && onAddFromCatalog
+                          ? "bg-background text-foreground hover:bg-muted/40"
+                          : "bg-foreground text-background hover:bg-foreground/92",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "mt-0.5 flex size-9 shrink-0 items-center justify-center border",
+                          canAddFromCatalog && onAddFromCatalog
+                            ? "border-border bg-muted/30 text-foreground/70"
+                            : "border-background/25 bg-background/10",
+                        )}
+                      >
+                        <Plus className="size-4" aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1 space-y-0.5">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="text-[13px] font-semibold tracking-tight">
+                            {canAddFromCatalog && onAddFromCatalog
+                              ? "Create from scratch"
+                              : "Add your first product"}
+                          </span>
+                          <Plus
+                            className={cn(
+                              "size-3.5 shrink-0 transition group-hover:translate-x-0.5",
+                              canAddFromCatalog && onAddFromCatalog
+                                ? "text-foreground/40 group-hover:text-foreground/70"
+                                : "opacity-70 group-hover:opacity-100",
+                            )}
+                            aria-hidden
+                          />
+                        </span>
+                        <span
+                          className={cn(
+                            "block text-[11px] leading-snug",
+                            canAddFromCatalog && onAddFromCatalog
+                              ? "text-foreground/50"
+                              : "text-background/70",
+                          )}
+                        >
+                          {canAddFromCatalog && onAddFromCatalog
+                            ? "Name it, set a sell price, and start selling."
+                            : "Name it, set a sell price, and you are ready at the till."}
+                        </span>
+                      </span>
+                    </button>
+                  ) : null}
+                </div>
+
+                {!canAddFromCatalog && !canCreateNew ? (
+                  <p className="text-center text-xs text-foreground/45">
+                    Ask a manager for permission to add products.
+                  </p>
+                ) : null}
               </div>
-            ) : null}
+            ) : (
+              <div className="mx-auto flex max-w-[18rem] flex-col items-center gap-2 py-10 text-center">
+                <p className="text-sm font-semibold tracking-tight text-foreground">
+                  No products match
+                </p>
+                <p className="text-xs leading-relaxed text-foreground/50">
+                  Broaden search or reset filters in the sidebar.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
