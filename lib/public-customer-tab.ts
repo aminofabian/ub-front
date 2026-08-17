@@ -353,6 +353,17 @@ export type PublicTabKplcHistory = {
   purchaseMessage: string;
   tokens: PublicTabKplcToken[];
   stats?: PublicTabKplcStats | null;
+  depletion?: PublicTabKplcDepletion | null;
+};
+
+export type PublicTabKplcDepletion = {
+  estimatedEmptyAt: string | null;
+  remainingUnits: number | string | null;
+  lastPurchaseUnits: number | string | null;
+  dailyUseUnits: number | string | null;
+  sampleIntervals: number;
+  alreadyEmpty: boolean;
+  alertsEnabled: boolean;
 };
 
 export type PublicTabKplcMonthSpend = {
@@ -437,4 +448,26 @@ export async function fetchPublicTabKplcTokens(
     { headers: tenantHostHeaders(), cache: "no-store" },
   );
   return readJson<PublicTabKplcHistory>(res);
+}
+
+export async function setPublicTabKplcDepletionAlerts(
+  phone: string,
+  meterNumber: string,
+  enabled: boolean,
+): Promise<PublicTabKplcDepletion> {
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/credits/tabs/${encodeURIComponent(phone.trim())}/kplc/meters/${encodeURIComponent(meterNumber.trim())}/depletion-alerts`,
+    ),
+    {
+      method: "PUT",
+      headers: {
+        ...(tenantHostHeaders() as Record<string, string>),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ enabled }),
+      cache: "no-store",
+    },
+  );
+  return readJson<PublicTabKplcDepletion>(res);
 }

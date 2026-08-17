@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, Check, ChevronDown, Copy, Loader2, List, X, Zap } from "lucide-react";
+import { BarChart3, Bell, BellOff, Check, ChevronDown, Copy, Loader2, List, X, Zap } from "lucide-react";
 
 import {
   fetchPublicTabKplcConfig,
   fetchPublicTabKplcTokens,
   removePublicTabKplcMeter,
+  setPublicTabKplcDepletionAlerts,
   type PublicTabKplcConfig,
+  type PublicTabKplcDepletion,
   type PublicTabKplcMonthSpend,
   type PublicTabKplcStats,
   type PublicTabKplcToken,
@@ -350,6 +352,113 @@ function SpendTape({ stats }: { stats: PublicTabKplcStats }) {
   );
 }
 
+function depletionTitle(depletion: PublicTabKplcDepletion, nowMs = Date.now()): string {
+  if (depletion.alreadyEmpty || !depletion.estimatedEmptyAt) {
+    return "Likely already out";
+  }
+  const empty = new Date(depletion.estimatedEmptyAt);
+  if (Number.isNaN(empty.getTime())) return "Likely already out";
+  const days = Math.round((empty.getTime() - nowMs) / 86_400_000);
+  if (days <= 0) return "Likely out today";
+  if (days === 1) return "About 1 day left";
+  if (days < 14) return `About ${days} days left`;
+  return `Until ${new Intl.DateTimeFormat("en-KE", {
+    timeZone: "Africa/Nairobi",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(empty)}`;
+}
+
+function TokenFuse({ remaining, last }: { remaining: number; last: number }) {
+  const fraction = last > 0 ? Math.max(0, Math.min(1, remaining / last)) : 0;
+  const lit = Math.round(fraction * 20);
+  return (
+    <div className="mt-3 flex justify-between gap-1" aria-hidden>
+      {Array.from({ length: 5 }, (_, group) => (
+        <span key={group} className="flex gap-[3px]">
+          {Array.from({ length: 4 }, (_, i) => {
+            const index = group * 4 + i;
+            const on = index < lit;
+            return (
+              <span
+                key={i}
+                className="inline-block h-5 w-[0.55rem] border"
+                style={{
+                  borderColor: "color-mix(in_oklab, var(--tab-bg) 38%, transparent)",
+                  backgroundColor: on
+                    ? "var(--tab-bg)"
+                    : "transparent",
+                }}
+              />
+            );
+          })}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function DepletionPanel({
+  depletion,
+  onToggle,
+  busy,
+}: {
+  depletion: PublicTabKplcDepletion;
+  onToggle: (enabled: boolean) => void;
+  busy: boolean;
+}) {
+  const remaining = toAmount(depletion.remainingUnits);
+  const last = toAmount(depletion.lastPurchaseUnits);
+  const daily = toAmount(depletion.dailyUseUnits);
+  const canEstimate = Boolean(depletion.estimatedEmptyAt) || depletion.alreadyEmpty;
+  return (
+    <div className="bg-[var(--tab-fg)] px-3 py-4 text-[var(--tab-bg)]">
+      <p className="text-[1.5rem] font-semibold leading-[0.95] tracking-[-0.03em]">
+        {canEstimate ? depletionTitle(depletion) : "Need one more top-up"}
+      </p>
+      {canEstimate && remaining != null && last != null ? (
+        <TokenFuse remaining={remaining} last={last} />
+      ) : (
+        <p className="mt-2 text-[13px] leading-snug" style={{ color: comingSoonMuted }}>
+          After the next token we can time how fast this meter drinks units.
+        </p>
+      )}
+      {canEstimate ? (
+        <p className="mt-3 text-[13px] leading-snug" style={{ color: comingSoonMuted }}>
+          From how long the last {depletion.sampleIntervals || 0} slip
+          {(depletion.sampleIntervals || 0) === 1 ? "" : "s"} lasted
+          {daily != null ? ` · ~${daily.toFixed(1)} kWh a day` : ""}. Not a live meter read.
+        </p>
+      ) : null}
+      <button
+        type="button"
+        disabled={busy || !canEstimate}
+        aria-pressed={depletion.alertsEnabled}
+        onClick={() => onToggle(!depletion.alertsEnabled)}
+        className={cn(
+          "mt-3 flex w-full items-center justify-center gap-2 py-2.5 text-[14px] font-semibold disabled:opacity-45",
+          depletion.alertsEnabled
+            ? "bg-[var(--tab-bg)] text-[var(--tab-fg)]"
+            : "border border-[color-mix(in_oklab,var(--tab-bg)_35%,transparent)]",
+        )}
+      >
+        {depletion.alertsEnabled ? (
+          <>
+            <Bell className="size-4" aria-hidden />
+            Reminders on · 2 days and 1 day before
+          </>
+        ) : (
+          <>
+            <BellOff className="size-4" aria-hidden />
+            Text me before it runs out
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -369,6 +478,7 @@ export function TabKplcSheet({
   const [meter, setMeter] = useState("");
   const [tokens, setTokens] = useState<PublicTabKplcToken[] | null>(null);
   const [stats, setStats] = useState<PublicTabKplcStats | null>(null);
+  const [depletion, setDepletion] = useState<PublicTabKplcDepletion | null>(null);
   const [loadedMeter, setLoadedMeter] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -389,6 +499,7 @@ export function TabKplcSheet({
     setError(null);
     setTokens(null);
     setStats(null);
+    setDepletion(null);
     setLoadedMeter(null);
     setExpanded(null);
     setView("tokens");
@@ -443,6 +554,7 @@ export function TabKplcSheet({
       const history = await fetchPublicTabKplcTokens(phone, digits);
       setTokens(history.tokens);
       setStats(history.stats ?? statsFromTokens(history.tokens));
+      setDepletion(history.depletion ?? null);
       setLoadedMeter(history.meterNumber);
       setMeter(history.meterNumber);
       const fresh = await fetchPublicTabKplcConfig(phone);
@@ -454,6 +566,7 @@ export function TabKplcSheet({
       setError(e instanceof Error ? e.message : "Could not load tokens for this meter.");
       setTokens(null);
       setStats(null);
+      setDepletion(null);
       setLoadedMeter(null);
     } finally {
       setBusy(false);
@@ -471,6 +584,7 @@ export function TabKplcSheet({
         setMeter(fallback);
         setTokens(null);
         setStats(null);
+        setDepletion(null);
         setLoadedMeter(null);
         if (fallback) {
           await lookup(tabPhone, fallback);
@@ -495,6 +609,20 @@ export function TabKplcSheet({
     }
   }
 
+  async function toggleDepletionAlerts(enabled: boolean) {
+    if (!loadedMeter) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const next = await setPublicTabKplcDepletionAlerts(tabPhone, loadedMeter, enabled);
+      setDepletion(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update reminders.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const resolvedStats = useMemo(() => {
     if (stats?.months?.length) return stats;
     if (tokens?.length) return statsFromTokens(tokens);
@@ -510,7 +638,9 @@ export function TabKplcSheet({
     loadedMeter != null && digitsOnly(meter) === loadedMeter;
   const latest = tokens?.[0] ?? null;
   const older = tokens?.slice(1) ?? [];
-  const canShowStats = Boolean(resolvedStats && (resolvedStats.months.length > 0 || (tokens && tokens.length > 0)));
+  const canShowStats = Boolean(
+    resolvedStats && (resolvedStats.months.length > 0 || (tokens && tokens.length > 0)) || depletion,
+  );
 
   return (
     <div
@@ -663,19 +793,30 @@ export function TabKplcSheet({
             </p>
           ) : null}
 
-          {view === "stats" && resolvedStats ? (
-            <section className="mt-5">
-              <h3 className="text-[15px] font-semibold tracking-[-0.02em]">
-                Monthly spend
-              </h3>
-              <p className="mt-1 text-[13px] leading-snug text-[var(--tab-muted)]">
-                {resolvedStats.allTimeCount} token
-                {resolvedStats.allTimeCount === 1 ? "" : "s"} on this meter
-                {toAmount(resolvedStats.allTimeAmount) != null
-                  ? ` · ${money(toAmount(resolvedStats.allTimeAmount)!)} all time`
-                  : ""}
-              </p>
-              <SpendTape stats={resolvedStats} />
+          {view === "stats" && (resolvedStats || depletion) ? (
+            <section className="mt-5 space-y-5">
+              {depletion ? (
+                <DepletionPanel
+                  depletion={depletion}
+                  busy={busy}
+                  onToggle={(enabled) => void toggleDepletionAlerts(enabled)}
+                />
+              ) : null}
+              {resolvedStats ? (
+                <div>
+                  <h3 className="text-[15px] font-semibold tracking-[-0.02em]">
+                    Monthly spend
+                  </h3>
+                  <p className="mt-1 text-[13px] leading-snug text-[var(--tab-muted)]">
+                    {resolvedStats.allTimeCount} token
+                    {resolvedStats.allTimeCount === 1 ? "" : "s"} on this meter
+                    {toAmount(resolvedStats.allTimeAmount) != null
+                      ? ` · ${money(toAmount(resolvedStats.allTimeAmount)!)} all time`
+                      : ""}
+                  </p>
+                  <SpendTape stats={resolvedStats} />
+                </div>
+              ) : null}
             </section>
           ) : null}
 
