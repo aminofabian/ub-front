@@ -293,14 +293,14 @@ function saleMetaParts(tx: SaleTransaction): string[] {
   if (!isOnline && payKey && payKey !== "online" && payKey !== "online checkout") {
     parts.push(pay);
   }
-  const customer = tx.customerName?.trim() ?? "";
+          const customer = tx.customerName?.trim() ?? "";
   const cashier = tx.cashierName?.trim() ?? "";
   if (isOnline) {
     if (customer) parts.push(customer);
   } else {
-    if (cashier) parts.push(cashier);
-    if (customer && customer.toLowerCase() !== cashier.toLowerCase()) {
-      parts.push(customer);
+    if (customer) parts.push(customer);
+    if (cashier && cashier.toLowerCase() !== customer.toLowerCase()) {
+      parts.push(cashier);
     }
   }
   if (tx.customerNo != null) parts.push(`C-${tx.customerNo}`);

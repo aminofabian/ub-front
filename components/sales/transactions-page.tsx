@@ -141,9 +141,9 @@ function saleMetaParts(tx: SaleTransaction): string[] {
   if (isOnline) {
     if (customer) parts.push(customer);
   } else {
-    if (cashier) parts.push(cashier);
-    if (customer && customer.toLowerCase() !== cashier.toLowerCase()) {
-      parts.push(customer);
+    if (customer) parts.push(customer);
+    if (cashier && cashier.toLowerCase() !== customer.toLowerCase()) {
+      parts.push(cashier);
     }
   }
   if (tx.customerNo != null) parts.push(`C-${tx.customerNo}`);
