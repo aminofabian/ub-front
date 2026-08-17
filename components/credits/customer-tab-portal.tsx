@@ -366,8 +366,8 @@ const PURCHASE_PAGE_SIZE = 8;
 function TabStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] font-medium text-[var(--tab-muted)]">{label}</dt>
-      <dd className="mt-1 truncate text-[15px] font-semibold tabular-nums tracking-[-0.02em]">
+      <dt className="text-[10px] font-medium text-[var(--tab-muted)]">{label}</dt>
+      <dd className="mt-0.5 truncate text-[13px] font-semibold tabular-nums tracking-[-0.02em]">
         {value}
       </dd>
     </div>
@@ -377,14 +377,14 @@ function TabStat({ label, value }: { label: string; value: string }) {
 function PortalSkeleton() {
   return (
     <div className="flex flex-1 flex-col animate-pulse">
-      <div className="border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-7">
-        <div className="h-10 w-44 bg-[var(--tab-border)]" />
-        <div className="mt-3 h-3 w-36 bg-[var(--tab-border)]" />
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5">
+        <div className="h-7 w-28 bg-[var(--tab-border)]" />
+        <div className="mt-1.5 h-2.5 w-24 bg-[var(--tab-border)]" />
+        <div className="mt-3 grid grid-cols-4 gap-2">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-2.5 w-14 bg-[var(--tab-border)]" />
-              <div className="h-4 w-20 bg-[var(--tab-border)]" />
+            <div key={i} className="space-y-1.5">
+              <div className="h-2 w-10 bg-[var(--tab-border)]" />
+              <div className="h-3 w-14 bg-[var(--tab-border)]" />
             </div>
           ))}
         </div>
@@ -1450,19 +1450,19 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             <section
               ref={walletSectionRef}
               id="wallet"
-              className="border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-7"
+              className="border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5"
             >
-              <div className="flex items-end justify-between gap-4">
+              <div className="flex items-end justify-between gap-3">
                 <div className="min-w-0">
                   <h2
                     className={cn(
-                      "text-[2.65rem] font-bold leading-none tabular-nums tracking-[-0.035em]",
+                      "text-[1.85rem] font-bold leading-none tabular-nums tracking-[-0.035em]",
                       owed <= 0 && "text-[var(--tab-success-fg)]",
                     )}
                   >
                     {fmtMoney(owed, currency)}
                   </h2>
-                  <p className="mt-2.5 text-[14px] text-[var(--tab-muted)]">
+                  <p className="mt-1 text-[13px] text-[var(--tab-muted)]">
                     {owed > 0
                       ? `Balance owed to ${displayShop}`
                       : wallet > 0
@@ -1471,18 +1471,18 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   </p>
                 </div>
                 {wallet > 0 ? (
-                  <div className="shrink-0 rounded-xl bg-[color-mix(in_oklab,var(--tab-focus)_10%,var(--tab-chip))] px-3 py-2 text-right">
-                    <p className="text-[11px] font-medium text-[var(--tab-muted)]">
+                  <div className="shrink-0 rounded-lg bg-[color-mix(in_oklab,var(--tab-focus)_10%,var(--tab-chip))] px-2.5 py-1.5 text-right">
+                    <p className="text-[10px] font-medium text-[var(--tab-muted)]">
                       Wallet
                     </p>
-                    <p className="mt-0.5 text-[15px] font-semibold tabular-nums text-[var(--tab-success-fg)]">
+                    <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[var(--tab-success-fg)]">
                       {fmtMoney(wallet, currency)}
                     </p>
                   </div>
                 ) : null}
               </div>
               {tabStats.purchaseCount > 0 ? (
-                <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
+                <dl className="mt-3 grid grid-cols-4 gap-x-2 gap-y-2">
                   <TabStat
                     label="Visits"
                     value={String(tabStats.purchaseCount)}
@@ -1505,7 +1505,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   />
                 </dl>
               ) : (
-                <p className="mt-6 text-[13px] text-[var(--tab-muted)]">
+                <p className="mt-3 text-[13px] text-[var(--tab-muted)]">
                   {wallet > 0
                     ? "Wallet ready for your next visit."
                     : "No purchases on this tab yet."}
