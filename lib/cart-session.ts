@@ -83,6 +83,11 @@ export type CartSessionLine = {
   item: ItemSummaryRecord;
   /** True when this line came from a locked grocery invoice (not walk-up). */
   fromGroceryInvoice?: boolean;
+  /** Wallet-funded airtime riding on this sale. */
+  kind?: "airtime";
+  airtimePhone?: string;
+  airtimeNetwork?: string;
+  airtimeNetworkLabel?: string;
 };
 
 export const MAX_CARTS = 8;

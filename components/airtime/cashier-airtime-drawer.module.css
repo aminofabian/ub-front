@@ -457,13 +457,19 @@
   font-size: 0.8125rem;
 }
 
-.findSecondary {
+.findSecondary,
+.cta.findSecondary {
   background: #ffffff;
   border-color: #b7ae9f;
   color: #1c1915;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 1px 0 rgba(28, 25, 21, 0.08);
+}
+
+.cta.findSecondary:hover:not(:disabled) {
+  filter: none;
+  background: #f7f1e6;
 }
 
 .row {
@@ -550,7 +556,8 @@
 :global(.dark) .chip,
 :global(.dark) .tile,
 :global(.dark) .quick,
-:global(.dark) .findSecondary {
+:global(.dark) .findSecondary,
+:global(.dark) .cta.findSecondary {
   background: #1c1915;
   border-color: #3f3a32;
   color: #f4efe6;
@@ -622,4 +629,9 @@
   background: #3f3a32;
   border-color: #3f3a32;
   color: #c4b8a4;
+}
+
+:global(.dark) .cta.findSecondary:hover:not(:disabled) {
+  filter: none;
+  background: #241f18;
 }

@@ -80,6 +80,7 @@ import {
   kioskPlaceholderWashClass,
 } from "./kiosk-listing-styles";
 import { AirtimeQuickAction } from "@/components/airtime/airtime-quick-action";
+import type { AirtimeCartPayload } from "@/lib/airtime-cart-line";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { CashierCreateProductModal } from "./cashier-create-product-modal";
 import { CashierEditPriceModal } from "./cashier-edit-price-modal";
@@ -188,6 +189,7 @@ export type CashierPosLayoutProps = {
     qty?: number,
     unitPrice?: string,
   ) => boolean;
+  onAddAirtimeToCart?: (payload: AirtimeCartPayload) => boolean;
 
   canBrowseCategories: boolean;
   categoryRoots: CategoryTreeNodeRecord[];
@@ -903,6 +905,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     topProductsSubtitle = "Tap · ranked on this register",
     alwaysShowTopProducts = false,
     addLine,
+    onAddAirtimeToCart,
     canBrowseCategories,
     visibleCategoryTiles,
     categoryBrowseStack,
@@ -1454,6 +1457,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 triggerClassName={POS_PRIMARY_CHIP_CLASS}
                 currency={currency}
                 channel="POS"
+                onAddToCart={onAddAirtimeToCart}
               />
             ) : null}
             {!online ? (

@@ -7425,9 +7425,13 @@ export async function fetchVariableWeightBarcode(
 }
 
 export type PostSaleLinePayload = {
-  itemId: string;
+  itemId?: string;
   quantity: number | string;
   unitPrice: number | string;
+  kind?: "ITEM" | "AIRTIME";
+  label?: string;
+  airtimePhone?: string;
+  airtimeNetwork?: string;
 };
 
 export type PostSalePaymentPayload = {
@@ -7451,8 +7455,10 @@ export type PostSalePayload = {
 export type SaleItemResponseRecord = {
   id: string;
   lineIndex: number;
-  itemId: string;
-  batchId: string;
+  itemId?: string | null;
+  batchId?: string | null;
+  lineKind?: string | null;
+  lineLabel?: string | null;
   quantity: number | string;
   unitPrice: number | string;
   lineTotal: number | string;
@@ -7537,11 +7543,28 @@ export type PostVoidSalePayload = {
 function buildJsonPostSaleBody(body: PostSalePayload): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     branchId: body.branchId.trim(),
-    lines: body.lines.map((l) => ({
-      itemId: l.itemId.trim(),
-      quantity: l.quantity,
-      unitPrice: l.unitPrice,
-    })),
+    lines: body.lines.map((l) => {
+      const row: Record<string, unknown> = {
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+      };
+      if (l.itemId?.trim()) {
+        row.itemId = l.itemId.trim();
+      }
+      if (l.kind) {
+        row.kind = l.kind;
+      }
+      if (l.label?.trim()) {
+        row.label = l.label.trim();
+      }
+      if (l.airtimePhone?.trim()) {
+        row.airtimePhone = l.airtimePhone.trim();
+      }
+      if (l.airtimeNetwork?.trim()) {
+        row.airtimeNetwork = l.airtimeNetwork.trim();
+      }
+      return row;
+    }),
     payments: body.payments.map((p) => {
       const row: Record<string, unknown> = {
         method: p.method,

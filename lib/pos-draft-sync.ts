@@ -1,6 +1,7 @@
 "use client";
 
 import type { CartSession, CartSessionLine } from "@/lib/cart-session";
+import { isAirtimeCartLine } from "@/lib/airtime-cart-line";
 import {
   createEmptyCartSession,
   MAX_CARTS,
@@ -30,6 +31,7 @@ function parsePrice(raw: string): number | null {
 function linesToInputs(cart: CartSession): PosDraftLineInput[] {
   const out: PosDraftLineInput[] = [];
   for (const line of cart.lines) {
+    if (isAirtimeCartLine(line)) continue;
     const q = parseQty(line.quantity);
     const p = parsePrice(line.unitPrice);
     if (q == null || p == null) continue;
@@ -65,6 +67,10 @@ export function applyPosDraftToCart(
       serverLineId: sl.id,
       // Keep grocery-invoice markers so pay does not double-count invoice lines.
       fromGroceryInvoice: existing?.fromGroceryInvoice,
+      kind: existing?.kind,
+      airtimePhone: existing?.airtimePhone,
+      airtimeNetwork: existing?.airtimeNetwork,
+      airtimeNetworkLabel: existing?.airtimeNetworkLabel,
       item: existing?.item ?? {
         id: sl.itemId,
         name: sl.itemName,
@@ -73,6 +79,7 @@ export function applyPosDraftToCart(
       },
     };
   });
+  lines.push(...remaining.filter((l) => isAirtimeCartLine(l)));
 
   const label =
     opts?.uiVisible && draft.ticketNumber > 0

@@ -132,7 +132,7 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
       const qty = toNumber(item.quantity);
       const unit = toNumber(item.unitPrice);
       lines.push({
-        description: "Item",
+        description: item.lineLabel?.trim() || "Item",
         quantity: qty > 0 ? qty : 1,
         unitPrice: unit,
         lineTotal: roundMoney2(toNumber(item.lineTotal)),

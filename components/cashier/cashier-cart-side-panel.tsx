@@ -1,9 +1,10 @@
 "use client";
 
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ItemSummaryRecord } from "@/lib/api";
+import { isAirtimeCartLine } from "@/lib/airtime-cart-line";
 import {
   cashierItemPrimaryLabel,
   cashierItemTitleParts,
@@ -27,6 +28,7 @@ type CartLineLike = {
   quantity: string;
   unitPrice: string;
   item: ItemSummaryRecord;
+  kind?: "airtime";
 };
 
 type CashierCartSidePanelProps = {
@@ -132,6 +134,7 @@ export function CashierCartSidePanel({
                 const full = cashierItemPrimaryLabel(line.item);
                 const { primary, option } = cashierItemTitleParts(line.item);
                 const sub = lineSubtotal(line);
+                const airtime = isAirtimeCartLine(line);
                 return (
                   <li
                     key={line.key}
@@ -149,7 +152,7 @@ export function CashierCartSidePanel({
                             </p>
                           ) : null}
                         </div>
-                        {allowWeighedToggle && onToggleWeighed ? (
+                        {!airtime && allowWeighedToggle && onToggleWeighed ? (
                           <CashierWeighedToggle
                             weighed={line.item.isWeighed === true}
                             busy={weighedToggleBusyItemId === line.itemId}
@@ -159,7 +162,7 @@ export function CashierCartSidePanel({
                         ) : null}
                       </div>
                       <div className="mt-0.5 flex items-end gap-1.5 text-[10px] tabular-nums text-muted-foreground">
-                        {allowPriceEdit && onEditPrice ? (
+                        {!airtime && allowPriceEdit && onEditPrice ? (
                           <button
                             type="button"
                             className="shrink-0 font-medium text-foreground underline-offset-2 hover:underline"
@@ -173,10 +176,12 @@ export function CashierCartSidePanel({
                         )}
                         <span>
                           ×{" "}
-                          {Number.isFinite(qty)
-                            ? formatCartQtyLabel(qty)
-                            : line.quantity}
-                          {line.item.isWeighed === true ? " kg" : ""}
+                          {airtime
+                            ? "1"
+                            : Number.isFinite(qty)
+                              ? formatCartQtyLabel(qty)
+                              : line.quantity}
+                          {!airtime && line.item.isWeighed === true ? " kg" : ""}
                         </span>
                         <CashierDottedLeader />
                         <span className="shrink-0 font-semibold text-foreground">
@@ -184,21 +189,32 @@ export function CashierCartSidePanel({
                         </span>
                       </div>
                     </div>
-                    <CashierQtyControl
-                      quantity={line.quantity}
-                      itemLabel={full}
-                      size="md"
-                      allowFractions={line.item.isWeighed === true}
-                      unitPrice={line.unitPrice}
-                      currency={currency}
-                      onChange={(next) =>
-                        updateLine(line.key, "quantity", next)
-                      }
-                      onUnitPriceChange={(next) =>
-                        updateLine(line.key, "unitPrice", next)
-                      }
-                      onRemove={() => removeLine(line.key)}
-                    />
+                    {airtime ? (
+                      <button
+                        type="button"
+                        className="flex size-9 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
+                        aria-label={`Remove ${full}`}
+                        onClick={() => removeLine(line.key)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    ) : (
+                      <CashierQtyControl
+                        quantity={line.quantity}
+                        itemLabel={full}
+                        size="md"
+                        allowFractions={line.item.isWeighed === true}
+                        unitPrice={line.unitPrice}
+                        currency={currency}
+                        onChange={(next) =>
+                          updateLine(line.key, "quantity", next)
+                        }
+                        onUnitPriceChange={(next) =>
+                          updateLine(line.key, "unitPrice", next)
+                        }
+                        onRemove={() => removeLine(line.key)}
+                      />
+                    )}
                   </li>
                 );
               })}

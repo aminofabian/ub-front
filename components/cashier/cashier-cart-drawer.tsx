@@ -37,6 +37,7 @@ import {
   cashierItemTitleParts,
 } from "@/lib/cashier-item-display";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
+import { isAirtimeCartLine } from "@/lib/airtime-cart-line";
 import { CashierCurrencySuffix } from "./cashier-currency-inline";
 import {
   CashierQtyControl,
@@ -69,6 +70,7 @@ type CartLineLike = {
   quantity: string;
   unitPrice: string;
   item: ItemSummaryRecord;
+  kind?: "airtime";
 };
 
 function payMethodNeedsCustomer(
@@ -1539,6 +1541,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           const { primary, option } =
                             cashierItemTitleParts(line.item);
                           const unit = Number(line.unitPrice);
+                          const airtime = isAirtimeCartLine(line);
                           return (
                             <li
                               key={line.key}
@@ -1575,7 +1578,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                       </span>
                                     ) : null}
                                   </p>
-                                  {allowWeighedToggle && onToggleWeighed ? (
+                                  {!airtime &&
+                                  allowWeighedToggle &&
+                                  onToggleWeighed ? (
                                     <CashierWeighedToggle
                                       weighed={line.item.isWeighed === true}
                                       busy={
@@ -1592,25 +1597,32 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   {Number.isFinite(unit)
                                     ? unit.toFixed(2)
                                     : line.unitPrice}{" "}
-                                  × {formatCartQtyLabel(line.quantity)}
-                                  {line.item.isWeighed === true ? " kg" : ""}
+                                  ×{" "}
+                                  {airtime
+                                    ? "1"
+                                    : formatCartQtyLabel(line.quantity)}
+                                  {!airtime && line.item.isWeighed === true
+                                    ? " kg"
+                                    : ""}
                                 </p>
                               </div>
-                              <CashierQtyControl
-                                quantity={line.quantity}
-                                itemLabel={full}
-                                size="sm"
-                                allowFractions={line.item.isWeighed === true}
-                                unitPrice={line.unitPrice}
-                                currency={currency}
-                                onChange={(next) =>
-                                  updateLine(line.key, "quantity", next)
-                                }
-                                onUnitPriceChange={(next) =>
-                                  updateLine(line.key, "unitPrice", next)
-                                }
-                                onRemove={() => removeLine(line.key)}
-                              />
+                              {airtime ? null : (
+                                <CashierQtyControl
+                                  quantity={line.quantity}
+                                  itemLabel={full}
+                                  size="sm"
+                                  allowFractions={line.item.isWeighed === true}
+                                  unitPrice={line.unitPrice}
+                                  currency={currency}
+                                  onChange={(next) =>
+                                    updateLine(line.key, "quantity", next)
+                                  }
+                                  onUnitPriceChange={(next) =>
+                                    updateLine(line.key, "unitPrice", next)
+                                  }
+                                  onRemove={() => removeLine(line.key)}
+                                />
+                              )}
                               <span className="w-12 shrink-0 text-right text-[12px] font-bold tabular-nums">
                                 {subtotal.toFixed(2)}
                               </span>

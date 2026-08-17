@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Signal } from "lucide-react";
 
 import { CashierAirtimeDrawer } from "@/components/airtime/cashier-airtime-drawer";
+import type { AirtimeCartPayload } from "@/lib/airtime-cart-line";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ type Props = {
   triggerClassName?: string;
   currency?: string;
   channel?: "POS" | "DASHBOARD";
+  onAddToCart?: (payload: AirtimeCartPayload) => boolean;
 };
 
 /**
@@ -29,6 +31,7 @@ export function AirtimeQuickAction({
   triggerClassName,
   currency,
   channel = "POS",
+  onAddToCart,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [availability, setAvailability] = useState<AirtimeAvailabilityRecord | null>(null);
@@ -86,7 +89,19 @@ export function AirtimeQuickAction({
           showCloseButton={false}
         >
           {open ? (
-            <CashierAirtimeDrawer channel={channel} currency={currency} />
+            <CashierAirtimeDrawer
+              channel={channel}
+              currency={currency}
+              onAddToCart={
+                onAddToCart
+                  ? (payload) => {
+                      const ok = onAddToCart(payload);
+                      if (ok) setOpen(false);
+                      return ok;
+                    }
+                  : undefined
+              }
+            />
           ) : null}
         </DialogContent>
       </Dialog>

@@ -5,6 +5,7 @@ import {
   Banknote,
   Check,
   Loader2,
+  ShoppingCart,
   Signal,
   Smartphone,
   Sparkles,
@@ -35,6 +36,7 @@ import {
   type CustomerRecord,
 } from "@/lib/api";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
+import type { AirtimeCartPayload } from "@/lib/airtime-cart-line";
 import {
   detectKenyanNetwork,
   KENYAN_NETWORKS,
@@ -129,14 +131,19 @@ function PayMethodTile({
 type Props = {
   currency?: string;
   channel?: "POS" | "DASHBOARD";
+  /** When set, the till can park this top-up on the current sale. */
+  onAddToCart?: (payload: AirtimeCartPayload) => boolean;
 };
 
 /**
- * Cashier airtime till: pick the network, collect Cash / M-Pesa / Tab, then
- * send from the Kiosk Pay wallet. Matches checkout drawer tenders so the
- * till does not grow a second payment language.
+ * Cashier airtime till: pick the network, then either add the top-up to the
+ * current sale or collect Cash / M-Pesa / Tab and send immediately.
  */
-export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }: Props) {
+export function CashierAirtimeDrawer({
+  currency: currencyProp,
+  channel = "POS",
+  onAddToCart,
+}: Props) {
   const { me } = useDashboard();
   const online = useOnlineStatus();
   const canLookupCustomers = hasPermission(
@@ -313,19 +320,38 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
     Number.isFinite(tabHeadroom) &&
     amountValue > tabHeadroom;
 
-  const formReady =
+  const lineReady =
     !blocked &&
     phoneOk &&
     amountValid &&
     !overSellable &&
     network != null &&
     !networkMismatch &&
-    (quote?.sellable ?? false) &&
+    (quote?.sellable ?? false);
+
+  const formReady =
+    lineReady &&
     (tender !== "MPESA" || payerOk) &&
     (tender !== "TAB" || Boolean(selectedCustomer)) &&
     !tabWouldExceed;
 
   const canSubmit = !selling && online && formReady;
+  const canAddToCart = Boolean(onAddToCart) && !selling && online && lineReady;
+
+  const addToCart = () => {
+    if (!onAddToCart || !canAddToCart || network == null) return;
+    const networkLabel =
+      KENYAN_NETWORKS.find((n) => n.id === network)?.label ?? network;
+    const ok = onAddToCart({
+      phone: phone.trim(),
+      network,
+      networkLabel,
+      amount: amountValue,
+    });
+    if (!ok) {
+      setError("Could not add airtime to the sale.");
+    }
+  };
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -614,6 +640,12 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
 
           <section>
             <h3 className={styles.label}>How are they paying?</h3>
+            {onAddToCart ? (
+              <p className={cn(styles.hint, "mb-2")}>
+                Add to the sale and they pay at checkout with everything else.
+                Send now only if this is a stand-alone top-up.
+              </p>
+            ) : null}
             <div className={cn(styles.gridPay, canLookupCustomers && styles.three)}>
               <PayMethodTile
                 active={tender === "CASH"}
@@ -773,9 +805,28 @@ export function CashierAirtimeDrawer({ currency: currencyProp, channel = "POS" }
       </div>
 
       <div className={styles.foot}>
+        {onAddToCart ? (
+          <button
+            type="button"
+            className={styles.cta}
+            disabled={!canAddToCart}
+            onClick={addToCart}
+          >
+            {quoting ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <ShoppingCart className="size-4" aria-hidden />
+            )}
+            {quoting
+              ? "Checking…"
+              : amountValid
+                ? `Add ${money(amountValue, currency)} to sale`
+                : "Add to sale"}
+          </button>
+        ) : null}
         <button
           type="button"
-          className={styles.cta}
+          className={onAddToCart ? cn(styles.cta, styles.findSecondary, "mt-2") : styles.cta}
           disabled={!canSubmit}
           onClick={() => void submit()}
         >

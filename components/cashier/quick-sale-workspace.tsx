@@ -101,6 +101,12 @@ import {
   posCartLineSuffix,
 } from "@/lib/cashier-item-display";
 import {
+  buildAirtimeCartLine,
+  dispatchAirtimeForSale,
+  isAirtimeCartLine,
+  type AirtimeCartPayload,
+} from "@/lib/airtime-cart-line";
+import {
   createEmptyCartSession,
   pickActiveCartId,
   resetCartSessionKeepingTab,
@@ -2465,6 +2471,63 @@ export function QuickSaleWorkspace({
     ],
   );
 
+  const addAirtimeToCart = useCallback(
+    (payload: AirtimeCartPayload): boolean => {
+      const inflight = cartsRef.current.find(
+        (c) => c.id === activeCartIdRef.current,
+      )?.stkPushStatus;
+      const blockedMsg = cartEditBlockedByMpesa(inflight ?? "");
+      if (blockedMsg) {
+        toast.error(blockedMsg);
+        return false;
+      }
+      const startingNewSale = lastSale != null;
+      if (startingNewSale) {
+        dismissCompletedSaleUi();
+        setNotice("");
+        setError("");
+      }
+      const newLine = buildAirtimeCartLine(payload);
+      let targetCartId = activeCartId;
+      let didAdd = false;
+      setCarts((prev) => {
+        const { carts: nextCarts, targetId } = resolveCartTargetForAdd(
+          prev,
+          activeCartId,
+        );
+        targetCartId = targetId;
+        return nextCarts.map((cart) => {
+          if (cart.id !== targetId) return cart;
+          if (startingNewSale) {
+            didAdd = true;
+            return {
+              ...resetCartSessionKeepingTab(cart),
+              lines: [newLine],
+            };
+          }
+          didAdd = true;
+          return {
+            ...cart,
+            lines: [...cart.lines, newLine],
+          };
+        });
+      });
+      if (!didAdd) return false;
+      if (targetCartId !== activeCartId) {
+        setActiveCartId(targetCartId);
+      }
+      schedulePosDraftSync(targetCartId, 0);
+      toast.success(`${newLine.label} added to the sale`);
+      return true;
+    },
+    [
+      lastSale,
+      dismissCompletedSaleUi,
+      schedulePosDraftSync,
+      activeCartId,
+    ],
+  );
+
   const removeLine = useCallback(
     (key: string) => {
       const blockedMsg = cartEditBlockedByMpesa(stkPushStatusRef.current);
@@ -2516,6 +2579,10 @@ export function QuickSaleWorkspace({
       for (const cart of carts) {
         const line = cart.lines.find((l) => l.key === lineKey);
         if (line) {
+          if (isAirtimeCartLine(line)) {
+            toast.error("Airtime is not a weighed item.");
+            return;
+          }
           target = {
             itemId: line.itemId,
             next: line.item.isWeighed !== true,
@@ -2597,6 +2664,10 @@ export function QuickSaleWorkspace({
         toast.error(
           "Invoice lines can’t be edited here. Add walk-up items separately if needed.",
         );
+        return;
+      }
+      if (target && isAirtimeCartLine(target)) {
+        toast.error("Remove this airtime line and add it again to change it.");
         return;
       }
       updateActiveCart((cart) => ({
@@ -2989,11 +3060,7 @@ export function QuickSaleWorkspace({
       setNotice("");
       return;
     }
-    const payloadLines: {
-      itemId: string;
-      quantity: number;
-      unitPrice: number;
-    }[] = [];
+    const payloadLines: PostSalePayload["lines"] = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!;
       const q = parseQty(line.quantity);
@@ -3007,6 +3074,23 @@ export function QuickSaleWorkspace({
         setError("Unit price cannot be negative.");
         setNotice("");
         return;
+      }
+      if (isAirtimeCartLine(line)) {
+        const phone = (line.airtimePhone || line.item.sku || "").trim();
+        if (!phone) {
+          setError(`Line ${i + 1} (${line.label}): airtime is missing a phone number.`);
+          setNotice("");
+          return;
+        }
+        payloadLines.push({
+          kind: "AIRTIME",
+          quantity: 1,
+          unitPrice: p,
+          label: line.label,
+          airtimePhone: phone,
+          airtimeNetwork: line.airtimeNetwork || line.airtimeNetworkLabel,
+        });
+        continue;
       }
       const weighed = line.item?.isWeighed === true;
       if (!weighed && Math.abs(q - Math.round(q)) > 1e-9) {
@@ -3040,6 +3124,11 @@ export function QuickSaleWorkspace({
 
     // ── Remote / delivery bill: create grocery invoice + SMS + STK ──
     if (payMethod === "remote_bill") {
+      if (lines.some(isAirtimeCartLine)) {
+        setError("Airtime cannot go on a remote bill — complete it at the till with the sale.");
+        setNotice("");
+        return;
+      }
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         setError("Sending a remote bill requires an online connection.");
         setNotice("");
@@ -3063,11 +3152,17 @@ export function QuickSaleWorkspace({
       try {
         const invoice = await createGroceryInvoice({
           branchId: bid,
-          lines: payloadLines.map((l) => ({
-            itemId: l.itemId,
-            quantity: l.quantity,
-            unitPrice: l.unitPrice,
-          })),
+          lines: payloadLines.flatMap((l) =>
+            l.itemId
+              ? [
+                  {
+                    itemId: l.itemId,
+                    quantity: l.quantity,
+                    unitPrice: l.unitPrice,
+                  },
+                ]
+              : [],
+          ),
           remote: true,
           customerPhone: customerPhoneQuery.trim(),
           customerId: selectedCustomer?.id,
@@ -3321,7 +3416,10 @@ export function QuickSaleWorkspace({
     const receiptCurrency = business?.currency?.trim() || "KES";
     const receiptBusinessName = business?.name?.trim() || "Store";
     const recordTopSellers = () => {
-      recordSaleLines(business?.id ?? null, linesSnapshot);
+      recordSaleLines(
+        business?.id ?? null,
+        linesSnapshot.filter((row) => !row.item.id.startsWith("airtime:")),
+      );
       refreshTopProducts();
     };
 
@@ -3332,6 +3430,10 @@ export function QuickSaleWorkspace({
 
     const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
     if (offlineNow) {
+      if (lines.some(isAirtimeCartLine)) {
+        setError("Airtime needs a live connection so the wallet can fund the telco.");
+        return;
+      }
       if (activeCart.groceryInvoiceId) {
         setError("Grocery invoice payment requires a network connection.");
         return;
@@ -3411,6 +3513,13 @@ export function QuickSaleWorkspace({
     try {
       // ── Grocery invoice payment path ─────────────────────────────────
       if (activeCart.groceryInvoiceId) {
+        if (lines.some(isAirtimeCartLine)) {
+          setLoading(false);
+          setError(
+            "Airtime cannot ride on a grocery invoice. Complete the invoice first, then sell airtime on a new sale.",
+          );
+          return;
+        }
         if (creditChangeToWallet) {
           setLoading(false);
           setError(
@@ -3690,11 +3799,13 @@ export function QuickSaleWorkspace({
         }));
       }
 
+      const airtimeLines = payloadLines.filter((l) => l.kind === "AIRTIME");
       const completeBody = {
         payments,
         ...saleCustomerIdPatch(linkedCustomer),
         clientSoldAt: salePayload.clientSoldAt,
         expectedVersion: draftVersion,
+        ...(airtimeLines.length > 0 ? { additionalLines: airtimeLines } : {}),
       };
 
       let sale: SaleRecord | null = null;
@@ -3780,6 +3891,7 @@ export function QuickSaleWorkspace({
         }
         setVoidNotes("");
         recordTopSellers();
+        const airtimeNote = await dispatchAirtimeForSale(sale.id, receiptCartLines);
         clearCartAfterSale(soldCartId);
         const ticketRef =
           activeCart.ticketNumber != null && activeCart.ticketNumber > 0
@@ -3788,6 +3900,9 @@ export function QuickSaleWorkspace({
         setNotice(
           `Sale ${ticketRef} recorded. Grand total ${grandTotal.toFixed(2)}${business?.currency?.trim() ? ` ${business.currency.trim()}` : ""}.`,
         );
+        if (airtimeNote) {
+          setError(airtimeNote);
+        }
         await refreshOutbox();
         const drain = await flushSaleOutbox();
         await refreshOutbox();
@@ -3816,6 +3931,13 @@ export function QuickSaleWorkspace({
       }
 
       if (failStatus === 0 || failStatus >= 500) {
+        if (lines.some(isAirtimeCartLine)) {
+          setError(
+            failMsg ||
+              "Sale did not go through. Airtime cannot be queued — try checkout again while online.",
+          );
+          return;
+        }
         if (!isSaleOutboxSupported()) {
           setError(failMsg);
           return;
@@ -4217,6 +4339,7 @@ export function QuickSaleWorkspace({
         }
         alwaysShowTopProducts={variant === "cashier"}
         addLine={addLine}
+        onAddAirtimeToCart={addAirtimeToCart}
         canBrowseCategories={canBrowseCategories}
         categoryRoots={categoryRoots}
         visibleCategoryTiles={visibleCategoryTiles}

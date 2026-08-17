@@ -1,7 +1,7 @@
 "use client";
 
 import { apiRequest, ApiRequestError } from "@/lib/api";
-import type { PostSalePaymentPayload, SaleRecord } from "@/lib/api";
+import type { PostSaleLinePayload, PostSalePaymentPayload, SaleRecord } from "@/lib/api";
 
 export const POS_DRAFT_FLAGS = {
   enabled: "pos_drafts.enabled",
@@ -219,6 +219,7 @@ export type CompletePosDraftRequest = {
   customerId?: string | null;
   clientSoldAt?: string | null;
   expectedVersion?: number;
+  additionalLines?: PostSaleLinePayload[];
 };
 
 export type CompletePosDraftResponse = {
