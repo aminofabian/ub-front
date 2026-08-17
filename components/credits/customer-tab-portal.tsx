@@ -21,6 +21,7 @@ import {
   Store,
   Sun,
   Wallet,
+  Zap,
 } from "lucide-react";
 
 import { looksLikeKenyanMobilePath, toKenyanLocal07 } from "@/lib/kenyan-phone";
@@ -37,6 +38,7 @@ import {
 } from "@/lib/public-customer-tab";
 import { PageSealGate } from "@/components/page-seal/page-seal-gate";
 import { TabAirtimeSheet } from "@/components/credits/tab-airtime-sheet";
+import { TabKplcSheet } from "@/components/credits/tab-kplc-sheet";
 import type { PageSealStatus } from "@/lib/page-seal";
 import { buildStorefrontThemeVars } from "@/lib/storefront-theme";
 import { cn } from "@/lib/utils";
@@ -851,11 +853,13 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [walletError, setWalletError] = useState<string | null>(null);
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
   const [airtimeSheetOpen, setAirtimeSheetOpen] = useState(false);
+  const [kplcSheetOpen, setKplcSheetOpen] = useState(false);
   const [airtimeConfig, setAirtimeConfig] = useState<PublicTabAirtimeConfig | null>(null);
 
   const payKeyboardInset = useKeyboardInset(paySheetOpen);
   const walletKeyboardInset = useKeyboardInset(walletSheetOpen);
   const airtimeKeyboardInset = useKeyboardInset(airtimeSheetOpen);
+  const kplcKeyboardInset = useKeyboardInset(kplcSheetOpen);
 
   useEffect(() => {
     setMounted(true);
@@ -1088,6 +1092,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     !notFound &&
     mounted &&
     !sealedLocked;
+  const showKplc = !loading && !notFound && mounted && !sealedLocked;
   const purchaseCount = tab?.purchases?.length ?? 0;
   const tabStats = useMemo(
     () => computeTabStats(tab?.purchases ?? []),
@@ -1292,6 +1297,16 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 <Signal className="size-4" aria-hidden />
               </button>
             ) : null}
+            {showKplc ? (
+              <button
+                type="button"
+                onClick={() => setKplcSheetOpen(true)}
+                className="flex size-9 shrink-0 items-center justify-center border border-[var(--tab-border)] bg-[var(--tab-card)] text-[var(--tab-fg)] active:bg-[var(--tab-bg)]"
+                aria-label="KPLC tokens"
+              >
+                <Zap className="size-4" aria-hidden />
+              </button>
+            ) : null}
             {showWalletTopUp ? (
               <button
                 type="button"
@@ -1423,38 +1438,66 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               )}
             </section>
 
-            {showAirtime ? (
-              <div className="px-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setAirtimeSheetOpen(true)}
-                  className="flex w-full items-center gap-3 border border-[var(--tab-border)] bg-[var(--tab-card)] px-3.5 py-3.5 text-left active:bg-[var(--tab-bg)]"
-                >
-                  <span
-                    className="flex size-11 shrink-0 items-end justify-center gap-[3px] pb-2.5"
-                    aria-hidden
-                    style={{ color: "var(--tab-cta-bg)" }}
+            {showAirtime || showKplc ? (
+              <div className="space-y-2 px-4 pt-4">
+                {showAirtime ? (
+                  <button
+                    type="button"
+                    onClick={() => setAirtimeSheetOpen(true)}
+                    className="flex w-full items-center gap-3 border border-[var(--tab-border)] bg-[var(--tab-card)] px-3.5 py-3.5 text-left active:bg-[var(--tab-bg)]"
                   >
-                    {[10, 14, 18, 22].map((h) => (
-                      <span
-                        key={h}
-                        className="w-[5px] bg-current"
-                        style={{ height: `${h}px` }}
-                      />
-                    ))}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold tracking-[-0.02em]">
-                      Buy airtime
+                    <span
+                      className="flex size-11 shrink-0 items-end justify-center gap-[3px] pb-2.5"
+                      aria-hidden
+                      style={{ color: "var(--tab-cta-bg)" }}
+                    >
+                      {[10, 14, 18, 22].map((h) => (
+                        <span
+                          key={h}
+                          className="w-[5px] bg-current"
+                          style={{ height: `${h}px` }}
+                        />
+                      ))}
                     </span>
-                    <span className="mt-0.5 block text-[13px] text-[var(--tab-muted)]">
-                      Top up {formatPhoneDisplay(phone)} · M-Pesa
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-semibold tracking-[-0.02em]">
+                        Buy airtime
+                      </span>
+                      <span className="mt-0.5 block text-[13px] text-[var(--tab-muted)]">
+                        Top up {formatPhoneDisplay(phone)} · M-Pesa
+                      </span>
                     </span>
-                  </span>
-                  <span className="shrink-0 text-[13px] font-medium text-[var(--tab-muted)]">
-                    Open
-                  </span>
-                </button>
+                    <span className="shrink-0 text-[13px] font-medium text-[var(--tab-muted)]">
+                      Open
+                    </span>
+                  </button>
+                ) : null}
+                {showKplc ? (
+                  <button
+                    type="button"
+                    onClick={() => setKplcSheetOpen(true)}
+                    className="flex w-full items-center gap-3 border border-[var(--tab-border)] bg-[var(--tab-card)] px-3.5 py-3.5 text-left active:bg-[var(--tab-bg)]"
+                  >
+                    <span
+                      className="flex size-11 shrink-0 items-center justify-center"
+                      aria-hidden
+                      style={{ color: "var(--tab-cta-bg)" }}
+                    >
+                      <Zap className="size-6" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-semibold tracking-[-0.02em]">
+                        KPLC tokens
+                      </span>
+                      <span className="mt-0.5 block text-[13px] text-[var(--tab-muted)]">
+                        Look up recent tokens · buying soon
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[13px] font-medium text-[var(--tab-muted)]">
+                      Open
+                    </span>
+                  </button>
+                ) : null}
               </div>
             ) : null}
 
@@ -1742,6 +1785,16 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           keyboardInset={airtimeKeyboardInset}
           fieldIdPrefix={fieldIdPrefix}
           onDelivered={reloadAirtimeConfig}
+        />
+      ) : null}
+
+      {showKplc ? (
+        <TabKplcSheet
+          open={kplcSheetOpen}
+          onClose={() => setKplcSheetOpen(false)}
+          tabPhone={phone}
+          keyboardInset={kplcKeyboardInset}
+          fieldIdPrefix={fieldIdPrefix}
         />
       ) : null}
     </div>

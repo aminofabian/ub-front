@@ -318,3 +318,105 @@ export async function fetchPublicTabAirtimeOrder(
     return null;
   }
 }
+
+export type PublicTabKplcMeter = {
+  meterNumber: string;
+  lastUsedAt: string | null;
+};
+
+export type PublicTabKplcConfig = {
+  purchaseAvailable: boolean;
+  purchaseMessage: string;
+  meters: PublicTabKplcMeter[];
+};
+
+export type PublicTabKplcConcept = {
+  code: string;
+  label: string;
+  kind: string;
+  amount: number | string | null;
+};
+
+export type PublicTabKplcToken = {
+  purchasedAt: string | null;
+  amount: number | string | null;
+  units: number | string | null;
+  tokenNo: string;
+  receiptNo: string | null;
+  paymentMethod: string | null;
+  concepts: PublicTabKplcConcept[];
+};
+
+export type PublicTabKplcHistory = {
+  meterNumber: string;
+  purchaseAvailable: boolean;
+  purchaseMessage: string;
+  tokens: PublicTabKplcToken[];
+};
+
+export async function fetchPublicTabKplcConfig(
+  phone: string,
+): Promise<PublicTabKplcConfig | null> {
+  const p = phone.trim();
+  if (!p) return null;
+  try {
+    const res = await fetch(
+      apiUrl(`/api/v1/public/credits/tabs/${encodeURIComponent(p)}/kplc`),
+      { headers: tenantHostHeaders(), cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as PublicTabKplcConfig;
+  } catch {
+    return null;
+  }
+}
+
+export async function savePublicTabKplcMeter(
+  phone: string,
+  meterNumber: string,
+): Promise<PublicTabKplcConfig> {
+  const res = await fetch(
+    apiUrl(`/api/v1/public/credits/tabs/${encodeURIComponent(phone.trim())}/kplc/meters`),
+    {
+      method: "PUT",
+      headers: {
+        ...(tenantHostHeaders() as Record<string, string>),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ meterNumber }),
+      cache: "no-store",
+    },
+  );
+  return readJson<PublicTabKplcConfig>(res);
+}
+
+export async function removePublicTabKplcMeter(
+  phone: string,
+  meterNumber: string,
+): Promise<PublicTabKplcConfig> {
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/credits/tabs/${encodeURIComponent(phone.trim())}/kplc/meters/${encodeURIComponent(meterNumber.trim())}`,
+    ),
+    {
+      method: "DELETE",
+      headers: tenantHostHeaders(),
+      cache: "no-store",
+    },
+  );
+  return readJson<PublicTabKplcConfig>(res);
+}
+
+export async function fetchPublicTabKplcTokens(
+  phone: string,
+  meterNumber: string,
+): Promise<PublicTabKplcHistory> {
+  const params = new URLSearchParams({ meter: meterNumber.trim() });
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/credits/tabs/${encodeURIComponent(phone.trim())}/kplc/tokens?${params}`,
+    ),
+    { headers: tenantHostHeaders(), cache: "no-store" },
+  );
+  return readJson<PublicTabKplcHistory>(res);
+}

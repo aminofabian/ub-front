@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, ChevronDown, Loader2, Smartphone, X } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, Loader2, Smartphone, X } from "lucide-react";
 
 import {
   createPublicTabAirtimeOrder,
@@ -98,6 +98,7 @@ function PhoneCombobox({
   onOpenChange: (next: boolean) => void;
 }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
   const hasOptions = options.length > 0;
 
   useEffect(() => {
@@ -118,8 +119,15 @@ function PhoneCombobox({
     };
   }, [open, onOpenChange]);
 
+  useEffect(() => {
+    if (!open) return;
+    window.requestAnimationFrame(() => {
+      listRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [open]);
+
   return (
-    <div ref={rootRef} className="relative min-w-0">
+    <div ref={rootRef} className="min-w-0">
       <label htmlFor={id} className="sr-only">
         {label}
       </label>
@@ -148,7 +156,7 @@ function PhoneCombobox({
             type="button"
             tabIndex={-1}
             disabled={disabled}
-            aria-label={`Recent ${label.toLowerCase()} numbers`}
+            aria-label={`Saved ${label.toLowerCase()} numbers`}
             onClick={() => onOpenChange(!open)}
             className="flex w-10 shrink-0 items-center justify-center border border-l-0 border-[var(--tab-border)] bg-[var(--tab-input)] text-[var(--tab-muted)] disabled:opacity-40"
           >
@@ -164,9 +172,10 @@ function PhoneCombobox({
       </div>
       {open && hasOptions ? (
         <ul
+          ref={listRef}
           id={`${id}-list`}
           role="listbox"
-          className="absolute inset-x-0 top-full z-20 mt-1 max-h-44 overflow-y-auto border border-[var(--tab-border)] bg-[var(--tab-card)] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)]"
+          className="mt-1.5 max-h-[min(12.5rem,36dvh)] overflow-y-auto overscroll-contain border border-[var(--tab-border)] bg-[var(--tab-card)]"
         >
           {options.map((opt) => {
             const selected = sameNumber(opt.phone, value);
@@ -221,8 +230,9 @@ type Props = {
 /**
  * Thumb-first airtime purchase for the customer tab.
  *
- * Compact on purpose: network, amount, recipient, and paying number must all
- * fit above the fold so a shopper never scrolls to find who pays.
+ * Numbers live in the sheet flow so saved phones never spill off-screen.
+ * Copy names the two jobs in plain language: who receives airtime, who
+ * gets the M-Pesa PIN prompt.
  */
 export function TabAirtimeSheet({
   open,
@@ -250,6 +260,7 @@ export function TabAirtimeSheet({
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<PublicTabAirtimeOrder | null>(null);
   const [openPicker, setOpenPicker] = useState<"recipient" | "payer" | null>(null);
+  const [payerFollows, setPayerFollows] = useState(true);
   const notifiedDeliveredRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -263,6 +274,7 @@ export function TabAirtimeSheet({
     const nextPayer = stored.lastPayer || defaultPhone;
     setRecipient(nextRecipient);
     setPayer(nextPayer);
+    setPayerFollows(sameNumber(nextRecipient, nextPayer));
     setNetwork(detectKenyanNetwork(nextRecipient));
     setNetworkTouched(false);
     if (stored.lastAmount && stored.lastAmount > 0) {
@@ -332,12 +344,11 @@ export function TabAirtimeSheet({
       out.push({ phone: local, hint });
     };
     add(defaultPhone, "This tab");
-    add(recipient, "Same as To");
     for (const phone of recents.payers) {
       add(phone, "Paid before");
     }
     return out;
-  }, [defaultPhone, recipient, recents.payers]);
+  }, [defaultPhone, recents.payers]);
 
   const lastPair =
     recents.lastRecipient &&
@@ -424,7 +435,7 @@ export function TabAirtimeSheet({
         }}
       />
       <div
-        className="relative flex max-h-[92dvh] w-full flex-col border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] motion-safe:animate-in motion-safe:slide-in-from-bottom-full motion-safe:duration-200 motion-safe:ease-out"
+        className="relative flex max-h-[92dvh] w-full flex-col overflow-hidden border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] motion-safe:animate-in motion-safe:slide-in-from-bottom-full motion-safe:duration-200 motion-safe:ease-out"
         style={{
           paddingBottom: `max(${keyboardInset}px, env(safe-area-inset-bottom))`,
         }}
@@ -479,7 +490,7 @@ export function TabAirtimeSheet({
               </p>
               <p className="mt-1.5 text-[14px] leading-snug text-[var(--tab-muted)]">
                 {order.awaitingPayment
-                  ? `Enter PIN on ${formatPhoneDisplay(payer)}.`
+                  ? `Check ${formatPhoneDisplay(payer)} and enter your M-Pesa PIN.`
                   : "Payment received — sending now."}
               </p>
             </div>
@@ -581,7 +592,7 @@ export function TabAirtimeSheet({
                 )}
               </div>
 
-              <div className="border border-[var(--tab-border)] bg-[var(--tab-bg)]">
+              <div className="space-y-3 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-3">
                 {lastPair &&
                 !(
                   sameNumber(recipient, lastPair.recipient) &&
@@ -593,23 +604,26 @@ export function TabAirtimeSheet({
                     onClick={() => {
                       setRecipient(lastPair.recipient);
                       setPayer(lastPair.payer);
+                      setPayerFollows(
+                        sameNumber(lastPair.recipient, lastPair.payer),
+                      );
                       setNetwork(detectKenyanNetwork(lastPair.recipient));
                       setNetworkTouched(false);
                       setOpenPicker(null);
                       setError(null);
                     }}
-                    className="flex w-full items-center justify-between gap-2 border-b border-[var(--tab-border)] px-3 py-2 text-left disabled:opacity-40"
+                    className="flex w-full items-center justify-between gap-2 border border-[var(--tab-border)] bg-[var(--tab-card)] px-3 py-2 text-left disabled:opacity-40"
                   >
-                    <span className="min-w-0 truncate text-[12px] text-[var(--tab-muted)]">
-                      Last time{" "}
+                    <span className="min-w-0 text-[12px] leading-snug text-[var(--tab-muted)]">
+                      Last time: airtime to{" "}
                       <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
                         {formatPhoneDisplay(lastPair.recipient)}
                       </span>
                       {sameNumber(lastPair.recipient, lastPair.payer) ? (
-                        " paid itself"
+                        ", paid from that same phone"
                       ) : (
                         <>
-                          {" · paid by "}
+                          {", PIN prompt to "}
                           <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
                             {formatPhoneDisplay(lastPair.payer)}
                           </span>
@@ -620,40 +634,94 @@ export function TabAirtimeSheet({
                   </button>
                 ) : null}
 
-                <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-x-2 gap-y-2 px-3 py-2.5">
-                  <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--tab-muted)]">
-                    To
-                  </span>
+                <div>
+                  <p className="text-[14px] font-semibold leading-snug">
+                    Airtime goes to this phone
+                  </p>
+                  <p className="mb-1.5 mt-0.5 text-[12px] leading-snug text-[var(--tab-muted)]">
+                    This is the number that will receive the credit.
+                  </p>
                   <PhoneCombobox
                     id={`${fieldIdPrefix}-airtime-recipient`}
-                    label="Number that receives airtime"
+                    label="Phone that receives airtime"
                     value={recipient}
                     onChange={(next) => {
                       setRecipient(next);
+                      if (payerFollows) setPayer(next);
                       setError(null);
                     }}
                     options={recipientOptions}
                     disabled={locked}
                     open={openPicker === "recipient"}
-                    onOpenChange={(next) => setOpenPicker(next ? "recipient" : null)}
-                  />
-                  <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--tab-muted)]">
-                    Pay
-                  </span>
-                  <PhoneCombobox
-                    id={`${fieldIdPrefix}-airtime-payer`}
-                    label="M-Pesa number that pays"
-                    value={payer}
-                    onChange={(next) => {
-                      setPayer(next);
-                      setError(null);
-                    }}
-                    options={payerOptions}
-                    disabled={locked}
-                    open={openPicker === "payer"}
-                    onOpenChange={(next) => setOpenPicker(next ? "payer" : null)}
+                    onOpenChange={(next) =>
+                      setOpenPicker(next ? "recipient" : null)
+                    }
                   />
                 </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={payerFollows}
+                  disabled={locked}
+                  onClick={() => {
+                    const next = !payerFollows;
+                    setPayerFollows(next);
+                    if (next) setPayer(recipient);
+                    setOpenPicker(null);
+                    setError(null);
+                  }}
+                  className="flex w-full items-start gap-3 border border-[var(--tab-border)] bg-[var(--tab-card)] px-3 py-2.5 text-left disabled:opacity-40"
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 flex size-5 shrink-0 items-center justify-center border",
+                      payerFollows
+                        ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                        : "border-[var(--tab-border)] bg-[var(--tab-input)]",
+                    )}
+                    aria-hidden
+                  >
+                    {payerFollows ? <Check className="size-3.5" /> : null}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[14px] font-semibold leading-snug">
+                      Send the PIN prompt to this same number
+                    </span>
+                    <span className="mt-0.5 block text-[12px] leading-snug text-[var(--tab-muted)]">
+                      {payerFollows
+                        ? `M-Pesa will ask ${formatPhoneDisplay(recipient) || "this phone"} for the PIN.`
+                        : "Turn this on if you are buying for yourself."}
+                    </span>
+                  </span>
+                </button>
+
+                {!payerFollows ? (
+                  <div>
+                    <p className="text-[14px] font-semibold leading-snug">
+                      PIN prompt goes to this phone
+                    </p>
+                    <p className="mb-1.5 mt-0.5 text-[12px] leading-snug text-[var(--tab-muted)]">
+                      After you tap Buy, M-Pesa will ping this number — enter the PIN there.
+                    </p>
+                    <PhoneCombobox
+                      id={`${fieldIdPrefix}-airtime-payer`}
+                      label="Phone that receives the M-Pesa PIN prompt"
+                      value={payer}
+                      onChange={(next) => {
+                        setPayer(next);
+                        setPayerFollows(sameNumber(next, recipient));
+                        setError(null);
+                      }}
+                      options={payerOptions}
+                      disabled={locked}
+                      open={openPicker === "payer"}
+                      onOpenChange={(next) =>
+                        setOpenPicker(next ? "payer" : null)
+                      }
+                    />
+                  </div>
+                ) : null}
               </div>
 
               {networkMismatch && detectedFromPhone ? (
@@ -707,32 +775,62 @@ export function TabAirtimeSheet({
               Waiting for confirmation…
             </p>
           ) : (
-            <button
-              type="button"
-              disabled={!canSubmit}
-              onClick={() => void submit()}
-              className={btnPrimaryClass}
-              style={{
-                backgroundColor: "var(--tab-cta-bg)",
-                color: "var(--tab-cta-fg)",
-              }}
-            >
-              {busy ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Sending prompt…
-                </>
+            <>
+              {recipientOk ? (
+                <div className="mb-2 space-y-0.5 text-[12px] leading-snug text-[var(--tab-muted)]">
+                  <p>
+                    Airtime lands on{" "}
+                    <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+                      {formatPhoneDisplay(recipient)}
+                    </span>
+                    .
+                  </p>
+                  {payerOk ? (
+                    <p>
+                      PIN prompt goes to{" "}
+                      <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+                        {payerFollows || sameNumber(recipient, payer)
+                          ? "that same phone"
+                          : formatPhoneDisplay(payer)}
+                      </span>
+                      .
+                    </p>
+                  ) : (
+                    <p>Add the phone that should get the M-Pesa PIN prompt.</p>
+                  )}
+                </div>
               ) : (
-                <>
-                  <Smartphone className="size-4" />
-                  {amountValid && network
-                    ? `Buy ${networkLabel(network)} ${money(amountNum, currency)}`
-                    : network
-                      ? "Choose an amount"
-                      : "Choose a network"}
-                </>
+                <p className="mb-2 text-[12px] leading-snug text-[var(--tab-muted)]">
+                  Enter the phone that should receive the airtime.
+                </p>
               )}
-            </button>
+              <button
+                type="button"
+                disabled={!canSubmit}
+                onClick={() => void submit()}
+                className={btnPrimaryClass}
+                style={{
+                  backgroundColor: "var(--tab-cta-bg)",
+                  color: "var(--tab-cta-fg)",
+                }}
+              >
+                {busy ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Sending prompt…
+                  </>
+                ) : (
+                  <>
+                    <Smartphone className="size-4" />
+                    {amountValid && network
+                      ? `Buy ${networkLabel(network)} ${money(amountNum, currency)}`
+                      : network
+                        ? "Choose an amount"
+                        : "Choose a network"}
+                  </>
+                )}
+              </button>
+            </>
           )}
         </div>
       </div>
