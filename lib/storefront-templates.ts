@@ -22,7 +22,8 @@ export type LandingTemplateId =
   | "fresh-market"
   | "butchery-cut"
   | "minimart-hours"
-  | "brand-poster";
+  | "brand-poster"
+  | "front-window";
 
 export type TemplateKind = "store" | "landing";
 
@@ -65,6 +66,7 @@ export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
   "butchery-cut",
   "minimart-hours",
   "brand-poster",
+  "front-window",
 ] as const;
 
 export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
@@ -196,6 +198,15 @@ export const LANDING_TEMPLATE_META: readonly StorefrontTemplateMeta[] = [
     previewFrom: "#FAFAF9",
     previewTo: "#E7E5E4",
     accent: "#171717",
+  },
+  {
+    id: "front-window",
+    kind: "landing",
+    name: "Front window",
+    blurb: "Brochure site — lit shop window hero, story, what we carry, visit & contact.",
+    previewFrom: "#1A1428",
+    previewTo: "#FAF7F2",
+    accent: "#0F766E",
   },
 ];
 

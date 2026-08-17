@@ -55,6 +55,8 @@ function ArtForId({ id }: { id: string }) {
       return <MinimartHoursArt />;
     case "brand-poster":
       return <BrandPosterArt />;
+    case "front-window":
+      return <FrontWindowArt />;
     default:
       return <MartArt />;
   }
@@ -455,6 +457,46 @@ function BrandPosterArt() {
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <div className="size-16 rounded-2xl bg-stone-900" />
         <div className="h-2 w-24 rounded bg-stone-400" />
+      </div>
+    </Frame>
+  );
+}
+
+function FrontWindowArt() {
+  return (
+    <Frame paper="#1A1428" ink="#FAF7F2">
+      <div className="flex flex-1 flex-col">
+        <div className="flex items-center justify-between border-b border-white/10 px-3 py-1.5">
+          <span className="font-serif text-[10px] italic text-[#FAF7F2]">
+            Cloud 9
+          </span>
+          <span className="text-[7px] uppercase tracking-widest text-white/40">
+            Visit
+          </span>
+        </div>
+        <div className="relative flex-1 p-2">
+          <div className="h-full border-4 border-[#3D2E22] bg-gradient-to-b from-[#2D2240] to-[#1A1428] p-2">
+            <div
+              className="pointer-events-none absolute inset-4 border border-[#3D2E22]/80"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent 49.5%, #3D2E22 49.5%, #3D2E22 50.5%, transparent 50.5%), linear-gradient(0deg, transparent 58%, #3D2E22 58%, #3D2E22 60%, transparent 60%)",
+              }}
+            />
+            <div className="relative z-10 flex h-full flex-col justify-end p-2">
+              <div className="h-2 w-3/4 rounded bg-[#FAF7F2]/80" />
+              <div className="mt-1.5 h-1.5 w-1/2 rounded bg-[#FAF7F2]/40" />
+              <div className="mt-2 h-4 w-14 rounded bg-[#0F766E]" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-[#FAF7F2] px-3 py-2 text-[#1E1814]">
+          <div className="grid grid-cols-3 gap-1">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-6 rounded-sm bg-[#F0E8DC]" />
+            ))}
+          </div>
+        </div>
       </div>
     </Frame>
   );

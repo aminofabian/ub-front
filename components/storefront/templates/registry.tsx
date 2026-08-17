@@ -4,6 +4,7 @@ import { BrandPosterLanding } from "@/components/storefront/templates/landing/br
 import { ButcheryCutLanding } from "@/components/storefront/templates/landing/butchery-cut";
 import { ComingSoonEditorialLanding } from "@/components/storefront/templates/landing/coming-soon-editorial";
 import { FreshMarketLanding } from "@/components/storefront/templates/landing/fresh-market";
+import { FrontWindowLanding } from "@/components/storefront/templates/landing/front-window";
 import { MinimartHoursLanding } from "@/components/storefront/templates/landing/minimart-hours";
 import { NeighborhoodBoardLanding } from "@/components/storefront/templates/landing/neighborhood-board";
 import { BoutiqueShelfStoreHome } from "@/components/storefront/templates/store/boutique-shelf-home";
@@ -49,6 +50,7 @@ const LANDING_PAGES: Record<
   "butchery-cut": ButcheryCutLanding,
   "minimart-hours": MinimartHoursLanding,
   "brand-poster": BrandPosterLanding,
+  "front-window": FrontWindowLanding,
 };
 
 export type StoreChromeVariant =
