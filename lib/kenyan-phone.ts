@@ -76,6 +76,14 @@ export function detectKenyanNetwork(raw: string): KenyanNetwork | null {
   return null;
 }
 
+export const KENYAN_NETWORKS: { id: KenyanNetwork; label: string }[] = [
+  { id: "SAFARICOM", label: "Safaricom" },
+  { id: "AIRTEL", label: "Airtel" },
+  { id: "TELKOM", label: "Telkom" },
+  { id: "EQUITEL", label: "Equitel" },
+  { id: "JTL", label: "JTL" },
+];
+
 /**
  * Pull the first Kenyan mobile from free-form remittance text
  * (e.g. "send money: 0710514157").

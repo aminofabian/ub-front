@@ -11,6 +11,7 @@ import {
 } from "@/lib/public-customer-tab";
 import {
   detectKenyanNetwork,
+  KENYAN_NETWORKS,
   looksLikeKenyanMobilePath,
   toKenyanLocal07,
   type KenyanNetwork,
@@ -24,13 +25,8 @@ const fieldClass =
 const btnPrimaryClass =
   "flex w-full items-center justify-center gap-2 py-3.5 text-[15px] font-semibold transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tab-card)] active:opacity-85 disabled:cursor-not-allowed disabled:opacity-45";
 
-const NETWORK_LABEL: Record<KenyanNetwork, string> = {
-  SAFARICOM: "Safaricom",
-  AIRTEL: "Airtel",
-  TELKOM: "Telkom",
-  EQUITEL: "Equitel",
-  JTL: "JTL",
-};
+const btnQuietClass =
+  "text-[13px] font-medium text-[var(--tab-muted)] underline-offset-2 hover:underline disabled:opacity-40";
 
 function money(n: number, currency: string) {
   return formatMoneyCompact(n, resolveCurrencyCode(currency));
@@ -42,6 +38,10 @@ function formatPhoneDisplay(raw: string): string {
     return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
   }
   return raw;
+}
+
+function networkLabel(id: KenyanNetwork | null): string {
+  return KENYAN_NETWORKS.find((n) => n.id === id)?.label ?? "this network";
 }
 
 function SignalBars({
@@ -90,9 +90,9 @@ type Props = {
 /**
  * Thumb-first airtime purchase for the customer tab.
  *
- * The line on the tab is the default recipient. Amounts are a 3-up keypad of
- * large chips, then one M-Pesa prompt. Delivery is confirmed by polling the
- * order — Instalipa finishes over a callback, not in the STK response.
+ * Network, the line being topped up, and the M-Pesa paying number are all on
+ * the first screen — Instalipa still routes from the MSISDN, but Kenyan
+ * shoppers expect to tap Safaricom / Airtel before they pay.
  */
 export function TabAirtimeSheet({
   open,
@@ -105,21 +105,24 @@ export function TabAirtimeSheet({
   const currency = config.currency || "KES";
   const defaultPhone = toKenyanLocal07(tabPhone) || tabPhone;
   const [amount, setAmount] = useState("");
-  const [otherLine, setOtherLine] = useState(false);
   const [recipient, setRecipient] = useState(defaultPhone);
-  const [samePayer, setSamePayer] = useState(true);
   const [payer, setPayer] = useState(defaultPhone);
+  const [network, setNetwork] = useState<KenyanNetwork | null>(
+    detectKenyanNetwork(defaultPhone),
+  );
+  const [networkTouched, setNetworkTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<PublicTabAirtimeOrder | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    const detected = detectKenyanNetwork(defaultPhone);
     setAmount("");
-    setOtherLine(false);
     setRecipient(defaultPhone);
-    setSamePayer(true);
     setPayer(defaultPhone);
+    setNetwork(detected);
+    setNetworkTouched(false);
     setBusy(false);
     setError(null);
     setOrder(null);
@@ -131,11 +134,13 @@ export function TabAirtimeSheet({
   const amountValid =
     Number.isFinite(amountNum) && amountNum >= min && amountNum <= max;
 
-  const liveRecipient = otherLine ? recipient : defaultPhone;
-  const livePayer = samePayer ? liveRecipient : payer;
-  const recipientOk = looksLikeKenyanMobilePath(liveRecipient);
-  const payerOk = looksLikeKenyanMobilePath(livePayer);
-  const network = detectKenyanNetwork(liveRecipient);
+  const recipientOk = looksLikeKenyanMobilePath(recipient);
+  const payerOk = looksLikeKenyanMobilePath(payer);
+  const detectedFromPhone = detectKenyanNetwork(recipient);
+  const networkMismatch =
+    Boolean(network) &&
+    Boolean(detectedFromPhone) &&
+    network !== detectedFromPhone;
 
   const quickAmounts = useMemo(() => {
     const list = config.quickAmounts?.length
@@ -147,6 +152,13 @@ export function TabAirtimeSheet({
   const fill = amountValid ? Math.min(1, (amountNum - min) / Math.max(1, max - min)) : 0;
   const inFlight = Boolean(order && !order.delivered && !order.failed);
   const locked = busy || inFlight;
+  const canSubmit =
+    !locked && amountValid && recipientOk && payerOk && network != null && !networkMismatch;
+
+  useEffect(() => {
+    if (networkTouched) return;
+    if (detectedFromPhone) setNetwork(detectedFromPhone);
+  }, [detectedFromPhone, networkTouched]);
 
   useEffect(() => {
     if (!order || order.delivered || order.failed) return;
@@ -172,14 +184,14 @@ export function TabAirtimeSheet({
   }, [order, tabPhone]);
 
   const submit = async () => {
-    if (!amountValid || !recipientOk || !payerOk || locked) return;
+    if (!canSubmit || network == null) return;
     setBusy(true);
     setError(null);
     try {
       const created = await createPublicTabAirtimeOrder(tabPhone, {
-        phoneNumber: liveRecipient.trim(),
+        phoneNumber: recipient.trim(),
         amount: amountNum,
-        payerPhone: samePayer ? undefined : livePayer.trim(),
+        payerPhone: payer.trim(),
       });
       setOrder(created);
       if (created.failed) {
@@ -195,6 +207,9 @@ export function TabAirtimeSheet({
   if (!open) return null;
 
   const canClose = !busy && !inFlight;
+  const samePhones =
+    (toKenyanLocal07(recipient) || recipient.replace(/\D/g, "")) ===
+    (toKenyanLocal07(payer) || payer.replace(/\D/g, ""));
 
   return (
     <div
@@ -231,7 +246,7 @@ export function TabAirtimeSheet({
               Buy airtime
             </h2>
             <p className="mt-1 text-[14px] text-[var(--tab-muted)]">
-              Any Kenyan network. One M-Pesa PIN.
+              Pick the network, then who pays.
             </p>
           </div>
           <button
@@ -277,95 +292,156 @@ export function TabAirtimeSheet({
               </p>
               <p className="mt-2 text-[14px] leading-relaxed text-[var(--tab-muted)]">
                 {order.awaitingPayment
-                  ? `Check ${formatPhoneDisplay(livePayer)} and enter your M-Pesa PIN.`
+                  ? `Check ${formatPhoneDisplay(payer)} and enter your M-Pesa PIN.`
                   : "Payment received — sending your airtime now."}
               </p>
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between gap-3 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-3">
-                <div className="min-w-0">
-                  <p className="text-[13px] font-medium text-[var(--tab-muted)]">
-                    {otherLine ? "Sending to" : "This line"}
-                  </p>
-                  <p className="mt-0.5 truncate text-[16px] font-semibold tabular-nums tracking-wide">
-                    {formatPhoneDisplay(liveRecipient)}
-                  </p>
+              <fieldset disabled={locked} className="min-w-0">
+                <legend className="text-[13px] font-medium">Network</legend>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {KENYAN_NETWORKS.slice(0, 3).map((n) => {
+                    const selected = network === n.id;
+                    return (
+                      <button
+                        key={n.id}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => {
+                          setNetwork(n.id);
+                          setNetworkTouched(true);
+                          setError(null);
+                        }}
+                        className={cn(
+                          "min-h-12 border px-2 py-3 text-[14px] font-semibold disabled:opacity-40",
+                          selected
+                            ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                            : "border-[var(--tab-border)] bg-[var(--tab-input)]",
+                        )}
+                      >
+                        {n.label}
+                      </button>
+                    );
+                  })}
                 </div>
-                {network ? (
-                  <span className="shrink-0 border border-[var(--tab-border)] bg-[var(--tab-card)] px-2 py-1 text-[11px] font-bold uppercase tracking-[0.08em]">
-                    {NETWORK_LABEL[network]}
-                  </span>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {KENYAN_NETWORKS.slice(3).map((n) => {
+                    const selected = network === n.id;
+                    return (
+                      <button
+                        key={n.id}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => {
+                          setNetwork(n.id);
+                          setNetworkTouched(true);
+                          setError(null);
+                        }}
+                        className={cn(
+                          "min-h-12 border px-2 py-3 text-[14px] font-semibold disabled:opacity-40",
+                          selected
+                            ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                            : "border-[var(--tab-border)] bg-[var(--tab-input)]",
+                        )}
+                      >
+                        {n.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
+              <div className="mt-5">
+                <label
+                  htmlFor={`${fieldIdPrefix}-airtime-recipient`}
+                  className="mb-1.5 block text-[13px] font-medium"
+                >
+                  Number that receives airtime
+                </label>
+                <input
+                  id={`${fieldIdPrefix}-airtime-recipient`}
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={recipient}
+                  disabled={locked}
+                  onChange={(e) => {
+                    setRecipient(e.target.value);
+                    setError(null);
+                  }}
+                  onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+                  className={cn(fieldClass, "text-[18px] font-bold tracking-wide")}
+                  placeholder="07…"
+                />
+                {recipient !== defaultPhone ? (
+                  <button
+                    type="button"
+                    disabled={locked}
+                    onClick={() => {
+                      setRecipient(defaultPhone);
+                      setError(null);
+                    }}
+                    className={cn(btnQuietClass, "mt-2")}
+                  >
+                    Use this tab’s number · {formatPhoneDisplay(defaultPhone)}
+                  </button>
+                ) : (
+                  <p className="mt-1.5 text-[13px] text-[var(--tab-muted)]">
+                    This tab’s number — change it to top up someone else.
+                  </p>
+                )}
+                {networkMismatch && detectedFromPhone ? (
+                  <p
+                    role="status"
+                    className="mt-3 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2 text-[13px] leading-relaxed"
+                  >
+                    That number looks like {networkLabel(detectedFromPhone)}, not{" "}
+                    {networkLabel(network)}.{" "}
+                    <button
+                      type="button"
+                      className="font-semibold underline underline-offset-2"
+                      onClick={() => {
+                        setNetwork(detectedFromPhone);
+                        setNetworkTouched(true);
+                        setError(null);
+                      }}
+                    >
+                      Switch to {networkLabel(detectedFromPhone)}
+                    </button>
+                  </p>
                 ) : null}
               </div>
 
-              <button
-                type="button"
-                disabled={locked}
-                onClick={() => {
-                  setOtherLine((v) => !v);
-                  setError(null);
-                }}
-                className="mt-2 text-[13px] font-medium text-[var(--tab-muted)] underline-offset-2 hover:underline disabled:opacity-40"
-              >
-                {otherLine ? "Use this tab’s number instead" : "Send to a different number"}
-              </button>
-
-              {otherLine ? (
-                <div className="mt-3">
-                  <label
-                    htmlFor={`${fieldIdPrefix}-airtime-recipient`}
-                    className="mb-1.5 block text-[13px] font-medium"
-                  >
-                    Number to top up
-                  </label>
-                  <input
-                    id={`${fieldIdPrefix}-airtime-recipient`}
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    value={recipient}
-                    disabled={locked}
-                    onChange={(e) => {
-                      setRecipient(e.target.value);
-                      setError(null);
-                    }}
-                    onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                    className={cn(fieldClass, "text-[18px] font-bold tracking-wide")}
-                    placeholder="07…"
-                  />
+              <div className="mt-5">
+                <p className="text-[13px] font-medium">Amount</p>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {quickAmounts.map((n) => {
+                    const selected = amountValid && Math.abs(amountNum - n) < 0.001;
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        disabled={locked}
+                        onClick={() => {
+                          setAmount(String(n));
+                          setError(null);
+                        }}
+                        className={cn(
+                          "min-h-12 border py-3 text-[15px] font-bold tabular-nums disabled:opacity-40",
+                          selected
+                            ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                            : "border-[var(--tab-border)] bg-[var(--tab-input)]",
+                        )}
+                      >
+                        {n.toLocaleString("en-KE")}
+                      </button>
+                    );
+                  })}
                 </div>
-              ) : null}
-
-              <p className="mt-5 text-[13px] font-medium">Amount</p>
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                {quickAmounts.map((n) => {
-                  const selected = amountValid && Math.abs(amountNum - n) < 0.001;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      disabled={locked}
-                      onClick={() => {
-                        setAmount(String(n));
-                        setError(null);
-                      }}
-                      className={cn(
-                        "min-h-12 border py-3 text-[15px] font-bold tabular-nums disabled:opacity-40",
-                        selected
-                          ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
-                          : "border-[var(--tab-border)] bg-[var(--tab-input)]",
-                      )}
-                    >
-                      {n.toLocaleString("en-KE")}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mt-3">
                 <label
                   htmlFor={`${fieldIdPrefix}-airtime-amount`}
-                  className="mb-1.5 block text-[13px] font-medium"
+                  className="mb-1.5 mt-3 block text-[13px] font-medium"
                 >
                   Other amount
                 </label>
@@ -388,41 +464,46 @@ export function TabAirtimeSheet({
                 />
               </div>
 
-              <label className="mt-5 flex cursor-pointer items-center justify-between gap-3 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-3 text-[14px] font-medium">
-                <span>Pay from this same number</span>
+              <div className="mt-5">
+                <label
+                  htmlFor={`${fieldIdPrefix}-airtime-payer`}
+                  className="mb-1.5 block text-[13px] font-medium"
+                >
+                  M-Pesa number that pays
+                </label>
                 <input
-                  type="checkbox"
-                  className="size-5 accent-current"
-                  checked={samePayer}
+                  id={`${fieldIdPrefix}-airtime-payer`}
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={payer}
                   disabled={locked}
-                  onChange={(e) => setSamePayer(e.target.checked)}
+                  onChange={(e) => {
+                    setPayer(e.target.value);
+                    setError(null);
+                  }}
+                  onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+                  className={cn(fieldClass, "text-[18px] font-bold tracking-wide")}
+                  placeholder="07…"
                 />
-              </label>
-              {!samePayer ? (
-                <div className="mt-3">
-                  <label
-                    htmlFor={`${fieldIdPrefix}-airtime-payer`}
-                    className="mb-1.5 block text-[13px] font-medium"
-                  >
-                    M-Pesa number to charge
-                  </label>
-                  <input
-                    id={`${fieldIdPrefix}-airtime-payer`}
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    value={payer}
+                <p className="mt-1.5 text-[13px] text-[var(--tab-muted)]">
+                  The STK prompt and PIN go to this phone — it can be different
+                  from the line receiving airtime.
+                </p>
+                {!samePhones ? (
+                  <button
+                    type="button"
                     disabled={locked}
-                    onChange={(e) => {
-                      setPayer(e.target.value);
+                    onClick={() => {
+                      setPayer(recipient);
                       setError(null);
                     }}
-                    onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                    className={cn(fieldClass, "text-[18px] font-bold tracking-wide")}
-                    placeholder="07…"
-                  />
-                </div>
-              ) : null}
+                    className={cn(btnQuietClass, "mt-2")}
+                  >
+                    Pay from the same number as above
+                  </button>
+                ) : null}
+              </div>
 
               {error ? (
                 <p
@@ -457,7 +538,7 @@ export function TabAirtimeSheet({
           ) : (
             <button
               type="button"
-              disabled={locked || !amountValid || !recipientOk || !payerOk}
+              disabled={!canSubmit}
               onClick={() => void submit()}
               className={btnPrimaryClass}
               style={{
@@ -473,9 +554,11 @@ export function TabAirtimeSheet({
               ) : (
                 <>
                   <Smartphone className="size-4" />
-                  {amountValid
-                    ? `Buy ${money(amountNum, currency)} with M-Pesa`
-                    : "Buy airtime with M-Pesa"}
+                  {amountValid && network
+                    ? `Buy ${networkLabel(network)} ${money(amountNum, currency)}`
+                    : network
+                      ? "Choose an amount"
+                      : "Choose a network"}
                 </>
               )}
             </button>

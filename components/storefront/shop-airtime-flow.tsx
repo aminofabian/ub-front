@@ -12,6 +12,12 @@ import {
   type PublicAirtimeOrder,
 } from "@/lib/public-storefront-client";
 import { formatDisplayPrice } from "@/lib/public-storefront";
+import {
+  detectKenyanNetwork,
+  KENYAN_NETWORKS,
+  looksLikeKenyanMobilePath,
+  type KenyanNetwork,
+} from "@/lib/kenyan-phone";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -44,7 +50,8 @@ export function ShopAirtimeFlow({
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [payer, setPayer] = useState("");
-  const [samePayer, setSamePayer] = useState(true);
+  const [network, setNetwork] = useState<KenyanNetwork | null>(null);
+  const [networkTouched, setNetworkTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [order, setOrder] = useState<PublicAirtimeOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,17 +83,30 @@ export function ShopAirtimeFlow({
   );
 
   const recipientDigits = recipient.replace(/\D/g, "");
+  const detectedFromPhone = detectKenyanNetwork(recipient);
+  const networkMismatch =
+    Boolean(network) &&
+    Boolean(detectedFromPhone) &&
+    network !== detectedFromPhone;
   const amountValue = Number(amount);
   const amountValid =
     Number.isFinite(amountValue) &&
     amountValue >= (config?.minAmount ?? 1) &&
     amountValue <= (config?.maxAmount ?? Number.POSITIVE_INFINITY);
+  const payerOk = looksLikeKenyanMobilePath(payer || recipient);
   const canSubmit =
     !submitting &&
     config?.available === true &&
     recipientDigits.length >= 9 &&
     amountValid &&
-    (samePayer || payer.replace(/\D/g, "").length >= 9);
+    network != null &&
+    !networkMismatch &&
+    payerOk;
+
+  useEffect(() => {
+    if (networkTouched) return;
+    if (detectedFromPhone) setNetwork(detectedFromPhone);
+  }, [detectedFromPhone, networkTouched]);
 
   // Delivery lands on an Instalipa callback, so watch the order until it settles.
   useEffect(() => {
@@ -126,7 +146,7 @@ export function ShopAirtimeFlow({
       const created = await createPublicAirtimeOrderBrowser(slug, {
         phoneNumber: recipient.trim(),
         amount: amountValue,
-        payerPhone: samePayer ? undefined : payer.trim(),
+        payerPhone: (payer.trim() || recipient).trim(),
       });
       setOrder(created);
       if (created.failed) {
@@ -143,6 +163,7 @@ export function ShopAirtimeFlow({
     setOrder(null);
     setAmount("");
     setError(null);
+    setNetworkTouched(false);
   };
 
   if (loading) {
@@ -228,28 +249,99 @@ export function ShopAirtimeFlow({
 
   return (
     <div className={cn("space-y-4", className)}>
+      <fieldset>
+        <legend className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          Network
+        </legend>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {KENYAN_NETWORKS.slice(0, 3).map((n) => {
+            const selected = network === n.id;
+            return (
+              <button
+                key={n.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => {
+                  setNetwork(n.id);
+                  setNetworkTouched(true);
+                }}
+                className={cn(
+                  "min-h-12 rounded-xl border py-2.5 text-sm font-bold transition-all active:scale-[0.98]",
+                  selected
+                    ? "border-transparent text-white shadow-sm"
+                    : "border-border/70 bg-background text-foreground hover:border-foreground/30",
+                  selected && !accent && "bg-primary",
+                )}
+                style={selected && accent ? { backgroundColor: accent } : undefined}
+              >
+                {n.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {KENYAN_NETWORKS.slice(3).map((n) => {
+            const selected = network === n.id;
+            return (
+              <button
+                key={n.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => {
+                  setNetwork(n.id);
+                  setNetworkTouched(true);
+                }}
+                className={cn(
+                  "min-h-12 rounded-xl border py-2.5 text-sm font-bold transition-all active:scale-[0.98]",
+                  selected
+                    ? "border-transparent text-white shadow-sm"
+                    : "border-border/70 bg-background text-foreground hover:border-foreground/30",
+                  selected && !accent && "bg-primary",
+                )}
+                style={selected && accent ? { backgroundColor: accent } : undefined}
+              >
+                {n.label}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
       <label className="block space-y-1.5">
         <span className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-          Airtime for
+          Number that receives airtime
         </span>
-        <div className="relative">
-          <input
-            type="tel"
-            inputMode="tel"
-            className="w-full rounded-xl border border-input bg-background px-4 py-3 pr-24 font-heading text-lg tabular-nums tracking-wide shadow-sm"
-            placeholder="07…"
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") amountRef.current?.focus();
-            }}
-          />
-          {order == null && recipientDigits.length >= 9 ? (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md bg-muted px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-              Any network
-            </span>
-          ) : null}
-        </div>
+        <input
+          type="tel"
+          inputMode="tel"
+          className="w-full rounded-xl border border-input bg-background px-4 py-3 font-heading text-lg tabular-nums tracking-wide shadow-sm"
+          placeholder="07…"
+          value={recipient}
+          onChange={(e) => {
+            const next = e.target.value;
+            setRecipient(next);
+            if (!payer) setPayer(next);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") amountRef.current?.focus();
+          }}
+        />
+        {networkMismatch && detectedFromPhone ? (
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            That number looks like{" "}
+            {KENYAN_NETWORKS.find((n) => n.id === detectedFromPhone)?.label}.{" "}
+            <button
+              type="button"
+              className="font-semibold underline underline-offset-2"
+              onClick={() => {
+                setNetwork(detectedFromPhone);
+                setNetworkTouched(true);
+              }}
+            >
+              Switch network
+            </button>
+          </p>
+        ) : null}
       </label>
 
       <div className="space-y-2">
@@ -294,27 +386,22 @@ export function ShopAirtimeFlow({
         />
       </div>
 
-      <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-        <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
-          <span className="font-medium">Pay from this same number</span>
-          <input
-            type="checkbox"
-            className="size-4 accent-current"
-            checked={samePayer}
-            onChange={(e) => setSamePayer(e.target.checked)}
-          />
-        </label>
-        {!samePayer ? (
-          <input
-            type="tel"
-            inputMode="tel"
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums shadow-sm"
-            placeholder="M-Pesa number to charge"
-            value={payer}
-            onChange={(e) => setPayer(e.target.value)}
-          />
-        ) : null}
-      </div>
+      <label className="block space-y-1.5">
+        <span className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          M-Pesa number that pays
+        </span>
+        <input
+          type="tel"
+          inputMode="tel"
+          className="w-full rounded-xl border border-input bg-background px-4 py-3 font-heading text-lg tabular-nums tracking-wide shadow-sm"
+          placeholder="07… — PIN is entered here"
+          value={payer}
+          onChange={(e) => setPayer(e.target.value)}
+        />
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Change this if someone else is paying. The STK prompt lands on this phone.
+        </p>
+      </label>
 
       {error ? <p className="text-xs font-medium text-rose-700">{error}</p> : null}
 
