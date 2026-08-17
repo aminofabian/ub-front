@@ -6,6 +6,10 @@ export type SaleTransaction = {
   soldAt: string;
   cashierName: string;
   customerName: string;
+  customerId: string | null;
+  customerNo: number | null;
+  customerMaskedHint: string | null;
+  customerPhoneVerified: boolean;
   paymentMethod: string;
   paymentMethods: string | null;
   channel: string;
@@ -52,6 +56,10 @@ export function groupLinesIntoTransactions(
         soldAt: row.soldAt,
         cashierName: row.cashierName,
         customerName: row.customerName,
+        customerId: row.customerId ?? null,
+        customerNo: row.customerNo ?? null,
+        customerMaskedHint: row.customerMaskedHint ?? null,
+        customerPhoneVerified: Boolean(row.customerPhoneVerified),
         paymentMethod: row.paymentMethod,
         paymentMethods: row.paymentMethods ?? null,
         channel: row.channel ?? "walk_in",

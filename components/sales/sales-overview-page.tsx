@@ -303,6 +303,8 @@ function saleMetaParts(tx: SaleTransaction): string[] {
       parts.push(customer);
     }
   }
+  if (tx.customerNo != null) parts.push(`C-${tx.customerNo}`);
+  if (tx.customerMaskedHint) parts.push(tx.customerMaskedHint);
   return parts;
 }
 
@@ -364,12 +366,31 @@ function SaleGroup({
                 Verified
               </span>
             ) : null}
+            {tx.customerId && !tx.customerPhoneVerified && tx.customerMaskedHint ? (
+              <span
+                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-amber-50 text-amber-800"
+                title="M-Pesa number is still masked until the customer fills the missing digits"
+              >
+                Unverified number
+              </span>
+            ) : null}
             <span className="text-[11px] text-muted-foreground">
               {formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime })}
             </span>
           </div>
           {meta.length > 0 ? (
-            <p className="text-xs font-medium text-foreground/75">{meta.join(" · ")}</p>
+            <p className="text-xs font-medium text-foreground/75">
+              {tx.customerId ? (
+                <Link
+                  href={APP_ROUTES.customer(tx.customerId)}
+                  className="text-primary hover:underline"
+                >
+                  {meta.join(" · ")}
+                </Link>
+              ) : (
+                meta.join(" · ")
+              )}
+            </p>
           ) : null}
         </div>
 

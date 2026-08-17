@@ -4844,6 +4844,10 @@ export type RecentSaleRow = {
   status: string;
   /** True when M-Pesa was confirmed via KopoKopo webhook/STK. */
   mpesaVerified?: boolean | null;
+  customerId?: string | null;
+  customerNo?: number | null;
+  customerMaskedHint?: string | null;
+  customerPhoneVerified?: boolean | null;
 };
 
 export async function fetchRecentSales(
@@ -8762,7 +8766,10 @@ export async function createSupplierContact(
 
 export type CustomerPhoneRecord = {
   id: string;
-  phone: string;
+  phone: string | null;
+  maskedMsisdn?: string | null;
+  assignedMsisdn?: string | null;
+  maskedHint?: string | null;
   primary: boolean;
   verifiedAt?: string | null;
   createdAt: string;
@@ -8778,7 +8785,11 @@ export type CreditAccountSummaryRecord = {
 
 export type CustomerRecord = {
   id: string;
+  customerNo?: number | null;
   name: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  origin?: string | null;
   email: string | null;
   notes: string | null;
   version: number;
@@ -8830,6 +8841,33 @@ export async function verifyCustomerPhoneVerification(
     {
       method: "POST",
       body: { phone, code },
+    },
+  );
+}
+
+export async function sendCustomerRevealPhone(
+  customerId: string,
+  missingDigits: string,
+): Promise<SendCustomerPhoneVerificationResult> {
+  return request<SendCustomerPhoneVerificationResult>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/reveal-phone`,
+    {
+      method: "POST",
+      body: { missingDigits },
+    },
+  );
+}
+
+export async function verifyCustomerRevealPhone(
+  customerId: string,
+  missingDigits: string,
+  code: string,
+): Promise<CustomerRecord> {
+  return request<CustomerRecord>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/reveal-phone/verify`,
+    {
+      method: "POST",
+      body: { missingDigits, code },
     },
   );
 }

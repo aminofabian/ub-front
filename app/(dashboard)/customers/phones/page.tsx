@@ -32,7 +32,7 @@ function flattenPhones(customers: CustomerRecord[]): PhoneRow[] {
   const rows: PhoneRow[] = [];
   for (const customer of customers) {
     for (const p of customer.phones) {
-      const phone = p.phone?.trim();
+      const phone = p.phone?.trim() || p.maskedHint?.trim();
       if (!phone) continue;
       rows.push({
         key: `${customer.id}:${p.id ?? phone}`,

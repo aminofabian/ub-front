@@ -76,7 +76,9 @@ export const APP_ROUTES = {
   supplierPortalReports: "/supplier-portal/reports",
   marketplaceProductEdits: "/marketplace/product-edits",
   customers: "/customers",
+  customer: (id: string) => `/customers/${encodeURIComponent(id)}`,
   customerPhones: "/customers/phones",
+  claimTab: "/claim-tab",
   messages: "/messages",
   superAdminMessages: "/super-admin/messages",
   /** Credit sales put on tab — period pulse + feed. */

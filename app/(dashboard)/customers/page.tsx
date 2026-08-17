@@ -74,6 +74,9 @@ export default function CustomersPage() {
   );
   const [datePreset, setDatePreset] = useState<CustomerDatePreset>("today");
   const [outstandingOnly, setOutstandingOnly] = useState(false);
+  const [originFilter, setOriginFilter] = useState<"all" | "inferred" | "verified">(
+    "all",
+  );
   const [showCreate, setShowCreate] = useState(false);
   const [showMessaging, setShowMessaging] = useState(false);
   const [name, setName] = useState("");
@@ -115,6 +118,7 @@ export default function CustomersPage() {
       setMessage(null);
       try {
         const data = await fetchCustomers(activePhoneQuery, {
+          flexible: true,
           createdFrom: dateRange?.from,
           createdTo: dateRange?.to,
         });
@@ -144,9 +148,14 @@ export default function CustomersPage() {
   }, [loading, canViewCustomers, activePhoneQuery, dateRange, refreshKey]);
 
   const visibleRows = useMemo(() => {
-    if (!outstandingOnly) return rows;
-    return rows.filter((row) => Number(row.credit.balanceOwed) > 0);
-  }, [rows, outstandingOnly]);
+    return rows.filter((row) => {
+      if (outstandingOnly && Number(row.credit.balanceOwed) <= 0) return false;
+      const verified = row.phones.some((p) => Boolean(p.verifiedAt) && Boolean(p.phone));
+      if (originFilter === "inferred" && row.origin !== "mpesa_inferred") return false;
+      if (originFilter === "verified" && !verified) return false;
+      return true;
+    });
+  }, [rows, outstandingOnly, originFilter]);
 
   const totalOwed = useMemo(
     () =>
@@ -283,10 +292,10 @@ export default function CustomersPage() {
               />
               <input
                 className={cn(dashboardInputClass(), "pl-9")}
-                placeholder="Search by phone…"
+                placeholder="Search name, phone, C-12…"
                 value={phoneFilter}
                 onChange={(e) => setPhoneFilter(e.target.value)}
-                aria-label="Filter customers by phone"
+                aria-label="Filter customers by name, phone, or ID"
               />
             </div>
 
@@ -299,6 +308,30 @@ export default function CustomersPage() {
               />
               Outstanding only
             </label>
+
+            <div className="inline-flex rounded-lg border border-border/70 bg-muted/40 p-0.5 text-[11px] font-medium">
+              {(
+                [
+                  ["all", "All"],
+                  ["inferred", "Inferred"],
+                  ["verified", "Verified"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setOriginFilter(id)}
+                  className={cn(
+                    "rounded-md px-2 py-1",
+                    originFilter === id
+                      ? "bg-[#F9F6F0] text-[#8B6F3A]"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
             <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
               <p className="mr-auto text-xs text-muted-foreground sm:mr-0">
@@ -388,6 +421,9 @@ export default function CustomersPage() {
             <thead className="border-b border-border/60 bg-muted/15">
               <tr>
                 <th className="px-4 py-2.5 font-medium text-muted-foreground sm:px-5">
+                  #
+                </th>
+                <th className="px-4 py-2.5 font-medium text-muted-foreground sm:px-5">
                   Name
                 </th>
                 <th className="px-4 py-2.5 font-medium text-muted-foreground sm:px-5">
@@ -407,14 +443,28 @@ export default function CustomersPage() {
                 const phoneLabel =
                   row.phones.length > 0
                     ? row.phones
-                        .map((p) => `${p.phone}${p.primary ? " ★" : ""}`)
+                        .map((p) => {
+                          const shown =
+                            p.phone?.trim() ||
+                            p.maskedHint?.trim() ||
+                            p.assignedMsisdn?.trim() ||
+                            "—";
+                          return `${shown}${p.primary ? " ★" : ""}`;
+                        })
                         .join(", ")
                     : "—";
+                const verified = row.phones.some(
+                  (p) => Boolean(p.verifiedAt) && Boolean(p.phone),
+                );
+                const inferred = row.origin === "mpesa_inferred";
                 return (
                   <tr
                     key={row.id}
                     className="border-b border-border/40 last:border-0 hover:bg-muted/20"
                   >
+                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-muted-foreground sm:px-5">
+                      {row.customerNo != null ? `C-${row.customerNo}` : "—"}
+                    </td>
                     <td className="px-4 py-2.5 sm:px-5">
                       <Link
                         className="font-medium text-primary hover:underline"
@@ -422,7 +472,17 @@ export default function CustomersPage() {
                       >
                         {row.name}
                       </Link>
-                      <div className="mt-0.5">
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                        {inferred && !verified ? (
+                          <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                            Inferred
+                          </span>
+                        ) : null}
+                        {verified ? (
+                          <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
+                            Verified
+                          </span>
+                        ) : null}
                         <LoyaltyCardLink
                           onClick={() =>
                             setCardCustomer({

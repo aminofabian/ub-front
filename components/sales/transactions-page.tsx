@@ -146,6 +146,8 @@ function saleMetaParts(tx: SaleTransaction): string[] {
       parts.push(customer);
     }
   }
+  if (tx.customerNo != null) parts.push(`C-${tx.customerNo}`);
+  if (tx.customerMaskedHint) parts.push(tx.customerMaskedHint);
   return parts;
 }
 
@@ -204,7 +206,10 @@ function TransactionRow({
   const meta = saleMetaParts(tx);
   const payment = formatSalePaymentDisplay(tx.paymentMethod, tx.paymentMethods);
   const person =
-    (isOnline ? tx.customerName : tx.cashierName || tx.customerName)?.trim() || "—";
+    (isOnline
+      ? tx.customerName
+      : tx.customerName?.trim() || tx.cashierName || tx.customerName
+    )?.trim() || "—";
   const statusLabel = isOnline
     ? formatChannelLabel(tx.channel)
     : voided
@@ -280,6 +285,14 @@ function TransactionRow({
                 Verified
               </span>
             ) : null}
+            {tx.customerId && !tx.customerPhoneVerified && tx.customerMaskedHint ? (
+              <span
+                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-amber-50 text-amber-800"
+                title="M-Pesa number is still masked until the customer fills the missing digits"
+              >
+                Unverified number
+              </span>
+            ) : null}
             <span className="text-[11px] text-muted-foreground">
               {formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime })}
             </span>
@@ -335,7 +348,17 @@ function TransactionRow({
           </span>
         </span>
         <span className="truncate pr-3 text-muted-foreground" title={person}>
-          {person}
+          {tx.customerId ? (
+            <Link
+              href={APP_ROUTES.customer(tx.customerId)}
+              onClick={(e) => e.stopPropagation()}
+              className="text-primary hover:underline"
+            >
+              {person}
+            </Link>
+          ) : (
+            person
+          )}
         </span>
         <span className="truncate pr-3 text-muted-foreground" title={payment}>
           {payment}

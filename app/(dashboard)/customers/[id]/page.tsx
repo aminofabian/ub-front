@@ -23,6 +23,7 @@ import {
 } from "@/lib/api";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
+import { RevealCustomerPhoneCard } from "@/components/credits/reveal-customer-phone-card";
 
 function fmtMoney(value: number | string | null | undefined): string {
   const n = Number(value ?? 0);
@@ -32,7 +33,7 @@ function fmtMoney(value: number | string | null | undefined): string {
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const customerId = params?.id?.trim() ?? "";
-  const { loading, canViewCustomers } = useDashboard();
+  const { loading, canViewCustomers, canManageCustomers } = useDashboard();
 
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [statement, setStatement] = useState<CreditStatementRecord | null>(null);
@@ -113,10 +114,14 @@ export default function CustomerDetailPage() {
         <DashboardPageHero
           icon={Users}
           eyebrow="Credit account"
-          title={customer?.name?.trim() || "Customer"}
+          title={
+            customer?.name?.trim()
+              ? `${customer.customerNo != null ? `C-${customer.customerNo} · ` : ""}${customer.name.trim()}`
+              : "Customer"
+          }
           description={
-            customer?.phones?.[0]?.phone
-              ? `Primary phone ${customer.phones[0].phone}`
+            customerPrimaryPhone(customer?.phones)
+              ? `Primary ${customerPrimaryPhone(customer?.phones)}`
               : "Tab, wallet, and loyalty activity"
           }
         />
@@ -154,6 +159,12 @@ export default function CustomerDetailPage() {
               </p>
             </div>
           </section>
+
+          <RevealCustomerPhoneCard
+            customer={customer}
+            canReveal={canManageCustomers}
+            onUpdated={setCustomer}
+          />
 
           <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
             <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
