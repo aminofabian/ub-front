@@ -1,8 +1,17 @@
 {
-  "generatedAt": "2026-07-31T13:11:14.772Z",
+  "generatedAt": "2026-08-17T19:14:18.931Z",
   "storeLinks": {
     "ios": null,
     "android": null
   },
-  "apps": []
+  "apps": [
+    {
+      "id": "shopper",
+      "name": "Kiosk Shopper",
+      "version": "0.0.1",
+      "platform": "android",
+      "file": "kiosk-shopper-0.0.1-android.apk",
+      "sizeBytes": 92578796
+    }
+  ]
 }
