@@ -1,6 +1,4 @@
 import { API_ROUTES, APP_ROUTES, apiUrl, getApiBaseUrl } from "@/lib/config";
-import { extractPageContent } from "@/lib/page-content";
-import { getProblemTitle } from "@/lib/problem";
 import { recordOpsClientError } from "@/lib/ops-client-log";
 import { extractPageContent } from "@/lib/page-content";
 import { getProblemTitle } from "@/lib/problem";
