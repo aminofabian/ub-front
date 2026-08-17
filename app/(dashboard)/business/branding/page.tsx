@@ -1329,8 +1329,7 @@ export default function BrandingPage() {
               </span>
               <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
                 Choose the layout for your live shop or coming-soon page — Milk
-                Run, Oxide, Mart aisles, and more. Stage looks side-by-side before
-                you save.
+                Run, Oxide, Mart aisles, and more.
               </span>
             </span>
           </Link>

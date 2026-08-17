@@ -2,19 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import {
-  AlertCircle,
-  ArrowLeft,
-  LayoutTemplate,
-  Loader2,
-  Lock,
-  Palette,
-  RefreshCw,
-} from "lucide-react";
+import { ArrowLeft, LayoutTemplate, Palette } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
-  DASHBOARD_MAX,
+  DASHBOARD_MAX_WIDE,
+  DashboardAccessDenied,
+  DashboardLoadError,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { StorefrontThemesStudio } from "@/components/business/storefront-themes-studio";
@@ -53,89 +47,95 @@ export default function BusinessThemesPage() {
 
   if (!canManageBusinessSettings) {
     return (
-      <div className="mx-auto max-w-lg py-16">
-        <div className="rounded-2xl border border-border/80 bg-card p-8 text-center shadow-sm">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Lock className="size-6" aria-hidden />
-          </div>
-          <h1 className="mt-4 text-lg font-semibold tracking-tight">
-            Themes are restricted
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Ask an owner or admin with business settings access to change the
-            storefront look.
-          </p>
-          <Button asChild className="mt-6" variant="outline">
-            <Link href={APP_ROUTES.business}>Back to business</Link>
-          </Button>
-        </div>
-      </div>
+      <DashboardAccessDenied
+        title="Themes are restricted"
+        description="Ask an owner or admin with business settings access to change the storefront look."
+        backHref={APP_ROUTES.business}
+        backLabel="Back to business"
+      />
     );
   }
 
   if (!business && !loadFailed) {
     return (
-      <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-4 py-24">
-        <Loader2 className="size-10 animate-spin text-primary" aria-hidden />
-        <p className="text-sm text-muted-foreground">Loading themes…</p>
+      <div className={DASHBOARD_MAX_WIDE}>
+        <ThemesPageHeader />
+        <ThemesStudioSkeleton />
       </div>
     );
   }
 
   if (loadFailed && !business) {
     return (
-      <div className="mx-auto max-w-lg py-16">
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-sm">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
-            <AlertCircle className="size-6" aria-hidden />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold tracking-tight">
-            Could not load themes
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">{errorText}</p>
-          <Button
-            className="mt-6 gap-2"
-            variant="outline"
-            onClick={() => void load()}
-          >
-            <RefreshCw className="size-4" aria-hidden />
-            Try again
-          </Button>
-        </div>
-      </div>
+      <DashboardLoadError
+        title="Could not load themes"
+        message={errorText ?? "Could not load themes."}
+        onRetry={() => void load()}
+      />
     );
   }
 
   return (
-    <div className={DASHBOARD_MAX}>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <DashboardPageHero
-            icon={LayoutTemplate}
-            eyebrow="Appearance"
-            title="Themes"
-            description="Pick the layout for your live shop or coming-soon page. Stage a look on the right, save when it feels right."
-          />
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm" className="gap-1.5">
-              <Link href={APP_ROUTES.businessBranding}>
-                <Palette className="size-3.5" aria-hidden />
-                Branding
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="gap-1.5">
-              <Link href={APP_ROUTES.businessSettings}>
-                <ArrowLeft className="size-3.5" aria-hidden />
-                Settings
-              </Link>
-            </Button>
-          </div>
-        </div>
-
+    <div className={DASHBOARD_MAX_WIDE}>
+      <div className="space-y-8">
+        <ThemesPageHeader />
         <StorefrontThemesStudio
           business={business}
           onSaved={(next) => setBusiness(next)}
         />
+      </div>
+    </div>
+  );
+}
+
+function ThemesPageHeader() {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <DashboardPageHero
+        compact
+        icon={LayoutTemplate}
+        title="Themes"
+        description="Tap a look. Save to show it to customers. Colors and logo stay on Branding."
+      />
+      <div className="flex flex-wrap gap-2 sm:pt-1">
+        <Button asChild variant="outline" size="sm" className="gap-1.5">
+          <Link href={APP_ROUTES.businessBranding}>
+            <Palette className="size-3.5" aria-hidden />
+            Branding
+          </Link>
+        </Button>
+        <Button asChild variant="ghost" size="sm" className="gap-1.5">
+          <Link href={APP_ROUTES.businessSettings}>
+            <ArrowLeft className="size-3.5" aria-hidden />
+            Settings
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function ThemesStudioSkeleton() {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label="Loading themes">
+      <div className="h-16 animate-pulse rounded-xl bg-muted" />
+      <div className="space-y-2">
+        <div className="h-5 w-32 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-56 animate-pulse rounded bg-muted/70" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="overflow-hidden rounded-2xl border border-border/70"
+          >
+            <div className="aspect-[16/10] animate-pulse bg-muted" />
+            <div className="space-y-2 p-3.5">
+              <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-full animate-pulse rounded bg-muted/70" />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import {
   Check,
   ExternalLink,
@@ -9,13 +17,16 @@ import {
   Loader2,
   Save,
   Store,
+  Undo2,
 } from "lucide-react";
 
+import { DashboardFeedback } from "@/components/dashboard-page-ui";
 import {
   MilkRunWhatsAppDialog,
   milkRunNeedsWhatsApp,
 } from "@/components/storefront/milk-run-whatsapp-dialog";
 import { ThemePreviewArt } from "@/components/storefront/theme-preview-art";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   fetchBusiness,
@@ -47,6 +58,7 @@ export function StorefrontThemesStudio({
   onSaved?: (business: BusinessRecord) => void;
 }) {
   const storefrontOn = Boolean(business?.storefront?.enabled);
+  const listId = useId();
   const [mode, setMode] = useState<Mode>(storefrontOn ? "store" : "landing");
   const [storeThemeId, setStoreThemeId] = useState<StoreThemeId>(
     normalizeStoreThemeId(business?.storefront?.storeThemeId),
@@ -59,9 +71,16 @@ export function StorefrontThemesStudio({
   const [error, setError] = useState<string | null>(null);
   const [waPromptOpen, setWaPromptOpen] = useState(false);
   const waPromptedRef = useRef(false);
+  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   const landingWhatsapp =
     business?.storefront?.landingContent?.whatsapp?.trim() || "";
+  const liveStoreId = normalizeStoreThemeId(
+    business?.storefront?.storeThemeId,
+  );
+  const liveLandingId = normalizeLandingTemplateId(
+    business?.storefront?.landingTemplateId,
+  );
 
   useEffect(() => {
     setStoreThemeId(normalizeStoreThemeId(business?.storefront?.storeThemeId));
@@ -86,16 +105,16 @@ export function StorefrontThemesStudio({
   const items: readonly StorefrontTemplateMeta[] =
     mode === "store" ? STORE_THEME_META : LANDING_TEMPLATE_META;
   const selectedId = mode === "store" ? storeThemeId : landingTemplateId;
+  const liveId = mode === "store" ? liveStoreId : liveLandingId;
   const selected = useMemo(
     () => items.find((m) => m.id === selectedId) ?? items[0]!,
     [items, selectedId],
   );
 
-  const dirty =
-    storeThemeId !==
-      normalizeStoreThemeId(business?.storefront?.storeThemeId) ||
-    landingTemplateId !==
-      normalizeLandingTemplateId(business?.storefront?.landingTemplateId);
+  const storeDirty = storeThemeId !== liveStoreId;
+  const landingDirty = landingTemplateId !== liveLandingId;
+  const dirty = storeDirty || landingDirty;
+  const currentModeDirty = mode === "store" ? storeDirty : landingDirty;
 
   const shopBase = business?.slug
     ? slugDerivedShopUrl(business.slug) ||
@@ -104,6 +123,30 @@ export function StorefrontThemesStudio({
   const previewUrl = shopBase
     ? storefrontPreviewUrl(shopBase, mode, selectedId)
     : null;
+
+  const pick = useCallback(
+    (id: string) => {
+      setFeedback(null);
+      setError(null);
+      if (mode === "store") {
+        const next = normalizeStoreThemeId(id);
+        setStoreThemeId(next);
+        if (milkRunNeedsWhatsApp(next, landingWhatsapp)) {
+          setWaPromptOpen(true);
+        }
+      } else {
+        setLandingTemplateId(normalizeLandingTemplateId(id));
+      }
+    },
+    [landingWhatsapp, mode],
+  );
+
+  const revert = () => {
+    setStoreThemeId(liveStoreId);
+    setLandingTemplateId(liveLandingId);
+    setFeedback(null);
+    setError(null);
+  };
 
   const save = async () => {
     setSaving(true);
@@ -119,7 +162,9 @@ export function StorefrontThemesStudio({
       const next = await fetchBusiness();
       onSaved?.(next);
       setFeedback(
-        mode === "store" ? "Store theme saved." : "Landing template saved.",
+        mode === "store"
+          ? `${selected.name} is now on your shop.`
+          : `${selected.name} is now the coming-soon page.`,
       );
       if (
         mode === "store" &&
@@ -137,228 +182,271 @@ export function StorefrontThemesStudio({
     }
   };
 
-  const pick = (id: string) => {
-    setFeedback(null);
-    if (mode === "store") {
-      const next = normalizeStoreThemeId(id);
-      setStoreThemeId(next);
-      if (milkRunNeedsWhatsApp(next, landingWhatsapp)) {
-        setWaPromptOpen(true);
-      }
+  const onGridKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const index = items.findIndex((item) => item.id === selectedId);
+    if (index < 0) return;
+
+    const cols =
+      typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches
+        ? 3
+        : typeof window !== "undefined" &&
+            window.matchMedia("(min-width: 640px)").matches
+          ? 2
+          : 1;
+
+    let next = index;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      next = Math.min(items.length - 1, index + (event.key === "ArrowDown" ? cols : 1));
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      next = Math.max(0, index - (event.key === "ArrowUp" ? cols : 1));
+    } else if (event.key === "Home") {
+      next = 0;
+    } else if (event.key === "End") {
+      next = items.length - 1;
     } else {
-      setLandingTemplateId(normalizeLandingTemplateId(id));
+      return;
     }
+
+    if (next === index) return;
+    event.preventDefault();
+    const id = items[next]!.id;
+    pick(id);
+    cardRefs.current.get(id)?.focus();
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="inline-flex rounded-2xl border border-border/70 bg-muted/40 p-1">
-          <ModeTab
-            active={mode === "store"}
-            disabled={!storefrontOn}
-            onClick={() => setMode("store")}
-            icon={<Store className="size-3.5" aria-hidden />}
-            label="Live shop"
-            hint={storefrontOn ? undefined : "Turn on storefront in Settings"}
-          />
-          <ModeTab
-            active={mode === "landing"}
-            onClick={() => setMode("landing")}
-            icon={<LayoutTemplate className="size-3.5" aria-hidden />}
-            label="Coming-soon page"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {feedback ? (
-            <p className="text-xs text-emerald-700 dark:text-emerald-400">
-              {feedback}
-            </p>
-          ) : null}
-          {error ? (
-            <p className="text-xs text-destructive" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <Button
-            type="button"
-            size="sm"
-            disabled={!dirty || saving}
-            onClick={() => void save()}
-            className="gap-1.5"
-          >
-            {saving ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <Save className="size-4" aria-hidden />
-            )}
-            Save look
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div
+        className="grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-muted/40 p-1"
+        role="tablist"
+        aria-label="Which page to style"
+      >
+        <ModeTab
+          active={mode === "store"}
+          onClick={() => setMode("store")}
+          icon={<Store className="size-4" aria-hidden />}
+          label="Live shop"
+          hint={
+            storefrontOn
+              ? "What customers see now"
+              : "Ready for when you turn the shop on"
+          }
+        />
+        <ModeTab
+          active={mode === "landing"}
+          onClick={() => setMode("landing")}
+          icon={<LayoutTemplate className="size-4" aria-hidden />}
+          label="Coming-soon"
+          hint={
+            storefrontOn
+              ? "Shown if you turn the shop off"
+              : "What visitors see today"
+          }
+        />
       </div>
 
-      {!storefrontOn && mode === "landing" ? (
-        <p className="rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
-          Storefront is off — visitors see this landing page.{" "}
-          <Link
-            href={APP_ROUTES.businessSettings}
-            className="font-medium underline underline-offset-2"
-          >
-            Enable storefront
-          </Link>{" "}
-          to unlock live shop themes.
-        </p>
+      {!storefrontOn ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3.5 text-sm leading-relaxed text-amber-950 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-50"
+        >
+          <p className="min-w-0 flex-1">
+            The shop is off, so visitors see the coming-soon page. You can still
+            pick a live-shop look — it appears when you{" "}
+            <Link
+              href={APP_ROUTES.businessSettings}
+              className="font-medium underline underline-offset-2"
+            >
+              turn the storefront on
+            </Link>
+            .
+          </p>
+        </div>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-        {/* Theme spine */}
-        <div
-          className="flex max-h-[min(70vh,44rem)] flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm"
-          role="listbox"
-          aria-label={mode === "store" ? "Store themes" : "Landing templates"}
-        >
-          <div className="shrink-0 border-b border-border/60 px-3.5 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              {mode === "store" ? "Shelf of looks" : "Door signs"}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {items.length} options · tap to stage
-            </p>
-          </div>
-          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain p-2">
-            {items.map((item, index) => {
-              const selected = item.id === selectedId;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  onClick={() => pick(item.id)}
-                  className={cn(
-                    "group flex w-full items-stretch gap-2.5 rounded-xl border p-2 text-left transition",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-                    selected
-                      ? "border-foreground bg-foreground text-background shadow-md"
-                      : "border-transparent bg-muted/35 hover:border-border hover:bg-muted/70",
-                  )}
-                >
-                  <span
-                    className="relative w-14 shrink-0 overflow-hidden rounded-lg"
-                    style={{
-                      background: `linear-gradient(145deg, ${item.previewFrom}, ${item.previewTo})`,
-                    }}
-                    aria-hidden
-                  >
-                    <span
-                      className="absolute bottom-1.5 left-1.5 size-2.5 rounded-full shadow"
-                      style={{ backgroundColor: item.accent }}
-                    />
-                    <span
-                      className={cn(
-                        "absolute right-1 top-1 font-mono text-[9px] tabular-nums",
-                        selected ? "text-background/70" : "text-foreground/40",
-                      )}
-                    >
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                  </span>
-                  <span className="min-w-0 flex-1 py-0.5">
-                    <span className="flex items-start justify-between gap-2">
-                      <span className="text-sm font-semibold leading-tight">
-                        {item.name}
-                      </span>
-                      {selected ? (
-                        <Check className="size-4 shrink-0" aria-hidden />
-                      ) : null}
-                    </span>
-                    <span
-                      className={cn(
-                        "mt-0.5 block text-[11px] leading-snug",
-                        selected
-                          ? "text-background/75"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {item.blurb}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      {feedback && !dirty ? (
+        <DashboardFeedback kind="success" text={feedback} />
+      ) : null}
 
-        {/* Stage */}
-        <div className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:self-start">
-          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 px-4 py-3.5">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Stage
-                </p>
-                <h2 className="mt-0.5 text-lg font-semibold tracking-tight">
-                  {selected.name}
-                </h2>
-                <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-                  {selected.blurb}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {mode === "store" && selected.id === "milk-run" && !landingWhatsapp ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setWaPromptOpen(true)}
-                  >
-                    Add WhatsApp
-                  </Button>
-                ) : null}
-                {previewUrl ? (
-                  <Button asChild size="sm" variant="outline" className="gap-1.5">
-                    <a
-                      href={previewUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Open live
-                      <ExternalLink className="size-3.5" aria-hidden />
-                    </a>
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-            <div className="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-muted/80 via-background to-background p-3 sm:p-4">
-              <ThemePreviewArt
-                templateId={selected.id}
-                className="mx-auto max-w-3xl shadow-lg ring-1 ring-black/5"
-              />
-              <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                Illustrated layout sketch. Open live to see this look on your
-                real shop — save when you want customers to see it.
-              </p>
-            </div>
-          </div>
-
-          <div
-            className="flex items-center gap-3 rounded-xl border border-dashed border-border/80 px-3 py-2.5 text-xs text-muted-foreground"
-            style={{
-              background: `linear-gradient(90deg, ${selected.previewFrom}55, transparent 55%)`,
-            }}
-          >
-            <span
-              className="size-3 shrink-0 rounded-full shadow-sm ring-2 ring-white"
-              style={{ backgroundColor: selected.accent }}
-              aria-hidden
-            />
-            <span>
-              Accent signal for this look. Your brand colors still apply on the
-              live site.
-            </span>
-          </div>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold tracking-tight text-foreground">
+            {mode === "store" ? "Shop looks" : "Coming-soon pages"}
+          </h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {currentModeDirty
+              ? mode === "store"
+                ? `Save to put ${selected.name} on your shop.`
+                : `Save to use ${selected.name} as the coming-soon page.`
+              : mode === "store"
+                ? `${selected.name} is on your shop.`
+                : `${selected.name} is the coming-soon page.`}
+          </p>
         </div>
       </div>
+
+      <div
+        id={listId}
+        role="listbox"
+        aria-label={mode === "store" ? "Shop looks" : "Coming-soon pages"}
+        aria-activedescendant={`${listId}-${selectedId}`}
+        onKeyDown={onGridKeyDown}
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        {items.map((item) => {
+          const isSelected = item.id === selectedId;
+          const isLive = item.id === liveId;
+          const showWhatsApp =
+            isSelected &&
+            mode === "store" &&
+            item.id === "milk-run" &&
+            !landingWhatsapp;
+
+          return (
+            <div
+              key={item.id}
+              id={`${listId}-${item.id}`}
+              ref={(node) => {
+                if (node) cardRefs.current.set(item.id, node);
+                else cardRefs.current.delete(item.id);
+              }}
+              role="option"
+              aria-selected={isSelected}
+              tabIndex={isSelected ? 0 : -1}
+              onClick={() => pick(item.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  pick(item.id);
+                }
+              }}
+              className={cn(
+                "group flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-card text-left transition duration-150",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                isSelected
+                  ? "border-foreground shadow-sm"
+                  : "border-border/70 hover:border-foreground/25",
+              )}
+            >
+              <div className="relative overflow-hidden">
+                <ThemePreviewArt
+                  templateId={item.id}
+                  className="pointer-events-none rounded-none border-0 shadow-none ring-0"
+                />
+                {isSelected ? (
+                  <span className="absolute right-2.5 top-2.5 flex size-7 items-center justify-center rounded-full bg-foreground text-background shadow-sm">
+                    <Check className="size-4" aria-hidden />
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col gap-2 p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-semibold leading-tight tracking-tight">
+                    {item.name}
+                  </p>
+                  {isLive ? (
+                    <Badge variant="success" className="shrink-0">
+                      On your shop
+                    </Badge>
+                  ) : isSelected ? (
+                    <Badge variant="outline" className="shrink-0">
+                      Selected
+                    </Badge>
+                  ) : null}
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {item.blurb}
+                </p>
+                {isSelected && (previewUrl || showWhatsApp) ? (
+                  <div className="mt-auto flex flex-wrap gap-2 pt-1">
+                    {showWhatsApp ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setWaPromptOpen(true);
+                        }}
+                      >
+                        Add WhatsApp
+                      </Button>
+                    ) : null}
+                    {previewUrl ? (
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <a
+                          href={previewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Preview
+                          <ExternalLink className="size-3.5" aria-hidden />
+                        </a>
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {dirty ? (
+        <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-20 flex flex-col gap-3 rounded-2xl border border-primary/25 bg-background/95 p-3 shadow-lg shadow-primary/5 backdrop-blur supports-[backdrop-filter]:bg-background/85 sm:flex-row sm:items-center sm:justify-between">
+          <p className="min-w-0 text-sm text-foreground">
+            {currentModeDirty ? (
+              mode === "store" ? (
+                <>
+                  <span className="font-semibold">{selected.name}</span> is not
+                  on your shop yet. Save to show it to customers.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold">{selected.name}</span> is not
+                  the coming-soon page yet.
+                </>
+              )
+            ) : (
+              <>You have an unsaved look on the other tab.</>
+            )}
+          </p>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              disabled={saving}
+              onClick={revert}
+            >
+              <Undo2 className="size-3.5" aria-hidden />
+              Keep current
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={saving}
+              onClick={() => void save()}
+              className="gap-1.5"
+            >
+              {saving ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Save className="size-4" aria-hidden />
+              )}
+              {saving ? "Saving…" : "Save to your shop"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <MilkRunWhatsAppDialog
         open={waPromptOpen}
@@ -380,32 +468,40 @@ function ModeTab({
   onClick,
   label,
   icon,
-  disabled,
   hint,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   icon: React.ReactNode;
-  disabled?: boolean;
-  hint?: string;
+  hint: string;
 }) {
   return (
     <button
       type="button"
-      disabled={disabled}
-      title={hint}
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition",
+        "flex min-w-0 flex-col items-start gap-0.5 rounded-lg px-3 py-2.5 text-left transition duration-150",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
         active
           ? "bg-background text-foreground shadow-sm"
           : "text-muted-foreground hover:text-foreground",
-        disabled && "cursor-not-allowed opacity-45",
       )}
     >
-      {icon}
-      {label}
+      <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
+        {icon}
+        {label}
+      </span>
+      <span
+        className={cn(
+          "hidden text-xs leading-snug sm:block",
+          active ? "text-muted-foreground" : "text-muted-foreground/80",
+        )}
+      >
+        {hint}
+      </span>
     </button>
   );
 }
