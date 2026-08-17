@@ -41,6 +41,8 @@ function ArtForId({ id }: { id: string }) {
       return <TintArt />;
     case "milk-run":
       return <MilkRunArt />;
+    case "chem-lab":
+      return <ChemLabArt />;
     case "carbon-desk":
       return <CarbonDeskArt />;
     case "coming-soon-editorial":
@@ -307,6 +309,53 @@ function MilkRunArt() {
             {i === 0 ? null : null}
           </div>
         ))}
+      </div>
+    </Frame>
+  );
+}
+
+function ChemLabArt() {
+  return (
+    <Frame paper="#0A1218" ink="#E2F0F8">
+      <div className="flex items-center justify-between border-b border-[#84CC16]/30 px-3 py-1.5">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#E2F0F8]">
+          Chem <span className="text-[#84CC16]">Lab</span>
+        </span>
+        <span className="border border-[#84CC16]/50 bg-[#84CC16]/15 px-2 py-0.5 font-mono text-[7px] text-[#84CC16]">
+          Beaker · 2
+        </span>
+      </div>
+      <div className="grid flex-1 grid-cols-[1.35fr_1fr] gap-2 p-2">
+        <div className="border border-[#84CC16]/30 bg-[#0F1A22]/90 p-2">
+          <div className="font-mono text-[7px] uppercase tracking-widest text-[#F59E0B]">
+            Primary reagent
+          </div>
+          <div className="relative mt-1 aspect-[4/3] overflow-hidden rounded-b-xl border-2 border-[#F59E0B] bg-gradient-to-b from-[#F59E0B]/40 to-[#78350F]/70">
+            <div className="absolute left-2 right-2 top-2 h-2 bg-[#E2F0F8]/90" />
+          </div>
+          <div className="mt-2 flex gap-2">
+            <span className="border border-[#84CC16]/50 bg-[#84CC16]/15 px-2 py-0.5 font-mono text-[8px] text-[#84CC16]">
+              KSh…
+            </span>
+            <span className="bg-[#84CC16] px-2 py-0.5 font-mono text-[7px] text-[#0A1218]">
+              Dispense
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5 pt-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex min-h-0 flex-1 overflow-hidden border border-[#84CC16]/20 bg-[#0F1A22]/80"
+            >
+              <div className="w-2/5 border-r border-[#F59E0B]/40 bg-gradient-to-b from-[#F59E0B]/30 to-[#78350F]/60" />
+              <div className="flex flex-1 flex-col justify-center gap-1 p-1.5">
+                <div className="font-mono text-[6px] text-[#F59E0B]">RX-00{i + 1}</div>
+                <div className="h-1.5 w-3/4 bg-[#E2F0F8]/50" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </Frame>
   );

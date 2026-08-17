@@ -10,6 +10,7 @@ import { NeighborhoodBoardLanding } from "@/components/storefront/templates/land
 import { BoutiqueShelfStoreHome } from "@/components/storefront/templates/store/boutique-shelf-home";
 import { ButcherBoardStoreHome } from "@/components/storefront/templates/store/butcher-board-home";
 import { CarbonDeskStoreHome } from "@/components/storefront/templates/store/carbon-desk-home";
+import { ChemLabStoreHome } from "@/components/storefront/templates/store/chem-lab-home";
 import { MartStoreHome } from "@/components/storefront/templates/store/mart-home";
 import { MilkRunStoreHome } from "@/components/storefront/templates/store/milk-run-home";
 import { OxideStoreHome } from "@/components/storefront/templates/store/oxide-home";
@@ -38,6 +39,7 @@ const STORE_HOMES: Record<
   "tint-lab": TintLabStoreHome,
   "milk-run": MilkRunStoreHome,
   "carbon-desk": CarbonDeskStoreHome,
+  "chem-lab": ChemLabStoreHome,
 };
 
 const LANDING_PAGES: Record<
@@ -62,7 +64,8 @@ export type StoreChromeVariant =
   | "milk-run"
   | "butcher-board"
   | "carbon-desk"
-  | "boutique-shelf";
+  | "boutique-shelf"
+  | "chem-lab";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -92,6 +95,8 @@ export function resolveStoreChromeVariant(
       return "carbon-desk";
     case "boutique-shelf":
       return "boutique-shelf";
+    case "chem-lab":
+      return "chem-lab";
     case "spirits-cellar":
       return "dark";
     default:

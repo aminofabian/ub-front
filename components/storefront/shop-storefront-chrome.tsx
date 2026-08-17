@@ -28,6 +28,9 @@ import carbonDeskStyles from "@/components/storefront/templates/store/carbon-des
 import { BoutiqueShelfHeader } from "@/components/storefront/templates/store/boutique-shelf-header";
 import { boutiqueShelfFontVariables } from "@/components/storefront/templates/store/boutique-shelf-fonts";
 import boutiqueShelfStyles from "@/components/storefront/templates/store/boutique-shelf.module.css";
+import { ChemLabHeader } from "@/components/storefront/templates/store/chem-lab-header";
+import { chemLabFontVariables } from "@/components/storefront/templates/store/chem-lab-fonts";
+import chemLabStyles from "@/components/storefront/templates/store/chem-lab.module.css";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
@@ -139,7 +142,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "chem-lab";
   storeThemeId?: string | null;
   /** Tenant WhatsApp for Milk Run dual-path checkout. */
   whatsappNumber?: string | null;
@@ -153,7 +156,8 @@ export function ShopStorefrontChrome({
   const isButcherBoard = chromeVariant === "butcher-board";
   const isCarbonDesk = chromeVariant === "carbon-desk";
   const isBoutiqueShelf = chromeVariant === "boutique-shelf";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf;
+  const isChemLab = chromeVariant === "chem-lab";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isChemLab;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const milkRunDigits = isMilkRun
@@ -186,6 +190,11 @@ export function ShopStorefrontChrome({
                   ["--bs-rose" as string]: primaryHex || "#DB2777",
                   ["--bs-brass" as string]: accentHex || "#C9A227",
                 } as CSSProperties)
+              : isChemLab
+                ? ({
+                    ["--cl-neon" as string]: primaryHex || "#84CC16",
+                    ["--cl-amber" as string]: accentHex || "#F59E0B",
+                  } as CSSProperties)
         : undefined;
 
   return (
@@ -241,6 +250,13 @@ export function ShopStorefrontChrome({
               boutiqueShelfFontVariables,
               "[--storefront-paper:#1F1020]",
             ),
+          isChemLab &&
+            cn(
+              chemLabStyles.root,
+              chemLabStyles.body,
+              chemLabFontVariables,
+              "[--storefront-paper:#0A1218]",
+            ),
         )}
         style={shellStyle}
       >
@@ -269,6 +285,11 @@ export function ShopStorefrontChrome({
       {isBoutiqueShelf && !compactChrome ? (
         <Suspense fallback={null}>
           <BoutiqueShelfHeader storeName={headerTitle} logoUrl={logoUrl} />
+        </Suspense>
+      ) : null}
+      {isChemLab && !compactChrome ? (
+        <Suspense fallback={null}>
+          <ChemLabHeader storeName={headerTitle} logoUrl={logoUrl} />
         </Suspense>
       ) : null}
       {showDefaultChrome ? (

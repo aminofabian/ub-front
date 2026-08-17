@@ -14,7 +14,8 @@ export type StoreThemeId =
   | "oxide"
   | "tint-lab"
   | "milk-run"
-  | "carbon-desk";
+  | "carbon-desk"
+  | "chem-lab";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -57,6 +58,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "tint-lab",
   "milk-run",
   "carbon-desk",
+  "chem-lab",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -141,6 +143,15 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
     previewFrom: "#F5F0E4",
     previewTo: "#C9B896",
     accent: "#3D6B9E",
+  },
+  {
+    id: "chem-lab",
+    kind: "store",
+    name: "Chem lab",
+    blurb: "Reagent bench — amber bottles, compound codes, hazard drawer filters.",
+    previewFrom: "#0A1218",
+    previewTo: "#84CC16",
+    accent: "#F59E0B",
   },
 ];
 
