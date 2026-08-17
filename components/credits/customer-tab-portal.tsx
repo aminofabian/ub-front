@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import Link from "next/link";
 import {
@@ -16,12 +17,9 @@ import {
   FileCheck2,
   Loader2,
   Moon,
-  Signal,
   Smartphone,
   Store,
   Sun,
-  Wallet,
-  Zap,
 } from "lucide-react";
 
 import { looksLikeKenyanMobilePath, toKenyanLocal07 } from "@/lib/kenyan-phone";
@@ -148,6 +146,81 @@ function formatPhoneDisplay(raw: string): string {
     return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
   }
   return raw;
+}
+
+function ServiceMarkAirtime() {
+  return (
+    <span className="flex h-8 items-end gap-[3px]" aria-hidden>
+      {[10, 14, 18, 22].map((h) => (
+        <span key={h} className="w-[5px] bg-current" style={{ height: `${h}px` }} />
+      ))}
+    </span>
+  );
+}
+
+function ServiceMarkTokens() {
+  return (
+    <span className="flex h-8 w-[2.85rem] items-end justify-between" aria-hidden>
+      {Array.from({ length: 5 }, (_, group) => (
+        <span key={group} className="flex gap-[2px]">
+          <span className="h-5 w-[3px] bg-current" />
+          <span
+            className="h-5 w-[3px] bg-current"
+            style={{ opacity: group === 4 ? 0.35 : 1 }}
+          />
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function ServiceMarkWallet() {
+  return (
+    <span className="flex h-8 w-8 flex-col justify-end gap-1" aria-hidden>
+      <span className="h-2 w-full border border-current" />
+      <span className="h-3.5 w-full bg-current" />
+    </span>
+  );
+}
+
+type ServicePadItem = {
+  key: string;
+  label: string;
+  hint: string;
+  onClick: () => void;
+  mark: ReactNode;
+};
+
+function TabServicePad({ items }: { items: ServicePadItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div
+      className="grid border-b border-[var(--tab-border)] bg-[var(--tab-card)]"
+      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+    >
+      {items.map((item, index) => (
+        <button
+          key={item.key}
+          type="button"
+          onClick={item.onClick}
+          className={cn(
+            "flex min-h-[8.5rem] flex-col items-start justify-between gap-5 px-3.5 py-3.5 text-left active:bg-[var(--tab-bg)]",
+            index > 0 && "border-l border-[var(--tab-border)]",
+          )}
+        >
+          <span className="text-[var(--tab-fg)]">{item.mark}</span>
+          <span className="min-w-0">
+            <span className="block text-[15px] font-semibold tracking-[-0.02em]">
+              {item.label}
+            </span>
+            <span className="mt-0.5 block text-[12px] leading-snug text-[var(--tab-muted)]">
+              {item.hint}
+            </span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function shopPayLabel(shopName: string): string {
@@ -1093,6 +1166,34 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     mounted &&
     !sealedLocked;
   const showKplc = !loading && !notFound && mounted && !sealedLocked;
+  const servicePadItems: ServicePadItem[] = [];
+  if (showAirtime) {
+    servicePadItems.push({
+      key: "airtime",
+      label: "Airtime",
+      hint: formatPhoneDisplay(phone),
+      onClick: () => setAirtimeSheetOpen(true),
+      mark: <ServiceMarkAirtime />,
+    });
+  }
+  if (showKplc) {
+    servicePadItems.push({
+      key: "kplc",
+      label: "Tokens",
+      hint: "Look up",
+      onClick: () => setKplcSheetOpen(true),
+      mark: <ServiceMarkTokens />,
+    });
+  }
+  if (showWalletTopUp) {
+    servicePadItems.push({
+      key: "wallet",
+      label: "Wallet",
+      hint: wallet > 0 ? fmtMoney(wallet, currency) : "Add credit",
+      onClick: () => setWalletSheetOpen(true),
+      mark: <ServiceMarkWallet />,
+    });
+  }
   const purchaseCount = tab?.purchases?.length ?? 0;
   const tabStats = useMemo(
     () => computeTabStats(tab?.purchases ?? []),
@@ -1286,38 +1387,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 : "Your tab"}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            {showAirtime ? (
-              <button
-                type="button"
-                onClick={() => setAirtimeSheetOpen(true)}
-                className="flex size-9 shrink-0 items-center justify-center border border-[var(--tab-border)] bg-[var(--tab-card)] text-[var(--tab-fg)] active:bg-[var(--tab-bg)]"
-                aria-label="Buy airtime"
-              >
-                <Signal className="size-4" aria-hidden />
-              </button>
-            ) : null}
-            {showKplc ? (
-              <button
-                type="button"
-                onClick={() => setKplcSheetOpen(true)}
-                className="flex size-9 shrink-0 items-center justify-center border border-[var(--tab-border)] bg-[var(--tab-card)] text-[var(--tab-fg)] active:bg-[var(--tab-bg)]"
-                aria-label="KPLC tokens"
-              >
-                <Zap className="size-4" aria-hidden />
-              </button>
-            ) : null}
-            {showWalletTopUp ? (
-              <button
-                type="button"
-                onClick={() => setWalletSheetOpen(true)}
-                className="inline-flex h-9 items-center gap-1.5 border border-[var(--tab-border)] bg-[var(--tab-card)] px-2.5 text-[13px] font-medium text-[var(--tab-fg)] active:bg-[var(--tab-bg)]"
-                aria-label={`Top up wallet · ${fmtMoney(wallet, currency)}`}
-              >
-                <Wallet className="size-3.5 shrink-0" aria-hidden />
-                Top up
-              </button>
-            ) : null}
+          <div className="flex shrink-0 items-center">
             <button
               type="button"
               onClick={toggleTheme}
@@ -1438,68 +1508,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               )}
             </section>
 
-            {showAirtime || showKplc ? (
-              <div className="space-y-2 px-4 pt-4">
-                {showAirtime ? (
-                  <button
-                    type="button"
-                    onClick={() => setAirtimeSheetOpen(true)}
-                    className="flex w-full items-center gap-3 border border-[var(--tab-border)] bg-[var(--tab-card)] px-3.5 py-3.5 text-left active:bg-[var(--tab-bg)]"
-                  >
-                    <span
-                      className="flex size-11 shrink-0 items-end justify-center gap-[3px] pb-2.5"
-                      aria-hidden
-                      style={{ color: "var(--tab-cta-bg)" }}
-                    >
-                      {[10, 14, 18, 22].map((h) => (
-                        <span
-                          key={h}
-                          className="w-[5px] bg-current"
-                          style={{ height: `${h}px` }}
-                        />
-                      ))}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-semibold tracking-[-0.02em]">
-                        Buy airtime
-                      </span>
-                      <span className="mt-0.5 block text-[13px] text-[var(--tab-muted)]">
-                        Top up {formatPhoneDisplay(phone)} · M-Pesa
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-[13px] font-medium text-[var(--tab-muted)]">
-                      Open
-                    </span>
-                  </button>
-                ) : null}
-                {showKplc ? (
-                  <button
-                    type="button"
-                    onClick={() => setKplcSheetOpen(true)}
-                    className="flex w-full items-center gap-3 border border-[var(--tab-border)] bg-[var(--tab-card)] px-3.5 py-3.5 text-left active:bg-[var(--tab-bg)]"
-                  >
-                    <span
-                      className="flex size-11 shrink-0 items-center justify-center"
-                      aria-hidden
-                      style={{ color: "var(--tab-cta-bg)" }}
-                    >
-                      <Zap className="size-6" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-semibold tracking-[-0.02em]">
-                        KPLC tokens
-                      </span>
-                      <span className="mt-0.5 block text-[13px] text-[var(--tab-muted)]">
-                        Look up recent tokens
-                      </span>
-                    </span>
-                    <span className="shrink-0 bg-[var(--tab-fg)] px-2 py-1 text-[11px] font-semibold tracking-[-0.02em] text-[var(--tab-bg)]">
-                      Soon
-                    </span>
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
+            <TabServicePad items={servicePadItems} />
 
             {owed <= 0 ? (
               <div className="mx-4 mt-4 flex items-center gap-2.5 border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3.5 py-3 text-[13px] font-medium text-[var(--tab-success-fg)]">
