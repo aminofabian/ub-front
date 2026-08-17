@@ -164,11 +164,16 @@ function statsFromTokens(tokens: PublicTabKplcToken[]): PublicTabKplcStats {
   };
 }
 
-function ComingSoonLine() {
+function ComingSoonBuy() {
   return (
-    <p className="px-4 pb-1.5 text-center text-[12px] leading-snug text-[var(--tab-muted)]">
-      Buying from this tab is next
-    </p>
+    <div className="px-4 pb-2">
+      <p className="text-[13px] font-semibold tracking-[-0.02em]">
+        Buying a KPLC token is coming soon
+      </p>
+      <p className="mt-0.5 text-[12px] leading-snug text-[var(--tab-muted)]">
+        You can look up slips now. Paying from this tab is next.
+      </p>
+    </div>
   );
 }
 
@@ -922,7 +927,7 @@ export function TabKplcSheet({
         </div>
 
         <div className="shrink-0 border-t border-[var(--tab-border)] pt-2">
-          {buyingSoon ? <ComingSoonLine /> : null}
+          {buyingSoon ? <ComingSoonBuy /> : null}
           <div className="px-4 pb-2.5">
             <button
               type="button"
