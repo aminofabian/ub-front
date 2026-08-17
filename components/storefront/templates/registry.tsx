@@ -65,7 +65,8 @@ export type StoreChromeVariant =
   | "butcher-board"
   | "carbon-desk"
   | "boutique-shelf"
-  | "chem-lab";
+  | "chem-lab"
+  | "spirits-cellar";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -98,7 +99,7 @@ export function resolveStoreChromeVariant(
     case "chem-lab":
       return "chem-lab";
     case "spirits-cellar":
-      return "dark";
+      return "spirits-cellar";
     default:
       return "default";
   }

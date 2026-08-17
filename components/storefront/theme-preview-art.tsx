@@ -207,20 +207,54 @@ function BoutiqueArt() {
 
 function SpiritsArt() {
   return (
-    <Frame paper="#0F172A" ink="#E2E8F0">
-      <div className="border-b border-violet-400/20 px-3 py-2">
-        <div className="h-2 w-24 rounded bg-violet-300/40" />
+    <Frame paper="#14100E" ink="#F5EBE0">
+      <div className="flex items-center justify-between border-b border-[#3D322A] px-3 py-1.5">
+        <span className="font-serif text-[10px] italic text-[#F0E6D8]">
+          Cloud 9 <span className="text-[#C4B5FD]">vault</span>
+        </span>
+        <span className="border border-[#B87333]/60 bg-[#B87333]/15 px-2 py-0.5 text-[7px] uppercase tracking-wider text-[#F0E6D8]">
+          Vault · 2
+        </span>
       </div>
-      <div className="flex flex-1 items-end justify-around gap-1 px-3 pb-3 pt-4">
-        {[28, 40, 34, 44, 30].map((h, i) => (
-          <div key={i} className="flex flex-col items-center gap-1">
-            <div
-              className="w-6 rounded-t-md bg-gradient-to-b from-violet-300/80 to-indigo-900 ring-1 ring-violet-200/30"
-              style={{ height: h }}
-            />
-            <div className="h-1 w-5 rounded bg-white/20" />
+      <div className="grid flex-1 grid-cols-[1.35fr_1fr] gap-2 p-2">
+        <div className="relative border-2 border-[#3D322A] bg-[#1F1814] p-2">
+          <div
+            className="pointer-events-none absolute -left-1 top-3 size-4 rounded-full bg-[#E8A849]/40 blur-sm"
+            aria-hidden
+          />
+          <div className="font-mono text-[7px] uppercase tracking-widest text-[#E8A849]">
+            Grand niche
           </div>
-        ))}
+          <div className="relative mt-1 aspect-[4/3] overflow-hidden rounded-t-[40px] border border-[#3D322A] bg-[#2A211C]">
+            <div className="absolute bottom-2 right-2 size-4 rounded-full bg-[#8B2635] shadow-md" />
+          </div>
+          <div className="mt-2 flex gap-2">
+            <span className="border border-[#C4B5FD]/40 bg-[#C4B5FD]/10 px-2 py-0.5 text-[8px] text-[#C4B5FD]">
+              KSh…
+            </span>
+            <span className="bg-[#8B2635] px-2 py-0.5 text-[7px] text-[#F0E6D8]">
+              Seal
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5 pt-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex min-h-0 flex-1 overflow-hidden border border-[#3D322A] bg-[#1F1814]"
+            >
+              <div className="relative w-2/5 rounded-tl-[24px] border-r border-[#3D322A] bg-[#2A211C]">
+                <div className="absolute bottom-1 right-1 size-2 rounded-full bg-[#8B2635]" />
+              </div>
+              <div className="flex flex-1 flex-col justify-center gap-1 p-1.5">
+                <div className="text-[6px] font-bold uppercase tracking-wider text-[#B87333]">
+                  V-00{i + 1}
+                </div>
+                <div className="h-1.5 w-3/4 bg-[#F0E6D8]/50" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </Frame>
   );
