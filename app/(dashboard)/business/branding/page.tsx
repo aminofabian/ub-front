@@ -846,7 +846,7 @@ function RelatedLinks() {
     {
       href: APP_ROUTES.businessThemes,
       label: "Themes",
-      desc: "Shop layout looks",
+      desc: "How the customer website looks",
       icon: LayoutTemplate,
     },
     {
@@ -1321,15 +1321,15 @@ export default function BrandingPage() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 text-sm font-semibold">
-                Store themes
+                How the customer website looks
                 <ArrowRight
                   className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100"
                   aria-hidden
                 />
               </span>
               <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                Choose the layout for your live shop or coming-soon page — Milk
-                Run, Oxide, Mart aisles, and more.
+                Each picture is a website style. The one you save is what
+                people see when they open your shop on their phone.
               </span>
             </span>
           </Link>

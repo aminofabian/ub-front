@@ -35,7 +35,7 @@ export default function BusinessThemesPage() {
         setErrorText(
           e instanceof Error && e.message.trim()
             ? e.message
-            : "Could not load themes.",
+            : "Could not load the looks for your customer website.",
         );
       });
   }, []);
@@ -48,8 +48,8 @@ export default function BusinessThemesPage() {
   if (!canManageBusinessSettings) {
     return (
       <DashboardAccessDenied
-        title="Themes are restricted"
-        description="Ask an owner or admin with business settings access to change the storefront look."
+        title="Only an owner can dress the shop"
+        description="Ask the business owner to change how the customer website looks. This screen does not affect the till."
         backHref={APP_ROUTES.business}
         backLabel="Back to business"
       />
@@ -68,8 +68,8 @@ export default function BusinessThemesPage() {
   if (loadFailed && !business) {
     return (
       <DashboardLoadError
-        title="Could not load themes"
-        message={errorText ?? "Could not load themes."}
+        title="Could not load shop looks"
+        message={errorText ?? "Could not load the looks for your customer website."}
         onRetry={() => void load()}
       />
     );
@@ -94,8 +94,8 @@ function ThemesPageHeader() {
       <DashboardPageHero
         compact
         icon={LayoutTemplate}
-        title="Themes"
-        description="Tap a look. Save to show it to customers. Colors and logo stay on Branding."
+        title="How your shop looks online"
+        description="Each picture is the customer website — the page people open on their phone. This back office stays private. Pick a style, then save to hang it on the shop front."
       />
       <div className="flex flex-wrap gap-2 sm:pt-1">
         <Button asChild variant="outline" size="sm" className="gap-1.5">
@@ -117,7 +117,7 @@ function ThemesPageHeader() {
 
 function ThemesStudioSkeleton() {
   return (
-    <div className="space-y-6" aria-busy="true" aria-label="Loading themes">
+    <div className="space-y-6" aria-busy="true" aria-label="Loading shop looks">
       <div className="h-16 animate-pulse rounded-xl bg-muted" />
       <div className="space-y-2">
         <div className="h-5 w-32 animate-pulse rounded bg-muted" />

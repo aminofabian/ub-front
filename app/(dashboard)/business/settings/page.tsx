@@ -225,7 +225,7 @@ export default function BusinessSettingsPage() {
             {
               href: APP_ROUTES.businessThemes,
               label: "Themes",
-              desc: "Shop layouts",
+              desc: "How the website looks",
               icon: LayoutTemplate,
             },
             {

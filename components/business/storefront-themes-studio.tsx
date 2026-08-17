@@ -163,8 +163,8 @@ export function StorefrontThemesStudio({
       onSaved?.(next);
       setFeedback(
         mode === "store"
-          ? `${selected.name} is now on your shop.`
-          : `${selected.name} is now the coming-soon page.`,
+          ? `Customers now see ${selected.name} when they open your shop.`
+          : `Visitors now see ${selected.name} until the shop is open for buying.`,
       );
       if (
         mode === "store" &&
@@ -176,7 +176,7 @@ export function StorefrontThemesStudio({
         setWaPromptOpen(true);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save theme.");
+      setError(e instanceof Error ? e.message : "Could not update the customer website.");
     } finally {
       setSaving(false);
     }
@@ -219,27 +219,27 @@ export function StorefrontThemesStudio({
       <div
         className="grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-muted/40 p-1"
         role="tablist"
-        aria-label="Which page to style"
+        aria-label="Which customer page to dress"
       >
         <ModeTab
           active={mode === "store"}
           onClick={() => setMode("store")}
           icon={<Store className="size-4" aria-hidden />}
-          label="Live shop"
+          label="The shop"
           hint={
             storefrontOn
-              ? "What customers see now"
-              : "Ready for when you turn the shop on"
+              ? "Where people browse and buy"
+              : "Waiting until you open for selling"
           }
         />
         <ModeTab
           active={mode === "landing"}
           onClick={() => setMode("landing")}
           icon={<LayoutTemplate className="size-4" aria-hidden />}
-          label="Coming-soon"
+          label="The closed sign"
           hint={
             storefrontOn
-              ? "Shown if you turn the shop off"
+              ? "If you pause selling online"
               : "What visitors see today"
           }
         />
@@ -251,13 +251,14 @@ export function StorefrontThemesStudio({
           className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3.5 text-sm leading-relaxed text-amber-950 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-50"
         >
           <p className="min-w-0 flex-1">
-            The shop is off, so visitors see the coming-soon page. You can still
-            pick a live-shop look — it appears when you{" "}
+            The shop is not selling online yet, so visitors see the closed-sign
+            page. You can still dress the open shop — customers only walk into
+            it after you{" "}
             <Link
               href={APP_ROUTES.businessSettings}
               className="font-medium underline underline-offset-2"
             >
-              turn the storefront on
+              turn selling on
             </Link>
             .
           </p>
@@ -272,16 +273,16 @@ export function StorefrontThemesStudio({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-base font-semibold tracking-tight text-foreground">
-            {mode === "store" ? "Shop looks" : "Coming-soon pages"}
+            {mode === "store"
+              ? "Looks for the customer shop"
+              : "Looks for the closed-sign page"}
           </h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {currentModeDirty
-              ? mode === "store"
-                ? `Save to put ${selected.name} on your shop.`
-                : `Save to use ${selected.name} as the coming-soon page.`
+              ? `${selected.name} is only on this screen until you save.`
               : mode === "store"
-                ? `${selected.name} is on your shop.`
-                : `${selected.name} is the coming-soon page.`}
+                ? `Customers see ${selected.name} when they open your shop.`
+                : `Visitors see ${selected.name} until the shop is open for buying.`}
           </p>
         </div>
       </div>
@@ -289,7 +290,11 @@ export function StorefrontThemesStudio({
       <div
         id={listId}
         role="listbox"
-        aria-label={mode === "store" ? "Shop looks" : "Coming-soon pages"}
+        aria-label={
+          mode === "store"
+            ? "Looks for the customer shop"
+            : "Looks for the closed-sign page"
+        }
         aria-activedescendant={`${listId}-${selectedId}`}
         onKeyDown={onGridKeyDown}
         className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
@@ -334,6 +339,9 @@ export function StorefrontThemesStudio({
                   templateId={item.id}
                   className="pointer-events-none rounded-none border-0 shadow-none ring-0"
                 />
+                <span className="pointer-events-none absolute bottom-2 left-2 rounded-md bg-background/90 px-2 py-0.5 text-[10px] font-medium text-foreground shadow-sm">
+                  Customer website
+                </span>
                 {isSelected ? (
                   <span className="absolute right-2.5 top-2.5 flex size-7 items-center justify-center rounded-full bg-foreground text-background shadow-sm">
                     <Check className="size-4" aria-hidden />
@@ -347,11 +355,11 @@ export function StorefrontThemesStudio({
                   </p>
                   {isLive ? (
                     <Badge variant="success" className="shrink-0">
-                      On your shop
+                      Customers see this
                     </Badge>
                   ) : isSelected ? (
                     <Badge variant="outline" className="shrink-0">
-                      Selected
+                      Trying this on
                     </Badge>
                   ) : null}
                 </div>
@@ -386,7 +394,7 @@ export function StorefrontThemesStudio({
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          Preview
+                          See it as a customer
                           <ExternalLink className="size-3.5" aria-hidden />
                         </a>
                       </Button>
@@ -405,17 +413,19 @@ export function StorefrontThemesStudio({
             {currentModeDirty ? (
               mode === "store" ? (
                 <>
-                  <span className="font-semibold">{selected.name}</span> is not
-                  on your shop yet. Save to show it to customers.
+                  <span className="font-semibold">{selected.name}</span> is
+                  hanging in this back office only. Save to put it on the
+                  customer website.
                 </>
               ) : (
                 <>
-                  <span className="font-semibold">{selected.name}</span> is not
-                  the coming-soon page yet.
+                  <span className="font-semibold">{selected.name}</span> is
+                  hanging in this back office only. Save to put it on the
+                  closed-sign page.
                 </>
               )
             ) : (
-              <>You have an unsaved look on the other tab.</>
+              <>You started a look on the other tab. Save so customers can see it.</>
             )}
           </p>
           <div className="flex shrink-0 flex-wrap gap-2">
@@ -428,7 +438,7 @@ export function StorefrontThemesStudio({
               onClick={revert}
             >
               <Undo2 className="size-3.5" aria-hidden />
-              Keep current
+              Keep the old look
             </Button>
             <Button
               type="button"
@@ -442,7 +452,7 @@ export function StorefrontThemesStudio({
               ) : (
                 <Save className="size-4" aria-hidden />
               )}
-              {saving ? "Saving…" : "Save to your shop"}
+              {saving ? "Putting it on the website…" : "Show this to customers"}
             </Button>
           </div>
         </div>
@@ -456,7 +466,7 @@ export function StorefrontThemesStudio({
         onSaved={async () => {
           const next = await fetchBusiness();
           onSaved?.(next);
-          setFeedback("WhatsApp saved for Milk Run.");
+          setFeedback("WhatsApp is now on the Milk Run customer website.");
         }}
       />
     </div>

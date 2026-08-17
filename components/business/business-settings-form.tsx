@@ -363,8 +363,8 @@ export function BusinessSettingsForm({
                   {storefront.enabled ? "Store theme" : "Landing page template"}
                 </p>
                 <p className={hintClass()}>
-                  Layouts live on the Themes page — stage looks side-by-side,
-                  then save.
+                  This is the style customers see on your website. Open Themes
+                  to try another look.
                 </p>
                 <Link
                   href={APP_ROUTES.businessThemes}
@@ -398,7 +398,7 @@ export function BusinessSettingsForm({
                             .name}
                     </span>
                     <span className="block text-[11px] text-muted-foreground">
-                      Open Themes atelier to change
+                      Change how the customer website looks
                     </span>
                   </span>
                   <ArrowRight
