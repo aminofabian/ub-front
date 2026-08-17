@@ -51,6 +51,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.groceryInvoices]: "Invoices",
     [APP_ROUTES.analytics]: "Analytics",
     [APP_ROUTES.analyticsActivity]: "Activity",
+    [APP_ROUTES.analyticsCustomers]: "Shoppers",
     [APP_ROUTES.business]: "Business",
     [APP_ROUTES.businessBranding]: "Branding",
     [APP_ROUTES.businessThemes]: "Themes",

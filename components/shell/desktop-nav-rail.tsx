@@ -124,6 +124,7 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.salesPendingCarts]: ShoppingBag,
   [APP_ROUTES.analytics]: BarChart3,
   [APP_ROUTES.analyticsActivity]: Activity,
+  [APP_ROUTES.analyticsCustomers]: Users,
   [APP_ROUTES.salesReports]: BarChart3,
   [APP_ROUTES.storefrontWebOrders]: Store,
   [APP_ROUTES.salesQuick]: ScanLine,

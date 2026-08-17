@@ -674,6 +674,12 @@ export function AnalyticsWorkspace({
                 Activity
               </Link>
             ) : null}
+            <Link
+              href={APP_ROUTES.analyticsCustomers}
+              className="text-[12px] text-white/85 underline-offset-2 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              Shoppers
+            </Link>
             <button
               type="button"
               className="flex size-11 items-center justify-center text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"

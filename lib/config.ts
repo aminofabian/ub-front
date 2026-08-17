@@ -108,6 +108,7 @@ export const APP_ROUTES = {
   shifts: "/shifts",
   analytics: "/analytics",
   analyticsActivity: "/analytics/activity",
+  analyticsCustomers: "/analytics/customers",
   sales: "/sales",
   salesTransactions: "/sales/transactions",
   salesPendingCarts: "/sales/pending-carts",

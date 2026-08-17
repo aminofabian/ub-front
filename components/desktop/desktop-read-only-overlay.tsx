@@ -16,6 +16,7 @@ const EXEMPT_PATH_PREFIXES: readonly string[] = [
   APP_ROUTES.business,
   APP_ROUTES.analytics,
   APP_ROUTES.analyticsActivity,
+  APP_ROUTES.analyticsCustomers,
   APP_ROUTES.salesTransactions,
   APP_ROUTES.salesReports,
   APP_ROUTES.products,

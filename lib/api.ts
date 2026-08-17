@@ -5182,6 +5182,65 @@ export async function fetchCustomersByMonth(
   );
 }
 
+export type CustomerSpendCohort =
+  | "champion"
+  | "regular"
+  | "at_risk"
+  | "dormant"
+  | "new_face"
+  | "one_off";
+
+export type CustomerSpendRow = {
+  rank: number;
+  customerId: string;
+  customerNo: number | null;
+  name: string;
+  origin: string;
+  maskedHint: string | null;
+  phoneVerified: boolean | null;
+  saleCount: number;
+  visitDays: number;
+  spend: number | string;
+  avgBasket: number | string;
+  sharePct: number | string;
+  firstVisit: string | null;
+  lastVisit: string | null;
+  daysSinceLastVisit: number | null;
+  weekStreak: number;
+  longestWeekStreak: number;
+  cadence: string;
+  favoriteWeekday: string | null;
+  cohort: CustomerSpendCohort | string;
+};
+
+export type CustomerSpendResponse = {
+  asOf: string;
+  identifiedCustomerCount: number;
+  identifiedSaleCount: number;
+  identifiedSpend: number | string;
+  walkInSaleCount: number;
+  walkInSpend: number | string;
+  truncated: boolean;
+  rows: CustomerSpendRow[];
+};
+
+export async function fetchCustomerSpend(
+  from?: string,
+  to?: string,
+  branchId?: string,
+  limit?: number,
+): Promise<CustomerSpendResponse> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (limit != null) params.set("limit", String(limit));
+  const qs = params.toString();
+  return request<CustomerSpendResponse>(
+    `/api/v1/sales/intelligence/customer-spend${qs ? `?${qs}` : ""}`,
+  );
+}
+
 export type FinancePulseResponse = {
   date: string;
   branchId: string | null;

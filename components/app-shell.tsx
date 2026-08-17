@@ -381,6 +381,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Intelligence",
       },
       {
+        href: APP_ROUTES.analyticsCustomers,
+        label: "Shoppers",
+        group: "Intelligence",
+      },
+      {
         href: APP_ROUTES.salesReports,
         label: "Sales by category",
         group: "Intelligence",
@@ -642,6 +647,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     if (gate.roleKey === "stock_manager") return gate.stockManagerActivity;
     return gate.canViewSalesIntelligence || gate.canViewAnalytics;
   }
+  if (item.href === APP_ROUTES.analyticsCustomers) return gate.canViewAnalytics;
   if (item.href === APP_ROUTES.sales) return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.paymentsSettings)
     return gate.canViewPaymentGateways;
@@ -685,6 +691,9 @@ function itemIsActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   if (href === APP_ROUTES.butcher) {
     return pathname === APP_ROUTES.butcher;
+  }
+  if (href === APP_ROUTES.analytics) {
+    return pathname === href || pathname.startsWith(`${href}?`);
   }
   return (
     pathname === href ||
