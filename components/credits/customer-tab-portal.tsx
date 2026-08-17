@@ -1490,11 +1490,11 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                         KPLC tokens
                       </span>
                       <span className="mt-0.5 block text-[13px] text-[var(--tab-muted)]">
-                        Look up recent tokens · buying soon
+                        Look up recent tokens
                       </span>
                     </span>
-                    <span className="shrink-0 text-[13px] font-medium text-[var(--tab-muted)]">
-                      Open
+                    <span className="shrink-0 bg-[var(--tab-fg)] px-2 py-1 text-[11px] font-semibold tracking-[-0.02em] text-[var(--tab-bg)]">
+                      Soon
                     </span>
                   </button>
                 ) : null}

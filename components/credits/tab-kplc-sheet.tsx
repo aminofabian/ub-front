@@ -38,6 +38,12 @@ function formatMeterDisplay(raw: string): string {
   return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
 }
 
+function formatTokenNo(raw: string): string {
+  const digits = raw.replace(/\s/g, "");
+  if (digits.length < 8) return raw;
+  return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+}
+
 function toAmount(value: number | string | null | undefined): number | null {
   const n = typeof value === "number" ? value : Number(value);
   return Number.isFinite(n) ? n : null;
@@ -55,6 +61,78 @@ function formatTokenDate(iso: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+const comingSoonMuted =
+  "color-mix(in_oklab, var(--tab-bg) 72%, var(--tab-fg))";
+
+function TokenSlipSlots({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      className={cn("flex items-end justify-between gap-1.5", compact ? "mt-3" : "mt-4")}
+      aria-hidden
+    >
+      {Array.from({ length: 5 }, (_, group) => (
+        <span
+          key={group}
+          className="flex gap-[3px] motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500 motion-safe:ease-out"
+          style={{ animationDelay: `${group * 70}ms` }}
+        >
+          {Array.from({ length: 4 }, (_, i) => (
+            <span
+              key={i}
+              className={cn("inline-block border", compact ? "h-4 w-[0.45rem]" : "h-5 w-[0.55rem]")}
+              style={{
+                borderColor: "color-mix(in_oklab, var(--tab-bg) 38%, transparent)",
+                backgroundColor:
+                  group === 4 && i === 3
+                    ? "color-mix(in_oklab, var(--tab-bg) 28%, transparent)"
+                    : "transparent",
+              }}
+            />
+          ))}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ComingSoonBuy({ compact }: { compact: boolean }) {
+  return (
+    <div
+      className={cn(
+        "bg-[var(--tab-fg)] text-[var(--tab-bg)]",
+        compact ? "px-3 py-3" : "px-3 py-4",
+      )}
+      role="status"
+    >
+      <p
+        className={cn(
+          "font-semibold tracking-[-0.03em]",
+          compact ? "text-[1.25rem] leading-none" : "text-[1.75rem] leading-[0.95]",
+        )}
+      >
+        Coming soon
+      </p>
+      <p
+        className={cn(
+          "font-semibold tracking-[-0.02em]",
+          compact ? "mt-1.5 text-[13px]" : "mt-2 text-[15px]",
+        )}
+      >
+        Buy a token from this tab
+      </p>
+      <TokenSlipSlots compact={compact} />
+      <p
+        className={cn("leading-snug", compact ? "mt-2.5 text-[12px]" : "mt-3 text-[13px]")}
+        style={{ color: comingSoonMuted }}
+      >
+        {compact
+          ? "Look up stays open. Paying for a new token here is next."
+          : "Look up any token already on this meter. Paying for a new one here is next."}
+      </p>
+    </div>
+  );
 }
 
 type Props = {
@@ -198,10 +276,10 @@ export function TabKplcSheet({
   if (!open) return null;
 
   const meters = config?.meters ?? [];
-  const notice =
-    config?.purchaseMessage ||
-    "We're still working on buying tokens here. For now you can look up tokens you've already bought.";
+  const buyingSoon = config?.purchaseAvailable !== true;
   const canLookup = meterLooksValid(meter) && !busy;
+  const sameLoadedMeter =
+    loadedMeter != null && digitsOnly(meter) === loadedMeter;
 
   return (
     <div
@@ -245,12 +323,9 @@ export function TabKplcSheet({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3">
-          <p
-            role="status"
-            className="border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2.5 text-[13px] leading-snug text-[var(--tab-fg)]"
-          >
-            {notice}
-          </p>
+          {buyingSoon ? (
+            <ComingSoonBuy compact={Boolean(tokens && tokens.length > 0)} />
+          ) : null}
 
           <label
             htmlFor={`${fieldIdPrefix}-kplc-meter`}
@@ -338,7 +413,7 @@ export function TabKplcSheet({
               </h3>
               {tokens.length === 0 ? (
                 <p className="mt-2 text-[13px] leading-snug text-[var(--tab-muted)]">
-                  No tokens on {formatMeterDisplay(loadedMeter)} yet. Buying from this tab is coming soon.
+                  No tokens on {formatMeterDisplay(loadedMeter)} yet.
                 </p>
               ) : (
                 <ul className="mt-2 divide-y divide-[var(--tab-border)] border-y border-[var(--tab-border)] bg-[var(--tab-bg)]">
@@ -385,7 +460,7 @@ export function TabKplcSheet({
                             className="mt-2 flex w-full items-center justify-between gap-2 border border-[var(--tab-border)] bg-[var(--tab-card)] px-2.5 py-2 text-left"
                           >
                             <span className="min-w-0 font-mono text-[13px] font-semibold tabular-nums tracking-wide">
-                              {token.tokenNo}
+                              {formatTokenNo(token.tokenNo)}
                             </span>
                             <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-[var(--tab-muted)]">
                               {copied === token.tokenNo ? (
@@ -432,39 +507,27 @@ export function TabKplcSheet({
         </div>
 
         <div className="shrink-0 border-t border-[var(--tab-border)] px-4 py-2.5">
-          {loadedMeter && digitsOnly(meter) === loadedMeter ? (
-            <button
-              type="button"
-              disabled
-              className={btnPrimaryClass}
-              style={{
-                backgroundColor: "var(--tab-cta-bg)",
-                color: "var(--tab-cta-fg)",
-              }}
-            >
-              Buy token — coming soon
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={!canLookup}
-              onClick={() => void lookup(tabPhone, meter)}
-              className={btnPrimaryClass}
-              style={{
-                backgroundColor: "var(--tab-cta-bg)",
-                color: "var(--tab-cta-fg)",
-              }}
-            >
-              {busy ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Looking up…
-                </>
-              ) : (
-                "Look up tokens"
-              )}
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={!canLookup}
+            onClick={() => void lookup(tabPhone, meter)}
+            className={btnPrimaryClass}
+            style={{
+              backgroundColor: "var(--tab-cta-bg)",
+              color: "var(--tab-cta-fg)",
+            }}
+          >
+            {busy ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Looking up…
+              </>
+            ) : sameLoadedMeter ? (
+              "Look up again"
+            ) : (
+              "Look up tokens"
+            )}
+          </button>
         </div>
       </div>
     </div>
