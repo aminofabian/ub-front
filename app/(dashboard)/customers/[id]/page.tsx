@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, IdCard, Users } from "lucide-react";
 
 import {
   DASHBOARD_MAX,
@@ -21,6 +21,8 @@ import {
   type CreditStatementRecord,
   type CustomerRecord,
 } from "@/lib/api";
+import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
+import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
 
 function fmtMoney(value: number | string | null | undefined): string {
   const n = Number(value ?? 0);
@@ -35,6 +37,7 @@ export default function CustomerDetailPage() {
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [statement, setStatement] = useState<CreditStatementRecord | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
+  const [cardOpen, setCardOpen] = useState(false);
   const [message, setMessage] = useState<{ text: string; kind: "error" } | null>(
     null,
   );
@@ -106,7 +109,7 @@ export default function CustomerDetailPage() {
         </Button>
       </div>
 
-      <header className="space-y-4">
+      <header className="flex flex-wrap items-end justify-between gap-3">
         <DashboardPageHero
           icon={Users}
           eyebrow="Credit account"
@@ -117,6 +120,12 @@ export default function CustomerDetailPage() {
               : "Tab, wallet, and loyalty activity"
           }
         />
+        {customer ? (
+          <Button type="button" variant="outline" onClick={() => setCardOpen(true)}>
+            <IdCard className="size-4" aria-hidden />
+            Print loyalty card
+          </Button>
+        ) : null}
       </header>
 
       {message ? <DashboardFeedback kind={message.kind} text={message.text} /> : null}
@@ -201,6 +210,19 @@ export default function CustomerDetailPage() {
             ) : null}
           </section>
         </>
+      ) : null}
+
+      {customer ? (
+        <LoyaltyCardPreview
+          customer={{
+            id: customer.id,
+            name: customer.name,
+            phone: customerPrimaryPhone(customer.phones),
+            loyaltyPoints: customer.credit.loyaltyPoints,
+          }}
+          open={cardOpen}
+          onOpenChange={setCardOpen}
+        />
       ) : null}
     </div>
   );

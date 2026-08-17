@@ -22,6 +22,10 @@ import {
 import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
 import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
 import { RemindPaymentButtons } from "@/components/credits/remind-payment-buttons";
+import {
+  LoyaltyCardLink,
+  LoyaltyCardPreview,
+} from "@/components/credits/loyalty-card-preview";
 import { isUsableStoredCustomerPhone } from "@/lib/customer-phone";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -35,6 +39,7 @@ import {
   type OutstandingTabRowRecord,
   type PaymentLedgerRow,
 } from "@/lib/api";
+import type { LoyaltyCardCustomerInput } from "@/lib/loyalty-card";
 import {
   formatDateRangeLabel,
   presetRange,
@@ -161,6 +166,8 @@ export function CreditActivityPage() {
   const [payTarget, setPayTarget] = useState<OutstandingTabRowRecord | null>(
     null,
   );
+  const [cardCustomer, setCardCustomer] =
+    useState<LoyaltyCardCustomerInput | null>(null);
 
   const canRemind = canManageCreditSettings || canReviewPaymentClaims;
 
@@ -559,6 +566,17 @@ export function CreditActivityPage() {
                         {tab.primaryPhone?.trim() || "No phone"}
                       </p>
                       <CustomerPhoneFlag phone={tab.primaryPhone} />
+                      <div className="mt-1">
+                        <LoyaltyCardLink
+                          onClick={() =>
+                            setCardCustomer({
+                              id: tab.customerId,
+                              name: tab.name,
+                              phone: tab.primaryPhone,
+                            })
+                          }
+                        />
+                      </div>
                     </div>
                     <p className="shrink-0 text-sm font-semibold tabular-nums text-amber-800 dark:text-amber-300">
                       {fmtKes(owed)}
@@ -773,6 +791,14 @@ export function CreditActivityPage() {
                 ? "Tab cleared — marked as paid in full."
                 : `Partial payment recorded. ${fmtKes(balanceOwed)} still owed.`,
           });
+        }}
+      />
+
+      <LoyaltyCardPreview
+        customer={cardCustomer}
+        open={cardCustomer != null}
+        onOpenChange={(next) => {
+          if (!next) setCardCustomer(null);
         }}
       />
     </div>

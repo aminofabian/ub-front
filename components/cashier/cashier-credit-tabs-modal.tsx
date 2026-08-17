@@ -6,6 +6,7 @@ import {
   Banknote,
   ChevronDown,
   ChevronRight,
+  IdCard,
   Loader2,
   Printer,
   Receipt,
@@ -38,6 +39,10 @@ import {
 } from "@/lib/desktop-print";
 import { cn } from "@/lib/utils";
 import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
+import {
+  LoyaltyCardLink,
+  LoyaltyCardPreview,
+} from "@/components/credits/loyalty-card-preview";
 import { storedCustomerPhoneIssue } from "@/lib/customer-phone";
 
 type CashierCreditTabsModalProps = {
@@ -107,6 +112,9 @@ export function CashierCreditTabsModal({
   const [purchasesLoading, setPurchasesLoading] = useState(false);
   const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null);
   const [printingSaleId, setPrintingSaleId] = useState<string | null>(null);
+  const [cardTarget, setCardTarget] = useState<OutstandingTabRowRecord | null>(
+    null,
+  );
 
   const load = useCallback(async (q?: string) => {
     setLoading(true);
@@ -148,6 +156,7 @@ export function CashierCreditTabsModal({
     setShowPurchases(false);
     setPurchases([]);
     setExpandedSaleId(null);
+    setCardTarget(null);
     void load();
   }, [open, load]);
 
@@ -232,6 +241,7 @@ export function CashierCreditTabsModal({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         style={brandTheme}
@@ -289,10 +299,13 @@ export function CashierCreditTabsModal({
               ) : (
                 <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60">
                   {rows.map((row) => (
-                    <li key={row.customerId}>
+                    <li
+                      key={row.customerId}
+                      className="flex items-stretch gap-0"
+                    >
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
+                        className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
                         onClick={() => selectRow(row)}
                       >
                         <span className="min-w-0">
@@ -318,6 +331,15 @@ export function CashierCreditTabsModal({
                         <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--pos-primary)]">
                           {money(row.balanceOwed, currency)}
                         </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex shrink-0 flex-col items-center justify-center gap-0.5 border-l border-border/60 px-2.5 text-[10px] font-medium text-primary hover:bg-muted/50"
+                        onClick={() => setCardTarget(row)}
+                        aria-label={`Print loyalty card for ${row.name}`}
+                      >
+                        <IdCard className="size-4" aria-hidden />
+                        Card
                       </button>
                     </li>
                   ))}
@@ -353,6 +375,12 @@ export function CashierCreditTabsModal({
                   {selected.primaryPhone?.trim() || "No phone on file"}
                 </p>
                 <CustomerPhoneFlag phone={selected.primaryPhone} />
+                <div className="mt-3">
+                  <LoyaltyCardLink
+                    label="Print loyalty card"
+                    onClick={() => setCardTarget(selected)}
+                  />
+                </div>
               </div>
 
               <button
@@ -577,5 +605,19 @@ export function CashierCreditTabsModal({
         ) : null}
       </DialogContent>
     </Dialog>
+    {cardTarget ? (
+      <LoyaltyCardPreview
+        customer={{
+          id: cardTarget.customerId,
+          name: cardTarget.name,
+          phone: cardTarget.primaryPhone,
+        }}
+        open
+        onOpenChange={(next) => {
+          if (!next) setCardTarget(null);
+        }}
+      />
+    ) : null}
+    </>
   );
 }

@@ -27,9 +27,15 @@ import { useFormatMoney } from "@/hooks/use-format-money";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { CreditSaleReminderSettings } from "@/components/credits/credit-sale-reminder-settings";
+import {
+  LoyaltyCardLink,
+  LoyaltyCardPreview,
+} from "@/components/credits/loyalty-card-preview";
 import { WhatsAppTestPanel } from "@/components/credits/whatsapp-test-panel";
 import { SmsTestPanel } from "@/components/credits/sms-test-panel";
+import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import { createCustomer, fetchCustomers, type CustomerRecord } from "@/lib/api";
+import type { LoyaltyCardCustomerInput } from "@/lib/loyalty-card";
 import {
   formatDateRangeLabel,
   presetRange,
@@ -78,6 +84,8 @@ export default function CustomersPage() {
     text: string;
     kind: "error" | "success";
   } | null>(null);
+  const [cardCustomer, setCardCustomer] =
+    useState<LoyaltyCardCustomerInput | null>(null);
 
   const dateRange = useMemo(() => {
     if (datePreset === "all") return null;
@@ -414,6 +422,18 @@ export default function CustomersPage() {
                       >
                         {row.name}
                       </Link>
+                      <div className="mt-0.5">
+                        <LoyaltyCardLink
+                          onClick={() =>
+                            setCardCustomer({
+                              id: row.id,
+                              name: row.name,
+                              phone: customerPrimaryPhone(row.phones),
+                              loyaltyPoints: row.credit.loyaltyPoints,
+                            })
+                          }
+                        />
+                      </div>
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground sm:px-5">
                       {phoneLabel}
@@ -454,6 +474,14 @@ export default function CustomersPage() {
           <SmsTestPanel canSend={canManageCreditSettings} />
         </div>
       ) : null}
+
+      <LoyaltyCardPreview
+        customer={cardCustomer}
+        open={cardCustomer != null}
+        onOpenChange={(next) => {
+          if (!next) setCardCustomer(null);
+        }}
+      />
     </div>
   );
 }
