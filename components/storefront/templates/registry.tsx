@@ -59,7 +59,8 @@ export type StoreChromeVariant =
   | "tint-lab"
   | "milk-run"
   | "butcher-board"
-  | "carbon-desk";
+  | "carbon-desk"
+  | "boutique-shelf";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -87,10 +88,10 @@ export function resolveStoreChromeVariant(
       return "butcher-board";
     case "carbon-desk":
       return "carbon-desk";
+    case "boutique-shelf":
+      return "boutique-shelf";
     case "spirits-cellar":
       return "dark";
-    case "boutique-shelf":
-      return "soft";
     default:
       return "default";
   }

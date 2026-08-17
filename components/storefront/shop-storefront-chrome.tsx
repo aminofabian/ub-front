@@ -25,6 +25,9 @@ import butcherBoardStyles from "@/components/storefront/templates/store/butcher-
 import { CarbonDeskHeader } from "@/components/storefront/templates/store/carbon-desk-header";
 import { carbonDeskFontVariables } from "@/components/storefront/templates/store/carbon-desk-fonts";
 import carbonDeskStyles from "@/components/storefront/templates/store/carbon-desk.module.css";
+import { BoutiqueShelfHeader } from "@/components/storefront/templates/store/boutique-shelf-header";
+import { boutiqueShelfFontVariables } from "@/components/storefront/templates/store/boutique-shelf-fonts";
+import boutiqueShelfStyles from "@/components/storefront/templates/store/boutique-shelf.module.css";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
@@ -136,7 +139,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf";
   storeThemeId?: string | null;
   /** Tenant WhatsApp for Milk Run dual-path checkout. */
   whatsappNumber?: string | null;
@@ -149,7 +152,8 @@ export function ShopStorefrontChrome({
   const isMilkRun = chromeVariant === "milk-run";
   const isButcherBoard = chromeVariant === "butcher-board";
   const isCarbonDesk = chromeVariant === "carbon-desk";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk;
+  const isBoutiqueShelf = chromeVariant === "boutique-shelf";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const milkRunDigits = isMilkRun
@@ -177,6 +181,11 @@ export function ShopStorefrontChrome({
                 ["--cd-stamp" as string]: primaryHex || "#B91C1C",
                 ["--cd-carbon" as string]: accentHex || "#3D6B9E",
               } as CSSProperties)
+            : isBoutiqueShelf
+              ? ({
+                  ["--bs-rose" as string]: primaryHex || "#DB2777",
+                  ["--bs-brass" as string]: accentHex || "#C9A227",
+                } as CSSProperties)
         : undefined;
 
   return (
@@ -225,6 +234,13 @@ export function ShopStorefrontChrome({
               carbonDeskFontVariables,
               "[--storefront-paper:#F5F0E4]",
             ),
+          isBoutiqueShelf &&
+            cn(
+              boutiqueShelfStyles.root,
+              boutiqueShelfStyles.body,
+              boutiqueShelfFontVariables,
+              "[--storefront-paper:#1F1020]",
+            ),
         )}
         style={shellStyle}
       >
@@ -248,6 +264,11 @@ export function ShopStorefrontChrome({
       {isCarbonDesk && !compactChrome ? (
         <Suspense fallback={null}>
           <CarbonDeskHeader storeName={headerTitle} logoUrl={logoUrl} />
+        </Suspense>
+      ) : null}
+      {isBoutiqueShelf && !compactChrome ? (
+        <Suspense fallback={null}>
+          <BoutiqueShelfHeader storeName={headerTitle} logoUrl={logoUrl} />
         </Suspense>
       ) : null}
       {showDefaultChrome ? (

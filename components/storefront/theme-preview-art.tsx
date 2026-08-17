@@ -147,31 +147,55 @@ function ButcherArt() {
 
 function BoutiqueArt() {
   return (
-    <Frame paper="#FDF2F8">
-      <div className="flex items-center justify-between px-3 py-2">
-        <span className="font-serif text-[11px] italic text-pink-800">Boutique</span>
-        <span className="size-4 rounded-full bg-pink-500" />
+    <Frame paper="#1F1020" ink="#FAF6F0">
+      <div className="flex items-center justify-between border-b border-[#C9A227]/30 bg-[#140A14]/80 px-3 py-2">
+        <span className="font-serif text-[12px] italic text-[#FAF6F0]">
+          Cloud 9 <em className="text-[#DB2777]">stationery</em>
+        </span>
+        <span className="rounded-full border border-[#C9A227]/60 bg-[#C9A227]/15 px-2 py-0.5 text-[8px] uppercase tracking-wider">
+          Tray · 2
+        </span>
       </div>
-      <div className="grid flex-1 grid-cols-2 gap-2 px-2.5 pb-2.5">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid flex-1 grid-cols-[1.35fr_1fr] gap-2 p-2">
+        <div className="relative overflow-hidden border border-[#C9A227]/40 bg-[#2A1528]/80 p-2">
           <div
-            key={i}
-            className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-pink-100"
-          >
-            <div
-              className="aspect-[4/3]"
-              style={{
-                background: `linear-gradient(145deg, ${
-                  ["#FBCFE8", "#F9A8D4", "#FCE7F3", "#FDF2F8"][i]
-                }, #fff)`,
-              }}
-            />
-            <div className="space-y-1 p-2">
-              <div className="h-1.5 w-2/3 rounded bg-pink-900/20" />
-              <div className="h-1.5 w-1/3 rounded bg-pink-500/50" />
-            </div>
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255,248,235,0.18), transparent 65%)",
+            }}
+          />
+          <div className="text-[7px] uppercase tracking-widest text-[#C9A227]">
+            Staff pick
           </div>
-        ))}
+          <div className="relative mt-1 aspect-[4/3] border border-[#C9A227]/50 bg-[#FAF6F0]">
+            <div className="absolute right-0 top-0 h-5 w-5 bg-gradient-to-bl from-[#F3EBE0] to-transparent" />
+          </div>
+          <div className="mt-2 flex gap-2">
+            <span className="rounded-full border border-[#DB2777]/50 bg-[#DB2777]/15 px-2 py-0.5 text-[8px] text-[#DB2777]">
+              KSh…
+            </span>
+            <span className="rounded-full bg-[#DB2777] px-2 py-0.5 text-[7px] text-[#FAF6F0]">
+              Add
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5 pt-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex min-h-0 flex-1 overflow-hidden border border-[#C9A227]/25 bg-[#2A1528]/60"
+            >
+              <div className="relative w-2/5 border-r border-[#C9A227]/25 bg-[#FAF6F0]">
+                <div className="absolute right-0 top-0 h-3 w-3 bg-gradient-to-bl from-[#F3EBE0] to-transparent" />
+              </div>
+              <div className="flex flex-1 flex-col justify-center gap-1 p-1.5">
+                <div className="h-1.5 w-3/4 bg-[#FAF6F0]/60" />
+                <div className="h-3 w-10 rounded-full border border-[#DB2777]/40 bg-[#DB2777]/10" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </Frame>
   );
