@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CreditCard, Loader2, Shield, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
+import { PlatformAirtimeSection } from "@/components/super-admin/platform-airtime-section";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Badge } from "@/components/ui/badge";
@@ -302,7 +303,7 @@ export default function SuperAdminPlatformPaymentsPage() {
     <div className="space-y-8">
       <SuperAdminPageHeader
         title="Payment gateways"
-        description="Enable BYO providers for tenants, and configure Kiosk Pay (platform custody + withdraw)."
+        description="Enable BYO providers for tenants, and configure Kiosk Pay (platform custody + withdraw) and airtime resale."
       />
 
       <Card className="border-border/70 shadow-sm">
@@ -617,6 +618,8 @@ export default function SuperAdminPlatformPaymentsPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <PlatformAirtimeSection />
 
       <Card className="border-border/70 bg-muted/20 shadow-sm">
         <CardHeader className="pb-2">

@@ -21,6 +21,7 @@ import {
   DashboardFeedback,
 } from "@/components/dashboard-page-ui";
 import { FormDrawer } from "@/components/form-drawer";
+import { AirtimeSettingsSection } from "@/components/payments/airtime-settings-section";
 import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
 import { GatewayStatusBadge } from "@/components/payments/gateway-status-badge";
 import { ManualMethodForm } from "@/components/payments/manual-method-form";
@@ -752,6 +753,7 @@ export default function PaymentGatewaySettingsPage() {
 
       <SupplierPayoutSettingsSection canWrite={canWrite} />
       <KioskPaySettingsSection canWrite={canWrite} />
+      <AirtimeSettingsSection />
 
       {/* Pick provider */}
       <FormDrawer

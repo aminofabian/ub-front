@@ -442,6 +442,109 @@ export async function resumeSaKioskPayWithdrawals(): Promise<PlatformKioskPaySet
   });
 }
 
+// ── Airtime (platform Instalipa) ────────────────────────────────────
+
+export type PlatformAirtimeSettingsRecord = {
+  enabled: boolean;
+  provider: string;
+  baseUrl: string;
+  environment: string;
+  hasCredentials: boolean;
+  consumerKeyHint: string | null;
+  tenantCommissionPercent: number;
+  minAmount: number;
+  maxAmount: number;
+  dailyTenantLimit: number;
+  currency: string;
+  posEnabled: boolean;
+  storefrontEnabled: boolean;
+  floatBalance: number | null;
+  floatLowThreshold: number;
+  floatLow: boolean;
+  floatCheckedAt: string | null;
+  floatConstrainedUntil: string | null;
+  updatedAt: string;
+};
+
+export type PatchPlatformAirtimeSettingsPayload = {
+  enabled?: boolean;
+  baseUrl?: string;
+  environment?: string;
+  consumerKey?: string;
+  consumerSecret?: string;
+  clearCredentials?: boolean;
+  tenantCommissionPercent?: number;
+  minAmount?: number;
+  maxAmount?: number;
+  dailyTenantLimit?: number;
+  currency?: string;
+  posEnabled?: boolean;
+  storefrontEnabled?: boolean;
+  floatLowThreshold?: number;
+  clearFloatConstraint?: boolean;
+};
+
+export type SaAirtimeOrderRow = {
+  id: string;
+  businessId: string;
+  channel: string;
+  phoneNumber: string;
+  network: string | null;
+  amount: number;
+  cost: number;
+  commission: number;
+  currency: string;
+  status: string;
+  reference: string;
+  providerTransactionId: string | null;
+  providerStatus: string | null;
+  receipt: string | null;
+  failureReason: string | null;
+  requestedAt: string;
+  completedAt: string | null;
+};
+
+export async function fetchPlatformAirtimeSettings(): Promise<PlatformAirtimeSettingsRecord> {
+  return saRequest<PlatformAirtimeSettingsRecord>(API_ROUTES.superAdminAirtime);
+}
+
+export async function patchPlatformAirtimeSettings(
+  body: PatchPlatformAirtimeSettingsPayload,
+): Promise<PlatformAirtimeSettingsRecord> {
+  return saRequest<PlatformAirtimeSettingsRecord>(API_ROUTES.superAdminAirtime, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+/** Round-trip the stored Instalipa credentials without sending any airtime. */
+export async function testPlatformAirtime(): Promise<PlatformAirtimeSettingsRecord> {
+  return saRequest<PlatformAirtimeSettingsRecord>(
+    `${API_ROUTES.superAdminAirtime}/test`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchSaAirtimeOrders(limit = 50): Promise<SaAirtimeOrderRow[]> {
+  return saRequest<SaAirtimeOrderRow[]>(
+    `${API_ROUTES.superAdminAirtime}/orders?limit=${limit}`,
+  );
+}
+
+export async function requerySaAirtimeOrder(orderId: string): Promise<SaAirtimeOrderRow> {
+  return saRequest<SaAirtimeOrderRow>(
+    `${API_ROUTES.superAdminAirtime}/orders/${encodeURIComponent(orderId)}/requery`,
+    { method: "POST" },
+  );
+}
+
+export async function resumeSaAirtime(): Promise<PlatformAirtimeSettingsRecord> {
+  return saRequest<PlatformAirtimeSettingsRecord>(API_ROUTES.superAdminAirtime, {
+    method: "PATCH",
+    body: JSON.stringify({ clearFloatConstraint: true }),
+  });
+}
+
 export async function fetchSaDomains(
   businessId: string,
 ): Promise<SaDomainRow[]> {

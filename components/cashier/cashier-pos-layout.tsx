@@ -79,6 +79,7 @@ import {
 import {
   kioskPlaceholderWashClass,
 } from "./kiosk-listing-styles";
+import { AirtimeQuickAction } from "@/components/airtime/airtime-quick-action";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { CashierCreateProductModal } from "./cashier-create-product-modal";
 import { CashierEditPriceModal } from "./cashier-edit-price-modal";
@@ -258,6 +259,8 @@ export type CashierPosLayoutProps = {
   allowCreditTabs?: boolean;
   /** Add lines to the shared order pad. */
   allowOrderPad?: boolean;
+  /** Offer the airtime chip — the panel hides itself if airtime is switched off. */
+  allowAirtime?: boolean;
   /** Mark cart lines as sold by weight (permission or admin flag). */
   allowWeighedToggle?: boolean;
   weighedToggleBusyItemId?: string | null;
@@ -933,6 +936,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowReceiveSupply = false,
     allowCreditTabs = false,
     allowOrderPad = false,
+    allowAirtime = false,
     allowWeighedToggle = false,
     weighedToggleBusyItemId = null,
     onToggleWeighed,
@@ -1444,6 +1448,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 <ClipboardList className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                 Order list
               </button>
+            ) : null}
+            {allowAirtime ? (
+              <AirtimeQuickAction
+                triggerClassName={POS_PRIMARY_CHIP_CLASS}
+                currency={currency}
+                channel="POS"
+              />
             ) : null}
             {!online ? (
               <span className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">

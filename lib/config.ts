@@ -128,6 +128,10 @@ export const APP_ROUTES = {
   paymentsDayLedger: "/payments/day",
   /** Kiosk Pay wallet ledger + withdrawal history. */
   paymentsKioskPay: "/payments/kiosk-pay",
+  /** Airtime resale history + float status. */
+  airtime: "/payments/airtime",
+  /** Public storefront airtime purchase. */
+  shopAirtime: "/shop/airtime",
   /** Desktop SKU: license, LAN sharing, local backups (DESKTOP_INSTALLATION.md). */
   desktopSettings: "/settings/desktop",
   tenantSuspended: "/_status/suspended",
@@ -212,6 +216,7 @@ export const API_ROUTES = {
   superAdminPlatformPaymentGateways:
     "/api/v1/super-admin/payments/platform-gateways",
   superAdminKioskPay: "/api/v1/super-admin/payments/kiosk-pay",
+  superAdminAirtime: "/api/v1/super-admin/airtime",
   superAdminPlatformIntegrations: "/api/v1/super-admin/platform/integrations",
   superAdminPlatformSokoMind: "/api/v1/super-admin/platform/sokomind",
   superAdminPlatformDomains: "/api/v1/super-admin/platform/domains",
@@ -231,6 +236,7 @@ export const API_ROUTES = {
   paymentGatewaysAvailable: "/api/v1/payments/gateways/available",
   paymentGateways: "/api/v1/payments/gateways",
   paymentKioskPay: "/api/v1/payments/kiosk-pay",
+  airtime: "/api/v1/airtime",
   paymentSupplierPayout: "/api/v1/payments/supplier-payout",
   paymentDisplayInstructions: "/api/v1/payments/display-instructions",
 } as const;

@@ -59,6 +59,9 @@ export const Permission = {
   PaymentsGatewaysRead: "payments.gateways.read",
   PaymentsGatewaysWrite: "payments.gateways.write",
   PaymentsPlatformManage: "payments.platform.manage",
+  AirtimeRead: "airtime.read",
+  AirtimeSell: "airtime.sell",
+  AirtimeManage: "airtime.manage",
   ReportsNotificationsRead: "reports.notifications.read",
   ReportsNotificationsWrite: "reports.notifications.write",
   /** Talk to Us inbox */

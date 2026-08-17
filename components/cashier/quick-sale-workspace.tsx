@@ -376,6 +376,7 @@ export function QuickSaleWorkspace({
   const allowCreditTabs =
     variant === "cashier" && canCashierClearTabs(me, business);
   const allowOrderPad = hasPermission(me?.permissions, Permission.OrderPadWrite);
+  const allowAirtime = hasPermission(me?.permissions, Permission.AirtimeSell);
   const requirePhoneVerification = phoneVerificationRequiredForNewTab(business);
   const allowSearchCustomersByName = canSearchCustomersByName(business);
 
@@ -4299,6 +4300,7 @@ export function QuickSaleWorkspace({
         allowReceiveSupply={allowReceiveSupply}
         allowCreditTabs={allowCreditTabs}
         allowOrderPad={allowOrderPad}
+        allowAirtime={allowAirtime}
         allowWeighedToggle={allowWeighedToggle}
         weighedToggleBusyItemId={weighedToggleBusyItemId}
         onToggleWeighed={toggleLineWeighed}

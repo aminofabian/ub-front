@@ -173,6 +173,113 @@ export async function fetchPublicBarcodeSearchBrowser(
   }
 }
 
+// ── Storefront airtime ──────────────────────────────────────────────
+
+export type PublicAirtimeConfig = {
+  available: boolean;
+  minAmount: number;
+  maxAmount: number;
+  currency: string;
+  quickAmounts: number[];
+  reason: string | null;
+};
+
+export type PublicAirtimeOrder = {
+  orderId: string;
+  phoneNumber: string;
+  network: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  delivered: boolean;
+  failed: boolean;
+  awaitingPayment: boolean;
+  checkoutRequestId: string | null;
+  receipt: string | null;
+  message: string | null;
+};
+
+export async function fetchPublicAirtimeConfigBrowser(
+  slug: string,
+): Promise<PublicAirtimeConfig | null> {
+  const s = sanitizeStorefrontSlug(slug);
+  if (!s) {
+    return null;
+  }
+  try {
+    const res = await fetch(
+      apiUrl(`/api/v1/public/businesses/${encodeURIComponent(s)}/airtime`),
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) {
+      return null;
+    }
+    return (await res.json()) as PublicAirtimeConfig;
+  } catch {
+    return null;
+  }
+}
+
+export async function createPublicAirtimeOrderBrowser(
+  slug: string,
+  body: {
+    phoneNumber: string;
+    amount: number;
+    payerPhone?: string;
+    configId?: string;
+  },
+): Promise<PublicAirtimeOrder> {
+  const s = sanitizeStorefrontSlug(slug);
+  if (!s) {
+    throw new Error("This store could not be identified.");
+  }
+  const res = await fetch(
+    apiUrl(`/api/v1/public/businesses/${encodeURIComponent(s)}/airtime/orders`),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) {
+    let message = "Could not start the airtime purchase.";
+    try {
+      const payload = (await res.json()) as { message?: string; detail?: string };
+      message = payload.message || payload.detail || message;
+    } catch {
+      // Keep the generic message when the error body is not JSON.
+    }
+    throw new Error(message);
+  }
+  return (await res.json()) as PublicAirtimeOrder;
+}
+
+export async function fetchPublicAirtimeOrderBrowser(
+  slug: string,
+  orderId: string,
+): Promise<PublicAirtimeOrder | null> {
+  const s = sanitizeStorefrontSlug(slug);
+  const id = orderId.trim();
+  if (!s || !id) {
+    return null;
+  }
+  try {
+    const res = await fetch(
+      apiUrl(
+        `/api/v1/public/businesses/${encodeURIComponent(s)}/airtime/orders/${encodeURIComponent(id)}`,
+      ),
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) {
+      return null;
+    }
+    return (await res.json()) as PublicAirtimeOrder;
+  } catch {
+    return null;
+  }
+}
+
 /** Checkout payment options: manual instructions + online gateways (e.g. KopoKopo). */
 export async function fetchPublicCheckoutPaymentOptionsBrowser(
   slug: string,

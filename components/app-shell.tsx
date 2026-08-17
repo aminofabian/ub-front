@@ -321,12 +321,13 @@ const NAV_SECTIONS: readonly NavSection[] = [
     id: "payments",
     title: "Payments",
     shortLabel: "Pay",
-    blurb: "Day ledger, Kiosk Pay, and checkout gateways",
+    blurb: "Day ledger, Kiosk Pay, airtime, and checkout gateways",
     icon: CreditCard,
     entryHref: APP_ROUTES.paymentsDayLedger,
     items: [
       { href: APP_ROUTES.paymentsDayLedger, label: "Day ledger" },
       { href: APP_ROUTES.paymentsKioskPay, label: "Kiosk Pay" },
+      { href: APP_ROUTES.airtime, label: "Airtime" },
       { href: APP_ROUTES.paymentsSettings, label: "Gateways & payouts" },
     ],
   },
@@ -449,6 +450,7 @@ type NavGate = {
   canAccessGrocery: boolean;
   canManageImports: boolean;
   canViewPaymentGateways: boolean;
+  canViewAirtime: boolean;
   roleKey: string | undefined;
   groceryClerkStockAccess: boolean;
   stockManagerStockPage: boolean;
@@ -638,6 +640,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewPaymentGateways;
   if (item.href === APP_ROUTES.paymentsKioskPay)
     return gate.canViewPaymentGateways;
+  if (item.href === APP_ROUTES.airtime) return gate.canViewAirtime;
   if (item.href === APP_ROUTES.paymentsDayLedger)
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesTransactions)
@@ -867,6 +870,9 @@ export function AppShell({ children }: AppShellProps) {
     me?.permissions,
     Permission.PaymentsGatewaysWrite,
   );
+  const canViewAirtime =
+    hasPermission(me?.permissions, Permission.AirtimeRead) ||
+    hasPermission(me?.permissions, Permission.AirtimeSell);
   const showOwnerKioskPay =
     isOwner && canViewPaymentGateways;
   const canViewPosDrafts = hasPermission(
@@ -927,6 +933,7 @@ export function AppShell({ children }: AppShellProps) {
       canAccessGrocery,
       canManageImports,
       canViewPaymentGateways,
+      canViewAirtime,
       roleKey: me?.role?.key?.trim().toLowerCase(),
       groceryClerkStockAccess,
       stockManagerStockPage,
@@ -973,6 +980,7 @@ export function AppShell({ children }: AppShellProps) {
     canAccessGrocery,
     canManageImports,
     canViewPaymentGateways,
+    canViewAirtime,
     me?.role?.key,
     groceryClerkStockAccess,
     stockManagerStockPage,

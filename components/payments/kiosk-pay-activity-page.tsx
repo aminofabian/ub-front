@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Check,
   Loader2,
+  Plus,
   RefreshCw,
   RotateCcw,
   Settings2,
@@ -28,6 +29,7 @@ import {
   fetchKioskPayAccount,
   fetchKioskPayLedger,
   fetchKioskPayWithdrawals,
+  requestKioskPayTopUp,
   requestKioskPayWithdraw,
   type KioskPayAccountRecord,
   type KioskPayLedgerEntryRecord,
@@ -83,6 +85,16 @@ function entryLabel(type: string) {
       return "Out";
     case "WITHDRAW_RELEASE":
       return "Release";
+    case "TOPUP":
+      return "Top up";
+    case "AIRTIME_HOLD":
+      return "Hold";
+    case "AIRTIME_SETTLE":
+      return "Airtime";
+    case "AIRTIME_RELEASE":
+      return "Release";
+    case "AIRTIME_COMMISSION":
+      return "Earned";
     case "ADJUSTMENT":
       return "Adj";
     default:
@@ -104,6 +116,16 @@ function entryTitle(type: string) {
       return "Withdraw paid";
     case "WITHDRAW_RELEASE":
       return "Withdraw released";
+    case "TOPUP":
+      return "Wallet top-up";
+    case "AIRTIME_HOLD":
+      return "Airtime hold";
+    case "AIRTIME_SETTLE":
+      return "Airtime sold";
+    case "AIRTIME_RELEASE":
+      return "Airtime released";
+    case "AIRTIME_COMMISSION":
+      return "Airtime commission";
     case "ADJUSTMENT":
       return "Adjustment";
     default:
@@ -157,6 +179,10 @@ export function KioskPayActivityPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
+  const [topUpPhone, setTopUpPhone] = useState("");
+  const [toppingUp, setToppingUp] = useState(false);
 
   const reload = useCallback(async (silent = false) => {
     if (silent) setRefreshing(true);
@@ -228,6 +254,40 @@ export function KioskPayActivityPage() {
     }
   };
 
+  const onTopUp = async () => {
+    if (!canWrite) return;
+    const amount = Number(topUpAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Enter a valid top-up amount.");
+      return;
+    }
+    const phone = topUpPhone.trim() || account?.payoutPhone?.trim() || "";
+    if (!phone) {
+      toast.error("Enter the M-Pesa number to charge.");
+      return;
+    }
+    setToppingUp(true);
+    try {
+      const res = await requestKioskPayTopUp(
+        { amount, phoneNumber: phone },
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `tu-${Date.now()}`,
+      );
+      if (res.accepted) {
+        toast.success(res.message || "Check your phone and enter your M-Pesa PIN.");
+        setTopUpAmount("");
+      } else {
+        toast.error(res.message || "Could not send the STK prompt.");
+      }
+      await reload(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Top-up failed.");
+    } finally {
+      setToppingUp(false);
+    }
+  };
+
   const available = Number(account?.availableBalance) || 0;
   const pending = Number(account?.pendingBalance) || 0;
   const active = account?.status === "ACTIVE";
@@ -286,6 +346,17 @@ export function KioskPayActivityPage() {
           </p>
         </div>
         <div className="flex items-center gap-1">
+          {canWrite && active ? (
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 gap-1.5 px-2.5 text-xs"
+              onClick={() => setTopUpOpen((open) => !open)}
+            >
+              <Plus className="size-3.5" aria-hidden />
+              Top up
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
@@ -315,6 +386,73 @@ export function KioskPayActivityPage() {
           </Button>
         </div>
       </header>
+
+      {topUpOpen && canWrite ? (
+        <section className={cn(DASHBOARD_TABLE_SURFACE, "space-y-2 px-3 py-3 sm:px-3.5")}>
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Top up from M-Pesa
+            </p>
+            <button
+              type="button"
+              className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+              onClick={() => setTopUpOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            We send an STK prompt to the number below. Once you approve, the full amount
+            lands in this wallet — ready to sell airtime or spend at the till.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {[100, 500, 1000, 2000, 5000].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setTopUpAmount(String(preset))}
+                className={cn(
+                  "rounded-md border px-2 py-1 text-[11px] font-semibold tabular-nums transition-colors",
+                  Number(topUpAmount) === preset
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border/70 text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                )}
+              >
+                {preset.toLocaleString("en-KE")}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <input
+              type="number"
+              min={1}
+              step="1"
+              inputMode="numeric"
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm tabular-nums"
+              placeholder="Amount"
+              value={topUpAmount}
+              onChange={(e) => setTopUpAmount(e.target.value)}
+            />
+            <input
+              type="tel"
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={account?.payoutPhone || "M-Pesa number (2547…)"}
+              value={topUpPhone}
+              onChange={(e) => setTopUpPhone(e.target.value)}
+            />
+            <Button type="button" disabled={toppingUp} onClick={() => void onTopUp()}>
+              {toppingUp ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                  Sending prompt…
+                </>
+              ) : (
+                "Send STK prompt"
+              )}
+            </Button>
+          </div>
+        </section>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-1.5">
         <div className="inline-flex rounded-lg border border-border/70 bg-muted/30 p-0.5">

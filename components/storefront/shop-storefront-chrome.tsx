@@ -6,6 +6,7 @@ import { Suspense, type CSSProperties, type ReactNode } from "react";
 
 import { APP_ROUTES } from "@/lib/config";
 
+import { ShopAirtimeLauncher } from "@/components/storefront/shop-airtime-launcher";
 import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
 import { ShopCheckoutDrawer } from "@/components/storefront/shop-checkout-drawer";
 import { ShopLeadCaptureCard } from "@/components/storefront/shop-lead-capture-card";
@@ -389,6 +390,9 @@ export function ShopStorefrontChrome({
         />
       ) : null}
       {!isCustomChrome ? <FloatingCartButton accentHex={accentHex} /> : null}
+      {!compactChrome ? (
+        <ShopAirtimeLauncher slug={slug} accentHex={accentHex} />
+      ) : null}
       </div>
     </ShopCartProvider>
   );

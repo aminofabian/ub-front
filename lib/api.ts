@@ -9902,6 +9902,172 @@ export async function initiateKioskPayPosStkPush(
   );
 }
 
+/** Merchant funds their own wallet by M-Pesa — float for selling airtime. */
+export async function requestKioskPayTopUp(
+  body: { amount: number; phoneNumber?: string },
+  idempotencyKey: string,
+): Promise<PosStkPushResponseRecord> {
+  return request<PosStkPushResponseRecord>(
+    `${API_ROUTES.paymentKioskPay}/top-ups`,
+    {
+      method: "POST",
+      body,
+      idempotencyKey,
+      timeoutMs: 70_000,
+    },
+  );
+}
+
+// ── Airtime resale ──────────────────────────────────────────────────
+
+export type AirtimeAvailabilityRecord = {
+  available: boolean;
+  platformEnabled: boolean;
+  businessEnabled: boolean;
+  credentialsConfigured: boolean;
+  walletActive: boolean;
+  walletBalance: number;
+  minAmount: number;
+  maxAmount: number;
+  /** Lowest of the configured max, the wallet balance, and today's remaining limit. */
+  maxSellableNow: number;
+  commissionPercent: number;
+  dailyLimit: number;
+  dailyUsed: number;
+  dailyRemaining: number;
+  commissionEarnedToday: number;
+  currency: string;
+  quickAmounts: number[];
+  reason: string | null;
+};
+
+export type AirtimeQuoteRecord = {
+  sellable: boolean;
+  phoneNumber: string | null;
+  network: string | null;
+  amount: number | null;
+  cost: number | null;
+  commission: number | null;
+  walletBalanceAfter: number | null;
+  currency: string;
+  reason: string | null;
+};
+
+export type AirtimeOrderRecord = {
+  id: string;
+  businessId: string;
+  channel: string;
+  phoneNumber: string;
+  network: string | null;
+  amount: number;
+  cost: number;
+  commission: number;
+  currency: string;
+  status: string;
+  reference: string;
+  providerTransactionId: string | null;
+  providerStatus: string | null;
+  receipt: string | null;
+  failureReason: string | null;
+  walletBalanceAfter: number | null;
+  requestedAt: string;
+  completedAt: string | null;
+};
+
+export type AirtimeSettingsRecord = {
+  enabled: boolean;
+  posEnabled: boolean;
+  storefrontEnabled: boolean;
+  maxSingleAmount: number | null;
+  platformEnabled: boolean;
+  platformPosEnabled: boolean;
+  platformStorefrontEnabled: boolean;
+  platformCredentialsConfigured: boolean;
+  commissionPercent: number;
+  minAmount: number;
+  maxAmount: number;
+  dailyLimit: number;
+  currency: string;
+  walletActive: boolean;
+  walletBalance: number;
+  blockedReason: string | null;
+};
+
+/** Cashier: whether to offer the Airtime action, and within what bounds. */
+export async function fetchAirtimeAvailability(
+  storefront = false,
+): Promise<AirtimeAvailabilityRecord> {
+  return request<AirtimeAvailabilityRecord>(
+    `${API_ROUTES.airtime}/availability?storefront=${storefront}`,
+    { toast: false },
+  );
+}
+
+export async function fetchAirtimeQuote(
+  phoneNumber: string,
+  amount: number,
+): Promise<AirtimeQuoteRecord> {
+  const params = new URLSearchParams({
+    phoneNumber,
+    amount: String(amount),
+  });
+  return request<AirtimeQuoteRecord>(
+    `${API_ROUTES.airtime}/quote?${params}`,
+    { toast: false },
+  );
+}
+
+export async function sellAirtime(
+  body: {
+    phoneNumber: string;
+    amount: number;
+    channel?: string;
+    customerId?: string;
+    saleId?: string;
+  },
+  idempotencyKey: string,
+): Promise<AirtimeOrderRecord> {
+  return request<AirtimeOrderRecord>(`${API_ROUTES.airtime}/orders`, {
+    method: "POST",
+    body,
+    idempotencyKey,
+    timeoutMs: 60_000,
+  });
+}
+
+export async function fetchAirtimeOrders(
+  limit = 20,
+): Promise<AirtimeOrderRecord[]> {
+  return request<AirtimeOrderRecord[]>(
+    `${API_ROUTES.airtime}/orders?limit=${limit}`,
+  );
+}
+
+export async function fetchAirtimeOrder(
+  orderId: string,
+): Promise<AirtimeOrderRecord> {
+  return request<AirtimeOrderRecord>(
+    `${API_ROUTES.airtime}/orders/${encodeURIComponent(orderId)}`,
+    { toast: false },
+  );
+}
+
+export async function fetchAirtimeSettings(): Promise<AirtimeSettingsRecord> {
+  return request<AirtimeSettingsRecord>(`${API_ROUTES.airtime}/settings`);
+}
+
+export async function updateAirtimeSettings(body: {
+  enabled?: boolean;
+  posEnabled?: boolean;
+  storefrontEnabled?: boolean;
+  maxSingleAmount?: number | null;
+}): Promise<AirtimeSettingsRecord> {
+  return request<AirtimeSettingsRecord>(`${API_ROUTES.airtime}/settings`, {
+    method: "PATCH",
+    body,
+  });
+}
+
 export type {
   ContactMessageDetail,
   ContactMessageListItem,
