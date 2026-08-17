@@ -8,6 +8,7 @@ import { MinimartHoursLanding } from "@/components/storefront/templates/landing/
 import { NeighborhoodBoardLanding } from "@/components/storefront/templates/landing/neighborhood-board";
 import { BoutiqueShelfStoreHome } from "@/components/storefront/templates/store/boutique-shelf-home";
 import { ButcherBoardStoreHome } from "@/components/storefront/templates/store/butcher-board-home";
+import { CarbonDeskStoreHome } from "@/components/storefront/templates/store/carbon-desk-home";
 import { MartStoreHome } from "@/components/storefront/templates/store/mart-home";
 import { MilkRunStoreHome } from "@/components/storefront/templates/store/milk-run-home";
 import { OxideStoreHome } from "@/components/storefront/templates/store/oxide-home";
@@ -35,6 +36,7 @@ const STORE_HOMES: Record<
   oxide: OxideStoreHome,
   "tint-lab": TintLabStoreHome,
   "milk-run": MilkRunStoreHome,
+  "carbon-desk": CarbonDeskStoreHome,
 };
 
 const LANDING_PAGES: Record<
@@ -56,7 +58,8 @@ export type StoreChromeVariant =
   | "oxide"
   | "tint-lab"
   | "milk-run"
-  | "butcher-board";
+  | "butcher-board"
+  | "carbon-desk";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -82,6 +85,8 @@ export function resolveStoreChromeVariant(
       return "milk-run";
     case "butcher-board":
       return "butcher-board";
+    case "carbon-desk":
+      return "carbon-desk";
     case "spirits-cellar":
       return "dark";
     case "boutique-shelf":

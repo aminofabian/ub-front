@@ -13,7 +13,8 @@ export type StoreThemeId =
   | "spirits-cellar"
   | "oxide"
   | "tint-lab"
-  | "milk-run";
+  | "milk-run"
+  | "carbon-desk";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -54,6 +55,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "oxide",
   "tint-lab",
   "milk-run",
+  "carbon-desk",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -128,6 +130,15 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
     previewFrom: "#FFFCF5",
     previewTo: "#FFC53D",
     accent: "#E8412C",
+  },
+  {
+    id: "carbon-desk",
+    kind: "store",
+    name: "Carbon desk",
+    blurb: "Triplicate counter forms — carbon shadows, stamp-red pricing, manila tabs.",
+    previewFrom: "#F5F0E4",
+    previewTo: "#C9B896",
+    accent: "#3D6B9E",
   },
 ];
 

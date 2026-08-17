@@ -22,6 +22,9 @@ import tintStyles from "@/components/storefront/templates/store/tint-lab.module.
 import { ButcherBoardHeader } from "@/components/storefront/templates/store/butcher-board-header";
 import { butcherBoardFontVariables } from "@/components/storefront/templates/store/butcher-board-fonts";
 import butcherBoardStyles from "@/components/storefront/templates/store/butcher-board.module.css";
+import { CarbonDeskHeader } from "@/components/storefront/templates/store/carbon-desk-header";
+import { carbonDeskFontVariables } from "@/components/storefront/templates/store/carbon-desk-fonts";
+import carbonDeskStyles from "@/components/storefront/templates/store/carbon-desk.module.css";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
@@ -133,7 +136,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk";
   storeThemeId?: string | null;
   /** Tenant WhatsApp for Milk Run dual-path checkout. */
   whatsappNumber?: string | null;
@@ -145,7 +148,8 @@ export function ShopStorefrontChrome({
   const isTintLab = chromeVariant === "tint-lab";
   const isMilkRun = chromeVariant === "milk-run";
   const isButcherBoard = chromeVariant === "butcher-board";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard;
+  const isCarbonDesk = chromeVariant === "carbon-desk";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const milkRunDigits = isMilkRun
@@ -168,6 +172,11 @@ export function ShopStorefrontChrome({
               ["--bb-gold" as string]: accentHex || "#F5C518",
               ["--bb-crimson" as string]: primaryHex || "#E31C23",
             } as CSSProperties)
+          : isCarbonDesk
+            ? ({
+                ["--cd-stamp" as string]: primaryHex || "#B91C1C",
+                ["--cd-carbon" as string]: accentHex || "#3D6B9E",
+              } as CSSProperties)
         : undefined;
 
   return (
@@ -209,6 +218,13 @@ export function ShopStorefrontChrome({
               butcherBoardFontVariables,
               "[--storefront-paper:#0C0708]",
             ),
+          isCarbonDesk &&
+            cn(
+              carbonDeskStyles.root,
+              carbonDeskStyles.body,
+              carbonDeskFontVariables,
+              "[--storefront-paper:#F5F0E4]",
+            ),
         )}
         style={shellStyle}
       >
@@ -227,6 +243,11 @@ export function ShopStorefrontChrome({
       {isButcherBoard && !compactChrome ? (
         <Suspense fallback={null}>
           <ButcherBoardHeader storeName={headerTitle} logoUrl={logoUrl} />
+        </Suspense>
+      ) : null}
+      {isCarbonDesk && !compactChrome ? (
+        <Suspense fallback={null}>
+          <CarbonDeskHeader storeName={headerTitle} logoUrl={logoUrl} />
         </Suspense>
       ) : null}
       {showDefaultChrome ? (

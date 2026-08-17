@@ -41,6 +41,8 @@ function ArtForId({ id }: { id: string }) {
       return <TintArt />;
     case "milk-run":
       return <MilkRunArt />;
+    case "carbon-desk":
+      return <CarbonDeskArt />;
     case "coming-soon-editorial":
       return <ComingSoonArt />;
     case "neighborhood-board":
@@ -279,6 +281,55 @@ function MilkRunArt() {
             {i === 0 ? null : null}
           </div>
         ))}
+      </div>
+    </Frame>
+  );
+}
+
+function CarbonDeskArt() {
+  return (
+    <Frame paper="#C9B896" ink="#2A2218">
+      <div className="flex items-center justify-between border-b border-[#A89472] bg-[#F5F0E4] px-3 py-2">
+        <span className="font-serif text-[12px] italic text-[#2A2218]">
+          Cloud 9 <span className="not-italic text-[#6B5F4F]">· counter</span>
+        </span>
+        <span className="border border-[#2A2218] bg-[#F5F0E4] px-2 py-0.5 font-mono text-[8px] uppercase">
+          Slips · 2
+        </span>
+      </div>
+      <div className="grid flex-1 grid-cols-[1.35fr_1fr] gap-2 p-2">
+        <div className="relative border border-[#2A2218] bg-[#F5F0E4] p-2 shadow-[4px_4px_0_rgb(61_107_158/0.35)]">
+          <div className="font-mono text-[7px] uppercase tracking-widest text-[#3D6B9E]">
+            Duplicate
+          </div>
+          <div className="mt-1 aspect-[4/3] border border-[#2A2218] bg-[#EBE3D2]" />
+          <div className="mt-2 flex items-center gap-2">
+            <span className="rounded-full border-2 border-double border-[#B91C1C] px-2 py-0.5 font-mono text-[8px] text-[#B91C1C]">
+              KSh…
+            </span>
+            <span className="bg-[#B91C1C] px-2 py-0.5 font-mono text-[7px] text-[#F5F0E4]">
+              Issue
+            </span>
+          </div>
+          <span className="pointer-events-none absolute bottom-6 right-2 rotate-[-15deg] text-[18px] tracking-widest text-[#3D6B9E]/15">
+            DUPLICATE
+          </span>
+        </div>
+        <div className="flex flex-col gap-1.5 pt-3">
+          {["-1deg", "0deg", "1.2deg"].map((rot) => (
+            <div
+              key={rot}
+              className="flex min-h-0 flex-1 border border-[#2A2218] bg-[#F5F0E4] shadow-[3px_3px_0_rgb(61_107_158/0.3)]"
+              style={{ transform: `rotate(${rot})` }}
+            >
+              <div className="w-2/5 border-r border-[#2A2218] bg-[#EBE3D2]" />
+              <div className="flex flex-1 flex-col justify-center gap-1 p-1.5">
+                <div className="h-1.5 w-3/4 bg-[#2A2218]/70" />
+                <div className="h-3 w-8 rounded-full border border-[#B91C1C] bg-[#B91C1C]/10" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </Frame>
   );
