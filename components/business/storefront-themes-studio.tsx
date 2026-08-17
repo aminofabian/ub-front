@@ -22,7 +22,8 @@ import {
   updateBusiness,
   type BusinessRecord,
 } from "@/lib/api";
-import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
+import { APP_ROUTES, PLATFORM_DOMAIN, slugDerivedShopUrl } from "@/lib/config";
+import { storefrontPreviewUrl } from "@/lib/storefront-preview";
 import {
   DEFAULT_LANDING_TEMPLATE_ID,
   DEFAULT_STORE_THEME_ID,
@@ -96,8 +97,12 @@ export function StorefrontThemesStudio({
     landingTemplateId !==
       normalizeLandingTemplateId(business?.storefront?.landingTemplateId);
 
-  const previewUrl = business?.slug
-    ? `https://${business.slug}.${PLATFORM_DOMAIN}/`
+  const shopBase = business?.slug
+    ? slugDerivedShopUrl(business.slug) ||
+      `https://${business.slug}.${PLATFORM_DOMAIN}`
+    : "";
+  const previewUrl = shopBase
+    ? storefrontPreviewUrl(shopBase, mode, selectedId)
     : null;
 
   const save = async () => {
@@ -312,7 +317,11 @@ export function StorefrontThemesStudio({
                 ) : null}
                 {previewUrl ? (
                   <Button asChild size="sm" variant="outline" className="gap-1.5">
-                    <a href={previewUrl} target="_blank" rel="noreferrer">
+                    <a
+                      href={previewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       Open live
                       <ExternalLink className="size-3.5" aria-hidden />
                     </a>
@@ -326,8 +335,8 @@ export function StorefrontThemesStudio({
                 className="mx-auto max-w-3xl shadow-lg ring-1 ring-black/5"
               />
               <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                Illustrated layout sketch — save, then open your live shop to see
-                real products and branding.
+                Illustrated layout sketch. Open live to see this look on your
+                real shop — save when you want customers to see it.
               </p>
             </div>
           </div>

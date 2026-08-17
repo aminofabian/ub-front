@@ -15,7 +15,8 @@ import {
   updateBusiness,
   type BusinessRecord,
 } from "@/lib/api";
-import { PLATFORM_DOMAIN } from "@/lib/config";
+import { PLATFORM_DOMAIN, slugDerivedShopUrl } from "@/lib/config";
+import { storefrontPreviewUrl } from "@/lib/storefront-preview";
 import {
   DEFAULT_LANDING_TEMPLATE_ID,
   DEFAULT_STORE_THEME_ID,
@@ -67,8 +68,16 @@ export function BrandingTemplateSection({
     }
   }, [enabled, storeThemeId, landingWhatsapp]);
 
-  const previewUrl = business?.slug
-    ? `https://${business.slug}.${PLATFORM_DOMAIN}/`
+  const shopBase = business?.slug
+    ? slugDerivedShopUrl(business.slug) ||
+      `https://${business.slug}.${PLATFORM_DOMAIN}`
+    : "";
+  const previewUrl = shopBase
+    ? storefrontPreviewUrl(
+        shopBase,
+        enabled ? "store" : "landing",
+        enabled ? storeThemeId : landingTemplateId,
+      )
     : null;
 
   const dirty =

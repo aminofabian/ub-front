@@ -21,7 +21,12 @@ import {
   primaryStorefrontArea,
   resolveStorefrontDeliveryHint,
 } from "@/lib/storefront-seo-defaults";
-import { normalizeStoreThemeId } from "@/lib/storefront-templates";
+import { parseStorefrontPreview } from "@/lib/storefront-preview";
+import { readStorefrontPreviewFromHeaders } from "@/lib/storefront-preview-headers";
+import {
+  normalizeLandingTemplateId,
+  normalizeStoreThemeId,
+} from "@/lib/storefront-templates";
 
 function isHexColor(value: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(value.trim());
@@ -57,6 +62,8 @@ export async function StorefrontCatalogHome({
   departmentId,
   categoryHeading,
   categoryPathSlug,
+  previewThemeId,
+  previewLandingId,
 }: {
   q?: string;
   categoryId?: string;
@@ -67,6 +74,8 @@ export async function StorefrontCatalogHome({
   categoryHeading?: string;
   /** Canonical `/shop/c/:slug` segment for links and search form action. */
   categoryPathSlug?: string;
+  previewThemeId?: string;
+  previewLandingId?: string;
 }) {
   const resolvedTypeId = typeId?.trim() || departmentId?.trim() || undefined;
   const tenant = await resolveTenantContext();
@@ -88,34 +97,48 @@ export async function StorefrontCatalogHome({
     );
   }
 
-  const [list, categoriesPayload, typesPayload, storefront] = await Promise.all([
-    fetchPublicCatalogItems(slug, {
-      limit: 48,
-      q,
-      categoryId,
-      departmentId: resolvedTypeId,
-    }),
-    fetchPublicCategories(slug),
-    fetchPublicTypes(slug),
-    fetchPublicStorefront(slug),
-  ]);
+  const [list, categoriesPayload, typesPayload, storefront, fromHeaders] =
+    await Promise.all([
+      fetchPublicCatalogItems(slug, {
+        limit: 48,
+        q,
+        categoryId,
+        departmentId: resolvedTypeId,
+      }),
+      fetchPublicCategories(slug),
+      fetchPublicTypes(slug),
+      fetchPublicStorefront(slug),
+      readStorefrontPreviewFromHeaders(),
+    ]);
 
-  if (!list) {
+  const preview = parseStorefrontPreview(
+    previewThemeId?.trim() || fromHeaders.themeId,
+    previewLandingId?.trim() || fromHeaders.landingId,
+  );
+
+  const landingTemplateId = normalizeLandingTemplateId(
+    preview.landingId ?? tenant?.landingTemplateId,
+  );
+  const themeId = normalizeStoreThemeId(
+    preview.themeId ?? tenant?.storeThemeId,
+  );
+
+  if (!list || preview.landingId) {
     const storeName =
       tenant?.branding?.displayName ?? tenant?.tenantName ?? slug;
     const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
     const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
-    const Landing = resolveLandingPage(tenant?.landingTemplateId);
+    const Landing = resolveLandingPage(landingTemplateId);
     return (
       <>
         <StorefrontAnalyticsBeacon
           surface="landing"
           slug={slug}
-          landingTemplateId={tenant?.landingTemplateId}
-          storeThemeId={tenant?.storeThemeId}
+          landingTemplateId={landingTemplateId}
+          storeThemeId={themeId}
         />
         <Landing
-          templateId={tenant?.landingTemplateId ?? "coming-soon-editorial"}
+          templateId={landingTemplateId}
           storeName={storeName}
           logoUrl={tenant?.branding?.logoUrl ?? null}
           primaryHex={isHexColor(primaryRaw) ? primaryRaw : null}
@@ -165,7 +188,6 @@ export async function StorefrontCatalogHome({
   const showcaseImage =
     featured[0]?.imageUrl || storefront?.featured?.[0]?.imageUrl || null;
 
-  const themeId = normalizeStoreThemeId(tenant?.storeThemeId);
   const StoreHome = resolveStoreHome(themeId);
 
   return (
@@ -174,7 +196,7 @@ export async function StorefrontCatalogHome({
         surface="store"
         slug={slug}
         storeThemeId={themeId}
-        landingTemplateId={tenant?.landingTemplateId}
+        landingTemplateId={landingTemplateId}
       />
       <StoreHome
         themeId={themeId}

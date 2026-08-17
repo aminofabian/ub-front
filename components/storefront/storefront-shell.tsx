@@ -1,5 +1,6 @@
 import { ShopStorefrontChrome } from "@/components/storefront/shop-storefront-chrome";
 import { ShopStorefrontRealtime } from "@/components/storefront/shop-storefront-realtime";
+import { StorefrontPreviewBanner } from "@/components/storefront/storefront-preview-banner";
 import { StorefrontThemeScope } from "@/components/storefront/storefront-theme-scope";
 import { resolveStoreChromeVariant } from "@/components/storefront/templates/registry";
 import {
@@ -7,8 +8,14 @@ import {
   fetchPublicStorefront,
   fetchTenantContext,
 } from "@/lib/public-storefront";
+import { parseStorefrontPreview } from "@/lib/storefront-preview";
+import { readStorefrontPreviewFromHeaders } from "@/lib/storefront-preview-headers";
 import { resolveStorefrontDeliveryHint } from "@/lib/storefront-seo-defaults";
-import { normalizeStoreThemeId } from "@/lib/storefront-templates";
+import {
+  landingTemplateMeta,
+  normalizeStoreThemeId,
+  storeThemeMeta,
+} from "@/lib/storefront-templates";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
 import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
 import { cn } from "@/lib/utils";
@@ -19,8 +26,12 @@ import { cn } from "@/lib/utils";
  */
 export async function StorefrontShell({
   children,
+  previewThemeId,
+  previewLandingId,
 }: {
   children: React.ReactNode;
+  previewThemeId?: string;
+  previewLandingId?: string;
 }) {
   const slug = await resolveStorefrontSlug();
   let tenant = await resolveTenantContext();
@@ -66,16 +77,35 @@ export async function StorefrontShell({
       .map((area) => area.name),
     catalogBranchName: storefront?.catalogBranchName,
   });
-  const isComingSoon = Boolean(slug && !storefront);
-  const storeThemeId = normalizeStoreThemeId(tenant?.storeThemeId);
+  const fromHeaders = await readStorefrontPreviewFromHeaders();
+  const preview = parseStorefrontPreview(
+    previewThemeId?.trim() || fromHeaders.themeId,
+    previewLandingId?.trim() || fromHeaders.landingId,
+  );
+  const forceLandingPreview = Boolean(preview.landingId);
+  const isComingSoon = Boolean(slug && !storefront) || forceLandingPreview;
+  const storeThemeId = normalizeStoreThemeId(
+    preview.themeId ?? tenant?.storeThemeId,
+  );
   const chromeVariant = resolveStoreChromeVariant(storeThemeId);
+  const previewLookName = preview.landingId
+    ? landingTemplateMeta(preview.landingId).name
+    : preview.themeId
+      ? storeThemeMeta(preview.themeId).name
+      : null;
+  const previewBanner = previewLookName ? (
+    <StorefrontPreviewBanner lookName={previewLookName} />
+  ) : null;
 
   if (isComingSoon) {
     return (
       <div
         className="min-h-screen"
-        data-landing-template-id={tenant?.landingTemplateId ?? undefined}
+        data-landing-template-id={
+          preview.landingId ?? tenant?.landingTemplateId ?? undefined
+        }
       >
+        {previewBanner}
         {children}
       </div>
     );
@@ -93,6 +123,7 @@ export async function StorefrontShell({
         chromeVariant === "milk-run" && "bg-[#FFFCF5] dark:bg-[#FFFCF5]",
       )}
     >
+      {previewBanner}
       {slug ? (
         <ShopStorefrontChrome
           slug={slug}

@@ -5,7 +5,14 @@ import { redirectLegacyShopCategoryQuery } from "@/lib/shop-legacy-category-redi
 import { resolveStorefrontSlug } from "@/lib/storefront-slug";
 
 type PageProps = {
-  searchParams: Promise<{ q?: string; categoryId?: string; typeId?: string; departmentId?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    categoryId?: string;
+    typeId?: string;
+    departmentId?: string;
+    previewTheme?: string;
+    previewLanding?: string;
+  }>;
 };
 
 export default async function ShopPage({ searchParams }: PageProps) {
@@ -31,6 +38,8 @@ export default async function ShopPage({ searchParams }: PageProps) {
       typeId={
         sp.typeId?.trim() || sp.departmentId?.trim() || undefined
       }
+      previewThemeId={sp.previewTheme}
+      previewLandingId={sp.previewLanding}
     />
   );
 }

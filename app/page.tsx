@@ -8,7 +8,14 @@ import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveStorefrontSlugFromHost } from "@/lib/storefront-slug";
 
 type PageProps = {
-  searchParams: Promise<{ q?: string; categoryId?: string; typeId?: string; departmentId?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    categoryId?: string;
+    typeId?: string;
+    departmentId?: string;
+    previewTheme?: string;
+    previewLanding?: string;
+  }>;
 };
 
 export default async function HomePage({ searchParams }: PageProps) {
@@ -35,13 +42,18 @@ export default async function HomePage({ searchParams }: PageProps) {
       });
     }
     return (
-      <StorefrontShell>
+      <StorefrontShell
+        previewThemeId={sp.previewTheme}
+        previewLandingId={sp.previewLanding}
+      >
         <StorefrontCatalogHome
           q={sp.q?.trim() || undefined}
           categoryId={legacy || undefined}
           typeId={
             sp.typeId?.trim() || sp.departmentId?.trim() || undefined
           }
+          previewThemeId={sp.previewTheme}
+          previewLandingId={sp.previewLanding}
         />
       </StorefrontShell>
     );
