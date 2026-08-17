@@ -7,6 +7,7 @@ import { FreshMarketLanding } from "@/components/storefront/templates/landing/fr
 import { FrontWindowLanding } from "@/components/storefront/templates/landing/front-window";
 import { MinimartHoursLanding } from "@/components/storefront/templates/landing/minimart-hours";
 import { NeighborhoodBoardLanding } from "@/components/storefront/templates/landing/neighborhood-board";
+import { BeautyEditStoreHome } from "@/components/storefront/templates/store/beauty-edit-home";
 import { BoutiqueShelfStoreHome } from "@/components/storefront/templates/store/boutique-shelf-home";
 import { ButcherBoardStoreHome } from "@/components/storefront/templates/store/butcher-board-home";
 import { CarbonDeskStoreHome } from "@/components/storefront/templates/store/carbon-desk-home";
@@ -34,6 +35,7 @@ const STORE_HOMES: Record<
   mart: MartStoreHome,
   "butcher-board": ButcherBoardStoreHome,
   "boutique-shelf": BoutiqueShelfStoreHome,
+  "beauty-edit": BeautyEditStoreHome,
   "spirits-cellar": SpiritsCellarStoreHome,
   oxide: OxideStoreHome,
   "tint-lab": TintLabStoreHome,
@@ -65,6 +67,7 @@ export type StoreChromeVariant =
   | "butcher-board"
   | "carbon-desk"
   | "boutique-shelf"
+  | "beauty-edit"
   | "chem-lab"
   | "spirits-cellar";
 
@@ -96,6 +99,8 @@ export function resolveStoreChromeVariant(
       return "carbon-desk";
     case "boutique-shelf":
       return "boutique-shelf";
+    case "beauty-edit":
+      return "beauty-edit";
     case "chem-lab":
       return "chem-lab";
     case "spirits-cellar":

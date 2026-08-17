@@ -25,6 +25,9 @@ import butcherBoardStyles from "@/components/storefront/templates/store/butcher-
 import { CarbonDeskHeader } from "@/components/storefront/templates/store/carbon-desk-header";
 import { carbonDeskFontVariables } from "@/components/storefront/templates/store/carbon-desk-fonts";
 import carbonDeskStyles from "@/components/storefront/templates/store/carbon-desk.module.css";
+import { BeautyEditHeader } from "@/components/storefront/templates/store/beauty-edit-header";
+import { beautyEditFontVariables } from "@/components/storefront/templates/store/beauty-edit-fonts";
+import beautyEditStyles from "@/components/storefront/templates/store/beauty-edit.module.css";
 import { BoutiqueShelfHeader } from "@/components/storefront/templates/store/boutique-shelf-header";
 import { boutiqueShelfFontVariables } from "@/components/storefront/templates/store/boutique-shelf-fonts";
 import boutiqueShelfStyles from "@/components/storefront/templates/store/boutique-shelf.module.css";
@@ -145,7 +148,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "chem-lab" | "spirits-cellar";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "chem-lab" | "spirits-cellar";
   storeThemeId?: string | null;
   /** Tenant WhatsApp for Milk Run dual-path checkout. */
   whatsappNumber?: string | null;
@@ -159,9 +162,10 @@ export function ShopStorefrontChrome({
   const isButcherBoard = chromeVariant === "butcher-board";
   const isCarbonDesk = chromeVariant === "carbon-desk";
   const isBoutiqueShelf = chromeVariant === "boutique-shelf";
+  const isBeautyEdit = chromeVariant === "beauty-edit";
   const isChemLab = chromeVariant === "chem-lab";
   const isSpiritsCellar = chromeVariant === "spirits-cellar";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isChemLab || isSpiritsCellar;
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isChemLab || isSpiritsCellar;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const milkRunDigits = isMilkRun
@@ -194,6 +198,11 @@ export function ShopStorefrontChrome({
                   ["--bs-rose" as string]: primaryHex || "#DB2777",
                   ["--bs-brass" as string]: accentHex || "#C9A227",
                 } as CSSProperties)
+              : isBeautyEdit
+                ? ({
+                    ["--be-ink" as string]: primaryHex || "#0E0E0E",
+                    ["--be-gold" as string]: accentHex || "#B5853A",
+                  } as CSSProperties)
               : isChemLab
                 ? ({
                     ["--cl-neon" as string]: primaryHex || "#84CC16",
@@ -259,6 +268,13 @@ export function ShopStorefrontChrome({
               boutiqueShelfFontVariables,
               "[--storefront-paper:#1F1020]",
             ),
+          isBeautyEdit &&
+            cn(
+              beautyEditStyles.root,
+              beautyEditStyles.body,
+              beautyEditFontVariables,
+              "[--storefront-paper:#FFFFFF]",
+            ),
           isChemLab &&
             cn(
               chemLabStyles.root,
@@ -301,6 +317,16 @@ export function ShopStorefrontChrome({
       {isBoutiqueShelf && !compactChrome ? (
         <Suspense fallback={null}>
           <BoutiqueShelfHeader storeName={headerTitle} logoUrl={logoUrl} />
+        </Suspense>
+      ) : null}
+      {isBeautyEdit && !compactChrome ? (
+        <Suspense fallback={null}>
+          <BeautyEditHeader
+            slug={slug}
+            storeName={headerTitle}
+            logoUrl={logoUrl}
+            whatsapp={whatsappNumber}
+          />
         </Suspense>
       ) : null}
       {isChemLab && !compactChrome ? (

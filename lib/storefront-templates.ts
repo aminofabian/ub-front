@@ -11,6 +11,7 @@ export type StoreThemeId =
   | "butcher-board"
   | "boutique-shelf"
   | "spirits-cellar"
+  | "beauty-edit"
   | "oxide"
   | "tint-lab"
   | "milk-run"
@@ -54,6 +55,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "butcher-board",
   "boutique-shelf",
   "spirits-cellar",
+  "beauty-edit",
   "oxide",
   "tint-lab",
   "milk-run",
@@ -107,6 +109,15 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
     previewFrom: "#14100E",
     previewTo: "#C4B5FD",
     accent: "#E8A849",
+  },
+  {
+    id: "beauty-edit",
+    kind: "store",
+    name: "Beauty edit",
+    blurb: "Beyond Beauty editorial — black/white/gold, 3-up hero, hover add-to-bag.",
+    previewFrom: "#0E0E0E",
+    previewTo: "#FAFBFB",
+    accent: "#B5853A",
   },
   {
     id: "oxide",

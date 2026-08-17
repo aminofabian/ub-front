@@ -33,6 +33,8 @@ function ArtForId({ id }: { id: string }) {
       return <ButcherArt />;
     case "boutique-shelf":
       return <BoutiqueArt />;
+    case "beauty-edit":
+      return <BeautyEditArt />;
     case "spirits-cellar":
       return <SpiritsArt />;
     case "oxide":
@@ -200,6 +202,45 @@ function BoutiqueArt() {
             </div>
           ))}
         </div>
+      </div>
+    </Frame>
+  );
+}
+
+function BeautyEditArt() {
+  return (
+    <Frame paper="#FFFFFF" ink="#0E0E0E">
+      <div className="bg-[#0E0E0E] px-3 py-1 text-center text-[7px] uppercase tracking-widest text-white/90">
+        Free delivery · WhatsApp
+      </div>
+      <div className="flex items-center justify-between border-b border-[#E8E4DF] px-3 py-2">
+        <span className="text-[8px] uppercase tracking-widest text-[#6B6560]">Menu</span>
+        <span className="text-[11px] font-medium uppercase tracking-[0.15em]">
+          Beyond
+        </span>
+        <span className="text-[8px] uppercase tracking-widest">Bag · 0</span>
+      </div>
+      <div className="grid flex-1 grid-cols-3 gap-0">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="relative aspect-[3/4] bg-gradient-to-b from-[#2A2A2A] to-[#0E0E0E]"
+          >
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+              <div className="font-serif text-[9px] italic text-white">
+                Collection
+              </div>
+              <div className="text-[6px] uppercase tracking-widest text-[#B5853A]">
+                Shop
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-4 gap-0 border-t border-[#E8E4DF] bg-[#FAFBFB] p-1">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="aspect-[3/4] bg-[#E8E4DF]/60" />
+        ))}
       </div>
     </Frame>
   );
