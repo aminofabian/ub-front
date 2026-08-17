@@ -196,3 +196,85 @@ export async function submitPublicTabManualPayment(
   );
   return readJson<PublicTabManualPayment>(res);
 }
+
+export type PublicTabAirtimeConfig = {
+  available: boolean;
+  minAmount: number;
+  maxAmount: number;
+  currency: string;
+  quickAmounts: number[];
+  reason: string | null;
+};
+
+export type PublicTabAirtimeOrder = {
+  orderId: string;
+  phoneNumber: string;
+  network: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  delivered: boolean;
+  failed: boolean;
+  awaitingPayment: boolean;
+  checkoutRequestId: string | null;
+  receipt: string | null;
+  message: string | null;
+};
+
+export async function fetchPublicTabAirtimeConfig(
+  phone: string,
+): Promise<PublicTabAirtimeConfig | null> {
+  const p = phone.trim();
+  if (!p) return null;
+  try {
+    const res = await fetch(
+      apiUrl(`/api/v1/public/credits/tabs/${encodeURIComponent(p)}/airtime`),
+      { headers: tenantHostHeaders(), cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as PublicTabAirtimeConfig;
+  } catch {
+    return null;
+  }
+}
+
+export async function createPublicTabAirtimeOrder(
+  tabPhone: string,
+  body: { phoneNumber: string; amount: number; payerPhone?: string },
+): Promise<PublicTabAirtimeOrder> {
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/credits/tabs/${encodeURIComponent(tabPhone.trim())}/airtime/orders`,
+    ),
+    {
+      method: "POST",
+      headers: {
+        ...(tenantHostHeaders() as Record<string, string>),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    },
+  );
+  return readJson<PublicTabAirtimeOrder>(res);
+}
+
+export async function fetchPublicTabAirtimeOrder(
+  tabPhone: string,
+  orderId: string,
+): Promise<PublicTabAirtimeOrder | null> {
+  const id = orderId.trim();
+  if (!id) return null;
+  try {
+    const res = await fetch(
+      apiUrl(
+        `/api/v1/public/credits/tabs/${encodeURIComponent(tabPhone.trim())}/airtime/orders/${encodeURIComponent(id)}`,
+      ),
+      { headers: tenantHostHeaders(), cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as PublicTabAirtimeOrder;
+  } catch {
+    return null;
+  }
+}

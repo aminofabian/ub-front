@@ -37,6 +37,45 @@ export function toKenyanMsisdn254(raw: string): string | null {
   return `254${local.slice(1)}`;
 }
 
+export type KenyanNetwork =
+  | "SAFARICOM"
+  | "AIRTEL"
+  | "TELKOM"
+  | "EQUITEL"
+  | "JTL";
+
+/** Prefix map for Kenyan mobile networks (display only — the telco is not required to send). */
+export function detectKenyanNetwork(raw: string): KenyanNetwork | null {
+  const msisdn = toKenyanMsisdn254(raw);
+  if (!msisdn || msisdn.length < 6) return null;
+  const prefix = Number.parseInt(msisdn.slice(3, 6), 10);
+  if (!Number.isFinite(prefix)) return null;
+  if (prefix === 747) return "JTL";
+  if (prefix >= 763 && prefix <= 765) return "EQUITEL";
+  if (prefix >= 770 && prefix <= 779) return "TELKOM";
+  if (
+    (prefix >= 100 && prefix <= 102) ||
+    (prefix >= 730 && prefix <= 739) ||
+    (prefix >= 750 && prefix <= 756) ||
+    prefix === 762 ||
+    (prefix >= 780 && prefix <= 789)
+  ) {
+    return "AIRTEL";
+  }
+  if (
+    (prefix >= 110 && prefix <= 115) ||
+    (prefix >= 700 && prefix <= 729) ||
+    (prefix >= 740 && prefix <= 746) ||
+    prefix === 748 ||
+    (prefix >= 757 && prefix <= 759) ||
+    (prefix >= 768 && prefix <= 769) ||
+    (prefix >= 790 && prefix <= 799)
+  ) {
+    return "SAFARICOM";
+  }
+  return null;
+}
+
 /**
  * Pull the first Kenyan mobile from free-form remittance text
  * (e.g. "send money: 0710514157").

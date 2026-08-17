@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  detectKenyanNetwork,
   looksLikeKenyanMobilePath,
   toKenyanLocal07,
   toKenyanMsisdn254,
@@ -31,5 +32,11 @@ describe("kenyan-phone", () => {
     expect(extractFirstKenyanMobile("send money: 0710514157")).toBe("254710514157");
     expect(extractFirstKenyanMobile("Paybill 123456 Acc 071")).toBeNull();
     expect(extractFirstKenyanMobile(null)).toBeNull();
+  });
+
+  it("detects the network from a Kenyan prefix", () => {
+    expect(detectKenyanNetwork("0714282874")).toBe("SAFARICOM");
+    expect(detectKenyanNetwork("0730123456")).toBe("AIRTEL");
+    expect(detectKenyanNetwork("0770123456")).toBe("TELKOM");
   });
 });

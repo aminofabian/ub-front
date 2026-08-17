@@ -16,6 +16,7 @@ import {
   FileCheck2,
   Loader2,
   Moon,
+  Signal,
   Smartphone,
   Store,
   Sun,
@@ -25,14 +26,17 @@ import {
 import { looksLikeKenyanMobilePath, toKenyanLocal07 } from "@/lib/kenyan-phone";
 import {
   fetchPublicCustomerTab,
+  fetchPublicTabAirtimeConfig,
   fetchPublicTabStkStatus,
   initiatePublicTabStk,
   initiatePublicWalletStk,
   submitPublicTabManualPayment,
   type PublicCustomerTab,
+  type PublicTabAirtimeConfig,
   type PublicTabPurchaseRow,
 } from "@/lib/public-customer-tab";
 import { PageSealGate } from "@/components/page-seal/page-seal-gate";
+import { TabAirtimeSheet } from "@/components/credits/tab-airtime-sheet";
 import type { PageSealStatus } from "@/lib/page-seal";
 import { buildStorefrontThemeVars } from "@/lib/storefront-theme";
 import { cn } from "@/lib/utils";
@@ -846,9 +850,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [walletPaid, setWalletPaid] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
+  const [airtimeSheetOpen, setAirtimeSheetOpen] = useState(false);
+  const [airtimeConfig, setAirtimeConfig] = useState<PublicTabAirtimeConfig | null>(null);
 
   const payKeyboardInset = useKeyboardInset(paySheetOpen);
   const walletKeyboardInset = useKeyboardInset(walletSheetOpen);
+  const airtimeKeyboardInset = useKeyboardInset(airtimeSheetOpen);
 
   useEffect(() => {
     setMounted(true);
@@ -938,6 +945,20 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    if (loading || notFound) {
+      setAirtimeConfig(null);
+      return;
+    }
+    let stopped = false;
+    fetchPublicTabAirtimeConfig(phone).then((config) => {
+      if (!stopped) setAirtimeConfig(config);
+    });
+    return () => {
+      stopped = true;
+    };
+  }, [loading, notFound, phone]);
 
   useEffect(() => {
     if (!intentId || !promptSent || paid) return;
@@ -1055,6 +1076,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const showPay = owed > 0 && !loading && !notFound && mounted && !sealedLocked;
   const showWalletTopUp =
     !loading && !notFound && mounted && owed <= 0 && !sealedLocked;
+  const showAirtime =
+    Boolean(airtimeConfig?.available) &&
+    !loading &&
+    !notFound &&
+    mounted &&
+    !sealedLocked;
   const purchaseCount = tab?.purchases?.length ?? 0;
   const tabStats = useMemo(
     () => computeTabStats(tab?.purchases ?? []),
@@ -1249,6 +1276,16 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
+            {showAirtime ? (
+              <button
+                type="button"
+                onClick={() => setAirtimeSheetOpen(true)}
+                className="flex size-9 shrink-0 items-center justify-center border border-[var(--tab-border)] bg-[var(--tab-card)] text-[var(--tab-fg)] active:bg-[var(--tab-bg)]"
+                aria-label="Buy airtime"
+              >
+                <Signal className="size-4" aria-hidden />
+              </button>
+            ) : null}
             {showWalletTopUp ? (
               <button
                 type="button"
@@ -1379,6 +1416,41 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 </p>
               )}
             </section>
+
+            {showAirtime ? (
+              <div className="px-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setAirtimeSheetOpen(true)}
+                  className="flex w-full items-center gap-3 border border-[var(--tab-border)] bg-[var(--tab-card)] px-3.5 py-3.5 text-left active:bg-[var(--tab-bg)]"
+                >
+                  <span
+                    className="flex size-11 shrink-0 items-end justify-center gap-[3px] pb-2.5"
+                    aria-hidden
+                    style={{ color: "var(--tab-cta-bg)" }}
+                  >
+                    {[10, 14, 18, 22].map((h) => (
+                      <span
+                        key={h}
+                        className="w-[5px] bg-current"
+                        style={{ height: `${h}px` }}
+                      />
+                    ))}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-semibold tracking-[-0.02em]">
+                      Buy airtime
+                    </span>
+                    <span className="mt-0.5 block text-[13px] text-[var(--tab-muted)]">
+                      Top up {formatPhoneDisplay(phone)} · M-Pesa
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[13px] font-medium text-[var(--tab-muted)]">
+                    Open
+                  </span>
+                </button>
+              </div>
+            ) : null}
 
             {owed <= 0 ? (
               <div className="mx-4 mt-4 flex items-center gap-2.5 border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3.5 py-3 text-[13px] font-medium text-[var(--tab-success-fg)]">
@@ -1653,6 +1725,17 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {showAirtime && airtimeConfig ? (
+        <TabAirtimeSheet
+          open={airtimeSheetOpen}
+          onClose={() => setAirtimeSheetOpen(false)}
+          tabPhone={phone}
+          config={airtimeConfig}
+          keyboardInset={airtimeKeyboardInset}
+          fieldIdPrefix={fieldIdPrefix}
+        />
       ) : null}
     </div>
   );
