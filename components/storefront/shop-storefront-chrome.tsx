@@ -19,6 +19,9 @@ import oxideStyles from "@/components/storefront/templates/store/oxide.module.cs
 import { TintLabHeader } from "@/components/storefront/templates/store/tint-lab-header";
 import { tintFontVariables } from "@/components/storefront/templates/store/tint-lab-fonts";
 import tintStyles from "@/components/storefront/templates/store/tint-lab.module.css";
+import { ButcherBoardHeader } from "@/components/storefront/templates/store/butcher-board-header";
+import { butcherBoardFontVariables } from "@/components/storefront/templates/store/butcher-board-fonts";
+import butcherBoardStyles from "@/components/storefront/templates/store/butcher-board.module.css";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
@@ -130,7 +133,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board";
   storeThemeId?: string | null;
   /** Tenant WhatsApp for Milk Run dual-path checkout. */
   whatsappNumber?: string | null;
@@ -141,7 +144,8 @@ export function ShopStorefrontChrome({
   const isOxide = chromeVariant === "oxide";
   const isTintLab = chromeVariant === "tint-lab";
   const isMilkRun = chromeVariant === "milk-run";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun;
+  const isButcherBoard = chromeVariant === "butcher-board";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const milkRunDigits = isMilkRun
@@ -158,6 +162,12 @@ export function ShopStorefrontChrome({
       ? ({ ["--tint-accent" as string]: accentHex } as CSSProperties)
       : isMilkRun && accentHex
         ? ({ ["--milk-accent" as string]: accentHex } as CSSProperties)
+        : isButcherBoard
+          ? ({
+              ["--bb-accent" as string]: accentHex || "#F5C518",
+              ["--bb-gold" as string]: accentHex || "#F5C518",
+              ["--bb-crimson" as string]: primaryHex || "#E31C23",
+            } as CSSProperties)
         : undefined;
 
   return (
@@ -192,6 +202,13 @@ export function ShopStorefrontChrome({
               milkRunFontVariables,
               "[--storefront-paper:#FFFCF5]",
             ),
+          isButcherBoard &&
+            cn(
+              butcherBoardStyles.root,
+              butcherBoardStyles.body,
+              butcherBoardFontVariables,
+              "[--storefront-paper:#0C0708]",
+            ),
         )}
         style={shellStyle}
       >
@@ -206,6 +223,11 @@ export function ShopStorefrontChrome({
           storeName={headerTitle}
           locationNote={locationHint}
         />
+      ) : null}
+      {isButcherBoard && !compactChrome ? (
+        <Suspense fallback={null}>
+          <ButcherBoardHeader storeName={headerTitle} logoUrl={logoUrl} />
+        </Suspense>
       ) : null}
       {showDefaultChrome ? (
         <>

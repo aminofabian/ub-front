@@ -107,30 +107,37 @@ function MartArt() {
 
 function ButcherArt() {
   return (
-    <Frame paper="#1C1917" ink="#FAFAF9">
-      <div className="flex gap-1 border-b border-white/10 px-2 py-2">
-        {["Beef", "Goat", "Chicken", "Offal"].map((t) => (
-          <span
-            key={t}
-            className="rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-orange-300"
-          >
-            {t}
-          </span>
-        ))}
+    <Frame paper="#0C0708" ink="#F4E6C8">
+      <div className="flex items-center justify-between border-b-2 border-[#C9A227] bg-black/40 px-3 py-1.5">
+        <span className="text-[11px] font-black uppercase tracking-wide text-[#F5C518]">
+          Cloud 9
+        </span>
+        <span className="bg-[#F5C518] px-1.5 py-0.5 text-[7px] font-bold uppercase text-[#1A0B0B]">
+          Cart · 2
+        </span>
       </div>
-      <div className="grid flex-1 grid-cols-3 gap-1.5 p-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded bg-stone-800 ring-1 ring-orange-500/30"
-          >
-            <div className="h-10 bg-gradient-to-b from-red-900/50 to-stone-800" />
-            <div className="space-y-1 p-1.5">
-              <div className="h-1.5 w-3/4 rounded bg-white/25" />
-              <div className="h-1.5 w-1/3 rounded bg-orange-400/80" />
-            </div>
+      <div className="grid flex-1 grid-cols-[1.4fr_1fr] gap-1.5 p-2">
+        <div className="relative overflow-hidden border-2 border-[#F5C518] bg-gradient-to-br from-[#C41E2A] to-[#1A0B12]">
+          <div className="absolute bottom-1.5 left-1.5 right-1.5">
+            <div className="h-2 w-3/4 bg-[#F5C518]" />
+            <div className="mt-1 h-4 w-12 border border-[#F5C518] bg-[#E31C23]" />
           </div>
-        ))}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {["#8B1219", "#C41E2A", "#5C0D14"].map((c) => (
+            <div
+              key={c}
+              className="flex min-h-0 flex-1 border-2 border-[#C9A227]"
+              style={{ background: c }}
+            >
+              <div className="w-2/5 bg-black/25" />
+              <div className="flex flex-1 flex-col justify-center gap-1 p-1">
+                <div className="h-1.5 w-3/4 bg-[#F5C518]/80" />
+                <div className="h-1 w-1/3 bg-white/40" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </Frame>
   );

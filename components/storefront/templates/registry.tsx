@@ -55,7 +55,8 @@ export type StoreChromeVariant =
   | "soft"
   | "oxide"
   | "tint-lab"
-  | "milk-run";
+  | "milk-run"
+  | "butcher-board";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -80,6 +81,7 @@ export function resolveStoreChromeVariant(
     case "milk-run":
       return "milk-run";
     case "butcher-board":
+      return "butcher-board";
     case "spirits-cellar":
       return "dark";
     case "boutique-shelf":

@@ -121,6 +121,7 @@ export async function StorefrontShell({
         chromeVariant === "oxide" && "bg-[#EDEAE2] dark:bg-[#EDEAE2]",
         chromeVariant === "tint-lab" && "bg-[#F6F1EA] dark:bg-[#F6F1EA]",
         chromeVariant === "milk-run" && "bg-[#FFFCF5] dark:bg-[#FFFCF5]",
+        chromeVariant === "butcher-board" && "bg-[#0C0708] dark:bg-[#0C0708]",
       )}
     >
       {previewBanner}
