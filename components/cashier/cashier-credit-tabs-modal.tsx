@@ -430,19 +430,21 @@ export function CashierCreditTabsModal({
                                   </span>
                                 </span>
                               </button>
-                              <button
-                                type="button"
-                                className="shrink-0 border-l border-border/50 px-3 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground disabled:opacity-50"
-                                title="Print receipt"
-                                disabled={printing}
-                                onClick={() => void printSale(purchase.saleId)}
-                              >
-                                {printing ? (
-                                  <Loader2 className="size-4 animate-spin" />
-                                ) : (
-                                  <Printer className="size-4" />
-                                )}
-                              </button>
+                              {purchase.receiptNo != null ? (
+                                <button
+                                  type="button"
+                                  className="shrink-0 border-l border-border/50 px-3 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground disabled:opacity-50"
+                                  title="Print receipt"
+                                  disabled={printing}
+                                  onClick={() => void printSale(purchase.saleId)}
+                                >
+                                  {printing ? (
+                                    <Loader2 className="size-4 animate-spin" />
+                                  ) : (
+                                    <Printer className="size-4" />
+                                  )}
+                                </button>
+                              ) : null}
                             </div>
                             {openRow ? (
                               <ul className="space-y-1 border-t border-border/40 bg-muted/15 px-3 py-2.5 pl-9">

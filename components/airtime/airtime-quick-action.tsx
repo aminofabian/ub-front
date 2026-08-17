@@ -3,13 +3,10 @@
 import { useEffect, useState } from "react";
 import { Signal } from "lucide-react";
 
-import { AirtimeSellPanel } from "@/components/airtime/airtime-sell-panel";
+import { CashierAirtimeDrawer } from "@/components/airtime/cashier-airtime-drawer";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { fetchAirtimeAvailability, type AirtimeAvailabilityRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -26,6 +23,7 @@ type Props = {
  *
  * <p>Renders nothing at all unless the business has airtime switched on and the
  * platform is configured — a dead button on a busy POS is worse than no button.
+ * Opens as the same right-edge drawer the cart uses, with Cash / M-Pesa / Tab.
  */
 export function AirtimeQuickAction({
   triggerClassName,
@@ -78,18 +76,18 @@ export function AirtimeQuickAction({
         ) : null}
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md gap-4 p-5 sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Signal className="size-4 text-muted-foreground" aria-hidden />
-              Sell airtime
-            </DialogTitle>
-            <DialogDescription>
-              Any network. Paid straight from your Kiosk Pay wallet, commission
-              credited back on delivery.
-            </DialogDescription>
-          </DialogHeader>
-          <AirtimeSellPanel channel={channel} currency={currency} />
+        <DialogContent
+          side="right"
+          overlayClassName="bg-black/45 backdrop-blur-[3px] dark:bg-black/55"
+          className={cn(
+            "max-w-[min(100%,26rem)] gap-0 border-border/40 p-0 shadow-2xl sm:max-w-[26rem]",
+            "flex flex-col overflow-hidden bg-[color-mix(in_srgb,var(--background)_92%,var(--pos-primary)_3%)]",
+          )}
+          showCloseButton
+        >
+          {open ? (
+            <CashierAirtimeDrawer channel={channel} currency={currency} />
+          ) : null}
         </DialogContent>
       </Dialog>
     </>

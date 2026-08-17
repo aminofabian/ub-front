@@ -9957,6 +9957,7 @@ export type AirtimeOrderRecord = {
   id: string;
   businessId: string;
   channel: string;
+  tender?: string | null;
   phoneNumber: string;
   network: string | null;
   amount: number;
@@ -10022,6 +10023,8 @@ export async function sellAirtime(
     phoneNumber: string;
     amount: number;
     channel?: string;
+    tender?: "CASH" | "MPESA" | "TAB";
+    payerPhone?: string;
     customerId?: string;
     saleId?: string;
   },
