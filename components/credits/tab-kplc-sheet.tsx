@@ -166,14 +166,12 @@ function statsFromTokens(tokens: PublicTabKplcToken[]): PublicTabKplcStats {
 
 function ComingSoonBuy() {
   return (
-    <div className="px-4 pb-2">
-      <p className="text-[13px] font-semibold tracking-[-0.02em]">
-        Buying a KPLC token is coming soon
-      </p>
-      <p className="mt-0.5 text-[12px] leading-snug text-[var(--tab-muted)]">
-        You can look up slips now. Paying from this tab is next.
-      </p>
-    </div>
+    <p className="px-4 pb-2 text-[13px] leading-snug lg:px-5">
+      <span className="font-semibold tracking-[-0.02em]">
+        Buying a KPLC token is coming soon.
+      </span>{" "}
+      <span className="text-[var(--tab-muted)]">Look up still works.</span>
+    </p>
   );
 }
 
@@ -181,11 +179,15 @@ function CopyTokenButton({
   tokenNo,
   copied,
   inverted,
+  split,
+  quiet,
   onCopy,
 }: {
   tokenNo: string;
   copied: boolean;
   inverted?: boolean;
+  split?: boolean;
+  quiet?: boolean;
   onCopy: () => void;
 }) {
   return (
@@ -193,19 +195,39 @@ function CopyTokenButton({
       type="button"
       onClick={onCopy}
       className={cn(
-        "mt-2 flex w-full items-center justify-between gap-2 px-2.5 py-2.5 text-left",
-        inverted
-          ? "border border-[color-mix(in_oklab,var(--tab-bg)_28%,transparent)] bg-[color-mix(in_oklab,var(--tab-bg)_10%,transparent)]"
-          : "border border-[var(--tab-border)] bg-[var(--tab-card)]",
+        "flex w-full items-center justify-between gap-2 text-left",
+        quiet
+          ? "mt-1.5 py-0.5"
+          : "mt-2 px-2.5 py-2.5",
+        quiet
+          ? null
+          : inverted
+            ? cn(
+                "border border-[color-mix(in_oklab,var(--tab-bg)_28%,transparent)] bg-[color-mix(in_oklab,var(--tab-bg)_10%,transparent)]",
+                split &&
+                  "lg:border-[var(--tab-border)] lg:bg-[var(--tab-card)]",
+              )
+            : "border border-[var(--tab-border)] bg-[var(--tab-card)]",
       )}
     >
-      <span className="min-w-0 font-mono text-[13px] font-semibold tabular-nums tracking-wide">
+      <span
+        className={cn(
+          "min-w-0 font-mono font-semibold tabular-nums tracking-wide",
+          quiet ? "text-[12px]" : "text-[13px]",
+          inverted && split && "lg:text-[var(--tab-fg)]",
+        )}
+      >
         {formatTokenNo(tokenNo)}
       </span>
       <span
         className={cn(
           "flex shrink-0 items-center gap-1 text-[12px] font-medium",
-          inverted ? "text-[color-mix(in_oklab,var(--tab-bg)_72%,var(--tab-fg))]" : "text-[var(--tab-muted)]",
+          inverted
+            ? cn(
+                "text-[color-mix(in_oklab,var(--tab-bg)_72%,var(--tab-fg))]",
+                split && "lg:text-[var(--tab-muted)]",
+              )
+            : "text-[var(--tab-muted)]",
         )}
       >
         {copied ? (
@@ -227,9 +249,11 @@ function CopyTokenButton({
 function ConceptList({
   token,
   inverted,
+  split,
 }: {
   token: PublicTabKplcToken;
   inverted?: boolean;
+  split?: boolean;
 }) {
   if (!token.concepts?.length) return null;
   return (
@@ -237,7 +261,10 @@ function ConceptList({
       className={cn(
         "mt-2 space-y-1.5 border-t pt-2",
         inverted
-          ? "border-[color-mix(in_oklab,var(--tab-bg)_22%,transparent)]"
+          ? cn(
+              "border-[color-mix(in_oklab,var(--tab-bg)_22%,transparent)]",
+              split && "lg:border-[var(--tab-border)]",
+            )
           : "border-[var(--tab-border)]",
       )}
     >
@@ -249,12 +276,15 @@ function ConceptList({
             className="flex items-baseline justify-between gap-3 text-[12px]"
           >
             <span
-              className="min-w-0"
-              style={
+              className={cn(
+                "min-w-0",
                 inverted
-                  ? { color: comingSoonMuted }
-                  : { color: "var(--tab-muted)" }
-              }
+                  ? cn(
+                      "text-[color-mix(in_oklab,var(--tab-bg)_72%,var(--tab-fg))]",
+                      split && "lg:text-[var(--tab-muted)]",
+                    )
+                  : "text-[var(--tab-muted)]",
+              )}
             >
               {concept.label}
             </span>
@@ -678,7 +708,7 @@ export function TabKplcSheet({
         </div>
 
         {meters.length > 0 || view === "tokens" ? (
-          <div className="shrink-0 border-y border-[var(--tab-border)] px-4 py-2">
+          <div className="shrink-0 border-y border-[var(--tab-border)] px-4 py-2 lg:px-5">
           {meters.length > 0 ? (
             <ul className="flex flex-wrap gap-1">
               {meters.map((saved) => {
@@ -822,6 +852,7 @@ export function TabKplcSheet({
                       token={latest}
                       copied={copied === latest.tokenNo}
                       expanded={expanded === `${latest.tokenNo}-${latest.purchasedAt ?? ""}`}
+                      split={canShowStats}
                       onToggle={() => {
                         const key = `${latest.tokenNo}-${latest.purchasedAt ?? ""}`;
                         setExpanded((cur) => (cur === key ? null : key));
@@ -834,51 +865,40 @@ export function TabKplcSheet({
                       {older.map((token) => {
                         const key = `${token.tokenNo}-${token.purchasedAt ?? ""}`;
                         const openRow = expanded === key;
-                        const amount = toAmount(token.amount);
-                        const units = toAmount(token.units);
                         return (
                           <li key={key} className="px-4 py-3">
                             <div className="flex items-start justify-between gap-3">
-                              <button
-                                type="button"
-                                onClick={() => setExpanded(openRow ? null : key)}
-                                className="min-w-0 flex-1 text-left"
-                                aria-expanded={openRow}
-                              >
-                                <p className="text-[15px] font-semibold tracking-[-0.02em]">
-                                  <time
-                                    dateTime={token.purchasedAt ?? undefined}
-                                    title={
-                                      token.purchasedAt
-                                        ? formatAbsoluteTokenDate(token.purchasedAt)
-                                        : undefined
-                                    }
+                              <div className="min-w-0 flex-1">
+                                {token.concepts?.length ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpanded(openRow ? null : key)}
+                                    className="w-full text-left"
+                                    aria-expanded={openRow}
                                   >
-                                    {formatRelativeTokenTime(token.purchasedAt)}
-                                  </time>
-                                </p>
-                                <p className="mt-0.5 text-[13px] tabular-nums text-[var(--tab-muted)]">
-                                  {amount != null ? money(amount) : "Token"}
-                                  {units != null
-                                    ? ` · ${units.toLocaleString("en-KE")} kWh`
-                                    : ""}
-                                  {token.paymentMethod ? ` · ${token.paymentMethod}` : ""}
-                                </p>
-                              </button>
-                              <ChevronDown
-                                className={cn(
-                                  "mt-1 size-3.5 shrink-0 text-[var(--tab-muted)] transition-transform duration-200",
-                                  openRow && "rotate-180",
+                                    <TokenStamp token={token} />
+                                  </button>
+                                ) : (
+                                  <TokenStamp token={token} />
                                 )}
-                                aria-hidden
-                              />
+                                <CopyTokenButton
+                                  tokenNo={token.tokenNo}
+                                  copied={copied === token.tokenNo}
+                                  quiet
+                                  onCopy={() => void copyToken(token.tokenNo)}
+                                />
+                                {openRow ? <ConceptList token={token} /> : null}
+                              </div>
+                              {token.concepts?.length ? (
+                                <ChevronDown
+                                  className={cn(
+                                    "mt-1 size-3.5 shrink-0 text-[var(--tab-muted)] transition-transform duration-200",
+                                    openRow && "rotate-180",
+                                  )}
+                                  aria-hidden
+                                />
+                              ) : null}
                             </div>
-                            <CopyTokenButton
-                              tokenNo={token.tokenNo}
-                              copied={copied === token.tokenNo}
-                              onCopy={() => void copyToken(token.tokenNo)}
-                            />
-                            {openRow ? <ConceptList token={token} /> : null}
                           </li>
                         );
                       })}
@@ -905,8 +925,8 @@ export function TabKplcSheet({
                 />
               ) : null}
               {resolvedStats ? (
-                <section className="pt-4">
-                  <div className="px-4 pb-2">
+                <section>
+                  <div className="px-4 pt-4 pb-2">
                     <h3 className="text-[15px] font-semibold tracking-[-0.02em]">
                       Monthly spend
                     </h3>
@@ -928,7 +948,7 @@ export function TabKplcSheet({
 
         <div className="shrink-0 border-t border-[var(--tab-border)] pt-2">
           {buyingSoon ? <ComingSoonBuy /> : null}
-          <div className="px-4 pb-2.5">
+          <div className="px-4 pb-2.5 lg:px-5">
             <button
               type="button"
               disabled={!canLookup}
@@ -960,31 +980,70 @@ export function TabKplcSheet({
   );
 }
 
+function TokenStamp({
+  token,
+}: {
+  token: PublicTabKplcToken;
+}) {
+  const amount = toAmount(token.amount);
+  const units = toAmount(token.units);
+  return (
+    <>
+      <p className="text-[15px] font-semibold tracking-[-0.02em]">
+        <time
+          dateTime={token.purchasedAt ?? undefined}
+          title={
+            token.purchasedAt ? formatAbsoluteTokenDate(token.purchasedAt) : undefined
+          }
+        >
+          {formatRelativeTokenTime(token.purchasedAt)}
+        </time>
+      </p>
+      <p className="mt-0.5 text-[13px] tabular-nums text-[var(--tab-muted)]">
+        {amount != null ? money(amount) : "Token"}
+        {units != null ? ` · ${units.toLocaleString("en-KE")} kWh` : ""}
+        {token.paymentMethod ? ` · ${token.paymentMethod}` : ""}
+      </p>
+    </>
+  );
+}
+
 function LatestToken({
   token,
   copied,
   expanded,
+  split,
   onToggle,
   onCopy,
 }: {
   token: PublicTabKplcToken;
   copied: boolean;
   expanded: boolean;
+  split?: boolean;
   onToggle: () => void;
   onCopy: () => void;
 }) {
   const amount = toAmount(token.amount);
   const units = toAmount(token.units);
+  const hasConcepts = Boolean(token.concepts?.length);
   return (
-    <article className="bg-[var(--tab-fg)] px-4 py-4 text-[var(--tab-bg)]">
+    <article
+      className={cn(
+        "px-4 py-4",
+        "bg-[var(--tab-fg)] text-[var(--tab-bg)]",
+        split &&
+          "lg:border-b lg:border-[var(--tab-border)] lg:bg-transparent lg:text-[var(--tab-fg)]",
+      )}
+    >
       <button
         type="button"
         onClick={onToggle}
         className="flex w-full items-start justify-between gap-3 text-left"
         aria-expanded={expanded}
+        disabled={!hasConcepts}
       >
         <div className="min-w-0">
-          <p className="text-[1.25rem] font-semibold leading-none tracking-[-0.03em]">
+          <p className="text-[1.25rem] font-semibold leading-none tracking-[-0.03em] lg:text-[1.125rem]">
             <time
               dateTime={token.purchasedAt ?? undefined}
               title={
@@ -994,32 +1053,37 @@ function LatestToken({
               {formatRelativeTokenTime(token.purchasedAt)}
             </time>
           </p>
-          <p className="mt-2 text-[14px] font-semibold tabular-nums">
+          <p
+            className={cn(
+              "mt-2 text-[14px] font-semibold tabular-nums",
+              split && "lg:font-medium lg:text-[var(--tab-muted)]",
+            )}
+          >
             {amount != null ? money(amount) : "Latest token"}
             {units != null ? ` · ${units.toLocaleString("en-KE")} kWh` : ""}
+            {token.paymentMethod ? ` · ${token.paymentMethod}` : ""}
           </p>
         </div>
-        <ChevronDown
-          className={cn(
-            "mt-1 size-4 shrink-0 transition-transform duration-200",
-            expanded && "rotate-180",
-          )}
-          style={{ color: comingSoonMuted }}
-          aria-hidden
-        />
+        {hasConcepts ? (
+          <ChevronDown
+            className={cn(
+              "mt-1 size-4 shrink-0 transition-transform duration-200",
+              expanded && "rotate-180",
+              split && "lg:text-[var(--tab-muted)]",
+            )}
+            style={split ? undefined : { color: comingSoonMuted }}
+            aria-hidden
+          />
+        ) : null}
       </button>
       <CopyTokenButton
         tokenNo={token.tokenNo}
         copied={copied}
         inverted
+        split={split}
         onCopy={onCopy}
       />
-      {token.paymentMethod ? (
-        <p className="mt-2 text-[12px]" style={{ color: comingSoonMuted }}>
-          {token.paymentMethod}
-        </p>
-      ) : null}
-      {expanded ? <ConceptList token={token} inverted /> : null}
+      {expanded ? <ConceptList token={token} inverted split={split} /> : null}
     </article>
   );
 }
