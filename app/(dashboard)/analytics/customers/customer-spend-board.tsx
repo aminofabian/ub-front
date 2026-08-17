@@ -99,6 +99,12 @@ function customerNoLabel(n: number | null | undefined): string | null {
   return `C-${n}`;
 }
 
+function customerHref(id: string | null | undefined): string | null {
+  const value = id?.trim() ?? "";
+  if (!value || value.startsWith("mpesa:")) return null;
+  return `${APP_ROUTES.customers}/${encodeURIComponent(value)}`;
+}
+
 function lastSeenLabel(
   days: number | null | undefined,
   lastVisit: string | null | undefined,
@@ -499,12 +505,8 @@ export function CustomerSpendBoard() {
                   <ol className="grid gap-3 md:grid-cols-3">
                     {podium.map((row, index) => {
                       const lead = index === 0;
-                      return (
-                        <li key={row.customerId}>
-                          <Link
-                            href={`${APP_ROUTES.customers}/${encodeURIComponent(row.customerId)}`}
-                            className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                          >
+                      const href = customerHref(row.customerId);
+                      const card = (
                             <WhiteCard
                               className={cn(
                                 "flex h-full flex-col justify-between px-4 py-4",
@@ -553,7 +555,19 @@ export function CustomerSpendBoard() {
                                 </div>
                               </div>
                             </WhiteCard>
-                          </Link>
+                      );
+                      return (
+                        <li key={row.customerId}>
+                          {href ? (
+                            <Link
+                              href={href}
+                              className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                            >
+                              {card}
+                            </Link>
+                          ) : (
+                            card
+                          )}
                         </li>
                       );
                     })}
@@ -568,15 +582,11 @@ export function CustomerSpendBoard() {
                         toNum(row.spend) ? 4 : 0,
                       );
                       const no = customerNoLabel(row.customerNo);
-                      return (
-                        <li
-                          key={row.customerId}
-                          className="border-b border-[#eef1f4] last:border-0"
-                        >
-                          <Link
-                            href={`${APP_ROUTES.customers}/${encodeURIComponent(row.customerId)}`}
-                            className="grid gap-3 px-4 py-3.5 transition-colors duration-150 hover:bg-[#f4f7fb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0c3a66] sm:grid-cols-[2.25rem_minmax(0,1fr)_auto]"
-                          >
+                      const href = customerHref(row.customerId);
+                      const rowClass =
+                        "grid gap-3 px-4 py-3.5 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto]";
+                      const body = (
+                        <>
                             <p
                               className="text-[13px] font-semibold tabular-nums"
                               style={{ color: MUTED }}
@@ -683,7 +693,23 @@ export function CustomerSpendBoard() {
                                 % of named spend
                               </p>
                             </div>
-                          </Link>
+                        </>
+                      );
+                      return (
+                        <li
+                          key={row.customerId}
+                          className="border-b border-[#eef1f4] last:border-0"
+                        >
+                          {href ? (
+                            <Link
+                              href={href}
+                              className={`${rowClass} transition-colors duration-150 hover:bg-[#f4f7fb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0c3a66]`}
+                            >
+                              {body}
+                            </Link>
+                          ) : (
+                            <div className={rowClass}>{body}</div>
+                          )}
                         </li>
                       );
                     })}
