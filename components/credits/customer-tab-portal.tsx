@@ -37,6 +37,12 @@ import {
 import { PageSealGate } from "@/components/page-seal/page-seal-gate";
 import { TabAirtimeSheet } from "@/components/credits/tab-airtime-sheet";
 import { TabKplcSheet } from "@/components/credits/tab-kplc-sheet";
+import {
+  TabOverlay,
+  tabOverlayCloseClass,
+  tabOverlayHeaderClass,
+  tabOverlayKickerClass,
+} from "@/components/credits/tab-overlay";
 import type { PageSealStatus } from "@/lib/page-seal";
 import { buildStorefrontThemeVars } from "@/lib/storefront-theme";
 import { cn } from "@/lib/utils";
@@ -391,14 +397,6 @@ function PortalSkeleton() {
   );
 }
 
-function SheetHandle() {
-  return (
-    <div className="flex shrink-0 justify-center border-b border-[var(--tab-border)] py-2.5" aria-hidden>
-      <div className="h-1 w-10 bg-[var(--tab-border)]" />
-    </div>
-  );
-}
-
 function PurchaseRow({
   row,
   currency,
@@ -605,37 +603,17 @@ function PaySheet({
   const phoneId = `${fieldIdPrefix}-sheet-phone`;
   const refId = `${fieldIdPrefix}-sheet-ref`;
 
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col justify-end"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={`${fieldIdPrefix}-pay-title`}
+    <TabOverlay
+      open={open}
+      onClose={onClose}
+      labelledBy={`${fieldIdPrefix}-pay-title`}
+      keyboardInset={keyboardInset}
+      panelRef={sheetRef}
     >
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60"
-        aria-label="Close payment"
-        onClick={onClose}
-      />
-      <div
-        ref={sheetRef}
-        className="relative flex max-h-[96dvh] w-full flex-col border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] motion-safe:animate-in motion-safe:slide-in-from-bottom-full motion-safe:duration-200 motion-safe:ease-out"
-        style={{ paddingBottom: `max(${keyboardInset}px, env(safe-area-inset-bottom))` }}
-      >
-        <SheetHandle />
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--tab-border)] px-4 py-4">
+        <div className={cn(tabOverlayHeaderClass, "border-b border-[var(--tab-border)] lg:border-b-0")}>
           <div className="min-w-0">
             <h2
               id={`${fieldIdPrefix}-pay-title`}
@@ -643,9 +621,9 @@ function PaySheet({
             >
               Pay {shopLabel}
             </h2>
-            <p className="mt-1 text-[14px] text-[var(--tab-muted)]">
+            <p className={tabOverlayKickerClass}>
               Outstanding{" "}
-              <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+              <span className="font-semibold tabular-nums text-[var(--tab-fg)] lg:text-[var(--tab-bg)]">
                 {fmtMoney(owed, currency)}
               </span>
             </p>
@@ -653,7 +631,7 @@ function PaySheet({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-9 shrink-0 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)] active:bg-[var(--tab-bg)]"
+            className={cn(tabOverlayCloseClass, "active:bg-[var(--tab-bg)] lg:active:bg-[color-mix(in_oklab,var(--tab-bg)_14%,transparent)]")}
             aria-label="Close"
           >
             ✕
@@ -882,8 +860,7 @@ function PaySheet({
             </>
           )}
         </div>
-      </div>
-    </div>
+    </TabOverlay>
   );
 }
 
@@ -1638,35 +1615,23 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
 
       {/* Wallet top-up sheet */}
       {walletSheetOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex flex-col justify-end"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Top up wallet"
+        <TabOverlay
+          open={walletSheetOpen}
+          onClose={() => {
+            if (!walletBusy && !walletPromptSent) setWalletSheetOpen(false);
+          }}
+          label="Top up wallet"
+          keyboardInset={walletKeyboardInset}
+          closeDisabled={walletBusy || walletPromptSent}
         >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/60"
-            aria-label="Close"
-            onClick={() => {
-              if (!walletBusy && !walletPromptSent) setWalletSheetOpen(false);
-            }}
-          />
-          <div
-            className="relative flex max-h-[92dvh] w-full flex-col border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] motion-safe:animate-in motion-safe:slide-in-from-bottom-full motion-safe:duration-200 motion-safe:ease-out"
-            style={{
-              paddingBottom: `max(${walletKeyboardInset}px, env(safe-area-inset-bottom))`,
-            }}
-          >
-            <SheetHandle />
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--tab-border)] px-4 py-4">
+            <div className={cn(tabOverlayHeaderClass, "border-b border-[var(--tab-border)] lg:border-b-0")}>
               <div>
                 <h2 className="text-[1.125rem] font-semibold tracking-[-0.02em]">
                   Top up wallet
                 </h2>
-                <p className="mt-1 text-[14px] text-[var(--tab-muted)]">
+                <p className={tabOverlayKickerClass}>
                   Current balance{" "}
-                  <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+                  <span className="font-semibold tabular-nums text-[var(--tab-fg)] lg:text-[var(--tab-bg)]">
                     {fmtMoney(wallet, currency)}
                   </span>
                 </p>
@@ -1676,7 +1641,8 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 onClick={() => {
                   if (!walletBusy && !walletPromptSent) setWalletSheetOpen(false);
                 }}
-                className="flex size-9 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)]"
+                className={tabOverlayCloseClass}
+                aria-label="Close"
               >
                 ✕
               </button>
@@ -1781,8 +1747,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 )}
               </button>
             </div>
-          </div>
-        </div>
+        </TabOverlay>
       ) : null}
 
       {showAirtime && airtimeConfig ? (

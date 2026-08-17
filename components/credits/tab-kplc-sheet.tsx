@@ -16,6 +16,11 @@ import {
 } from "@/lib/public-customer-tab";
 import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import {
+  TabOverlay,
+  tabOverlayCloseClass,
+  tabOverlayHeaderClass,
+} from "@/components/credits/tab-overlay";
 
 const fieldClass =
   "w-full border border-[var(--tab-border)] bg-[var(--tab-input)] px-3 py-2.5 text-[16px] font-semibold tabular-nums outline-none transition-[border-color,box-shadow] duration-150 focus-visible:border-[var(--tab-focus)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] disabled:opacity-50";
@@ -603,29 +608,14 @@ export function TabKplcSheet({
   const showMeterInput = meters.length === 0 || addingMeter || (Boolean(meter) && !meterKnown);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col justify-end"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={`${fieldIdPrefix}-kplc-title`}
+    <TabOverlay
+      open={open}
+      onClose={onClose}
+      labelledBy={`${fieldIdPrefix}-kplc-title`}
+      keyboardInset={keyboardInset}
+      size={canShowStats ? "ledger" : "ticket"}
     >
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60"
-        aria-label="Close"
-        onClick={onClose}
-      />
-      <div
-        className="relative flex max-h-[92dvh] w-full flex-col border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] motion-safe:animate-in motion-safe:slide-in-from-bottom-full motion-safe:duration-200 motion-safe:ease-out"
-        style={{
-          paddingBottom: `max(${keyboardInset}px, env(safe-area-inset-bottom))`,
-        }}
-      >
-        <div className="flex shrink-0 justify-center py-1.5" aria-hidden>
-          <div className="h-1 w-10 bg-[var(--tab-border)]" />
-        </div>
-
-        <div className="flex shrink-0 items-center justify-between gap-2 px-4 pb-2">
+        <div className={cn(tabOverlayHeaderClass, "items-center")}>
           <h2
             id={`${fieldIdPrefix}-kplc-title`}
             className="flex min-w-0 items-center gap-2 text-[1.0625rem] font-semibold tracking-[-0.02em]"
@@ -636,7 +626,7 @@ export function TabKplcSheet({
           <div className="flex shrink-0 items-center gap-1">
             {canShowStats ? (
               <div
-                className="flex h-9 divide-x divide-[var(--tab-border)] border border-[var(--tab-border)]"
+                className="flex h-9 divide-x divide-[var(--tab-border)] border border-[var(--tab-border)] lg:hidden"
                 role="group"
                 aria-label="Token views"
               >
@@ -674,7 +664,7 @@ export function TabKplcSheet({
             <button
               type="button"
               onClick={onClose}
-              className="flex size-9 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)]"
+              className={tabOverlayCloseClass}
               aria-label="Close"
             >
               <X className="size-4" aria-hidden />
@@ -710,52 +700,50 @@ export function TabKplcSheet({
                       >
                         {formatMeterDisplay(saved.meterNumber)}
                       </button>
-                      {view === "tokens" ? (
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void forget(saved.meterNumber)}
-                          className={cn(
-                            "flex size-10 shrink-0 items-center justify-center disabled:opacity-40",
-                            selected
-                              ? "border-l border-[color-mix(in_oklab,var(--tab-bg)_28%,transparent)] text-[var(--tab-bg)]"
-                              : "border-l border-[var(--tab-border)] text-[var(--tab-muted)]",
-                          )}
-                          aria-label={`Remove meter ${formatMeterDisplay(saved.meterNumber)}`}
-                        >
-                          <X className="size-3.5" aria-hidden />
-                        </button>
-                      ) : null}
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void forget(saved.meterNumber)}
+                        className={cn(
+                          "size-10 shrink-0 items-center justify-center disabled:opacity-40",
+                          view === "tokens" ? "flex" : "hidden lg:flex",
+                          selected
+                            ? "border-l border-[color-mix(in_oklab,var(--tab-bg)_28%,transparent)] text-[var(--tab-bg)]"
+                            : "border-l border-[var(--tab-border)] text-[var(--tab-muted)]",
+                        )}
+                        aria-label={`Remove meter ${formatMeterDisplay(saved.meterNumber)}`}
+                      >
+                        <X className="size-3.5" aria-hidden />
+                      </button>
                     </div>
                   </li>
                 );
               })}
-              {view === "tokens" ? (
-                <li>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    aria-pressed={addingMeter}
-                    onClick={() => {
-                      if (addingMeter) {
-                        setAddingMeter(false);
-                        setMeter(loadedMeter ?? meters[0]?.meterNumber ?? "");
-                        return;
-                      }
-                      setAddingMeter(true);
-                      if (meterKnown) setMeter("");
-                    }}
-                    className={cn(
-                      "flex min-h-10 items-center px-3 text-[13px] font-medium disabled:opacity-40",
-                      addingMeter
-                        ? "bg-[var(--tab-fg)] text-[var(--tab-bg)]"
-                        : "border border-[var(--tab-border)] text-[var(--tab-muted)]",
-                    )}
-                  >
-                    {addingMeter ? "Cancel" : "Another"}
-                  </button>
-                </li>
-              ) : null}
+              <li className={cn(view !== "tokens" && "max-lg:hidden")}>
+                <button
+                  type="button"
+                  disabled={busy}
+                  aria-pressed={addingMeter}
+                  onClick={() => {
+                    if (addingMeter) {
+                      setAddingMeter(false);
+                      setMeter(loadedMeter ?? meters[0]?.meterNumber ?? "");
+                      return;
+                    }
+                    setView("tokens");
+                    setAddingMeter(true);
+                    if (meterKnown) setMeter("");
+                  }}
+                  className={cn(
+                    "flex min-h-10 items-center px-3 text-[13px] font-medium disabled:opacity-40",
+                    addingMeter
+                      ? "bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                      : "border border-[var(--tab-border)] text-[var(--tab-muted)]",
+                  )}
+                >
+                  {addingMeter ? "Cancel" : "Another"}
+                </button>
+              </li>
             </ul>
           ) : view === "tokens" ? (
             <p className="text-[12px] text-[var(--tab-muted)]">
@@ -786,7 +774,7 @@ export function TabKplcSheet({
           </div>
         ) : null}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="flex min-h-0 flex-1 flex-col">
           {error ? (
             <p
               role="alert"
@@ -803,36 +791,20 @@ export function TabKplcSheet({
             </p>
           ) : null}
 
-          {view === "stats" && (resolvedStats || depletion) ? (
-            <div>
-              {depletion ? (
-                <DepletionPanel
-                  depletion={depletion}
-                  busy={busy}
-                  onToggle={(enabled) => void toggleDepletionAlerts(enabled)}
-                />
-              ) : null}
-              {resolvedStats ? (
-                <section className="pt-4">
-                  <div className="px-4 pb-2">
-                    <h3 className="text-[15px] font-semibold tracking-[-0.02em]">
-                      Monthly spend
-                    </h3>
-                    <p className="mt-1 text-[13px] leading-snug text-[var(--tab-muted)]">
-                      {resolvedStats.allTimeCount} token
-                      {resolvedStats.allTimeCount === 1 ? "" : "s"}
-                      {toAmount(resolvedStats.allTimeAmount) != null
-                        ? ` · ${money(toAmount(resolvedStats.allTimeAmount)!)} all time`
-                        : ""}
-                    </p>
-                  </div>
-                  <SpendTape stats={resolvedStats} />
-                </section>
-              ) : null}
-            </div>
-          ) : null}
-
-          {view === "tokens" && tokens && loadedMeter ? (
+        <div
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+            canShowStats && "lg:grid lg:grid-cols-2 lg:overflow-hidden",
+          )}
+        >
+          <div
+            className={cn(
+              "min-h-0",
+              canShowStats && "lg:overflow-y-auto lg:overscroll-contain",
+              view !== "tokens" && "max-lg:hidden",
+            )}
+          >
+          {tokens && loadedMeter ? (
             <section>
               {tokens.length === 0 ? (
                 <p className="px-4 pt-4 text-[13px] leading-snug text-[var(--tab-muted)]">
@@ -911,10 +883,46 @@ export function TabKplcSheet({
               )}
             </section>
           ) : null}
+          </div>
+
+          {canShowStats ? (
+            <div
+              className={cn(
+                "min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:border-l lg:border-[var(--tab-border)]",
+                view !== "stats" && "max-lg:hidden",
+              )}
+            >
+              {depletion ? (
+                <DepletionPanel
+                  depletion={depletion}
+                  busy={busy}
+                  onToggle={(enabled) => void toggleDepletionAlerts(enabled)}
+                />
+              ) : null}
+              {resolvedStats ? (
+                <section className="pt-4">
+                  <div className="px-4 pb-2">
+                    <h3 className="text-[15px] font-semibold tracking-[-0.02em]">
+                      Monthly spend
+                    </h3>
+                    <p className="mt-1 text-[13px] leading-snug text-[var(--tab-muted)]">
+                      {resolvedStats.allTimeCount} token
+                      {resolvedStats.allTimeCount === 1 ? "" : "s"}
+                      {toAmount(resolvedStats.allTimeAmount) != null
+                        ? ` · ${money(toAmount(resolvedStats.allTimeAmount)!)} all time`
+                        : ""}
+                    </p>
+                  </div>
+                  <SpendTape stats={resolvedStats} />
+                </section>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
         </div>
 
         <div className="shrink-0 border-t border-[var(--tab-border)] pt-2">
-          {buyingSoon && view === "tokens" ? <ComingSoonLine /> : null}
+          {buyingSoon ? <ComingSoonLine /> : null}
           <div className="px-4 pb-2.5">
             <button
               type="button"
@@ -943,8 +951,7 @@ export function TabKplcSheet({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </TabOverlay>
   );
 }
 

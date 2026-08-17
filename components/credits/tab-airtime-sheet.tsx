@@ -19,6 +19,11 @@ import {
 } from "@/lib/kenyan-phone";
 import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import {
+  TabOverlay,
+  tabOverlayCloseClass,
+  tabOverlayHeaderClass,
+} from "@/components/credits/tab-overlay";
 
 const fieldClass =
   "w-full border border-[var(--tab-border)] bg-[var(--tab-input)] px-3 py-2.5 text-[16px] font-semibold tabular-nums outline-none transition-[border-color,box-shadow] duration-150 focus-visible:border-[var(--tab-focus)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] disabled:opacity-50";
@@ -420,31 +425,14 @@ export function TabAirtimeSheet({
   const canClose = !busy && !inFlight;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col justify-end"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={`${fieldIdPrefix}-airtime-title`}
+    <TabOverlay
+      open={open}
+      onClose={onClose}
+      labelledBy={`${fieldIdPrefix}-airtime-title`}
+      keyboardInset={keyboardInset}
+      closeDisabled={!canClose}
     >
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60"
-        aria-label="Close"
-        onClick={() => {
-          if (canClose) onClose();
-        }}
-      />
-      <div
-        className="relative flex max-h-[92dvh] w-full flex-col overflow-hidden border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] motion-safe:animate-in motion-safe:slide-in-from-bottom-full motion-safe:duration-200 motion-safe:ease-out"
-        style={{
-          paddingBottom: `max(${keyboardInset}px, env(safe-area-inset-bottom))`,
-        }}
-      >
-        <div className="flex shrink-0 justify-center py-1.5" aria-hidden>
-          <div className="h-1 w-10 bg-[var(--tab-border)]" />
-        </div>
-
-        <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-2">
+        <div className={cn(tabOverlayHeaderClass, "items-center")}>
           <h2
             id={`${fieldIdPrefix}-airtime-title`}
             className="flex items-center gap-2 text-[1.0625rem] font-semibold tracking-[-0.02em]"
@@ -458,7 +446,7 @@ export function TabAirtimeSheet({
               if (canClose) onClose();
             }}
             disabled={!canClose}
-            className="flex size-9 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)] disabled:opacity-40"
+            className={cn(tabOverlayCloseClass, "disabled:opacity-40")}
             aria-label="Close"
           >
             <X className="size-4" aria-hidden />
@@ -833,7 +821,6 @@ export function TabAirtimeSheet({
             </>
           )}
         </div>
-      </div>
-    </div>
+    </TabOverlay>
   );
 }
