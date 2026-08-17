@@ -3157,8 +3157,8 @@ export function QuickSaleWorkspace({
               ? [
                   {
                     itemId: l.itemId,
-                    quantity: l.quantity,
-                    unitPrice: l.unitPrice,
+                    quantity: Number(l.quantity),
+                    unitPrice: Number(l.unitPrice),
                   },
                 ]
               : [],
