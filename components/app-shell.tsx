@@ -44,9 +44,9 @@ import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
-import { isButcheryOnlyBusiness } from "@/lib/business-store-type";
 import { APP_ROUTES } from "@/lib/config";
 import { groceryClerkStockAccessEnabled, stockManagerActivityEnabled, stockManagerStockPageEnabled } from "@/lib/inventory-access";
+import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import {
   canLinkSupplierProducts,
   canWriteSuppliers,
@@ -863,17 +863,7 @@ export function AppShell({ children }: AppShellProps) {
   const desktopChromeVisible = "hidden 2xl:flex";
   const tabletChromeVisible = "2xl:hidden";
   const mainContentPadding = "p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:p-6 2xl:pb-6";
-  const homeHref = isStockManager
-    ? APP_ROUTES.inventoryStockTakeDailyAudit
-    : isCashier
-      ? APP_ROUTES.cashier
-      : isButcherCashier
-        ? APP_ROUTES.butcher
-        : isGroceryClerk
-          ? APP_ROUTES.grocery
-          : isButcheryOnlyBusiness(business)
-            ? APP_ROUTES.butcher
-            : APP_ROUTES.business;
+  const homeHref = resolvePostAuthDestination(me, null, business);
   const canReadNotifications = hasPermission(
     me?.permissions,
     Permission.ReportsNotificationsRead,

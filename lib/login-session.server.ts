@@ -1,8 +1,13 @@
 import { randomUUID } from "crypto";
 
-import { APP_ROUTES, getServerApiOrigin, STORAGE_KEYS } from "@/lib/config";
-import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
+import { getServerApiOrigin, STORAGE_KEYS } from "@/lib/config";
+import { isBuyerAccount } from "@/lib/buyer-role";
+import {
+  applyShopperTabHint,
+  resolvePostAuthDestination,
+} from "@/lib/post-auth-destination";
 import { SESSION_BOOTSTRAP_KEYS } from "@/lib/session-bootstrap";
+import type { BusinessRecord, MeResponse } from "@/lib/api";
 
 export type SessionFinalizeInput = {
   accessToken: string;
@@ -62,7 +67,18 @@ export async function prefetchSessionBootstrap(
     load("/api/v1/businesses/me"),
     load("/api/v1/branches?page=0&size=100"),
   ]);
-  return { me, business, branches };
+
+  let enrichedMe = me;
+  if (isBuyerAccount(me as MeResponse | null)) {
+    const hub = await load("/api/v1/me/shopper?page=0&size=1");
+    if (hub && typeof hub === "object") {
+      enrichedMe = applyShopperTabHint(me as MeResponse, hub as Parameters<
+        typeof applyShopperTabHint
+      >[1]);
+    }
+  }
+
+  return { me: enrichedMe, business, branches };
 }
 
 export function buildSessionFinalizeHtml(input: SessionFinalizeInput): string {
@@ -146,10 +162,12 @@ export function safeAuthNextPath(raw: string | null): string {
 export function resolveFinalizeDestination(
   me: unknown,
   requestedNext?: string | null,
+  business?: unknown | null,
 ): string {
   return resolvePostAuthDestination(
     me as Parameters<typeof resolvePostAuthDestination>[0],
     safeAuthNextPath(requestedNext ?? null) || null,
+    (business as BusinessRecord | null) ?? null,
   );
 }
 

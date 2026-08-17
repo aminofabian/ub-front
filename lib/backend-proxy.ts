@@ -7,7 +7,11 @@ import {
   isAccessTokenMintPath,
   readAccessTokenFromCookieHeader,
 } from "@/lib/access-token-cookie";
-import { redactAccessTokenFromAuthJson } from "@/lib/auth-session-claims";
+import {
+  NATIVE_KIOSK_CLIENT_HEADER,
+  authJsonBodyForClient,
+  isNativeKioskClient,
+} from "@/lib/auth-session-claims";
 
 const HEADER_ALLOWLIST = [
   "authorization",
@@ -20,6 +24,7 @@ const HEADER_ALLOWLIST = [
   // Page-seal session token (supplier passport / shop portal / customer tab).
   "x-page-unlock",
   "x-till-device-id",
+  "x-kiosk-client",
   "x-test-user-id",
   "x-test-role-id",
 ] as const;
@@ -288,8 +293,12 @@ export async function proxyToBackend(
 
   if (mintAccess) {
     const rawBody = await upstream.text();
-    // Gap G3: cookie holds the JWT; browser JSON gets session claims only.
-    const { bodyText, accessToken } = redactAccessTokenFromAuthJson(rawBody);
+    // Gap G3: browsers get cookie-only JWTs. Native apps (X-Kiosk-Client: native)
+    // keep accessToken in JSON for SecureStore + Bearer auth.
+    const { bodyText, accessToken } = authJsonBodyForClient(
+      rawBody,
+      isNativeKioskClient(req.headers.get(NATIVE_KIOSK_CLIENT_HEADER)),
+    );
     const out = new NextResponse(bodyText, {
       status: upstream.status,
       statusText: upstream.statusText,

@@ -2292,6 +2292,8 @@ export type ShopperAccountOverview = {
   ledgerLinesTotal?: number;
   ledgerTruncated?: boolean;
   loyaltyKesPerPoint?: number | string | null;
+  /** Primary phone for the public tab portal (`/07XXXXXXXX`). */
+  tabPhone?: string | null;
 };
 
 export type ShopperPickupOrderDetail = {

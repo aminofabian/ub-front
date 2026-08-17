@@ -266,13 +266,24 @@ export function CustomerSpendBoard() {
     return presetRange(preset);
   }, [preset, customFrom, customTo]);
 
+  // Kept off the ranking's path: a branch-list hiccup must not blank the board.
+  useEffect(() => {
+    let cancelled = false;
+    void fetchBranches()
+      .then((list) => {
+        if (!cancelled) setBranches(list.filter((b) => b.active !== false));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const load = useCallback(async () => {
     setError(null);
     if (!hasLoadedRef.current) setLoading(true);
     else setRefreshing(true);
     try {
-      const branchList = await fetchBranches();
-      setBranches(branchList.filter((b) => b.active !== false));
       if (!dateRange) {
         setData(null);
         return;
@@ -392,7 +403,7 @@ export function CustomerSpendBoard() {
                 {rangeLabel ? ` · ${rangeLabel}` : ""}.
                 {toNum(data.walkInSpend) > 0
                   ? ` Walk-ins without a name still rang ${money(data.walkInSpend)} across ${data.walkInSaleCount.toLocaleString("en-KE")} tills.`
-                  : " Match a Lipa Na M-Pesa receipt to a person and they will rank here."}
+                  : " Ring a sale against a customer, or take it on the till, and the payer ranks here."}
               </>
             ) : (
               <>
@@ -496,7 +507,7 @@ export function CustomerSpendBoard() {
                 >
                   {data && (data.rows?.length ?? 0) > 0
                     ? "No shopper matches that search or filter. Clear it to see the full ranking."
-                    : "Till sales with a customer name rank here. Lipa Na M-Pesa payers appear once a receipt is matched to a person."}
+                    : "Shoppers you rang against a customer rank here, and so do Lipa Na M-Pesa payers — M-Pesa gives us the name on the receipt even when there is no tab open."}
                 </p>
               </WhiteCard>
             ) : (

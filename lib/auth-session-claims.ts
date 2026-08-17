@@ -42,6 +42,34 @@ export function claimsFromAccessToken(
   }
 }
 
+export const NATIVE_KIOSK_CLIENT_HEADER = "x-kiosk-client";
+export const NATIVE_KIOSK_CLIENT_VALUE = "native";
+
+/** True when the caller is a Kiosk native app (needs JWTs in JSON, not cookies). */
+export function isNativeKioskClient(
+  headerValue: string | null | undefined,
+): boolean {
+  return headerValue?.trim().toLowerCase() === NATIVE_KIOSK_CLIENT_VALUE;
+}
+
+/**
+ * Browser clients get cookie-only JWTs. Native apps keep access/refresh in JSON
+ * so they can store them in SecureStore and send Bearer tokens.
+ */
+export function authJsonBodyForClient(
+  rawBody: string,
+  nativeClient: boolean,
+): {
+  bodyText: string;
+  accessToken: string | null;
+} {
+  const redacted = redactAccessTokenFromAuthJson(rawBody);
+  if (nativeClient) {
+    return { bodyText: rawBody, accessToken: redacted.accessToken };
+  }
+  return redacted;
+}
+
 /** Strip secrets from auth JSON for the browser; keep non-secret session hints. */
 export function redactAccessTokenFromAuthJson(bodyText: string): {
   bodyText: string;

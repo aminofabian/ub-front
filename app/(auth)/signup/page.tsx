@@ -27,9 +27,9 @@ import { fetchMe, registerAccount, onboardBusiness } from "@/lib/api";
 import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
-import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { markOnboardingTourPending } from "@/lib/onboarding-tour";
+import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import { handleRegistrationResult } from "@/lib/post-registration-auth";
 import { cn } from "@/lib/utils";
 
@@ -62,11 +62,9 @@ function SignupPageContent() {
     void (async () => {
       try {
         const me = await fetchMe();
-        router.replace(
-          isBuyerAccount(me) ? buyerHomePath() : APP_ROUTES.business,
-        );
+        router.replace(resolvePostAuthDestination(me));
       } catch {
-        router.replace(APP_ROUTES.business);
+        router.replace(APP_ROUTES.shop);
       }
     })();
   }, [router]);

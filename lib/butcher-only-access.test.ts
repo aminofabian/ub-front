@@ -6,6 +6,7 @@ import {
   isButcheryOnlyBusiness,
   isCatalogEligibleBusiness,
   isCatalogEligibleStoreTypes,
+  isGroceryOperationsBusiness,
 } from "@/lib/business-store-type";
 import { resolveButcheryOnlyRedirect } from "@/lib/butcher-only-access";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
@@ -48,6 +49,19 @@ describe("business store types", () => {
     expect(isCatalogEligibleStoreTypes(["other"])).toBe(false);
     expect(
       isCatalogEligibleBusiness({ profile: { storeTypes: ["other"] } }),
+    ).toBe(false);
+  });
+
+  it("detects grocery operations tenants", () => {
+    expect(
+      isGroceryOperationsBusiness({
+        profile: { storeTypes: ["full-grocery"] },
+      }),
+    ).toBe(true);
+    expect(
+      isGroceryOperationsBusiness({
+        profile: { storeTypes: ["butchery"] },
+      }),
     ).toBe(false);
   });
 });

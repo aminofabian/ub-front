@@ -143,7 +143,11 @@ export async function POST(request: NextRequest) {
 
   // Password login keeps the session and routes by role / shop `?next=`.
   // Do not reject staff on customer login (or the reverse).
-  const nextPath = resolveFinalizeDestination(bootstrap.me, requestedNext);
+  const nextPath = resolveFinalizeDestination(
+    bootstrap.me,
+    requestedNext,
+    bootstrap.business,
+  );
 
   const html = buildSessionFinalizeHtml({
     accessToken,

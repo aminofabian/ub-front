@@ -98,6 +98,24 @@ export function isButcheryOnlyBusiness(
   return types.length === 1 && types[0] === "butchery";
 }
 
+const GROCERY_OPERATIONS_TYPES: ReadonlySet<StoreTypeId> = new Set([
+  "full-grocery",
+  "mini-mart",
+  "fresh-market",
+]);
+
+/** Grocery counter is the home for clerks/managers at grocery-format shops. */
+export function isGroceryOperationsBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  if (isButcheryOnlyBusiness(source)) {
+    return false;
+  }
+  return getBusinessStoreTypes(source).some((type) =>
+    GROCERY_OPERATIONS_TYPES.has(type),
+  );
+}
+
 export function isButcheryBusiness(
   source: StoreTypeSource | null | undefined,
 ): boolean {

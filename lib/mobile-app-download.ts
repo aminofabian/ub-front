@@ -47,6 +47,13 @@ export function mobileAppInstallerUrl(app: MobileAppEntry): string {
   return `${MOBILE_APP_DOWNLOADS_BASE}/${app.file}`;
 }
 
+export function apkForAppId(
+  manifest: MobileAppManifest | null | undefined,
+  appId: string,
+): MobileAppEntry | undefined {
+  return manifest?.apps.find((app) => app.id === appId);
+}
+
 /** Detect the visitor's phone/tablet OS. Desktops resolve to "other". */
 export function detectMobileDeviceOs(
   ua = typeof navigator !== "undefined" ? navigator.userAgent : "",

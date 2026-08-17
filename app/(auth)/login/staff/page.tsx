@@ -24,6 +24,7 @@ import {
 } from "@/lib/auth-tenant-prefill";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
+  fetchBusiness,
   fetchMe,
   loginWithPassword,
   loginWithPin,
@@ -86,7 +87,8 @@ function LoginPageContent() {
         // store-session resolves role server-side when client fetch fails (iPad).
         return requestedNext?.trim() ?? "";
       }
-      return resolvePostAuthDestination(me, requestedNext);
+      const business = await fetchBusiness().catch(() => null);
+      return resolvePostAuthDestination(me, requestedNext, business);
     },
     [searchParams],
   );

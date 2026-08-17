@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Apple,
   Check,
   Copy,
+  Download,
   ExternalLink,
   Loader2,
   Smartphone,
@@ -13,6 +14,14 @@ import Link from "next/link";
 
 import { DesktopLanQr } from "@/components/desktop/desktop-lan-qr";
 import { Button } from "@/components/ui/button";
+import { formatInstallerSize } from "@/lib/desktop-app-download";
+import {
+  apkForAppId,
+  fetchMobileAppManifest,
+  mobileAppInstallerUrl,
+  type MobileAppEntry,
+  type MobileAppManifest,
+} from "@/lib/mobile-app-download";
 import {
   MOBILE_APP_ROLE_LABELS,
   MOBILE_APP_ROLES,
@@ -61,10 +70,12 @@ function AppQrCard({
   config,
   role,
   compact,
+  apk,
 }: {
   config: PublicMobileConfig;
   role: MobileAppRole;
   compact?: boolean;
+  apk?: MobileAppEntry;
 }) {
   const [copied, setCopied] = useState(false);
   const meta = MOBILE_APP_ROLE_LABELS[role];
@@ -105,6 +116,23 @@ function AppQrCard({
           </span>
         ) : null}
       </div>
+
+      {apk ? (
+        <Button asChild size="lg" className="mt-3 h-10 w-full gap-2 text-sm">
+          <a href={mobileAppInstallerUrl(apk)} download>
+            <Download className="size-4" aria-hidden />
+            Download Android app
+            <span className="font-mono text-[10px] font-normal opacity-90">
+              v{apk.version} · {formatInstallerSize(apk.sizeBytes)}
+            </span>
+          </a>
+        </Button>
+      ) : compact ? (
+        <p className="mt-3 rounded-lg border border-dashed border-border/80 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+          Android installer is not on this site yet. Scan the code if the app is
+          already on the phone.
+        </p>
+      ) : null}
 
       <div className={cn("mt-3 flex gap-3", compact ? "flex-col items-center" : "flex-col sm:flex-row sm:items-start")}>
         <div className="shrink-0 rounded-lg border border-border/60 bg-white p-2">
@@ -153,10 +181,23 @@ export function GetTheAppPanel({
   variant = "admin",
   className,
 }: GetTheAppPanelProps) {
+  const [manifest, setManifest] = useState<MobileAppManifest | null>(null);
   const roles: MobileAppRole[] =
     variant === "storefront" ? ["shopper"] : [...MOBILE_APP_ROLES];
   const storeLinks = config.platformStoreLinks;
   const hasStoreLinks = Boolean(storeLinks.ios || storeLinks.android);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchMobileAppManifest().then((data) => {
+      if (!cancelled) {
+        setManifest(data);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className={cn("space-y-5", className)}>
@@ -168,10 +209,9 @@ export function GetTheAppPanel({
           <div className="min-w-0 text-sm">
             <p className="font-semibold text-foreground">{config.displayName}</p>
             <p className="mt-0.5 text-muted-foreground">
-              Scan a QR code on a phone with the app installed, or share the deep link.
               {variant === "storefront"
-                ? " Opens this store in the shopper app."
-                : " Staff apps use the login deep link for your tenant."}
+                ? "Download the Android app, then scan the code to open this store."
+                : "Scan a QR code on a phone with the app installed, or share the deep link. Staff apps use the login deep link for your tenant."}
             </p>
             {variant === "admin" ? (
               <p className="mt-1 text-xs text-muted-foreground">
@@ -223,6 +263,7 @@ export function GetTheAppPanel({
             config={config}
             role={role}
             compact={variant === "storefront"}
+            apk={apkForAppId(manifest, role)}
           />
         ))}
       </div>

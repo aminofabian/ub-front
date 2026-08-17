@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+  authJsonBodyForClient,
   claimsFromAccessToken,
+  isNativeKioskClient,
   redactAccessTokenFromAuthJson,
 } from "@/lib/auth-session-claims";
 
@@ -44,5 +46,25 @@ describe("auth-session-claims", () => {
       exp: 1_700_000_000,
       businessId: "biz-1",
     });
+  });
+
+  it("keeps JWTs in JSON for native clients", () => {
+    const token = makeJwt({ exp: 1_700_000_000, business_id: "biz-1" });
+    const raw = JSON.stringify({ accessToken: token, refreshToken: "secret" });
+    const native = authJsonBodyForClient(raw, true);
+    expect(native.accessToken).toBe(token);
+    expect(JSON.parse(native.bodyText)).toEqual({
+      accessToken: token,
+      refreshToken: "secret",
+    });
+    const browser = authJsonBodyForClient(raw, false);
+    expect(JSON.parse(browser.bodyText).accessToken).toBeUndefined();
+  });
+
+  it("detects the native client header", () => {
+    expect(isNativeKioskClient("native")).toBe(true);
+    expect(isNativeKioskClient(" Native ")).toBe(true);
+    expect(isNativeKioskClient("web")).toBe(false);
+    expect(isNativeKioskClient(null)).toBe(false);
   });
 });

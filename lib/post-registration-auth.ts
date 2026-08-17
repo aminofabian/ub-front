@@ -1,9 +1,15 @@
 import {
+  fetchBusiness,
   fetchMe,
+  fetchShopperAccountOverview,
   loginWithPassword,
   type RegisterResponse,
 } from "@/lib/api";
-import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
+import { isBuyerAccount } from "@/lib/buyer-role";
+import {
+  applyShopperTabHint,
+  resolvePostAuthDestination,
+} from "@/lib/post-auth-destination";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 
 export function extractVerificationToken(
@@ -26,8 +32,19 @@ export async function finalizeActiveRegistration(params: {
 
   let dest = resolvePostAuthDestination(null);
   try {
-    const me = await fetchMe();
-    dest = resolvePostAuthDestination(me);
+    const [meRaw, business] = await Promise.all([
+      fetchMe(),
+      fetchBusiness().catch(() => null),
+    ]);
+    let me = meRaw;
+    if (isBuyerAccount(me)) {
+      try {
+        me = applyShopperTabHint(me, await fetchShopperAccountOverview(0, 1));
+      } catch {
+        /* catalog is still a valid home */
+      }
+    }
+    dest = resolvePostAuthDestination(me, null, business);
   } catch {
     /* store-session resolves role server-side when client fetch fails */
   }

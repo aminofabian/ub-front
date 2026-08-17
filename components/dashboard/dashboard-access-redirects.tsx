@@ -5,9 +5,9 @@ import { useEffect } from "react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
-import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
+import { isBuyerAccount } from "@/lib/buyer-role";
 import { resolveButcheryOnlyRedirect } from "@/lib/butcher-only-access";
-import { roleLandingRedirect } from "@/lib/post-auth-destination";
+import { resolvePostAuthDestination, roleLandingRedirect } from "@/lib/post-auth-destination";
 
 /**
  * Role-based and butchery-only route guards for the main dashboard shell.
@@ -25,7 +25,7 @@ export function DashboardAccessRedirects() {
     }
 
     if (isBuyerAccount(me)) {
-      router.replace(buyerHomePath());
+      router.replace(resolvePostAuthDestination(me, null, business));
       return;
     }
 

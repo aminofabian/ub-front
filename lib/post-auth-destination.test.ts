@@ -2,14 +2,35 @@ import { describe, expect, it } from "bun:test";
 
 import { APP_ROUTES } from "@/lib/config";
 import {
+  applyShopperTabHint,
   resolvePostAuthDestination,
   roleLandingRedirect,
 } from "@/lib/post-auth-destination";
+
+const groceryShop = { profile: { storeTypes: ["full-grocery"] } };
+const miniMart = { profile: { storeTypes: ["mini-mart"] } };
 
 describe("resolvePostAuthDestination", () => {
   it("sends grocery clerks to /grocery", () => {
     expect(
       resolvePostAuthDestination({ role: { key: "grocery_clerk" } }),
+    ).toBe(APP_ROUTES.grocery);
+  });
+
+  it("sends grocery managers to /grocery", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "manager" } },
+        null,
+        groceryShop,
+      ),
+    ).toBe(APP_ROUTES.grocery);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "grocery_manager" } },
+        null,
+        miniMart,
+      ),
     ).toBe(APP_ROUTES.grocery);
   });
 
@@ -29,6 +50,24 @@ describe("resolvePostAuthDestination", () => {
     expect(
       resolvePostAuthDestination({ role: { key: "stock_manager" } }),
     ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
+  });
+
+  it("sends shoppers to the storefront catalog", () => {
+    expect(resolvePostAuthDestination({ role: { key: "buyer" } })).toBe(
+      APP_ROUTES.shop,
+    );
+  });
+
+  it("sends creditors to their customer tab", () => {
+    const me = applyShopperTabHint(
+      { role: { key: "buyer" } },
+      {
+        tabPhone: "0714282874",
+        linkedStorefrontProfile: true,
+        balances: { balanceOwed: 1200 },
+      },
+    );
+    expect(resolvePostAuthDestination(me)).toBe("/0714282874");
   });
 
   it("prefers role over non-shop requested next", () => {
@@ -64,15 +103,27 @@ describe("resolvePostAuthDestination", () => {
     ).toBe("/shop/cart");
   });
 
+  it("honours a tab next path for buyers", () => {
+    expect(
+      resolvePostAuthDestination({ role: { key: "buyer" } }, "/0714282874"),
+    ).toBe("/0714282874");
+  });
+
   it("honours explicit next for non-role users", () => {
     expect(
       resolvePostAuthDestination({ role: { key: "owner" } }, "/products"),
     ).toBe("/products");
   });
 
-  it("defaults to business for owners without next", () => {
+  it("defaults tenants to the storefront", () => {
     expect(resolvePostAuthDestination({ role: { key: "owner" } })).toBe(
-      APP_ROUTES.business,
+      APP_ROUTES.shop,
+    );
+    expect(resolvePostAuthDestination({ role: { key: "admin" } })).toBe(
+      APP_ROUTES.shop,
+    );
+    expect(resolvePostAuthDestination({ role: { key: "viewer" } })).toBe(
+      APP_ROUTES.shop,
     );
   });
 });
@@ -108,9 +159,12 @@ describe("roleLandingRedirect", () => {
     ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
   });
 
-  it("redirects overview bookmarks to business hub", () => {
+  it("does not yank owners off the business hub onto the storefront", () => {
     expect(
       roleLandingRedirect({ role: { key: "owner" } }, APP_ROUTES.overview),
-    ).toBe(APP_ROUTES.business);
+    ).toBeNull();
+    expect(
+      roleLandingRedirect({ role: { key: "owner" } }, APP_ROUTES.business),
+    ).toBeNull();
   });
 });

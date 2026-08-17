@@ -23,14 +23,19 @@ import {
 } from "@/lib/auth-tenant-prefill";
 import {
   fetchMe,
+  fetchShopperAccountOverview,
   loginWithPassword,
   loginWithPin,
   resolveBusinessByEmail,
 } from "@/lib/api";
 import { looksLikeStaffPin } from "@/lib/auth-secret";
+import { isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
-import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
+import {
+  applyShopperTabHint,
+  resolvePostAuthDestination,
+} from "@/lib/post-auth-destination";
 import { cn } from "@/lib/utils";
 
 const LOGIN_BRIDGE = "/api/auth/login-bridge";
@@ -68,7 +73,14 @@ function CustomerLoginPageContent() {
       try {
         me = await fetchMe();
       } catch {
-        return requestedNext?.trim() || APP_ROUTES.shopAccount;
+        return requestedNext?.trim() || APP_ROUTES.shop;
+      }
+      if (isBuyerAccount(me)) {
+        try {
+          me = applyShopperTabHint(me, await fetchShopperAccountOverview(0, 1));
+        } catch {
+          /* still send them to the catalog */
+        }
       }
       return resolvePostAuthDestination(me, requestedNext);
     },

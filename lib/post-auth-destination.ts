@@ -1,18 +1,36 @@
 import { APP_ROUTES } from "@/lib/config";
-import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
+import {
+  buyerHomePath,
+  customerTabPathFromPhone,
+  isBuyerAccount,
+  isCustomerTabPath,
+} from "@/lib/buyer-role";
 import type { BusinessRecord } from "@/lib/api";
 import {
-  getBusinessStoreTypes,
   isButcheryOnlyBusiness,
+  isGroceryOperationsBusiness,
   type StoreTypeId,
+  getBusinessStoreTypes,
 } from "@/lib/business-store-type";
 
 export type PostAuthMe = {
   role?: { key?: string | null } | null;
+  /** Public tab path (`/07XXXXXXXX`) when this shopper is a credit customer. */
+  tabPath?: string | null;
+};
+
+export type ShopperTabHint = {
+  tabPhone?: string | null;
+  linkedStorefrontProfile?: boolean;
+  balances?: { balanceOwed?: number | string | null };
 };
 
 function isSafeAppPath(path: string): boolean {
   return path.startsWith("/") && !path.startsWith("//");
+}
+
+function roleKeyOf(me: PostAuthMe | null | undefined): string {
+  return me?.role?.key?.trim().toLowerCase() ?? "";
 }
 
 /** Storefront destinations from `?next=` — password login should honor these. */
@@ -25,27 +43,37 @@ export function isShopNextPath(path?: string | null): boolean {
 }
 
 /**
- * Where to send the user after sign-in.
- * Shop `?next=` paths win (password login from the storefront).
- * Otherwise role homes beat generic defaults (clerks → till apps, not /business).
- * Used on the server during session finalize and on the client when fetchMe succeeds.
+ * Attach a credit-tab path when the shopper hub shows a directory customer
+ * (or an open balance) with a usable Kenyan mobile.
  */
-export function resolvePostAuthDestination(
+export function applyShopperTabHint<T extends PostAuthMe>(
+  me: T,
+  hint: ShopperTabHint | null | undefined,
+): T {
+  if (!hint || !isBuyerAccount(me)) {
+    return me;
+  }
+  const tabPath = customerTabPathFromPhone(hint.tabPhone);
+  if (!tabPath) {
+    return me;
+  }
+  const owed = Number(hint.balances?.balanceOwed ?? 0);
+  const isCreditor =
+    hint.linkedStorefrontProfile === true ||
+    (Number.isFinite(owed) && owed > 0);
+  if (!isCreditor) {
+    return me;
+  }
+  return { ...me, tabPath };
+}
+
+function dedicatedRoleHome(
   me: PostAuthMe | null | undefined,
-  requestedNext?: string | null,
   business?: BusinessRecord | null,
-): string {
-  const requested = requestedNext?.trim() ?? "";
-  if (isShopNextPath(requested)) {
-    return requested;
-  }
+): string | null {
+  const roleKey = roleKeyOf(me);
 
-  if (me && isBuyerAccount(me)) {
-    return buyerHomePath();
-  }
-
-  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  if (roleKey === "grocery_clerk") {
+  if (roleKey === "grocery_clerk" || roleKey === "grocery_manager") {
     return APP_ROUTES.grocery;
   }
   if (roleKey === "butcher_cashier") {
@@ -57,6 +85,42 @@ export function resolvePostAuthDestination(
   if (roleKey === "stock_manager") {
     return APP_ROUTES.inventoryStockTakeDailyAudit;
   }
+  if (roleKey === "manager" && isGroceryOperationsBusiness(business)) {
+    return APP_ROUTES.grocery;
+  }
+  return null;
+}
+
+function isStorefrontHome(path: string): boolean {
+  return path === APP_ROUTES.shop || path === "/";
+}
+
+/**
+ * Where to send the user after sign-in.
+ * Shop `?next=` and credit-tab paths win (password login from the storefront).
+ * Otherwise role homes beat generic defaults. Tenant default is the storefront.
+ */
+export function resolvePostAuthDestination(
+  me: PostAuthMe | null | undefined,
+  requestedNext?: string | null,
+  business?: BusinessRecord | null,
+): string {
+  const requested = requestedNext?.trim() ?? "";
+  if (isShopNextPath(requested) || isCustomerTabPath(requested)) {
+    return requested;
+  }
+
+  if (me && isBuyerAccount(me)) {
+    if (me.tabPath && isCustomerTabPath(me.tabPath)) {
+      return me.tabPath;
+    }
+    return buyerHomePath();
+  }
+
+  const roleHome = dedicatedRoleHome(me, business);
+  if (roleHome) {
+    return roleHome;
+  }
 
   if (isSafeAppPath(requested)) {
     return requested;
@@ -66,7 +130,7 @@ export function resolvePostAuthDestination(
     return APP_ROUTES.butcher;
   }
 
-  return APP_ROUTES.business;
+  return APP_ROUTES.shop;
 }
 
 /** Admin landing pages that should redirect when the role has a dedicated app. */
@@ -86,6 +150,10 @@ export function roleLandingRedirect(
     return null;
   }
   if (!ROLE_OVERRIDE_LANDING_PATHS.has(pathname)) {
+    return null;
+  }
+  // Storefront is the tenant default — do not yank owners/admins off /business.
+  if (isStorefrontHome(home) || isCustomerTabPath(home)) {
     return null;
   }
   return home;

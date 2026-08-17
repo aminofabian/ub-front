@@ -76,7 +76,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const nextPath = resolveFinalizeDestination(bootstrap.me, requestedNext);
+  const nextPath = resolveFinalizeDestination(
+    bootstrap.me,
+    requestedNext,
+    bootstrap.business,
+  );
 
   const html = buildSessionFinalizeHtml({
     accessToken,

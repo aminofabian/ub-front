@@ -12,8 +12,8 @@ import { DashboardToaster } from "@/components/dashboard-sonner";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
 import { fetchMe, type MeResponse } from "@/lib/api";
-import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
-import { roleLandingRedirect } from "@/lib/post-auth-destination";
+import { isBuyerAccount } from "@/lib/buyer-role";
+import { resolvePostAuthDestination, roleLandingRedirect } from "@/lib/post-auth-destination";
 import {
   readSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
@@ -37,7 +37,7 @@ function GroceryRoleRedirects() {
     const bootMe = readSessionBootstrap<MeResponse>(SESSION_BOOTSTRAP_KEYS.me);
     if (bootMe) {
       if (isBuyerAccount(bootMe)) {
-        router.replace(buyerHomePath());
+        router.replace(resolvePostAuthDestination(bootMe));
         return;
       }
       const landingRedirect = roleLandingRedirect(bootMe, pathname);
@@ -50,7 +50,7 @@ function GroceryRoleRedirects() {
     void fetchMe()
       .then((me) => {
         if (isBuyerAccount(me)) {
-          router.replace(buyerHomePath());
+          router.replace(resolvePostAuthDestination(me));
           return;
         }
         const landingRedirect = roleLandingRedirect(me, pathname);

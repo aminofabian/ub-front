@@ -13,8 +13,8 @@ import { DashboardToaster } from "@/components/dashboard-sonner";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
 import { fetchMe, fetchBusiness, type BusinessRecord, type MeResponse } from "@/lib/api";
-import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
-import { roleLandingRedirect } from "@/lib/post-auth-destination";
+import { isBuyerAccount } from "@/lib/buyer-role";
+import { resolvePostAuthDestination, roleLandingRedirect } from "@/lib/post-auth-destination";
 import {
   readSessionBootstrap,
   clearSessionBootstrap,
@@ -38,7 +38,7 @@ function ButcherRoleRedirects() {
 
     const apply = (me: MeResponse, business?: BusinessRecord | null) => {
       if (isBuyerAccount(me)) {
-        router.replace(buyerHomePath());
+        router.replace(resolvePostAuthDestination(me, null, business));
         return;
       }
       const landingRedirect = roleLandingRedirect(me, pathname, business);

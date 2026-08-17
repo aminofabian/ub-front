@@ -95,7 +95,7 @@ export function GetTheAppDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Scan to open this store in the shopper app, or download from your app store when available.
+            Download the Android app, then scan to open this store.
           </DialogDescription>
         </DialogHeader>
         {loading ? <GetTheAppPanelLoading /> : null}
