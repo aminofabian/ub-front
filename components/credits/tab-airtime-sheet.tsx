@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Loader2, Smartphone } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, ChevronDown, Loader2, Smartphone, X } from "lucide-react";
 
 import {
   createPublicTabAirtimeOrder,
@@ -17,16 +17,18 @@ import {
   type KenyanNetwork,
 } from "@/lib/kenyan-phone";
 import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
+import {
+  readTabAirtimeRecents,
+  rememberTabAirtimeSale,
+  type TabAirtimeRecents,
+} from "@/lib/tab-airtime-recents";
 import { cn } from "@/lib/utils";
 
 const fieldClass =
-  "w-full border border-[var(--tab-border)] bg-[var(--tab-input)] px-3 py-3 text-[17px] font-semibold tabular-nums outline-none transition-[border-color,box-shadow] duration-150 focus-visible:border-[var(--tab-focus)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] disabled:opacity-50";
+  "w-full border border-[var(--tab-border)] bg-[var(--tab-input)] px-3 py-2.5 text-[16px] font-semibold tabular-nums outline-none transition-[border-color,box-shadow] duration-150 focus-visible:border-[var(--tab-focus)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] disabled:opacity-50";
 
 const btnPrimaryClass =
-  "flex w-full items-center justify-center gap-2 py-3.5 text-[15px] font-semibold transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tab-card)] active:opacity-85 disabled:cursor-not-allowed disabled:opacity-45";
-
-const btnQuietClass =
-  "text-[13px] font-medium text-[var(--tab-muted)] underline-offset-2 hover:underline disabled:opacity-40";
+  "flex w-full items-center justify-center gap-2 py-3 text-[15px] font-semibold transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tab-card)] active:opacity-85 disabled:cursor-not-allowed disabled:opacity-45";
 
 function money(n: number, currency: string) {
   return formatMoneyCompact(n, resolveCurrencyCode(currency));
@@ -44,6 +46,13 @@ function networkLabel(id: KenyanNetwork | null): string {
   return KENYAN_NETWORKS.find((n) => n.id === id)?.label ?? "this network";
 }
 
+function sameNumber(a: string, b: string): boolean {
+  return (
+    (toKenyanLocal07(a) || a.replace(/\D/g, "")) ===
+    (toKenyanLocal07(b) || b.replace(/\D/g, ""))
+  );
+}
+
 function SignalBars({
   fill,
   className,
@@ -54,28 +63,153 @@ function SignalBars({
   const lit = Math.max(0, Math.min(4, Math.round(fill * 4)));
   return (
     <span
-      className={cn("inline-flex h-5 items-end gap-[3px]", className)}
+      className={cn("inline-flex h-4 items-end gap-[2px]", className)}
       aria-hidden
     >
       {[0, 1, 2, 3].map((i) => (
         <span
           key={i}
           className={cn(
-            "w-[5px] origin-bottom transition-colors duration-200",
+            "w-[4px] origin-bottom transition-colors duration-200",
             i < lit ? "bg-current" : "bg-current/25",
           )}
-          style={{ height: `${10 + i * 4}px` }}
+          style={{ height: `${8 + i * 3}px` }}
         />
       ))}
     </span>
   );
 }
 
-function scrollFieldIntoView(el: HTMLElement | null) {
-  if (!el) return;
-  window.requestAnimationFrame(() => {
-    el.scrollIntoView({ block: "center", behavior: "smooth" });
-  });
+type PhoneOption = { phone: string; hint: string };
+
+function PhoneCombobox({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+  disabled,
+  open,
+  onOpenChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  options: PhoneOption[];
+  disabled?: boolean;
+  open: boolean;
+  onOpenChange: (next: boolean) => void;
+}) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const hasOptions = options.length > 0;
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        onOpenChange(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onOpenChange(false);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, onOpenChange]);
+
+  return (
+    <div ref={rootRef} className="relative min-w-0">
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <div className="flex min-w-0">
+        <input
+          id={id}
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          value={value}
+          disabled={disabled}
+          aria-expanded={hasOptions ? open : undefined}
+          aria-controls={hasOptions ? `${id}-list` : undefined}
+          onChange={(e) => {
+            onChange(e.target.value);
+            if (hasOptions) onOpenChange(true);
+          }}
+          onFocus={() => {
+            if (hasOptions) onOpenChange(true);
+          }}
+          className={cn(fieldClass, "min-w-0 flex-1 tracking-wide")}
+          placeholder="07…"
+        />
+        {hasOptions ? (
+          <button
+            type="button"
+            tabIndex={-1}
+            disabled={disabled}
+            aria-label={`Recent ${label.toLowerCase()} numbers`}
+            onClick={() => onOpenChange(!open)}
+            className="flex w-10 shrink-0 items-center justify-center border border-l-0 border-[var(--tab-border)] bg-[var(--tab-input)] text-[var(--tab-muted)] disabled:opacity-40"
+          >
+            <ChevronDown
+              className={cn(
+                "size-4 transition-transform duration-150",
+                open && "rotate-180",
+              )}
+              aria-hidden
+            />
+          </button>
+        ) : null}
+      </div>
+      {open && hasOptions ? (
+        <ul
+          id={`${id}-list`}
+          role="listbox"
+          className="absolute inset-x-0 top-full z-20 mt-1 max-h-44 overflow-y-auto border border-[var(--tab-border)] bg-[var(--tab-card)] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)]"
+        >
+          {options.map((opt) => {
+            const selected = sameNumber(opt.phone, value);
+            return (
+              <li key={`${opt.hint}-${opt.phone}`}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left",
+                    selected
+                      ? "bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                      : "hover:bg-[var(--tab-bg)]",
+                  )}
+                  onClick={() => {
+                    onChange(opt.phone);
+                    onOpenChange(false);
+                  }}
+                >
+                  <span className="font-semibold tabular-nums tracking-wide">
+                    {formatPhoneDisplay(opt.phone)}
+                  </span>
+                  <span
+                    className={cn(
+                      "shrink-0 text-[11px]",
+                      selected ? "opacity-80" : "text-[var(--tab-muted)]",
+                    )}
+                  >
+                    {opt.hint}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
 }
 
 type Props = {
@@ -90,9 +224,8 @@ type Props = {
 /**
  * Thumb-first airtime purchase for the customer tab.
  *
- * Network, the line being topped up, and the M-Pesa paying number are all on
- * the first screen — Instalipa still routes from the MSISDN, but Kenyan
- * shoppers expect to tap Safaricom / Airtel before they pay.
+ * Compact on purpose: network, amount, recipient, and paying number must all
+ * fit above the fold so a shopper never scrolls to find who pays.
  */
 export function TabAirtimeSheet({
   open,
@@ -105,6 +238,7 @@ export function TabAirtimeSheet({
   const currency = config.currency || "KES";
   const defaultPhone = toKenyanLocal07(tabPhone) || tabPhone;
   const [amount, setAmount] = useState("");
+  const [otherAmount, setOtherAmount] = useState(false);
   const [recipient, setRecipient] = useState(defaultPhone);
   const [payer, setPayer] = useState(defaultPhone);
   const [network, setNetwork] = useState<KenyanNetwork | null>(
@@ -114,19 +248,39 @@ export function TabAirtimeSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<PublicTabAirtimeOrder | null>(null);
+  const [recents, setRecents] = useState<TabAirtimeRecents>(() =>
+    readTabAirtimeRecents(tabPhone),
+  );
+  const [openPicker, setOpenPicker] = useState<"recipient" | "payer" | null>(null);
+  const rememberedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    const detected = detectKenyanNetwork(defaultPhone);
-    setAmount("");
-    setRecipient(defaultPhone);
-    setPayer(defaultPhone);
-    setNetwork(detected);
+    const stored = readTabAirtimeRecents(tabPhone);
+    setRecents(stored);
+    const nextRecipient = stored.lastRecipient || defaultPhone;
+    const nextPayer = stored.lastPayer || defaultPhone;
+    setRecipient(nextRecipient);
+    setPayer(nextPayer);
+    setNetwork(detectKenyanNetwork(nextRecipient));
     setNetworkTouched(false);
+    if (stored.lastAmount && stored.lastAmount > 0) {
+      setAmount(String(stored.lastAmount));
+      const chips = (config.quickAmounts?.length
+        ? config.quickAmounts.map(Number)
+        : [20, 50, 100, 250, 500, 1000]
+      ).filter((n) => Number.isFinite(n));
+      setOtherAmount(!chips.some((n) => Math.abs(n - stored.lastAmount!) < 0.001));
+    } else {
+      setAmount("");
+      setOtherAmount(false);
+    }
     setBusy(false);
     setError(null);
     setOrder(null);
-  }, [open, defaultPhone]);
+    setOpenPicker(null);
+    rememberedRef.current = null;
+  }, [open, defaultPhone, tabPhone, config.quickAmounts]);
 
   const amountNum = Number.parseFloat(amount);
   const min = Number(config.minAmount) || 1;
@@ -154,6 +308,47 @@ export function TabAirtimeSheet({
   const locked = busy || inFlight;
   const canSubmit =
     !locked && amountValid && recipientOk && payerOk && network != null && !networkMismatch;
+
+  const recipientOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const out: PhoneOption[] = [];
+    const add = (phone: string, hint: string) => {
+      const local = toKenyanLocal07(phone);
+      if (!local || seen.has(local)) return;
+      seen.add(local);
+      out.push({ phone: local, hint });
+    };
+    add(defaultPhone, "This tab");
+    for (const phone of recents.recipients) {
+      add(phone, networkLabel(detectKenyanNetwork(phone)));
+    }
+    return out;
+  }, [defaultPhone, recents.recipients]);
+
+  const payerOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const out: PhoneOption[] = [];
+    const add = (phone: string, hint: string) => {
+      const local = toKenyanLocal07(phone);
+      if (!local || seen.has(local)) return;
+      seen.add(local);
+      out.push({ phone: local, hint });
+    };
+    add(defaultPhone, "This tab");
+    add(recipient, "Same as To");
+    for (const phone of recents.payers) {
+      add(phone, "Paid before");
+    }
+    return out;
+  }, [defaultPhone, recipient, recents.payers]);
+
+  const lastPair =
+    recents.lastRecipient &&
+    recents.lastPayer &&
+    (!sameNumber(recents.lastRecipient, defaultPhone) ||
+      !sameNumber(recents.lastPayer, defaultPhone))
+      ? { recipient: recents.lastRecipient, payer: recents.lastPayer }
+      : null;
 
   useEffect(() => {
     if (networkTouched) return;
@@ -183,10 +378,25 @@ export function TabAirtimeSheet({
     };
   }, [order, tabPhone]);
 
+  useEffect(() => {
+    if (!order?.delivered) return;
+    if (rememberedRef.current === order.orderId) return;
+    rememberedRef.current = order.orderId;
+    setRecents(
+      rememberTabAirtimeSale(
+        tabPhone,
+        order.phoneNumber || recipient,
+        payer,
+        Number(order.amount) || amountNum,
+      ),
+    );
+  }, [order, tabPhone, recipient, payer, amountNum]);
+
   const submit = async () => {
     if (!canSubmit || network == null) return;
     setBusy(true);
     setError(null);
+    setOpenPicker(null);
     try {
       const created = await createPublicTabAirtimeOrder(tabPhone, {
         phoneNumber: recipient.trim(),
@@ -207,9 +417,6 @@ export function TabAirtimeSheet({
   if (!open) return null;
 
   const canClose = !busy && !inFlight;
-  const samePhones =
-    (toKenyanLocal07(recipient) || recipient.replace(/\D/g, "")) ===
-    (toKenyanLocal07(payer) || payer.replace(/\D/g, ""));
 
   return (
     <div
@@ -232,23 +439,18 @@ export function TabAirtimeSheet({
           paddingBottom: `max(${keyboardInset}px, env(safe-area-inset-bottom))`,
         }}
       >
-        <div className="flex shrink-0 justify-center border-b border-[var(--tab-border)] py-2.5" aria-hidden>
+        <div className="flex shrink-0 justify-center py-1.5" aria-hidden>
           <div className="h-1 w-10 bg-[var(--tab-border)]" />
         </div>
 
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--tab-border)] px-4 py-4">
-          <div className="min-w-0">
-            <h2
-              id={`${fieldIdPrefix}-airtime-title`}
-              className="flex items-center gap-2 text-[1.125rem] font-semibold tracking-[-0.02em]"
-            >
-              <SignalBars fill={order?.delivered ? 1 : fill} />
-              Buy airtime
-            </h2>
-            <p className="mt-1 text-[14px] text-[var(--tab-muted)]">
-              Pick the network, then who pays.
-            </p>
-          </div>
+        <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-2">
+          <h2
+            id={`${fieldIdPrefix}-airtime-title`}
+            className="flex items-center gap-2 text-[1.0625rem] font-semibold tracking-[-0.02em]"
+          >
+            <SignalBars fill={order?.delivered ? 1 : fill} />
+            Buy airtime
+          </h2>
           <button
             type="button"
             onClick={() => {
@@ -258,29 +460,24 @@ export function TabAirtimeSheet({
             className="flex size-9 items-center justify-center border border-[var(--tab-border)] text-[var(--tab-muted)] disabled:opacity-40"
             aria-label="Close"
           >
-            ✕
+            <X className="size-4" aria-hidden />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3">
           {order?.delivered ? (
-            <div className="border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3.5 py-4 text-[var(--tab-success-fg)]">
+            <div className="border border-[var(--tab-success-fg)] bg-[var(--tab-success-bg)] px-3 py-3 text-[var(--tab-success-fg)]">
               <p className="flex items-center gap-2 text-[15px] font-semibold">
                 <CheckCircle2 className="size-5 shrink-0" />
                 Airtime sent
               </p>
-              <p className="mt-2 text-[14px] leading-relaxed">
+              <p className="mt-1.5 text-[14px] leading-snug">
                 {money(Number(order.amount), order.currency || currency)} landed on{" "}
-                {formatPhoneDisplay(order.phoneNumber)}. Watch for the telco SMS.
+                {formatPhoneDisplay(order.phoneNumber)}.
               </p>
-              {order.receipt ? (
-                <p className="mt-2 font-mono text-[12px] tabular-nums opacity-80">
-                  {order.receipt}
-                </p>
-              ) : null}
             </div>
           ) : order && !order.failed ? (
-            <div className="border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3.5 py-4">
+            <div className="border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-3">
               <p className="flex items-center gap-2 text-[15px] font-semibold">
                 {order.awaitingPayment ? (
                   <Smartphone className="size-5 shrink-0" />
@@ -290,132 +487,57 @@ export function TabAirtimeSheet({
                 {money(Number(order.amount), order.currency || currency)} to{" "}
                 {formatPhoneDisplay(order.phoneNumber)}
               </p>
-              <p className="mt-2 text-[14px] leading-relaxed text-[var(--tab-muted)]">
+              <p className="mt-1.5 text-[14px] leading-snug text-[var(--tab-muted)]">
                 {order.awaitingPayment
-                  ? `Check ${formatPhoneDisplay(payer)} and enter your M-Pesa PIN.`
-                  : "Payment received — sending your airtime now."}
+                  ? `Enter PIN on ${formatPhoneDisplay(payer)}.`
+                  : "Payment received — sending now."}
               </p>
             </div>
           ) : (
-            <>
-              <fieldset disabled={locked} className="min-w-0">
-                <legend className="text-[13px] font-medium">Network</legend>
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {KENYAN_NETWORKS.slice(0, 3).map((n) => {
+            <fieldset disabled={locked} className="min-w-0 space-y-3">
+              <legend className="sr-only">Network, amount, and numbers</legend>
+              <div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {KENYAN_NETWORKS.map((n) => {
                     const selected = network === n.id;
+                    const short =
+                      n.id === "SAFARICOM"
+                        ? "Saf"
+                        : n.id === "AIRTEL"
+                          ? "Air"
+                          : n.id === "TELKOM"
+                            ? "Tel"
+                            : n.id === "EQUITEL"
+                              ? "Equ"
+                              : "JTL";
                     return (
                       <button
                         key={n.id}
                         type="button"
                         aria-pressed={selected}
+                        aria-label={n.label}
                         onClick={() => {
                           setNetwork(n.id);
                           setNetworkTouched(true);
                           setError(null);
                         }}
                         className={cn(
-                          "min-h-12 border px-2 py-3 text-[14px] font-semibold disabled:opacity-40",
+                          "min-h-10 border px-1 text-[12px] font-semibold leading-tight disabled:opacity-40",
                           selected
                             ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
                             : "border-[var(--tab-border)] bg-[var(--tab-input)]",
                         )}
                       >
-                        {n.label}
+                        {short}
                       </button>
                     );
                   })}
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {KENYAN_NETWORKS.slice(3).map((n) => {
-                    const selected = network === n.id;
-                    return (
-                      <button
-                        key={n.id}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => {
-                          setNetwork(n.id);
-                          setNetworkTouched(true);
-                          setError(null);
-                        }}
-                        className={cn(
-                          "min-h-12 border px-2 py-3 text-[14px] font-semibold disabled:opacity-40",
-                          selected
-                            ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
-                            : "border-[var(--tab-border)] bg-[var(--tab-input)]",
-                        )}
-                      >
-                        {n.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-
-              <div className="mt-5">
-                <label
-                  htmlFor={`${fieldIdPrefix}-airtime-recipient`}
-                  className="mb-1.5 block text-[13px] font-medium"
-                >
-                  Number that receives airtime
-                </label>
-                <input
-                  id={`${fieldIdPrefix}-airtime-recipient`}
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  value={recipient}
-                  disabled={locked}
-                  onChange={(e) => {
-                    setRecipient(e.target.value);
-                    setError(null);
-                  }}
-                  onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                  className={cn(fieldClass, "text-[18px] font-bold tracking-wide")}
-                  placeholder="07…"
-                />
-                {recipient !== defaultPhone ? (
-                  <button
-                    type="button"
-                    disabled={locked}
-                    onClick={() => {
-                      setRecipient(defaultPhone);
-                      setError(null);
-                    }}
-                    className={cn(btnQuietClass, "mt-2")}
-                  >
-                    Use this tab’s number · {formatPhoneDisplay(defaultPhone)}
-                  </button>
-                ) : (
-                  <p className="mt-1.5 text-[13px] text-[var(--tab-muted)]">
-                    This tab’s number — change it to top up someone else.
-                  </p>
-                )}
-                {networkMismatch && detectedFromPhone ? (
-                  <p
-                    role="status"
-                    className="mt-3 border border-[var(--tab-border)] bg-[var(--tab-bg)] px-3 py-2 text-[13px] leading-relaxed"
-                  >
-                    That number looks like {networkLabel(detectedFromPhone)}, not{" "}
-                    {networkLabel(network)}.{" "}
-                    <button
-                      type="button"
-                      className="font-semibold underline underline-offset-2"
-                      onClick={() => {
-                        setNetwork(detectedFromPhone);
-                        setNetworkTouched(true);
-                        setError(null);
-                      }}
-                    >
-                      Switch to {networkLabel(detectedFromPhone)}
-                    </button>
-                  </p>
-                ) : null}
               </div>
 
-              <div className="mt-5">
-                <p className="text-[13px] font-medium">Amount</p>
-                <div className="mt-2 grid grid-cols-3 gap-2">
+              <div>
+                <p className="mb-1.5 text-[13px] font-medium">Amount</p>
+                <div className="grid grid-cols-3 gap-1.5">
                   {quickAmounts.map((n) => {
                     const selected = amountValid && Math.abs(amountNum - n) < 0.001;
                     return (
@@ -425,10 +547,11 @@ export function TabAirtimeSheet({
                         disabled={locked}
                         onClick={() => {
                           setAmount(String(n));
+                          setOtherAmount(false);
                           setError(null);
                         }}
                         className={cn(
-                          "min-h-12 border py-3 text-[15px] font-bold tabular-nums disabled:opacity-40",
+                          "min-h-10 border text-[14px] font-bold tabular-nums disabled:opacity-40",
                           selected
                             ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
                             : "border-[var(--tab-border)] bg-[var(--tab-input)]",
@@ -439,85 +562,143 @@ export function TabAirtimeSheet({
                     );
                   })}
                 </div>
-                <label
-                  htmlFor={`${fieldIdPrefix}-airtime-amount`}
-                  className="mb-1.5 mt-3 block text-[13px] font-medium"
-                >
-                  Other amount
-                </label>
-                <input
-                  id={`${fieldIdPrefix}-airtime-amount`}
-                  type="number"
-                  inputMode="numeric"
-                  min={min}
-                  max={max}
-                  step={1}
-                  value={amount}
-                  disabled={locked}
-                  onChange={(e) => {
-                    setAmount(e.target.value);
-                    setError(null);
-                  }}
-                  onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                  className={cn(fieldClass, "text-[22px] font-bold")}
-                  placeholder={`${min}–${max}`}
-                />
+                {otherAmount ? (
+                  <input
+                    id={`${fieldIdPrefix}-airtime-amount`}
+                    type="number"
+                    inputMode="numeric"
+                    min={min}
+                    max={max}
+                    step={1}
+                    value={amount}
+                    disabled={locked}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      setError(null);
+                    }}
+                    className={cn(fieldClass, "mt-1.5 font-bold")}
+                    placeholder={`${min}–${max}`}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    disabled={locked}
+                    onClick={() => setOtherAmount(true)}
+                    className="mt-1.5 text-[12px] font-medium text-[var(--tab-muted)] underline-offset-2 hover:underline"
+                  >
+                    Other amount
+                  </button>
+                )}
               </div>
 
-              <div className="mt-5">
-                <label
-                  htmlFor={`${fieldIdPrefix}-airtime-payer`}
-                  className="mb-1.5 block text-[13px] font-medium"
-                >
-                  M-Pesa number that pays
-                </label>
-                <input
-                  id={`${fieldIdPrefix}-airtime-payer`}
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  value={payer}
-                  disabled={locked}
-                  onChange={(e) => {
-                    setPayer(e.target.value);
-                    setError(null);
-                  }}
-                  onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-                  className={cn(fieldClass, "text-[18px] font-bold tracking-wide")}
-                  placeholder="07…"
-                />
-                <p className="mt-1.5 text-[13px] text-[var(--tab-muted)]">
-                  The STK prompt and PIN go to this phone — it can be different
-                  from the line receiving airtime.
-                </p>
-                {!samePhones ? (
+              <div className="border border-[var(--tab-border)] bg-[var(--tab-bg)]">
+                {lastPair &&
+                !(
+                  sameNumber(recipient, lastPair.recipient) &&
+                  sameNumber(payer, lastPair.payer)
+                ) ? (
                   <button
                     type="button"
                     disabled={locked}
                     onClick={() => {
-                      setPayer(recipient);
+                      setRecipient(lastPair.recipient);
+                      setPayer(lastPair.payer);
+                      setNetwork(detectKenyanNetwork(lastPair.recipient));
+                      setNetworkTouched(false);
+                      setOpenPicker(null);
                       setError(null);
                     }}
-                    className={cn(btnQuietClass, "mt-2")}
+                    className="flex w-full items-center justify-between gap-2 border-b border-[var(--tab-border)] px-3 py-2 text-left disabled:opacity-40"
                   >
-                    Pay from the same number as above
+                    <span className="min-w-0 truncate text-[12px] text-[var(--tab-muted)]">
+                      Last time{" "}
+                      <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+                        {formatPhoneDisplay(lastPair.recipient)}
+                      </span>
+                      {sameNumber(lastPair.recipient, lastPair.payer) ? (
+                        " paid itself"
+                      ) : (
+                        <>
+                          {" · paid by "}
+                          <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
+                            {formatPhoneDisplay(lastPair.payer)}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                    <span className="shrink-0 text-[12px] font-semibold">Use</span>
                   </button>
                 ) : null}
+
+                <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-x-2 gap-y-2 px-3 py-2.5">
+                  <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--tab-muted)]">
+                    To
+                  </span>
+                  <PhoneCombobox
+                    id={`${fieldIdPrefix}-airtime-recipient`}
+                    label="Number that receives airtime"
+                    value={recipient}
+                    onChange={(next) => {
+                      setRecipient(next);
+                      setError(null);
+                    }}
+                    options={recipientOptions}
+                    disabled={locked}
+                    open={openPicker === "recipient"}
+                    onOpenChange={(next) => setOpenPicker(next ? "recipient" : null)}
+                  />
+                  <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--tab-muted)]">
+                    Pay
+                  </span>
+                  <PhoneCombobox
+                    id={`${fieldIdPrefix}-airtime-payer`}
+                    label="M-Pesa number that pays"
+                    value={payer}
+                    onChange={(next) => {
+                      setPayer(next);
+                      setError(null);
+                    }}
+                    options={payerOptions}
+                    disabled={locked}
+                    open={openPicker === "payer"}
+                    onOpenChange={(next) => setOpenPicker(next ? "payer" : null)}
+                  />
+                </div>
               </div>
+
+              {networkMismatch && detectedFromPhone ? (
+                <p
+                  role="status"
+                  className="text-[12px] leading-snug text-[var(--tab-muted)]"
+                >
+                  That number looks like {networkLabel(detectedFromPhone)}.{" "}
+                  <button
+                    type="button"
+                    className="font-semibold underline underline-offset-2"
+                    onClick={() => {
+                      setNetwork(detectedFromPhone);
+                      setNetworkTouched(true);
+                      setError(null);
+                    }}
+                  >
+                    Switch
+                  </button>
+                </p>
+              ) : null}
 
               {error ? (
                 <p
                   role="alert"
-                  className="mt-4 border border-[var(--tab-error-fg)] bg-[var(--tab-error-bg)] px-3 py-2 text-[13px] text-[var(--tab-error-fg)]"
+                  className="border border-[var(--tab-error-fg)] bg-[var(--tab-error-bg)] px-3 py-2 text-[13px] text-[var(--tab-error-fg)]"
                 >
                   {error}
                 </p>
               ) : null}
-            </>
+            </fieldset>
           )}
         </div>
 
-        <div className="shrink-0 border-t border-[var(--tab-border)] px-4 py-3">
+        <div className="shrink-0 border-t border-[var(--tab-border)] px-4 py-2.5">
           {order?.delivered ? (
             <button
               type="button"
@@ -531,7 +712,7 @@ export function TabAirtimeSheet({
               Done
             </button>
           ) : inFlight ? (
-            <p className="flex items-center justify-center gap-2 py-2 text-[13px] text-[var(--tab-muted)]">
+            <p className="flex items-center justify-center gap-2 py-1.5 text-[13px] text-[var(--tab-muted)]">
               <Loader2 className="size-4 animate-spin" />
               Waiting for confirmation…
             </p>
