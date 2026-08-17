@@ -92,6 +92,15 @@ function crumbLabel(pathname: string): { items: { label: string; href?: string }
       ],
     };
   }
+  if (pathname === APP_ROUTES.superAdminPlatformLogs) {
+    return {
+      items: [
+        { label: "Overview", href: APP_ROUTES.superAdminDashboard },
+        { label: "Platform" },
+        { label: "Client logs" },
+      ],
+    };
+  }
   if (pathname === APP_ROUTES.superAdminPlatformSupplierPortal) {
     return {
       items: [
@@ -290,6 +299,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               <NavLeaf href={APP_ROUTES.superAdminPlatformIntegrations} label="Integrations" />
               <NavLeaf href={APP_ROUTES.superAdminPlatformSokoMind} label="SokoMind" />
               <NavLeaf href={APP_ROUTES.superAdminPlatformDomains} label="Domains" />
+              <NavLeaf href={APP_ROUTES.superAdminPlatformLogs} label="Client logs" />
               <NavLeaf href={APP_ROUTES.superAdminPlatformSupplierPortal} label="Supplier Portal" />
               <NavLeaf href={APP_ROUTES.superAdminPlatformMarketplaceSuppliers} label="Marketplace suppliers" />
             </div>

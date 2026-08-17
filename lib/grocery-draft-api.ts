@@ -2,6 +2,11 @@
 
 import { apiRequest, ApiRequestError } from "@/lib/api";
 import type { GroceryInvoiceResponse } from "@/lib/grocery-api";
+import {
+  isOpsInfraError,
+  isOpsInfraMessage,
+  USER_API_UNREACHABLE_MESSAGE,
+} from "@/lib/ops-client-log";
 
 export const GROCERY_DRAFT_FLAGS = {
   enabled: "grocery_drafts.enabled",
@@ -128,10 +133,24 @@ async function groceryDraftRequest<T>(
     });
   } catch (e) {
     if (e instanceof ApiRequestError) {
+      if (isOpsInfraMessage(e.message)) {
+        throw new GroceryDraftApiError(
+          USER_API_UNREACHABLE_MESSAGE,
+          e.status,
+          e.payload,
+        );
+      }
       throw new GroceryDraftApiError(e.message, e.status, e.payload);
     }
+    if (isOpsInfraError(e)) {
+      throw new GroceryDraftApiError(USER_API_UNREACHABLE_MESSAGE, 0, null);
+    }
     const msg = e instanceof Error ? e.message : "Request failed";
-    throw new GroceryDraftApiError(msg, 0, null);
+    throw new GroceryDraftApiError(
+      isOpsInfraMessage(msg) ? USER_API_UNREACHABLE_MESSAGE : msg,
+      0,
+      null,
+    );
   }
 }
 

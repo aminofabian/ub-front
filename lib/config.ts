@@ -25,7 +25,9 @@ export const APP_ROUTES = {
   superAdminPlatformMarketplaceSuppliers: "/super-admin/platform/marketplace-suppliers",
   superAdminPlatformPayments: "/super-admin/payments/platform",
   superAdminPlatformGlobalCatalog: "/super-admin/platform/global-catalog",
+  superAdminPlatformLogs: "/super-admin/platform/logs",
   business: "/business",
+  businessLogs: "/business/logs",
   businessSettings: "/business/settings",
   businessConfiguration: "/business/configuration",
   businessBranding: "/business/branding",
@@ -254,6 +256,8 @@ export const STORAGE_KEYS = {
   supplierPortalSessionId: "ub.sp.sessionId",
   /** Set on tenant origin after SA impersonation handoff; drives the support banner. */
   impersonationSession: "ub.impersonation",
+  /** Client-side ops errors (API unreachable / proxy config) — admin logs page. */
+  opsClientLog: "ub.opsClientLog",
 } as const;
 
 export {

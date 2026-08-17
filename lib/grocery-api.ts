@@ -1,6 +1,11 @@
 "use client";
 
 import { apiRequest, ApiRequestError } from "@/lib/api";
+import {
+  isOpsInfraError,
+  isOpsInfraMessage,
+  USER_API_UNREACHABLE_MESSAGE,
+} from "@/lib/ops-client-log";
 import { toast } from "sonner";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -140,19 +145,34 @@ export type GroceryTopProduct = {
 export class GroceryApiError extends Error {
   readonly status: number;
   readonly payload: unknown;
+  /** Ops / infra failures — do not toast on tills. */
+  readonly silent: boolean;
 
-  constructor(message: string, status: number, payload: unknown) {
+  constructor(
+    message: string,
+    status: number,
+    payload: unknown,
+    opts?: { silent?: boolean },
+  ) {
     super(message);
     this.name = "GroceryApiError";
     this.status = status;
     this.payload = payload;
+    this.silent = opts?.silent === true;
   }
 }
 
-// ── Internal helpers ───────────────────────────────────────────────
-
-function getNetworkErrorMsg(): string {
-  return "Cannot reach the server. Check your connection and try again.";
+export function toastCaughtGroceryError(error: unknown, fallback: string): void {
+  if (error instanceof GroceryApiError && error.silent) return;
+  if (isOpsInfraError(error)) return;
+  const msg =
+    error instanceof GroceryApiError
+      ? error.message
+      : error instanceof Error
+        ? error.message
+        : fallback;
+  if (!msg.trim() || isOpsInfraMessage(msg)) return;
+  toast.error(msg);
 }
 
 async function groceryRequest<T>(
@@ -175,13 +195,31 @@ async function groceryRequest<T>(
     });
   } catch (e) {
     if (e instanceof ApiRequestError) {
+      if (isOpsInfraMessage(e.message)) {
+        throw new GroceryApiError(
+          USER_API_UNREACHABLE_MESSAGE,
+          e.status,
+          e.payload,
+          { silent: true },
+        );
+      }
       throw new GroceryApiError(e.message, e.status, e.payload);
     }
-    const msg = e instanceof Error ? e.message : getNetworkErrorMsg();
-    if (options.suppressToast !== true && msg.trim()) {
+    if (isOpsInfraError(e)) {
+      throw new GroceryApiError(USER_API_UNREACHABLE_MESSAGE, 0, null, {
+        silent: true,
+      });
+    }
+    const msg =
+      e instanceof Error && e.message.trim()
+        ? e.message
+        : USER_API_UNREACHABLE_MESSAGE;
+    if (options.suppressToast !== true && msg.trim() && !isOpsInfraMessage(msg)) {
       toast.error(msg, { duration: 10_000 });
     }
-    throw new GroceryApiError(msg, 0, null);
+    throw new GroceryApiError(msg, 0, null, {
+      silent: isOpsInfraMessage(msg),
+    });
   }
 }
 

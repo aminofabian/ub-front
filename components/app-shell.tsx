@@ -167,6 +167,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Inbox",
       },
       {
+        href: APP_ROUTES.businessLogs,
+        label: "System logs",
+        group: "Inbox",
+      },
+      {
         href: APP_ROUTES.businessImport,
         label: "Data import",
         group: "Data",
@@ -597,6 +602,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.customerPhones) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.messages) return gate.canViewMessages;
+  if (item.href === APP_ROUTES.businessLogs)
+    return gate.canManageBusinessSettings;
   if (item.href === APP_ROUTES.creditsPaymentClaims)
     return gate.canReviewPaymentClaims;
   if (item.href === APP_ROUTES.purchasingRecordPayment)

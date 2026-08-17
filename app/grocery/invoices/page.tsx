@@ -50,6 +50,7 @@ import {
   cancelGroceryInvoice,
   getGroceryInvoice,
   GroceryApiError,
+  toastCaughtGroceryError,
   type GroceryInvoiceSummaryResponse,
   type GroceryInvoiceStatus,
   type GroceryInvoiceResponse,
@@ -369,9 +370,7 @@ export default function GroceryInvoicesPage() {
       const invoice = await getGroceryInvoice(id);
       setViewingInvoice(invoice);
     } catch (e) {
-      const msg =
-        e instanceof GroceryApiError ? e.message : "Failed to load invoice";
-      toast.error(msg);
+      toastCaughtGroceryError(e, "Failed to load invoice");
       setViewingInvoice(null);
     } finally {
       setViewLoading(false);
@@ -397,9 +396,7 @@ export default function GroceryInvoicesPage() {
           if (viewingInvoice?.id === id) setViewingInvoice(null);
           void fetchInvoices({ silent: true });
         } catch (e) {
-          const msg =
-            e instanceof GroceryApiError ? e.message : "Failed to void invoice";
-          toast.error(msg);
+          toastCaughtGroceryError(e, "Failed to void invoice");
         } finally {
           setCancelling(false);
         }
@@ -420,9 +417,7 @@ export default function GroceryInvoicesPage() {
             toast.success("Draft cancelled");
             void fetchDrafts({ silent: true });
           } catch (e) {
-            const msg =
-              e instanceof GroceryApiError ? e.message : "Failed to cancel draft";
-            toast.error(msg);
+            toastCaughtGroceryError(e, "Failed to cancel draft");
           }
         },
       });

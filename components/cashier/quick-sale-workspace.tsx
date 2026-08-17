@@ -81,6 +81,7 @@ import {
   payGroceryInvoice,
   unlockGroceryInvoice,
   GroceryApiError,
+  toastCaughtGroceryError,
 } from "@/lib/grocery-api";
 import {
   Dialog,
@@ -1439,6 +1440,9 @@ export function QuickSaleWorkspace({
             toast.error(e.message, { duration: 6000 });
             return;
           }
+          if (e instanceof GroceryApiError && e.silent) {
+            return;
+          }
           throw e;
         }
 
@@ -1558,9 +1562,7 @@ export function QuickSaleWorkspace({
           { duration: 4000 },
         );
       } catch (e) {
-        const msg =
-          e instanceof GroceryApiError ? e.message : "Failed to load invoice";
-        toast.error(msg, { duration: 5000 });
+        toastCaughtGroceryError(e, "Failed to load invoice");
       }
     },
     [online, branchId, dismissCompletedSaleUi, canLookupCustomers],

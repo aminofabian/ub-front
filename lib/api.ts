@@ -54,6 +54,12 @@ import {
 } from "@/lib/problem";
 import { toast } from "sonner";
 import {
+  ApiUnreachableError,
+  isOpsInfraMessage,
+  recordOpsClientError,
+  USER_API_UNREACHABLE_MESSAGE,
+} from "@/lib/ops-client-log";
+import {
   DESKTOP_LICENSE_READ_ONLY_TYPE,
   isDesktopLicenseWriteBlocked,
 } from "@/lib/desktop-license-gate";
@@ -97,6 +103,10 @@ export class ApiRequestError extends Error {
 
 function notifyHttpErrorToast(message: string) {
   if (typeof window === "undefined" || !message.trim()) {
+    return;
+  }
+  if (isOpsInfraMessage(message)) {
+    recordOpsClientError({ message, kind: "api_config" });
     return;
   }
   const lines = message.split("\n");
@@ -1342,6 +1352,16 @@ function getNetworkErrorMessage(): string {
   return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN on Next.js, or set NEXT_PUBLIC_API_BROWSER_DIRECT=true with NEXT_PUBLIC_API_BASE_URL for direct (CORS) API calls.`;
 }
 
+function throwUnreachable(path?: string): never {
+  const detail = getNetworkErrorMessage();
+  recordOpsClientError({
+    message: detail,
+    kind: "api_unreachable",
+    path,
+  });
+  throw new ApiUnreachableError(detail);
+}
+
 /**
  * Granular outcome of a refresh attempt.
  *
@@ -1653,7 +1673,7 @@ async function request<T>(
       if (error instanceof Error && error.name === "AbortError") {
         throw error;
       }
-      throw new Error(getNetworkErrorMessage());
+      throwUnreachable(path);
     }
   };
 
@@ -1709,12 +1729,19 @@ async function requestMultipartJson<T>(
     const headersInit = buildRequestHeaders(true, session?.accessToken, "POST");
     const headers = new Headers(headersInit);
     headers.delete("Content-Type");
-    return fetch(apiUrl(path), {
-      method: "POST",
-      headers,
-      credentials: AUTH_FETCH_CREDENTIALS,
-      body: form,
-    });
+    try {
+      return await fetch(apiUrl(path), {
+        method: "POST",
+        headers,
+        credentials: AUTH_FETCH_CREDENTIALS,
+        body: form,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw error;
+      }
+      throwUnreachable(path);
+    }
   };
 
   let response = await execute();
@@ -2120,7 +2147,7 @@ export async function resendVerificationEmail(
       body: JSON.stringify({ email }),
     });
   } catch {
-    throw new Error(getNetworkErrorMessage());
+    throwUnreachable(API_ROUTES.resendVerification);
   }
   if (response.status === 204) {
     return {};
@@ -7634,7 +7661,13 @@ export async function tryPostSale(
       });
       return { kind: "response", response };
     } catch {
-      return { kind: "network", message: getNetworkErrorMessage() };
+      const detail = getNetworkErrorMessage();
+      recordOpsClientError({
+        message: detail,
+        kind: "api_unreachable",
+        path,
+      });
+      return { kind: "network", message: USER_API_UNREACHABLE_MESSAGE };
     }
   };
 

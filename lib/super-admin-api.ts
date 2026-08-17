@@ -1,6 +1,9 @@
 import { API_ROUTES, APP_ROUTES, apiUrl, getApiBaseUrl } from "@/lib/config";
 import { extractPageContent } from "@/lib/page-content";
 import { getProblemTitle } from "@/lib/problem";
+import { recordOpsClientError } from "@/lib/ops-client-log";
+import { extractPageContent } from "@/lib/page-content";
+import { getProblemTitle } from "@/lib/problem";
 import {
   clearSuperAdminSession,
   getSuperAdminAccessToken,
@@ -69,6 +72,16 @@ function getNetworkErrorMessage(): string {
   return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN on Next.js, or set NEXT_PUBLIC_API_BROWSER_DIRECT=true with NEXT_PUBLIC_API_BASE_URL for direct (CORS) API calls.`;
 }
 
+function throwNetworkError(path?: string): never {
+  const message = getNetworkErrorMessage();
+  recordOpsClientError({
+    message,
+    kind: "api_unreachable",
+    path,
+  });
+  throw new Error(message);
+}
+
 export async function loginSuperAdmin(
   email: string,
   password: string,
@@ -81,7 +94,7 @@ export async function loginSuperAdmin(
       body: JSON.stringify({ email: email.trim(), password }),
     });
   } catch {
-    throw new Error(getNetworkErrorMessage());
+    throwNetworkError();
   }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -187,7 +200,7 @@ async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
       headers,
     });
   } catch {
-    throw new Error(getNetworkErrorMessage());
+    throwNetworkError(path);
   }
   if (response.status === 401) {
     clearSuperAdminSession();
@@ -1728,7 +1741,7 @@ export async function exportSaGlobalProductsCsv(params?: {
       { headers: { Authorization: `Bearer ${token}` } },
     );
   } catch {
-    throw new Error(getNetworkErrorMessage());
+    throwNetworkError();
   }
   if (response.status === 401) {
     clearSuperAdminSession();
@@ -1762,7 +1775,7 @@ export async function importSaGlobalProductsCsv(
       },
     );
   } catch {
-    throw new Error(getNetworkErrorMessage());
+    throwNetworkError();
   }
   if (response.status === 401) {
     clearSuperAdminSession();

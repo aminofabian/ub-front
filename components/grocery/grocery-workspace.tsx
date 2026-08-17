@@ -99,6 +99,7 @@ import {
   createGroceryInvoice,
   fetchGroceryTopProducts,
   GroceryApiError,
+  toastCaughtGroceryError,
   type GroceryInvoiceResponse,
   type GroceryTopProduct,
 } from "@/lib/grocery-api";
@@ -1115,13 +1116,7 @@ export function GroceryWorkspace() {
               description: "Cleared from cashiers — it will not return.",
             });
           } catch (e) {
-            toast.error(
-              e instanceof GroceryApiError
-                ? e.message
-                : e instanceof Error
-                  ? e.message
-                  : "Could not void invoice",
-            );
+            toastCaughtGroceryError(e, "Could not void invoice");
           } finally {
             setVoidingForwardedId(null);
           }

@@ -28,7 +28,7 @@ import {
   listGroceryInvoices,
   payGroceryInvoice,
   resendRemoteInvoiceStk,
-  GroceryApiError,
+  toastCaughtGroceryError,
   type GroceryInvoiceSummaryResponse,
 } from "@/lib/grocery-api";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
@@ -338,7 +338,7 @@ export function PendingInvoicesPanel({
         toast.error(result.message || "Could not resend STK");
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not resend STK");
+      toastCaughtGroceryError(e, "Could not resend STK");
     } finally {
       setBusyId(null);
     }
@@ -375,9 +375,7 @@ export function PendingInvoicesPanel({
       onInvoiceVoided?.(inv.id);
       toast.success(`Invoice ${inv.barcodeCode} marked paid`);
     } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : "Could not mark invoice paid",
-      );
+      toastCaughtGroceryError(e, "Could not mark invoice paid");
     } finally {
       setBusyId(null);
     }
@@ -400,13 +398,7 @@ export function PendingInvoicesPanel({
           description: "Wiped from every till — no tab, no resume.",
         });
       } catch (e) {
-        const msg =
-          e instanceof GroceryApiError
-            ? e.message
-            : e instanceof Error
-              ? e.message
-              : "Could not void invoice";
-        toast.error(msg);
+        toastCaughtGroceryError(e, "Could not void invoice");
       } finally {
         setVoidingId(null);
       }
