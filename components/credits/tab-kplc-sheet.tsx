@@ -636,6 +636,13 @@ export function TabKplcSheet({
     return stats;
   }, [stats, tokens]);
 
+  const sortedTokens = useMemo(() => {
+    if (!tokens?.length) return [];
+    return [...tokens].sort((a, b) =>
+      (b.purchasedAt || "").localeCompare(a.purchasedAt || ""),
+    );
+  }, [tokens]);
+
   if (!open) return null;
 
   const meters = config?.meters ?? [];
@@ -643,12 +650,6 @@ export function TabKplcSheet({
   const canLookup = meterLooksValid(meter) && !busy;
   const sameLoadedMeter =
     loadedMeter != null && digitsOnly(meter) === loadedMeter;
-  const sortedTokens = useMemo(() => {
-    if (!tokens?.length) return [];
-    return [...tokens].sort((a, b) =>
-      (b.purchasedAt || "").localeCompare(a.purchasedAt || ""),
-    );
-  }, [tokens]);
   const latest = sortedTokens[0] ?? null;
   const older = sortedTokens.slice(1);
   const live = resolveKplcEstimate(sortedTokens, depletion, latest);
