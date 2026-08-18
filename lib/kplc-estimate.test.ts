@@ -27,6 +27,24 @@ describe("kplcHourShare", () => {
 });
 
 describe("estimateKplcLive", () => {
+  test("does not treat idle days after the last buy as extra consumption history", () => {
+    const tokens = [
+      slip(nairobiIso(2026, 7, 28, 12), 53.2),
+      slip(nairobiIso(2026, 8, 6, 12), 28.4),
+      slip(nairobiIso(2026, 8, 10, 12), 35.4),
+      slip(nairobiIso(2026, 8, 15, 12), 53.1),
+    ];
+    const now = new Date(nairobiIso(2026, 8, 18, 22)).getTime();
+    const got = estimateKplcLive(tokens, now)!;
+    expect(got.alreadyEmpty).toBe(false);
+    expect(got.lastPurchaseUnits).toBe(53.1);
+    expect(got.dailyUseUnits).toBeGreaterThan(6);
+    expect(got.dailyUseUnits).toBeLessThan(7);
+    expect(got.remainingUnits).toBeGreaterThan(28);
+    expect(got.remainingUnits).toBeLessThan(42);
+    expect(53.1 - got.remainingUnits).toBeGreaterThan(12);
+  });
+
   test("times the current slip from how earlier cycles lasted", () => {
     const tokens = [
       slip(nairobiIso(2026, 8, 16, 23, 26), 10.7),

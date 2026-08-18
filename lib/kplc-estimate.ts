@@ -190,7 +190,12 @@ function lastN<T>(items: T[], n: number): T[] {
   return items.length <= n ? items : items.slice(items.length - n);
 }
 
-/** Live remaining + empty clock from the slip list. */
+/** Live remaining + empty clock from the slip list.
+ * Daily rate uses finished tokens only, over the span from the oldest of
+ * those buys to the latest buy — not through now. Idle days after the last
+ * purchase would otherwise dilute the rate and leave remaining looking like
+ * the last token barely moved.
+ */
 export function estimateKplcLive(
   tokens: KplcSlip[] | null | undefined,
   nowMs = Date.now(),
@@ -200,7 +205,8 @@ export function estimateKplcLive(
 
   const window = lastN(dated, RATE_WINDOW);
   const start = window[0].at;
-  const hours = (nowMs - start) / 3_600_000;
+  const latest = dated[dated.length - 1];
+  const hours = (latest.at - start) / 3_600_000;
   if (hours * 3_600_000 < MIN_SPAN_MS || hours <= 0) return null;
   let consumed = 0;
   for (let i = 0; i < window.length - 1; i++) consumed += window[i].kwh;
@@ -215,7 +221,6 @@ export function estimateKplcLive(
       stock = consume(dated[i].at, dated[i + 1].at, stock, daily);
     }
   }
-  const latest = dated[dated.length - 1];
   return finishEstimate(latest.at, latest.kwh, stock, daily, window.length, nowMs);
 }
 
