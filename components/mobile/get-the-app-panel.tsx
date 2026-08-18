@@ -119,7 +119,7 @@ function AppQrCard({
 
       {apk ? (
         <Button asChild size="lg" className="mt-3 h-10 w-full gap-2 text-sm">
-          <a href={mobileAppInstallerUrl(apk)} download>
+          <a href={mobileAppInstallerUrl(apk)} download={apk.url ? undefined : apk.file}>
             <Download className="size-4" aria-hidden />
             Download Android app
             <span className="font-mono text-[10px] font-normal opacity-90">
@@ -182,6 +182,7 @@ export function GetTheAppPanel({
   className,
 }: GetTheAppPanelProps) {
   const [manifest, setManifest] = useState<MobileAppManifest | null>(null);
+  const [mounted, setMounted] = useState(false);
   const roles: MobileAppRole[] =
     variant === "storefront" ? ["shopper"] : [...MOBILE_APP_ROLES];
   const storeLinks = config.platformStoreLinks;
@@ -194,6 +195,7 @@ export function GetTheAppPanel({
         setManifest(data);
       }
     });
+    setMounted(true);
     return () => {
       cancelled = true;
     };
@@ -263,7 +265,9 @@ export function GetTheAppPanel({
             config={config}
             role={role}
             compact={variant === "storefront"}
-            apk={apkForAppId(manifest, role)}
+            // Avoid hydration mismatches: the server renders with `manifest=null`,
+            // so gate manifest-dependent content until after first client mount.
+            apk={mounted ? apkForAppId(manifest, role) : undefined}
           />
         ))}
       </div>
