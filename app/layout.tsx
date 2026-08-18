@@ -84,10 +84,9 @@ export default async function RootLayout({
     >
       <head>
         {/*
-          Static ES5 bootstrap scripts (public/*.js) — loaded via next/script so
-          Turbopack does not hydrate dangerouslySetInnerHTML inline scripts
-          differently from the client. See public/client-error-reporter.js and
-          public/runtime-polyfills.js.
+          Static ES5 bootstrap — loaded via next/script so Turbopack does not
+          hydrate inline scripts differently. On production hosts the reporter
+          never paints the red banner (see public/client-error-reporter.js).
         */}
         <Script
           id="client-error-reporter"
