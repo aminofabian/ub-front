@@ -326,7 +326,6 @@ export function CashierAirtimeDrawer({
     amountValid &&
     !overSellable &&
     network != null &&
-    !networkMismatch &&
     (quote?.sellable ?? false);
 
   const formReady =

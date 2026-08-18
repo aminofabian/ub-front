@@ -20,7 +20,7 @@ const PROMISES = [
   {
     icon: Signal,
     title: "Every network",
-    body: "Safaricom, Airtel, Telkom, Equitel and JTL lines all supported.",
+    body: "Safaricom, Airtel, Telkom, Equitel and Faiba lines all supported.",
   },
 ];
 

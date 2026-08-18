@@ -229,7 +229,7 @@ function labelNetwork(id: string): string {
     case "EQUITEL":
       return "Equitel";
     case "JTL":
-      return "JTL";
+      return "Faiba";
     default:
       return id;
   }

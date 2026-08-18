@@ -39,7 +39,7 @@ function money(n: number, currency: string) {
 
 function formatPhoneDisplay(raw: string): string {
   const digits = (toKenyanLocal07(raw) || raw).replace(/\D/g, "");
-  if (digits.length === 10 && digits.startsWith("07")) {
+  if (digits.length === 10 && (digits.startsWith("07") || digits.startsWith("01"))) {
     return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
   }
   return raw;
@@ -170,7 +170,7 @@ export function TabAirtimeSheet({
   const inFlight = Boolean(order && !order.delivered && !order.failed);
   const locked = busy || inFlight;
   const canSubmit =
-    !locked && amountValid && recipientOk && payerOk && network != null && !networkMismatch;
+    !locked && amountValid && recipientOk && payerOk && network != null;
 
   const recipientOptions = useMemo(() => {
     const seen = new Set<string>();
@@ -410,6 +410,7 @@ export function TabAirtimeSheet({
                           const next = e.target.value;
                           setRecipient(next);
                           if (payerFollows) setPayer(next);
+                          setNetworkTouched(false);
                           setError(null);
                         }}
                         placeholder="07…"
@@ -431,6 +432,7 @@ export function TabAirtimeSheet({
                                 onClick={() => {
                                   setRecipient(opt.phone);
                                   if (payerFollows) setPayer(opt.phone);
+                                  setNetworkTouched(false);
                                   setError(null);
                                 }}
                                 className={cn(
@@ -508,11 +510,11 @@ export function TabAirtimeSheet({
                             className={cn("font-semibold underline underline-offset-2", focusRing)}
                             onClick={() => {
                               setNetwork(detectedFromPhone);
-                              setNetworkTouched(true);
+                              setNetworkTouched(false);
                               setError(null);
                             }}
                           >
-                            Switch
+                            Use {networkLabel(detectedFromPhone)}
                           </button>
                         </p>
                       ) : null}

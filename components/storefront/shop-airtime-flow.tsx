@@ -100,7 +100,6 @@ export function ShopAirtimeFlow({
     recipientDigits.length >= 9 &&
     amountValid &&
     network != null &&
-    !networkMismatch &&
     payerOk;
 
   useEffect(() => {
@@ -426,7 +425,7 @@ export function ShopAirtimeFlow({
       </Button>
       <p className="text-center text-[11px] leading-snug text-muted-foreground">
         One M-Pesa prompt, no extra fee. Works on Safaricom, Airtel, Telkom, Equitel
-        and JTL lines.
+        and Faiba lines.
       </p>
     </div>
   );

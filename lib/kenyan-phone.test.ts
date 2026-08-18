@@ -43,7 +43,30 @@ describe("kenyan-phone", () => {
 
   it("detects the network from a Kenyan prefix", () => {
     expect(detectKenyanNetwork("0714282874")).toBe("SAFARICOM");
+    expect(detectKenyanNetwork("0700123456")).toBe("SAFARICOM");
+    expect(detectKenyanNetwork("0720123456")).toBe("SAFARICOM");
+    expect(detectKenyanNetwork("0740123456")).toBe("SAFARICOM");
+    expect(detectKenyanNetwork("0790123456")).toBe("SAFARICOM");
+    expect(detectKenyanNetwork("0110123456")).toBe("SAFARICOM");
+    expect(detectKenyanNetwork("0140123456")).toBe("SAFARICOM");
+    expect(detectKenyanNetwork("0180123456")).toBe("SAFARICOM");
     expect(detectKenyanNetwork("0730123456")).toBe("AIRTEL");
+    expect(detectKenyanNetwork("0750123456")).toBe("AIRTEL");
+    expect(detectKenyanNetwork("0785123456")).toBe("AIRTEL");
+    expect(detectKenyanNetwork("0100123456")).toBe("AIRTEL");
     expect(detectKenyanNetwork("0770123456")).toBe("TELKOM");
+    expect(detectKenyanNetwork("0763123456")).toBe("EQUITEL");
+    expect(detectKenyanNetwork("0766123456")).toBe("EQUITEL");
+    expect(detectKenyanNetwork("0747123456")).toBe("JTL");
+    expect(detectKenyanNetwork("0780123456")).toBeNull();
+    expect(detectKenyanNetwork("0744123456")).toBeNull();
+  });
+
+  it("accepts 01xx numbers as Kenyan mobiles when the prefix is known", () => {
+    expect(looksLikeKenyanMobilePath("0110123456")).toBe(true);
+    expect(toKenyanLocal07("0110123456")).toBe("0110123456");
+    expect(toKenyanMsisdn254("0110123456")).toBe("254110123456");
+    expect(formatKenyanPhoneDisplay("0110123456")).toBe("0110 123 456");
+    expect(looksLikeKenyanMobilePath("0120123456")).toBe(false);
   });
 });

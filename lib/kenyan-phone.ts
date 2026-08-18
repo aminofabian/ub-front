@@ -6,28 +6,49 @@ export function kenyanMobileDigits(raw: string): string {
     .replace(/\D/g, "");
 }
 
-/** True when a URL segment should open the customer tab portal, not a product SKU. */
-export function looksLikeKenyanMobilePath(segment: string): boolean {
-  const digits = kenyanMobileDigits(segment);
-  if (/^2547\d{8}$/.test(digits)) return true;
-  if (/^07\d{8}$/.test(digits)) return true;
-  if (/^7\d{8}$/.test(digits)) return true;
-  return false;
+function local10FromDigits(digits: string): string | null {
+  if (/^254[17]\d{8}$/.test(digits)) return `0${digits.slice(3)}`;
+  if (/^0[17]\d{8}$/.test(digits)) return digits;
+  if (/^[17]\d{8}$/.test(digits)) return `0${digits}`;
+  return null;
 }
 
-/** Canonical local display form `07XXXXXXXX`. */
-export function toKenyanLocal07(raw: string): string | null {
-  const digits = kenyanMobileDigits(raw);
-  if (/^2547\d{8}$/.test(digits)) {
-    return `0${digits.slice(3)}`;
-  }
-  if (/^07\d{8}$/.test(digits)) {
-    return digits;
-  }
-  if (/^7\d{8}$/.test(digits)) {
-    return `0${digits}`;
-  }
+/**
+ * 3-digit NDC after the leading 0 (`0714…` → 714, `0110…` → 110).
+ * Order matters: Faiba 747 sits inside the 74x block.
+ */
+function networkFromNdc(ndc: number): KenyanNetwork | null {
+  if (!Number.isFinite(ndc)) return null;
+  if (ndc === 747) return "JTL";
+  if (ndc >= 700 && ndc <= 729) return "SAFARICOM";
+  if (ndc >= 740 && ndc <= 743) return "SAFARICOM";
+  if (ndc >= 790 && ndc <= 799) return "SAFARICOM";
+  if (ndc >= 110 && ndc <= 119) return "SAFARICOM";
+  if (ndc >= 140 && ndc <= 143) return "SAFARICOM";
+  if (ndc >= 180 && ndc <= 182) return "SAFARICOM";
+  if (ndc >= 730 && ndc <= 739) return "AIRTEL";
+  if (ndc >= 750 && ndc <= 756) return "AIRTEL";
+  if (ndc >= 785 && ndc <= 789) return "AIRTEL";
+  if (ndc >= 100 && ndc <= 102) return "AIRTEL";
+  if (ndc >= 770 && ndc <= 779) return "TELKOM";
+  if (ndc >= 763 && ndc <= 766) return "EQUITEL";
   return null;
+}
+
+/** True when a URL segment should open the customer tab portal, not a product SKU. */
+export function looksLikeKenyanMobilePath(segment: string): boolean {
+  const local = local10FromDigits(kenyanMobileDigits(segment));
+  if (!local) return false;
+  if (local.startsWith("07")) return true;
+  return networkFromNdc(Number.parseInt(local.slice(1, 4), 10)) != null;
+}
+
+/** Canonical local display form `07XXXXXXXX` or `01XXXXXXXX`. */
+export function toKenyanLocal07(raw: string): string | null {
+  const local = local10FromDigits(kenyanMobileDigits(raw));
+  if (!local) return null;
+  if (local.startsWith("07")) return local;
+  return networkFromNdc(Number.parseInt(local.slice(1, 4), 10)) ? local : null;
 }
 
 /** Grouped local form `0714 282 874` for account and till displays. */
@@ -39,7 +60,7 @@ export function formatKenyanPhoneDisplay(raw: string | null | undefined): string
   return `${local.slice(0, 4)} ${local.slice(4, 7)} ${local.slice(7)}`;
 }
 
-/** Canonical MSISDN without `+` (`2547XXXXXXXX`) for KopoKopo / STK. */
+/** Canonical MSISDN without `+` (`2547XXXXXXXX` / `2541XXXXXXXX`) for KopoKopo / STK. */
 export function toKenyanMsisdn254(raw: string): string | null {
   const local = toKenyanLocal07(raw);
   if (!local) return null;
@@ -53,36 +74,19 @@ export type KenyanNetwork =
   | "EQUITEL"
   | "JTL";
 
-/** Prefix map for Kenyan mobile networks (display only — the telco is not required to send). */
+/**
+ * Prefix map for Kenyan mobile networks (display only — the telco is not required to send).
+ *
+ * Safaricom: 070x, 071x, 072x, 0740–0743, 079x, 0110–0119, 0140–0143, 0180–0182
+ * Airtel: 073x, 0750–0756, 0785–0789, 0100–0102
+ * Telkom: 0770–0779
+ * Equitel: 0763–0766
+ * Faiba (JTL): 0747
+ */
 export function detectKenyanNetwork(raw: string): KenyanNetwork | null {
-  const msisdn = toKenyanMsisdn254(raw);
-  if (!msisdn || msisdn.length < 6) return null;
-  const prefix = Number.parseInt(msisdn.slice(3, 6), 10);
-  if (!Number.isFinite(prefix)) return null;
-  if (prefix === 747) return "JTL";
-  if (prefix >= 763 && prefix <= 765) return "EQUITEL";
-  if (prefix >= 770 && prefix <= 779) return "TELKOM";
-  if (
-    (prefix >= 100 && prefix <= 102) ||
-    (prefix >= 730 && prefix <= 739) ||
-    (prefix >= 750 && prefix <= 756) ||
-    prefix === 762 ||
-    (prefix >= 780 && prefix <= 789)
-  ) {
-    return "AIRTEL";
-  }
-  if (
-    (prefix >= 110 && prefix <= 115) ||
-    (prefix >= 700 && prefix <= 729) ||
-    (prefix >= 740 && prefix <= 746) ||
-    prefix === 748 ||
-    (prefix >= 757 && prefix <= 759) ||
-    (prefix >= 768 && prefix <= 769) ||
-    (prefix >= 790 && prefix <= 799)
-  ) {
-    return "SAFARICOM";
-  }
-  return null;
+  const local = toKenyanLocal07(raw);
+  if (!local) return null;
+  return networkFromNdc(Number.parseInt(local.slice(1, 4), 10));
 }
 
 export const KENYAN_NETWORKS: { id: KenyanNetwork; label: string }[] = [
@@ -90,7 +94,7 @@ export const KENYAN_NETWORKS: { id: KenyanNetwork; label: string }[] = [
   { id: "AIRTEL", label: "Airtel" },
   { id: "TELKOM", label: "Telkom" },
   { id: "EQUITEL", label: "Equitel" },
-  { id: "JTL", label: "JTL" },
+  { id: "JTL", label: "Faiba" },
 ];
 
 /**
@@ -99,7 +103,7 @@ export const KENYAN_NETWORKS: { id: KenyanNetwork; label: string }[] = [
  */
 export function extractFirstKenyanMobile(text: string | null | undefined): string | null {
   if (!text) return null;
-  const matches = text.match(/(?:\+?254|0)?7\d{8}/g);
+  const matches = text.match(/(?:\+?254|0)?[17]\d{8}/g);
   if (!matches) return null;
   for (const m of matches) {
     const msisdn = toKenyanMsisdn254(m);
