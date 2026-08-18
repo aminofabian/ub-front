@@ -15,7 +15,9 @@ import { formatDisplayPrice } from "@/lib/public-storefront";
 import {
   detectKenyanNetwork,
   KENYAN_NETWORKS,
-  looksLikeKenyanMobilePath,
+  kenyanAirtimePhoneMessage,
+  kenyanAirtimePhoneOk,
+  limitKenyanAirtimePhoneInput,
   type KenyanNetwork,
 } from "@/lib/kenyan-phone";
 import { cn } from "@/lib/utils";
@@ -82,7 +84,6 @@ export function ShopAirtimeFlow({
     [currency],
   );
 
-  const recipientDigits = recipient.replace(/\D/g, "");
   const detectedFromPhone = detectKenyanNetwork(recipient);
   const networkMismatch =
     Boolean(network) &&
@@ -93,11 +94,13 @@ export function ShopAirtimeFlow({
     Number.isFinite(amountValue) &&
     amountValue >= (config?.minAmount ?? 1) &&
     amountValue <= (config?.maxAmount ?? Number.POSITIVE_INFINITY);
-  const payerOk = looksLikeKenyanMobilePath(payer || recipient);
+  const recipientHint = kenyanAirtimePhoneMessage(recipient);
+  const payerHint = kenyanAirtimePhoneMessage(payer || recipient);
+  const payerOk = kenyanAirtimePhoneOk(payer || recipient);
   const canSubmit =
     !submitting &&
     config?.available === true &&
-    recipientDigits.length >= 9 &&
+    kenyanAirtimePhoneOk(recipient) &&
     amountValid &&
     network != null &&
     payerOk;
@@ -317,7 +320,7 @@ export function ShopAirtimeFlow({
           placeholder="07…"
           value={recipient}
           onChange={(e) => {
-            const next = e.target.value;
+            const next = limitKenyanAirtimePhoneInput(e.target.value);
             setRecipient(next);
             if (!payer) setPayer(next);
           }}
@@ -325,6 +328,9 @@ export function ShopAirtimeFlow({
             if (e.key === "Enter") amountRef.current?.focus();
           }}
         />
+        {recipientHint ? (
+          <p className="text-xs leading-relaxed text-rose-700">{recipientHint}</p>
+        ) : null}
         {networkMismatch && detectedFromPhone ? (
           <p className="text-xs leading-relaxed text-muted-foreground">
             That number looks like{" "}
@@ -395,8 +401,11 @@ export function ShopAirtimeFlow({
           className="w-full rounded-xl border border-input bg-background px-4 py-3 font-heading text-lg tabular-nums tracking-wide shadow-sm"
           placeholder="07… — PIN is entered here"
           value={payer}
-          onChange={(e) => setPayer(e.target.value)}
+          onChange={(e) => setPayer(limitKenyanAirtimePhoneInput(e.target.value))}
         />
+        {payerHint && payer ? (
+          <p className="text-xs leading-relaxed text-rose-700">{payerHint}</p>
+        ) : null}
         <p className="text-[11px] leading-snug text-muted-foreground">
           Change this if someone else is paying. The STK prompt lands on this phone.
         </p>

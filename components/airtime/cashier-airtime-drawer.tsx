@@ -40,6 +40,9 @@ import type { AirtimeCartPayload } from "@/lib/airtime-cart-line";
 import {
   detectKenyanNetwork,
   KENYAN_NETWORKS,
+  kenyanAirtimePhoneMessage,
+  kenyanAirtimePhoneOk,
+  limitKenyanAirtimePhoneInput,
   looksLikeKenyanMobilePath,
   toKenyanLocal07,
   type KenyanNetwork,
@@ -202,8 +205,10 @@ export function CashierAirtimeDrawer({
   const digits = phone.replace(/\D/g, "");
   const amountValue = Number(amount);
   const amountValid = Number.isFinite(amountValue) && amountValue > 0;
-  const phoneOk = looksLikeKenyanMobilePath(phone);
-  const payerOk = looksLikeKenyanMobilePath(payer || phone);
+  const phoneOk = kenyanAirtimePhoneOk(phone);
+  const payerOk = kenyanAirtimePhoneOk(payer || phone);
+  const phoneHint = kenyanAirtimePhoneMessage(phone);
+  const payerHint = kenyanAirtimePhoneMessage(payer);
   const networkMismatch =
     Boolean(network) && Boolean(detectedFromPhone) && network !== detectedFromPhone;
 
@@ -570,8 +575,11 @@ export function CashierAirtimeDrawer({
               placeholder="07…"
               value={phone}
               disabled={blocked}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(limitKenyanAirtimePhoneInput(e.target.value))}
             />
+            {phoneHint ? (
+              <p className={cn(styles.amber, "mt-1.5")}>{phoneHint}</p>
+            ) : null}
             {networkMismatch ? (
               <p className={cn(styles.amber, "mt-1.5")}>
                 That number looks like {detectedFromPhone}, not{" "}
@@ -693,10 +701,13 @@ export function CashierAirtimeDrawer({
                     disabled={blocked}
                     onChange={(e) => {
                       setPayerTouched(true);
-                      setPayer(e.target.value);
+                      setPayer(limitKenyanAirtimePhoneInput(e.target.value));
                     }}
                   />
                 </label>
+                {payerHint ? (
+                  <p className={cn(styles.amber, "mt-1.5")}>{payerHint}</p>
+                ) : null}
                 <p className={styles.hint}>
                   They pay your till first. Airtime sends after the PIN goes through.
                 </p>

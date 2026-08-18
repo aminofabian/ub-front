@@ -13,7 +13,9 @@ import {
 import {
   detectKenyanNetwork,
   KENYAN_NETWORKS,
-  looksLikeKenyanMobilePath,
+  kenyanAirtimePhoneMessage,
+  kenyanAirtimePhoneOk,
+  limitKenyanAirtimePhoneInput,
   toKenyanLocal07,
   type KenyanNetwork,
 } from "@/lib/kenyan-phone";
@@ -152,8 +154,10 @@ export function TabAirtimeSheet({
   const amountValid =
     Number.isFinite(amountNum) && amountNum >= min && amountNum <= max;
 
-  const recipientOk = looksLikeKenyanMobilePath(recipient);
-  const payerOk = looksLikeKenyanMobilePath(payer);
+  const recipientCheck = kenyanAirtimePhoneMessage(recipient);
+  const payerCheck = kenyanAirtimePhoneMessage(payer);
+  const recipientOk = kenyanAirtimePhoneOk(recipient);
+  const payerOk = kenyanAirtimePhoneOk(payer);
   const detectedFromPhone = detectKenyanNetwork(recipient);
   const networkMismatch =
     Boolean(network) &&
@@ -407,18 +411,34 @@ export function TabAirtimeSheet({
                         value={recipient}
                         disabled={locked}
                         onChange={(e) => {
-                          const next = e.target.value;
+                          const next = limitKenyanAirtimePhoneInput(e.target.value);
                           setRecipient(next);
                           if (payerFollows) setPayer(next);
                           setNetworkTouched(false);
                           setError(null);
                         }}
                         placeholder="07…"
+                        aria-invalid={Boolean(recipientCheck)}
+                        aria-describedby={
+                          recipientCheck ? `${fieldIdPrefix}-airtime-recipient-hint` : undefined
+                        }
                         className={cn(
-                          "mt-1 w-full border-b-2 border-[var(--tab-fg)] bg-transparent py-2 text-[16px] font-semibold tabular-nums outline-none",
+                          "mt-1 w-full border-b-2 bg-transparent py-2 text-[16px] font-semibold tabular-nums outline-none",
+                          recipientCheck
+                            ? "border-[var(--tab-error-fg)]"
+                            : "border-[var(--tab-fg)]",
                           focusRing,
                         )}
                       />
+                      {recipientCheck ? (
+                        <p
+                          id={`${fieldIdPrefix}-airtime-recipient-hint`}
+                          role="status"
+                          className="mt-1.5 text-[12px] leading-snug text-[var(--tab-error-fg)]"
+                        >
+                          {recipientCheck}
+                        </p>
+                      ) : null}
                       {recipientOptions.length > 1 ? (
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           {recipientOptions.slice(0, 3).map((opt) => {
@@ -560,17 +580,33 @@ export function TabAirtimeSheet({
                             value={payer}
                             disabled={locked}
                             onChange={(e) => {
-                              const next = e.target.value;
+                              const next = limitKenyanAirtimePhoneInput(e.target.value);
                               setPayer(next);
                               setPayerFollows(sameNumber(next, recipient));
                               setError(null);
                             }}
                             placeholder="07…"
+                            aria-invalid={Boolean(payerCheck)}
+                            aria-describedby={
+                              payerCheck ? `${fieldIdPrefix}-airtime-payer-hint` : undefined
+                            }
                             className={cn(
-                              "mt-1 w-full border-b-2 border-[var(--tab-fg)] bg-transparent py-2 text-[16px] font-semibold tabular-nums outline-none",
+                              "mt-1 w-full border-b-2 bg-transparent py-2 text-[16px] font-semibold tabular-nums outline-none",
+                              payerCheck
+                                ? "border-[var(--tab-error-fg)]"
+                                : "border-[var(--tab-fg)]",
                               focusRing,
                             )}
                           />
+                          {payerCheck ? (
+                            <p
+                              id={`${fieldIdPrefix}-airtime-payer-hint`}
+                              role="status"
+                              className="mt-1.5 text-[12px] leading-snug text-[var(--tab-error-fg)]"
+                            >
+                              {payerCheck}
+                            </p>
+                          ) : null}
                         </div>
                       ) : null}
                       {lastPair &&

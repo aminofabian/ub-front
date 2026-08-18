@@ -111,3 +111,42 @@ export function extractFirstKenyanMobile(text: string | null | undefined): strin
   }
   return null;
 }
+
+/**
+ * Airtime entry lengths: `0…` → 10 digits, `254` / `+254` → 12, anything else → 9.
+ */
+export function expectedKenyanAirtimeDigits(raw: string): 9 | 10 | 12 {
+  const trimmed = (raw ?? "").trim();
+  const digits = kenyanMobileDigits(trimmed);
+  if (trimmed.startsWith("+254") || digits.startsWith("254")) return 12;
+  if (trimmed.startsWith("0") || digits.startsWith("0")) return 10;
+  return 9;
+}
+
+export function limitKenyanAirtimePhoneInput(raw: string): string {
+  const expected = expectedKenyanAirtimeDigits(raw);
+  const digits = kenyanMobileDigits(raw);
+  if (digits.length <= expected) return raw;
+  const sliced = digits.slice(0, expected);
+  if (raw.trim().startsWith("+")) return `+${sliced}`;
+  return sliced;
+}
+
+export function kenyanAirtimePhoneMessage(raw: string): string | null {
+  const digits = kenyanMobileDigits(raw);
+  if (!digits) return null;
+  const expected = expectedKenyanAirtimeDigits(raw);
+  if (digits.length !== expected) {
+    if (expected === 12) return "Numbers starting with 254 or +254 must be 12 digits.";
+    if (expected === 10) return "Numbers starting with 0 must be 10 digits.";
+    return "Numbers that don’t start with 0 or 254 must be 9 digits.";
+  }
+  if (!looksLikeKenyanMobilePath(raw) && !looksLikeKenyanMobilePath(digits)) {
+    return "Enter a Kenyan mobile number.";
+  }
+  return null;
+}
+
+export function kenyanAirtimePhoneOk(raw: string): boolean {
+  return kenyanMobileDigits(raw).length > 0 && kenyanAirtimePhoneMessage(raw) == null;
+}

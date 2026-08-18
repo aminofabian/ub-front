@@ -7,6 +7,10 @@ import {
   toKenyanLocal07,
   toKenyanMsisdn254,
   extractFirstKenyanMobile,
+  expectedKenyanAirtimeDigits,
+  kenyanAirtimePhoneMessage,
+  kenyanAirtimePhoneOk,
+  limitKenyanAirtimePhoneInput,
 } from "@/lib/kenyan-phone";
 
 describe("kenyan-phone", () => {
@@ -68,5 +72,24 @@ describe("kenyan-phone", () => {
     expect(toKenyanMsisdn254("0110123456")).toBe("254110123456");
     expect(formatKenyanPhoneDisplay("0110123456")).toBe("0110 123 456");
     expect(looksLikeKenyanMobilePath("0120123456")).toBe(false);
+  });
+
+  it("validates airtime numbers by how they start", () => {
+    expect(expectedKenyanAirtimeDigits("0714282874")).toBe(10);
+    expect(expectedKenyanAirtimeDigits("714282874")).toBe(9);
+    expect(expectedKenyanAirtimeDigits("254714282874")).toBe(12);
+    expect(expectedKenyanAirtimeDigits("+254714282874")).toBe(12);
+    expect(kenyanAirtimePhoneOk("0714282874")).toBe(true);
+    expect(kenyanAirtimePhoneOk("714282874")).toBe(true);
+    expect(kenyanAirtimePhoneOk("+254714282874")).toBe(true);
+    expect(kenyanAirtimePhoneOk("071428287")).toBe(false);
+    expect(kenyanAirtimePhoneOk("71428287")).toBe(false);
+    expect(kenyanAirtimePhoneOk("25471428287")).toBe(false);
+    expect(kenyanAirtimePhoneMessage("071428287")).toMatch(/10 digits/);
+    expect(kenyanAirtimePhoneMessage("71428287")).toMatch(/9 digits/);
+    expect(kenyanAirtimePhoneMessage("+25471428287")).toMatch(/12 digits/);
+    expect(limitKenyanAirtimePhoneInput("07142828740")).toBe("0714282874");
+    expect(limitKenyanAirtimePhoneInput("7142828749")).toBe("714282874");
+    expect(limitKenyanAirtimePhoneInput("+2547142828749")).toBe("+254714282874");
   });
 });
