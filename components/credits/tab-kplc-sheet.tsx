@@ -35,9 +35,6 @@ const fieldClass =
 const btnPrimaryClass =
   "flex w-full items-center justify-center gap-2 py-3 text-[15px] font-semibold transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tab-card)] active:opacity-85 disabled:cursor-not-allowed disabled:opacity-45";
 
-const comingSoonMuted =
-  "color-mix(in_oklab, var(--tab-bg) 72%, var(--tab-fg))";
-
 function money(n: number, currency = "KES") {
   return formatMoneyCompact(n, resolveCurrencyCode(currency));
 }
@@ -173,128 +170,41 @@ function statsFromTokens(tokens: PublicTabKplcToken[]): PublicTabKplcStats {
 
 function ComingSoonBuy() {
   return (
-    <p className="px-4 pb-2 text-[13px] leading-snug lg:px-5">
-      <span className="font-semibold tracking-[-0.02em]">
-        Buying a KPLC token is coming soon.
-      </span>{" "}
-      <span className="text-[var(--tab-muted)]">Look up still works.</span>
+    <p className="px-4 pb-2 text-[13px] leading-snug text-[var(--tab-muted)] lg:px-5">
+      Buying a KPLC token is coming soon. Look up still works.
     </p>
   );
 }
 
-function CopyTokenButton({
-  tokenNo,
-  copied,
-  inverted,
-  split,
-  quiet,
-  onCopy,
-}: {
-  tokenNo: string;
-  copied: boolean;
-  inverted?: boolean;
-  split?: boolean;
-  quiet?: boolean;
-  onCopy: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onCopy}
-      className={cn(
-        "flex w-full items-center justify-between gap-2 text-left",
-        quiet
-          ? "mt-1.5 py-0.5"
-          : "mt-2 px-2.5 py-2.5",
-        quiet
-          ? null
-          : inverted
-            ? cn(
-                "border border-[color-mix(in_oklab,var(--tab-bg)_28%,transparent)] bg-[color-mix(in_oklab,var(--tab-bg)_10%,transparent)]",
-                split &&
-                  "lg:border-[var(--tab-border)] lg:bg-[var(--tab-card)]",
-              )
-            : "border border-[var(--tab-border)] bg-[var(--tab-card)]",
-      )}
-    >
-      <span
-        className={cn(
-          "min-w-0 font-mono font-semibold tabular-nums tracking-wide",
-          quiet ? "text-[12px]" : "text-[13px]",
-          inverted && split && "lg:text-[var(--tab-fg)]",
-        )}
-      >
-        {formatTokenNo(tokenNo)}
-      </span>
-      <span
-        className={cn(
-          "flex shrink-0 items-center gap-1 text-[12px] font-medium",
-          inverted
-            ? cn(
-                "text-[color-mix(in_oklab,var(--tab-bg)_72%,var(--tab-fg))]",
-                split && "lg:text-[var(--tab-muted)]",
-              )
-            : "text-[var(--tab-muted)]",
-        )}
-      >
-        {copied ? (
-          <>
-            <Check className="size-3.5" aria-hidden />
-            Copied
-          </>
-        ) : (
-          <>
-            <Copy className="size-3.5" aria-hidden />
-            Copy
-          </>
-        )}
-      </span>
-    </button>
-  );
+function tokenGroups(raw: string): string[] {
+  const digits = raw.replace(/\s/g, "");
+  return digits.match(/.{1,4}/g) ?? [raw];
 }
 
-function ConceptList({
-  token,
-  inverted,
-  split,
-}: {
-  token: PublicTabKplcToken;
-  inverted?: boolean;
-  split?: boolean;
-}) {
+function tokenMeta(token: PublicTabKplcToken): string {
+  const amount = toAmount(token.amount);
+  const units = toAmount(token.units);
+  return [
+    amount != null ? money(amount) : null,
+    units != null ? `${units.toLocaleString("en-KE")} kWh` : null,
+    token.paymentMethod || null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function ConceptList({ token }: { token: PublicTabKplcToken }) {
   if (!token.concepts?.length) return null;
   return (
-    <ul
-      className={cn(
-        "mt-2 space-y-1.5 border-t pt-2",
-        inverted
-          ? cn(
-              "border-[color-mix(in_oklab,var(--tab-bg)_22%,transparent)]",
-              split && "lg:border-[var(--tab-border)]",
-            )
-          : "border-[var(--tab-border)]",
-      )}
-    >
+    <ul className="mt-2.5 space-y-1.5 border-t border-[var(--tab-border)] pt-2.5">
       {token.concepts.map((concept, index) => {
         const line = toAmount(concept.amount);
         return (
           <li
             key={`${concept.code}-${index}`}
-            className="flex items-baseline justify-between gap-3 text-[12px]"
+            className="flex items-baseline justify-between gap-3 text-[13px]"
           >
-            <span
-              className={cn(
-                "min-w-0",
-                inverted
-                  ? cn(
-                      "text-[color-mix(in_oklab,var(--tab-bg)_72%,var(--tab-fg))]",
-                      split && "lg:text-[var(--tab-muted)]",
-                    )
-                  : "text-[var(--tab-muted)]",
-              )}
-            >
-              {concept.label}
-            </span>
+            <span className="min-w-0 text-[var(--tab-muted)]">{concept.label}</span>
             <span className="shrink-0 tabular-nums">
               {line != null ? money(line) : "—"}
             </span>
@@ -302,6 +212,112 @@ function ConceptList({
         );
       })}
     </ul>
+  );
+}
+
+function TokenRow({
+  token,
+  copied,
+  expanded,
+  featured,
+  onToggle,
+  onCopy,
+}: {
+  token: PublicTabKplcToken;
+  copied: boolean;
+  expanded: boolean;
+  featured?: boolean;
+  onToggle: () => void;
+  onCopy: () => void;
+}) {
+  const hasConcepts = Boolean(token.concepts?.length);
+  const groups = tokenGroups(token.tokenNo);
+  const meta = tokenMeta(token);
+  const formatted = formatTokenNo(token.tokenNo);
+
+  return (
+    <article className={cn("px-4", featured ? "py-4" : "py-3.5")}>
+      <button
+        type="button"
+        onClick={onCopy}
+        className="flex min-h-11 w-full items-start gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_40%,transparent)]"
+        aria-label={copied ? `Copied ${formatted}` : `Copy token ${formatted}`}
+      >
+        <span
+          className={cn(
+            "flex min-w-0 flex-1 flex-wrap content-start gap-x-2 gap-y-1 font-mono font-semibold tabular-nums",
+            featured ? "text-[1.25rem] leading-none" : "text-[15px] leading-none",
+          )}
+        >
+          {groups.map((group, index) => (
+            <span key={`${group}-${index}`}>{group}</span>
+          ))}
+        </span>
+        <span
+          className={cn(
+            "mt-0.5 flex shrink-0 items-center gap-1 text-[12px] font-medium",
+            copied ? "text-[var(--tab-success-fg)]" : "text-[var(--tab-muted)]",
+          )}
+        >
+          {copied ? (
+            <>
+              <Check className="size-3.5" aria-hidden />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy className="size-3.5" aria-hidden />
+              Copy
+            </>
+          )}
+        </span>
+      </button>
+
+      {hasConcepts ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="mt-2 flex w-full items-start justify-between gap-3 text-left text-[13px] leading-snug text-[var(--tab-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_40%,transparent)]"
+          aria-expanded={expanded}
+        >
+          <span className="min-w-0">
+            <time
+              dateTime={token.purchasedAt ?? undefined}
+              title={
+                token.purchasedAt
+                  ? formatAbsoluteTokenDate(token.purchasedAt)
+                  : undefined
+              }
+            >
+              {formatRelativeTokenTime(token.purchasedAt)}
+            </time>
+            {meta ? ` · ${meta}` : ""}
+          </span>
+          <ChevronDown
+            className={cn(
+              "mt-0.5 size-3.5 shrink-0 transition-transform duration-200",
+              expanded && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </button>
+      ) : (
+        <p className="mt-2 min-w-0 text-[13px] leading-snug text-[var(--tab-muted)]">
+          <time
+            dateTime={token.purchasedAt ?? undefined}
+            title={
+              token.purchasedAt
+                ? formatAbsoluteTokenDate(token.purchasedAt)
+                : undefined
+            }
+          >
+            {formatRelativeTokenTime(token.purchasedAt)}
+          </time>
+          {meta ? ` · ${meta}` : ""}
+        </p>
+      )}
+      {expanded ? <ConceptList token={token} /> : null}
+    </article>
   );
 }
 
@@ -335,7 +351,7 @@ function SpendTape({ stats }: { stats: PublicTabKplcStats }) {
               </p>
             </div>
             <div
-              className="mt-2 h-1.5 w-full bg-[var(--tab-border)]"
+              className="mt-2 h-1 w-full bg-[var(--tab-border)]"
               aria-hidden
             >
               <div
@@ -364,31 +380,35 @@ function depletionTitle(live: KplcLiveEstimate | null, nowMs = Date.now()): stri
   return `Until ${formatKplcClock(empty)}`;
 }
 
-function TokenFuse({ remaining, last }: { remaining: number; last: number }) {
+function RemainingBar({ remaining, last }: { remaining: number; last: number }) {
   const fraction = last > 0 ? Math.max(0, Math.min(1, remaining / last)) : 0;
-  const lit = Math.round(fraction * 20);
   return (
-    <div className="mt-3 flex justify-between gap-1" aria-hidden>
-      {Array.from({ length: 5 }, (_, group) => (
-        <span key={group} className="flex gap-[3px]">
-          {Array.from({ length: 4 }, (_, i) => {
-            const index = group * 4 + i;
-            const on = index < lit;
-            return (
-              <span
-                key={i}
-                className="inline-block h-5 w-[0.55rem] border"
-                style={{
-                  borderColor: "color-mix(in_oklab, var(--tab-bg) 38%, transparent)",
-                  backgroundColor: on
-                    ? "var(--tab-bg)"
-                    : "transparent",
-                }}
-              />
-            );
-          })}
-        </span>
-      ))}
+    <div
+      className="mt-3 h-1 w-full bg-[var(--tab-border)]"
+      role="meter"
+      aria-label="Estimated units remaining"
+      aria-valuemin={0}
+      aria-valuemax={Math.round(last)}
+      aria-valuenow={Math.round(remaining)}
+    >
+      <div
+        className="h-full bg-[var(--tab-fg)]"
+        style={{ width: `${Math.round(fraction * 100)}%` }}
+      />
+    </div>
+  );
+}
+
+function LookupSkeleton() {
+  return (
+    <div className="px-4 py-4" aria-hidden>
+      <div className="h-7 w-52 bg-[var(--tab-border)]" />
+      <div className="mt-2 h-3 w-40 bg-[var(--tab-border)]" />
+      <div className="mt-3 h-1 w-full bg-[var(--tab-border)]" />
+      <div className="mt-6 h-5 w-full bg-[var(--tab-border)]" />
+      <div className="mt-2 h-3 w-44 bg-[var(--tab-border)]" />
+      <div className="mt-5 h-5 w-[90%] bg-[var(--tab-border)]" />
+      <div className="mt-2 h-3 w-36 bg-[var(--tab-border)]" />
     </div>
   );
 }
@@ -408,59 +428,66 @@ function DepletionPanel({
   const remaining = live?.remainingUnits ?? null;
   const tank = live ? Math.max(live.stockAtLastBuy, live.lastPurchaseUnits) : null;
   const canEstimate = Boolean(live);
-  const stillGoing = Boolean(emptyAt && emptyAt.getTime() > Date.now() && !live?.alreadyEmpty);
+  const stillGoing = Boolean(
+    emptyAt && emptyAt.getTime() > Date.now() && !live?.alreadyEmpty,
+  );
+  const kwhLabel =
+    remaining != null
+      ? `${remaining.toLocaleString("en-KE", { maximumFractionDigits: 1 })} kWh left`
+      : null;
+
   return (
-    <div className="bg-[var(--tab-fg)] px-4 py-4 text-[var(--tab-bg)]">
-      <p className="text-[1.5rem] font-semibold leading-[0.95] tracking-[-0.03em]">
+    <section className="border-b border-[var(--tab-border)] px-4 py-4">
+      <p className="text-[1.25rem] font-semibold leading-[1.1] tracking-[-0.03em]">
         {canEstimate ? depletionTitle(live) : "Need one more top-up"}
       </p>
       {canEstimate && stillGoing && emptyAt ? (
-        <p className="mt-2 text-[17px] font-semibold leading-snug tracking-[-0.02em]">
+        <p className="mt-1.5 text-[13px] leading-snug text-[var(--tab-muted)]">
           {formatKplcTimeLeft(emptyAt)}
+          {kwhLabel ? ` · ${kwhLabel}` : ""}
         </p>
-      ) : null}
-      {canEstimate && remaining != null && remaining > 0 && tank != null && tank > 0 ? (
-        <>
-          <TokenFuse remaining={remaining} last={tank} />
-          <p className="mt-2 text-[14px] font-semibold tabular-nums">
-            About {remaining.toLocaleString("en-KE", { maximumFractionDigits: 1 })} kWh left
-          </p>
-        </>
+      ) : kwhLabel ? (
+        <p className="mt-1.5 text-[13px] leading-snug text-[var(--tab-muted)]">
+          {kwhLabel}
+        </p>
       ) : !canEstimate ? (
-        <p className="mt-2 text-[13px] leading-snug" style={{ color: comingSoonMuted }}>
+        <p className="mt-1.5 text-[13px] leading-snug text-[var(--tab-muted)]">
           After the next token we can time how fast this meter drinks units.
         </p>
       ) : null}
+      {canEstimate && remaining != null && remaining > 0 && tank != null && tank > 0 ? (
+        <RemainingBar remaining={remaining} last={tank} />
+      ) : null}
       {canEstimate && live ? (
-        <p className="mt-3 text-[13px] leading-snug" style={{ color: comingSoonMuted }}>
-          {kplcEstimateCopy(live)}
-        </p>
+        <details className="mt-3">
+          <summary className="cursor-pointer text-[12px] font-medium text-[var(--tab-muted)] marker:text-[var(--tab-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_40%,transparent)]">
+            How this is estimated
+          </summary>
+          <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--tab-muted)]">
+            {kplcEstimateCopy(live)}
+          </p>
+        </details>
       ) : null}
       <button
         type="button"
         disabled={busy || !canEstimate}
         aria-pressed={depletion.alertsEnabled}
         onClick={() => onToggle(!depletion.alertsEnabled)}
-        className={cn(
-          "mt-3 flex w-full items-center justify-center gap-2 py-2.5 text-[14px] font-semibold disabled:opacity-45",
-          depletion.alertsEnabled
-            ? "bg-[var(--tab-bg)] text-[var(--tab-fg)]"
-            : "border border-[color-mix(in_oklab,var(--tab-bg)_35%,transparent)]",
-        )}
+        className="mt-3 flex min-h-10 items-center gap-2 text-[13px] font-medium text-[var(--tab-fg)] disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_40%,transparent)]"
       >
         {depletion.alertsEnabled ? (
           <>
-            <Bell className="size-4" aria-hidden />
+            <Bell className="size-3.5 shrink-0" aria-hidden />
             Reminders on · 2 days and 1 day before
           </>
         ) : (
           <>
-            <BellOff className="size-4" aria-hidden />
-            Text me before it runs out
+            <BellOff className="size-3.5 shrink-0 text-[var(--tab-muted)]" aria-hidden />
+            <span className="text-[var(--tab-muted)]">Text me before it runs out</span>
           </>
         )}
       </button>
-    </div>
+    </section>
   );
 }
 
@@ -651,7 +678,6 @@ export function TabKplcSheet({
   const sameLoadedMeter =
     loadedMeter != null && digitsOnly(meter) === loadedMeter;
   const latest = sortedTokens[0] ?? null;
-  const older = sortedTokens.slice(1);
   const live = resolveKplcEstimate(sortedTokens, depletion, latest);
   const canShowStats = Boolean(
     (resolvedStats && (resolvedStats.months.length > 0 || (tokens && tokens.length > 0))) ||
@@ -839,10 +865,12 @@ export function TabKplcSheet({
           ) : null}
 
           {busy && tokens == null ? (
-            <p className="mt-4 flex items-center gap-2 px-4 text-[13px] text-[var(--tab-muted)]">
-              <Loader2 className="size-4 animate-spin" />
-              Looking up tokens…
-            </p>
+            <>
+              <div className="sr-only" role="status">
+                Looking up tokens…
+              </div>
+              <LookupSkeleton />
+            </>
           ) : null}
 
         <div
@@ -875,65 +903,25 @@ export function TabKplcSheet({
                   No tokens on {formatMeterDisplay(loadedMeter)} yet.
                 </p>
               ) : (
-                <>
-                  {latest ? (
-                    <LatestToken
-                      token={latest}
-                      copied={copied === latest.tokenNo}
-                      expanded={expanded === `${latest.tokenNo}-${latest.purchasedAt ?? ""}`}
-                      split={canShowStats}
-                      onToggle={() => {
-                        const key = `${latest.tokenNo}-${latest.purchasedAt ?? ""}`;
-                        setExpanded((cur) => (cur === key ? null : key));
-                      }}
-                      onCopy={() => void copyToken(latest.tokenNo)}
-                    />
-                  ) : null}
-                  {older.length > 0 ? (
-                    <ol className="divide-y divide-[var(--tab-border)]">
-                      {older.map((token) => {
-                        const key = `${token.tokenNo}-${token.purchasedAt ?? ""}`;
-                        const openRow = expanded === key;
-                        return (
-                          <li key={key} className="px-4 py-3">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 flex-1">
-                                {token.concepts?.length ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => setExpanded(openRow ? null : key)}
-                                    className="w-full text-left"
-                                    aria-expanded={openRow}
-                                  >
-                                    <TokenStamp token={token} />
-                                  </button>
-                                ) : (
-                                  <TokenStamp token={token} />
-                                )}
-                                <CopyTokenButton
-                                  tokenNo={token.tokenNo}
-                                  copied={copied === token.tokenNo}
-                                  quiet
-                                  onCopy={() => void copyToken(token.tokenNo)}
-                                />
-                                {openRow ? <ConceptList token={token} /> : null}
-                              </div>
-                              {token.concepts?.length ? (
-                                <ChevronDown
-                                  className={cn(
-                                    "mt-1 size-3.5 shrink-0 text-[var(--tab-muted)] transition-transform duration-200",
-                                    openRow && "rotate-180",
-                                  )}
-                                  aria-hidden
-                                />
-                              ) : null}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ol>
-                  ) : null}
-                </>
+                <ol className="list-none divide-y divide-[var(--tab-border)] p-0">
+                  {sortedTokens.map((token, index) => {
+                    const key = `${token.tokenNo}-${token.purchasedAt ?? ""}`;
+                    return (
+                      <li key={key}>
+                        <TokenRow
+                          token={token}
+                          featured={index === 0}
+                          copied={copied === token.tokenNo}
+                          expanded={expanded === key}
+                          onToggle={() =>
+                            setExpanded((cur) => (cur === key ? null : key))
+                          }
+                          onCopy={() => void copyToken(token.tokenNo)}
+                        />
+                      </li>
+                    );
+                  })}
+                </ol>
               )}
             </section>
           ) : null}
@@ -1007,113 +995,5 @@ export function TabKplcSheet({
           </div>
         </div>
     </TabOverlay>
-  );
-}
-
-function TokenStamp({
-  token,
-}: {
-  token: PublicTabKplcToken;
-}) {
-  const amount = toAmount(token.amount);
-  const units = toAmount(token.units);
-  return (
-    <>
-      <p className="text-[15px] font-semibold tracking-[-0.02em]">
-        <time
-          dateTime={token.purchasedAt ?? undefined}
-          title={
-            token.purchasedAt ? formatAbsoluteTokenDate(token.purchasedAt) : undefined
-          }
-        >
-          {formatRelativeTokenTime(token.purchasedAt)}
-        </time>
-      </p>
-      <p className="mt-0.5 text-[13px] tabular-nums text-[var(--tab-muted)]">
-        {amount != null ? money(amount) : "Token"}
-        {units != null ? ` · ${units.toLocaleString("en-KE")} kWh` : ""}
-        {token.paymentMethod ? ` · ${token.paymentMethod}` : ""}
-      </p>
-    </>
-  );
-}
-
-function LatestToken({
-  token,
-  copied,
-  expanded,
-  split,
-  onToggle,
-  onCopy,
-}: {
-  token: PublicTabKplcToken;
-  copied: boolean;
-  expanded: boolean;
-  split?: boolean;
-  onToggle: () => void;
-  onCopy: () => void;
-}) {
-  const amount = toAmount(token.amount);
-  const units = toAmount(token.units);
-  const hasConcepts = Boolean(token.concepts?.length);
-  return (
-    <article
-      className={cn(
-        "px-4 py-4",
-        "bg-[var(--tab-fg)] text-[var(--tab-bg)]",
-        split &&
-          "lg:border-b lg:border-[var(--tab-border)] lg:bg-transparent lg:text-[var(--tab-fg)]",
-      )}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-start justify-between gap-3 text-left"
-        aria-expanded={expanded}
-        disabled={!hasConcepts}
-      >
-        <div className="min-w-0">
-          <p className="text-[1.25rem] font-semibold leading-none tracking-[-0.03em] lg:text-[1.125rem]">
-            <time
-              dateTime={token.purchasedAt ?? undefined}
-              title={
-                token.purchasedAt ? formatAbsoluteTokenDate(token.purchasedAt) : undefined
-              }
-            >
-              {formatRelativeTokenTime(token.purchasedAt)}
-            </time>
-          </p>
-          <p
-            className={cn(
-              "mt-2 text-[14px] font-semibold tabular-nums",
-              split && "lg:font-medium lg:text-[var(--tab-muted)]",
-            )}
-          >
-            {amount != null ? money(amount) : "Latest token"}
-            {units != null ? ` · ${units.toLocaleString("en-KE")} kWh` : ""}
-            {token.paymentMethod ? ` · ${token.paymentMethod}` : ""}
-          </p>
-        </div>
-        {hasConcepts ? (
-          <ChevronDown
-            className={cn(
-              "mt-1 size-4 shrink-0 transition-transform duration-200",
-              expanded && "rotate-180",
-              split && "lg:text-[var(--tab-muted)]",
-            )}
-            style={split ? undefined : { color: comingSoonMuted }}
-            aria-hidden
-          />
-        ) : null}
-      </button>
-      <CopyTokenButton
-        tokenNo={token.tokenNo}
-        copied={copied}
-        inverted
-        split={split}
-        onCopy={onCopy}
-      />
-      {expanded ? <ConceptList token={token} inverted split={split} /> : null}
-    </article>
   );
 }
