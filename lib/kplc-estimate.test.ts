@@ -40,9 +40,9 @@ describe("estimateKplcLive", () => {
     expect(got!.alreadyEmpty).toBe(false);
     expect(got!.dailyUseUnits).toBeGreaterThan(3.5);
     expect(got!.dailyUseUnits).toBeLessThan(4.6);
-    expect(got!.remainingUnits).toBeGreaterThan(6);
-    expect(got!.remainingUnits).toBeLessThan(10.5);
-    expect(got!.sampleIntervals).toBe(2);
+    expect(got!.remainingUnits).toBeGreaterThan(5);
+    expect(got!.remainingUnits).toBeLessThan(14);
+    expect(got!.sampleIntervals).toBe(4);
     expect(got!.emptyAt!.getTime()).toBeGreaterThan(now);
     expect(got!.emptyAt!.getTime()).toBeLessThan(new Date(nairobiIso(2026, 8, 21, 0)).getTime());
   });
@@ -57,12 +57,28 @@ describe("estimateKplcLive", () => {
     const now = new Date(nairobiIso(2026, 8, 8, 20)).getTime();
     const got = estimateKplcLive(tokens, now)!;
     expect(got.alreadyEmpty).toBe(false);
-    expect(got.dailyUseUnits).toBeGreaterThan(3.5);
-    expect(got.dailyUseUnits).toBeLessThan(4.5);
+    expect(got.dailyUseUnits).toBeGreaterThan(7);
+    expect(got.dailyUseUnits).toBeLessThan(9.5);
     expect(got.carryInUnits).toBeGreaterThan(10);
     expect(got.remainingUnits).toBeGreaterThan(30);
-    expect(got.emptyAt!.getTime()).toBeGreaterThan(new Date(nairobiIso(2026, 8, 14, 0)).getTime());
-    expect(got.sampleIntervals).toBe(1);
+    expect(got.emptyAt!.getTime()).toBeGreaterThan(new Date(nairobiIso(2026, 8, 12, 0)).getTime());
+    expect(got.sampleIntervals).toBe(4);
+  });
+
+  test("uses the last five tokens as one hourly spend", () => {
+    const tokens = [
+      slip(nairobiIso(2026, 1, 1, 8), 100),
+      slip(nairobiIso(2026, 6, 12, 7), 10),
+      slip(nairobiIso(2026, 6, 22, 7), 10),
+      slip(nairobiIso(2026, 7, 2, 7), 10),
+      slip(nairobiIso(2026, 7, 12, 7), 10),
+      slip(nairobiIso(2026, 7, 22, 7), 10),
+    ];
+    const now = new Date(nairobiIso(2026, 7, 24, 7)).getTime();
+    const got = estimateKplcLive(tokens, now)!;
+    expect(got.sampleIntervals).toBe(5);
+    expect(got.dailyUseUnits).toBeGreaterThan(0.8);
+    expect(got.dailyUseUnits).toBeLessThan(1.2);
   });
 
   test("empty clock leans evening when a partial day is left", () => {
@@ -83,12 +99,14 @@ describe("estimateKplcLive", () => {
     expect(hour).toBeGreaterThanOrEqual(16);
   });
 
-  test("empty clock stays put if you refresh an hour later", () => {
+  test("empty clock stays in the same window if you refresh an hour later", () => {
     const tokens = [slip(nairobiIso(2026, 8, 10, 7), 16), slip(nairobiIso(2026, 8, 14, 7), 16)];
     const first = estimateKplcLive(tokens, new Date(nairobiIso(2026, 8, 15, 10)).getTime())!;
     const second = estimateKplcLive(tokens, new Date(nairobiIso(2026, 8, 15, 11)).getTime())!;
+    expect(first.alreadyEmpty).toBe(false);
+    expect(second.alreadyEmpty).toBe(false);
     const driftMin = Math.abs(first.emptyAt!.getTime() - second.emptyAt!.getTime()) / 60_000;
-    expect(driftMin).toBeLessThan(25);
+    expect(driftMin).toBeLessThan(180);
   });
 
   test("needs two dated purchases", () => {

@@ -1,9 +1,9 @@
 const NAIROBI = "Africa/Nairobi";
 
-/** Skip lookup glitches / duplicate stamps. */
-const MIN_INTERVAL_MS = 6 * 3_600_000;
-/** Gaps shorter than this are top-ups, not a finished cycle. */
-const MIN_CYCLE_MS = 36 * 3_600_000;
+/** Oldest of the last N tokens starts the spend clock. */
+const RATE_WINDOW = 5;
+/** Window must cover more than a same-day duplicate lookup. */
+const MIN_SPAN_MS = 6 * 3_600_000;
 const EMPTY_EPS = 0.05;
 
 /**
@@ -145,14 +145,6 @@ function whenEmpty(fromMs: number, stock: number, daily: number): Date | null {
   return new Date(t);
 }
 
-function median(values: number[]): number | null {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  if (sorted.length % 2 === 1) return sorted[mid];
-  return (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
 function datedSlips(tokens: KplcSlip[] | null | undefined): { at: number; kwh: number }[] {
   if (!tokens?.length) return [];
   return tokens
@@ -194,6 +186,10 @@ function finishEstimate(
   };
 }
 
+function lastN<T>(items: T[], n: number): T[] {
+  return items.length <= n ? items : items.slice(items.length - n);
+}
+
 /** Live remaining + empty clock from the slip list. */
 export function estimateKplcLive(
   tokens: KplcSlip[] | null | undefined,
@@ -202,29 +198,15 @@ export function estimateKplcLive(
   const dated = datedSlips(tokens);
   if (dated.length < 2) return null;
 
-  const cycleRates: number[] = [];
-  const anyRates: number[] = [];
-  for (let i = 0; i < dated.length - 1; i++) {
-    const gap = dated[i + 1].at - dated[i].at;
-    if (gap < MIN_INTERVAL_MS) continue;
-    const days = gap / 86_400_000;
-    if (days <= 0) continue;
-    const rate = dated[i].kwh / days;
-    if (!(rate > 0)) continue;
-    anyRates.push(rate);
-    if (gap >= MIN_CYCLE_MS) cycleRates.push(rate);
-  }
-  let rates = cycleRates.length > 0 ? cycleRates : anyRates;
-  if (rates.length === 0) {
-    const span = dated[dated.length - 1].at - dated[0].at;
-    if (span < MIN_INTERVAL_MS) return null;
-    let consumed = 0;
-    for (let i = 0; i < dated.length - 1; i++) consumed += dated[i].kwh;
-    if (consumed <= 0) return null;
-    rates = [consumed / (span / 86_400_000)];
-  }
-  const daily = median(rates);
-  if (daily == null || daily <= 0) return null;
+  const window = lastN(dated, RATE_WINDOW);
+  const start = window[0].at;
+  const hours = (nowMs - start) / 3_600_000;
+  if (hours * 3_600_000 < MIN_SPAN_MS || hours <= 0) return null;
+  let consumed = 0;
+  for (let i = 0; i < window.length - 1; i++) consumed += window[i].kwh;
+  if (consumed <= 0) return null;
+  const daily = (consumed / hours) * 24;
+  if (!(daily > 0)) return null;
 
   let stock = 0;
   for (let i = 0; i < dated.length; i++) {
@@ -234,7 +216,7 @@ export function estimateKplcLive(
     }
   }
   const latest = dated[dated.length - 1];
-  return finishEstimate(latest.at, latest.kwh, stock, daily, rates.length, nowMs);
+  return finishEstimate(latest.at, latest.kwh, stock, daily, window.length, nowMs);
 }
 
 /** Fallback when we only have the API snapshot, not the full slip list. */
@@ -358,7 +340,7 @@ export function estimateRemainingUnits(
 
 export function kplcEstimateCopy(live: KplcLiveEstimate): string {
   const slips = live.sampleIntervals;
-  const slipBit = `From ${slips} slip${slips === 1 ? "" : "s"}`;
+  const slipBit = `From the last ${slips} token${slips === 1 ? "" : "s"}`;
   const dayBit = live.dailyUseUnits > 0 ? ` · ~${live.dailyUseUnits.toFixed(1)} kWh a day` : "";
   const carryBit =
     live.carryInUnits >= 0.5 ? ` · ~${live.carryInUnits.toFixed(1)} kWh still on the meter when you last bought` : "";
