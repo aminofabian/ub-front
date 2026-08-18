@@ -74,28 +74,16 @@ function formatAbsoluteTokenDate(iso: string): string {
   }).format(date);
 }
 
-function formatRelativeTokenTime(iso: string | null, nowMs = Date.now()): string {
+function formatPurchaseDate(iso: string | null): string {
   if (!iso) return "Date unknown";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "Date unknown";
-  const diffMs = nowMs - date.getTime();
-  if (diffMs < 45_000) return "Just now";
-  const minutes = Math.round(diffMs / 60_000);
-  if (minutes < 60) {
-    return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
-  }
-  const hours = Math.round(diffMs / 3_600_000);
-  if (hours < 24) {
-    return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
-  }
-  const days = Math.round(diffMs / 86_400_000);
-  if (days < 45) {
-    return days === 1 ? "1 day ago" : `${days} days ago`;
-  }
-  return new Intl.DateTimeFormat("en-KE", {
+  return new Intl.DateTimeFormat("en", {
     timeZone: "Africa/Nairobi",
+    day: "numeric",
     month: "short",
-    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(date);
 }
 
@@ -286,43 +274,41 @@ function PurchaseRow({
   const amount = toAmount(token.amount);
   const units = toAmount(token.units);
   const formatted = formatTokenNo(token.tokenNo);
+  const headline = units != null ? kwhLabel(units) : "Token";
 
   return (
-    <li>
+    <li className="overflow-hidden odd:bg-[color-mix(in_oklab,var(--tab-focus)_4.5%,var(--tab-card))]">
       <button
         type="button"
         onClick={onCopy}
-        className={cn(
-          "flex w-full flex-col gap-0.5 py-3 text-left",
-          focusRing,
-        )}
+        className="flex w-full items-start gap-3 px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] active:bg-[var(--tab-chip)]"
         aria-label={copied ? `Copied ${formatted}` : `Copy token ${formatted}`}
       >
-        <span className="flex items-baseline justify-between gap-4">
-          <span className="text-[15px] font-semibold tabular-nums">
-            {amount != null ? money(amount) : "Token"}
-          </span>
-          {units != null ? (
-            <span className="shrink-0 tabular-nums text-[14px]">
-              {kwhLabel(units)}
-            </span>
-          ) : null}
-        </span>
-        <span className="flex items-baseline justify-between gap-4 text-[12px] text-[var(--tab-muted)]">
-          <time
-            dateTime={token.purchasedAt ?? undefined}
-            title={
-              token.purchasedAt
-                ? formatAbsoluteTokenDate(token.purchasedAt)
-                : undefined
-            }
-          >
-            {formatRelativeTokenTime(token.purchasedAt)}
-          </time>
-          <span className={copied ? "text-[var(--tab-success-fg)]" : undefined}>
-            {copied ? "copied" : formatted}
-          </span>
-        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-semibold tracking-[-0.02em]">
+            {headline}
+          </p>
+          <p className="mt-1 text-[12px] leading-snug text-[var(--tab-muted)]">
+            <time
+              dateTime={token.purchasedAt ?? undefined}
+              title={
+                token.purchasedAt
+                  ? formatAbsoluteTokenDate(token.purchasedAt)
+                  : undefined
+              }
+            >
+              {formatPurchaseDate(token.purchasedAt)}
+            </time>
+            {copied ? (
+              <span className="text-[var(--tab-success-fg)]"> · copied</span>
+            ) : (
+              <span> · {formatted}</span>
+            )}
+          </p>
+        </div>
+        <p className="shrink-0 text-[15px] font-semibold tabular-nums tracking-[-0.02em]">
+          {amount != null ? money(amount) : ""}
+        </p>
       </button>
     </li>
   );
@@ -784,14 +770,24 @@ export function TabKplcSheet({
                     ) : null}
                   </section>
 
-                  <section className="mt-7">
-                    <SectionRule title="Recent purchases" />
+                  <section className="-mx-4 mt-7 font-sans antialiased">
+                    <div className="flex items-baseline justify-between gap-3 border-y border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5">
+                      <h3 className="text-[17px] font-semibold tracking-[-0.02em]">
+                        Purchases
+                      </h3>
+                      {sortedTokens.length > 0 ? (
+                        <p className="text-[12px] tabular-nums text-[var(--tab-muted)]">
+                          {sortedTokens.length} token
+                          {sortedTokens.length === 1 ? "" : "s"}
+                        </p>
+                      ) : null}
+                    </div>
                     {tokens && loadedMeter && tokens.length === 0 ? (
-                      <p className="mt-3 text-[13px] leading-snug text-[var(--tab-muted)]">
+                      <p className="px-4 py-4 text-[13px] leading-snug text-[var(--tab-muted)]">
                         No tokens on {formatMeterDisplay(loadedMeter)} yet.
                       </p>
                     ) : sortedTokens.length > 0 ? (
-                      <ol className="mt-1 list-none p-0">
+                      <ul className="divide-y divide-[var(--tab-border)] border-b border-[var(--tab-border)] bg-[var(--tab-card)]">
                         {sortedTokens.map((token) => (
                           <PurchaseRow
                             key={`${token.tokenNo}-${token.purchasedAt ?? ""}`}
@@ -800,9 +796,9 @@ export function TabKplcSheet({
                             onCopy={() => void copyToken(token.tokenNo)}
                           />
                         ))}
-                      </ol>
+                      </ul>
                     ) : !lookingUp ? (
-                      <p className="mt-3 text-[13px] text-[var(--tab-muted)]">
+                      <p className="px-4 py-4 text-[13px] text-[var(--tab-muted)]">
                         Look up a meter to load purchases.
                       </p>
                     ) : null}
