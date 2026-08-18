@@ -16,10 +16,11 @@ import {
 } from "@/lib/public-customer-tab";
 import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
 import {
-  estimateRemainingUnits,
   formatKplcClock,
   formatKplcTimeLeft,
-  resolveKplcEmptyAt,
+  kplcEstimateCopy,
+  resolveKplcEstimate,
+  type KplcLiveEstimate,
 } from "@/lib/kplc-estimate";
 import { cn } from "@/lib/utils";
 import {
@@ -353,13 +354,10 @@ function SpendTape({ stats }: { stats: PublicTabKplcStats }) {
   );
 }
 
-function depletionTitle(
-  depletion: PublicTabKplcDepletion,
-  latest: PublicTabKplcToken | null,
-  nowMs = Date.now(),
-): string {
-  const empty = resolveKplcEmptyAt(depletion, latest, nowMs);
-  if (depletion.alreadyEmpty || (empty && empty.getTime() <= nowMs)) {
+function depletionTitle(live: KplcLiveEstimate | null, nowMs = Date.now()): string {
+  if (!live) return "Need one more top-up";
+  const empty = live.emptyAt;
+  if (live.alreadyEmpty || (empty && empty.getTime() <= nowMs)) {
     return "Likely already out";
   }
   if (!empty) return "Need one more top-up";
@@ -397,35 +395,33 @@ function TokenFuse({ remaining, last }: { remaining: number; last: number }) {
 
 function DepletionPanel({
   depletion,
-  latest,
+  live,
   onToggle,
   busy,
 }: {
   depletion: PublicTabKplcDepletion;
-  latest: PublicTabKplcToken | null;
+  live: KplcLiveEstimate | null;
   onToggle: (enabled: boolean) => void;
   busy: boolean;
 }) {
-  const emptyAt = resolveKplcEmptyAt(depletion, latest);
-  const remaining = estimateRemainingUnits(depletion, latest);
-  const last =
-    toAmount(depletion.lastPurchaseUnits) ?? toAmount(latest?.units);
-  const daily = toAmount(depletion.dailyUseUnits);
-  const canEstimate = Boolean(emptyAt) || depletion.alreadyEmpty;
-  const stillGoing = Boolean(emptyAt && emptyAt.getTime() > Date.now());
+  const emptyAt = live?.emptyAt ?? null;
+  const remaining = live?.remainingUnits ?? null;
+  const tank = live ? Math.max(live.stockAtLastBuy, live.lastPurchaseUnits) : null;
+  const canEstimate = Boolean(live);
+  const stillGoing = Boolean(emptyAt && emptyAt.getTime() > Date.now() && !live?.alreadyEmpty);
   return (
     <div className="bg-[var(--tab-fg)] px-4 py-4 text-[var(--tab-bg)]">
       <p className="text-[1.5rem] font-semibold leading-[0.95] tracking-[-0.03em]">
-        {canEstimate ? depletionTitle(depletion, latest) : "Need one more top-up"}
+        {canEstimate ? depletionTitle(live) : "Need one more top-up"}
       </p>
       {canEstimate && stillGoing && emptyAt ? (
         <p className="mt-2 text-[17px] font-semibold leading-snug tracking-[-0.02em]">
           {formatKplcTimeLeft(emptyAt)}
         </p>
       ) : null}
-      {canEstimate && remaining != null && remaining > 0 && last != null ? (
+      {canEstimate && remaining != null && remaining > 0 && tank != null && tank > 0 ? (
         <>
-          <TokenFuse remaining={remaining} last={last} />
+          <TokenFuse remaining={remaining} last={tank} />
           <p className="mt-2 text-[14px] font-semibold tabular-nums">
             About {remaining.toLocaleString("en-KE", { maximumFractionDigits: 1 })} kWh left
           </p>
@@ -435,11 +431,9 @@ function DepletionPanel({
           After the next token we can time how fast this meter drinks units.
         </p>
       ) : null}
-      {canEstimate ? (
+      {canEstimate && live ? (
         <p className="mt-3 text-[13px] leading-snug" style={{ color: comingSoonMuted }}>
-          From how long the last {depletion.sampleIntervals || 0} slip
-          {(depletion.sampleIntervals || 0) === 1 ? "" : "s"} lasted
-          {daily != null ? ` · ~${daily.toFixed(1)} kWh a day` : ""}. Not a live meter read.
+          {kplcEstimateCopy(live)}
         </p>
       ) : null}
       <button
@@ -657,9 +651,11 @@ export function TabKplcSheet({
   }, [tokens]);
   const latest = sortedTokens[0] ?? null;
   const older = sortedTokens.slice(1);
+  const live = resolveKplcEstimate(sortedTokens, depletion, latest);
   const canShowStats = Boolean(
     (resolvedStats && (resolvedStats.months.length > 0 || (tokens && tokens.length > 0))) ||
-      depletion,
+      depletion ||
+      live,
   );
   const meterKnown = meters.some((saved) => saved.meterNumber === digitsOnly(meter));
   const showMeterInput = meters.length === 0 || addingMeter || (Boolean(meter) && !meterKnown);
@@ -865,7 +861,7 @@ export function TabKplcSheet({
             <div className="lg:hidden">
               <DepletionPanel
                 depletion={depletion}
-                latest={latest}
+                live={live}
                 busy={busy}
                 onToggle={(enabled) => void toggleDepletionAlerts(enabled)}
               />
@@ -952,7 +948,7 @@ export function TabKplcSheet({
               {depletion ? (
                 <DepletionPanel
                   depletion={depletion}
-                  latest={latest}
+                  live={live}
                   busy={busy}
                   onToggle={(enabled) => void toggleDepletionAlerts(enabled)}
                 />
