@@ -3,26 +3,27 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { LogOut, Sparkles } from "lucide-react";
+import { ArrowLeft, LogOut } from "lucide-react";
 
-import { ShopAccountHub, fmtMoney } from "@/components/storefront/shop-account-hub";
-import { Button } from "@/components/ui/button";
+import { ShopAccountHub, SHOP_FLOOR_HREF, fmtMoney } from "@/components/storefront/shop-account-hub";
+import styles from "@/components/storefront/shop-account.module.css";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
 import { fetchBusiness, fetchMe, logoutRemote, type MeResponse } from "@/lib/api";
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 
 type LoadState = "loading" | "guest" | "ready" | "error";
 
 export default function ShopAccountPage() {
   const router = useRouter();
-  useAuthenticatedSession({ loginPath: APP_ROUTES.login });
+  const { ready, hasSession } = useAuthenticatedSession({ loginPath: APP_ROUTES.login });
   const [me, setMe] = useState<MeResponse | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [peekCurrency, setPeekCurrency] = useState<string | undefined>();
 
   const loadMe = useCallback(async () => {
-    if (!getSessionTokens()) {
+    const live = hasAccessSession() || Boolean(getSessionTokens()) || hasSession;
+    if (!live) {
       setMe(null);
       setState("guest");
       return;
@@ -37,14 +38,20 @@ export default function ShopAccountPage() {
       setMe(profile);
       setState("ready");
     } catch {
+      if (!hasAccessSession() && !getSessionTokens()) {
+        setMe(null);
+        setState("guest");
+        return;
+      }
       setMe(null);
       setState("error");
     }
-  }, []);
+  }, [hasSession]);
 
   useEffect(() => {
+    if (!ready) return;
     void loadMe();
-  }, [loadMe]);
+  }, [loadMe, ready]);
 
   const onLogout = async () => {
     await logoutRemote();
@@ -54,94 +61,99 @@ export default function ShopAccountPage() {
   };
 
   const loginHref = `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`;
+  const currency = peekCurrency ?? "KES";
 
-  if (state === "guest") {
+  if (!ready || state === "loading") {
     return (
-      <div className="relative mx-auto max-w-lg px-4 py-16">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -inset-x-24 -top-10 h-[18rem] bg-[radial-gradient(circle,rgba(99,102,241,0.28),transparent_68%)] opacity-95 blur-3xl dark:opacity-60"
-        />
-        <div className="relative">
-          <p className="inline-flex items-center gap-2 rounded-full border border-border/65 bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            <Sparkles className="size-3 text-amber-500" aria-hidden />
-            Shop account
-          </p>
-          <h1 className="font-heading mt-5 text-3xl font-extrabold tracking-tight">
-            Sign in to your account
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Track pickup orders, wallet balance, loyalty points, and in-store tab from one place.
-          </p>
-          <dl className="mt-10 space-y-3 rounded-[1.4rem] border border-border/60 bg-card/80 p-6 text-sm shadow-sm backdrop-blur">
-            <div className="flex justify-between gap-4 border-b border-dashed pb-4">
-              <dt className="text-muted-foreground">Wallet preview</dt>
-              <dd className="font-mono text-foreground">
-                {fmtMoney(0, peekCurrency ?? "USD")}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-4 border-b border-dashed pb-4">
-              <dt className="text-muted-foreground">Loyalty</dt>
-              <dd className="font-semibold text-foreground">0 pts</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Tab signal</dt>
-              <dd className="font-mono text-foreground">
-                {fmtMoney(0, peekCurrency ?? "USD")}
-              </dd>
-            </div>
-          </dl>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild className="h-11 rounded-2xl">
-              <Link href={loginHref}>Sign in</Link>
-            </Button>
-            <Button variant="outline" asChild className="h-11 rounded-2xl border-2">
-              <Link href={APP_ROUTES.signup}>Create shopper account</Link>
-            </Button>
-            <Button variant="ghost" asChild className="h-11 rounded-2xl">
-              <Link href={APP_ROUTES.shop}>Browse shop</Link>
-            </Button>
+      <div className={styles.page}>
+        <div className={styles.center}>
+          <div>
+            <div className={styles.spin} aria-hidden />
+            Opening your passbook…
           </div>
         </div>
       </div>
     );
   }
 
-  if (state === "loading") {
+  if (state === "guest") {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center px-6 text-center text-sm text-muted-foreground">
-        <div className="space-y-3">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          Loading your account…
-        </div>
+      <div className={styles.page}>
+        <article className={styles.passbook}>
+          <div className={styles.passHead}>
+            <h1 className={styles.hello}>Sign in to see your shop</h1>
+            <p className={styles.lead}>
+              Purchase history, your M-Pesa number, wallet, and in-store tab — then hop back to the
+              aisles.
+            </p>
+          </div>
+          <div className={styles.passTop}>
+            <div className={styles.stamp}>
+              <p className={styles.stampPhone}>— — —</p>
+              <p className={styles.stampMeta}>Your number shows here after you sign in</p>
+            </div>
+          </div>
+          <dl className={styles.strip}>
+            <div className={styles.cell}>
+              <dt>Wallet</dt>
+              <dd>
+                {fmtMoney(0, currency)}
+                <span className={styles.cellHint}>Store credit</span>
+              </dd>
+            </div>
+            <div className={styles.cell}>
+              <dt>Points</dt>
+              <dd>
+                0
+                <span className={styles.cellHint}>Loyalty</span>
+              </dd>
+            </div>
+            <div className={styles.cell}>
+              <dt>Tab</dt>
+              <dd>
+                {fmtMoney(0, currency)}
+                <span className={styles.cellHint}>Owed at the till</span>
+              </dd>
+            </div>
+          </dl>
+          <div className={styles.actions}>
+            <Link href={loginHref} className={styles.ctaAccent}>
+              Sign in
+            </Link>
+            <Link href={APP_ROUTES.signup} className={styles.ghost}>
+              Create account
+            </Link>
+            <Link href={SHOP_FLOOR_HREF} className={styles.quiet}>
+              Continue shopping
+            </Link>
+          </div>
+        </article>
       </div>
     );
   }
 
   if (state === "error") {
     return (
-      <div className="mx-auto max-w-xl px-4 py-14">
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-          Your account
-        </h1>
-        <p className="mt-3 text-sm text-destructive">
+      <div className={styles.page}>
+        <h1 className={styles.hello}>Your account</h1>
+        <p className={styles.alert} role="alert">
           We couldn&apos;t load your profile — your session may have expired.
         </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Button className="rounded-xl" onClick={() => void loadMe()}>
+        <div className={styles.toolbar}>
+          <button type="button" className={styles.cta} onClick={() => void loadMe()}>
             Retry
-          </Button>
-          <Button variant="outline" className="rounded-xl" asChild>
-            <Link href={loginHref}>Sign in again</Link>
-          </Button>
-          <Button
-            variant="ghost"
-            className="rounded-xl gap-2 text-destructive hover:text-destructive"
-            onClick={() => void onLogout()}
-          >
-            <LogOut className="h-4 w-4" aria-hidden />
+          </button>
+          <Link href={loginHref} className={styles.ghost}>
+            Sign in again
+          </Link>
+          <Link href={SHOP_FLOOR_HREF} className={styles.quiet}>
+            <ArrowLeft className="size-4" aria-hidden />
+            Continue shopping
+          </Link>
+          <button type="button" className={styles.quiet} onClick={() => void onLogout()}>
+            <LogOut className="size-4" aria-hidden />
             Clear session
-          </Button>
+          </button>
         </div>
       </div>
     );

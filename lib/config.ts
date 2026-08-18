@@ -135,6 +135,8 @@ export const APP_ROUTES = {
   paymentsKioskPay: "/payments/kiosk-pay",
   /** Airtime resale history + float status. */
   airtime: "/payments/airtime",
+  /** Storefront airtime purchases and commission earned. */
+  onlineAirtime: "/payments/online-airtime",
   /** Public storefront airtime purchase. */
   shopAirtime: "/shop/airtime",
   /** Desktop SKU: license, LAN sharing, local backups (DESKTOP_INSTALLATION.md). */

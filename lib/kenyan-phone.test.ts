@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   detectKenyanNetwork,
+  formatKenyanPhoneDisplay,
   looksLikeKenyanMobilePath,
   toKenyanLocal07,
   toKenyanMsisdn254,
@@ -15,6 +16,12 @@ describe("kenyan-phone", () => {
     expect(looksLikeKenyanMobilePath("714282874")).toBe(true);
     expect(looksLikeKenyanMobilePath("sugar-2kg")).toBe(false);
     expect(looksLikeKenyanMobilePath("SKU-001")).toBe(false);
+  });
+
+  it("groups a local number for display", () => {
+    expect(formatKenyanPhoneDisplay("0714282874")).toBe("0714 282 874");
+    expect(formatKenyanPhoneDisplay("254714282874")).toBe("0714 282 874");
+    expect(formatKenyanPhoneDisplay("")).toBe("");
   });
 
   it("normalizes to local 07 form", () => {

@@ -186,6 +186,15 @@ export function AirtimeActivityPage() {
             className="h-8 gap-1.5 px-2 text-xs"
             asChild
           >
+            <Link href={APP_ROUTES.onlineAirtime}>Online</Link>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 px-2 text-xs"
+            asChild
+          >
             <Link href={`${APP_ROUTES.paymentsSettings}#airtime`}>
               <Settings2 className="size-3.5" aria-hidden />
               Settings

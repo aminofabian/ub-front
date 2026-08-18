@@ -56,7 +56,7 @@ export function ShopNotificationsPanel() {
   };
 
   return (
-    <section className="relative z-[1] mt-10 rounded-[1.5rem] border border-border/60 bg-card/85 shadow-lg backdrop-blur-sm">
+    <section className="relative z-[1] rounded-2xl border border-border/70 bg-card shadow-sm">
       <div className="border-b border-border/50 px-5 py-3">
         <PushNotificationsEnable label="Enable order alerts on this device" />
       </div>

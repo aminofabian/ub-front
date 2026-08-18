@@ -51,7 +51,7 @@ export function ShopNotificationPreferences() {
     profile?.categories?.promo?.WEB_PUSH ?? profile?.categories?.promo?.["WEB_PUSH"] ?? true;
 
   return (
-    <section className="relative z-[1] mt-6 rounded-[1.5rem] border border-border/60 bg-card/85 shadow-lg backdrop-blur-sm">
+    <section className="relative z-[1] rounded-2xl border border-border/70 bg-card shadow-sm">
       <div className="flex items-center gap-2 border-b border-border/50 px-5 py-4">
         <Settings2 className="size-5 text-[color:var(--auth-primary)]" aria-hidden />
         <h2 className="font-heading text-lg font-bold tracking-tight">Alert preferences</h2>

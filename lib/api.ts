@@ -542,6 +542,7 @@ export type MeResponse = {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;
   status: string;
   branchId?: string;
   role?: RoleSummary;
@@ -2278,6 +2279,24 @@ export type ShopperLedgerRow = {
   credit?: number | string | null;
 };
 
+export type ShopperTillPurchaseLine = {
+  itemName: string;
+  quantity?: number | string;
+  unitPrice?: number | string;
+  lineTotal?: number | string;
+};
+
+export type ShopperTillPurchase = {
+  saleId: string;
+  receiptNo?: number | null;
+  soldAt?: string;
+  status?: string;
+  creditAmount?: number | string;
+  grandTotal?: number | string | null;
+  walletCredited?: number | string | null;
+  lines?: ShopperTillPurchaseLine[];
+};
+
 export type ShopperAccountOverview = {
   email: string;
   linkedStorefrontProfile: boolean;
@@ -2294,6 +2313,8 @@ export type ShopperAccountOverview = {
   loyaltyKesPerPoint?: number | string | null;
   /** Primary phone for the public tab portal (`/07XXXXXXXX`). */
   tabPhone?: string | null;
+  /** In-store till sales linked to this shopper's directory profile. */
+  tillPurchases?: ShopperTillPurchase[];
 };
 
 export type ShopperPickupOrderDetail = {
@@ -2343,6 +2364,44 @@ export async function fetchShopperPickupOrderDetail(
       requiresAuth: true,
     },
   );
+}
+
+export async function sendShopperPhoneCode(
+  phone: string,
+): Promise<{ phone: string; maskedHint?: string; channel?: string }> {
+  return request<{ phone: string; maskedHint?: string; channel?: string }>(
+    "/api/v1/public/shopper/auth/send-code",
+    {
+      method: "POST",
+      body: { phone },
+      requiresAuth: false,
+    },
+  );
+}
+
+export async function verifyShopperPhoneCode(
+  phone: string,
+  code: string,
+): Promise<{ phoneVerificationToken: string }> {
+  return request<{ phoneVerificationToken: string }>(
+    "/api/v1/public/shopper/auth/verify-code",
+    {
+      method: "POST",
+      body: { phone, code },
+      requiresAuth: false,
+    },
+  );
+}
+
+export async function linkShopperPhone(
+  phone: string,
+  phoneVerificationToken: string,
+): Promise<ShopperAccountOverview> {
+  return request<ShopperAccountOverview>(`${API_ROUTES.shopperHub}/phone`, {
+    method: "POST",
+    body: { phone, phoneVerificationToken },
+    requiresAuth: true,
+  });
 }
 
 export type ShopperNotificationRow = {
@@ -10144,6 +10203,7 @@ export type AirtimeOrderRecord = {
   channel: string;
   tender?: string | null;
   phoneNumber: string;
+  payerPhone?: string | null;
   network: string | null;
   amount: number;
   cost: number;
@@ -10158,6 +10218,20 @@ export type AirtimeOrderRecord = {
   walletBalanceAfter: number | null;
   requestedAt: string;
   completedAt: string | null;
+};
+
+export type AirtimeStorefrontSummaryRecord = {
+  currency: string;
+  commissionPercent: number;
+  successCount: number;
+  successAmount: number;
+  commissionEarned: number;
+  todaySuccessCount: number;
+  todaySuccessAmount: number;
+  todayCommission: number;
+  awaitingPaymentCount: number;
+  inFlightCount: number;
+  failedCount: number;
 };
 
 export type AirtimeSettingsRecord = {
@@ -10225,9 +10299,18 @@ export async function sellAirtime(
 
 export async function fetchAirtimeOrders(
   limit = 20,
+  channel?: string,
 ): Promise<AirtimeOrderRecord[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (channel?.trim()) params.set("channel", channel.trim());
   return request<AirtimeOrderRecord[]>(
-    `${API_ROUTES.airtime}/orders?limit=${limit}`,
+    `${API_ROUTES.airtime}/orders?${params}`,
+  );
+}
+
+export async function fetchAirtimeStorefrontSummary(): Promise<AirtimeStorefrontSummaryRecord> {
+  return request<AirtimeStorefrontSummaryRecord>(
+    `${API_ROUTES.airtime}/storefront/summary`,
   );
 }
 

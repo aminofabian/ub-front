@@ -333,6 +333,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.paymentsDayLedger, label: "Day ledger" },
       { href: APP_ROUTES.paymentsKioskPay, label: "Kiosk Pay" },
       { href: APP_ROUTES.airtime, label: "Airtime" },
+      { href: APP_ROUTES.onlineAirtime, label: "Online airtime" },
       { href: APP_ROUTES.paymentsSettings, label: "Gateways & payouts" },
     ],
   },
@@ -496,6 +497,7 @@ const DESKTOP_HIDDEN_NAV_HREFS: readonly string[] = [
   APP_ROUTES.promoCampaigns,
   APP_ROUTES.businessDomains,
   APP_ROUTES.storefrontWebOrders,
+  APP_ROUTES.onlineAirtime,
 ];
 
 const DESKTOP_ONLY_NAV_HREFS: readonly string[] = [APP_ROUTES.desktopSettings];
@@ -654,6 +656,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.paymentsKioskPay)
     return gate.canViewPaymentGateways;
   if (item.href === APP_ROUTES.airtime) return gate.canViewAirtime;
+  if (item.href === APP_ROUTES.onlineAirtime) return gate.canViewAirtime;
   if (item.href === APP_ROUTES.paymentsDayLedger)
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesTransactions)

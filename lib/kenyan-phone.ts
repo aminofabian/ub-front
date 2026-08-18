@@ -30,6 +30,15 @@ export function toKenyanLocal07(raw: string): string | null {
   return null;
 }
 
+/** Grouped local form `0714 282 874` for account and till displays. */
+export function formatKenyanPhoneDisplay(raw: string | null | undefined): string {
+  const trimmed = raw?.trim() ?? "";
+  if (!trimmed) return "";
+  const local = toKenyanLocal07(trimmed);
+  if (!local) return trimmed;
+  return `${local.slice(0, 4)} ${local.slice(4, 7)} ${local.slice(7)}`;
+}
+
 /** Canonical MSISDN without `+` (`2547XXXXXXXX`) for KopoKopo / STK. */
 export function toKenyanMsisdn254(raw: string): string | null {
   const local = toKenyanLocal07(raw);

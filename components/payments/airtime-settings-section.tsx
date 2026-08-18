@@ -127,6 +127,9 @@ export function AirtimeSettingsSection() {
           <Button type="button" variant="outline" size="sm" asChild>
             <Link href={APP_ROUTES.airtime}>Airtime activity</Link>
           </Button>
+          <Button type="button" variant="outline" size="sm" asChild>
+            <Link href={APP_ROUTES.onlineAirtime}>Online purchases</Link>
+          </Button>
           <Button
             type="button"
             variant="outline"
