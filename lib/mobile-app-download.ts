@@ -18,6 +18,13 @@ export type MobileAppEntry = {
   platform: "android";
   /** Filename relative to /downloads/mobile/ */
   file: string;
+  /**
+   * Optional absolute download URL (when installers are hosted outside this repo
+   * like Expo build artifacts / a CDN).
+   *
+   * When provided, the UI will link to `url` instead of `/downloads/mobile/{file}`.
+   */
+  url?: string | null;
   sizeBytes: number;
 };
 
@@ -44,6 +51,7 @@ export const MOBILE_APP_DESCRIPTIONS: Record<string, string> = {
 };
 
 export function mobileAppInstallerUrl(app: MobileAppEntry): string {
+  if (app.url) return app.url;
   return `${MOBILE_APP_DOWNLOADS_BASE}/${app.file}`;
 }
 

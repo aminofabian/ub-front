@@ -95,6 +95,16 @@ function collectCandidates() {
 
 function main() {
   const candidates = collectCandidates();
+  // If a previous manifest exists (e.g. we manually injected an Expo artifact
+  // URL for a non-apk installer), preserve its optional `url` field.
+  let prevManifest = null;
+  try {
+    if (existsSync(MANIFEST)) {
+      prevManifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
+    }
+  } catch {
+    prevManifest = null;
+  }
 
   // Newest APK wins per app.
   const byApp = new Map();
@@ -120,12 +130,14 @@ function main() {
     copyFileSync(cand.file, outPath);
     keepNames.add(outName);
     const sizeBytes = statSync(outPath).size;
+    const prevApp = prevManifest?.apps?.find((a) => a?.id === appId);
     apps.push({
       id: appId,
       name: APPS[appId],
       version,
       platform: "android",
       file: outName,
+      url: prevApp?.url ?? undefined,
       sizeBytes,
     });
     console.log(
