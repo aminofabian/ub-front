@@ -25,7 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const CARD_SHELL =
-  "group relative flex h-full flex-col overflow-hidden rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] shadow-[0_1px_2px_rgba(20,24,22,0.04)] transition-[border-color,box-shadow] duration-200 hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:shadow-[0_2px_10px_-4px_rgba(20,24,22,0.1)]";
+  "group relative flex h-full flex-col overflow-visible rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] shadow-[0_1px_2px_rgba(20,24,22,0.04)] transition-[border-color,box-shadow] duration-200 hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:shadow-[0_2px_10px_-4px_rgba(20,24,22,0.1)]";
 
 const IMAGE_WELL =
   "relative block aspect-square w-full overflow-hidden bg-[linear-gradient(180deg,#fafbfa_0%,#f3f5f3_100%)]";
@@ -173,34 +173,38 @@ export default function ShopProductGrid({
                   {title}
                 </Link>
 
-                <div className="mt-auto flex items-center justify-between gap-2">
+                <div className="mt-auto flex min-w-0 flex-col gap-2">
                   {priceLabel ? (
-                    <p className="shrink-0 text-[13px] font-bold tabular-nums tracking-tight text-[var(--storefront-ink,#141816)]">
+                    <p className="w-full min-w-0 break-words text-[13px] font-bold leading-snug tabular-nums tracking-tight text-[var(--storefront-ink,#141816)] sm:text-[14px]">
                       {priceLabel}
                     </p>
                   ) : (
-                    <p className="invisible shrink-0 text-[13px] font-bold" aria-hidden>
+                    <p className="invisible w-full text-[14px] font-bold" aria-hidden>
                       —
                     </p>
                   )}
 
                   {slug && hasPrice ? (
-                    <ShopQuickAddButton
-                      slug={slug}
-                      itemId={item.id}
-                      ariaLabel={`Add ${ariaTitle} to basket`}
-                      variant="card"
-                      maxQty={item.qtyOnHand}
-                    />
+                    <div className="flex justify-end">
+                      <ShopQuickAddButton
+                        slug={slug}
+                        itemId={item.id}
+                        ariaLabel={`Add ${ariaTitle} to basket`}
+                        variant="card"
+                        maxQty={item.qtyOnHand}
+                      />
+                    </div>
                   ) : !hasPrice ? (
-                    <Link
-                      href={shopItemPathFromCard(item)}
-                      className="inline-flex h-7 shrink-0 items-center justify-center border border-[var(--storefront-card-border,#e2e5e2)] px-2.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:text-[var(--storefront-ink,#141816)]"
-                    >
-                      Options
-                    </Link>
+                    <div className="flex justify-end">
+                      <Link
+                        href={shopItemPathFromCard(item)}
+                        className="inline-flex h-7 shrink-0 items-center justify-center border border-[var(--storefront-card-border,#e2e5e2)] px-2.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:text-[var(--storefront-ink,#141816)]"
+                      >
+                        Options
+                      </Link>
+                    </div>
                   ) : (
-                    <div className="h-7 w-16" aria-hidden />
+                    <div className="h-7" aria-hidden />
                   )}
                 </div>
               </div>
