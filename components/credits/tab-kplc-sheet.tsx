@@ -16,6 +16,7 @@ import {
 } from "@/lib/public-customer-tab";
 import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
 import {
+  formatKplcClock,
   kplcEstimateCopy,
   resolveKplcEstimate,
   type KplcLiveEstimate,
@@ -108,6 +109,14 @@ function compactTimeLeft(empty: Date, nowMs = Date.now()): string {
   const dayBit = `${days} day${days === 1 ? "" : "s"}`;
   if (remH === 0) return `~${dayBit}`;
   return `~${dayBit} ${remH} hour${remH === 1 ? "" : "s"}`;
+}
+
+function formatDepletionDate(empty: Date): string {
+  const weekday = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Nairobi",
+    weekday: "short",
+  }).format(empty);
+  return `${weekday} ${formatKplcClock(empty)}`;
 }
 
 function monthKey(iso: string): string | null {
@@ -230,8 +239,14 @@ function RemainingBox({ live }: { live: KplcLiveEstimate | null }) {
           <p className="text-[1.35rem] font-semibold leading-none tracking-[-0.03em]">
             Likely already out
           </p>
+          {empty ? (
+            <p className="mt-2.5 text-[15px] font-semibold leading-snug">
+              Was due{" "}
+              <time dateTime={empty.toISOString()}>{formatDepletionDate(empty)}</time>
+            </p>
+          ) : null}
           {remaining > 0 ? (
-            <p className="mt-2 text-[13px] text-[var(--tab-muted)]">
+            <p className="mt-1.5 text-[13px] text-[var(--tab-muted)]">
               {kwhLabel(remaining)} on the last estimate
             </p>
           ) : null}
@@ -243,9 +258,15 @@ function RemainingBox({ live }: { live: KplcLiveEstimate | null }) {
             <span className="font-medium">remaining</span>
           </p>
           {empty ? (
-            <p className="mt-2.5 text-[14px] text-[var(--tab-muted)]">
-              {compactTimeLeft(empty)}
-            </p>
+            <>
+              <p className="mt-2.5 text-[15px] font-semibold leading-snug">
+                Empty{" "}
+                <time dateTime={empty.toISOString()}>{formatDepletionDate(empty)}</time>
+              </p>
+              <p className="mt-1.5 text-[13px] text-[var(--tab-muted)]">
+                {compactTimeLeft(empty)} · estimate
+              </p>
+            </>
           ) : null}
         </>
       )}
@@ -524,9 +545,9 @@ export function TabKplcSheet({
       keyboardInset={keyboardInset}
       size="ticket"
     >
-      <div className="flex min-h-0 flex-1 flex-col font-mono text-[var(--tab-fg)]">
-        <div className="mx-3 mb-3 flex min-h-0 flex-1 flex-col border-y-2 border-[var(--tab-fg)]">
-          <div className="flex min-h-0 flex-1 flex-col border-x border-dashed border-[var(--tab-fg)]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden font-mono text-[var(--tab-fg)]">
+        <div className="mx-3 mb-3 flex min-h-0 flex-1 flex-col overflow-hidden border-y-2 border-[var(--tab-fg)]">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-x border-dashed border-[var(--tab-fg)]">
             <header className="flex shrink-0 items-center justify-between gap-3 px-4 pt-4 pb-3">
               <h2
                 id={`${fieldIdPrefix}-kplc-title`}
@@ -654,15 +675,15 @@ export function TabKplcSheet({
                   ) : null}
 
                   <section className="mt-7">
-                    <SectionRule title="Your tokens" />
+                    <SectionRule title="Meters" />
                     {meters.length > 0 ? (
-                      <ul className="mt-3 space-y-1">
+                      <ul className="mt-3 grid gap-1.5">
                         {meters.map((saved) => {
                           const selected =
                             !addingMeter && digitsOnly(meter) === saved.meterNumber;
                           return (
                             <li key={saved.meterNumber}>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-stretch gap-1.5">
                                 <button
                                   type="button"
                                   disabled={busy}
@@ -672,18 +693,19 @@ export function TabKplcSheet({
                                     void lookup(tabPhone, saved.meterNumber);
                                   }}
                                   className={cn(
-                                    "flex min-h-9 min-w-0 flex-1 items-center gap-3 text-left tabular-nums disabled:opacity-40",
+                                    "flex min-h-12 min-w-0 flex-1 items-center justify-between gap-3 border-2 px-3 text-left tabular-nums active:scale-[0.99] disabled:opacity-40",
+                                    selected
+                                      ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                                      : "border-[var(--tab-fg)] bg-[var(--tab-chip)] hover:bg-[color-mix(in_oklab,var(--tab-fg)_8%,var(--tab-card))]",
                                     focusRing,
                                   )}
                                   aria-pressed={selected}
                                 >
-                                  <span
-                                    className="size-1.5 shrink-0 rounded-full bg-[var(--tab-fg)]"
-                                    aria-hidden
-                                  />
-                                  <span>{formatMeterDisplay(saved.meterNumber)}</span>
+                                  <span className="text-[15px] font-semibold tracking-[-0.02em]">
+                                    {formatMeterDisplay(saved.meterNumber)}
+                                  </span>
                                   {selected ? (
-                                    <Check className="ml-auto size-3.5 shrink-0" aria-hidden />
+                                    <Check className="size-4 shrink-0" aria-hidden />
                                   ) : null}
                                 </button>
                                 {selected ? (
@@ -692,7 +714,7 @@ export function TabKplcSheet({
                                     disabled={busy}
                                     onClick={() => void forget(saved.meterNumber)}
                                     className={cn(
-                                      "flex size-9 shrink-0 items-center justify-center text-[var(--tab-muted)] disabled:opacity-40",
+                                      "flex size-12 shrink-0 items-center justify-center border-2 border-[var(--tab-fg)] text-[var(--tab-muted)] disabled:opacity-40",
                                       focusRing,
                                     )}
                                     aria-label={`Remove meter ${formatMeterDisplay(saved.meterNumber)}`}
@@ -724,7 +746,7 @@ export function TabKplcSheet({
                         if (meterKnown) setMeter("");
                       }}
                     >
-                      {addingMeter ? "Cancel" : "+ Add token"}
+                      {addingMeter ? "Cancel" : "+ Add meter"}
                     </BracketButton>
                     {showMeterInput ? (
                       <div className="mt-2">
@@ -817,15 +839,28 @@ export function TabKplcSheet({
                       </ol>
                     </section>
                   ) : null}
-
-                  {buyingSoon ? (
-                    <p className="mt-6 text-[12px] leading-snug text-[var(--tab-muted)]">
-                      Buying a KPLC token is coming soon. Look up still works.
-                    </p>
-                  ) : null}
                 </>
               )}
             </div>
+
+            {buyingSoon && !lookingUp ? (
+              <div className="shrink-0 border-t border-dashed border-[var(--tab-fg)] px-4 py-3">
+                <button
+                  type="button"
+                  disabled
+                  aria-label="Buy a KPLC token. Coming soon."
+                  className={cn(
+                    "flex min-h-12 w-full cursor-not-allowed items-center justify-center border-2 border-[var(--tab-fg)] px-3 text-[14px] font-semibold",
+                    focusRing,
+                  )}
+                >
+                  Buy token — coming soon
+                </button>
+                <p className="mt-1.5 text-center text-[12px] leading-snug text-[var(--tab-muted)]">
+                  Look up and copy still work.
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
