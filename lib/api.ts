@@ -7947,20 +7947,27 @@ export async function tryPostSale(
     | { kind: "network"; message: string }
   > => {
     let session = getSessionTokens();
-    if (!session && hasAccessSession()) {
-      await restoreClientSessionFromCookie();
-      session = getSessionTokens();
-    }
+
+    // Cookie-only sessions (Gap G3) may not provide an in-memory access token.
+    // In that case we should still proceed: the browser cookies are sent via
+    // `credentials: "include"` and server-side auth will succeed.
     if (!session && !hasAccessSession()) {
-      const refresh = await refreshAccessToken();
-      if (refresh.kind === "ok") {
-        session = getSessionTokens();
+      // Best-effort: attempt restore then refresh.
+      const restored = await restoreClientSessionFromCookie({ force: true });
+      session = restored ? getSessionTokens() : null;
+      if (!session) {
+        const refresh = await refreshAccessToken();
+        if (refresh.kind === "ok") {
+          session = getSessionTokens();
+        }
       }
     }
-    if (!session) {
+
+    if (!session && !hasAccessSession()) {
       return { kind: "network", message: "Not signed in." };
     }
-    const headersInit = buildRequestHeaders(true, session.accessToken, method);
+
+    const headersInit = buildRequestHeaders(true, session?.accessToken, method);
     const headers = new Headers(headersInit);
     headers.set("Idempotency-Key", key);
     try {
