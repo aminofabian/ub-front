@@ -519,15 +519,14 @@ export default function DiscountsPage() {
         title="Discounts"
         description="Time-bound promotions on shelf prices — without changing your regular prices."
         icon={Tag}
-        actions={
-          <Button type="button" onClick={() => setDrawerOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create discount
-          </Button>
-        }
-      />
+      >
+        <Button type="button" onClick={() => setDrawerOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create discount
+        </Button>
+      </DashboardPageHero>
 
-      {error ? <DashboardFeedback tone="error">{error}</DashboardFeedback> : null}
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
       <div className="overflow-hidden rounded-xl border bg-card">
         <table className="min-w-full text-sm">

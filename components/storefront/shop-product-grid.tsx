@@ -139,7 +139,7 @@ export default function ShopProductGrid({
 
         const priceLabel = hasPrice ? formatDisplayPrice(currency, item.price) : null;
         const regularPriceLabel = hasRegularPrice
-          ? formatDisplayPrice(currency, item.regularPrice)
+          ? formatDisplayPrice(currency, item.regularPrice ?? null)
           : null;
         const savedLabel =
           hasCatalogPrice(item.savedAmount) && item.savedAmount != null && item.savedAmount > 0
