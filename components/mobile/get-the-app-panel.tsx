@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { StorefrontGetTheApp } from "@/components/mobile/storefront-get-the-app";
 import { DesktopLanQr } from "@/components/desktop/desktop-lan-qr";
 import { Button } from "@/components/ui/button";
 import { formatInstallerSize } from "@/lib/desktop-app-download";
@@ -183,8 +184,7 @@ export function GetTheAppPanel({
 }: GetTheAppPanelProps) {
   const [manifest, setManifest] = useState<MobileAppManifest | null>(null);
   const [mounted, setMounted] = useState(false);
-  const roles: MobileAppRole[] =
-    variant === "storefront" ? ["shopper"] : [...MOBILE_APP_ROLES];
+  const roles: MobileAppRole[] = [...MOBILE_APP_ROLES];
   const storeLinks = config.platformStoreLinks;
   const hasStoreLinks = Boolean(storeLinks.ios || storeLinks.android);
 
@@ -201,6 +201,23 @@ export function GetTheAppPanel({
     };
   }, []);
 
+  if (variant === "storefront") {
+    return (
+      <div className={cn("space-y-5", className)}>
+        <StorefrontGetTheApp
+          config={config}
+          apk={mounted ? apkForAppId(manifest, "shopper") : undefined}
+        />
+        <p className="text-center text-xs text-muted-foreground">
+          Staff?{" "}
+          <Link href={APP_ROUTES.staffLogin} className="font-medium text-primary underline-offset-2 hover:underline">
+            Open the staff login page
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("space-y-5", className)}>
       <div className="rounded-xl border border-border/70 bg-muted/30 px-4 py-3">
@@ -211,9 +228,7 @@ export function GetTheAppPanel({
           <div className="min-w-0 text-sm">
             <p className="font-semibold text-foreground">{config.displayName}</p>
             <p className="mt-0.5 text-muted-foreground">
-              {variant === "storefront"
-                ? "Download the Android app, then scan the code to open this store."
-                : "Scan a QR code on a phone with the app installed, or share the deep link. Staff apps use the login deep link for your tenant."}
+              Scan a QR code on a phone with the app installed, or share the deep link. Staff apps use the login deep link for your tenant.
             </p>
             {variant === "admin" ? (
               <p className="mt-1 text-xs text-muted-foreground">
@@ -253,33 +268,16 @@ export function GetTheAppPanel({
         </p>
       ) : null}
 
-      <div
-        className={cn(
-          "grid gap-3",
-          variant === "admin" ? "md:grid-cols-2" : "max-w-md",
-        )}
-      >
+      <div className="grid gap-3 md:grid-cols-2">
         {roles.map((role) => (
           <AppQrCard
             key={role}
             config={config}
             role={role}
-            compact={variant === "storefront"}
-            // Avoid hydration mismatches: the server renders with `manifest=null`,
-            // so gate manifest-dependent content until after first client mount.
             apk={mounted ? apkForAppId(manifest, role) : undefined}
           />
         ))}
       </div>
-
-      {variant === "storefront" ? (
-        <p className="text-center text-xs text-muted-foreground">
-          Staff?{" "}
-          <Link href={APP_ROUTES.staffLogin} className="font-medium text-primary underline-offset-2 hover:underline">
-            Open the staff login page
-          </Link>
-        </p>
-      ) : null}
     </div>
   );
 }

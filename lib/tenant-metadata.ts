@@ -101,6 +101,7 @@ export function metadataFromTenantAndHost(
     keywords: [...PLATFORM_KEYWORDS],
     applicationName: PLATFORM_SITE_NAME,
     category: "Point of Sale",
+    manifest: "/manifest.json",
     icons: PLATFORM_ICONS,
     appleWebApp: {
       capable: true,
@@ -214,6 +215,7 @@ export function metadataFromTenantAndHost(
     },
     description,
     applicationName: displayName,
+    manifest: "/storefront-manifest.webmanifest",
     other: {
       keywords:
         metaKeywords || defaultStorefrontMetaKeywords(displayName, location),

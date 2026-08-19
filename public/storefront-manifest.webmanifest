@@ -1,0 +1,29 @@
+{
+  "name": "Shop",
+  "short_name": "Shop",
+  "description": "Browse and order from this shop.",
+  "start_url": "/shop",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#28A745",
+  "background_color": "#f4f5f4",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["shopping"],
+  "lang": "en-KE",
+  "dir": "ltr",
+  "prefer_related_applications": false
+}

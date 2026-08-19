@@ -95,7 +95,7 @@ export function GetTheAppDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Download the Android app, then scan to open this store.
+            Add this shop to your home screen, or download the Android app.
           </DialogDescription>
         </DialogHeader>
         {loading ? <GetTheAppPanelLoading /> : null}

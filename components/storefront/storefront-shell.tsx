@@ -1,5 +1,6 @@
 import { ShopStorefrontChrome } from "@/components/storefront/shop-storefront-chrome";
 import { ShopStorefrontRealtime } from "@/components/storefront/shop-storefront-realtime";
+import { StorefrontPwaRuntime } from "@/components/storefront/storefront-pwa-runtime";
 import { StorefrontPreviewBanner } from "@/components/storefront/storefront-preview-banner";
 import { StorefrontThemeScope } from "@/components/storefront/storefront-theme-scope";
 import { resolveStoreChromeVariant } from "@/components/storefront/templates/registry";
@@ -154,6 +155,7 @@ export async function StorefrontShell({
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       )}
       <ShopStorefrontRealtime currency={currency} branding={branding} />
+      <StorefrontPwaRuntime />
     </StorefrontThemeScope>
   );
 }

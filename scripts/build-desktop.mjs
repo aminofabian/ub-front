@@ -45,6 +45,8 @@ const CLOUD_ONLY_PATHS = [
   "app/api/v1/[[...path]]/route.ts",
   // Per-tenant SVG favicon endpoint — single-tenant desktop uses a static favicon.
   "app/tenant-favicon/route.ts",
+  // Tenant-branded shopper PWA manifest — storefront is cloud-only.
+  "app/storefront-manifest.webmanifest",
   // Dynamic per-tenant <link rel="icon"> generator. Reads `headers()` and
   // optionally fetches a remote favicon, both impossible at static-export
   // time. Desktop falls back to the bundled `app/favicon.ico`.
