@@ -41,14 +41,10 @@ import {
 import { PageSealGate } from "@/components/page-seal/page-seal-gate";
 import { TabAirtimeSheet } from "@/components/credits/tab-airtime-sheet";
 import { TabKplcSheet } from "@/components/credits/tab-kplc-sheet";
-import {
-  TabOverlay,
-  tabOverlayCloseClass,
-  tabOverlayHeaderClass,
-  tabOverlayKickerClass,
-} from "@/components/credits/tab-overlay";
+import { TabOverlay } from "@/components/credits/tab-overlay";
+import { TabDestinationHeader } from "@/components/credits/tab-destination";
 import type { PageSealStatus } from "@/lib/page-seal";
-import { useMediaMd } from "@/hooks/use-media-md";
+import styles from "@/components/credits/customer-tab-mobile.module.css";
 import { buildStorefrontThemeVars } from "@/lib/storefront-theme";
 import { cn } from "@/lib/utils";
 import {
@@ -622,31 +618,23 @@ function PaySheet({
       labelledBy={`${fieldIdPrefix}-pay-title`}
       keyboardInset={keyboardInset}
       panelRef={sheetRef}
+      size="destination"
     >
-        <div className={cn(tabOverlayHeaderClass, "border-b border-[var(--tab-border)] lg:border-b-0")}>
-          <div className="min-w-0">
-            <h2
-              id={`${fieldIdPrefix}-pay-title`}
-              className="text-[1.125rem] font-semibold leading-snug tracking-[-0.02em]"
-            >
-              Pay {shopLabel}
-            </h2>
-            <p className={tabOverlayKickerClass}>
+        <TabDestinationHeader
+          title={`Pay ${shopLabel}`}
+          titleId={`${fieldIdPrefix}-pay-title`}
+          onClose={onClose}
+          closeDisabled={busy || promptSent}
+          closeLabel="Back to tab"
+          kicker={
+            <>
               Outstanding{" "}
-              <span className="font-semibold tabular-nums text-[var(--tab-fg)] lg:text-[var(--tab-bg)]">
+              <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
                 {fmtMoney(owed, currency)}
               </span>
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className={cn(tabOverlayCloseClass, "active:bg-[var(--tab-bg)] lg:active:bg-[color-mix(in_oklab,var(--tab-bg)_14%,transparent)]")}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
+            </>
+          }
+        />
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           <QuickAmountChips
@@ -915,7 +903,6 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [airtimeSheetOpen, setAirtimeSheetOpen] = useState(false);
   const [kplcSheetOpen, setKplcSheetOpen] = useState(false);
   const [airtimeConfig, setAirtimeConfig] = useState<PublicTabAirtimeConfig | null>(null);
-  const isMd = useMediaMd();
 
   const payKeyboardInset = useKeyboardInset(paySheetOpen);
   const walletKeyboardInset = useKeyboardInset(walletSheetOpen);
@@ -926,10 +913,6 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     setMounted(true);
     setPortalTheme(readPortalTheme());
   }, []);
-
-  useEffect(() => {
-    if (!isMd) setAirtimeSheetOpen(false);
-  }, [isMd]);
 
   const primary = branding.primaryHex || "#0b6e4f";
   const accent = branding.accentHex;
@@ -1153,7 +1136,6 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const showWalletTopUp =
     !loading && !notFound && mounted && owed <= 0 && !sealedLocked;
   const showAirtime =
-    isMd &&
     Boolean(airtimeConfig?.available) &&
     !loading &&
     !notFound &&
@@ -1356,14 +1338,22 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       className="min-h-[100dvh] antialiased touch-manipulation"
       style={surfaceStyle}
     >
+      {/*
+        THESIS: The tab is a shop standing, not a wallet app — one number, one pay, services as destinations.
+        OWN-WORLD: Shop-tinted paper and ink numerals; telco colour only on a confirmed network chip.
+        STORY: Open the phone, see what you owe, pay the shop, or step into Airtime / Tokens and come back.
+        FIRST VIEWPORT: Paper identity, display-size standing, Pay under it, Airtime·Tokens as a verb row, ledger below.
+        FORM: Standing + destinations. Seed: user-pinned (standing, destinations, not M-Pesa).
+        FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+      */}
       <div
         className={cn(
           "mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col",
-          showPay ? "pb-[calc(5.5rem+env(safe-area-inset-bottom))]" : "",
+          showPay ? "md:pb-[calc(5.5rem+env(safe-area-inset-bottom))]" : "",
         )}
       >
         <header
-          className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 pt-[max(0.7rem,env(safe-area-inset-top))] text-white"
+          className="sticky top-0 z-10 hidden items-center gap-3 px-4 py-3 pt-[max(0.7rem,env(safe-area-inset-top))] text-white md:flex"
           style={{ backgroundColor: primary }}
         >
           {branding.logoUrl ? (
@@ -1411,6 +1401,47 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           </button>
         </header>
 
+        <div className="md:hidden">
+          <div className={styles.top}>
+            <div className={styles.identity}>
+              {branding.logoUrl ? (
+                <div className={styles.mark}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={branding.logoUrl} alt="" />
+                </div>
+              ) : (
+                <div className={styles.mark} aria-hidden>
+                  {displayShop.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <h1 className={styles.shop}>{displayShop}</h1>
+                <p className={styles.whose}>
+                  {firstName && !loading && !notFound
+                    ? `${firstName}'s tab`
+                    : "Your tab"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={styles.theme}
+              aria-label={
+                portalTheme === "dark"
+                  ? "Switch to light theme"
+                  : "Switch to dark theme"
+              }
+            >
+              {portalTheme === "dark" ? (
+                <Sun className="size-4" strokeWidth={1.75} />
+              ) : (
+                <Moon className="size-4" strokeWidth={1.75} />
+              )}
+            </button>
+          </div>
+        </div>
+
         {loading ? (
           <PortalSkeleton />
         ) : notFound ? (
@@ -1454,10 +1485,56 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             onSealedChange={() => void reload()}
           >
             <main className="flex flex-1 flex-col">
+            <div className="flex min-h-[68dvh] flex-col md:hidden">
+              <section className={styles.standing} aria-labelledby={`${fieldIdPrefix}-standing`}>
+                <h2
+                  id={`${fieldIdPrefix}-standing`}
+                  className={cn(styles.amount, owed <= 0 && styles.amountSettled)}
+                >
+                  {fmtMoney(owed, currency)}
+                </h2>
+                <p className={styles.caption}>
+                  {owed > 0 ? `Owed to ${displayShop}` : "Nothing owed"}
+                </p>
+                {wallet > 0 ? (
+                  <p className={styles.wallet}>
+                    {fmtMoney(wallet, currency)} in wallet
+                  </p>
+                ) : null}
+                {showPay ? (
+                  <button
+                    type="button"
+                    onClick={openPaySheet}
+                    className={styles.pay}
+                  >
+                    {amountValid
+                      ? `Pay ${fmtMoney(amountNum, currency)}`
+                      : `Pay ${payToName}`}
+                  </button>
+                ) : null}
+              </section>
+
+              {servicePadItems.length > 0 ? (
+                <nav className={styles.verbs} aria-label="More on this tab">
+                  {servicePadItems.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={item.onClick}
+                      className={styles.verb}
+                    >
+                      <span className={styles.verbLabel}>{item.label}</span>
+                      <span className={styles.verbHint}>{item.hint}</span>
+                    </button>
+                  ))}
+                </nav>
+              ) : null}
+            </div>
+
             <section
               ref={walletSectionRef}
               id="wallet"
-              className="border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5"
+              className="hidden border-b border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5 md:block"
             >
               <div className="flex items-end justify-between gap-3">
                 <div className="min-w-0">
@@ -1520,10 +1597,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               )}
             </section>
 
-            <TabServicePad items={servicePadItems} />
+            <div className="hidden md:block">
+              <TabServicePad items={servicePadItems} />
+            </div>
 
             {owed <= 0 ? (
-              <div className="mx-4 mt-4 flex items-center gap-2.5 rounded-xl bg-[var(--tab-success-bg)] px-3.5 py-3.5 text-[13px] font-medium text-[var(--tab-success-fg)]">
+              <div className="mx-4 mt-4 hidden items-center gap-2.5 rounded-xl bg-[var(--tab-success-bg)] px-3.5 py-3.5 text-[13px] font-medium text-[var(--tab-success-fg)] md:flex">
                 <CheckCircle2 className="size-4 shrink-0" strokeWidth={1.75} />
                 {wallet > 0
                   ? `All clear — ${fmtMoney(wallet, currency)} wallet credit available.`
@@ -1532,10 +1611,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             ) : null}
 
             {purchaseCount > 0 ? (
-              <section className="mt-6 flex flex-1 flex-col">
-                <div className="flex items-baseline justify-between gap-3 border-y border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5">
-                  <h3 className="text-[17px] font-semibold tracking-[-0.02em]">
-                    Purchases
+              <section className="mt-2 flex flex-1 flex-col md:mt-6">
+                <div className="flex items-baseline justify-between gap-3 border-y border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3 md:py-3.5">
+                  <h3 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--tab-muted)] md:text-[17px] md:text-[var(--tab-fg)]">
+                    {tabStats.lastPurchaseAt
+                      ? `${tabStats.purchaseCount} visit${tabStats.purchaseCount === 1 ? "" : "s"} · ${fmtRelativeVisit(tabStats.lastPurchaseAt).toLowerCase()}`
+                      : "Purchases"}
                   </h3>
                   <p className="text-[12px] tabular-nums text-[var(--tab-muted)]">
                     {historyFrom}–{historyTo} of {purchaseCount}
@@ -1585,7 +1666,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
 
         {showPay ? (
           <div
-            className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+            className="fixed inset-x-0 bottom-0 z-40 hidden border-t-2 border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:block"
             style={{ maxWidth: "32rem", marginInline: "auto" }}
           >
             <p className="mb-2 text-[13px] text-[var(--tab-muted)]">
@@ -1665,30 +1746,24 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           label="Top up wallet"
           keyboardInset={walletKeyboardInset}
           closeDisabled={walletBusy || walletPromptSent}
+          size="destination"
         >
-            <div className={cn(tabOverlayHeaderClass, "border-b border-[var(--tab-border)] lg:border-b-0")}>
-              <div>
-                <h2 className="text-[1.125rem] font-semibold tracking-[-0.02em]">
-                  Top up wallet
-                </h2>
-                <p className={tabOverlayKickerClass}>
+            <TabDestinationHeader
+              title="Top up wallet"
+              onClose={() => {
+                if (!walletBusy && !walletPromptSent) setWalletSheetOpen(false);
+              }}
+              closeDisabled={walletBusy || walletPromptSent}
+              closeLabel="Back to tab"
+              kicker={
+                <>
                   Current balance{" "}
-                  <span className="font-semibold tabular-nums text-[var(--tab-fg)] lg:text-[var(--tab-bg)]">
+                  <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
                     {fmtMoney(wallet, currency)}
                   </span>
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!walletBusy && !walletPromptSent) setWalletSheetOpen(false);
-                }}
-                className={tabOverlayCloseClass}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
+                </>
+              }
+            />
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
               <div className="grid grid-cols-4 gap-2">
                 {[100, 200, 500, 1000].map((n) => (

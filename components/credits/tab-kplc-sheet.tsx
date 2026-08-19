@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes } from "react";
-import { Bell, Check, MoreVertical, X, Zap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bell, Check, X } from "lucide-react";
 
 import {
   fetchPublicTabKplcConfig,
@@ -23,6 +23,8 @@ import {
 } from "@/lib/kplc-estimate";
 import { cn } from "@/lib/utils";
 import { TabOverlay } from "@/components/credits/tab-overlay";
+import { TabDestinationHeader } from "@/components/credits/tab-destination";
+import styles from "@/components/credits/customer-tab-mobile.module.css";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tab-fg)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tab-card)]";
@@ -172,43 +174,12 @@ function statsFromTokens(tokens: PublicTabKplcToken[]): PublicTabKplcStats {
   };
 }
 
-function SectionRule({ title }: { title: string }) {
-  return (
-    <div className="flex items-end gap-3">
-      <h3 className="shrink-0 text-[13px] font-medium">{title}</h3>
-      <span className="mb-1.5 h-px min-w-0 flex-1 bg-[var(--tab-fg)]" aria-hidden />
-    </div>
-  );
-}
-
-function BracketButton({
-  children,
-  className,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      {...props}
-      type="button"
-      className={cn(
-        "inline-flex min-h-9 items-center gap-2 px-1 font-mono text-[13px] disabled:opacity-40",
-        focusRing,
-        className,
-      )}
-    >
-      <span aria-hidden>[</span>
-      {children}
-      <span aria-hidden>]</span>
-    </button>
-  );
-}
-
-function RemainingBox({ live }: { live: KplcLiveEstimate | null }) {
+function RemainingFace({ live }: { live: KplcLiveEstimate | null }) {
   if (!live) {
     return (
-      <div className="border-2 border-[var(--tab-fg)] px-4 py-4 text-center">
-        <p className="text-[17px] font-semibold leading-snug">Need one more top-up</p>
-        <p className="mt-2 text-[12px] leading-snug text-[var(--tab-muted)]">
+      <div className={styles.meterFace}>
+        <p className={styles.meterAmount}>—</p>
+        <p className={styles.meterCaption}>
           After the next token we can time how fast this meter drinks units.
         </p>
       </div>
@@ -221,41 +192,36 @@ function RemainingBox({ live }: { live: KplcLiveEstimate | null }) {
   const remaining = live.remainingUnits;
 
   return (
-    <div className="border-2 border-[var(--tab-fg)] px-4 py-4 text-center">
+    <div className={styles.meterFace}>
       {out ? (
         <>
-          <p className="text-[1.35rem] font-semibold leading-none tracking-[-0.03em]">
-            Likely already out
+          <p className={styles.meterAmount}>Out</p>
+          <p className={styles.meterCaption}>
+            {empty ? (
+              <>
+                Was due{" "}
+                <time dateTime={empty.toISOString()}>{formatDepletionDate(empty)}</time>
+              </>
+            ) : (
+              "Likely already empty"
+            )}
+            {remaining > 0 ? ` · ${kwhLabel(remaining)} on the last estimate` : ""}
           </p>
-          {empty ? (
-            <p className="mt-2.5 text-[15px] font-semibold leading-snug">
-              Was due{" "}
-              <time dateTime={empty.toISOString()}>{formatDepletionDate(empty)}</time>
-            </p>
-          ) : null}
-          {remaining > 0 ? (
-            <p className="mt-1.5 text-[13px] text-[var(--tab-muted)]">
-              {kwhLabel(remaining)} on the last estimate
-            </p>
-          ) : null}
         </>
       ) : (
         <>
-          <p className="text-[1.5rem] font-semibold leading-none tracking-[-0.03em]">
-            {kwhLabel(remaining)}{" "}
-            <span className="font-medium">remaining</span>
-          </p>
-          {empty ? (
-            <>
-              <p className="mt-2.5 text-[15px] font-semibold leading-snug">
+          <p className={styles.meterAmount}>{kwhLabel(remaining)}</p>
+          <p className={styles.meterCaption}>
+            {empty ? (
+              <>
                 Empty{" "}
                 <time dateTime={empty.toISOString()}>{formatDepletionDate(empty)}</time>
-              </p>
-              <p className="mt-1.5 text-[13px] text-[var(--tab-muted)]">
-                {compactTimeLeft(empty)} · estimate
-              </p>
-            </>
-          ) : null}
+                <span> · {compactTimeLeft(empty)}</span>
+              </>
+            ) : (
+              "Units remaining on this meter"
+            )}
+          </p>
         </>
       )}
     </div>
@@ -355,7 +321,6 @@ export function TabKplcSheet({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [addingMeter, setAddingMeter] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [showSpend, setShowSpend] = useState(false);
   const copiedTimer = useRef<number | null>(null);
   const openedFor = useRef<string | null>(null);
@@ -374,7 +339,6 @@ export function TabKplcSheet({
     setDepletion(null);
     setLoadedMeter(null);
     setAddingMeter(false);
-    setMenuOpen(false);
     setShowSpend(false);
     setBusy(true);
     fetchPublicTabKplcConfig(tabPhone)
@@ -523,343 +487,340 @@ export function TabKplcSheet({
   const canRemind = Boolean(live && depletion);
   const lookingUp = busy && tokens == null;
 
+  const latestFormatted = latest ? formatTokenNo(latest.tokenNo) : null;
+
   return (
     <TabOverlay
       open={open}
       onClose={onClose}
       labelledBy={`${fieldIdPrefix}-kplc-title`}
       keyboardInset={keyboardInset}
-      size="ticket"
+      size="destination"
     >
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden font-mono text-[var(--tab-fg)]">
-        <div className="mx-3 mb-3 flex min-h-0 flex-1 flex-col overflow-hidden border-y-2 border-[var(--tab-fg)]">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-x border-dashed border-[var(--tab-fg)]">
-            <header className="flex shrink-0 items-center justify-between gap-3 px-4 pt-4 pb-3">
-              <h2
-                id={`${fieldIdPrefix}-kplc-title`}
-                className="flex min-w-0 items-center gap-2 text-[15px] font-semibold tracking-[-0.02em]"
-              >
-                <Zap className="size-4 shrink-0" aria-hidden />
-                KPLC Tokens
-              </h2>
-              <div className="flex shrink-0 items-center">
-                <button
-                  type="button"
-                  className={cn("flex size-9 items-center justify-center", focusRing)}
-                  aria-expanded={menuOpen}
-                  aria-label="More actions"
-                  onClick={() => setMenuOpen((openMenu) => !openMenu)}
-                >
-                  <MoreVertical className="size-4" aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className={cn("flex size-9 items-center justify-center", focusRing)}
-                  aria-label="Close"
-                  onClick={onClose}
-                >
-                  <X className="size-4" aria-hidden />
-                </button>
-              </div>
-            </header>
+      <TabDestinationHeader
+        title="Tokens"
+        titleId={`${fieldIdPrefix}-kplc-title`}
+        onClose={onClose}
+        closeLabel="Back to tab"
+        kicker={
+          loadedMeter ? formatMeterDisplay(loadedMeter) : meters.length ? "Pick a meter" : "Add a meter"
+        }
+        trailing={
+          resolvedStats && resolvedStats.months.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowSpend((current) => !current)}
+              className={cn(
+                "px-2 text-[13px] font-medium text-[var(--tab-muted)]",
+                focusRing,
+              )}
+            >
+              {showSpend ? "Hide spend" : "Spend"}
+            </button>
+          ) : null
+        }
+      />
 
-            {menuOpen ? (
-              <div className="mx-4 mb-3 border border-[var(--tab-fg)] px-3 py-2 text-[13px]">
-                <BracketButton
-                  disabled={!canLookup}
-                  onClick={() => {
-                    setAddingMeter(false);
-                    setMenuOpen(false);
-                    void lookup(tabPhone, meter);
-                  }}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        {error ? (
+          <p
+            role="alert"
+            className="mx-4 mb-3 border border-[var(--tab-error-fg)] px-3 py-2 text-[13px] text-[var(--tab-error-fg)]"
+          >
+            {error}
+          </p>
+        ) : null}
+
+        {lookingUp ? (
+          <>
+            <div className="sr-only" role="status">
+              Looking up tokens…
+            </div>
+            <LookupSkeleton />
+          </>
+        ) : (
+          <>
+            <RemainingFace live={live} />
+
+            {latest && latestFormatted ? (
+              <div className="px-4">
+                <button
+                  type="button"
+                  onClick={() => void copyToken(latest.tokenNo)}
+                  className={cn(styles.tokenSlip, focusRing)}
+                  aria-label={
+                    copied === latest.tokenNo
+                      ? `Copied ${latestFormatted}`
+                      : `Copy token ${latestFormatted}`
+                  }
                 >
-                  {busy ? "Looking up…" : sameLoadedMeter ? "Look up again" : "Look up tokens"}
-                </BracketButton>
-                {resolvedStats && resolvedStats.months.length > 0 ? (
-                  <BracketButton
-                    onClick={() => {
-                      setShowSpend((current) => !current);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    {showSpend ? "Hide monthly spend" : "Monthly spend"}
-                  </BracketButton>
-                ) : null}
-                {live ? (
-                  <p className="mt-2 px-1 text-[11px] leading-relaxed text-[var(--tab-muted)]">
-                    {kplcEstimateCopy(live)}
+                  <p className={styles.tokenKicker}>
+                    Latest token · tap to copy
                   </p>
-                ) : null}
+                  <p className={styles.tokenNo}>{latestFormatted}</p>
+                  <p className={styles.tokenHint}>
+                    {copied === latest.tokenNo
+                      ? "Copied"
+                      : formatPurchaseDate(latest.purchasedAt)}
+                    {toAmount(latest.units) != null
+                      ? ` · ${kwhLabel(toAmount(latest.units)!)}`
+                      : ""}
+                  </p>
+                </button>
               </div>
             ) : null}
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
-              {error ? (
-                <p
-                  role="alert"
-                  className="mb-4 border border-[var(--tab-error-fg)] px-3 py-2 text-[13px] text-[var(--tab-error-fg)]"
-                >
-                  {error}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 pt-4">
+              {daily != null ? (
+                <p className="text-[13px] text-[var(--tab-muted)]">
+                  {kwhLabel(daily)} / day
                 </p>
               ) : null}
-
-              {lookingUp ? (
-                <>
-                  <div className="sr-only" role="status">
-                    Looking up tokens…
-                  </div>
-                  <LookupSkeleton />
-                </>
-              ) : (
-                <>
-                  <RemainingBox live={live} />
-
-                  {daily != null ? (
-                    <section className="mt-6">
-                      <SectionRule title="Daily usage" />
-                      <p className="mt-3 text-[16px] font-semibold tabular-nums">
-                        {kwhLabel(daily)} / day
-                      </p>
-                      <p className="mt-1 text-[12px] text-[var(--tab-muted)]">
-                        Based on your recent use
-                      </p>
-                      {canRemind ? (
-                        <BracketButton
-                          className="mt-3"
-                          disabled={busy}
-                          aria-pressed={depletion?.alertsEnabled}
-                          onClick={() =>
-                            void toggleDepletionAlerts(!depletion?.alertsEnabled)
-                          }
-                        >
-                          <Bell
-                            className="size-3.5 text-amber-400"
-                            fill={depletion?.alertsEnabled ? "currentColor" : "none"}
-                            aria-hidden
-                          />
-                          {depletion?.alertsEnabled ? "Reminders on" : "Remind me"}
-                        </BracketButton>
-                      ) : null}
-                    </section>
-                  ) : canRemind ? (
-                    <div className="mt-4">
-                      <BracketButton
-                        disabled={busy}
-                        aria-pressed={depletion?.alertsEnabled}
-                        onClick={() =>
-                          void toggleDepletionAlerts(!depletion?.alertsEnabled)
-                        }
-                      >
-                        <Bell
-                          className="size-3.5 text-amber-400"
-                          fill={depletion?.alertsEnabled ? "currentColor" : "none"}
-                          aria-hidden
-                        />
-                        {depletion?.alertsEnabled ? "Reminders on" : "Remind me"}
-                      </BracketButton>
-                    </div>
-                  ) : null}
-
-                  <section className="mt-7">
-                    <SectionRule title="Meters" />
-                    {meters.length > 0 ? (
-                      <ul className="mt-3 grid gap-1.5">
-                        {meters.map((saved) => {
-                          const selected =
-                            !addingMeter && digitsOnly(meter) === saved.meterNumber;
-                          return (
-                            <li key={saved.meterNumber}>
-                              <div className="flex items-stretch gap-1.5">
-                                <button
-                                  type="button"
-                                  disabled={busy}
-                                  onClick={() => {
-                                    setMeter(saved.meterNumber);
-                                    setAddingMeter(false);
-                                    void lookup(tabPhone, saved.meterNumber);
-                                  }}
-                                  className={cn(
-                                    "flex min-h-12 min-w-0 flex-1 items-center justify-between gap-3 border-2 px-3 text-left tabular-nums active:scale-[0.99] disabled:opacity-40",
-                                    selected
-                                      ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
-                                      : "border-[var(--tab-fg)] bg-[var(--tab-chip)] hover:bg-[color-mix(in_oklab,var(--tab-fg)_8%,var(--tab-card))]",
-                                    focusRing,
-                                  )}
-                                  aria-pressed={selected}
-                                >
-                                  <span className="text-[15px] font-semibold tracking-[-0.02em]">
-                                    {formatMeterDisplay(saved.meterNumber)}
-                                  </span>
-                                  {selected ? (
-                                    <Check className="size-4 shrink-0" aria-hidden />
-                                  ) : null}
-                                </button>
-                                {selected ? (
-                                  <button
-                                    type="button"
-                                    disabled={busy}
-                                    onClick={() => void forget(saved.meterNumber)}
-                                    className={cn(
-                                      "flex size-12 shrink-0 items-center justify-center border-2 border-[var(--tab-fg)] text-[var(--tab-muted)] disabled:opacity-40",
-                                      focusRing,
-                                    )}
-                                    aria-label={`Remove meter ${formatMeterDisplay(saved.meterNumber)}`}
-                                  >
-                                    <X className="size-3.5" aria-hidden />
-                                  </button>
-                                ) : null}
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      <p className="mt-3 text-[12px] text-[var(--tab-muted)]">
-                        Saved on this tab, so the next phone still knows the meter.
-                      </p>
-                    )}
-                    <BracketButton
-                      className="mt-1"
-                      disabled={busy}
-                      aria-pressed={addingMeter}
-                      onClick={() => {
-                        if (addingMeter) {
-                          setAddingMeter(false);
-                          setMeter(loadedMeter ?? meters[0]?.meterNumber ?? "");
-                          return;
-                        }
-                        setAddingMeter(true);
-                        if (meterKnown) setMeter("");
-                      }}
-                    >
-                      {addingMeter ? "Cancel" : "+ Add meter"}
-                    </BracketButton>
-                    {showMeterInput ? (
-                      <div className="mt-2">
-                        <label htmlFor={`${fieldIdPrefix}-kplc-meter`} className="sr-only">
-                          Meter number
-                        </label>
-                        <input
-                          id={`${fieldIdPrefix}-kplc-meter`}
-                          inputMode="numeric"
-                          autoComplete="off"
-                          autoFocus={addingMeter}
-                          value={meter}
-                          disabled={busy}
-                          onChange={(e) => {
-                            setMeter(digitsOnly(e.target.value));
-                            setError(null);
-                          }}
-                          placeholder="Meter as printed"
-                          className={cn(
-                            "w-full border-b border-[var(--tab-fg)] bg-transparent py-2 text-[16px] font-semibold tabular-nums outline-none",
-                            focusRing,
-                          )}
-                        />
-                        <BracketButton
-                          className="mt-2"
-                          disabled={!canLookup}
-                          onClick={() => {
-                            setAddingMeter(false);
-                            void lookup(tabPhone, meter);
-                          }}
-                        >
-                          Look up
-                        </BracketButton>
-                      </div>
-                    ) : null}
-                  </section>
-
-                  <section className="-mx-4 mt-7 font-sans antialiased">
-                    <div className="flex items-baseline justify-between gap-3 border-y border-[var(--tab-border)] bg-[var(--tab-card)] px-4 py-3.5">
-                      <h3 className="text-[17px] font-semibold tracking-[-0.02em]">
-                        Purchases
-                      </h3>
-                      {sortedTokens.length > 0 ? (
-                        <p className="text-[12px] tabular-nums text-[var(--tab-muted)]">
-                          {sortedTokens.length} token
-                          {sortedTokens.length === 1 ? "" : "s"}
-                        </p>
-                      ) : null}
-                    </div>
-                    {tokens && loadedMeter && tokens.length === 0 ? (
-                      <p className="px-4 py-4 text-[13px] leading-snug text-[var(--tab-muted)]">
-                        No tokens on {formatMeterDisplay(loadedMeter)} yet.
-                      </p>
-                    ) : sortedTokens.length > 0 ? (
-                      <ul className="divide-y divide-[var(--tab-border)] border-b border-[var(--tab-border)] bg-[var(--tab-card)]">
-                        {sortedTokens.map((token) => (
-                          <PurchaseRow
-                            key={`${token.tokenNo}-${token.purchasedAt ?? ""}`}
-                            token={token}
-                            copied={copied === token.tokenNo}
-                            onCopy={() => void copyToken(token.tokenNo)}
-                          />
-                        ))}
-                      </ul>
-                    ) : !lookingUp ? (
-                      <p className="px-4 py-4 text-[13px] text-[var(--tab-muted)]">
-                        Look up a meter to load purchases.
-                      </p>
-                    ) : null}
-                  </section>
-
-                  {showSpend && resolvedStats && resolvedStats.months.length > 0 ? (
-                    <section className="mt-7">
-                      <SectionRule title="Monthly spend" />
-                      <ol className="mt-2 list-none p-0">
-                        {resolvedStats.months.map((month) => {
-                          const amount = toAmount(month.amount);
-                          const units = toAmount(month.units);
-                          return (
-                            <li
-                              key={month.yearMonth}
-                              className="flex items-baseline justify-between gap-4 py-2.5"
-                            >
-                              <span>
-                                <span className="block text-[14px] font-semibold">
-                                  {month.label}
-                                </span>
-                                <span className="text-[12px] text-[var(--tab-muted)]">
-                                  {month.tokenCount} token
-                                  {month.tokenCount === 1 ? "" : "s"}
-                                  {units != null ? ` · ${kwhLabel(units)}` : ""}
-                                </span>
-                              </span>
-                              <span className="shrink-0 tabular-nums">
-                                {amount != null ? money(amount) : "—"}
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ol>
-                    </section>
-                  ) : null}
-                </>
-              )}
-            </div>
-
-            {buyingSoon && !lookingUp ? (
-              <div className="shrink-0 border-t border-dashed border-[var(--tab-fg)] px-4 py-3">
+              {canRemind ? (
                 <button
                   type="button"
-                  disabled
-                  aria-label="Buy a KPLC token. Coming soon."
+                  disabled={busy}
+                  aria-pressed={depletion?.alertsEnabled}
+                  onClick={() =>
+                    void toggleDepletionAlerts(!depletion?.alertsEnabled)
+                  }
                   className={cn(
-                    "flex min-h-12 w-full cursor-not-allowed items-center justify-center border-2 border-[var(--tab-fg)] px-3 text-[14px] font-semibold",
+                    "inline-flex min-h-9 items-center gap-1.5 text-[13px] font-semibold disabled:opacity-40",
                     focusRing,
                   )}
                 >
-                  Buy token — coming soon
+                  <Bell
+                    className="size-3.5"
+                    fill={depletion?.alertsEnabled ? "currentColor" : "none"}
+                    aria-hidden
+                  />
+                  {depletion?.alertsEnabled ? "Reminders on" : "Remind me"}
                 </button>
-                <p className="mt-1.5 text-center text-[12px] leading-snug text-[var(--tab-muted)]">
-                  Look up and copy still work.
-                </p>
-              </div>
+              ) : null}
+              {canLookup ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setAddingMeter(false);
+                    void lookup(tabPhone, meter);
+                  }}
+                  className={cn(
+                    "inline-flex min-h-9 text-[13px] font-medium text-[var(--tab-muted)] disabled:opacity-40",
+                    focusRing,
+                  )}
+                >
+                  {busy ? "Looking up…" : sameLoadedMeter ? "Look up again" : "Look up"}
+                </button>
+              ) : null}
+            </div>
+            {live ? (
+              <p className="px-4 pt-1 text-[12px] leading-relaxed text-[var(--tab-muted)]">
+                {kplcEstimateCopy(live)}
+              </p>
             ) : null}
-          </div>
-        </div>
+
+            <section className="mt-6 px-4">
+              <p className="text-[13px] text-[var(--tab-muted)]">Meters</p>
+              {meters.length > 0 ? (
+                <ul className="mt-2 grid gap-1.5">
+                  {meters.map((saved) => {
+                    const selected =
+                      !addingMeter && digitsOnly(meter) === saved.meterNumber;
+                    return (
+                      <li key={saved.meterNumber}>
+                        <div className="flex items-stretch gap-1.5">
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              setMeter(saved.meterNumber);
+                              setAddingMeter(false);
+                              void lookup(tabPhone, saved.meterNumber);
+                            }}
+                            className={cn(
+                              "flex min-h-12 min-w-0 flex-1 items-center justify-between gap-3 px-3 text-left tabular-nums disabled:opacity-40",
+                              selected
+                                ? "bg-[var(--tab-fg)] text-[var(--tab-bg)]"
+                                : "bg-[var(--tab-chip)]",
+                              focusRing,
+                            )}
+                            aria-pressed={selected}
+                          >
+                            <span className="text-[15px] font-semibold tracking-[-0.02em]">
+                              {formatMeterDisplay(saved.meterNumber)}
+                            </span>
+                            {selected ? (
+                              <Check className="size-4 shrink-0" aria-hidden />
+                            ) : null}
+                          </button>
+                          {selected ? (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void forget(saved.meterNumber)}
+                              className={cn(
+                                "flex size-12 shrink-0 items-center justify-center bg-[var(--tab-chip)] text-[var(--tab-muted)] disabled:opacity-40",
+                                focusRing,
+                              )}
+                              aria-label={`Remove meter ${formatMeterDisplay(saved.meterNumber)}`}
+                            >
+                              <X className="size-3.5" aria-hidden />
+                            </button>
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="mt-2 text-[13px] text-[var(--tab-muted)]">
+                  Saved on this tab, so the next phone still knows the meter.
+                </p>
+              )}
+              <button
+                type="button"
+                disabled={busy}
+                aria-pressed={addingMeter}
+                onClick={() => {
+                  if (addingMeter) {
+                    setAddingMeter(false);
+                    setMeter(loadedMeter ?? meters[0]?.meterNumber ?? "");
+                    return;
+                  }
+                  setAddingMeter(true);
+                  if (meterKnown) setMeter("");
+                }}
+                className={cn(
+                  "mt-2 inline-flex min-h-9 text-[14px] font-semibold disabled:opacity-40",
+                  focusRing,
+                )}
+              >
+                {addingMeter ? "Cancel" : "Add meter"}
+              </button>
+              {showMeterInput ? (
+                <div className="mt-2">
+                  <label htmlFor={`${fieldIdPrefix}-kplc-meter`} className="sr-only">
+                    Meter number
+                  </label>
+                  <input
+                    id={`${fieldIdPrefix}-kplc-meter`}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    autoFocus={addingMeter}
+                    value={meter}
+                    disabled={busy}
+                    onChange={(e) => {
+                      setMeter(digitsOnly(e.target.value));
+                      setError(null);
+                    }}
+                    placeholder="Meter as printed"
+                    className={cn(
+                      "w-full border-b border-[var(--tab-fg)] bg-transparent py-2 text-[16px] font-semibold tabular-nums outline-none",
+                      focusRing,
+                    )}
+                  />
+                  <button
+                    type="button"
+                    disabled={!canLookup}
+                    onClick={() => {
+                      setAddingMeter(false);
+                      void lookup(tabPhone, meter);
+                    }}
+                    className={cn(
+                      "mt-2 inline-flex min-h-10 text-[14px] font-semibold disabled:opacity-40",
+                      focusRing,
+                    )}
+                  >
+                    Look up
+                  </button>
+                </div>
+              ) : null}
+            </section>
+
+            <section className="mt-7">
+              <div className={styles.ledgerHead}>
+                <h3 className={styles.ledgerTitle}>Purchases</h3>
+                {sortedTokens.length > 0 ? (
+                  <p className={styles.ledgerMeta}>
+                    {sortedTokens.length} token
+                    {sortedTokens.length === 1 ? "" : "s"}
+                  </p>
+                ) : null}
+              </div>
+              {tokens && loadedMeter && tokens.length === 0 ? (
+                <p className={styles.empty}>
+                  No tokens on {formatMeterDisplay(loadedMeter)} yet.
+                </p>
+              ) : sortedTokens.length > 0 ? (
+                <ul className="divide-y divide-[var(--tab-border)] border-y border-[var(--tab-border)]">
+                  {sortedTokens.map((token) => (
+                    <PurchaseRow
+                      key={`${token.tokenNo}-${token.purchasedAt ?? ""}`}
+                      token={token}
+                      copied={copied === token.tokenNo}
+                      onCopy={() => void copyToken(token.tokenNo)}
+                    />
+                  ))}
+                </ul>
+              ) : !lookingUp ? (
+                <p className={styles.empty}>Look up a meter to load purchases.</p>
+              ) : null}
+            </section>
+
+            {showSpend && resolvedStats && resolvedStats.months.length > 0 ? (
+              <section className="px-4 pb-6 pt-4">
+                <p className="text-[13px] text-[var(--tab-muted)]">Monthly spend</p>
+                <ol className="mt-1 list-none p-0">
+                  {resolvedStats.months.map((month) => {
+                    const amount = toAmount(month.amount);
+                    const units = toAmount(month.units);
+                    return (
+                      <li
+                        key={month.yearMonth}
+                        className="flex items-baseline justify-between gap-4 py-2.5"
+                      >
+                        <span>
+                          <span className="block text-[14px] font-semibold">
+                            {month.label}
+                          </span>
+                          <span className="text-[12px] text-[var(--tab-muted)]">
+                            {month.tokenCount} token
+                            {month.tokenCount === 1 ? "" : "s"}
+                            {units != null ? ` · ${kwhLabel(units)}` : ""}
+                          </span>
+                        </span>
+                        <span className="shrink-0 tabular-nums">
+                          {amount != null ? money(amount) : "—"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
+            ) : null}
+          </>
+        )}
       </div>
+
+      {buyingSoon && !lookingUp ? (
+        <div className="shrink-0 border-t border-[var(--tab-border)] px-4 py-3">
+          <button
+            type="button"
+            disabled
+            aria-label="Buy a KPLC token. Coming soon."
+            className={cn(
+              "flex min-h-12 w-full cursor-not-allowed items-center justify-center bg-[var(--tab-chip)] px-3 text-[14px] font-semibold text-[var(--tab-muted)]",
+              focusRing,
+            )}
+          >
+            Buy token — coming soon
+          </button>
+          <p className="mt-1.5 text-center text-[12px] leading-snug text-[var(--tab-muted)]">
+            Look up and copy still work.
+          </p>
+        </div>
+      ) : null}
     </TabOverlay>
   );
 }

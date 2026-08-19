@@ -1,0 +1,275 @@
+/* Phone standing: the owed figure is the page. Services stay secondary. */
+
+.shell {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: max(0.65rem, env(safe-area-inset-top)) 1.15rem 0;
+}
+
+.identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.mark {
+  display: flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--tab-focus) 16%, var(--tab-card));
+  color: var(--tab-fg);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.2rem;
+}
+
+.shop {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.whose {
+  margin: 0.15rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--tab-muted);
+}
+
+.theme {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: var(--tab-fg);
+  background: transparent;
+  cursor: pointer;
+}
+
+.theme:focus-visible {
+  outline: 2px solid var(--tab-fg);
+  outline-offset: 2px;
+}
+
+.standing {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.75rem 1.15rem 1.35rem;
+}
+
+.amount {
+  margin: 0;
+  font-size: clamp(3.1rem, 16vw, 4.4rem);
+  font-weight: 700;
+  letter-spacing: -0.038em;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.amountSettled {
+  color: var(--tab-success-fg);
+}
+
+.caption {
+  margin: 0.85rem 0 0;
+  max-width: 18rem;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--tab-muted);
+}
+
+.wallet {
+  margin: 0.55rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--tab-success-fg);
+}
+
+.pay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3.35rem;
+  margin-top: 1.65rem;
+  padding: 0 1rem;
+  background: var(--tab-cta-bg);
+  color: var(--tab-cta-fg);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pay:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pay:focus-visible {
+  outline: 2px solid var(--tab-fg);
+  outline-offset: 3px;
+}
+
+.verbs {
+  display: flex;
+  background: var(--tab-card);
+  border-top: 1px solid var(--tab-border);
+  border-bottom: 1px solid var(--tab-border);
+}
+
+.verb {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 3.65rem;
+  padding: 0.7rem 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.verb + .verb {
+  border-left: 1px solid var(--tab-border);
+}
+
+.verbLabel {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.verbHint {
+  display: block;
+  margin-top: 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--tab-muted);
+}
+
+.ledgerHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem 0.7rem;
+}
+
+.ledgerTitle {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--tab-muted);
+}
+
+.ledgerMeta {
+  margin: 0;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--tab-muted);
+}
+
+.empty {
+  padding: 1.15rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--tab-muted);
+}
+
+.tokenSlip {
+  width: 100%;
+  padding: 1.15rem 1.1rem 1rem;
+  text-align: left;
+  background: var(--tab-chip);
+  border: 1px solid var(--tab-border);
+  cursor: pointer;
+}
+
+.tokenKicker {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--tab-muted);
+}
+
+.tokenNo {
+  margin: 0.45rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.tokenHint {
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+  color: var(--tab-muted);
+}
+
+.meterFace {
+  padding: 0.35rem 1.15rem 1.25rem;
+}
+
+.meterAmount {
+  margin: 0;
+  font-size: clamp(2.4rem, 12vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 0.92;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.meterCaption {
+  margin: 0.7rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--tab-muted);
+}
+
+.beat {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0 1.15rem 0.5rem;
+}
+
+.beatDot {
+  width: 1.35rem;
+  height: 0.2rem;
+  background: color-mix(in oklab, var(--tab-fg) 18%, transparent);
+}
+
+.beatDotOn {
+  background: var(--tab-fg);
+}
