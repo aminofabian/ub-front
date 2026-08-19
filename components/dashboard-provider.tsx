@@ -141,6 +141,7 @@ type DashboardContextValue = {
   canViewStockTake: boolean;
   canViewSupplyBatches: boolean;
   canViewPricing: boolean;
+  canManageDiscounts: boolean;
   canViewShifts: boolean;
   canViewAnalytics: boolean;
   canViewSalesIntelligence: boolean;
@@ -626,6 +627,10 @@ export function DashboardProvider({
           Permission.PricingSellPriceSet,
         ) ||
         hasPermission(effectiveMe?.permissions, Permission.PricingRulesManage),
+      canManageDiscounts: hasPermission(
+        effectiveMe?.permissions,
+        Permission.PricingDiscountsManage,
+      ),
       canViewShifts:
         hasPermission(effectiveMe?.permissions, Permission.ShiftsOpen) ||
         hasPermission(effectiveMe?.permissions, Permission.ShiftsClose) ||

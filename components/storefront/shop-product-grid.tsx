@@ -128,9 +128,23 @@ export default function ShopProductGrid({
         const title = productTitle(item.name, variantSubtitle);
         const ariaTitle = title;
         const hasPrice = hasCatalogPrice(item.price);
-        const priceLabel = hasPrice
-          ? formatDisplayPrice(currency, item.price)
+        const hasRegularPrice = hasCatalogPrice(item.regularPrice);
+        const hasDiscount =
+          Boolean(item.discountName) &&
+          hasPrice &&
+          hasRegularPrice &&
+          item.regularPrice != null &&
+          item.price != null &&
+          item.regularPrice !== item.price;
+
+        const priceLabel = hasPrice ? formatDisplayPrice(currency, item.price) : null;
+        const regularPriceLabel = hasRegularPrice
+          ? formatDisplayPrice(currency, item.regularPrice)
           : null;
+        const savedLabel =
+          hasCatalogPrice(item.savedAmount) && item.savedAmount != null && item.savedAmount > 0
+            ? formatDisplayPrice(currency, item.savedAmount)
+            : null;
 
         return (
           <li
@@ -175,9 +189,25 @@ export default function ShopProductGrid({
 
                 <div className="mt-auto flex min-w-0 flex-col gap-2">
                   {priceLabel ? (
-                    <p className="w-full min-w-0 break-words text-[13px] font-bold leading-snug tabular-nums tracking-tight text-[var(--storefront-ink,#141816)] sm:text-[14px]">
-                      {priceLabel}
-                    </p>
+                    <>
+                      {hasDiscount && regularPriceLabel ? (
+                        <p className="w-full min-w-0 break-words text-[13px] font-bold leading-snug tabular-nums tracking-tight text-[var(--storefront-ink,#141816)] sm:text-[14px]">
+                          <span className="mr-2 line-through text-[var(--storefront-ink-muted,#5c6560)]">
+                            {regularPriceLabel}
+                          </span>
+                          {priceLabel}
+                        </p>
+                      ) : (
+                        <p className="w-full min-w-0 break-words text-[13px] font-bold leading-snug tabular-nums tracking-tight text-[var(--storefront-ink,#141816)] sm:text-[14px]">
+                          {priceLabel}
+                        </p>
+                      )}
+                      {hasDiscount && savedLabel ? (
+                        <p className="text-[11px] font-semibold text-[var(--storefront-ink-muted,#5c6560)]">
+                          Save {savedLabel}
+                        </p>
+                      ) : null}
+                    </>
                   ) : (
                     <p className="invisible w-full text-[14px] font-bold" aria-hidden>
                       —

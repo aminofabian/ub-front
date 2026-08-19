@@ -35,6 +35,7 @@ export const Permission = {
   PricingSellPriceSet: "pricing.sell_price.set",
   PricingCostPriceSet: "pricing.cost_price.set",
   PricingRulesManage: "pricing.rules.manage",
+  PricingDiscountsManage: "pricing.discounts.manage",
   ShiftsOpen: "shifts.open",
   ShiftsClose: "shifts.close",
   ShiftsRead: "shifts.read",

@@ -110,6 +110,7 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.inventoryStockTakeInvestigations]: ClipboardList,
   [APP_ROUTES.inventoryStockTakeReconciliation]: ClipboardCheck,
   [APP_ROUTES.pricing]: Tags,
+  [APP_ROUTES.discounts]: Tags,
   [APP_ROUTES.shifts]: SlidersHorizontal,
   [APP_ROUTES.paymentsSettings]: CreditCard,
   [APP_ROUTES.paymentsDayLedger]: Receipt,

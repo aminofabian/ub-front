@@ -7037,6 +7037,95 @@ export type CurrentSellingPriceRecord = {
   price: number | string | null;
 };
 
+export type ResolvedDiscountRefRecord = {
+  id: string;
+  name: string;
+  method: string;
+  value: number | string;
+  scope: string;
+};
+
+export type ResolvedPriceRecord = {
+  regularPrice: number | string | null;
+  finalPrice: number | string | null;
+  savedAmount: number | string | null;
+  discount: ResolvedDiscountRefRecord | null;
+};
+
+export type DiscountRecord = {
+  id: string;
+  name: string;
+  description: string | null;
+  kind: string;
+  method: string;
+  value: number | string;
+  scope: string;
+  branchId: string | null;
+  startAt: string;
+  endAt: string | null;
+  paused: boolean;
+  publishedAt: string | null;
+  priority: number;
+  version: number;
+  status: string;
+  affectedCount: number;
+  itemIds: string[];
+  categoryIds: string[];
+  supplierIds: string[];
+  includeAnyLinkedSupplier: boolean;
+  excludedItemIds: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateDiscountPayload = {
+  name: string;
+  description?: string;
+  method: string;
+  value: number;
+  scope: string;
+  branchId?: string | null;
+  startAt: string;
+  endAt?: string | null;
+  itemIds?: string[];
+  categoryIds?: string[];
+  supplierIds?: string[];
+  includeAnyLinkedSupplier?: boolean;
+  excludedItemIds?: string[];
+  publish?: boolean;
+};
+
+export type DiscountPreviewLine = {
+  itemId: string;
+  itemName: string;
+  regularPrice: number | string | null;
+  finalPrice: number | string | null;
+  savedAmount: number | string | null;
+};
+
+export type DiscountPreviewResponse = {
+  affectedCount: number;
+  sample: DiscountPreviewLine[];
+  minSavedPerItem: number | string | null;
+  maxSavedPerItem: number | string | null;
+  warnings: string[];
+  errors: string[];
+};
+
+export type PreviewDiscountPayload = {
+  method: string;
+  value: number;
+  scope: string;
+  branchId?: string | null;
+  startAt?: string | null;
+  endAt?: string | null;
+  itemIds?: string[];
+  categoryIds?: string[];
+  supplierIds?: string[];
+  includeAnyLinkedSupplier?: boolean;
+  excludedItemIds?: string[];
+};
+
 export type PriceRuleRecord = {
   id: string;
   name: string;
@@ -7088,6 +7177,64 @@ export async function fetchCurrentSellingPrice(
     `/api/v1/pricing/current-selling-price?${params.toString()}`,
     options,
   );
+}
+
+export async function fetchResolvedPrice(
+  itemId: string,
+  branchId?: string,
+  options?: Pick<RequestOptions, "toast">,
+): Promise<ResolvedPriceRecord> {
+  const params = new URLSearchParams({ itemId: itemId.trim() });
+  if (branchId?.trim()) {
+    params.set("branchId", branchId.trim());
+  }
+  return request<ResolvedPriceRecord>(
+    `/api/v1/pricing/resolved-price?${params.toString()}`,
+    options,
+  );
+}
+
+export async function fetchDiscounts(): Promise<DiscountRecord[]> {
+  return request<DiscountRecord[]>("/api/v1/discounts");
+}
+
+export async function createDiscount(
+  payload: CreateDiscountPayload,
+): Promise<DiscountRecord> {
+  return request<DiscountRecord>("/api/v1/discounts", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function publishDiscount(discountId: string): Promise<DiscountRecord> {
+  return request<DiscountRecord>(
+    `/api/v1/discounts/${encodeURIComponent(discountId)}/publish`,
+    { method: "POST" },
+  );
+}
+
+export async function pauseDiscount(discountId: string): Promise<DiscountRecord> {
+  return request<DiscountRecord>(
+    `/api/v1/discounts/${encodeURIComponent(discountId)}/pause`,
+    { method: "POST" },
+  );
+}
+
+export async function resumeDiscount(discountId: string): Promise<DiscountRecord> {
+  return request<DiscountRecord>(
+    `/api/v1/discounts/${encodeURIComponent(discountId)}/resume`,
+    { method: "POST" },
+  );
+}
+
+export async function previewDiscount(
+  payload: PreviewDiscountPayload,
+): Promise<DiscountPreviewResponse> {
+  return request<DiscountPreviewResponse>("/api/v1/discounts/preview", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function fetchPriceRules(): Promise<PriceRuleRecord[]> {

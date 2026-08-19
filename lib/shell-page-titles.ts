@@ -37,6 +37,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.purchasingApAging]: "AP aging",
     [APP_ROUTES.purchasingRecordPayment]: "Pay open balances",
     [APP_ROUTES.pricing]: "Pricing",
+    [APP_ROUTES.discounts]: "Discounts",
     [APP_ROUTES.shifts]: "Shifts",
     [APP_ROUTES.sales]: "Sales",
     [APP_ROUTES.salesTransactions]: "Transactions",

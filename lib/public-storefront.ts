@@ -18,6 +18,15 @@ export type PublicCatalogItemCard = {
   variantName: string | null;
   imageUrl: string | null;
   price: number | null;
+  /**
+   * Regular price before applying any active catalog discounts.
+   * When set (and differs from `price`), shoppers can see a strikethrough.
+   */
+  regularPrice?: number | null;
+  /** Amount saved vs regular (after rounding). */
+  savedAmount?: number | null;
+  /** Discount label shown to shoppers (e.g. "Weekend Sale"). */
+  discountName?: string | null;
   /** Sum of active inventory batch qty remaining at the storefront catalog branch. */
   qtyOnHand?: number | null;
   /** Latest buying price across all suppliers (most recent effectiveFrom). */
@@ -75,6 +84,9 @@ export type PublicCatalogVariant = {
   variantName: string | null;
   imageUrl: string | null;
   price: number | null;
+  regularPrice?: number | null;
+  savedAmount?: number | null;
+  discountName?: string | null;
   qtyOnHand?: number | null;
   onlinePurchaseMode?: string | null;
   weighed?: boolean | null;
@@ -110,6 +122,9 @@ export type PublicCatalogItemDetail = {
   parentItemId: string | null;
   currency: string;
   price: number | null;
+  regularPrice?: number | null;
+  savedAmount?: number | null;
+  discountName?: string | null;
   qtyOnHand?: number | null;
   images: PublicItemImage[];
   variants: PublicCatalogVariant[];

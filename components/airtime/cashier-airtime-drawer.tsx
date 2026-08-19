@@ -246,15 +246,18 @@ export function CashierAirtimeDrawer({
       try {
         const fresh = await fetchAirtimeOrder(order.id);
         if (stopped) return;
-        setOrder(fresh);
+        if (fresh.status !== order.status || fresh.receipt !== order.receipt) {
+          setOrder(fresh);
+        }
         if (isTerminal(fresh.status)) {
+          setOrder(fresh);
           void reloadAvailability();
           return;
         }
       } catch {
         // Keep polling; a blip here should not strand the cashier.
       }
-      if (!stopped && attempts < 40) {
+      if (!stopped && attempts < 60) {
         timer = setTimeout(() => void tick(), 2500);
       }
     };

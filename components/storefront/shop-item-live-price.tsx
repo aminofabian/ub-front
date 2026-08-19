@@ -21,9 +21,15 @@ export function ShopItemLivePrice({
   className?: string;
 }) {
   const [price, setPrice] = useState(initialPrice);
+  const [regularPrice, setRegularPrice] = useState<number | null>(null);
+  const [savedAmount, setSavedAmount] = useState<number | null>(null);
+  const [discountName, setDiscountName] = useState<string | null>(null);
 
   useEffect(() => {
     setPrice(initialPrice);
+    setRegularPrice(null);
+    setSavedAmount(null);
+    setDiscountName(null);
   }, [itemId, initialPrice]);
 
   useEffect(() => {
@@ -40,6 +46,15 @@ export function ShopItemLivePrice({
       }
       setPrice((current) =>
         current === detail.price ? current : detail.price,
+      );
+      setRegularPrice((current) =>
+        current === detail.regularPrice ? current : (detail.regularPrice ?? null),
+      );
+      setSavedAmount((current) =>
+        current === detail.savedAmount ? current : (detail.savedAmount ?? null),
+      );
+      setDiscountName((current) =>
+        current === detail.discountName ? current : (detail.discountName ?? null),
       );
     };
 
@@ -62,7 +77,29 @@ export function ShopItemLivePrice({
     };
   }, [slug, itemId]);
 
+  const hasDiscount =
+    Boolean(discountName) &&
+    regularPrice != null &&
+    price != null &&
+    regularPrice !== price &&
+    savedAmount != null &&
+    savedAmount > 0;
+
   return (
-    <span className={className}>{formatDisplayPrice(currency, price)}</span>
+    <span className={className}>
+      {hasDiscount ? (
+        <>
+          <span className="mr-2 line-through text-[var(--storefront-ink-muted,#5c6560)]">
+            {formatDisplayPrice(currency, regularPrice)}
+          </span>
+          {formatDisplayPrice(currency, price)}
+          <span className="ml-2 text-[11px] font-semibold text-[var(--storefront-ink-muted,#5c6560)]">
+            Save {formatDisplayPrice(currency, savedAmount)}
+          </span>
+        </>
+      ) : (
+        formatDisplayPrice(currency, price)
+      )}
+    </span>
   );
 }

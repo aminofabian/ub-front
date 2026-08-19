@@ -529,10 +529,10 @@ function PosTileFrame({
         "focus-within:border-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
         className,
       )}
+      onClick={onPick}
     >
       <button
         type="button"
-        onClick={onPick}
         className="absolute inset-0 z-0"
         aria-label={ariaLabel}
         title={title}

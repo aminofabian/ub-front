@@ -319,6 +319,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     entryHref: APP_ROUTES.pricing,
     items: [
       { href: APP_ROUTES.pricing, label: "Pricing" },
+      { href: APP_ROUTES.discounts, label: "Discounts" },
       { href: APP_ROUTES.shifts, label: "Shifts" },
     ],
   },
@@ -452,6 +453,7 @@ type NavGate = {
   canApproveStockTake: boolean;
   canViewOrderPad: boolean;
   canViewPricing: boolean;
+  canManageDiscounts: boolean;
   canViewShifts: boolean;
   canViewAnalytics: boolean;
   canViewSalesIntelligence: boolean;
@@ -643,6 +645,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.inventoryMissingBarcodes)
     return gate.canViewInventoryValuation;
   if (item.href === APP_ROUTES.pricing) return gate.canViewPricing;
+  if (item.href === APP_ROUTES.discounts) return gate.canManageDiscounts;
   if (item.href === APP_ROUTES.shifts) return gate.canViewShifts;
   if (item.href === APP_ROUTES.analytics) return gate.canViewAnalytics;
   if (item.href === APP_ROUTES.analyticsActivity) {
@@ -835,6 +838,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewSupplyBatches,
     canViewStockTake,
     canViewPricing,
+    canManageDiscounts,
     canViewShifts,
     canViewAnalytics,
     canViewSalesIntelligence,
@@ -933,6 +937,7 @@ export function AppShell({ children }: AppShellProps) {
       canApproveStockTake,
       canViewOrderPad,
       canViewPricing,
+      canManageDiscounts,
       canViewShifts,
       canViewAnalytics,
       canViewSalesIntelligence,
@@ -980,6 +985,7 @@ export function AppShell({ children }: AppShellProps) {
     canApproveStockTake,
     canViewOrderPad,
     canViewPricing,
+    canManageDiscounts,
     canViewShifts,
     canViewAnalytics,
     canViewSalesIntelligence,

@@ -24,6 +24,7 @@ export const AUTH_PROTECTED_PREFIXES = [
   "/purchasing",
   "/inventory",
   "/pricing",
+  "/discounts",
   "/shifts",
   "/analytics",
   "/sales",

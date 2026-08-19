@@ -105,6 +105,7 @@ export const APP_ROUTES = {
   inventoryCostIssues: "/inventory/cost-issues",
   inventoryMissingBarcodes: "/inventory/missing-barcodes",
   pricing: "/pricing",
+  discounts: "/discounts",
   shifts: "/shifts",
   analytics: "/analytics",
   analyticsActivity: "/analytics/activity",

@@ -2,8 +2,9 @@
 
 import {
   ApiRequestError,
-  fetchCurrentSellingPrice,
+  fetchResolvedPrice,
   type CurrentSellingPriceRecord,
+  type ResolvedPriceRecord,
 } from "@/lib/api";
 import { pruneItemFromCatalogSearchCache } from "@/lib/catalog-search-cache";
 import { isItemNotFoundProblem } from "@/lib/problem";
@@ -15,21 +16,35 @@ export type PosShelfPriceContext = {
   onStaleItem?: (itemId: string) => void;
 };
 
+export type PosShelfPriceResult = CurrentSellingPriceRecord & {
+  regularPrice?: number | string | null;
+  discountName?: string | null;
+  savedAmount?: number | string | null;
+};
+
 /**
  * Resolve shelf price for POS tiles/modals without surfacing expected "item gone" errors.
- * Prunes deleted items from browser-local frequent-item and search caches.
+ * Uses catalog discount overlay when active (final price), keeping regular price for display.
  */
 export async function fetchPosShelfPrice(
   itemId: string,
   branchId: string | undefined,
   ctx: PosShelfPriceContext = {},
-): Promise<CurrentSellingPriceRecord | null> {
+): Promise<PosShelfPriceResult | null> {
   const id = itemId.trim();
   if (!id) {
     return null;
   }
   try {
-    return await fetchCurrentSellingPrice(id, branchId, { toast: false });
+    const resolved: ResolvedPriceRecord = await fetchResolvedPrice(id, branchId, {
+      toast: false,
+    });
+    return {
+      price: resolved.finalPrice,
+      regularPrice: resolved.regularPrice,
+      discountName: resolved.discount?.name ?? null,
+      savedAmount: resolved.savedAmount,
+    };
   } catch (e) {
     if (e instanceof ApiRequestError && isItemNotFoundProblem(e.payload)) {
       removeTopProduct(ctx.businessId, id);
