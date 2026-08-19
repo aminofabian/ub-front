@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import Image from "next/image";
 import {
@@ -460,86 +461,86 @@ function KioskTileStockCue({ tone }: { tone: "out" | "low" | null }) {
   );
 }
 
+/**
+ * Camera control only — the file input lives on CashierPosLayout so search
+ * result remounts cannot kill an in-flight picker, and so we can blur the
+ * focused search field before opening it (iOS/Safari swallows hidden
+ * file-input clicks while a text field is focused).
+ */
 function KioskTileAddPhotoButton({
-  itemId,
   itemName,
   compact,
-  onUploaded,
+  uploading,
+  onOpenPicker,
 }: {
-  itemId: string;
   itemName: string;
   compact: boolean;
-  onUploaded: (imageUrl: string) => void;
+  uploading: boolean;
+  onOpenPicker: () => void;
 }) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleFile = async (file: File | null | undefined) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Choose a photo (JPG, PNG, or HEIC).");
-      return;
-    }
-    setUploading(true);
-    try {
-      const saved = await uploadItemImageFile(itemId, file, {
-        altText: itemName,
-        primary: true,
-      });
-      const url = saved.secureUrl?.trim();
-      if (!url) {
-        toast.error("Upload finished but no image URL was returned.");
-        return;
-      }
-      onUploaded(url);
-      toast.success("Photo added");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not upload photo");
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  };
-
   return (
-    <>
+    <button
+      type="button"
+      disabled={uploading}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onOpenPicker();
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      className={cn(
+        "pointer-events-auto absolute z-[3] flex items-center justify-center rounded-md border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px] transition-colors hover:bg-black/70 disabled:opacity-70",
+        compact
+          ? "right-0.5 bottom-0.5 size-6"
+          : "right-1 bottom-1 size-7 sm:size-8",
+      )}
+      aria-label={`Add photo for ${itemName}`}
+      title="Add photo"
+    >
+      {uploading ? (
+        <Loader2
+          className={cn(compact ? "size-3" : "size-3.5", "animate-spin")}
+        />
+      ) : (
+        <Camera className={cn(compact ? "size-3" : "size-3.5")} />
+      )}
+    </button>
+  );
+}
+
+/** Tile chrome with a sibling pick-button so the camera is not nested in a <button>. */
+function PosTileFrame({
+  onPick,
+  ariaLabel,
+  title,
+  className,
+  children,
+}: {
+  onPick: () => void;
+  ariaLabel: string;
+  title: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        KIOSK_TILE_SHELL,
+        "focus-within:border-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
+        className,
+      )}
+    >
       <button
         type="button"
-        disabled={uploading}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          inputRef.current?.click();
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-        className={cn(
-          "absolute z-[3] flex items-center justify-center rounded-md border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px] transition-colors hover:bg-black/70 disabled:opacity-70",
-          compact
-            ? "right-0.5 bottom-0.5 size-6"
-            : "right-1 bottom-1 size-7 sm:size-8",
-        )}
-        aria-label={`Add photo for ${itemName}`}
-        title="Add photo"
-      >
-        {uploading ? (
-          <Loader2
-            className={cn(compact ? "size-3" : "size-3.5", "animate-spin")}
-          />
-        ) : (
-          <Camera className={cn(compact ? "size-3" : "size-3.5")} />
-        )}
-      </button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => {
-          void handleFile(e.target.files?.[0]);
-        }}
+        onClick={onPick}
+        className="absolute inset-0 z-0"
+        aria-label={ariaLabel}
+        title={title}
       />
-    </>
+      <div className="pointer-events-none relative z-[1] flex h-full min-h-0 flex-col">
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -552,7 +553,8 @@ function KioskTileMedia({
   compact = false,
   canAddPhoto = false,
   itemId,
-  onPhotoUploaded,
+  photoUploading = false,
+  onOpenPhotoPicker,
 }: {
   title: string;
   thumb: string | null;
@@ -562,9 +564,11 @@ function KioskTileMedia({
   compact?: boolean;
   canAddPhoto?: boolean;
   itemId?: string;
-  onPhotoUploaded?: (imageUrl: string) => void;
+  photoUploading?: boolean;
+  onOpenPhotoPicker?: () => void;
 }) {
-  const showAddPhoto = canAddPhoto && Boolean(itemId) && Boolean(onPhotoUploaded);
+  const showAddPhoto =
+    canAddPhoto && Boolean(itemId) && Boolean(onOpenPhotoPicker);
 
   return (
     <div
@@ -619,10 +623,10 @@ function KioskTileMedia({
       <KioskTileStockCue tone={stockTone} />
       {showAddPhoto && !thumb ? (
         <KioskTileAddPhotoButton
-          itemId={itemId!}
           itemName={title}
           compact={compact}
-          onUploaded={onPhotoUploaded!}
+          uploading={photoUploading}
+          onOpenPicker={onOpenPhotoPicker!}
         />
       ) : null}
     </div>
@@ -706,7 +710,8 @@ function TopSellerTile({
   justAdded,
   compact = false,
   canAddPhoto = false,
-  onPhotoUploaded,
+  photoUploading = false,
+  onOpenPhotoPicker,
 }: {
   product: TopProductRecord;
   onPick: () => void;
@@ -716,7 +721,8 @@ function TopSellerTile({
   justAdded: boolean;
   compact?: boolean;
   canAddPhoto?: boolean;
-  onPhotoUploaded?: (itemId: string, imageUrl: string) => void;
+  photoUploading?: boolean;
+  onOpenPhotoPicker?: (itemId: string, itemName: string) => void;
 }) {
   const itemLike: ItemSummaryRecord = {
     id: product.id,
@@ -736,21 +742,19 @@ function TopSellerTile({
   const thumb = posTileThumbUrl(product.name, product.thumbnailUrl);
   const stockTone = tileStockTone(itemLike);
   return (
-    <button
-      type="button"
-      onClick={onPick}
-      className={cn(
-        KIOSK_TILE_SHELL,
-        cartQty > 0 &&
-          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,var(--card))]",
-        stockTone === "out" && "opacity-70",
-      )}
-      aria-label={
+    <PosTileFrame
+      onPick={onPick}
+      title={title}
+      ariaLabel={
         cartQty > 0
           ? `${title}, ${cartQty} in cart. Tap to add another. ${shelfLine}`
           : `Add ${title}, ${shelfLine}`
       }
-      title={title}
+      className={cn(
+        cartQty > 0 &&
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,var(--card))]",
+        stockTone === "out" && "opacity-70",
+      )}
     >
       <KioskTileMedia
         title={title}
@@ -761,9 +765,10 @@ function TopSellerTile({
         compact={compact}
         canAddPhoto={canAddPhoto}
         itemId={product.id}
-        onPhotoUploaded={
-          onPhotoUploaded
-            ? (url) => onPhotoUploaded(product.id, url)
+        photoUploading={photoUploading}
+        onOpenPhotoPicker={
+          onOpenPhotoPicker
+            ? () => onOpenPhotoPicker(product.id, title)
             : undefined
         }
       />
@@ -784,7 +789,7 @@ function TopSellerTile({
           compact={compact}
         />
       </div>
-    </button>
+    </PosTileFrame>
   );
 }
 
@@ -798,7 +803,8 @@ function SearchHitTile({
   justAdded,
   compact = false,
   canAddPhoto = false,
-  onPhotoUploaded,
+  photoUploading = false,
+  onOpenPhotoPicker,
 }: {
   item: ItemSummaryRecord;
   onPick: () => void;
@@ -809,7 +815,8 @@ function SearchHitTile({
   justAdded: boolean;
   compact?: boolean;
   canAddPhoto?: boolean;
-  onPhotoUploaded?: (itemId: string, imageUrl: string) => void;
+  photoUploading?: boolean;
+  onOpenPhotoPicker?: (itemId: string, itemName: string) => void;
 }) {
   const thumb = posTileThumbUrl(item.name, itemListThumbnailUrl(item));
   const { primary, option } = cashierItemTitleParts(item);
@@ -817,21 +824,19 @@ function SearchHitTile({
   const categoryLabel = item.categoryName?.trim() || "Menu";
   const stockTone = tileStockTone(item);
   return (
-    <button
-      type="button"
-      onClick={onPick}
-      className={cn(
-        KIOSK_TILE_SHELL,
-        cartQty > 0 &&
-          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,var(--card))]",
-        stockTone === "out" && "opacity-70",
-      )}
-      aria-label={
+    <PosTileFrame
+      onPick={onPick}
+      title={title}
+      ariaLabel={
         cartQty > 0
           ? `${title}, ${cartQty} in cart. Tap to add another. ${shelfLine}`
           : `Add ${title} to cart, ${shelfLine}`
       }
-      title={title}
+      className={cn(
+        cartQty > 0 &&
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,var(--card))]",
+        stockTone === "out" && "opacity-70",
+      )}
     >
       <KioskTileMedia
         title={title}
@@ -842,9 +847,10 @@ function SearchHitTile({
         compact={compact}
         canAddPhoto={canAddPhoto}
         itemId={item.id}
-        onPhotoUploaded={
-          onPhotoUploaded
-            ? (url) => onPhotoUploaded(item.id, url)
+        photoUploading={photoUploading}
+        onOpenPhotoPicker={
+          onOpenPhotoPicker
+            ? () => onOpenPhotoPicker(item.id, title)
             : undefined
         }
       />
@@ -871,7 +877,7 @@ function SearchHitTile({
           </span>
         ) : null}
       </div>
-    </button>
+    </PosTileFrame>
   );
 }
 
@@ -979,6 +985,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const isLg = useMediaLg();
   const compactShelf = !embeddedInDashboard;
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const photoFileInputRef = useRef<HTMLInputElement>(null);
+  const pendingPhotoRef = useRef<{ itemId: string; itemName: string } | null>(
+    null,
+  );
+  const [photoUploadingId, setPhotoUploadingId] = useState<string | null>(null);
 
   const focusSearch = useCallback((select = false) => {
     const el = searchInputRef.current;
@@ -988,6 +999,53 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       el.select();
     }
   }, []);
+
+  const openProductPhotoPicker = useCallback((itemId: string, itemName: string) => {
+    pendingPhotoRef.current = { itemId, itemName };
+    // iOS/Safari (and some Android WebViews) ignore programmatic file-input
+    // clicks while a text field — here, POS search — still has focus.
+    searchInputRef.current?.blur();
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active !== photoFileInputRef.current) {
+      active.blur();
+    }
+    photoFileInputRef.current?.click();
+  }, []);
+
+  const handleProductPhotoFile = useCallback(
+    async (file: File | null | undefined) => {
+      const pending = pendingPhotoRef.current;
+      pendingPhotoRef.current = null;
+      if (photoFileInputRef.current) photoFileInputRef.current.value = "";
+      if (!file || !pending) return;
+      const looksLikeImage =
+        file.type.startsWith("image/") ||
+        /\.(jpe?g|png|webp|gif|heic|heif|avif)$/i.test(file.name);
+      if (!looksLikeImage) {
+        toast.error("Choose a photo (JPG, PNG, or HEIC).");
+        return;
+      }
+      setPhotoUploadingId(pending.itemId);
+      try {
+        const saved = await uploadItemImageFile(pending.itemId, file, {
+          altText: pending.itemName,
+          primary: true,
+        });
+        const url = saved.secureUrl?.trim();
+        if (!url) {
+          toast.error("Upload finished but no image URL was returned.");
+          return;
+        }
+        onProductPhotoUploaded?.(pending.itemId, url);
+        toast.success("Photo added");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Could not upload photo");
+      } finally {
+        setPhotoUploadingId(null);
+      }
+    },
+    [onProductPhotoUploaded],
+  );
 
   const tillLock = useOptionalPosTillLock();
   const tillLocked = tillLock?.locked === true;
@@ -1889,7 +1947,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   justAdded={justAddedId === item.id}
                   compact={compactShelf}
                   canAddPhoto={allowAddPhoto}
-                  onPhotoUploaded={onProductPhotoUploaded}
+                  photoUploading={photoUploadingId === item.id}
+                  onOpenPhotoPicker={
+                    allowAddPhoto ? openProductPhotoPicker : undefined
+                  }
                   onPick={() => handlePickItem(item)}
                 />
               );
@@ -1955,7 +2016,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   justAdded={justAddedId === p.id}
                   compact={compactShelf}
                   canAddPhoto={allowAddPhoto}
-                  onPhotoUploaded={onProductPhotoUploaded}
+                  photoUploading={photoUploadingId === p.id}
+                  onOpenPhotoPicker={
+                    allowAddPhoto ? openProductPhotoPicker : undefined
+                  }
                   onPick={() =>
                     handlePickItem({
                       id: p.id,
@@ -2258,6 +2322,19 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           );
         })}
       </div>
+
+      <input
+        ref={photoFileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        tabIndex={-1}
+        className="sr-only"
+        aria-hidden
+        onChange={(e) => {
+          void handleProductPhotoFile(e.target.files?.[0]);
+        }}
+      />
 
       <CashierProductModal
         item={pickedItem}
