@@ -23,14 +23,13 @@ import {
   Truck,
   Zap,
 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { cormorant } from "@/app/fonts/cormorant";
-import { StorefrontSetupModal } from "@/components/storefront/storefront-setup-modal";
 import styles from "@/components/storefront/shop-storefront-coming-soon.module.css";
 import { buildComingSoonTheme, type ComingSoonTheme } from "@/lib/coming-soon-theme";
 import { APP_ROUTES } from "@/lib/config";
-import { getSessionTokens } from "@/lib/auth";
+import { hasAccessSession } from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -144,7 +143,7 @@ export type ShopStorefrontComingSoonProps = {
 
 export function ShopStorefrontComingSoon(props: ShopStorefrontComingSoonProps) {
   return (
-    <Suspense fallback={<ComingSoonPage {...props} ownerState="unknown" setupOpen={false} onSetupOpen={() => {}} loginHref={APP_ROUTES.login} />}>
+    <Suspense fallback={<ComingSoonPage {...props} ownerState="unknown" ownerHubHref={APP_ROUTES.business} loginHref={APP_ROUTES.staffLogin} />}>
       <ShopStorefrontComingSoonInner {...props} />
     </Suspense>
   );
@@ -157,14 +156,16 @@ function ShopStorefrontComingSoonInner({
   accentHex,
 }: ShopStorefrontComingSoonProps) {
   const searchParams = useSearchParams();
-  const [setupOpen, setSetupOpen] = useState(false);
+  const router = useRouter();
   const [ownerState, setOwnerState] = useState<
     "unknown" | "guest" | "owner" | "other"
   >("unknown");
-  const [loginNext, setLoginNext] = useState("/");
+
+  const ownerHubHref = APP_ROUTES.business;
+  const loginHref = `${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(ownerHubHref)}`;
 
   const resolveOwner = useCallback(async () => {
-    if (!getSessionTokens()) {
+    if (!hasAccessSession()) {
       setOwnerState("guest");
       return false;
     }
@@ -181,20 +182,13 @@ function ShopStorefrontComingSoonInner({
   }, []);
 
   useEffect(() => {
-    setLoginNext(
-      `${window.location.pathname}${window.location.search}`,
-    );
     void (async () => {
       const isOwner = await resolveOwner();
       if (isOwner && searchParams.get("setup") === "storefront") {
-        setSetupOpen(true);
+        router.replace(ownerHubHref);
       }
     })();
-  }, [resolveOwner, searchParams]);
-
-  const loginHref = `${APP_ROUTES.login}?next=${encodeURIComponent(
-    `${loginNext}${loginNext.includes("?") ? "&" : "?"}setup=storefront`,
-  )}`;
+  }, [resolveOwner, searchParams, router, ownerHubHref]);
 
   return (
     <ComingSoonPage
@@ -203,8 +197,7 @@ function ShopStorefrontComingSoonInner({
       primaryHex={primaryHex}
       accentHex={accentHex}
       ownerState={ownerState}
-      setupOpen={setupOpen}
-      onSetupOpen={setSetupOpen}
+      ownerHubHref={ownerHubHref}
       loginHref={loginHref}
     />
   );
@@ -216,13 +209,11 @@ function ComingSoonPage({
   primaryHex,
   accentHex,
   ownerState,
-  setupOpen,
-  onSetupOpen,
+  ownerHubHref,
   loginHref,
 }: ShopStorefrontComingSoonProps & {
   ownerState: "unknown" | "guest" | "owner" | "other";
-  setupOpen: boolean;
-  onSetupOpen: (open: boolean) => void;
+  ownerHubHref: string;
   loginHref: string;
 }) {
   const theme = useMemo(
@@ -292,8 +283,7 @@ function ComingSoonPage({
       logoUrl={logoUrl}
       theme={theme}
       ownerState={ownerState}
-      setupOpen={setupOpen}
-      onSetupOpen={onSetupOpen}
+      ownerHubHref={ownerHubHref}
       loginHref={loginHref}
       email={email}
       emailDone={emailDone}
@@ -311,8 +301,7 @@ function ComingSoonPageBody({
   logoUrl,
   theme,
   ownerState,
-  setupOpen,
-  onSetupOpen,
+  ownerHubHref,
   loginHref,
   email,
   emailDone,
@@ -326,8 +315,7 @@ function ComingSoonPageBody({
   logoUrl?: string | null;
   theme: ComingSoonTheme;
   ownerState: "unknown" | "guest" | "owner" | "other";
-  setupOpen: boolean;
-  onSetupOpen: (open: boolean) => void;
+  ownerHubHref: string;
   loginHref: string;
   email: string;
   emailDone: boolean;
@@ -481,17 +469,16 @@ function ComingSoonPageBody({
 
           <div className={cn(styles.heroActions, "mt-10 flex flex-wrap items-center gap-4")}>
             {ownerState === "owner" ? (
-              <button
-                type="button"
+              <Link
+                href={ownerHubHref}
                 className={cn(
                   styles.btnPrimary,
-                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 px-8 py-4 text-[13px] font-medium uppercase tracking-[0.08em] transition-colors",
+                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 px-8 py-4 text-[13px] font-medium uppercase tracking-[0.08em] no-underline transition-colors",
                 )}
-                onClick={() => onSetupOpen(true)}
               >
-                <span className="relative z-[1]">Open your online shop</span>
+                <span className="relative z-[1]">Finish shop setup</span>
                 <ArrowRight className="relative z-[1] size-3.5" aria-hidden />
-              </button>
+              </Link>
             ) : ownerState === "guest" ? (
               <Link
                 href={loginHref}
@@ -531,7 +518,7 @@ function ComingSoonPageBody({
 
           {ownerState === "owner" ? (
             <p className="mt-4 text-xs text-[var(--cs-warm-gray)]">
-              You&apos;re signed in as the owner — launch your catalog in under a minute.
+              You&apos;re signed in as the owner — finish setup in your business hub.
             </p>
           ) : null}
 
@@ -689,17 +676,16 @@ function ComingSoonPageBody({
 
           <div className="flex flex-col gap-3">
             {ownerState === "owner" ? (
-              <button
-                type="button"
-                className="w-full border-0 px-7 py-4 text-xs font-semibold uppercase tracking-[0.1em] transition-colors hover:brightness-110"
+              <Link
+                href={ownerHubHref}
+                className="block w-full px-7 py-4 text-center text-xs font-semibold uppercase tracking-[0.1em] no-underline transition-colors hover:brightness-110"
                 style={{
                   backgroundColor: theme.primary,
                   color: theme.onPrimary,
                 }}
-                onClick={() => onSetupOpen(true)}
               >
-                Set up storefront
-              </button>
+                Continue setup
+              </Link>
             ) : ownerState === "guest" ? (
               <Link
                 href={loginHref}
@@ -789,12 +775,6 @@ function ComingSoonPageBody({
           © {new Date().getFullYear()} {displayName}. Nairobi, Kenya.
         </p>
       </footer>
-
-      <StorefrontSetupModal
-        open={setupOpen}
-        onOpenChange={onSetupOpen}
-        primaryHex={theme.primary}
-      />
     </div>
   );
 }

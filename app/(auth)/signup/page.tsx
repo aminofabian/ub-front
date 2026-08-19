@@ -23,14 +23,17 @@ import {
   AUTH_TENANT_RESOLVE_ERROR,
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
-import { fetchMe, registerAccount, onboardBusiness } from "@/lib/api";
+import { registerAccount, onboardBusiness } from "@/lib/api";
 import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
-import { markOnboardingTourPending } from "@/lib/onboarding-tour";
-import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
-import { handleRegistrationResult } from "@/lib/post-registration-auth";
+import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
+import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
+import {
+  handleRegistrationResult,
+  resolveDestinationAfterAuth,
+} from "@/lib/post-registration-auth";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass =
@@ -59,10 +62,12 @@ function SignupPageContent() {
     if (!getSessionTokens()) {
       return;
     }
+    // Already signed in (e.g. revisiting /signup mid-onboarding): send the user
+    // to their post-auth destination, which respects business onboarding state.
     void (async () => {
       try {
-        const me = await fetchMe();
-        router.replace(resolvePostAuthDestination(me));
+        const { dest, slug } = await resolveDestinationAfterAuth();
+        await completeAuthAndNavigate(dest, slug);
       } catch {
         router.replace(APP_ROUTES.shop);
       }
@@ -93,7 +98,7 @@ function SignupPageContent() {
       }
       persistTenantId(id);
       const result = await registerAccount(name.trim(), email.trim(), password);
-      markOnboardingTourPending();
+      markOnboardingQuestionnairePending();
       const flow = await handleRegistrationResult({
         result,
         email,
@@ -110,7 +115,7 @@ function SignupPageContent() {
         );
         setVerificationLink(link);
       } else {
-        const base = `You're almost done. We sent a link to ${result.email}. Open it to verify, then sign in.`;
+        const base = `You're almost done. We sent a link to ${result.email}. Open it to verify — we'll take you to your business hub.`;
         const localHint =
           process.env.NODE_ENV === "development"
             ? " Locally, if the API has no SMTP, the link is only in the backend terminal (yellow WARN + INFO with the verify URL), not in your inbox."
@@ -201,7 +206,7 @@ function SignupPageContent() {
           email.trim(),
           password,
         );
-        markOnboardingTourPending();
+        markOnboardingQuestionnairePending();
         const flow = await handleRegistrationResult({
           result: registerResult,
           email,
@@ -226,7 +231,7 @@ function SignupPageContent() {
             setVerificationLink(link);
           } else {
             setSuccessMessage(
-              `You're almost done. We sent a link to ${registerResult.email}. Open it to verify, then sign in.`,
+              `You're almost done. We sent a link to ${registerResult.email}. Open it to verify — we'll take you to your business hub.`,
             );
           }
         }
@@ -268,8 +273,8 @@ function SignupPageContent() {
         description="Browse the storefront, save carts, and check out pickups with your profile."
       />
       <p className="mt-1 text-sm text-muted-foreground">
-        Confirm your email when asked, then sign in — you&apos;ll land in your
-        shop dashboard.
+        Confirm your email when asked — we&apos;ll open your business hub so you can
+        finish setup. You won&apos;t need to sign in again.
       </p>
 
       {/* Always-visible onboarding CTA — no need to fail first */}
@@ -477,8 +482,21 @@ function SignupPageContent() {
             className="h-12 w-full rounded-2xl border-2"
             asChild
           >
-            <Link href={APP_ROUTES.login}>Go to sign in</Link>
+            <Link
+              href={`${APP_ROUTES.verifyEmail}?email=${encodeURIComponent(email.trim())}`}
+            >
+              Open verification page
+            </Link>
           </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            Already verified?{" "}
+            <Link
+              href={`${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`}
+              className="font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
+            >
+              Continue to your business hub
+            </Link>
+          </p>
         </div>
       ) : null}
 

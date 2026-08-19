@@ -23,6 +23,39 @@ export function extractVerificationToken(
   }
 }
 
+/**
+ * Resolve where a just-authenticated user should land, based on their live
+ * role and the business's actual onboarding state (never a hardcoded URL).
+ * Used to bounce authenticated users off auth pages (signup/login).
+ */
+export async function resolveDestinationAfterAuth(params?: {
+  tenantSlug?: string | null;
+}): Promise<{ dest: string; slug: string | null }> {
+  try {
+    const [meRaw, business] = await Promise.all([
+      fetchMe(),
+      fetchBusiness().catch(() => null),
+    ]);
+    let me = meRaw;
+    if (isBuyerAccount(me)) {
+      try {
+        me = applyShopperTabHint(me, await fetchShopperAccountOverview(0, 1));
+      } catch {
+        /* catalog is still a valid home */
+      }
+    }
+    return {
+      dest: resolvePostAuthDestination(me, null, business),
+      slug: business?.slug?.trim() || params?.tenantSlug?.trim() || null,
+    };
+  } catch {
+    return {
+      dest: resolvePostAuthDestination(null, null, null),
+      slug: params?.tenantSlug?.trim() || null,
+    };
+  }
+}
+
 export async function finalizeActiveRegistration(params: {
   email: string;
   password: string;
@@ -30,7 +63,7 @@ export async function finalizeActiveRegistration(params: {
 }): Promise<void> {
   await loginWithPassword(params.email.trim(), params.password);
 
-  let dest = resolvePostAuthDestination(null);
+  let dest = resolvePostAuthDestination(null, null, null);
   try {
     const [meRaw, business] = await Promise.all([
       fetchMe(),

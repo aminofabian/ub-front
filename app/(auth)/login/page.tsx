@@ -22,6 +22,7 @@ import {
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
 import {
+  fetchBusiness,
   fetchMe,
   fetchShopperAccountOverview,
   loginWithPassword,
@@ -82,7 +83,10 @@ function CustomerLoginPageContent() {
           /* still send them to the catalog */
         }
       }
-      return resolvePostAuthDestination(me, requestedNext);
+      // Include the business so merchants with unfinished onboarding land on
+      // the business hub instead of the storefront.
+      const business = await fetchBusiness().catch(() => null);
+      return resolvePostAuthDestination(me, requestedNext, business);
     },
     [searchParams],
   );

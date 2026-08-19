@@ -2155,13 +2155,14 @@ export async function lookupAuthEmail(
 export async function verifyEmailAddress(
   token: string,
   options?: { toast?: boolean },
-): Promise<void> {
-  await request(API_ROUTES.verifyEmail, {
+): Promise<boolean> {
+  const payload = await request<LoginResponse>(API_ROUTES.verifyEmail, {
     method: "POST",
     body: { token },
     requiresAuth: false,
     toast: options?.toast,
   });
+  return applyAuthSessionPayload(payload);
 }
 
 export async function resendVerificationEmail(

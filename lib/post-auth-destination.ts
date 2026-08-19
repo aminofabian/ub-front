@@ -96,9 +96,27 @@ function isStorefrontHome(path: string): boolean {
 }
 
 /**
+ * True when the merchant has not finished (or dismissed) business onboarding.
+ * While onboarding is pending/active, the business hub must gate routing so a
+ * brand-new owner is never dropped onto the storefront or role apps.
+ */
+export function isOnboardingIncomplete(
+  business?: BusinessRecord | null,
+): boolean {
+  const status = business?.onboarding?.status?.trim().toLowerCase() ?? "";
+  return status === "pending" || status === "active";
+}
+
+/**
  * Where to send the user after sign-in.
- * Shop `?next=` and credit-tab paths win (password login from the storefront).
- * Otherwise role homes beat generic defaults. Tenant default is the storefront.
+ *
+ * Buyers keep their storefront `?next=` / credit-tab paths. Owner/admin with an
+ * unfinished business setup (or a missing business payload) go straight to the
+ * business hub — `?next=` and role homes cannot pull a brand-new owner onto the
+ * storefront before their shop is configured, and a failed business fetch must
+ * not fall through to the storefront default. Staff/POS roles keep their
+ * dedicated homes (grocery managers stay on /grocery, cashiers on /cashier…).
+ * Otherwise role homes beat generic defaults; tenant default is the storefront.
  */
 export function resolvePostAuthDestination(
   me: PostAuthMe | null | undefined,
@@ -106,15 +124,27 @@ export function resolvePostAuthDestination(
   business?: BusinessRecord | null,
 ): string {
   const requested = requestedNext?.trim() ?? "";
-  if (isShopNextPath(requested) || isCustomerTabPath(requested)) {
-    return requested;
-  }
 
   if (me && isBuyerAccount(me)) {
+    if (isShopNextPath(requested) || isCustomerTabPath(requested)) {
+      return requested;
+    }
     if (me.tabPath && isCustomerTabPath(me.tabPath)) {
       return me.tabPath;
     }
     return buyerHomePath();
+  }
+
+  const roleKey = roleKeyOf(me);
+  if (
+    (roleKey === "owner" || roleKey === "admin") &&
+    (isOnboardingIncomplete(business) || !business)
+  ) {
+    return APP_ROUTES.business;
+  }
+
+  if (isShopNextPath(requested) || isCustomerTabPath(requested)) {
+    return requested;
   }
 
   const roleHome = dedicatedRoleHome(me, business);

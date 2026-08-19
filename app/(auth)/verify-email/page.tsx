@@ -21,14 +21,20 @@ import {
   AUTH_TENANT_RESOLVE_ERROR,
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
-import { resendVerificationEmail, verifyEmailAddress } from "@/lib/api";
+import {
+  fetchBusiness,
+  fetchMe,
+  resendVerificationEmail,
+  verifyEmailAddress,
+} from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
-import { markOnboardingTourPending } from "@/lib/onboarding-tour";
+import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
+import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import { cn } from "@/lib/utils";
 
 const REDIRECT_SECONDS = 10;
-/** Shop owners verify then sign in with email/password (Office), not till PIN. */
-const POST_VERIFY_LOGIN_HREF = `${APP_ROUTES.staffLogin}?mode=office`;
+/** Fallback when verify-email cannot mint a session (older API). */
+const POST_VERIFY_LOGIN_HREF = `${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`;
 
 const primaryCtaClass =
   "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
@@ -60,6 +66,7 @@ function VerifyEmailContent() {
   const [verifyPhase, setVerifyPhase] = useState<VerifyPhase>(() =>
     hasAutoToken ? "verifying" : "idle",
   );
+  const [signedInAfterVerify, setSignedInAfterVerify] = useState(false);
   const [redirectSeconds, setRedirectSeconds] = useState(REDIRECT_SECONDS);
 
   const shopName =
@@ -80,16 +87,39 @@ function VerifyEmailContent() {
     }
   };
 
-  const onVerifySuccess = () => {
-    markOnboardingTourPending();
+  const continueAfterVerify = async (signedIn: boolean) => {
+    if (signedIn) {
+      try {
+        const [me, business] = await Promise.all([
+          fetchMe(),
+          fetchBusiness().catch(() => null),
+        ]);
+        // Registration already marked onboarding pending; do NOT re-pend here —
+        // re-verifying an old link must not reset a completed/dismissed business.
+        // Destination is onboarding-aware: owner/admin → /business, buyers → shop.
+        const dest = resolvePostAuthDestination(me, null, business);
+        await completeAuthAndNavigate(dest, tenant?.slug);
+        return;
+      } catch {
+        /* fall through to staff sign-in with next=/business */
+      }
+    }
+    router.replace(POST_VERIFY_LOGIN_HREF);
+  };
+
+  const onVerifySuccess = (signedIn: boolean) => {
     setMessage("");
     setErrorMessage("");
+    setSignedInAfterVerify(signedIn);
     setVerifyPhase("success");
-    setRedirectSeconds(REDIRECT_SECONDS);
+    setRedirectSeconds(signedIn ? 0 : REDIRECT_SECONDS);
+    if (signedIn) {
+      void continueAfterVerify(true);
+    }
   };
 
   useEffect(() => {
-    if (verifyPhase !== "success") {
+    if (verifyPhase !== "success" || signedInAfterVerify) {
       return;
     }
     if (redirectSeconds <= 0) {
@@ -100,7 +130,7 @@ function VerifyEmailContent() {
       setRedirectSeconds((current) => current - 1);
     }, 1000);
     return () => window.clearTimeout(timer);
-  }, [verifyPhase, redirectSeconds, router]);
+  }, [verifyPhase, signedInAfterVerify, redirectSeconds, router]);
 
   useEffect(() => {
     const token = tokenFromQuery.trim();
@@ -121,8 +151,9 @@ function VerifyEmailContent() {
           setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
           return;
         }
-        await verifyEmailAddress(token, { toast: false });
-        onVerifySuccess();
+        persistTenantId(id);
+        const signedIn = await verifyEmailAddress(token, { toast: false });
+        onVerifySuccess(signedIn);
       } catch (error: unknown) {
         autoVerifyStarted.current = false;
         setVerifyPhase("failed");
@@ -156,8 +187,8 @@ function VerifyEmailContent() {
         return;
       }
       persistTenantId(id);
-      await verifyEmailAddress(token, { toast: false });
-      onVerifySuccess();
+      const signedIn = await verifyEmailAddress(token, { toast: false });
+      onVerifySuccess(signedIn);
     } catch (error) {
       setVerifyPhase("failed");
       setErrorMessage(
@@ -211,7 +242,9 @@ function VerifyEmailContent() {
 
   const headerDescription = (() => {
     if (verifyPhase === "success") {
-      return "You're in. Next up: sign in to your office dashboard.";
+      return signedInAfterVerify
+        ? "Opening your business hub so you can finish setup."
+        : "You're in. Continue to your business hub — you'll sign in once if we couldn't start the session automatically.";
     }
     if (hasAutoToken && verifyPhase === "verifying") {
       return "Confirming your verification link…";
@@ -300,17 +333,25 @@ function VerifyEmailContent() {
 
       {verifyPhase === "success" ? (
         <div className="mt-5">
-          <AuthAlert variant="success">
-            Redirecting to staff sign-in in{" "}
-            <span className="font-semibold tabular-nums">{redirectSeconds}</span>
-            {redirectSeconds === 1 ? " second" : " seconds"}.
-          </AuthAlert>
-          <Link
-            href={POST_VERIFY_LOGIN_HREF}
-            className={cn(primaryCtaClass, "mt-4")}
-          >
-            Continue to sign in
-          </Link>
+          {signedInAfterVerify ? (
+            <AuthAlert variant="success">
+              Signed in. Taking you to your business hub…
+            </AuthAlert>
+          ) : (
+            <>
+              <AuthAlert variant="success">
+                Redirecting to staff sign-in in{" "}
+                <span className="font-semibold tabular-nums">{redirectSeconds}</span>
+                {redirectSeconds === 1 ? " second" : " seconds"}.
+              </AuthAlert>
+              <Link
+                href={POST_VERIFY_LOGIN_HREF}
+                className={cn(primaryCtaClass, "mt-4")}
+              >
+                Continue to your business hub
+              </Link>
+            </>
+          )}
         </div>
       ) : null}
 

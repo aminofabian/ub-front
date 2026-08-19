@@ -23,14 +23,17 @@ import {
   AUTH_TENANT_RESOLVE_ERROR,
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
-import { fetchMe, registerAccount, onboardBusiness } from "@/lib/api";
+import { registerAccount, onboardBusiness } from "@/lib/api";
 import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
-import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
-import { handleRegistrationResult } from "@/lib/post-registration-auth";
+import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
+import {
+  handleRegistrationResult,
+  resolveDestinationAfterAuth,
+} from "@/lib/post-registration-auth";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass =
@@ -60,10 +63,12 @@ function StaffSignupPageContent() {
     if (!getSessionTokens()) {
       return;
     }
+    // Already signed in (e.g. revisiting /signup/staff mid-onboarding): send the
+    // user to their post-auth destination, which respects business onboarding state.
     void (async () => {
       try {
-        const me = await fetchMe();
-        router.replace(resolvePostAuthDestination(me));
+        const { dest, slug } = await resolveDestinationAfterAuth();
+        await completeAuthAndNavigate(dest, slug);
       } catch {
         router.replace(APP_ROUTES.shop);
       }
@@ -129,7 +134,7 @@ function StaffSignupPageContent() {
         );
         setVerificationLink(link);
       } else {
-        const base = `You're almost done. We sent a link to ${result.email}. Open it to verify, then sign in.`;
+        const base = `You're almost done. We sent a link to ${result.email}. Open it to verify — we'll take you to your business hub.`;
         const localHint =
           process.env.NODE_ENV === "development"
             ? " Locally, if the API has no SMTP, the link is only in the backend terminal, not in your inbox."
@@ -233,7 +238,7 @@ function StaffSignupPageContent() {
         setVerificationLink(link);
       } else {
         setSuccessMessage(
-          `You're almost done. We sent a link to ${registerResult.email}. Open it to verify, then sign in.`,
+          `You're almost done. We sent a link to ${registerResult.email}. Open it to verify — we'll take you to your business hub.`,
         );
       }
     } catch (error) {
@@ -458,8 +463,21 @@ function StaffSignupPageContent() {
             className="h-12 w-full rounded-2xl border-2"
             asChild
           >
-            <Link href={APP_ROUTES.staffLogin}>Go to sign in</Link>
+            <Link
+              href={`${APP_ROUTES.verifyEmail}?email=${encodeURIComponent(email.trim())}`}
+            >
+              Open verification page
+            </Link>
           </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            Already verified?{" "}
+            <Link
+              href={`${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`}
+              className="font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
+            >
+              Continue to your business hub
+            </Link>
+          </p>
         </div>
       ) : null}
 

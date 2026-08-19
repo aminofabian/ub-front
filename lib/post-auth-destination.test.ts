@@ -9,6 +9,15 @@ import {
 
 const groceryShop = { profile: { storeTypes: ["full-grocery"] } };
 const miniMart = { profile: { storeTypes: ["mini-mart"] } };
+const pendingOnboarding = {
+  onboarding: { status: "pending" },
+};
+const completedOnboarding = {
+  onboarding: { status: "completed" },
+};
+const dismissedOnboarding = {
+  onboarding: { status: "dismissed" },
+};
 
 describe("resolvePostAuthDestination", () => {
   it("sends grocery clerks to /grocery", () => {
@@ -84,6 +93,7 @@ describe("resolvePostAuthDestination", () => {
       resolvePostAuthDestination(
         { role: { key: "owner" } },
         APP_ROUTES.shopAccount,
+        completedOnboarding,
       ),
     ).toBe(APP_ROUTES.shopAccount);
     expect(
@@ -109,22 +119,148 @@ describe("resolvePostAuthDestination", () => {
     ).toBe("/0714282874");
   });
 
-  it("honours explicit next for non-role users", () => {
+  it("honours explicit next for configured owners", () => {
     expect(
-      resolvePostAuthDestination({ role: { key: "owner" } }, "/products"),
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        "/products",
+        completedOnboarding,
+      ),
     ).toBe("/products");
   });
 
-  it("defaults tenants to the storefront", () => {
-    expect(resolvePostAuthDestination({ role: { key: "owner" } })).toBe(
-      APP_ROUTES.shop,
-    );
-    expect(resolvePostAuthDestination({ role: { key: "admin" } })).toBe(
-      APP_ROUTES.shop,
-    );
+  it("defaults staff roles to the storefront when no business payload exists", () => {
     expect(resolvePostAuthDestination({ role: { key: "viewer" } })).toBe(
       APP_ROUTES.shop,
     );
+    expect(resolvePostAuthDestination({ role: { key: "manager" } })).toBe(
+      APP_ROUTES.shop,
+    );
+  });
+
+  it("sends owner/admin with pending onboarding to the business hub", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        null,
+        pendingOnboarding,
+      ),
+    ).toBe(APP_ROUTES.business);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "admin" } },
+        null,
+        pendingOnboarding,
+      ),
+    ).toBe(APP_ROUTES.business);
+  });
+
+  it("sends owner/admin to the business hub when the business payload is missing", () => {
+    expect(resolvePostAuthDestination({ role: { key: "owner" } })).toBe(
+      APP_ROUTES.business,
+    );
+    expect(resolvePostAuthDestination({ role: { key: "admin" } })).toBe(
+      APP_ROUTES.business,
+    );
+    expect(
+      resolvePostAuthDestination({ role: { key: "owner" } }, null, null),
+    ).toBe(APP_ROUTES.business);
+  });
+
+  it("does not let a storefront next pull an unconfigured owner off the hub", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        "/shop?setup=storefront",
+        pendingOnboarding,
+      ),
+    ).toBe(APP_ROUTES.business);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        APP_ROUTES.shop,
+        pendingOnboarding,
+      ),
+    ).toBe(APP_ROUTES.business);
+  });
+
+  it("keeps staff on their dedicated role home during onboarding", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "cashier" } },
+        null,
+        pendingOnboarding,
+      ),
+    ).toBe(APP_ROUTES.cashier);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "stock_manager" } },
+        null,
+        pendingOnboarding,
+      ),
+    ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "grocery_manager" } },
+        null,
+        pendingOnboarding,
+      ),
+    ).toBe(APP_ROUTES.grocery);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "manager" } },
+        null,
+        { ...pendingOnboarding, ...groceryShop },
+      ),
+    ).toBe(APP_ROUTES.grocery);
+  });
+
+  it("keeps buyers on the storefront during onboarding", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "buyer" } },
+        null,
+        pendingOnboarding,
+      ),
+    ).toBe(APP_ROUTES.shop);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "buyer" } },
+        "/shop/cart",
+        pendingOnboarding,
+      ),
+    ).toBe("/shop/cart");
+  });
+
+  it("stops gating once onboarding is finished", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        null,
+        completedOnboarding,
+      ),
+    ).toBe(APP_ROUTES.shop);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        APP_ROUTES.shopAccount,
+        completedOnboarding,
+      ),
+    ).toBe(APP_ROUTES.shopAccount);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        null,
+        dismissedOnboarding,
+      ),
+    ).toBe(APP_ROUTES.shop);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        APP_ROUTES.shop,
+        dismissedOnboarding,
+      ),
+    ).toBe(APP_ROUTES.shop);
   });
 });
 
@@ -159,12 +295,30 @@ describe("roleLandingRedirect", () => {
     ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
   });
 
-  it("does not yank owners off the business hub onto the storefront", () => {
+  it("does not yank configured owners off the business hub onto the storefront", () => {
     expect(
-      roleLandingRedirect({ role: { key: "owner" } }, APP_ROUTES.overview),
+      roleLandingRedirect(
+        { role: { key: "owner" } },
+        APP_ROUTES.overview,
+        completedOnboarding,
+      ),
     ).toBeNull();
     expect(
-      roleLandingRedirect({ role: { key: "owner" } }, APP_ROUTES.business),
+      roleLandingRedirect(
+        { role: { key: "owner" } },
+        APP_ROUTES.business,
+        completedOnboarding,
+      ),
     ).toBeNull();
+  });
+
+  it("sends an onboarding-pending owner from /overview to the business hub", () => {
+    expect(
+      roleLandingRedirect(
+        { role: { key: "owner" } },
+        APP_ROUTES.overview,
+        pendingOnboarding,
+      ),
+    ).toBe(APP_ROUTES.business);
   });
 });
