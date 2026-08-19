@@ -278,6 +278,8 @@ export function OnboardingQuestionnaire({
   const logoInputRef = useRef<HTMLInputElement>(null);
   /** When true, skip auto-select-all so Clear stays empty. */
   const departmentsClearedRef = useRef(false);
+  /** One-shot note after changing shop types: department picks were reset. */
+  const [departmentsResetNote, setDepartmentsResetNote] = useState(false);
   const uploadedLogoUrl = useLogoObjectUrl(logoFile);
 
   const suggestedDisplayName = useMemo(
@@ -351,6 +353,12 @@ export function OnboardingQuestionnaire({
 
   useEffect(() => {
     if (step !== 2) {
+      setDepartmentsResetNote(false);
+    }
+  }, [step]);
+
+  useEffect(() => {
+    if (step !== 2) {
       prevStoreTypesKeyRef.current = storeTypesKey;
       return;
     }
@@ -360,6 +368,7 @@ export function OnboardingQuestionnaire({
     prevStoreTypesKeyRef.current = storeTypesKey;
     departmentsClearedRef.current = false;
     setSelectedDepartments([]);
+    setDepartmentsResetNote(true);
   }, [storeTypesKey, step]);
 
   useEffect(() => {
@@ -698,6 +707,9 @@ export function OnboardingQuestionnaire({
                         later from Branches.
                       </p>
                     ) : null}
+                    <p className="text-xs text-[#9CA3AF]">
+                      You can rename these anytime.
+                    </p>
                   </div>
                 ) : null}
               </>
@@ -751,6 +763,11 @@ export function OnboardingQuestionnaire({
                     ? "Select at least one shop type to continue."
                     : `${storeTypes.length} selected`}
                 </p>
+                {departmentsResetNote ? (
+                  <p className="text-xs font-medium text-[#0D9488]">
+                    Departments reset to match your new shop type.
+                  </p>
+                ) : null}
               </>
             ) : null}
 

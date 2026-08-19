@@ -21,7 +21,10 @@ import {
   isCatalogEligibleStoreTypes,
 } from "@/lib/business-store-type";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { applyOnboardingQuestionnaire } from "@/lib/onboarding-questionnaire-apply";
+import {
+  applyOnboardingQuestionnaire,
+  formatApplyFailureMessage,
+} from "@/lib/onboarding-questionnaire-apply";
 import {
   fetchGlobalCatalogMeta,
   fetchGlobalCatalogPack,
@@ -109,7 +112,6 @@ export function OnboardingQuestionnaireProvider({
     business,
     branches,
     branchId,
-    itemTypes,
     refreshBranches,
     refreshItemTypes,
     refreshSession,
@@ -295,10 +297,8 @@ export function OnboardingQuestionnaireProvider({
 
         setSubmitting(true);
         try {
-          const { firstBranchId } = await applyOnboardingQuestionnaire(merged, {
+          const result = await applyOnboardingQuestionnaire(merged, {
             business,
-            branches,
-            itemTypes,
             logoFile: extras?.logoFile ?? null,
           });
           await Promise.all([
@@ -306,8 +306,12 @@ export function OnboardingQuestionnaireProvider({
             refreshItemTypes(),
             refreshSession(),
           ]);
-          if (firstBranchId) {
-            setBranchId(firstBranchId);
+          if (result.firstBranchId) {
+            setBranchId(result.firstBranchId);
+          }
+          if (!result.completed) {
+            setErrorMessage(formatApplyFailureMessage(result));
+            return;
           }
           completeOnboardingQuestionnaire(merged);
           if (isCatalogEligibleStoreTypes(merged.storeTypes)) {
@@ -340,8 +344,6 @@ export function OnboardingQuestionnaireProvider({
       answers,
       step,
       business,
-      branches,
-      itemTypes,
       refreshBranches,
       refreshItemTypes,
       refreshSession,

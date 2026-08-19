@@ -17,7 +17,7 @@ import {
   setSessionTenantId,
 } from "@/lib/auth";
 import { slugDerivedShopUrl } from "@/lib/config";
-import { markOnboardingTourPending } from "@/lib/onboarding-tour";
+import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
 import { handleRegistrationResult } from "@/lib/post-registration-auth";
 import { cn } from "@/lib/utils";
 
@@ -138,7 +138,7 @@ export function LandingSignupModal({
 
     try {
       const result = await registerAccount(name.trim(), email.trim(), password);
-      markOnboardingTourPending();
+      markOnboardingQuestionnairePending();
 
       const flow = await handleRegistrationResult({
         result,
@@ -153,7 +153,7 @@ export function LandingSignupModal({
       }
 
       setErrorMessage(
-        "Account created. Check your email to verify, then sign in from your shop URL.",
+        "Account created. Check your email to verify — we'll open your business hub from there.",
       );
     } catch (error) {
       setErrorMessage(

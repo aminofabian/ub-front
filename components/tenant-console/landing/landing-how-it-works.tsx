@@ -17,8 +17,8 @@ const STEPS = [
   {
     step: "02",
     title: "Stock your catalog",
-    desc: "Add products one by one, scan barcodes, or import a CSV. Set prices, categories, variants, suppliers, and stock levels — everything syncs instantly.",
-    meta: "Afternoon",
+    desc: "Import a starter pack built for your shop type — barcodes and prices pre-filled — or add products one by one. Set prices, categories, variants, suppliers, and stock levels — everything syncs instantly.",
+    meta: "Minutes",
   },
   {
     step: "03",

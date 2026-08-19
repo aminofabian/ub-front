@@ -1,45 +1,62 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
-import { StorefrontSetupModal } from "@/components/storefront/storefront-setup-modal";
 import { APP_ROUTES } from "@/lib/config";
 import type { LandingContent } from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { getSessionTokens } from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
 
-export function useOwnerSetupGate() {
-  const [showSetup, setShowSetup] = useState(false);
-  const [checking, setChecking] = useState(true);
+const STOREFRONT_PREVIEW_LANDING_PARAM = "previewLanding";
+
+/**
+ * A merchant landing template only renders while the storefront is not live
+ * (or during a merchant “Open live” preview). Send the shop owner/admin to the
+ * business hub to finish setup instead of showing them the setup modal here;
+ * staff and shoppers must never see the setup modal. Previews are exempt so
+ * the merchant can still inspect a landing theme.
+ */
+export function useLandingOwnerRedirect() {
+  const router = useRouter();
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const tokens = getSessionTokens();
         if (!tokens?.accessToken) {
-          if (!cancelled) setChecking(false);
           return;
         }
         const me = await fetchMe();
-        if (!cancelled && me) {
-          setShowSetup(true);
+        if (cancelled || !me) {
+          return;
+        }
+        const roleKey = (me.role?.key ?? "").trim().toLowerCase();
+        if (roleKey !== "owner" && roleKey !== "admin") {
+          return;
+        }
+        if (
+          new URLSearchParams(window.location.search).has(
+            STOREFRONT_PREVIEW_LANDING_PARAM,
+          )
+        ) {
+          return;
+        }
+        if (!cancelled) {
+          router.replace(APP_ROUTES.business);
         }
       } catch {
         /* public visitor */
-      } finally {
-        if (!cancelled) setChecking(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  return { showSetup, setShowSetup, checking };
+  }, [router]);
 }
 
 export function LandingShell({
@@ -55,7 +72,7 @@ export function LandingShell({
   /** Kept for call-site consistency with branded landings. */
   storeName?: string;
 }) {
-  const { showSetup, setShowSetup } = useOwnerSetupGate();
+  useLandingOwnerRedirect();
   return (
     <div
       data-landing-template-id={templateId}
@@ -63,9 +80,6 @@ export function LandingShell({
       style={style}
     >
       {children}
-      {showSetup ? (
-        <StorefrontSetupModal open={showSetup} onOpenChange={setShowSetup} />
-      ) : null}
     </div>
   );
 }
