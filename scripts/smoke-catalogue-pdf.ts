@@ -81,7 +81,8 @@ else {
 
 // every page object should reference MediaBox + a content stream
 const pageCount = (text.match(/\/Type \/Page \/Parent 2 0 R/g) ?? []).length;
-if (pageCount < 2) failures.push(`expected >1 pages, got ${pageCount}`);
+if (pageCount < 1) failures.push(`expected at least 1 page, got ${pageCount}`);
+if (pageCount > 3) failures.push(`47 products should fit in 1–3 pages, got ${pageCount}`);
 
 // every content stream must start with a numeric Length and have endstream
 const streams = (text.match(/>>stream\n/g) ?? []).length;

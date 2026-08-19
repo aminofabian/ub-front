@@ -1,4 +1,4 @@
-// Verify the image embedding path: JPEG XObjects, /DCTDecode, xref integrity.
+// Catalogue PDF is a text price list — product JPEGs are not embedded.
 import { readFile } from "node:fs/promises";
 import { buildMarketplaceCataloguePdf } from "../app/marketplace/_lib/marketplace-catalogue-pdf";
 import type { MarketplaceSupplierDetail } from "../lib/marketplace-api";
@@ -8,7 +8,6 @@ const jpeg = await readFile(
 );
 const jpegUrl = "https://cdn.example.com/cashew-nuts.jpg";
 
-// Mock fetch: only serves the jpeg URL.
 (globalThis as { fetch?: unknown }).fetch = async (url: string | URL) => {
   if (String(url) === jpegUrl) {
     return new Response(new Uint8Array(jpeg), { status: 200 });
@@ -67,21 +66,14 @@ const fs = await import("node:fs");
 fs.writeFileSync("/tmp/catalogue-with-images.pdf", Buffer.from(bytes));
 
 const failures: string[] = [];
-const imageObjects = [...text.matchAll(/\/Subtype \/Image \/Width (\d+) \/Height (\d+) /g)];
-if (imageObjects.length !== 1) failures.push(`expected 1 embedded family image, got ${imageObjects.length}`);
+const imageObjects = (text.match(/\/Subtype \/Image /g) ?? []).length;
+if (imageObjects !== 0) failures.push(`expected 0 embedded images, got ${imageObjects}`);
 
-const dct = (text.match(/\/Filter \/DCTDecode/g) ?? []).length;
-if (dct !== 1) failures.push(`expected 1 DCTDecode filter, got ${dct}`);
+if (!text.includes("Premium Cashews")) {
+  failures.push("missing cashew family on the price list");
+}
+if (!text.includes("Rice Pack")) failures.push("missing rice packs on the price list");
 
-// Every page with images must reference /Im1.. in its XObject dict
-const xobjects = (text.match(/\/XObject<< \/Im\d+ /g) ?? []).length;
-if (xobjects < 1) failures.push("no page references image XObjects");
-
-// Image bytes should be present (JPEG magic FF D8 FF) inside streams
-const jpegMagic = (text.match(/\u00ff\u00d8\u00ff/g) ?? []).length;
-if (jpegMagic !== 1) failures.push(`expected 1 jpeg payload in streams, got ${jpegMagic}`);
-
-// xref integrity
 const xrefMatch = text.match(/xref\n0 (\d+)\n/);
 if (!xrefMatch) failures.push("missing xref");
 else {
@@ -94,9 +86,9 @@ else {
   }
 }
 
-console.log(`images=${imageObjects.length} dct=${dct} xobjectRefs=${xobjects} bytes=${bytes.length}`);
+console.log(`images=${imageObjects} bytes=${bytes.length}`);
 if (failures.length) {
   console.error("FAILURES:\n" + failures.join("\n"));
   process.exit(1);
 }
-console.log("PASS — image embedding works");
+console.log("PASS — catalogue PDF is a text price list (no product images)");

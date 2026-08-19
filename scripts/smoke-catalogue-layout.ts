@@ -65,29 +65,20 @@ function findTextY(stream: string, needle: string): number | null {
   return Number(last);
 }
 
-// Cover page (stream 0): title near top (high y), footer near bottom (low y)
-const cover = streams[0];
-const titleY = findTextY(cover, "Robinson Wholesalers");
-const phoneY = findTextY(cover, "0722 555 000");
-const indexY = findTextY(cover, "Golden Maize Flour");
-const footerY = findTextY(cover, "Kiosk.ke");
-console.log(`cover: title=${titleY} phone=${phoneY} index=${indexY} footer=${footerY}`);
-if (titleY == null || titleY < 760) failures.push(`title should be near top (got ${titleY})`);
-if (phoneY == null || phoneY > titleY! || phoneY < 640) failures.push(`phone should sit under the title (got ${phoneY})`);
-if (indexY == null || indexY > phoneY!) failures.push(`A–Z index should sit under the phone band (got ${indexY})`);
-if (footerY == null || footerY > 60) failures.push(`footer should be near bottom (got ${footerY})`);
-
-// Price list (stream 1): column heads, family band, pack row, footer
-const prod = streams[1];
-const headerY = findTextY(prod, "Price list");
-const bandY = findTextY(prod, "GOLDEN MAIZE FLOUR");
-const packY = findTextY(prod, "(0) Tj");
-const prodFooterY = findTextY(prod, "Page 2 of");
-console.log(`prod: header=${headerY} band=${bandY} pack=${packY} footer=${prodFooterY}`);
-if (headerY == null || headerY < 770) failures.push(`product header should be near top (got ${headerY})`);
-if (bandY == null || bandY >= headerY!) failures.push(`family band should be below header (got ${bandY})`);
-if (packY == null || packY >= bandY!) failures.push(`first pack should be below the family band (got ${packY})`);
-if (prodFooterY == null || prodFooterY > 60) failures.push(`product footer should be near bottom (got ${prodFooterY})`);
+// Page 1: masthead at top, price list under the phone, footer at bottom
+const page1 = streams[0];
+if (!page1) failures.push("missing first content stream");
+const titleY = findTextY(page1, "Robinson Wholesalers");
+const phoneY = findTextY(page1, "0722 555 000");
+const familyY = findTextY(page1, "Golden Maize Flour");
+const packY = findTextY(page1, "(0) Tj");
+const footerY = findTextY(page1, "Kiosk.ke");
+console.log(`page1: title=${titleY} phone=${phoneY} family=${familyY} pack=${packY} footer=${footerY}`);
+if (titleY == null || titleY < 780) failures.push(`title should be near top (got ${titleY})`);
+if (phoneY == null || phoneY > titleY!) failures.push(`phone should sit under the title (got ${phoneY})`);
+if (familyY == null || familyY > phoneY!) failures.push(`price list should sit under the phone (got ${familyY})`);
+if (packY == null || packY >= familyY!) failures.push(`first pack should be below the family heading (got ${packY})`);
+if (footerY == null || footerY > 50) failures.push(`footer should be near bottom (got ${footerY})`);
 
 if (failures.length) {
   console.error("FAILURES:\n" + failures.join("\n"));
