@@ -1,20 +1,9 @@
 "use client";
 
-import { Banknote, Check, Copy, CreditCard, Smartphone, Sparkles, Truck, Zap } from "lucide-react";
+import { Banknote, Check, ChevronRight, Copy, CreditCard, Smartphone, Sparkles, Truck, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
+
 import { Button } from "@/components/ui/button";
-
-/** STK send control surfaced in the confirmation dock action row (mobile). */
-export type StkDockSendAction = {
-  label: string;
-  disabled: boolean;
-  onSend: () => void;
-};
-
-import type {
-  PublicOnlinePaymentMethod,
-  PublicPaymentInstruction,
-} from "@/lib/public-storefront";
 import {
   CHECKOUT_INPUT,
   CHECKOUT_LABEL,
@@ -22,8 +11,19 @@ import {
   CHECKOUT_PAY_SECONDARY,
   CHECKOUT_PAYMENT_PANEL,
 } from "@/components/storefront/shop-checkout-design";
+import type {
+  PublicOnlinePaymentMethod,
+  PublicPaymentInstruction,
+} from "@/lib/public-storefront";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import { cn } from "@/lib/utils";
+
+/** STK send control surfaced in the confirmation dock action row. */
+export type StkDockSendAction = {
+  label: string;
+  disabled: boolean;
+  onSend: () => void;
+};
 
 export type CheckoutPaymentMethod = "mpesa" | "pay_on_delivery";
 
@@ -352,7 +352,7 @@ function OnlineStkFields({
       return;
     }
     onStkSendActionChange({
-      label: busy ? "Sending…" : stkSent ? "Sent" : "Send prompt",
+      label: busy ? "Sending…" : stkSent ? "Waiting…" : "Click to pay",
       disabled: busy || stkSent || !phoneValid,
       onSend: () => onPay(primaryMethod.configId, fullPhone),
     });
@@ -376,7 +376,26 @@ function OnlineStkFields({
 
   return (
     <div className={cn("space-y-2", featured && "rounded-lg bg-background/60 p-2.5 ring-1 ring-[#00a651]/10")}>
-      {promptDisabled ? (
+      {stkSent ? (
+        <div
+          className="flex items-center gap-3 rounded-lg bg-[#00a651]/12 px-2.5 py-2"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="relative flex size-9 shrink-0 items-center justify-center">
+            <span className="absolute inset-0 rounded-full bg-[#00a651]/25 motion-safe:animate-ping" />
+            <Smartphone className="relative size-4 text-[#007a3d]" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold leading-tight text-[#007a3d]">
+              Approve on your phone
+            </p>
+            <p className="mt-0.5 text-[11px] leading-snug text-[#0f5132]/80">
+              Enter your M-Pesa PIN. We&apos;ll move you on as soon as it lands.
+            </p>
+          </div>
+        </div>
+      ) : promptDisabled ? (
         <p className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
           <Zap className="mt-0.5 size-3 shrink-0 text-[#00a651]" aria-hidden />
           {phoneValid
@@ -387,7 +406,7 @@ function OnlineStkFields({
         </p>
       ) : (
         <p className="text-[11px] leading-snug text-muted-foreground">
-          Enter the number that receives the M-Pesa prompt, then approve on your phone.
+          Enter the number that receives the M-Pesa prompt, then tap Click to pay.
         </p>
       )}
       <div
@@ -467,6 +486,122 @@ function OnlineStkFields({
         >
           {stkMessage}
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+function AlternativeTillRow({ pi }: { pi: PublicPaymentInstruction }) {
+  const [copied, setCopied] = useState(false);
+  const till = pi.type === "till" ? pi.tillNumber?.trim() : "";
+  const detail =
+    till ||
+    (pi.type === "paybill" && pi.businessNumber
+      ? `Paybill ${pi.businessNumber}${pi.accountNumber ? ` · ${pi.accountNumber}` : ""}`
+      : pi.label);
+
+  const copyValue = till || pi.businessNumber || "";
+
+  const copy = async () => {
+    if (!copyValue) return;
+    try {
+      await navigator.clipboard.writeText(copyValue);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return (
+    <li className="flex items-center gap-2.5 px-3 py-2.5">
+      <Banknote className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-medium text-foreground">
+          {pi.type === "till" ? "Buy Goods till" : pi.label}
+        </p>
+        <p className="font-mono text-[12px] font-semibold tabular-nums tracking-wide text-foreground/80">
+          {detail}
+        </p>
+      </div>
+      {copyValue ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => void copy()}
+          className="h-8 shrink-0 px-2 text-[11px] font-semibold"
+          aria-label={copied ? "Copied" : "Copy till number"}
+        >
+          {copied ? (
+            <Check className="size-3.5 text-primary" aria-hidden />
+          ) : (
+            <Copy className="size-3.5" aria-hidden />
+          )}
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      ) : null}
+    </li>
+  );
+}
+
+function AlternativePayList({
+  manual,
+  redirectMethods,
+  orderPlaced,
+  redirectBusy,
+  redirectMessage,
+  onRedirectPay,
+}: {
+  manual: PublicPaymentInstruction[];
+  redirectMethods: PublicOnlinePaymentMethod[];
+  orderPlaced: boolean;
+  redirectBusy: boolean;
+  redirectMessage: string | null;
+  onRedirectPay?: (configId: string) => void;
+}) {
+  if (manual.length === 0 && redirectMethods.length === 0) return null;
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border/55 bg-muted/20">
+      <p className="px-3 pt-2 pb-1.5 text-[11px] font-semibold text-muted-foreground">
+        Other ways to pay
+      </p>
+      <ul className="divide-y divide-border/50">
+        {redirectMethods.map((method) => {
+          const label =
+            method.gatewayType === "KIOSK_PAY"
+              ? "Kiosk Pay"
+              : method.label || method.displayName || "Card";
+          return (
+            <li key={method.configId}>
+              <button
+                type="button"
+                disabled={!orderPlaced || redirectBusy}
+                onClick={() => onRedirectPay?.(method.configId)}
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-background/70 disabled:opacity-60"
+              >
+                <CreditCard className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-medium text-foreground">{label}</span>
+                  <span className="block text-[10px] leading-snug text-muted-foreground">
+                    Card, bank, or mobile money
+                  </span>
+                </span>
+                <span className="shrink-0 text-[11px] font-semibold text-primary">
+                  {redirectBusy ? "Opening…" : "Pay"}
+                </span>
+                <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+              </button>
+            </li>
+          );
+        })}
+        {manual.map((pi) => (
+          <AlternativeTillRow key={pi.configId} pi={pi} />
+        ))}
+      </ul>
+      {redirectMessage ? (
+        <p className="px-3 pb-2 text-xs font-medium text-destructive">{redirectMessage}</p>
       ) : null}
     </div>
   );
@@ -606,8 +741,8 @@ export function ShopCheckoutPaymentSection({
               </p>
             </>
           ) : (
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#007a3d]">
-              M-Pesa · Recommended
+            <p className="text-[13px] font-semibold tracking-tight text-[#007a3d]">
+              Pay with M-Pesa
             </p>
           )}
           <OnlineStkFields
@@ -706,11 +841,27 @@ export function ShopCheckoutPaymentSection({
       </div>
     ) : null;
 
+  const collapseAlternatives = floating && orderPlaced && hasStkMethods;
+
   return (
     <div className={cn("min-w-0 max-w-full", dense ? "space-y-1.5" : "space-y-3")}>
       {mpesaBlock}
       {showMethodPicker ? codBlock : null}
-      {redirectBlock}
+      {collapseAlternatives ? (
+        <AlternativePayList
+          manual={selectedMethod === "pay_on_delivery" ? [] : manual}
+          redirectMethods={hasRedirectMethods ? redirectMethods : []}
+          orderPlaced={orderPlaced}
+          redirectBusy={redirectBusy ?? false}
+          redirectMessage={redirectMessage ?? null}
+          onRedirectPay={onRedirectPay}
+        />
+      ) : (
+        <>
+          {redirectBlock}
+          {manualBlock}
+        </>
+      )}
       {!showMethodPicker && codSelected && payOnDeliveryAvailable ? (
         <div className={cn(CHECKOUT_PAY_SECONDARY, "flex items-start gap-2.5 p-3.5")}>
           <Truck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -719,7 +870,6 @@ export function ShopCheckoutPaymentSection({
           </p>
         </div>
       ) : null}
-      {manualBlock}
     </div>
   );
 }

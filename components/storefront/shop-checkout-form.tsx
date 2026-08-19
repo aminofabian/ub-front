@@ -71,7 +71,11 @@ import {
 import { ShopCheckoutDeliveryEditModal } from "@/components/storefront/shop-checkout-delivery-edit-modal";
 import { ShopCheckoutReviewPanel } from "@/components/storefront/shop-checkout-review-panel";
 import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
-import type { CheckoutPaymentMethod } from "@/components/storefront/shop-checkout-payment-section";
+import type {
+  CheckoutPaymentMethod,
+  StkDockSendAction,
+} from "@/components/storefront/shop-checkout-payment-section";
+import { ShopOrderThankYou } from "@/components/storefront/shop-order-thank-you";
 import { ShopShippingSummaryCard } from "@/components/storefront/shop-shipping-summary-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -159,12 +163,13 @@ const PAYSTACK_RETURN_KEY = "ub.shop.lastPlacedOrder.v1";
 function persistPlacedOrder(
   result: PublicCheckoutResult,
   receipt: CheckoutOrderReceipt | null,
+  extras?: { paid?: boolean },
 ) {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.setItem(
       PAYSTACK_RETURN_KEY,
-      JSON.stringify({ result, receipt }),
+      JSON.stringify({ result, receipt, paid: extras?.paid ?? false }),
     );
   } catch {
     /* storage unavailable — return-page restore degrades to the basic order view */
@@ -174,6 +179,7 @@ function persistPlacedOrder(
 function readPlacedOrder(): {
   result: PublicCheckoutResult;
   receipt: CheckoutOrderReceipt | null;
+  paid: boolean;
 } | null {
   if (typeof window === "undefined") return null;
   try {
@@ -182,9 +188,14 @@ function readPlacedOrder(): {
     const parsed = JSON.parse(raw) as {
       result: PublicCheckoutResult;
       receipt?: CheckoutOrderReceipt | null;
+      paid?: boolean;
     };
     if (!parsed.result?.orderId) return null;
-    return { result: parsed.result, receipt: parsed.receipt ?? null };
+    return {
+      result: parsed.result,
+      receipt: parsed.receipt ?? null,
+      paid: parsed.paid === true,
+    };
   } catch {
     return null;
   }
@@ -505,12 +516,15 @@ export default function ShopCheckoutForm({
   slug,
   embedded = false,
   onOrderPlacedChange,
+  onThankYouChange,
 }: {
   slug: string;
   /** Desktop half-panel: outer chrome handles back/close */
   embedded?: boolean;
   /** Notify host chrome when an order has been placed (exit no longer cancels). */
   onOrderPlacedChange?: (placed: boolean) => void;
+  /** Paid or COD placed — host can retitle the drawer. */
+  onThankYouChange?: (thanks: boolean) => void;
 }) {
   const router = useRouter();
   const [cart, setCart] = useState<PublicWebCart | null>(null);
@@ -535,6 +549,7 @@ export default function ShopCheckoutForm({
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const [stkDockSend, setStkDockSend] = useState<StkDockSendAction | null>(null);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -593,6 +608,15 @@ export default function ShopCheckoutForm({
   }, [done, onOrderPlacedChange]);
 
   useEffect(() => {
+    onThankYouChange?.(
+      Boolean(
+        done &&
+          (paymentConfirmed || orderPaymentMethod === "pay_on_delivery"),
+      ),
+    );
+  }, [done, paymentConfirmed, orderPaymentMethod, onThankYouChange]);
+
+  useEffect(() => {
     let cancelled = false;
     void (async () => {
       const sf = await fetchPublicStorefrontBrowser(slug);
@@ -619,6 +643,19 @@ export default function ShopCheckoutForm({
     setPaymentFailed(false);
     setStkSent(false);
     setStkMessage(null);
+    const stored = readPlacedOrder();
+    if (stored) {
+      persistPlacedOrder(stored.result, stored.receipt, { paid: true });
+    }
+    if (typeof window !== "undefined" && window.location.pathname.includes("/shop/checkout")) {
+      const storedOrder = stored?.result.orderId;
+      if (storedOrder) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("order", storedOrder);
+        url.searchParams.set("thanks", "1");
+        window.history.replaceState({}, "", url);
+      }
+    }
     if (!paymentToastShown.current) {
       paymentToastShown.current = true;
       toast.success("Payment received", {
@@ -855,6 +892,7 @@ export default function ShopCheckoutForm({
     setDone(stored.result);
     if (stored.receipt) setOrderReceipt(stored.receipt);
     setOrderPaymentMethod("mpesa");
+    if (stored.paid) setPaymentConfirmed(true);
   }, [slug, done]);
 
   // Fetch payment options when cart loads (or when a Paystack return restored an order).
@@ -968,7 +1006,7 @@ export default function ShopCheckoutForm({
         /* keep polling */
       }
     };
-    const interval = setInterval(() => void poll(), 4000);
+    const interval = setInterval(() => void poll(), 2500);
     void poll();
     const stop = setTimeout(() => clearInterval(interval), 180_000);
     return () => {
@@ -1260,7 +1298,39 @@ export default function ShopCheckoutForm({
   const payOnDeliveryOrder =
     Boolean(done) && orderPaymentMethod === "pay_on_delivery";
 
-  // ── Success (manual-only or already paid) ──
+  if (done && (paymentConfirmed || payOnDeliveryOrder)) {
+    const total = formatDisplayPrice(done.currency, done.grandTotal);
+    const orderRef =
+      done.orderId.length > 8
+        ? done.orderId.slice(0, 8).toUpperCase()
+        : done.orderId;
+    const firstName = orderReceipt?.shipping.customerName.trim().split(/\s+/)[0];
+    return (
+      <div className={cn(CONFIRMATION_VIEWPORT, "h-full min-w-0 max-w-full")}>
+        <ShopOrderThankYou
+          orderRef={orderRef}
+          branchName={done.catalogBranchName}
+          totalLabel={total}
+          customerFirstName={firstName}
+          payOnDelivery={payOnDeliveryOrder && !paymentConfirmed}
+          lines={
+            orderReceipt?.lines.map((line) => ({
+              itemId: line.itemId,
+              name: line.name,
+              quantity: line.quantity,
+              priceLabel: formatDisplayPrice(
+                orderReceipt.currency,
+                line.lineTotal ?? 0,
+              ),
+            })) ?? []
+          }
+          onContinue={() => router.push(APP_ROUTES.shop)}
+        />
+      </div>
+    );
+  }
+
+  // ── Success (manual-only, still awaiting till) ──
   if (done && !awaitingOnlinePayment) {
     const total = formatDisplayPrice(done.currency, done.grandTotal);
     const orderRef =
@@ -1451,6 +1521,8 @@ export default function ShopCheckoutForm({
                 orderPlaced
                 selectedMethod="mpesa"
                 amountDue={placedTotal}
+                actionsInDock
+                onStkSendActionChange={setStkDockSend}
               />
             </div>
           ) : null}
@@ -1475,6 +1547,8 @@ export default function ShopCheckoutForm({
           onConfirmPayment={() => void handleConfirmPaymentSent()}
           onReturnToShop={() => router.push(APP_ROUTES.shop)}
           stkSent={stkSent}
+          stkSendAction={stkDockSend}
+          hasStk={paymentOptions.online.some((m) => m.kind !== "redirect")}
           anchored
           fullWidth={embedded}
         />

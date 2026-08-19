@@ -21,6 +21,7 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
   const router = useRouter();
   const cart = useShopCartOptional();
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [thankYou, setThankYou] = useState(false);
 
   const onClose = () => {
     if (mode === "drawer") {
@@ -39,6 +40,7 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
       slug={slug}
       embedded={isMd}
       onOrderPlacedChange={setOrderPlaced}
+      onThankYouChange={setThankYou}
     />
   );
 
@@ -62,7 +64,11 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
       ariaLabel="Checkout"
       zIndex={74}
     >
-      <ShopCheckoutDrawerChrome onClose={onClose} orderPlaced={orderPlaced}>
+      <ShopCheckoutDrawerChrome
+        onClose={onClose}
+        orderPlaced={orderPlaced}
+        thankYou={thankYou}
+      >
         {form}
       </ShopCheckoutDrawerChrome>
     </ShopSlideOver>

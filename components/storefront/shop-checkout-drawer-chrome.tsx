@@ -11,6 +11,7 @@ type Props = {
   className?: string;
   /** Order already placed — exit keeps the order; clarify for payment flows */
   orderPlaced?: boolean;
+  thankYou?: boolean;
 };
 
 /** Desktop checkout panel chrome — title rail + secure hint */
@@ -19,10 +20,13 @@ export function ShopCheckoutDrawerChrome({
   children,
   className,
   orderPlaced = false,
+  thankYou = false,
 }: Props) {
-  const exitHint = orderPlaced
-    ? "Leave checkout — your order is saved"
-    : "Close checkout";
+  const exitHint = thankYou
+    ? "Back to the shop"
+    : orderPlaced
+      ? "Leave checkout — your order is saved"
+      : "Close checkout";
 
   return (
     <div className={cn("relative flex h-full min-h-0 flex-col", className)}>
@@ -41,7 +45,7 @@ export function ShopCheckoutDrawerChrome({
             Secure checkout
           </p>
           <h2 className="truncate font-serif text-lg font-semibold tracking-tight text-foreground">
-            {orderPlaced ? "Your order" : "Complete your order"}
+            {thankYou ? "Thank you" : orderPlaced ? "Your order" : "Complete your order"}
           </h2>
         </div>
         <button

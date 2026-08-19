@@ -5,9 +5,9 @@ import {
   Check,
   CircleAlert,
   Clock3,
-  MapPin,
   RefreshCw,
   ShoppingBag,
+  Smartphone,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -27,6 +27,7 @@ import {
   CHECKOUT_VARIANT_PILL,
   formatDeliveryZone,
 } from "@/components/storefront/shop-checkout-design";
+import type { StkDockSendAction } from "@/components/storefront/shop-checkout-payment-section";
 import { cn } from "@/lib/utils";
 
 /* ── Layout tokens ── */
@@ -371,11 +372,11 @@ export function OrderPaymentStatusBanner({
 
   const payHint =
     hasOnlinePay && hasManualPay
-      ? "Pay with M-Pesa or till, then confirm when done."
+      ? "Pay with M-Pesa below, or use till as an alternative."
       : hasOnlinePay
         ? stkSent
-          ? "Approve the prompt on your phone, then confirm below."
-          : "Send the M-Pesa prompt below, then confirm when approved."
+          ? "Approve the prompt on your phone — we'll take you through automatically."
+          : "Tap Click to pay to send the M-Pesa prompt."
         : null;
 
   return (
@@ -708,6 +709,8 @@ export function ConfirmationDockActions({
   stkSent = false,
   anchored = false,
   fullWidth = false,
+  stkSendAction = null,
+  hasStk = false,
 }: {
   paymentConfirmed: boolean;
   checkingPayment: boolean;
@@ -718,7 +721,22 @@ export function ConfirmationDockActions({
   stkSent?: boolean;
   anchored?: boolean;
   fullWidth?: boolean;
+  stkSendAction?: StkDockSendAction | null;
+  hasStk?: boolean;
 }) {
+  const clickToPay = hasStk;
+  const payDisabled = clickToPay
+    ? !stkSendAction || stkSendAction.disabled || checkingPayment
+    : checkingPayment;
+
+  const payLabel = clickToPay
+    ? checkingPayment
+      ? "Checking…"
+      : stkSendAction?.label ?? "Click to pay"
+    : checkingPayment
+      ? "Checking…"
+      : "I've completed payment";
+
   return (
     <ConfirmationFloatingDock
       ariaLabel="Order actions"
@@ -748,32 +766,51 @@ export function ConfirmationDockActions({
           </div>
         ) : (
           <div className="space-y-1.5">
-            {stkSent ? (
-              <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
-                Approve the prompt on your phone, then tap below.
-              </p>
-            ) : (
-              <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
-                Send the M-Pesa prompt (or pay the till), then confirm below.
-              </p>
-            )}
+            <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
+              {stkSent
+                ? "Approve the prompt on your phone — we'll take you through automatically."
+                : clickToPay
+                  ? "Tap Click to pay to send the M-Pesa prompt."
+                  : "Pay the till, then confirm below."}
+            </p>
             <div className="flex items-stretch gap-2">
               <Button
                 type="button"
                 size="lg"
-                disabled={checkingPayment}
-                onClick={onConfirmPayment}
-                className="h-10 min-w-0 flex-1 gap-1 rounded-lg text-[13px] font-semibold shadow-sm ring-1 ring-primary/20"
+                disabled={payDisabled}
+                onClick={() => {
+                  if (clickToPay && !stkSent && stkSendAction) {
+                    stkSendAction.onSend();
+                    return;
+                  }
+                  onConfirmPayment();
+                }}
+                className={cn(
+                  "h-11 min-w-0 flex-1 gap-1.5 rounded-lg text-[13px] font-semibold shadow-sm",
+                  clickToPay && !stkSent
+                    ? "bg-[#00a651] text-white hover:bg-[#008f47] ring-1 ring-[#00a651]/25"
+                    : "ring-1 ring-primary/20",
+                )}
               >
-                {checkingPayment ? (
+                {checkingPayment || stkSendAction?.label === "Sending…" ? (
                   <>
                     <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Checking…
+                    {payLabel}
+                  </>
+                ) : stkSent && clickToPay ? (
+                  <>
+                    <Smartphone className="size-4 shrink-0" aria-hidden />
+                    <span className="truncate">{payLabel}</span>
+                  </>
+                ) : clickToPay ? (
+                  <>
+                    <span className="truncate text-sm font-semibold">{payLabel}</span>
+                    <ArrowRight className="size-4 shrink-0" aria-hidden />
                   </>
                 ) : (
                   <>
                     <span className="truncate text-xs font-semibold sm:text-sm">
-                      I&apos;ve completed payment
+                      {payLabel}
                     </span>
                     <RefreshCw className="size-3.5 shrink-0 sm:size-4" aria-hidden />
                   </>
@@ -784,11 +821,21 @@ export function ConfirmationDockActions({
                 variant="outline"
                 size="lg"
                 onClick={onReturnToShop}
-                className="h-10 shrink-0 rounded-lg border-border/60 px-3 text-[11px] font-semibold sm:text-xs"
+                className="h-11 shrink-0 rounded-lg border-border/60 px-3 text-[11px] font-semibold sm:text-xs"
               >
                 Return to shop
               </Button>
             </div>
+            {clickToPay ? (
+              <button
+                type="button"
+                onClick={onConfirmPayment}
+                disabled={checkingPayment}
+                className="w-full text-center text-[11px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:opacity-50"
+              >
+                Paid via till? Check status
+              </button>
+            ) : null}
           </div>
         )}
       </div>
