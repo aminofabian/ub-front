@@ -1,4 +1,4 @@
-// Verify family JPEG embedding: one XObject per family, /DCTDecode, xref integrity.
+// Catalogue PDF is a text price list in the Githurai sheet style (no product JPEGs).
 import { readFile } from "node:fs/promises";
 import { buildMarketplaceCataloguePdf } from "../app/marketplace/_lib/marketplace-catalogue-pdf";
 import type { MarketplaceSupplierDetail } from "../lib/marketplace-api";
@@ -62,37 +62,15 @@ const blob = await buildMarketplaceCataloguePdf({ detail, origin: "https://kiosk
 const bytes = new Uint8Array(await blob.arrayBuffer());
 const text = new TextDecoder("windows-1252").decode(bytes);
 
-const fs = await import("node:fs");
-fs.writeFileSync("/tmp/catalogue-with-images.pdf", Buffer.from(bytes));
-
 const failures: string[] = [];
-const imageObjects = [...text.matchAll(/\/Subtype \/Image \/Width (\d+) \/Height (\d+) /g)];
-if (imageObjects.length !== 1) failures.push(`expected 1 embedded family image, got ${imageObjects.length}`);
+const imageObjects = (text.match(/\/Subtype \/Image /g) ?? []).length;
+if (imageObjects !== 0) failures.push(`expected 0 embedded images, got ${imageObjects}`);
+if (!text.includes("Premium Cashews")) failures.push("missing cashew family");
+if (!text.includes("Rice Pack")) failures.push("missing rice packs");
 
-const dct = (text.match(/\/Filter \/DCTDecode/g) ?? []).length;
-if (dct !== 1) failures.push(`expected 1 DCTDecode filter, got ${dct}`);
-
-const xobjects = (text.match(/\/XObject<< \/Im\d+ /g) ?? []).length;
-if (xobjects < 1) failures.push("no page references image XObjects");
-
-const jpegMagic = (text.match(/\u00ff\u00d8\u00ff/g) ?? []).length;
-if (jpegMagic !== 1) failures.push(`expected 1 jpeg payload in streams, got ${jpegMagic}`);
-
-const xrefMatch = text.match(/xref\n0 (\d+)\n/);
-if (!xrefMatch) failures.push("missing xref");
-else {
-  const count = Number(xrefMatch[1]);
-  const lines = text.slice(text.indexOf(xrefMatch[0]) + xrefMatch[0].length).split("\n");
-  const lastOffset = Number(lines[count - 1].slice(0, 10));
-  const lastObjId = count - 1;
-  if (!text.slice(lastOffset, lastOffset + 20).startsWith(`${lastObjId} 0 obj`)) {
-    failures.push(`last xref offset mismatch for obj ${lastObjId}`);
-  }
-}
-
-console.log(`images=${imageObjects.length} dct=${dct} xobjectRefs=${xobjects} bytes=${bytes.length}`);
+console.log(`images=${imageObjects} bytes=${bytes.length}`);
 if (failures.length) {
   console.error("FAILURES:\n" + failures.join("\n"));
   process.exit(1);
 }
-console.log("PASS — family JPEG embedding works");
+console.log("PASS — catalogue PDF is a text price list (no product images)");

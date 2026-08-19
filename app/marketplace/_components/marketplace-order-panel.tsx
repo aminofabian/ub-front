@@ -55,7 +55,6 @@ import { cn, formatMoney } from "@/lib/utils";
 import {
   buildMarketplaceCataloguePdf,
 } from "../_lib/marketplace-catalogue-pdf";
-import { buildMarketplaceCatalogueHtml } from "../_lib/marketplace-catalogue-html";
 import {
   buildMarketplaceOrderPdf,
   buildMarketplaceOrderText,
@@ -452,7 +451,6 @@ export function MarketplaceOrderWorkspace({
 
   const orderFilename = `order-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
   const catalogueFilename = `catalogue-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
-  const catalogueHtmlFilename = `catalogue-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.html`;
 
   /** Absolute URL of the current page — used inside handlers only (client-only). */
   const pageUrl = () =>
@@ -465,16 +463,6 @@ export function MarketplaceOrderWorkspace({
     listedBy: detail.listedBy,
     lines: orderLines,
   });
-
-  const downloadCatalogueHtml = () => {
-    if (detail.products.length === 0) {
-      toast.error("No products in this catalogue yet.");
-      return;
-    }
-    const html = buildMarketplaceCatalogueHtml({ detail });
-    downloadBlob(new Blob([html], { type: "text/html;charset=utf-8" }), catalogueHtmlFilename);
-    toast.success("Price list saved — open it on any phone.");
-  };
 
   const downloadCatalogue = async () => {
     if (detail.products.length === 0) {
@@ -876,7 +864,7 @@ export function MarketplaceOrderWorkspace({
               onSend={() => void sendOrder()}
               onDownloadPdf={() => void downloadOrderPdf()}
               onCopy={() => void copyOrderList()}
-              onCatalogue={() => downloadCatalogueHtml()}
+              onCatalogue={() => void downloadCatalogue()}
             />
           </div>
         </div>
@@ -976,7 +964,7 @@ export function MarketplaceOrderWorkspace({
                 onSend={() => void sendOrder()}
                 onDownloadPdf={() => void downloadOrderPdf()}
                 onCopy={() => void copyOrderList()}
-                onCatalogue={() => downloadCatalogueHtml()}
+                onCatalogue={() => void downloadCatalogue()}
                 onClose={() => setMobileOrderOpen(false)}
                 className="min-h-0 flex-1 border-0"
               />
@@ -1784,7 +1772,7 @@ function OrderManifestPanel({
             </button>
           </div>
           <p className="text-center text-[10px] leading-snug text-muted-foreground">
-            WhatsApp opens with your list. Catalogue saves a phone price list.
+            WhatsApp opens with your list. Catalogue downloads a PDF price list.
           </p>
         </div>
       </div>
