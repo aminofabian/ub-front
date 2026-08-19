@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T17:21:30.000Z",
+  "generatedAt": "2026-08-19T14:15:22.340Z",
   "storeLinks": {
     "ios": null,
     "android": null
@@ -12,7 +12,25 @@
       "platform": "android",
       "file": "kiosk-shopper-0.0.1-android.apk",
       "url": "https://expo.dev/artifacts/eas/WS5-VMdF8OVSBuYr0q8Q8Lx67zpyF8oURNQ2A6v8WU4.apk",
-      "sizeBytes": 95778053
+      "sizeBytes": 95520653
+    },
+    {
+      "id": "admin",
+      "name": "Kiosk Admin",
+      "version": "0.0.1",
+      "platform": "android",
+      "file": "kiosk-admin-0.0.1-android.apk",
+      "url": "https://expo.dev/artifacts/eas/0WEKk6luLdtKJQX1EHNkFhwnJ2hrRA0GJO_6n0zvvLo.apk",
+      "sizeBytes": 66956416
+    },
+    {
+      "id": "stock",
+      "name": "Kiosk Stock",
+      "version": "0.0.1",
+      "platform": "android",
+      "file": "kiosk-stock-0.0.1-android.apk",
+      "url": "https://expo.dev/artifacts/eas/b6wFZzZxaB966FjE_ZFkwmx0_u8gx3Dgw6U6MY0BCCs.apk",
+      "sizeBytes": 89168591
     }
   ]
 }
