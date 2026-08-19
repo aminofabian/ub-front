@@ -39,6 +39,14 @@ import type {
   MarketplaceCatalogProductPreview,
   MarketplaceSupplierDetail,
 } from "@/lib/marketplace-api";
+import {
+  catalogFamilyAnchor,
+  catalogFamilyId,
+  catalogFamilyLetters,
+  catalogPackLabel,
+  firstFamilyForLetter,
+  groupCatalogProducts,
+} from "@/lib/marketplace-catalog-groups";
 import { marketplacePassportProductPath } from "@/lib/marketplace-url";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
@@ -85,48 +93,6 @@ type ParentOption = {
   label: string;
   thumbnailUrl: string | null;
 };
-
-function normalizeParentLabel(value: string): string {
-  return value.toLowerCase().replace(/\s+/g, " ").trim();
-}
-
-/** True when this catalog row is a child/variant, not a parent folder. */
-function isVariantProduct(product: MarketplaceCatalogProductPreview): boolean {
-  if (product.variantOfItemId?.trim()) return true;
-  if (product.parentItemName?.trim()) return true;
-  const name = product.name?.trim() || "";
-  return name.includes(" · ");
-}
-
-/**
- * Parent folder key for filtering — variants collapse under their parent.
- * Prefer catalog parent id, then parent name, then "Name · Variant" prefix.
- */
-function productParentId(product: MarketplaceCatalogProductPreview): string {
-  const variantOf = product.variantOfItemId?.trim();
-  if (variantOf) return variantOf;
-
-  const parentName = product.parentItemName?.trim();
-  if (parentName) return `name:${normalizeParentLabel(parentName)}`;
-
-  const name = product.name?.trim() || "";
-  const sep = name.indexOf(" · ");
-  if (sep > 0) return `name:${normalizeParentLabel(name.slice(0, sep))}`;
-
-  // Non-variant / parent row: group by display name so children with " · " merge in
-  // even when the parent row uses a different id than variantOfItemId.
-  if (name) return `name:${normalizeParentLabel(name)}`;
-
-  return product.itemId?.trim() || product.id;
-}
-
-function productParentLabel(product: MarketplaceCatalogProductPreview): string {
-  const parent = product.parentItemName?.trim();
-  if (parent) return parent;
-  const name = product.name?.trim() || product.sku?.trim() || "Product";
-  const sep = name.indexOf(" · ");
-  return sep > 0 ? name.slice(0, sep) : name;
-}
 
 function parentRailClass(active: boolean, hasImage: boolean): string {
   if (hasImage) {
@@ -315,7 +281,7 @@ export function MarketplaceOrderWorkspace({
   const [filter, setFilter] = useState("");
   const [parentFilterId, setParentFilterId] = useState<string | null>(() => {
     if (!isShelf || !focusProduct) return null;
-    return productParentId(focusProduct);
+    return catalogFamilyId(focusProduct);
   });
   const [mobileOrderOpen, setMobileOrderOpen] = useState(false);
 
@@ -329,7 +295,7 @@ export function MarketplaceOrderWorkspace({
   // Passport deep-link: select parent, seed cart, scroll product into view.
   useEffect(() => {
     if (!isShelf || !focusProduct) return;
-    setParentFilterId(productParentId(focusProduct));
+    setParentFilterId(catalogFamilyId(focusProduct));
     setCart((prev) =>
       (prev[focusProduct.id] ?? 0) > 0 ? prev : { ...prev, [focusProduct.id]: 1 },
     );
@@ -395,72 +361,21 @@ export function MarketplaceOrderWorkspace({
   // Location already shown under the product title — don't repeat in contact.
   const showAreaInContact = !selected;
 
+  const catalogFamilies = useMemo(
+    () => groupCatalogProducts(detail.products),
+    [detail.products],
+  );
+
   const parentOptions = useMemo((): ParentOption[] => {
-    const referencedParentIds = new Set(
-      detail.products
-        .map((p) => p.variantOfItemId?.trim())
-        .filter((id): id is string => Boolean(id)),
-    );
-
-    type Group = {
-      label: string;
-      thumbnailUrl: string | null;
-      members: MarketplaceCatalogProductPreview[];
-    };
-    const groups = new Map<string, Group>();
-
-    for (const product of detail.products) {
-      const id = productParentId(product);
-      const existing = groups.get(id);
-      const thumb =
-        product.parentImageUrl?.trim() ||
-        (!isVariantProduct(product) ? product.imageUrl?.trim() || null : null);
-      if (!existing) {
-        groups.set(id, {
-          label: productParentLabel(product),
-          thumbnailUrl: thumb,
-          members: [product],
-        });
-        continue;
-      }
-      existing.members.push(product);
-      if (!existing.thumbnailUrl && thumb) existing.thumbnailUrl = thumb;
-      // Prefer a non-variant label when available
-      if (isVariantProduct(product) === false) {
-        existing.label = productParentLabel(product);
-      }
-    }
-
-    const sorted = [...groups.entries()]
-      .filter(([id, group]) => {
-        // Keep real parent families (has variants / multiple children)
-        if (group.members.length > 1) return true;
-        if (referencedParentIds.has(id)) return true;
-        if (id.startsWith("name:") && group.members.some(isVariantProduct)) {
-          return true;
-        }
-        // Keep standalone non-variant products as their own folder
-        const only = group.members[0];
-        return only != null && !isVariantProduct(only);
-      })
-      // Never keep a folder keyed by a variant's own item id
-      .filter(([id, group]) => {
-        const only = group.members.length === 1 ? group.members[0] : null;
-        if (!only || !isVariantProduct(only)) return true;
-        const ownItemId = only.itemId?.trim() || only.id;
-        return id !== ownItemId;
-      })
-      .map(([id, row]) => ({
-        id,
-        label: row.label,
-        thumbnailUrl: row.thumbnailUrl,
-      }))
-      .sort((a, b) =>
-        a.label.localeCompare(b.label, "en", { sensitivity: "base" }),
-      );
-
-    return [{ id: null, label: "All", thumbnailUrl: null }, ...sorted];
-  }, [detail.products]);
+    return [
+      { id: null, label: "All", thumbnailUrl: null },
+      ...catalogFamilies.map((family) => ({
+        id: family.id,
+        label: family.label,
+        thumbnailUrl: family.thumbnailUrl,
+      })),
+    ];
+  }, [catalogFamilies]);
 
   const showParentRail = parentOptions.length > 2;
 
@@ -473,13 +388,10 @@ export function MarketplaceOrderWorkspace({
     }
   }, [parentFilterId, parentOptions]);
 
-  const shelfProducts = useMemo(() => {
-    const byParent = parentFilterId
-      ? detail.products.filter((p) => productParentId(p) === parentFilterId)
-      : detail.products;
+  const shelfSections = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    if (!q) return byParent;
-    return byParent.filter((p) => {
+    const matches = (p: MarketplaceCatalogProductPreview) => {
+      if (!q) return true;
       const hay = [
         p.name,
         p.sku,
@@ -491,12 +403,38 @@ export function MarketplaceOrderWorkspace({
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
-    });
-  }, [detail.products, filter, parentFilterId]);
+    };
+    const source = parentFilterId
+      ? catalogFamilies.filter((family) => family.id === parentFilterId)
+      : catalogFamilies;
+    return source
+      .map((family) => ({
+        ...family,
+        items: family.items.filter(matches),
+      }))
+      .filter((family) => family.items.length > 0);
+  }, [catalogFamilies, filter, parentFilterId]);
+
+  const shelfProductCount = shelfSections.reduce(
+    (n, family) => n + family.items.length,
+    0,
+  );
+  const showFamilyHeadings = !parentFilterId && shelfSections.length > 1;
+  const familyLetters = showFamilyHeadings
+    ? catalogFamilyLetters(shelfSections)
+    : [];
+
+  const jumpToFamilyLetter = (letter: string) => {
+    const family = firstFamilyForLetter(shelfSections, letter);
+    if (!family) return;
+    document
+      .getElementById(catalogFamilyAnchor(family.id))
+      ?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
 
   const activeParentLabel = parentFilterId
-    ? parentOptions.find((p) => p.id === parentFilterId)?.label ?? "Shelf"
-    : "Shelf";
+    ? parentOptions.find((p) => p.id === parentFilterId)?.label ?? "Catalogue"
+    : "Catalogue";
 
   const orderLines = useMemo(
     () =>
@@ -816,38 +754,85 @@ export function MarketplaceOrderWorkspace({
               />
             </div>
 
-            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-y-contain px-1.5 py-1.5 pb-3 sm:px-2.5">
-              <div className="flex items-center justify-between gap-2 px-0.5">
-                <h3 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
-                  {activeParentLabel}
-                  <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
-                    {shelfProducts.length}
-                  </span>
-                </h3>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-1.5 pb-3 sm:px-2.5">
+              <div className="sticky top-0 z-[2] -mx-1.5 flex flex-col gap-1.5 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[#faf8f4] px-1.5 py-1.5 sm:-mx-2.5 sm:px-2.5">
+                <div className="flex items-baseline justify-between gap-2 px-0.5">
+                  <h3 className="flex items-baseline gap-2 text-[13px] font-semibold leading-none text-[var(--pos-ink,#1c1915)]">
+                    {activeParentLabel}
+                    <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
+                      {showFamilyHeadings
+                        ? `${shelfSections.length} families · ${shelfProductCount}`
+                        : shelfProductCount}
+                    </span>
+                  </h3>
+                </div>
+                {familyLetters.length > 1 ? (
+                  <div
+                    role="navigation"
+                    aria-label="Jump to letter"
+                    className="flex gap-0.5 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  >
+                    {familyLetters.map((letter) => (
+                      <button
+                        key={letter}
+                        type="button"
+                        onClick={() => jumpToFamilyLetter(letter)}
+                        className={cn(
+                          "flex h-8 w-7 shrink-0 items-center justify-center text-[11px] font-semibold",
+                          "text-[var(--pos-ink,#1c1915)]",
+                          "hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)]",
+                        )}
+                      >
+                        {letter}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
-              {shelfProducts.length === 0 ? (
-                <div className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-[11px] text-muted-foreground">
+              {shelfProductCount === 0 ? (
+                <div className="mt-2 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-[11px] text-muted-foreground">
                   {detail.products.length === 0
                     ? "No linked products yet."
                     : parentFilterId
-                      ? "No products under this parent."
+                      ? "No packs in this family."
                       : "No products match your search."}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                  {shelfProducts.map((product) => (
-                    <ShelfProductTile
-                      key={product.id}
-                      product={product}
-                      supplierSlug={detail.slug}
-                      qty={cart[product.id] ?? 0}
-                      focused={focusProduct?.id === product.id}
-                      onAdd={() =>
-                        setQty(product.id, (cart[product.id] ?? 0) + 1, true)
-                      }
-                      onSetQty={(qty) => setQty(product.id, qty)}
-                    />
+                <div className="mt-1.5 space-y-3">
+                  {shelfSections.map((family) => (
+                    <section
+                      key={family.id}
+                      id={catalogFamilyAnchor(family.id)}
+                      className="scroll-mt-14"
+                    >
+                      {showFamilyHeadings ? (
+                        <header className="mb-1 flex items-baseline justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pb-1">
+                          <h4 className="text-[12px] font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
+                            {family.label}
+                          </h4>
+                          <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                            {family.items.length}
+                          </span>
+                        </header>
+                      ) : null}
+                      <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                        {family.items.map((product) => (
+                          <ShelfProductTile
+                            key={product.id}
+                            product={product}
+                            displayName={catalogPackLabel(product, family.label)}
+                            supplierSlug={detail.slug}
+                            qty={cart[product.id] ?? 0}
+                            focused={focusProduct?.id === product.id}
+                            onAdd={() =>
+                              setQty(product.id, (cart[product.id] ?? 0) + 1, true)
+                            }
+                            onSetQty={(qty) => setQty(product.id, qty)}
+                          />
+                        ))}
+                      </div>
+                    </section>
                   ))}
                 </div>
               )}
@@ -856,7 +841,7 @@ export function MarketplaceOrderWorkspace({
 
           {showParentRail ? (
             <aside className="hidden h-full min-h-0 w-[6.5rem] shrink-0 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] lg:flex xl:w-[7.25rem]">
-              <div className={PARENT_RAIL_HEADER}>Parent</div>
+              <div className={PARENT_RAIL_HEADER}>A–Z</div>
               <ParentRail
                 options={parentOptions}
                 activeId={parentFilterId}
@@ -890,7 +875,7 @@ export function MarketplaceOrderWorkspace({
             <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
               <div className="flex items-center justify-between px-2.5 pt-1.5">
                 <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                  Parent
+                  A–Z
                 </p>
                 <span className="font-mono text-[9px] tabular-nums text-muted-foreground">
                   {parentOptions.length - 1}
@@ -1410,7 +1395,7 @@ function ParentRail({
         {canStart ? (
           <button
             type="button"
-            aria-label={vertical ? "Scroll parents up" : "Scroll parents left"}
+            aria-label={vertical ? "Scroll families up" : "Scroll families left"}
             onClick={() => nudge(-1)}
             className={cn(
               "absolute z-[3] flex items-center justify-center",
@@ -1427,7 +1412,7 @@ function ParentRail({
         {canEnd ? (
           <button
             type="button"
-            aria-label={vertical ? "Scroll parents down" : "Scroll parents right"}
+            aria-label={vertical ? "Scroll families down" : "Scroll families right"}
             onClick={() => nudge(1)}
             className={cn(
               "absolute z-[3] flex items-center justify-center",
@@ -1468,7 +1453,7 @@ function ParentRail({
         <div
           ref={scrollerRef}
           role="navigation"
-          aria-label="Filter by parent product"
+          aria-label="Filter by product family"
           tabIndex={0}
           className={cn(
             "absolute inset-0 overscroll-contain p-0.5 outline-none",
@@ -1854,6 +1839,7 @@ function CatalogueOrderRow({
 
 function ShelfProductTile({
   product,
+  displayName,
   supplierSlug,
   qty,
   focused = false,
@@ -1861,6 +1847,7 @@ function ShelfProductTile({
   onSetQty,
 }: {
   product: MarketplaceCatalogProductPreview;
+  displayName?: string;
   supplierSlug: string | null;
   qty: number;
   focused?: boolean;
@@ -1869,6 +1856,7 @@ function ShelfProductTile({
 }) {
   const thumb = posTileThumbUrl(product.name, product.imageUrl);
   const href = marketplacePassportProductPath(supplierSlug, product.slug);
+  const title = displayName?.trim() || product.name;
 
   return (
     <div
@@ -1888,8 +1876,8 @@ function ShelfProductTile({
           className="absolute inset-0 z-0 text-left"
           aria-label={
             qty > 0
-              ? `${product.name}, ${qty} in order. Tap to add another.`
-              : `Add ${product.name} to order`
+              ? `${title}, ${qty} in order. Tap to add another.`
+              : `Add ${title} to order`
           }
         >
           {thumb ? (
@@ -1926,11 +1914,11 @@ function ShelfProductTile({
             className="text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)] hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
-            {product.name}
+            {title}
           </Link>
         ) : (
           <p className="text-[11px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
-            {product.name}
+            {title}
           </p>
         )}
         <div className="flex items-center justify-between gap-1">

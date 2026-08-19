@@ -13,6 +13,10 @@ import type {
   MarketplaceCatalogProductPreview,
   MarketplaceSupplierDetail,
 } from "@/lib/marketplace-api";
+import {
+  catalogPackLabel,
+  groupCatalogProducts,
+} from "@/lib/marketplace-catalog-groups";
 import { formatMoney } from "@/lib/money";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 
@@ -308,24 +312,6 @@ function startProductPage(pages: PageBuild[], label: string, pageNo: number): Pa
   return page;
 }
 
-type Group = { label: string; items: MarketplaceCatalogProductPreview[] };
-
-function groupProducts(products: MarketplaceCatalogProductPreview[]): Group[] {
-  const groups = new Map<string, MarketplaceCatalogProductPreview[]>();
-  for (const p of products) {
-    const parent = p.parentItemName?.trim();
-    const byName = p.name.includes(" · ") ? p.name.split(" · ")[0].trim() : "";
-    const raw = parent || byName || p.categoryName?.trim();
-    const label = raw || "Products";
-    const arr = groups.get(label) ?? [];
-    arr.push(p);
-    groups.set(label, arr);
-  }
-  return [...groups.entries()]
-    .map(([label, items]) => ({ label, items }))
-    .sort((a, b) => a.label.localeCompare(b.label, "en", { sensitivity: "base" }));
-}
-
 function packLabel(product: MarketplaceCatalogProductPreview): string | null {
   const bits: string[] = [];
   if (product.packSize != null && product.packUnit?.trim()) {
@@ -356,6 +342,7 @@ export async function buildMarketplaceCataloguePdf({
   const areaLabel = [detail.location, ...detail.locations]
     .map((l) => l?.trim())
     .filter((l): l is string => Boolean(l))
+    .filter((l) => !/^(optional|n\/a|na|none|-)$/i.test(l))
     .filter((l, i, arr) => arr.indexOf(l) === i)
     .join(" · ");
 
@@ -430,16 +417,13 @@ function drawCover(
         ? formatMoney(minPrice, ctx.currency)
         : `${formatMoney(minPrice, ctx.currency)} – ${formatMoney(maxPrice, ctx.currency)}`
       : null;
-  const categoryCount = new Set(
-    detail.products.map((p) => p.categoryName?.trim()).filter(Boolean),
-  ).size;
-
+  const familyCount = groupCatalogProducts(detail.products).length;
   const boxW = (CONTENT_W - 24) / 3;
   const boxH = 64;
   const boxTop = 520;
   const stats: { value: string; label: string }[] = [
     { value: String(ctx.productCount), label: "Products" },
-    { value: String(categoryCount), label: "Categories" },
+    { value: String(familyCount), label: "Families" },
     { value: priceRange ?? "Ask", label: priceRange ? "Price range" : "Price" },
   ];
   stats.forEach((stat, i) => {
@@ -514,7 +498,7 @@ function drawProductPages(
   detail: MarketplaceSupplierDetail,
   ctx: { products: MarketplaceCatalogProductPreview[]; currency: string; images: (EmbeddedImage | null)[] },
 ) {
-  const groups = groupProducts(ctx.products);
+  const groups = groupCatalogProducts(ctx.products);
   if (groups.length === 0) {
     const page = startProductPage(pages, detail.name, 2);
     page.canvas.text(
@@ -539,11 +523,9 @@ function drawProductPages(
 
   let col = 0;
   let rowY = 0;
-  for (const group of groups) {
-    // Keep the section band with at least one card row beneath it.
-    ensure(26 + CARD_H + 10);
+  const paintGroupBand = (label: string, count: number) => {
     page.canvas.fill(MARGIN, cursorY - 20, CONTENT_W, 20, C.brandDark);
-    page.canvas.text(MARGIN + 8, cursorY - 7, truncate(group.label.toUpperCase(), 46), {
+    page.canvas.text(MARGIN + 8, cursorY - 7, truncate(label.toUpperCase(), 46), {
       font: "bold",
       size: 9,
       color: C.white,
@@ -551,21 +533,34 @@ function drawProductPages(
     page.canvas.textRight(
       PAGE_W - MARGIN - 8,
       cursorY - 7,
-      `${group.items.length} item${group.items.length === 1 ? "" : "s"}`,
+      `${count} pack${count === 1 ? "" : "s"}`,
       { size: 8.5, color: C.white },
     );
     cursorY -= 26;
+  };
+
+  for (const group of groups) {
+    ensure(26 + CARD_H + 10);
+    paintGroupBand(group.label, group.items.length);
 
     col = 0;
+    let firstRow = true;
     for (const product of group.items) {
       if (col === 0) {
-        ensure(CARD_H);
+        const headerRepeat = firstRow ? 0 : 26;
+        const pageBefore = pages.length;
+        ensure(headerRepeat + CARD_H);
+        if (pages.length !== pageBefore && !firstRow) {
+          paintGroupBand(group.label, group.items.length);
+        }
         rowY = cursorY - CARD_H;
+        firstRow = false;
       }
       const index = ctx.products.indexOf(product);
       drawProductCard(
         page,
         product,
+        group.label,
         ctx.images[index] ?? null,
         ctx.currency,
         MARGIN + col * (CARD_W + 12),
@@ -578,12 +573,17 @@ function drawProductPages(
         cursorY = rowY - 10;
       }
     }
+    if (col !== 0) {
+      cursorY = rowY - 10;
+    }
+    cursorY -= 8;
   }
 }
 
 function drawProductCard(
   page: PageBuild,
   product: MarketplaceCatalogProductPreview,
+  familyLabel: string,
   image: EmbeddedImage | null,
   currency: string,
   x: number,
@@ -591,55 +591,65 @@ function drawProductCard(
   imageNo: number,
 ) {
   const { canvas, images } = page;
+  const title = catalogPackLabel(product, familyLabel);
+  const top = y + CARD_H;
+  const imgY = y + (CARD_H - IMG_SIZE) / 2;
 
-  // Image or hue-tile placeholder
+  canvas.fill(x, y, CARD_W, CARD_H, C.white);
+  canvas.strokeRect(x, y, CARD_W, CARD_H, C.line, 0.4);
+
   if (image) {
     const scale = Math.min(IMG_SIZE / image.width, IMG_SIZE / image.height);
     const w = image.width * scale;
     const h = image.height * scale;
-    canvas.image(`Im${imageNo}`, x + 6 + (IMG_SIZE - w) / 2, y + 6 + (IMG_SIZE - h) / 2, w, h);
+    canvas.image(
+      `Im${imageNo}`,
+      x + 6 + (IMG_SIZE - w) / 2,
+      imgY + (IMG_SIZE - h) / 2,
+      w,
+      h,
+    );
     images.push(image);
   } else {
     const hue = hueFromId(product.id);
     const [tileR, tileG, tileB] = hslToRgb(hue, 62, 82);
     const [inkR, inkG, inkB] = hslToRgb(hue, 55, 34);
-    canvas.fill(x + 6, y + 6, IMG_SIZE, IMG_SIZE, [tileR, tileG, tileB]);
-    canvas.text(x + 6 + IMG_SIZE / 2, y + 6 + IMG_SIZE / 2 + 9, (product.name.trim()[0] ?? "?").toUpperCase(), {
+    canvas.fill(x + 6, imgY, IMG_SIZE, IMG_SIZE, [tileR, tileG, tileB]);
+    canvas.textCenter(x + 6 + IMG_SIZE / 2, imgY + IMG_SIZE / 2 - 9, (title.trim()[0] ?? "?").toUpperCase(), {
       font: "bold",
       size: 26,
       color: [inkR, inkG, inkB],
     });
   }
-  canvas.strokeRect(x + 6, y + 6, IMG_SIZE, IMG_SIZE, C.line, 0.5);
+  canvas.strokeRect(x + 6, imgY, IMG_SIZE, IMG_SIZE, C.line, 0.5);
 
-  // Name (2 lines) then price
   const textX = x + 72;
   const textW = CARD_W - 80;
-  const nameLines = wrapText(product.name, 9, textW, 2);
+  const nameLines = wrapText(title, 9, textW, 2);
   nameLines.forEach((line, i) => {
-    canvas.text(textX, y + 8 + i * 11, line, { font: "bold", size: 9, color: C.ink });
+    canvas.text(textX, top - 18 - i * 12, line, { font: "bold", size: 9, color: C.ink });
   });
-  const priceY = y + 8 + nameLines.length * 11 + 2;
-  if (product.unitPrice != null) {
-    canvas.text(textX, priceY, formatMoney(product.unitPrice, product.currency ?? currency), {
-      font: "bold",
-      size: 10.5,
-      color: C.ink,
-    });
-  } else {
-    canvas.text(textX, priceY, "Ask for price", { size: 9, color: C.muted });
-  }
+  const price =
+    product.unitPrice != null
+      ? formatMoney(product.unitPrice, product.currency ?? currency)
+      : "Ask";
+  canvas.text(textX, top - 22 - nameLines.length * 12, price, {
+    font: "bold",
+    size: 11,
+    color: C.ink,
+  });
 
   if (!product.available) {
-    canvas.text(textX, y + 62, "Unavailable", { font: "bold", size: 8, color: C.red });
+    canvas.text(textX, y + 12, "Unavailable", { font: "bold", size: 8, color: C.red });
   } else {
     const meta: string[] = [];
     if (product.sku) meta.push(product.sku);
     const pack = packLabel(product);
     if (pack) meta.push(pack);
-    if (product.categoryName) meta.push(product.categoryName);
     const metaLine = truncate(meta.join(" · "), 40);
-    canvas.text(textX, y + 62, metaLine, { font: "mono", size: 7, color: C.muted });
+    if (metaLine) {
+      canvas.text(textX, y + 12, metaLine, { font: "mono", size: 7, color: C.muted });
+    }
   }
 }
 
