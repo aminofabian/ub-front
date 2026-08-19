@@ -20,6 +20,12 @@ import { AuthAlert } from "@/components/auth/auth-alert";
 import { SuperAdminDrawer } from "@/components/super-admin/super-admin-drawer";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import {
+  SaSection,
+  saSelectClass,
+  saSegmentButtonClass,
+  saSegmentWrapClass,
+} from "@/components/super-admin/sa-section";
+import {
   showThemedConfirmToast,
   showThemedErrorToast,
   showThemedSuccessToast,
@@ -27,6 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   activateSaMarketplaceSupplier,
   createSaMarketplaceSupplier,
@@ -287,137 +294,156 @@ export default function SuperAdminMarketplaceSuppliersPage() {
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
 
-      {stats ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-          {[
-            { label: "Total", value: stats.total, onClick: () => { setStatusChip(""); setPortalFilter("all"); setShopFilter("all"); } },
-            { label: "Active", value: stats.active, onClick: () => setStatusChip("active") },
-            { label: "Draft", value: stats.draft, onClick: () => setStatusChip("draft") },
-            { label: "Suspended", value: stats.suspended, onClick: () => setStatusChip("suspended") },
-            { label: "Portal ready", value: stats.withPortalUsers, onClick: () => { setPortalFilter("has_users"); setShopFilter("all"); } },
-            { label: "Need invite", value: stats.needingInvite, onClick: () => { setPortalFilter("needs_invite"); setShopFilter("all"); } },
-            { label: "Linked to shops", value: stats.withLinkedShops, onClick: () => { setShopFilter("linked"); setPortalFilter("all"); } },
-          ].map((stat) => (
-            <button
-              key={stat.label}
-              type="button"
-              onClick={stat.onClick}
-              className="rounded-xl border bg-background px-3 py-3 text-left transition hover:border-foreground/20 hover:bg-muted/30"
-            >
-              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                {stat.label}
-              </div>
-              <div className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{stat.value}</div>
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="space-y-3 rounded-xl border bg-background p-3 sm:p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="min-w-[14rem] flex-1 space-y-1 text-sm">
-            <span className="text-muted-foreground">Search</span>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-8"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Name, S-number, email, phone, username…"
-              />
-            </div>
-          </label>
-          <label className="w-44 space-y-1 text-sm">
-            <span className="text-muted-foreground">Sort</span>
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              value={sort}
-              onChange={(e) => {
-                setSort(e.target.value as SortKey);
-                setPage(0);
-              }}
-            >
-              <option value="updatedAt,desc">Recently updated</option>
-              <option value="createdAt,desc">Newest first</option>
-              <option value="name,asc">Name A–Z</option>
-              <option value="supplierNumber,asc">Supplier number</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["", "All statuses"],
-              ["active", "Active"],
-              ["draft", "Draft"],
-              ["suspended", "Suspended"],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value || "all"}
-              type="button"
-              size="sm"
-              variant={statusFilter === value ? "default" : "outline"}
-              className="rounded-full"
-              onClick={() => setStatusChip(value)}
-            >
-              {label}
-            </Button>
-          ))}
-          <span className="mx-1 hidden h-8 w-px bg-border sm:block" aria-hidden />
-          {(
-            [
-              ["all", "Any portal"],
-              ["has_users", "Has users"],
-              ["needs_invite", "Needs invite"],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              type="button"
-              size="sm"
-              variant={portalFilter === value ? "default" : "outline"}
-              className="rounded-full"
-              onClick={() => setPortalFilter(value)}
-            >
-              {label}
-            </Button>
-          ))}
-          <span className="mx-1 hidden h-8 w-px bg-border sm:block" aria-hidden />
-          {(
-            [
-              ["all", "Any shops"],
-              ["linked", "Linked shops"],
-              ["orphan", "No shops yet"],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              type="button"
-              size="sm"
-              variant={shopFilter === value ? "default" : "outline"}
-              className="rounded-full"
-              onClick={() => setShopFilter(value)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-xl border">
-        <div className="flex items-center justify-between gap-3 border-b bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-          <span>
+      <SaSection
+        title="Identities"
+        description={
+          <>
             Showing {visibleRows.length}
-            {portalFilter !== "all" || shopFilter !== "all" ? " filtered" : ""} of {totalElements} identities
-          </span>
-          <span className="tabular-nums">
-            Page {page + 1} / {totalPages}
-          </span>
+            {portalFilter !== "all" || shopFilter !== "all" ? " filtered" : ""} of {totalElements} · page {page + 1} /{" "}
+            {totalPages}
+          </>
+        }
+        padded={false}
+      >
+        <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Label htmlFor="ms-search">Search</Label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="ms-search"
+                  className="pl-8"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Name, S-number, email, phone, username…"
+                />
+              </div>
+            </div>
+            <div className="w-full space-y-1.5 sm:w-44">
+              <Label htmlFor="ms-sort">Sort</Label>
+              <select
+                id="ms-sort"
+                className={saSelectClass}
+                value={sort}
+                onChange={(e) => {
+                  setSort(e.target.value as SortKey);
+                  setPage(0);
+                }}
+              >
+                <option value="updatedAt,desc">Recently updated</option>
+                <option value="createdAt,desc">Newest first</option>
+                <option value="name,asc">Name A–Z</option>
+                <option value="supplierNumber,asc">Supplier number</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className={saSegmentWrapClass} role="group" aria-label="Filter by status">
+              {(
+                [
+                  ["", "All", stats?.total],
+                  ["active", "Active", stats?.active],
+                  ["draft", "Draft", stats?.draft],
+                  ["suspended", "Suspended", stats?.suspended],
+                ] as const
+              ).map(([value, label, count]) => (
+                <button
+                  key={value || "all"}
+                  type="button"
+                  aria-pressed={statusFilter === value}
+                  className={saSegmentButtonClass(statusFilter === value)}
+                  onClick={() => setStatusChip(value)}
+                >
+                  {label}
+                  {typeof count === "number" ? (
+                    <span className="tabular-nums text-muted-foreground">{count}</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+            <div className={saSegmentWrapClass} role="group" aria-label="Filter by portal">
+              {(
+                [
+                  ["all", "Any portal", undefined],
+                  ["has_users", "Has users", stats?.withPortalUsers],
+                  ["needs_invite", "Needs invite", stats?.needingInvite],
+                ] as const
+              ).map(([value, label, count]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={portalFilter === value}
+                  className={saSegmentButtonClass(portalFilter === value)}
+                  onClick={() => setPortalFilter(value)}
+                >
+                  {label}
+                  {typeof count === "number" ? (
+                    <span className="tabular-nums text-muted-foreground">{count}</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+            <div className={saSegmentWrapClass} role="group" aria-label="Filter by shops">
+              {(
+                [
+                  ["all", "Any shops", undefined],
+                  ["linked", "Linked shops", stats?.withLinkedShops],
+                  ["orphan", "No shops yet", undefined],
+                ] as const
+              ).map(([value, label, count]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={shopFilter === value}
+                  className={saSegmentButtonClass(shopFilter === value)}
+                  onClick={() => setShopFilter(value)}
+                >
+                  {label}
+                  {typeof count === "number" ? (
+                    <span className="tabular-nums text-muted-foreground">{count}</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
+
+        {visibleRows.length === 0 ? (
+          <p className="px-4 py-10 text-center text-sm text-muted-foreground sm:px-5">
+            {rows.length === 0
+              ? "No marketplace suppliers yet. Tenants create them when adding suppliers, or create one here."
+              : "No suppliers match the current filters on this page."}
+          </p>
+        ) : (
+          <>
+            <ul className="divide-y divide-border/60 lg:hidden">
+              {visibleRows.map((row) => {
+                const shopCount = row.linkedShopCount ?? 0;
+                return (
+                  <li key={row.id} className="flex items-start justify-between gap-3 px-4 py-3.5 sm:px-5">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{row.name}</p>
+                      <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                        {row.supplierNumber || row.id.slice(0, 8)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {row.portalUserCount} portal · {shopCount} shop{shopCount === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      {statusBadge(row.status)}
+                      <Button type="button" size="sm" variant="outline" onClick={() => void openSupplier(row)}>
+                        Manage
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="hidden overflow-x-auto lg:block">
         <table className="w-full text-left text-sm">
-          <thead className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+          <thead className="border-b border-border/60 text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium">Supplier</th>
               <th className="px-3 py-2 font-medium">Contact</th>
@@ -429,15 +455,7 @@ export default function SuperAdminMarketplaceSuppliersPage() {
             </tr>
           </thead>
           <tbody>
-            {visibleRows.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-muted-foreground">
-                  {rows.length === 0
-                    ? "No marketplace suppliers yet. Tenants create them when adding suppliers, or create one here."
-                    : "No suppliers match the current filters on this page."}
-                </td>
-              </tr>
-            ) : (
+            {visibleRows.length === 0 ? null : (
               visibleRows.map((row) => {
                 const shopCount = row.linkedShopCount ?? 0;
                 const shopNames = row.linkedShopNames ?? [];
@@ -517,7 +535,10 @@ export default function SuperAdminMarketplaceSuppliersPage() {
             )}
           </tbody>
         </table>
-        <div className="flex items-center justify-between gap-3 border-t px-3 py-2">
+            </div>
+          </>
+        )}
+        <div className="flex items-center justify-between gap-3 border-t border-border/60 px-4 py-2 sm:px-5">
           <Button
             type="button"
             size="sm"
@@ -539,7 +560,7 @@ export default function SuperAdminMarketplaceSuppliersPage() {
             <ChevronRight className="ml-1 size-3.5" />
           </Button>
         </div>
-      </div>
+      </SaSection>
 
       <SuperAdminDrawer
         open={createOpen}
@@ -549,10 +570,8 @@ export default function SuperAdminMarketplaceSuppliersPage() {
         width="wide"
       >
         <form className="space-y-4" onSubmit={(e) => void onCreate(e)}>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="ms-create-name">
-              Name
-            </label>
+          <div className="space-y-1.5">
+            <Label htmlFor="ms-create-name">Name</Label>
             <Input
               id="ms-create-name"
               value={createName}
@@ -562,10 +581,8 @@ export default function SuperAdminMarketplaceSuppliersPage() {
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="ms-create-phone">
-                Phone
-              </label>
+            <div className="space-y-1.5">
+              <Label htmlFor="ms-create-phone">Phone</Label>
               <Input
                 id="ms-create-phone"
                 value={createPhone}
@@ -573,10 +590,8 @@ export default function SuperAdminMarketplaceSuppliersPage() {
                 placeholder="2547…"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="ms-create-email">
-                Email
-              </label>
+            <div className="space-y-1.5">
+              <Label htmlFor="ms-create-email">Email</Label>
               <Input
                 id="ms-create-email"
                 type="email"
@@ -586,10 +601,8 @@ export default function SuperAdminMarketplaceSuppliersPage() {
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="ms-create-desc">
-              Notes
-            </label>
+          <div className="space-y-1.5">
+            <Label htmlFor="ms-create-desc">Notes</Label>
             <Input
               id="ms-create-desc"
               value={createDescription}
@@ -620,7 +633,7 @@ export default function SuperAdminMarketplaceSuppliersPage() {
       >
         {selected ? (
           <div className="space-y-6">
-            <section className="space-y-3 rounded-lg border p-3">
+            <section className="space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -713,11 +726,11 @@ export default function SuperAdminMarketplaceSuppliersPage() {
               </div>
               <div className="grid gap-2 text-sm sm:grid-cols-2">
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Phone</div>
+                  <p className="text-xs text-muted-foreground">Phone</p>
                   <div>{selected.contactPhone || "—"}</div>
                 </div>
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Email</div>
+                  <p className="text-xs text-muted-foreground">Email</p>
                   <div className="break-all">{selected.contactEmail || "—"}</div>
                 </div>
               </div>
@@ -737,9 +750,9 @@ export default function SuperAdminMarketplaceSuppliersPage() {
                   supplier.
                 </p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="divide-y divide-border/60 rounded-xl border border-border/70">
                   {shops.map((shop) => (
-                    <li key={shop.connectionId} className="rounded-lg border p-3">
+                    <li key={shop.connectionId} className="px-3 py-3">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <div className="font-medium">{shop.businessName}</div>
@@ -867,9 +880,9 @@ export default function SuperAdminMarketplaceSuppliersPage() {
               {users.length === 0 && !usersError ? (
                 <p className="text-sm text-muted-foreground">No portal users yet.</p>
               ) : (
-                <ul className="space-y-3">
+                <ul className="divide-y divide-border/60 rounded-xl border border-border/70">
                   {users.map((user) => (
-                    <li key={user.id} className="rounded-lg border p-3">
+                    <li key={user.id} className="px-3 py-3">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <div className="font-medium">{user.name}</div>

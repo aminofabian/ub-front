@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { KeyRound, User } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   type SuperAdminMe,
   changeSuperAdminPassword,
@@ -72,74 +71,54 @@ export default function SuperAdminSettingsPage() {
     confirmPassword.length > 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <SuperAdminPageHeader
-        title="Profile & security"
-        description="Manage your super admin identity and credentials. This account is separate from tenant shop staff."
+        title="Profile"
+        description="This account is separate from tenant shop staff."
       />
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {me ? (
-          <Card className="border-border/70 shadow-sm lg:col-span-1">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <User className="size-4" aria-hidden />
-                </span>
-                <div>
-                  <CardTitle className="font-heading text-lg">Profile</CardTitle>
-                  <CardDescription>Operator identity on the platform.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
+        <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+          <div className="border-b border-border/60 px-4 py-4 sm:px-5">
+            <h2 className="font-heading text-lg font-semibold tracking-tight">Identity</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Operator on the Kiosk platform.</p>
+          </div>
+          <div className="px-4 py-5 sm:px-5">
+            {me ? (
               <dl className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Name</dt>
+                  <dt className="text-xs text-muted-foreground">Name</dt>
                   <dd className="text-sm font-medium">{me.name}</dd>
                 </div>
                 <div className="space-y-1">
-                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Email</dt>
+                  <dt className="text-xs text-muted-foreground">Email</dt>
                   <dd className="text-sm font-medium">{me.email}</dd>
                 </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Super Admin ID
-                  </dt>
+                  <dt className="text-xs text-muted-foreground">Super admin ID</dt>
                   <dd className="break-all font-mono text-xs text-muted-foreground">{me.superAdminId}</dd>
                 </div>
               </dl>
-            </CardContent>
-          </Card>
-        ) : loadError ? null : (
-          <Card className="border-border/70 shadow-sm">
-            <CardContent className="py-10 text-center text-sm text-muted-foreground">Loading profile…</CardContent>
-          </Card>
-        )}
+            ) : loadError ? null : (
+              <p className="text-sm text-muted-foreground">Loading profile…</p>
+            )}
+          </div>
+        </section>
 
-        <Card className="border-border/70 shadow-sm lg:col-span-1">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-muted text-foreground">
-                <KeyRound className="size-4" aria-hidden />
-              </span>
-              <div>
-                <CardTitle className="font-heading text-lg">Change password</CardTitle>
-                <CardDescription>Use a strong password that you don&apos;t reuse elsewhere.</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+          <div className="border-b border-border/60 px-4 py-4 sm:px-5">
+            <h2 className="font-heading text-lg font-semibold tracking-tight">Password</h2>
+            <p className="mt-1 text-sm text-muted-foreground">At least 8 characters. Don’t reuse a shop password.</p>
+          </div>
+          <div className="space-y-4 px-4 py-5 sm:px-5">
             {success ? <AuthAlert variant="success">{success}</AuthAlert> : null}
             {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
 
             <form className="space-y-4" onSubmit={onChangePassword}>
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="sa-cur-pw">
-                  Current password
-                </label>
+                <Label htmlFor="sa-cur-pw">Current password</Label>
                 <Input
                   id="sa-cur-pw"
                   type="password"
@@ -150,9 +129,7 @@ export default function SuperAdminSettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="sa-new-pw">
-                  New password
-                </label>
+                <Label htmlFor="sa-new-pw">New password</Label>
                 <Input
                   id="sa-new-pw"
                   type="password"
@@ -164,9 +141,7 @@ export default function SuperAdminSettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="sa-confirm-pw">
-                  Confirm new password
-                </label>
+                <Label htmlFor="sa-confirm-pw">Confirm new password</Label>
                 <Input
                   id="sa-confirm-pw"
                   type="password"
@@ -180,8 +155,8 @@ export default function SuperAdminSettingsPage() {
                 {busy ? "Changing…" : "Change password"}
               </Button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
     </div>
   );

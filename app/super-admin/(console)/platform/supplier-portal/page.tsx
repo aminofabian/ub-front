@@ -1,45 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { SaSection, SaToggleRow, saSelectClass } from "@/components/super-admin/sa-section";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   fetchSupplierPortalSettings,
   updateSupplierPortalSettings,
   type SupplierPortalSettingsRecord,
 } from "@/lib/super-admin-api";
 
-function ToggleRow({
+function Field({
   id,
   label,
-  description,
-  checked,
-  onChange,
+  children,
 }: {
   id: string;
   label: string;
-  description?: string;
-  checked: boolean;
-  onChange: (next: boolean) => void;
+  children: ReactNode;
 }) {
   return (
-    <label htmlFor={id} className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-3">
-      <span className="min-w-0">
-        <span className="block text-sm font-medium">{label}</span>
-        {description ? <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span> : null}
-      </span>
-      <input
-        id={id}
-        type="checkbox"
-        className="mt-1 size-4 accent-primary"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-    </label>
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      {children}
+    </div>
   );
 }
 
@@ -208,115 +197,103 @@ export default function SuperAdminSupplierPortalSettingsPage() {
       {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
       {success ? <AuthAlert variant="success">{success}</AuthAlert> : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>General</CardTitle>
-          <CardDescription>Master switches for the authenticated portal.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          <ToggleRow
+      <SaSection title="General" description="Master switches for the authenticated portal.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SaToggleRow
             id="portal-enabled"
             label="Enable Supplier Portal"
             description="Kill switch for login and claim."
             checked={portalEnabled}
             onChange={setPortalEnabled}
           />
-          <ToggleRow
+          <SaToggleRow
             id="allow-self-claim"
             label="Allow supplier self-claim"
             description="Phone OTP path without an invite."
             checked={allowSelfClaim}
             onChange={setAllowSelfClaim}
           />
-          <ToggleRow
+          <SaToggleRow
             id="allow-profile"
             label="Allow profile edits"
             checked={allowProfileEdits}
             onChange={setAllowProfileEdits}
           />
-          <ToggleRow
+          <SaToggleRow
             id="allow-payment"
             label="Allow payment detail edits"
             checked={allowPaymentDetailEdits}
             onChange={setAllowPaymentDetailEdits}
           />
-          <ToggleRow
+          <SaToggleRow
             id="allow-product"
             label="Allow product edits"
             checked={allowProductEdits}
             onChange={setAllowProductEdits}
           />
-          <ToggleRow
+          <SaToggleRow
             id="require-approval"
             label="Require store approval for product edits"
             checked={requireStoreApprovalProductEdits}
             onChange={setRequireStoreApprovalProductEdits}
           />
-          <ToggleRow
+          <SaToggleRow
             id="allow-invoice-dl"
             label="Allow invoice downloads"
             checked={allowInvoiceDownloads}
             onChange={setAllowInvoiceDownloads}
           />
-          <ToggleRow
+          <SaToggleRow
             id="allow-statement-dl"
             label="Allow statement downloads"
             checked={allowStatementDownloads}
             onChange={setAllowStatementDownloads}
           />
-          <ToggleRow
+          <SaToggleRow
             id="allow-find-drafts"
             label="Find unclaimed / draft suppliers"
             description="Shops can look up draft global suppliers by name, phone, or S-number when adding a vendor."
             checked={allowFindUnclaimedDrafts}
             onChange={setAllowFindUnclaimedDrafts}
           />
-          <ToggleRow
+          <SaToggleRow
             id="auto-promote-create"
             label="Auto-promote on create"
             description="Creating a supplier with no match also creates a global passport and assigns an S-number."
             checked={autoPromoteOnCreate}
             onChange={setAutoPromoteOnCreate}
           />
-          <div className="sm:col-span-2 space-y-2">
-            <label className="text-sm font-medium" htmlFor="portal-url">
-              Portal public URL
-            </label>
-            <Input
-              id="portal-url"
-              value={portalPublicUrl}
-              onChange={(e) => setPortalPublicUrl(e.target.value)}
-              placeholder="https://kiosk.ke/supplier-portal"
-            />
+          <div className="sm:col-span-2">
+            <Field id="portal-url" label="Portal public URL">
+              <Input
+                id="portal-url"
+                value={portalPublicUrl}
+                onChange={(e) => setPortalPublicUrl(e.target.value)}
+                placeholder="https://kiosk.ke/supplier-portal"
+              />
+            </Field>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SaSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Claim configuration</CardTitle>
-          <CardDescription>OTP and invitation challenge rules.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <ToggleRow
+      <SaSection title="Claim" description="OTP and invitation challenge rules.">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SaToggleRow
             id="claim-enabled"
             label="Claim enabled"
             checked={claimEnabled}
             onChange={setClaimEnabled}
           />
-          <ToggleRow
+          <SaToggleRow
             id="auto-login"
             label="Auto-login after setup"
             checked={autoLoginAfterSetup}
             onChange={setAutoLoginAfterSetup}
           />
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="claim-method">
-              Claim method
-            </label>
+          <Field id="claim-method" label="Claim method">
             <select
               id="claim-method"
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className={saSelectClass}
               value={claimMethod}
               onChange={(e) => setClaimMethod(e.target.value)}
             >
@@ -324,11 +301,8 @@ export default function SuperAdminSupplierPortalSettingsPage() {
               <option value="code_only">Code only (invite)</option>
               <option value="email_code">Email + code</option>
             </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="code-length">
-              OTP code length
-            </label>
+          </Field>
+          <Field id="code-length" label="OTP code length">
             <Input
               id="code-length"
               type="number"
@@ -337,11 +311,8 @@ export default function SuperAdminSupplierPortalSettingsPage() {
               value={codeLength}
               onChange={(e) => setCodeLength(Number(e.target.value) || 6)}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="code-expiry">
-              Code expiry (minutes)
-            </label>
+          </Field>
+          <Field id="code-expiry" label="Code expiry (minutes)">
             <Input
               id="code-expiry"
               type="number"
@@ -349,11 +320,8 @@ export default function SuperAdminSupplierPortalSettingsPage() {
               value={codeExpiryMinutes}
               onChange={(e) => setCodeExpiryMinutes(Number(e.target.value) || 30)}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="max-attempts">
-              Maximum attempts
-            </label>
+          </Field>
+          <Field id="max-attempts" label="Maximum attempts">
             <Input
               id="max-attempts"
               type="number"
@@ -361,11 +329,8 @@ export default function SuperAdminSupplierPortalSettingsPage() {
               value={maxAttempts}
               onChange={(e) => setMaxAttempts(Number(e.target.value) || 5)}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="lock-duration">
-              Lock duration (minutes)
-            </label>
+          </Field>
+          <Field id="lock-duration" label="Lock duration (minutes)">
             <Input
               id="lock-duration"
               type="number"
@@ -373,11 +338,8 @@ export default function SuperAdminSupplierPortalSettingsPage() {
               value={lockDurationMinutes}
               onChange={(e) => setLockDurationMinutes(Number(e.target.value) || 15)}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="resend-cooldown">
-              Resend cooldown (seconds)
-            </label>
+          </Field>
+          <Field id="resend-cooldown" label="Resend cooldown (seconds)">
             <Input
               id="resend-cooldown"
               type="number"
@@ -385,19 +347,13 @@ export default function SuperAdminSupplierPortalSettingsPage() {
               value={resendCooldownSeconds}
               onChange={(e) => setResendCooldownSeconds(Number(e.target.value) || 0)}
             />
-          </div>
-        </CardContent>
-      </Card>
+          </Field>
+        </div>
+      </SaSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Password policy</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="pw-min">
-              Minimum length
-            </label>
+      <SaSection title="Password">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field id="pw-min" label="Minimum length">
             <Input
               id="pw-min"
               type="number"
@@ -405,96 +361,79 @@ export default function SuperAdminSupplierPortalSettingsPage() {
               value={passwordMinLength}
               onChange={(e) => setPasswordMinLength(Number(e.target.value) || 8)}
             />
-          </div>
-          <ToggleRow
+          </Field>
+          <SaToggleRow
             id="pw-number"
             label="Require number"
             checked={passwordRequireNumber}
             onChange={setPasswordRequireNumber}
           />
-          <ToggleRow
+          <SaToggleRow
             id="pw-upper"
             label="Require uppercase"
             checked={passwordRequireUppercase}
             onChange={setPasswordRequireUppercase}
           />
-          <ToggleRow
+          <SaToggleRow
             id="pw-special"
             label="Require special character"
             checked={passwordRequireSpecial}
             onChange={setPasswordRequireSpecial}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </SaSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Templates</CardTitle>
-          <CardDescription>
+      <SaSection
+        title="Templates"
+        description={
+          <>
             Variables: {"{{supplier_name}}"} {"{{shop_name}}"} {"{{claim_code}}"} {"{{expiry_minutes}}"}{" "}
             {"{{portal_url}}"} {"{{support_phone}}"} {"{{support_email}}"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </>
+        }
+      >
+        <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="support-phone">
-                Support phone
-              </label>
+            <Field id="support-phone" label="Support phone">
               <Input id="support-phone" value={supportPhone} onChange={(e) => setSupportPhone(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="support-email">
-                Support email
-              </label>
+            </Field>
+            <Field id="support-email" label="Support email">
               <Input id="support-email" value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} />
-            </div>
+            </Field>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="sms-template">
-              SMS template
-            </label>
-            <textarea
+          <Field id="sms-template" label="SMS template">
+            <Textarea
               id="sms-template"
-              className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="min-h-28"
               value={smsTemplate}
               onChange={(e) => setSmsTemplate(e.target.value)}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="invite-template">
-              Invitation message
-            </label>
-            <textarea
+          </Field>
+          <Field id="invite-template" label="Invitation message">
+            <Textarea
               id="invite-template"
-              className="min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="min-h-40"
               value={invitationMessageTemplate}
               onChange={(e) => setInvitationMessageTemplate(e.target.value)}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="email-subject">
-              Email subject
-            </label>
+          </Field>
+          <Field id="email-subject" label="Email subject">
             <Input
               id="email-subject"
               value={emailSubjectTemplate}
               onChange={(e) => setEmailSubjectTemplate(e.target.value)}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="email-body">
-              Email body
-            </label>
-            <textarea
+          </Field>
+          <Field id="email-body" label="Email body">
+            <Textarea
               id="email-body"
-              className="min-h-36 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="min-h-36"
               value={emailBodyTemplate}
               onChange={(e) => setEmailBodyTemplate(e.target.value)}
             />
-          </div>
-        </CardContent>
-      </Card>
+          </Field>
+        </div>
+      </SaSection>
 
       <div className="flex justify-end">
         <Button type="submit" disabled={busy}>

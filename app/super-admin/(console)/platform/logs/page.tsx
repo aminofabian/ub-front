@@ -5,12 +5,15 @@ import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-
 
 export default function SuperAdminPlatformLogsPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <SuperAdminPageHeader
         title="Client logs"
         description="API reachability and BACKEND_ORIGIN / proxy-config errors captured in this browser. Shop tills never toast this detail — it is recorded here instead."
       />
-      <OpsClientLogsPanel />
+      <OpsClientLogsPanel
+        emptyDescription="When this console cannot reach the API, the technical detail lands here instead of a toast."
+        storageNote="Stored on this browser only. Shop tills never toast this detail."
+      />
     </div>
   );
 }

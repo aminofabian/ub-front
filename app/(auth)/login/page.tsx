@@ -11,6 +11,7 @@ import {
   authInputClassName,
   AuthSplitShell,
 } from "@/components/auth/auth-split-shell";
+import { ShopperPhoneLogin } from "@/components/storefront/shop-phone-login";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
   clearSessionTenantId,
@@ -65,6 +66,11 @@ function CustomerLoginPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
+  const [useEmail, setUseEmail] = useState(
+    () =>
+      searchParams.get("mode")?.trim() === "email" ||
+      Boolean(searchParams.get("email")?.trim()),
+  );
 
   const resolveAfterAuth = useCallback(
     async (opts?: { honorNext?: boolean }): Promise<string> => {
@@ -154,6 +160,24 @@ function CustomerLoginPageContent() {
     }
   };
 
+  const onPhoneSignedIn = async () => {
+    setIsSubmitting(true);
+    setErrorMessage("");
+    try {
+      const id = tenant?.tenantId ?? getSessionTenantId();
+      if (id) persistTenantId(id);
+      const dest = await resolveAfterAuth();
+      await completeAuthAndNavigate(dest, tenant?.slug);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Signed in, but we could not open your account.",
+      );
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <AuthSplitShell tenant={tenant}>
       <AuthPageHeader
@@ -162,9 +186,14 @@ function CustomerLoginPageContent() {
             ? `Sign in to ${tenantGreeting}`
             : "Customer sign-in"
         }
-        description="Email plus your password — or a staff PIN if you have one. No mode switch."
+        description={
+          useEmail
+            ? "Email plus your password — or a staff PIN if you have one."
+            : "Your Kenyan mobile is your account. The same 4-digit PIN opens this shop and your tab."
+        }
       />
 
+      {useEmail ? (
       <form
         className="mt-6 space-y-4"
         action={LOGIN_BRIDGE}
@@ -267,8 +296,49 @@ function CustomerLoginPageContent() {
           )}
         </button>
       </form>
+      ) : (
+        <div className="mt-6">
+          <ShopperPhoneLogin
+            onSignedIn={() => {
+              void onPhoneSignedIn();
+            }}
+            footer={
+              <button
+                type="button"
+                className="mt-4 text-[13px] font-medium text-muted-foreground underline-offset-2 hover:underline"
+                onClick={() => {
+                  setUseEmail(true);
+                  setErrorMessage("");
+                }}
+              >
+                Use email instead
+              </button>
+            }
+          />
+          {errorMessage ? (
+            <div className="mt-4">
+              <AuthAlert variant="error">{errorMessage}</AuthAlert>
+            </div>
+          ) : null}
+        </div>
+      )}
 
+      {useEmail ? (
+        <>
       <p className="mt-6 text-center text-sm text-muted-foreground">
+        Prefer your phone?{" "}
+        <button
+          type="button"
+          className="font-medium text-foreground underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
+          onClick={() => {
+            setUseEmail(false);
+            setErrorMessage("");
+          }}
+        >
+          Sign in with mobile
+        </button>
+      </p>
+      <p className="mt-3 text-center text-sm text-muted-foreground">
         New here?{" "}
         <Link
           href={
@@ -278,9 +348,11 @@ function CustomerLoginPageContent() {
           }
           className="font-medium text-foreground underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
         >
-          Create an account
+          Create an email account
         </Link>
       </p>
+        </>
+      ) : null}
       <p className="mt-3 text-center text-xs text-muted-foreground">
         Store staff?{" "}
         <Link

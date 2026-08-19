@@ -5,7 +5,14 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, ImageOff, PackageSearch, RefreshCw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
+import { AuthAlert } from "@/components/auth/auth-alert";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import {
+  SaSection,
+  saSelectClass,
+  saSegmentButtonClass,
+  saSegmentWrapClass,
+} from "@/components/super-admin/sa-section";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { GlobalCatalogCategoriesPanel } from "@/components/super-admin/global-catalog-categories-panel";
 import { GlobalCatalogPacksPanel } from "@/components/super-admin/global-catalog-packs-panel";
@@ -14,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   applySaGlobalProductMargins,
   backfillSaGlobalProductImages,
@@ -75,6 +83,14 @@ function statusBadgeClass(status: string): string {
 }
 
 type Mode = "curate" | "promote" | "packs" | "categories" | "suppliers";
+
+const MODE_TABS: { value: Mode; label: string }[] = [
+  { value: "curate", label: "Curate" },
+  { value: "promote", label: "Promote" },
+  { value: "packs", label: "Packs" },
+  { value: "categories", label: "Categories" },
+  { value: "suppliers", label: "Suppliers" },
+];
 
 function promotedGlobalIds(result: SaPromoteResult | null): string[] {
   if (!result) return [];
@@ -851,7 +867,7 @@ export default function SuperAdminGlobalCatalogPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <SuperAdminPageHeader
         title="Global catalog"
         description="Curate regional retail templates and promote assortment + images from a flagship shop (defaults to Palmart)."
@@ -862,7 +878,7 @@ export default function SuperAdminGlobalCatalogPage() {
             </Label>
             <select
               id="sa-catalog-picker"
-              className="h-9 max-w-[16rem] rounded-md border border-border/70 bg-background px-2 text-sm"
+              className={`${saSelectClass} max-w-[16rem]`}
               value={catalogId}
               disabled={busy || catalogs.length === 0}
               onChange={(e) => setCatalogId(e.target.value)}
@@ -874,58 +890,6 @@ export default function SuperAdminGlobalCatalogPage() {
                 </option>
               ))}
             </select>
-            <div className="inline-flex rounded-lg border border-border/70 p-0.5">
-              <button
-                type="button"
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm",
-                  mode === "curate" ? "bg-primary/12 font-medium" : "text-muted-foreground",
-                )}
-                onClick={() => setMode("curate")}
-              >
-                Curate
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm",
-                  mode === "promote" ? "bg-primary/12 font-medium" : "text-muted-foreground",
-                )}
-                onClick={() => setMode("promote")}
-              >
-                Promote
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm",
-                  mode === "packs" ? "bg-primary/12 font-medium" : "text-muted-foreground",
-                )}
-                onClick={() => setMode("packs")}
-              >
-                Packs
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm",
-                  mode === "categories" ? "bg-primary/12 font-medium" : "text-muted-foreground",
-                )}
-                onClick={() => setMode("categories")}
-              >
-                Categories
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm",
-                  mode === "suppliers" ? "bg-primary/12 font-medium" : "text-muted-foreground",
-                )}
-                onClick={() => setMode("suppliers")}
-              >
-                Suppliers
-              </button>
-            </div>
             <Button variant="outline" size="sm" onClick={() => void reload()} disabled={busy}>
               <RefreshCw className="size-4" aria-hidden />
               Refresh
@@ -943,44 +907,76 @@ export default function SuperAdminGlobalCatalogPage() {
         }
       />
 
-      {loadError ? (
-        <div className="rounded-xl border border-destructive/25 bg-destructive/[0.04] px-4 py-3 text-sm text-destructive">
-          {loadError}
-        </div>
-      ) : null}
+      <div className={saSegmentWrapClass} role="group" aria-label="Catalog workspace">
+        {MODE_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            aria-pressed={mode === tab.value}
+            className={saSegmentButtonClass(mode === tab.value)}
+            onClick={() => setMode(tab.value)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
 
       {meta ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Stat label="Products" value={meta.productCount} />
-          <Stat label="Missing image" value={meta.missingImageCount} accent />
-          <Stat label="Published" value={meta.publishedCount} />
-          <Stat label="Draft" value={meta.draftCount} />
-          <Stat label="Archived" value={meta.archivedCount} />
-        </div>
+        <section className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm sm:grid-cols-3 lg:grid-cols-5">
+          <div className="border-b border-r border-border/60 px-4 py-3 sm:border-b lg:border-b-0">
+            <p className="text-xs text-muted-foreground">Products</p>
+            <p className="mt-1 font-heading text-xl font-semibold tabular-nums tracking-tight">
+              {meta.productCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="border-b border-border/60 px-4 py-3 sm:border-r lg:border-b-0">
+            <p className="text-xs text-muted-foreground">Missing image</p>
+            <p className="mt-1 font-heading text-xl font-semibold tabular-nums tracking-tight">
+              {meta.missingImageCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="border-b border-border/60 px-4 py-3 sm:border-b-0 sm:border-r lg:border-b-0">
+            <p className="text-xs text-muted-foreground">Published</p>
+            <p className="mt-1 font-heading text-xl font-semibold tabular-nums tracking-tight">
+              {meta.publishedCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="border-r border-border/60 px-4 py-3">
+            <p className="text-xs text-muted-foreground">Draft</p>
+            <p className="mt-1 font-heading text-xl font-semibold tabular-nums tracking-tight">
+              {meta.draftCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="px-4 py-3">
+            <p className="text-xs text-muted-foreground">Archived</p>
+            <p className="mt-1 font-heading text-xl font-semibold tabular-nums tracking-tight">
+              {meta.archivedCount.toLocaleString()}
+            </p>
+          </div>
+        </section>
       ) : null}
 
       {meta?.packs?.length ? (
-        <div className="rounded-2xl border border-border/70 bg-card/40 p-4">
-          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Starter pack imaging
-          </p>
-          <div className="grid gap-3 sm:grid-cols-3">
+        <SaSection title="Starter pack imaging" padded={false}>
+          <ul className="divide-y divide-border/60">
             {meta.packs.map((pack) => {
               const pct =
                 pack.productCount > 0
                   ? Math.round((pack.imagedProductCount / pack.productCount) * 100)
                   : 0;
               return (
-                <div key={pack.id} className="rounded-xl border border-border/60 px-3 py-2">
-                  <div className="truncate text-sm font-medium">{pack.name}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
+                <li key={pack.id} className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                  <p className="min-w-0 truncate font-medium">{pack.name}</p>
+                  <p className="shrink-0 text-sm text-muted-foreground tabular-nums">
                     {pack.imagedProductCount}/{pack.productCount} imaged ({pct}%)
-                  </div>
-                </div>
+                  </p>
+                </li>
               );
             })}
-          </div>
-        </div>
+          </ul>
+        </SaSection>
       ) : null}
 
       {mode === "promote" ? (
@@ -1105,49 +1101,15 @@ export default function SuperAdminGlobalCatalogPage() {
         />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
-          <section className="space-y-4">
-            <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/40 p-4 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <Label htmlFor="gc-q">Search</Label>
-                <Input
-                  id="gc-q"
-                  value={q}
-                  onChange={(e) => {
-                    setPage(0);
-                    setQ(e.target.value);
-                  }}
-                  placeholder="Name, brand, barcode…"
-                />
-              </div>
-              <div className="w-full space-y-1.5 sm:w-44">
-                <Label htmlFor="gc-status">Status</Label>
-                <select
-                  id="gc-status"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={status}
-                  onChange={(e) => {
-                    setPage(0);
-                    setStatus(e.target.value);
-                  }}
-                >
-                  {STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value || "all"} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <label className="flex h-10 items-center gap-2 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={missingImage}
-                  onChange={(e) => {
-                    setPage(0);
-                    setMissingImage(e.target.checked);
-                  }}
-                />
-                Missing image
-              </label>
+          <SaSection
+            title="Products"
+            description={
+              <>
+                <span className="font-medium text-foreground tabular-nums">{total.toLocaleString()}</span> in this
+                catalog
+              </>
+            }
+            actions={
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -1181,50 +1143,94 @@ export default function SuperAdminGlobalCatalogPage() {
                   }}
                 />
               </div>
-            </div>
-
-            <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/40 p-4 sm:flex-row sm:items-end">
-              <div className="w-full space-y-1.5 sm:w-28">
-                <Label htmlFor="gc-bulk-margin">Margin %</Label>
-                <Input
-                  id="gc-bulk-margin"
-                  inputMode="decimal"
-                  value={bulkMarginPct}
-                  onChange={(e) => setBulkMarginPct(e.target.value)}
-                  disabled={busy}
-                />
+            }
+            padded={false}
+          >
+            <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Label htmlFor="gc-q">Search</Label>
+                  <Input
+                    id="gc-q"
+                    value={q}
+                    onChange={(e) => {
+                      setPage(0);
+                      setQ(e.target.value);
+                    }}
+                    placeholder="Name, brand, barcode…"
+                  />
+                </div>
+                <div className="w-full space-y-1.5 sm:w-44">
+                  <Label htmlFor="gc-status">Status</Label>
+                  <select
+                    id="gc-status"
+                    className={saSelectClass}
+                    value={status}
+                    onChange={(e) => {
+                      setPage(0);
+                      setStatus(e.target.value);
+                    }}
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value || "all"} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex h-9 items-center gap-2 sm:pb-0">
+                  <Switch
+                    id="gc-missing-image"
+                    checked={missingImage}
+                    onCheckedChange={(checked) => {
+                      setPage(0);
+                      setMissingImage(checked);
+                    }}
+                  />
+                  <Label htmlFor="gc-missing-image">Missing image</Label>
+                </div>
               </div>
-              <div className="w-full space-y-1.5 sm:w-44">
-                <Label htmlFor="gc-bulk-mode">Derive</Label>
-                <select
-                  id="gc-bulk-mode"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={bulkMarginMode}
-                  disabled={busy}
-                  onChange={(e) =>
-                    setBulkMarginMode(e.target.value as "fromBuying" | "fromSelling")
-                  }
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="w-full space-y-1.5 sm:w-28">
+                  <Label htmlFor="gc-bulk-margin">Margin %</Label>
+                  <Input
+                    id="gc-bulk-margin"
+                    inputMode="decimal"
+                    value={bulkMarginPct}
+                    onChange={(e) => setBulkMarginPct(e.target.value)}
+                    disabled={busy}
+                  />
+                </div>
+                <div className="w-full space-y-1.5 sm:w-44">
+                  <Label htmlFor="gc-bulk-mode">Derive</Label>
+                  <select
+                    id="gc-bulk-mode"
+                    className={saSelectClass}
+                    value={bulkMarginMode}
+                    disabled={busy}
+                    onChange={(e) =>
+                      setBulkMarginMode(e.target.value as "fromBuying" | "fromSelling")
+                    }
+                  >
+                    <option value="fromBuying">Sell from buy</option>
+                    <option value="fromSelling">Buy from sell</option>
+                  </select>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy || products.length === 0}
+                  onClick={() => void onApplyMarginToVisible()}
                 >
-                  <option value="fromBuying">Sell from buy</option>
-                  <option value="fromSelling">Buy from sell</option>
-                </select>
+                  Apply to page ({products.length})
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={busy || products.length === 0}
-                onClick={() => void onApplyMarginToVisible()}
-              >
-                Apply to page ({products.length})
-              </Button>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-border/70">
-              <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-2 text-xs text-muted-foreground sm:px-5">
                 <span>
-                  {total.toLocaleString()} products
-                  {missingImage ? " · missing image filter on" : ""}
+                  {missingImage ? "Missing image filter on" : "All matching products"}
                 </span>
                 <span>
                   Page {page + 1} / {Math.max(1, Math.ceil(total / 40))}
@@ -1298,24 +1304,25 @@ export default function SuperAdminGlobalCatalogPage() {
                   Next
                 </Button>
               </div>
-            </div>
-          </section>
+          </SaSection>
 
-          <aside className="rounded-2xl border border-border/70 bg-card/50 p-4 lg:sticky lg:top-20 lg:self-start">
+          <div className="lg:sticky lg:top-20 lg:self-start">
+          <SaSection
+            title={selected?.name ?? "Product"}
+            description={
+              selected
+                ? `${selected.skuTemplate || "No SKU template"} · v${selected.version}`
+                : "Select a row to edit status, name, or image."
+            }
+          >
+
             {!selected ? (
-              <div className="flex flex-col items-center gap-2 py-16 text-center text-sm text-muted-foreground">
+              <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
                 <PackageSearch className="size-8 opacity-40" aria-hidden />
                 Select a product to edit status, name, or image.
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="space-y-1">
-                  <h2 className="font-heading text-lg font-semibold tracking-tight">{selected.name}</h2>
-                  <p className="text-xs text-muted-foreground">
-                    {selected.skuTemplate || "No SKU template"} · v{selected.version}
-                  </p>
-                </div>
-
                 <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20">
                   {selected.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -1366,7 +1373,7 @@ export default function SuperAdminGlobalCatalogPage() {
                   <Label htmlFor="gc-edit-status">Status</Label>
                   <select
                     id="gc-edit-status"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    className={saSelectClass}
                     value={statusDraft}
                     disabled={busy}
                     onChange={(e) => setStatusDraft(e.target.value)}
@@ -1425,7 +1432,8 @@ export default function SuperAdminGlobalCatalogPage() {
                 </div>
               </div>
             )}
-          </aside>
+          </SaSection>
+          </div>
         </div>
       )}
     </div>
@@ -1528,85 +1536,86 @@ function PromotePanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/40 p-4 lg:flex-row lg:items-end">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <Label htmlFor="promote-business">Source business</Label>
-          <select
-            id="promote-business"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            value={sourceBusinessId}
-            onChange={(e) => onBusinessChange(e.target.value)}
-          >
-            {businesses.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-                {b.preferred ? " (preferred)" : ""} — {b.slug}
-              </option>
-            ))}
-          </select>
+      <SaSection
+        title="Promote from shop"
+        description="Copy assortment and images from a flagship tenant into this catalog."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" disabled={busy || sourceItems.length === 0} onClick={onSelectAllVisible}>
+              Select loaded
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy || sourceTotal === 0 || allMatchingSelected}
+              onClick={onSelectAllMatching}
+            >
+              Select all matching
+              {clientFiltered
+                ? " (filtered)"
+                : sourceTotal > 0
+                  ? ` (${sourceTotal.toLocaleString()})`
+                  : ""}
+            </Button>
+            <Button variant="ghost" size="sm" disabled={selectedSourceIds.size === 0} onClick={onClearSelection}>
+              Clear
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Label htmlFor="promote-business">Source business</Label>
+              <select
+                id="promote-business"
+                className={saSelectClass}
+                value={sourceBusinessId}
+                onChange={(e) => onBusinessChange(e.target.value)}
+              >
+                {businesses.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                    {b.preferred ? " (preferred)" : ""} — {b.slug}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0 flex-[1.2] space-y-1.5">
+              <Label htmlFor="promote-q">Search source items</Label>
+              <Input
+                id="promote-q"
+                value={sourceQ}
+                onChange={(e) => onSourceQChange(e.target.value)}
+                placeholder="Name, SKU, barcode…"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-3">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="promote-hide-global"
+                checked={hideAlreadyInGlobal}
+                onCheckedChange={onHideAlreadyInGlobalChange}
+              />
+              <Label htmlFor="promote-hide-global">Hide items already in global</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="promote-images" checked={onlyWithImages} onCheckedChange={onOnlyWithImagesChange} />
+              <Label htmlFor="promote-images">Only with images</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="promote-barcode" checked={onlyWithBarcode} onCheckedChange={onOnlyWithBarcodeChange} />
+              <Label htmlFor="promote-barcode">Only with barcode</Label>
+            </div>
+          </div>
         </div>
-        <div className="min-w-0 flex-[1.2] space-y-1.5">
-          <Label htmlFor="promote-q">Search source items</Label>
-          <Input
-            id="promote-q"
-            value={sourceQ}
-            onChange={(e) => onSourceQChange(e.target.value)}
-            placeholder="Name, SKU, barcode…"
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" disabled={busy || sourceItems.length === 0} onClick={onSelectAllVisible}>
-            Select loaded
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={busy || sourceTotal === 0 || allMatchingSelected}
-            onClick={onSelectAllMatching}
-          >
-            Select all matching
-            {clientFiltered
-              ? " (filtered)"
-              : sourceTotal > 0
-                ? ` (${sourceTotal.toLocaleString()})`
-                : ""}
-          </Button>
-          <Button variant="ghost" size="sm" disabled={selectedSourceIds.size === 0} onClick={onClearSelection}>
-            Clear
-          </Button>
-        </div>
-      </div>
+      </SaSection>
 
-      <div className="flex flex-wrap items-center gap-4 px-1">
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={hideAlreadyInGlobal}
-            onChange={(e) => onHideAlreadyInGlobalChange(e.target.checked)}
-          />
-          Hide items already in global
-        </label>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={onlyWithImages}
-            onChange={(e) => onOnlyWithImagesChange(e.target.checked)}
-          />
-          Only with images
-        </label>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={onlyWithBarcode}
-            onChange={(e) => onOnlyWithBarcodeChange(e.target.checked)}
-          />
-          Only with barcode
-        </label>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-border/70">
-        <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
-          <span>
+      <SaSection
+        title="Source items"
+        description={
+          <>
             {hideAlreadyInGlobal ? "Not yet in global · " : ""}
             {onlyWithImages ? "With images · " : ""}
             {onlyWithBarcode ? "With barcode · " : ""}
@@ -1614,11 +1623,11 @@ function PromotePanel({
             {!clientFiltered ? ` of ${sourceTotal.toLocaleString()} source` : ""}
             {" · "}
             {selectedSourceIds.size.toLocaleString()} selected
-          </span>
-          <span>
-            {sourceHasMore ? "Scroll for more" : "End of list"}
-          </span>
-        </div>
+            {sourceHasMore ? " · scroll for more" : ""}
+          </>
+        }
+        padded={false}
+      >
         <div ref={listRef} className="max-h-[28rem] overflow-y-auto">
           <ul className="divide-y divide-border/60">
             {sourceItems.length === 0 && !sourceLoading ? (
@@ -1672,59 +1681,39 @@ function PromotePanel({
             </div>
           ) : null}
         </div>
-      </div>
+      </SaSection>
 
       {progress ? <PromoteProgressCard progress={progress} /> : null}
 
-      <div
-        className={cn(
-          "rounded-xl border px-3 py-3",
-          replaceCatalog
-            ? "border-destructive/40 bg-destructive/5"
-            : "border-border/70 bg-muted/20",
-        )}
-      >
-        <label className="flex items-start gap-2.5 text-sm">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-4 rounded border"
-            checked={replaceCatalog}
-            onChange={(e) => onReplaceCatalogChange(e.target.checked)}
-          />
-          <span>
-            <span
-              className={cn(
-                "font-medium",
-                replaceCatalog ? "text-destructive" : "text-foreground",
-              )}
-            >
-              Clear old catalog first
-            </span>
-            <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-              Archives every product and category currently in this catalog before
-              promoting, so the result matches the source shop (e.g. Palmart)
-              instead of mixing with the old seed. Recommended for a full replace.
-            </span>
-          </span>
-        </label>
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={promoteAsPublished}
-            onChange={(e) => onPromoteAsPublishedChange(e.target.checked)}
-          />
-          Publish immediately (trusted bulk)
-        </label>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={busy || selectedSourceIds.size === 0} variant="outline" onClick={onPreview}>
-            Preview
-          </Button>
-          <Button disabled={busy || selectedSourceIds.size === 0} onClick={onCommit}>
-            Promote {selectedSourceIds.size || ""} as {promoteAsPublished ? "published" : "drafts"}
-          </Button>
+      <SaSection title="Commit">
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <Label htmlFor="promote-replace" className={replaceCatalog ? "text-destructive" : undefined}>
+                Clear old catalog first
+              </Label>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                Archives every product and category currently in this catalog before promoting, so the result
+                matches the source shop instead of mixing with the old seed. Recommended for a full replace.
+              </p>
+            </div>
+            <Switch id="promote-replace" checked={replaceCatalog} onCheckedChange={onReplaceCatalogChange} />
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="promote-published"
+              checked={promoteAsPublished}
+              onCheckedChange={onPromoteAsPublishedChange}
+            />
+            <Label htmlFor="promote-published">Publish immediately (trusted bulk)</Label>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button disabled={busy || selectedSourceIds.size === 0} variant="outline" onClick={onPreview}>
+              Preview
+            </Button>
+            <Button disabled={busy || selectedSourceIds.size === 0} onClick={onCommit}>
+              Promote {selectedSourceIds.size || ""} as {promoteAsPublished ? "published" : "drafts"}
+            </Button>
           {publishableIds.length > 0 && !promoteAsPublished ? (
             <Button variant="secondary" disabled={busy} onClick={onPublishPromoted}>
               Publish {publishableIds.length} promoted drafts
@@ -1732,12 +1721,13 @@ function PromotePanel({
           ) : null}
         </div>
         {preview ? (
-          <span className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Last result: {preview.createdCount} created · {preview.updatedCount} updated ·{" "}
             {preview.skippedCount} skipped · {preview.imageRehostCount} images
-          </span>
+          </p>
         ) : null}
-      </div>
+        </div>
+      </SaSection>
     </div>
   );
 }
@@ -1822,26 +1812,3 @@ function estimatePromoteEta(processed: number, total: number, elapsedMs: number)
   return `~${minutes}m ${seconds.toString().padStart(2, "0")}s left`;
 }
 
-function Stat({
-  label,
-  value,
-  accent = false,
-}: {
-  label: string;
-  value: number;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-2xl border border-border/70 px-4 py-3",
-        accent ? "bg-amber-500/8" : "bg-card/40",
-      )}
-    >
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 font-heading text-2xl font-semibold tabular-nums tracking-tight">
-        {value.toLocaleString()}
-      </div>
-    </div>
-  );
-}

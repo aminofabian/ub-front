@@ -1924,12 +1924,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description No Content */
-            204: {
+            /** @description Email verified — session issued so the user can continue without signing in again */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": components["schemas"]["LoginResponse"];
+                };
             };
             /** @description Invalid or expired token */
             401: {

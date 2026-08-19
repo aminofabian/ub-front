@@ -10,6 +10,11 @@ export function isBuyerAccount(
   return (me?.role?.key ?? "").trim().toLowerCase() === BUYER_ROLE_KEY;
 }
 
+/** Placeholder inbox for phone-first shoppers — never show it as their identity. */
+export function isShopperPhoneEmail(email?: string | null): boolean {
+  return (email ?? "").trim().toLowerCase().endsWith("@phone.invalid");
+}
+
 /** Catalog storefront — default landing for shoppers and tenant owners. */
 export function buyerHomePath(): string {
   return APP_ROUTES.shop;

@@ -115,6 +115,7 @@ type DashboardContextValue = {
   canViewCategories: boolean;
   canManageCategories: boolean;
   canManageBusinessSettings: boolean;
+  canViewAuditLog: boolean;
   canViewPurchasingIntelligence: boolean;
   canPathBRead: boolean;
   canPathBWrite: boolean;
@@ -522,6 +523,10 @@ export function DashboardProvider({
       canManageBusinessSettings: hasPermission(
         effectiveMe?.permissions,
         Permission.BusinessManageSettings,
+      ),
+      canViewAuditLog: hasPermission(
+        effectiveMe?.permissions,
+        Permission.AuditRead,
       ),
       canViewPurchasingIntelligence: hasPermission(
         effectiveMe?.permissions,

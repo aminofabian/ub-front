@@ -1,6 +1,6 @@
 import { API_ROUTES, APP_ROUTES, apiUrl, getApiBaseUrl } from "@/lib/config";
 import { recordOpsClientError } from "@/lib/ops-client-log";
-import { extractPageContent } from "@/lib/page-content";
+import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
 import { getProblemTitle } from "@/lib/problem";
 import {
   clearSuperAdminSession,
@@ -1298,6 +1298,183 @@ export async function fetchSaBusinessUsers(
   return saRequest<SaBusinessUserRow[]>(
     `${API_ROUTES.superAdminBusinesses}/${businessId}/users`,
     { method: "GET" },
+  );
+}
+
+export type SaEmailRecipientRow = {
+  userId: string;
+  email: string;
+  name: string;
+  roleKey: string;
+  userStatus: string;
+  lastLoginAt: string | null;
+  businessId: string;
+  businessName: string;
+  slug: string;
+  onboardingStatus: string;
+  continueKind: "verify" | "hub" | string;
+  skipReason: string | null;
+};
+
+export type SaEmailCampaignSummary = {
+  id: string;
+  name: string;
+  segmentKey: string;
+  subject: string;
+  status: string;
+  recipientsTargeted: number;
+  recipientsSent: number;
+  recipientsFailed: number;
+  recipientsSkipped: number;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+};
+
+export type SaEmailCampaignRecipientRow = {
+  id: string;
+  businessId: string;
+  userId: string;
+  email: string;
+  continueKind: string;
+  status: string;
+  error: string | null;
+  sentAt: string | null;
+};
+
+export type SaEmailCampaignDetail = SaEmailCampaignSummary & {
+  bodyMarkdown: string;
+  ctaLabel: string;
+  recipients: SaEmailCampaignRecipientRow[];
+};
+
+export type SaEmailPreview = {
+  userId: string;
+  email: string;
+  subject: string;
+  html: string;
+  text: string;
+  continueUrl: string;
+  unknownTags: string[];
+};
+
+export type SaEmailAudienceQuery = {
+  segment: string;
+  businessIds?: string[];
+  userIds?: string[];
+  q?: string;
+};
+
+export type CreateSaEmailCampaignPayload = {
+  name: string;
+  segmentKey: string;
+  businessIds?: string[];
+  userIds?: string[];
+  subject: string;
+  bodyMarkdown: string;
+  ctaLabel?: string;
+};
+
+export async function fetchSaEmailRecipients(
+  query: SaEmailAudienceQuery,
+  page = 0,
+  size = 500,
+): Promise<{ rows: SaEmailRecipientRow[]; total: number }> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+    segment: query.segment,
+  });
+  if (query.q?.trim()) params.set("q", query.q.trim());
+  for (const id of query.businessIds ?? []) params.append("businessIds", id);
+  for (const id of query.userIds ?? []) params.append("userIds", id);
+  const payload = await saRequest<unknown>(
+    `${API_ROUTES.superAdminEmailRecipients}?${params.toString()}`,
+    { method: "GET" },
+  );
+  const rows = extractPageContent<SaEmailRecipientRow>(payload);
+  const meta = extractSpringPageMeta(payload);
+  return {
+    rows,
+    total: meta?.totalElements ?? rows.length,
+  };
+}
+
+export async function fetchSaEmailCampaigns(
+  page = 0,
+  size = 50,
+): Promise<{ rows: SaEmailCampaignSummary[]; total: number }> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+    sort: "createdAt,desc",
+  });
+  const payload = await saRequest<unknown>(
+    `${API_ROUTES.superAdminEmailCampaigns}?${params.toString()}`,
+    { method: "GET" },
+  );
+  const rows = extractPageContent<SaEmailCampaignSummary>(payload);
+  const meta = extractSpringPageMeta(payload);
+  return {
+    rows,
+    total: meta?.totalElements ?? rows.length,
+  };
+}
+
+export async function createSaEmailCampaign(
+  body: CreateSaEmailCampaignPayload,
+): Promise<SaEmailCampaignDetail> {
+  return saRequest<SaEmailCampaignDetail>(API_ROUTES.superAdminEmailCampaigns, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function previewSaEmailCampaign(
+  body: CreateSaEmailCampaignPayload & { userId?: string },
+): Promise<SaEmailPreview> {
+  return saRequest<SaEmailPreview>(`${API_ROUTES.superAdminEmailCampaigns}/preview`, {
+    method: "POST",
+    body: JSON.stringify({
+      segmentKey: body.segmentKey,
+      businessIds: body.businessIds,
+      userIds: body.userIds,
+      subject: body.subject,
+      bodyMarkdown: body.bodyMarkdown,
+      ctaLabel: body.ctaLabel,
+      userId: body.userId,
+    }),
+  });
+}
+
+export async function fetchSaEmailCampaign(
+  id: string,
+): Promise<SaEmailCampaignDetail> {
+  return saRequest<SaEmailCampaignDetail>(
+    `${API_ROUTES.superAdminEmailCampaigns}/${id}`,
+    { method: "GET" },
+  );
+}
+
+export async function sendSaEmailCampaign(
+  id: string,
+): Promise<SaEmailCampaignDetail> {
+  return saRequest<SaEmailCampaignDetail>(
+    `${API_ROUTES.superAdminEmailCampaigns}/${id}/send`,
+    { method: "POST" },
+  );
+}
+
+export async function previewSavedSaEmailCampaign(
+  id: string,
+  userId?: string,
+): Promise<SaEmailPreview> {
+  return saRequest<SaEmailPreview>(
+    `${API_ROUTES.superAdminEmailCampaigns}/${id}/preview`,
+    {
+      method: "POST",
+      body: JSON.stringify({ userId }),
+    },
   );
 }
 

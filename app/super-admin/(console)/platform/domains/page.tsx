@@ -1,15 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ClipboardList, CreditCard, Globe, KeyRound, Server } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { PlatformDomainOrdersPanel } from "@/components/super-admin/platform-domain-orders-panel";
+import { SaSection, SaToggleRow } from "@/components/super-admin/sa-section";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   fetchPlatformDomainSettings,
@@ -41,36 +42,6 @@ function textToDefaults(raw: string): Record<string, string> {
   return out;
 }
 
-function ToggleRow({
-  id,
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  description?: string;
-  checked: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <label htmlFor={id} className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-3">
-      <span className="min-w-0">
-        <span className="block text-sm font-medium">{label}</span>
-        {description ? <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span> : null}
-      </span>
-      <input
-        id={id}
-        type="checkbox"
-        className="mt-1 size-4 accent-primary"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-    </label>
-  );
-}
-
 function Field({
   id,
   label,
@@ -90,9 +61,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </label>
+      <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
         type={type}
@@ -329,20 +298,16 @@ export default function SuperAdminPlatformDomainsPage() {
           type="button"
           size="sm"
           variant={tab === "settings" ? "default" : "outline"}
-          className="gap-1.5 rounded-full"
           onClick={() => setTab("settings")}
         >
-          <KeyRound className="size-3.5" aria-hidden />
           Settings
         </Button>
         <Button
           type="button"
           size="sm"
           variant={tab === "orders" ? "default" : "outline"}
-          className="gap-1.5 rounded-full"
           onClick={() => setTab("orders")}
         >
-          <ClipboardList className="size-3.5" aria-hidden />
           Orders
         </Button>
       </div>
@@ -364,18 +329,16 @@ export default function SuperAdminPlatformDomainsPage() {
         <AuthAlert variant="error">{settings.secretsError}</AuthAlert>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Globe className="size-4" aria-hidden />
-            HostAfrica
-          </CardTitle>
-          <CardDescription>
+      <SaSection
+        title="HostAfrica"
+        description={
+          <>
             Registrar for .ke / .co.ke purchases. Domains are registered on the platform HostAfrica account.
             {settings?.envHostafricaConfigured ? " Env fallback is present." : ""}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </>
+        }
+      >
+        <div className="space-y-4">
           <Field
             id="ha-key"
             label="API key"
@@ -417,7 +380,7 @@ export default function SuperAdminPlatformDomainsPage() {
             onChange={setHostafricaKenyanTlds}
             hint="Used when a merchant searches a bare label like mama-njeri."
           />
-          <ToggleRow
+          <SaToggleRow
             id="ha-billing-stub"
             label="Billing stub (skip M-Pesa)"
             description="WARNING: when on, Buy skips STK entirely — no phone prompt, no money collected, order looks “paid.” Keep OFF in production. Requires Palmart M-Pesa credentials below when off."
@@ -425,12 +388,10 @@ export default function SuperAdminPlatformDomainsPage() {
             onChange={setHostafricaBillingStubEnabled}
           />
           <div className="space-y-1.5">
-            <label htmlFor="ha-registrant-defaults" className="text-sm font-medium">
-              Registrant required-data defaults
-            </label>
-            <textarea
+            <Label htmlFor="ha-registrant-defaults">Registrant required-data defaults</Label>
+            <Textarea
               id="ha-registrant-defaults"
-              className="min-h-[7rem] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+              className="min-h-[7rem] font-mono text-xs"
               spellCheck={false}
               placeholder={"# one field per line — HostAfrica additionalFields.name=value\nCompanyName=Palmart Limited\nRegistrantID=P051234567X"}
               value={hostafricaRegistrantDefaultsText}
@@ -442,24 +403,22 @@ export default function SuperAdminPlatformDomainsPage() {
               the HA panel.
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SaSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <KeyRound className="size-4" aria-hidden />
-            DomainsReseller (zero-touch register)
-          </CardTitle>
-          <CardDescription>
+      <SaSection
+        title="DomainsReseller (zero-touch register)"
+        description={
+          <>
             HMAC API for RegisterDomain on the platform HostAfrica account. When configured, paid orders register
             automatically — no ops register_url step.
             {settings?.hostafricaResellerConfigured
               ? " Ready."
               : " Incomplete — fill email, API key, and every required WHOIS field, then Save."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </>
+        }
+      >
+        <div className="space-y-4">
           {!settings?.hostafricaResellerConfigured ? (
             <ul className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-950 dark:text-amber-100">
               <li className="font-medium">Required before zero-touch register / Test:</li>
@@ -602,23 +561,21 @@ export default function SuperAdminPlatformDomainsPage() {
               </p>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SaSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CreditCard className="size-4" aria-hidden />
-            Palmart M-Pesa (domain checkout)
-          </CardTitle>
-          <CardDescription>
+      <SaSection
+        title="Palmart M-Pesa (domain checkout)"
+        description={
+          <>
             Platform KopoKopo till that receives Kenyan domain purchase payments. Turn billing stub off to require this.
             {settings?.hasPalmartStkCredentials
               ? ` Till ${settings.palmartStkTillNumber || "saved"} is configured.`
               : " Not configured yet — ops Mark paid remains the fallback."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </>
+        }
+      >
+        <div className="space-y-4">
           <Field
             id="stk-client-id"
             label="Client ID"
@@ -673,21 +630,19 @@ export default function SuperAdminPlatformDomainsPage() {
               Clear Palmart STK credentials
             </Button>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </SaSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Server className="size-4" aria-hidden />
-            Vercel
-          </CardTitle>
-          <CardDescription>
+      <SaSection
+        title="Vercel"
+        description={
+          <>
             DNS zone, records, project domains, and SSL for purchased / connected hostnames.
             {settings?.envVercelConfigured ? " Env fallback is present." : ""}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </>
+        }
+      >
+        <div className="space-y-4">
           <Field
             id="vercel-token"
             label="API token"
@@ -729,21 +684,15 @@ export default function SuperAdminPlatformDomainsPage() {
             onChange={setVercelApiBaseUrl}
             placeholder="https://api.vercel.com"
           />
-        </CardContent>
-      </Card>
+        </div>
+      </SaSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <KeyRound className="size-4" aria-hidden />
-            Order sync
-          </CardTitle>
-          <CardDescription>
-            Background poll advances registering → owned → provisioning → live. Requires HostAfrica + Vercel keys above.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <ToggleRow
+      <SaSection
+        title="Order sync"
+        description="Background poll advances registering → owned → provisioning → live. Requires HostAfrica + Vercel keys above."
+      >
+        <div className="space-y-4">
+          <SaToggleRow
             id="sync-enabled"
             label="Enable domain order sync"
             checked={domainOrderSyncEnabled}
@@ -761,8 +710,8 @@ export default function SuperAdminPlatformDomainsPage() {
             value={domainOrderSyncInitialDelayMs}
             onChange={setDomainOrderSyncInitialDelayMs}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </SaSection>
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" disabled={busy} onClick={() => void load()}>

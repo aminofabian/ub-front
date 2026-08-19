@@ -38,7 +38,38 @@ const COL = {
 };
 
 function escapePdfText(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  // Map common Unicode punctuation to WinAnsi (CP1252) codes, sanitize the
+  // rest to "?", then escape PDF string specials. The final blob is encoded
+  // as Latin-1 bytes, so every char here must fit in one byte.
+  let out = "";
+  for (const ch of value) {
+    const code = ch.charCodeAt(0);
+    if (code <= 0xff) {
+      out += ch;
+    } else {
+      switch (ch) {
+        case "’": out += String.fromCharCode(0x92); break;
+        case "‘": out += String.fromCharCode(0x91); break;
+        case "”": out += String.fromCharCode(0x94); break;
+        case "“": out += String.fromCharCode(0x93); break;
+        case "–": out += String.fromCharCode(0x96); break;
+        case "—": out += String.fromCharCode(0x97); break;
+        case "•": out += String.fromCharCode(0x95); break;
+        case "…": out += String.fromCharCode(0x85); break;
+        default: out += "?";
+      }
+    }
+  }
+  return out.replace(/\\/g, "\\\\").replace(/\(/g, "\\\(").replace(/\)/g, "\\\)");
+}
+
+/** Latin-1 byte encoding — every char ≤ 0xFF (see escapePdfText). */
+function latin1Encode(s: string): Uint8Array<ArrayBuffer> {
+  const out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i += 1) {
+    out[i] = s.charCodeAt(i) & 0xff;
+  }
+  return out;
 }
 
 function rgb([r, g, b]: Rgb): string {
@@ -298,7 +329,7 @@ function assemblePdf(contentStreams: string[]): Blob {
   pdf += `trailer<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
   pdf += `startxref\n${xrefStart}\n%%EOF`;
 
-  return new Blob([pdf], { type: "application/pdf" });
+  return new Blob([latin1Encode(pdf)], { type: "application/pdf" });
 }
 
 export function downloadBlob(blob: Blob, filename: string) {
@@ -322,21 +353,22 @@ export function normalizeWhatsAppPhone(phone: string | null | undefined): string
   return digits;
 }
 
-export function buildWhatsAppOrderUrl(opts: {
-  phone: string | null | undefined;
-  supplierName: string;
-  lines: MarketplaceOrderLine[];
-  filename: string;
-}): string | null {
-  const phone = normalizeWhatsAppPhone(opts.phone);
-  if (!phone) return null;
-
-  const currency =
-    opts.lines.find((l) => l.currency)?.currency?.trim() || "KES";
+/**
+ * Plain-text order list shared between the WhatsApp URL and clipboard copy.
+ */
+export function buildMarketplaceOrderText(
+  lines: MarketplaceOrderLine[],
+  opts: {
+    supplierName: string;
+    filename?: string;
+    catalogueUrl?: string;
+  },
+): string {
+  const currency = lines.find((l) => l.currency)?.currency?.trim() || "KES";
   let estimatedTotal = 0;
   let pricedCount = 0;
 
-  const itemLines = opts.lines
+  const itemLines = lines
     .map((line, index) => {
       const n = index + 1;
       const name = line.name.trim();
@@ -350,9 +382,9 @@ export function buildWhatsAppOrderUrl(opts: {
     })
     .join("\n");
 
-  const totalUnits = opts.lines.reduce((sum, l) => sum + l.qty, 0);
+  const totalUnits = lines.reduce((sum, l) => sum + l.qty, 0);
   const summaryParts = [
-    `${opts.lines.length} item${opts.lines.length === 1 ? "" : "s"}`,
+    `${lines.length} item${lines.length === 1 ? "" : "s"}`,
     `${totalUnits} unit${totalUnits === 1 ? "" : "s"}`,
   ];
   if (pricedCount > 0) {
@@ -367,11 +399,29 @@ export function buildWhatsAppOrderUrl(opts: {
     itemLines,
     "",
     `Total: ${summaryParts.join(" · ")}`,
-    "",
-    `PDF: ${opts.filename}`,
-    "",
-    "Please confirm availability and pricing. Thank you.",
-  ].join("\n");
+  ];
+  if (opts.filename) text.push("", `PDF: ${opts.filename}`);
+  if (opts.catalogueUrl) text.push("", `Catalogue: ${opts.catalogueUrl}`);
+  text.push("", "Please confirm availability and pricing. Thank you.");
+
+  return text.join("\n");
+}
+
+export function buildWhatsAppOrderUrl(opts: {
+  phone: string | null | undefined;
+  supplierName: string;
+  lines: MarketplaceOrderLine[];
+  filename?: string;
+  catalogueUrl?: string;
+}): string | null {
+  const phone = normalizeWhatsAppPhone(opts.phone);
+  if (!phone) return null;
+
+  const text = buildMarketplaceOrderText(opts.lines, {
+    supplierName: opts.supplierName,
+    filename: opts.filename,
+    catalogueUrl: opts.catalogueUrl,
+  });
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }

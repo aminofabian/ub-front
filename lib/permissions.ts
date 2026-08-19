@@ -2,6 +2,8 @@ export const Permission = {
   /** CSV / legacy JSON imports under Integrations (Phase 8). */
   IntegrationsImportsManage: "integrations.imports.manage",
   BusinessManageSettings: "business.manage_settings",
+  /** View the unified activity / audit log portal. */
+  AuditRead: "audit.read",
   UsersList: "users.list",
   UsersCreate: "users.create",
   UsersUpdate: "users.update",

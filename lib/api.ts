@@ -2383,8 +2383,16 @@ export async function sendShopperPhoneCode(
 export async function verifyShopperPhoneCode(
   phone: string,
   code: string,
-): Promise<{ phoneVerificationToken: string }> {
-  return request<{ phoneVerificationToken: string }>(
+): Promise<{
+  phoneVerificationToken: string;
+  hasPin: boolean;
+  customerName?: string | null;
+}> {
+  return request<{
+    phoneVerificationToken: string;
+    hasPin: boolean;
+    customerName?: string | null;
+  }>(
     "/api/v1/public/shopper/auth/verify-code",
     {
       method: "POST",
@@ -2392,6 +2400,41 @@ export async function verifyShopperPhoneCode(
       requiresAuth: false,
     },
   );
+}
+
+export async function completeShopperPhoneSession(params: {
+  phone: string;
+  phoneVerificationToken: string;
+  pin: string;
+  confirmPin?: string;
+  name?: string;
+}): Promise<{ tabPhone: string; unlockToken?: string | null; pinCreated: boolean }> {
+  const payload = await request<{
+    accessToken?: string;
+    refreshToken?: string;
+    session?: { exp?: number; businessId?: string; sub?: string };
+    tabPhone: string;
+    unlockToken?: string | null;
+    pinCreated: boolean;
+  }>("/api/v1/public/shopper/auth/session", {
+    method: "POST",
+    body: {
+      phone: params.phone,
+      phoneVerificationToken: params.phoneVerificationToken,
+      pin: params.pin,
+      confirmPin: params.confirmPin,
+      name: params.name,
+    },
+    requiresAuth: false,
+  });
+  if (!applyAuthSessionPayload(payload)) {
+    throw new ApiRequestError("Sign-in failed: no session returned.", 502, payload);
+  }
+  return {
+    tabPhone: payload.tabPhone,
+    unlockToken: payload.unlockToken,
+    pinCreated: payload.pinCreated,
+  };
 }
 
 export async function linkShopperPhone(
@@ -3425,6 +3468,151 @@ export async function fetchItems(
     size: 100,
   });
   return page.content;
+}
+
+/** Unified activity / audit log — mirrors backend `AuditEventResponse`. */
+export type AuditEventCategory =
+  | "SECURITY"
+  | "STAFF"
+  | "SALES"
+  | "CASH_DRAWER"
+  | "INVENTORY"
+  | "ORDERS"
+  | "CUSTOMERS"
+  | "PRODUCTS"
+  | "SUPPLIERS"
+  | "SYSTEM";
+
+export type AuditEventSeverity = "DEBUG" | "INFO" | "WARN" | "ERROR" | "CRITICAL";
+
+export type AuditEventActorType =
+  | "USER"
+  | "API_KEY"
+  | "SYSTEM"
+  | "SCHEDULER"
+  | "ANONYMOUS";
+
+export type AuditEventRecord = {
+  id: string;
+  businessId: string;
+  branchId: string | null;
+  category: AuditEventCategory;
+  eventType: string;
+  severity: AuditEventSeverity;
+  actorId: string | null;
+  actorType: AuditEventActorType;
+  actorName: string | null;
+  targetType: string | null;
+  targetId: string | null;
+  targetLabel: string | null;
+  sessionId: string | null;
+  correlationId: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  source: string | null;
+  terminalId: string | null;
+  shiftId: string | null;
+  /** JSON-encoded strings from the API — parse before rendering. */
+  oldState: string | null;
+  newState: string | null;
+  diff: string | null;
+  reason: string | null;
+  metadata: string | null;
+  createdAt: string;
+};
+
+export type AuditEventFilters = {
+  branchId?: string | null;
+  category?: AuditEventCategory | null;
+  eventType?: string | null;
+  severity?: AuditEventSeverity | null;
+  /** Inclusive lower bound — WARN surfaces WARN/ERROR/CRITICAL (failures view). */
+  minSeverity?: AuditEventSeverity | null;
+  /** ISO instant. */
+  from?: string | null;
+  to?: string | null;
+  page?: number;
+  size?: number;
+};
+
+export type AuditEventSummary = {
+  total: number;
+  bySeverity: Partial<Record<AuditEventSeverity, number>>;
+  byCategory: Partial<Record<AuditEventCategory, number>>;
+};
+
+function auditEventParams(
+  filters: AuditEventFilters,
+  pageable: boolean,
+): URLSearchParams {
+  const params = new URLSearchParams();
+  if (pageable) {
+    params.set("page", String(filters.page ?? 0));
+    params.set("size", String(filters.size ?? 50));
+  }
+  if (filters.branchId?.trim()) {
+    params.set("branchId", filters.branchId.trim());
+  }
+  if (filters.category) {
+    params.set("category", filters.category);
+  }
+  if (filters.eventType?.trim()) {
+    params.set("eventType", filters.eventType.trim());
+  }
+  if (filters.severity) {
+    params.set("severity", filters.severity);
+  }
+  if (filters.minSeverity) {
+    params.set("minSeverity", filters.minSeverity);
+  }
+  if (filters.from) {
+    params.set("from", filters.from);
+  }
+  if (filters.to) {
+    params.set("to", filters.to);
+  }
+  return params;
+}
+
+export async function fetchAuditEvents(
+  filters: AuditEventFilters = {},
+): Promise<ItemsPageResult<AuditEventRecord>> {
+  const raw = await request<unknown>(
+    `${API_ROUTES.auditEvents}?${auditEventParams(filters, true).toString()}`,
+  );
+  const content = extractPageContent<AuditEventRecord>(raw);
+  const meta = extractSpringPageMeta(raw);
+  if (!meta) {
+    return {
+      content,
+      totalElements: content.length,
+      totalPages: content.length > 0 ? 1 : 0,
+      number: 0,
+      size: content.length,
+      last: true,
+      first: true,
+    };
+  }
+  return { content, ...meta };
+}
+
+/** Period totals for the activity-log header cards (ignores page/size). */
+export async function fetchAuditEventSummary(
+  filters: Omit<AuditEventFilters, "page" | "size"> = {},
+): Promise<AuditEventSummary> {
+  const raw = await request<unknown>(
+    `${API_ROUTES.auditEvents}/summary?${auditEventParams(filters, false).toString()}`,
+  );
+  const record = (raw ?? {}) as Record<string, unknown>;
+  return {
+    total: Number(record.total ?? 0),
+    bySeverity: (record.bySeverity ?? {}) as Partial<
+      Record<AuditEventSeverity, number>
+    >,
+    byCategory: (record.byCategory ?? {}) as Partial<
+      Record<AuditEventCategory, number>
+    >,
+  };
 }
 
 export async function fetchItemById(

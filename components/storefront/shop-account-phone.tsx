@@ -79,7 +79,7 @@ export function ShopAccountPhone({ linkedPhone, accountPhone, onLinked }: Props)
       setCode("");
       onLinked(overview);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not link this number.");
+      setError(e instanceof Error ? e.message : "Could not verify this number.");
     } finally {
       setBusy(false);
     }
@@ -94,10 +94,10 @@ export function ShopAccountPhone({ linkedPhone, accountPhone, onLinked }: Props)
           {linked ? (
             <span className={styles.stampOk}>
               <Check className="size-3.5" aria-hidden />
-              Linked to this shop
+              This shop
             </span>
           ) : (
-            <span>Saved on your account — verify to pull till receipts.</span>
+            <span>Verify to pull till receipts onto this visit.</span>
           )}
         </p>
         <div className={styles.stampActions}>
@@ -125,10 +125,10 @@ export function ShopAccountPhone({ linkedPhone, accountPhone, onLinked }: Props)
 
   return (
     <div className={styles.stamp}>
-      <h2 className={styles.linkLead}>Link your number</h2>
+      <h2 className={styles.linkLead}>Your number</h2>
       <p className={styles.linkCopy}>
-        We send a 4-digit code by SMS or WhatsApp. Linking pulls in-store receipts, wallet, and your
-        tab onto this account.
+        We send a 4-digit code. After that, this phone is how you sign in — tab, wallet, and
+        receipts included.
       </p>
 
       {step === "phone" ? (
@@ -182,7 +182,7 @@ export function ShopAccountPhone({ linkedPhone, accountPhone, onLinked }: Props)
               />
             </label>
             <button type="submit" disabled={busy} className={styles.ctaAccent}>
-              {busy ? "Linking…" : "Confirm & link"}
+              {busy ? "Checking…" : "Confirm"}
             </button>
           </div>
           <button

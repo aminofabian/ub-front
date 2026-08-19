@@ -35,7 +35,7 @@ import {
   type ShopperPickupOrderRow,
   type ShopperTillPurchase,
 } from "@/lib/api";
-import { isBuyerAccount } from "@/lib/buyer-role";
+import { isBuyerAccount, isShopperPhoneEmail } from "@/lib/buyer-role";
 import { APP_ROUTES } from "@/lib/config";
 import { formatLoyaltyMemberId, loyaltyCardTierLabel } from "@/lib/loyalty-card";
 import { cn } from "@/lib/utils";
@@ -131,7 +131,6 @@ export function ShopAccountHub({ me }: HubProps) {
 
   const currency = biz?.currency?.trim() || "USD";
   const hello = greeting();
-  const memberId = formatLoyaltyMemberId(me.id);
   const tier = loyaltyCardTierLabel(data?.balances?.loyaltyPoints);
 
   const loadPage = useCallback(
@@ -225,6 +224,8 @@ export function ShopAccountHub({ me }: HubProps) {
   const displayName = data?.customerDirectoryName?.trim() || me.name;
   const linkedPhone = data?.tabPhone?.trim() || "";
   const tabOwed = toNum(data?.balances?.balanceOwed);
+  const memberId = formatLoyaltyMemberId(linkedPhone || me.id);
+  const identityLine = isShopperPhoneEmail(me.email) ? null : me.email;
 
   return (
     <div className={styles.page}>
@@ -239,7 +240,7 @@ export function ShopAccountHub({ me }: HubProps) {
           <h1 className={styles.hello}>
             {hello}, {firstName(displayName)}
           </h1>
-          <p className={styles.email}>{me.email}</p>
+          {identityLine ? <p className={styles.email}>{identityLine}</p> : null}
           <p className={styles.memberIdOnGreen}>
             {tier} · {memberId}
           </p>
@@ -284,7 +285,7 @@ export function ShopAccountHub({ me }: HubProps) {
                     ? "Owed at the till"
                     : data.linkedStorefrontProfile
                       ? "Clear"
-                      : "Links with your number"}
+                      : "Add your number"}
                 </span>
               </dd>
             </div>
@@ -350,7 +351,7 @@ export function ShopAccountHub({ me }: HubProps) {
                 <h3>No purchases yet</h3>
                 <p>
                   {filter === "till" && !data.linkedStorefrontProfile
-                    ? "Link your number so till receipts from this shop can find you."
+                    ? "Add your Kenyan mobile so till receipts from this shop can find you."
                     : "When you check out online or pay at the till, the slip lands here."}
                 </p>
                 <Link href={SHOP_FLOOR_HREF} className={styles.ctaAccent}>

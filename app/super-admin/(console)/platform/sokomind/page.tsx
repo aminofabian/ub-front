@@ -1,47 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Brain, Eye, KeyRound, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { SaSection, SaToggleRow, saSelectClass } from "@/components/super-admin/sa-section";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   fetchSokoMindSettings,
   updateSokoMindSettings,
   type SokoMindSettingsRecord,
 } from "@/lib/super-admin-api";
 
-function ToggleRow({
+function Field({
   id,
   label,
-  description,
-  checked,
-  onChange,
+  children,
 }: {
-  id: string;
+  id?: string;
   label: string;
-  description?: string;
-  checked: boolean;
-  onChange: (next: boolean) => void;
+  children: ReactNode;
 }) {
   return (
-    <label htmlFor={id} className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-3">
-      <span className="min-w-0">
-        <span className="block text-sm font-medium">{label}</span>
-        {description ? <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span> : null}
-      </span>
-      <input
-        id={id}
-        type="checkbox"
-        className="mt-1 size-4 accent-primary"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-    </label>
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      {children}
+    </div>
   );
 }
 
@@ -225,43 +213,40 @@ export default function SuperAdminSokoMindSettingsPage() {
       ) : null}
 
       <form onSubmit={onSave} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="size-4" aria-hidden />
-              Faces &amp; master switch
-            </CardTitle>
-            <CardDescription>
-              Master off disables all SokoMind traffic. Face toggles gate Guide / Brain / Eye skills.
-              Env fallbacks:{" "}
-              <code className="text-xs">SOKOMIND_ENABLED</code>,{" "}
-              <code className="text-xs">OPENAI_API_KEY</code>,{" "}
-              <code className="text-xs">ANTHROPIC_API_KEY</code>.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <ToggleRow
+        <SaSection
+          title="Faces & master switch"
+          description={
+            <>
+              Master off disables all SokoMind traffic. Face toggles gate Guide / Brain / Eye. Env fallbacks:{" "}
+              <code className="rounded bg-muted px-1 font-mono text-xs">SOKOMIND_ENABLED</code>,{" "}
+              <code className="rounded bg-muted px-1 font-mono text-xs">OPENAI_API_KEY</code>,{" "}
+              <code className="rounded bg-muted px-1 font-mono text-xs">ANTHROPIC_API_KEY</code>.
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <SaToggleRow
               id="sokomind-enabled"
               label="Enable SokoMind"
               description="Platform-wide kill switch. Off = no LLM calls from the gateway."
               checked={sokomindEnabled}
               onChange={setSokomindEnabled}
             />
-            <ToggleRow
+            <SaToggleRow
               id="guide-enabled"
               label="Guide"
               description="Contextual help, page explain, message drafts, error translator."
               checked={guideEnabled}
               onChange={setGuideEnabled}
             />
-            <ToggleRow
+            <SaToggleRow
               id="brain-enabled"
               label="Brain"
               description="Industry twins, Price Radar, NL analytics, restock recommendations."
               checked={brainEnabled}
               onChange={setBrainEnabled}
             />
-            <ToggleRow
+            <SaToggleRow
               id="eye-enabled"
               label="Eye"
               description="Photo → product, invoice OCR, Cloudinary AI transforms."
@@ -269,10 +254,10 @@ export default function SuperAdminSokoMindSettingsPage() {
               onChange={setEyeEnabled}
             />
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Primary provider</span>
+              <Field label="Primary provider" id="sa-soko-provider">
                 <select
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  id="sa-soko-provider"
+                  className={saSelectClass}
                   value={primaryProvider}
                   onChange={(e) => setPrimaryProvider(e.target.value)}
                 >
@@ -281,38 +266,36 @@ export default function SuperAdminSokoMindSettingsPage() {
                   <option value="deepseek">DeepSeek (direct)</option>
                   <option value="rapidapi_deepseek">DeepSeek via RapidAPI</option>
                 </select>
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Default locale</span>
+              </Field>
+              <Field label="Default locale" id="sa-soko-locale">
                 <select
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  id="sa-soko-locale"
+                  className={saSelectClass}
                   value={defaultLocale}
                   onChange={(e) => setDefaultLocale(e.target.value)}
                 >
                   <option value="en-KE">English (Kenya)</option>
                   <option value="sw-KE">Swahili (Kenya)</option>
                 </select>
-              </label>
+              </Field>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SaSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <KeyRound className="size-4" aria-hidden />
-              OpenAI
-            </CardTitle>
-            <CardDescription>
+        <SaSection
+          title="OpenAI"
+          description={
+            <>
               Stored key: {settings?.hasOpenaiApiKey ? "yes" : "no"}
               {settings?.envOpenaiConfigured ? " · env fallback configured" : ""}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <label className="space-y-1.5 text-sm">
-              <span className="font-medium">API key</span>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <Field label="API key" id="sa-openai-key">
               <div className="flex gap-2">
                 <Input
+                  id="sa-openai-key"
                   type="password"
                   autoComplete="off"
                   placeholder={
@@ -332,54 +315,43 @@ export default function SuperAdminSokoMindSettingsPage() {
                   </Button>
                 ) : null}
               </div>
-            </label>
-            <label className="space-y-1.5 text-sm">
-              <span className="font-medium">Base URL (optional)</span>
+            </Field>
+            <Field label="Base URL (optional)" id="sa-openai-base">
               <Input
+                id="sa-openai-base"
                 value={openaiBaseUrl}
                 onChange={(e) => setOpenaiBaseUrl(e.target.value)}
                 placeholder="https://api.openai.com/v1"
               />
-            </label>
+            </Field>
             <div className="grid gap-3 sm:grid-cols-3">
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Mini model</span>
-                <Input value={openaiMiniModel} onChange={(e) => setOpenaiMiniModel(e.target.value)} />
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Smart model</span>
-                <Input
-                  value={openaiSmartModel}
-                  onChange={(e) => setOpenaiSmartModel(e.target.value)}
-                />
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Vision model</span>
-                <Input
-                  value={openaiVisionModel}
-                  onChange={(e) => setOpenaiVisionModel(e.target.value)}
-                />
-              </label>
+              <Field label="Mini model" id="sa-openai-mini">
+                <Input id="sa-openai-mini" value={openaiMiniModel} onChange={(e) => setOpenaiMiniModel(e.target.value)} />
+              </Field>
+              <Field label="Smart model" id="sa-openai-smart">
+                <Input id="sa-openai-smart" value={openaiSmartModel} onChange={(e) => setOpenaiSmartModel(e.target.value)} />
+              </Field>
+              <Field label="Vision model" id="sa-openai-vision">
+                <Input id="sa-openai-vision" value={openaiVisionModel} onChange={(e) => setOpenaiVisionModel(e.target.value)} />
+              </Field>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SaSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Brain className="size-4" aria-hidden />
-              Anthropic
-            </CardTitle>
-            <CardDescription>
+        <SaSection
+          title="Anthropic"
+          description={
+            <>
               Stored key: {settings?.hasAnthropicApiKey ? "yes" : "no"}
               {settings?.envAnthropicConfigured ? " · env fallback configured" : ""}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <label className="space-y-1.5 text-sm">
-              <span className="font-medium">API key</span>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <Field label="API key" id="sa-anthropic-key">
               <div className="flex gap-2">
                 <Input
+                  id="sa-anthropic-key"
                   type="password"
                   autoComplete="off"
                   placeholder={
@@ -399,51 +371,41 @@ export default function SuperAdminSokoMindSettingsPage() {
                   </Button>
                 ) : null}
               </div>
-            </label>
-            <label className="space-y-1.5 text-sm">
-              <span className="font-medium">Base URL (optional)</span>
+            </Field>
+            <Field label="Base URL (optional)" id="sa-anthropic-base">
               <Input
+                id="sa-anthropic-base"
                 value={anthropicBaseUrl}
                 onChange={(e) => setAnthropicBaseUrl(e.target.value)}
                 placeholder="https://api.anthropic.com"
               />
-            </label>
+            </Field>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Mini model</span>
-                <Input
-                  value={anthropicMiniModel}
-                  onChange={(e) => setAnthropicMiniModel(e.target.value)}
-                />
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Smart model</span>
-                <Input
-                  value={anthropicSmartModel}
-                  onChange={(e) => setAnthropicSmartModel(e.target.value)}
-                />
-              </label>
+              <Field label="Mini model" id="sa-anthropic-mini">
+                <Input id="sa-anthropic-mini" value={anthropicMiniModel} onChange={(e) => setAnthropicMiniModel(e.target.value)} />
+              </Field>
+              <Field label="Smart model" id="sa-anthropic-smart">
+                <Input id="sa-anthropic-smart" value={anthropicSmartModel} onChange={(e) => setAnthropicSmartModel(e.target.value)} />
+              </Field>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SaSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Eye className="size-4" aria-hidden />
-              DeepSeek
-            </CardTitle>
-            <CardDescription>
+        <SaSection
+          title="DeepSeek"
+          description={
+            <>
               Stored key: {settings?.hasDeepseekApiKey ? "yes" : "no"}
               {settings?.envDeepseekConfigured ? " · env fallback configured" : ""}
               . Separate from catalog DeepSeek under Integrations (product descriptions).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <label className="space-y-1.5 text-sm">
-              <span className="font-medium">API key</span>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <Field label="API key" id="sa-deepseek-key">
               <div className="flex gap-2">
                 <Input
+                  id="sa-deepseek-key"
                   type="password"
                   autoComplete="off"
                   placeholder={
@@ -463,33 +425,27 @@ export default function SuperAdminSokoMindSettingsPage() {
                   </Button>
                 ) : null}
               </div>
-            </label>
+            </Field>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Base URL</span>
-                <Input value={deepseekBaseUrl} onChange={(e) => setDeepseekBaseUrl(e.target.value)} />
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Host (RapidAPI header)</span>
-                <Input value={deepseekHost} onChange={(e) => setDeepseekHost(e.target.value)} />
-              </label>
+              <Field label="Base URL" id="sa-deepseek-base">
+                <Input id="sa-deepseek-base" value={deepseekBaseUrl} onChange={(e) => setDeepseekBaseUrl(e.target.value)} />
+              </Field>
+              <Field label="Host (RapidAPI header)" id="sa-deepseek-host">
+                <Input id="sa-deepseek-host" value={deepseekHost} onChange={(e) => setDeepseekHost(e.target.value)} />
+              </Field>
             </div>
-            <label className="space-y-1.5 text-sm">
-              <span className="font-medium">Model</span>
-              <Input value={deepseekModel} onChange={(e) => setDeepseekModel(e.target.value)} />
-            </label>
-          </CardContent>
-        </Card>
+            <Field label="Model" id="sa-deepseek-model">
+              <Input id="sa-deepseek-model" value={deepseekModel} onChange={(e) => setDeepseekModel(e.target.value)} />
+            </Field>
+          </div>
+        </SaSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Guardrails</CardTitle>
-            <CardDescription>
-              Cost and privacy controls for Brain industry compare and tool-calling loops.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <ToggleRow
+        <SaSection
+          title="Guardrails"
+          description="Cost and privacy controls for Brain industry compare and tool-calling loops."
+        >
+          <div className="space-y-3">
+            <SaToggleRow
               id="industry-compare"
               label="Industry compare (twins)"
               description="Anonymized benchmarks across similar shops. Requires k-anonymity below."
@@ -497,48 +453,48 @@ export default function SuperAdminSokoMindSettingsPage() {
               onChange={setIndustryCompareEnabled}
             />
             <div className="grid gap-3 sm:grid-cols-3">
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Min twins (k-anonymity)</span>
+              <Field label="Min twins (k-anonymity)" id="sa-min-twins">
                 <Input
+                  id="sa-min-twins"
                   type="number"
                   min={2}
                   max={100}
                   value={industryCompareMinTwins}
                   onChange={(e) => setIndustryCompareMinTwins(Number(e.target.value) || 8)}
                 />
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Daily token budget / tenant</span>
+              </Field>
+              <Field label="Daily token budget / tenant" id="sa-token-budget">
                 <Input
+                  id="sa-token-budget"
                   type="number"
                   min={0}
                   placeholder="Unlimited"
                   value={dailyTokenBudgetPerTenant}
                   onChange={(e) => setDailyTokenBudgetPerTenant(e.target.value)}
                 />
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium">Max tool calls / request</span>
+              </Field>
+              <Field label="Max tool calls / request" id="sa-max-tools">
                 <Input
+                  id="sa-max-tools"
                   type="number"
                   min={1}
                   max={32}
                   value={maxToolCallsPerRequest}
                   onChange={(e) => setMaxToolCallsPerRequest(Number(e.target.value) || 8)}
                 />
-              </label>
+              </Field>
             </div>
-            <label className="space-y-1.5 text-sm">
-              <span className="font-medium">Extra system prompt (optional)</span>
-              <textarea
-                className="min-h-[88px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+            <Field label="Extra system prompt (optional)" id="sa-system-prompt">
+              <Textarea
+                id="sa-system-prompt"
+                className="min-h-[88px]"
                 value={systemPromptExtra}
                 onChange={(e) => setSystemPromptExtra(e.target.value)}
                 placeholder="Platform-wide tone or policy notes appended to every skill…"
               />
-            </label>
-          </CardContent>
-        </Card>
+            </Field>
+          </div>
+        </SaSection>
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" disabled={busy} onClick={() => void load()}>

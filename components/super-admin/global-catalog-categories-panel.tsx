@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { SaSection, saSelectClass } from "@/components/super-admin/sa-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { flattenGlobalCategoriesForNav } from "@/lib/global-catalog-category-nav";
 import {
   createSaGlobalCategory,
@@ -135,15 +137,16 @@ export function GlobalCatalogCategoriesPanel({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]">
-      <section className="overflow-hidden rounded-2xl border border-border/70">
-        <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Categories ({rows.length})
-          </span>
+      <SaSection
+        title="Categories"
+        description={`${rows.length} in this catalog`}
+        actions={
           <Button size="sm" variant="outline" disabled={busy} onClick={beginCreate}>
             New category
           </Button>
-        </div>
+        }
+        padded={false}
+      >
         <ul className="max-h-[32rem] divide-y divide-border/60 overflow-y-auto">
           {treeRows.map((row) => (
             <li key={row.id}>
@@ -159,18 +162,15 @@ export function GlobalCatalogCategoriesPanel({
             </li>
           ))}
         </ul>
-      </section>
+      </SaSection>
 
-      <aside className="rounded-2xl border border-border/70 bg-card/50 p-4">
+      <SaSection title={creating ? "New category" : selected ? "Edit category" : "Category"}>
         {!creating && !selected ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
             Select a category or create a new one.
           </p>
         ) : (
           <div className="space-y-3">
-            <h2 className="font-heading text-lg font-semibold tracking-tight">
-              {creating ? "New category" : "Edit category"}
-            </h2>
             <div className="space-y-1.5">
               <Label htmlFor="cat-name">Name</Label>
               <Input id="cat-name" value={name} onChange={(e) => setName(e.target.value)} disabled={busy} />
@@ -198,7 +198,7 @@ export function GlobalCatalogCategoriesPanel({
               <Label htmlFor="cat-parent">Parent</Label>
               <select
                 id="cat-parent"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className={saSelectClass}
                 value={parentId}
                 disabled={busy}
                 onChange={(e) => setParentId(e.target.value)}
@@ -224,21 +224,16 @@ export function GlobalCatalogCategoriesPanel({
                 disabled={busy}
               />
             </div>
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={active}
-                disabled={busy}
-                onChange={(e) => setActive(e.target.checked)}
-              />
-              Active
-            </label>
+            <div className="flex items-center gap-2">
+              <Switch id="cat-active" checked={active} disabled={busy} onCheckedChange={setActive} />
+              <Label htmlFor="cat-active">Active</Label>
+            </div>
             <Button disabled={busy || !name.trim()} onClick={() => void onSave()}>
               {creating ? "Create" : "Save"}
             </Button>
           </div>
         )}
-      </aside>
+      </SaSection>
     </div>
   );
 }
@@ -266,7 +261,7 @@ function CategoryRow({
       <span className="min-w-0 flex-1 truncate font-medium">{row.name}</span>
       <span className="shrink-0 text-xs text-muted-foreground">{row.slug}</span>
       {!row.active ? (
-        <span className="shrink-0 text-[10px] uppercase text-muted-foreground">inactive</span>
+        <span className="shrink-0 text-xs text-muted-foreground">Inactive</span>
       ) : null}
     </button>
   );

@@ -63,12 +63,11 @@ import {
   OrderPaymentStatusBanner,
   OrderPaymentSummaryCard,
 } from "@/components/storefront/shop-order-confirmation-ui";
+import { ShopCheckoutPhoneModal } from "@/components/storefront/shop-checkout-phone-modal";
 import {
   dismissCheckoutSignupPrompt,
   isCheckoutSignupDismissed,
-  ShopCheckoutSignupModal,
 } from "@/components/storefront/shop-checkout-signup-modal";
-import { ShopCheckoutLoginModal } from "@/components/storefront/shop-checkout-login-modal";
 import { ShopCheckoutDeliveryEditModal } from "@/components/storefront/shop-checkout-delivery-edit-modal";
 import { ShopCheckoutReviewPanel } from "@/components/storefront/shop-checkout-review-panel";
 import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
@@ -78,12 +77,12 @@ import { Button } from "@/components/ui/button";
 import {
   fetchShopperAccountOverview,
   fetchShopperPickupOrderDetail,
-  lookupAuthEmail,
 } from "@/lib/api";
 import { useClientHasSession } from "@/hooks/use-client-session";
 import { getSessionTokens } from "@/lib/auth";
 import { joinProductNameParts } from "@/lib/catalog-display";
 import { APP_ROUTES } from "@/lib/config";
+import { toKenyanLocal07 } from "@/lib/kenyan-phone";
 import {
   formatDisplayPrice,
   type PublicCheckoutPaymentOptions,
@@ -581,8 +580,7 @@ export default function ShopCheckoutForm({
   const serverAuthenticatedRef = useRef(false);
   const termsManuallyChanged = useRef(false);
   const paymentToastShown = useRef(false);
-  const [signupModalOpen, setSignupModalOpen] = useState(false);
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
   const [serverAuthenticated, setServerAuthenticated] = useState(false);
   const [stepBusy, setStepBusy] = useState(false);
   const pendingShippingLock = useRef(false);
@@ -1618,33 +1616,12 @@ export default function ShopCheckoutForm({
     pendingShippingLock.current = false;
   }
 
-  async function openCheckoutAccountModal(pendingLock: boolean) {
+  function openCheckoutAccountModal(pendingLock: boolean) {
     pendingShippingLock.current = pendingLock;
-    const email = customerEmail.trim();
-    if (!email) {
-      setSignupModalOpen(true);
-      return;
-    }
-    setStepBusy(true);
-    setError(null);
-    try {
-      const { registered } = await lookupAuthEmail(email);
-      if (registered) {
-        setSignupModalOpen(false);
-        setLoginModalOpen(true);
-      } else {
-        setLoginModalOpen(false);
-        setSignupModalOpen(true);
-      }
-    } catch {
-      setLoginModalOpen(false);
-      setSignupModalOpen(true);
-    } finally {
-      setStepBusy(false);
-    }
+    setPhoneModalOpen(true);
   }
 
-  async function lockShippingAndContinue() {
+  function lockShippingAndContinue() {
     if (!shippingComplete) {
       setError("Please complete all required delivery fields.");
       return;
@@ -1654,14 +1631,14 @@ export default function ShopCheckoutForm({
       contactFieldsComplete &&
       !isCheckoutSignupDismissed()
     ) {
-      await openCheckoutAccountModal(true);
+      openCheckoutAccountModal(true);
       return;
     }
     applyShippingLock();
   }
 
   function openCheckoutSignupModal() {
-    void openCheckoutAccountModal(false);
+    openCheckoutAccountModal(false);
   }
 
   function returnToDetailsStep() {
@@ -2150,8 +2127,8 @@ export default function ShopCheckoutForm({
                       Save details for next time
                     </p>
                     <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                      Use {customerEmail.trim()} to track orders and skip
-                      retyping your address.
+                      Sign in with your Kenyan mobile so the next visit already
+                      knows your address.
                     </p>
                   </div>
                 </div>
@@ -2160,7 +2137,7 @@ export default function ShopCheckoutForm({
                     type="button"
                     size="sm"
                     className="h-9 rounded-xl px-4 text-xs font-semibold shadow-sm"
-                    onClick={() => void openCheckoutSignupModal()}
+                    onClick={() => openCheckoutSignupModal()}
                   >
                     Save my details
                   </Button>
@@ -2551,42 +2528,25 @@ export default function ShopCheckoutForm({
         </ConfirmationFloatingDock>
       </form>
 
-      <ShopCheckoutSignupModal
-        open={signupModalOpen}
-        onOpenChange={setSignupModalOpen}
-        email={customerEmail}
-        firstName={firstName}
-        lastName={lastName}
-        phoneDisplay={`${areaCode} ${customerPhone}`.trim()}
-        onSignedIn={() => {
+      <ShopCheckoutPhoneModal
+        open={phoneModalOpen}
+        onOpenChange={setPhoneModalOpen}
+        initialPhone={`${areaCode} ${customerPhone}`.trim()}
+        suggestedName={`${firstName} ${lastName}`.trim()}
+        onSignedIn={(tabPhone) => {
           serverAuthenticatedRef.current = true;
           setServerAuthenticated(true);
+          const local = toKenyanLocal07(tabPhone);
+          if (local && !customerPhone.trim()) {
+            setAreaCode("+254");
+            setCustomerPhone(local.slice(1));
+          }
           if (pendingShippingLock.current) {
             applyShippingLock();
           }
         }}
         onContinueAsGuest={() => {
-          if (pendingShippingLock.current) {
-            applyShippingLock();
-          }
-        }}
-      />
-
-      <ShopCheckoutLoginModal
-        open={loginModalOpen}
-        onOpenChange={setLoginModalOpen}
-        email={customerEmail}
-        firstName={firstName}
-        lastName={lastName}
-        phoneDisplay={`${areaCode} ${customerPhone}`.trim()}
-        onSignedIn={() => {
-          serverAuthenticatedRef.current = true;
-          setServerAuthenticated(true);
-          if (pendingShippingLock.current) {
-            applyShippingLock();
-          }
-        }}
-        onContinueAsGuest={() => {
+          dismissCheckoutSignupPrompt();
           if (pendingShippingLock.current) {
             applyShippingLock();
           }

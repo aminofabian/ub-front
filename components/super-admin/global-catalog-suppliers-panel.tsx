@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { SaSection } from "@/components/super-admin/sa-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -204,15 +205,16 @@ export function GlobalCatalogSuppliersPanel({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]">
-      <section className="overflow-hidden rounded-2xl border border-border/70">
-        <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Supplier templates ({rows.length})
-          </span>
+      <SaSection
+        title="Supplier templates"
+        description={`${rows.length} templates`}
+        actions={
           <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={beginCreate}>
             New
           </Button>
-        </div>
+        }
+        padded={false}
+      >
         <ul className="max-h-[28rem] divide-y divide-border/50 overflow-auto">
           {rows.map((row) => (
             <li key={row.id}>
@@ -239,15 +241,15 @@ export function GlobalCatalogSuppliersPanel({
             </li>
           ) : null}
         </ul>
-      </section>
+      </SaSection>
 
       <div className="space-y-4">
-        <section className="space-y-3 rounded-2xl border border-border/70 p-4">
-          <h3 className="text-sm font-medium">
-            {creating ? "Create template" : selected ? "Edit template" : "Select a template"}
-          </h3>
+        <SaSection title={creating ? "Create template" : selected ? "Edit template" : "Template"}>
+          {!creating && !selected ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Select a template or create a new one.</p>
+          ) : null}
           {(creating || selected) && (
-            <>
+            <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="gst-code">Code</Label>
                 <Input
@@ -303,12 +305,11 @@ export function GlobalCatalogSuppliersPanel({
               <Button type="button" disabled={busy} onClick={() => void onSave()}>
                 {creating ? "Create" : "Save"}
               </Button>
-            </>
+            </div>
           )}
-        </section>
+        </SaSection>
 
-        <section className="space-y-3 rounded-2xl border border-border/70 p-4">
-          <h3 className="text-sm font-medium">Attach to product</h3>
+        <SaSection title="Attach to product">
           <div className="space-y-1.5">
             <Label htmlFor="gst-product">Global product id</Label>
             <Input
@@ -390,7 +391,7 @@ export function GlobalCatalogSuppliersPanel({
               </li>
             ) : null}
           </ul>
-        </section>
+        </SaSection>
       </div>
     </div>
   );

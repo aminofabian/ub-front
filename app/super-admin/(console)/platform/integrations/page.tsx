@@ -1,19 +1,36 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { KeyRound, MessageSquare, Phone, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { SaSection, SaToggleRow, saSelectClass } from "@/components/super-admin/sa-section";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   fetchPlatformIntegrations,
   updatePlatformIntegrations,
   type PlatformIntegrationsRecord,
 } from "@/lib/super-admin-api";
+
+function Field({
+  id,
+  label,
+  children,
+}: {
+  id?: string;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      {children}
+    </div>
+  );
+}
 
 export default function SuperAdminPlatformIntegrationsPage() {
   const [settings, setSettings] = useState<PlatformIntegrationsRecord | null>(null);
@@ -328,7 +345,7 @@ export default function SuperAdminPlatformIntegrationsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <SuperAdminPageHeader
         title="Platform integrations"
         description="Configure platform-wide API keys and provider endpoints in the admin UI. Tenants can still override per business."
@@ -348,35 +365,21 @@ export default function SuperAdminPlatformIntegrationsPage() {
         </AuthAlert>
       ) : null}
 
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Sparkles className="size-4" aria-hidden />
-            </span>
-            <div>
-              <CardTitle className="font-heading text-lg">Product description AI</CardTitle>
-              <CardDescription>
-                DeepSeek via RapidAPI — powers &quot;Generate with AI&quot; on product forms.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {success ? <AuthAlert variant="success">{success}</AuthAlert> : null}
-          {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
+      {success ? <AuthAlert variant="success">{success}</AuthAlert> : null}
+      {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
 
-          {settings ? (
-            <p className="text-xs text-muted-foreground">
-              Stored key: {settings.hasDeepseekApiKey ? "yes" : "no"}
-            </p>
-          ) : null}
-
-          <form className="space-y-4" onSubmit={onSave}>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="sa-deepseek-key">
-                RapidAPI key (DeepSeek)
-              </label>
+      <form className="space-y-6" onSubmit={onSave}>
+        <SaSection
+          title="Product description AI"
+          description='DeepSeek via RapidAPI — powers "Generate with AI" on product forms.'
+        >
+          <div className="space-y-4">
+            {settings ? (
+              <p className="text-xs text-muted-foreground">
+                Stored key: {settings.hasDeepseekApiKey ? "yes" : "no"}
+              </p>
+            ) : null}
+            <Field id="sa-deepseek-key" label="RapidAPI key (DeepSeek)">
               <Input
                 id="sa-deepseek-key"
                 type="password"
@@ -401,490 +404,409 @@ export default function SuperAdminPlatformIntegrationsPage() {
                   Clear stored key
                 </Button>
               ) : null}
-            </div>
-
+            </Field>
+            <Field id="sa-deepseek-url" label="API URL">
+              <Input
+                id="sa-deepseek-url"
+                value={deepseekUrl}
+                onChange={(ev) => setDeepseekUrl(ev.target.value)}
+                placeholder="https://deepseek-v31.p.rapidapi.com/"
+              />
+            </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <label className="text-sm font-medium" htmlFor="sa-deepseek-url">
-                  API URL
-                </label>
-                <Input
-                  id="sa-deepseek-url"
-                  value={deepseekUrl}
-                  onChange={(ev) => setDeepseekUrl(ev.target.value)}
-                  placeholder="https://deepseek-v31.p.rapidapi.com/"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="sa-deepseek-host">
-                  RapidAPI host
-                </label>
+              <Field id="sa-deepseek-host" label="RapidAPI host">
                 <Input
                   id="sa-deepseek-host"
                   value={deepseekHost}
                   onChange={(ev) => setDeepseekHost(ev.target.value)}
                   placeholder="deepseek-v31.p.rapidapi.com"
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="sa-deepseek-model">
-                  Model
-                </label>
+              </Field>
+              <Field id="sa-deepseek-model" label="Model">
                 <Input
                   id="sa-deepseek-model"
                   value={deepseekModel}
                   onChange={(ev) => setDeepseekModel(ev.target.value)}
                   placeholder="DeepSeek-V3-0324"
                 />
-              </div>
+              </Field>
             </div>
+          </div>
+        </SaSection>
 
-            <div className="border-t border-border/60 pt-4">
-              <div className="mb-3 flex items-center gap-2">
-                <Phone className="size-4 text-muted-foreground" aria-hidden />
-                <p className="text-sm font-medium">Meta WhatsApp Cloud API</p>
-              </div>
-              <p className="mb-3 text-xs text-muted-foreground">
-                Platform defaults for outbound WhatsApp and the{" "}
-                <span className="font-mono">/webhooks/whatsapp</span> callback. Tenants can
-                override access token / phone ID on the Credit tab. Env vars are optional
-                last-resort fallbacks.
+        <SaSection
+          title="Meta WhatsApp Cloud API"
+          description={
+            <>
+              Platform defaults for outbound WhatsApp and the{" "}
+              <span className="font-mono">/webhooks/whatsapp</span> callback. Tenants can override
+              access token / phone ID on the Credit tab. Env vars are optional last-resort fallbacks.
+            </>
+          }
+        >
+          <div className="space-y-4">
+            {settings ? (
+              <p className="text-xs text-muted-foreground">
+                Stored access token: {settings.hasWhatsappMetaAccessToken ? "yes" : "no"}
+                {" · "}
+                verify token: {settings.hasWhatsappMetaWebhookVerifyToken ? "yes" : "no"}
+                {" · "}
+                app secret: {settings.hasWhatsappMetaAppSecret ? "yes" : "no"}
+                {settings.envWhatsappMetaConfigured ? " · env also configured" : null}
               </p>
-              {settings ? (
-                <p className="mb-2 text-xs text-muted-foreground">
-                  Stored access token: {settings.hasWhatsappMetaAccessToken ? "yes" : "no"}
-                  {" · "}
-                  verify token: {settings.hasWhatsappMetaWebhookVerifyToken ? "yes" : "no"}
-                  {" · "}
-                  app secret: {settings.hasWhatsappMetaAppSecret ? "yes" : "no"}
-                  {settings.envWhatsappMetaConfigured ? " · env also configured" : null}
-                </p>
+            ) : null}
+            <Field id="sa-meta-access-token" label="Access token">
+              <Input
+                id="sa-meta-access-token"
+                type="password"
+                autoComplete="off"
+                placeholder={
+                  settings?.hasWhatsappMetaAccessToken
+                    ? "••••••••  (leave blank to keep)"
+                    : "Paste Meta WhatsApp access token"
+                }
+                value={whatsappMetaAccessToken}
+                onChange={(ev) => setWhatsappMetaAccessToken(ev.target.value)}
+              />
+              {settings?.hasWhatsappMetaAccessToken ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-destructive hover:text-destructive"
+                  disabled={busy}
+                  onClick={() => void onClearMetaAccessToken()}
+                >
+                  Clear stored token
+                </Button>
               ) : null}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="sa-meta-access-token">
-                    Access token
-                  </label>
-                  <Input
-                    id="sa-meta-access-token"
-                    type="password"
-                    autoComplete="off"
-                    placeholder={
-                      settings?.hasWhatsappMetaAccessToken
-                        ? "••••••••  (leave blank to keep)"
-                        : "Paste Meta WhatsApp access token"
-                    }
-                    value={whatsappMetaAccessToken}
-                    onChange={(ev) => setWhatsappMetaAccessToken(ev.target.value)}
-                  />
-                  {settings?.hasWhatsappMetaAccessToken ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-destructive hover:text-destructive"
-                      disabled={busy}
-                      onClick={() => void onClearMetaAccessToken()}
-                    >
-                      Clear stored token
-                    </Button>
-                  ) : null}
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="sa-meta-phone-id">
-                      Phone number ID
-                    </label>
-                    <Input
-                      id="sa-meta-phone-id"
-                      value={whatsappMetaPhoneNumberId}
-                      onChange={(ev) => setWhatsappMetaPhoneNumberId(ev.target.value)}
-                      placeholder="1252977897893339"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="sa-meta-graph-version">
-                      Graph API version
-                    </label>
-                    <Input
-                      id="sa-meta-graph-version"
-                      value={whatsappMetaGraphVersion}
-                      onChange={(ev) => setWhatsappMetaGraphVersion(ev.target.value)}
-                      placeholder="v25.0"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="sa-meta-verify-token">
-                    Webhook verify token
-                  </label>
-                  <Input
-                    id="sa-meta-verify-token"
-                    type="password"
-                    autoComplete="off"
-                    placeholder={
-                      settings?.hasWhatsappMetaWebhookVerifyToken
-                        ? "••••••••  (leave blank to keep)"
-                        : "Same token configured in Meta dashboard"
-                    }
-                    value={whatsappMetaWebhookVerifyToken}
-                    onChange={(ev) => setWhatsappMetaWebhookVerifyToken(ev.target.value)}
-                  />
-                  {settings?.hasWhatsappMetaWebhookVerifyToken ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-destructive hover:text-destructive"
-                      disabled={busy}
-                      onClick={() => void onClearMetaWebhookVerifyToken()}
-                    >
-                      Clear stored token
-                    </Button>
-                  ) : null}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="sa-meta-app-secret">
-                    App secret
-                  </label>
-                  <Input
-                    id="sa-meta-app-secret"
-                    type="password"
-                    autoComplete="off"
-                    placeholder={
-                      settings?.hasWhatsappMetaAppSecret
-                        ? "••••••••  (leave blank to keep)"
-                        : "Meta app secret for X-Hub-Signature-256"
-                    }
-                    value={whatsappMetaAppSecret}
-                    onChange={(ev) => setWhatsappMetaAppSecret(ev.target.value)}
-                  />
-                  {settings?.hasWhatsappMetaAppSecret ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-destructive hover:text-destructive"
-                      disabled={busy}
-                      onClick={() => void onClearMetaAppSecret()}
-                    >
-                      Clear stored secret
-                    </Button>
-                  ) : null}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Callback URL:{" "}
-                  <span className="font-mono">{"{API_PUBLIC_BASE_URL}/webhooks/whatsapp"}</span>
-                </p>
-              </div>
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field id="sa-meta-phone-id" label="Phone number ID">
+                <Input
+                  id="sa-meta-phone-id"
+                  value={whatsappMetaPhoneNumberId}
+                  onChange={(ev) => setWhatsappMetaPhoneNumberId(ev.target.value)}
+                  placeholder="1252977897893339"
+                />
+              </Field>
+              <Field id="sa-meta-graph-version" label="Graph API version">
+                <Input
+                  id="sa-meta-graph-version"
+                  value={whatsappMetaGraphVersion}
+                  onChange={(ev) => setWhatsappMetaGraphVersion(ev.target.value)}
+                  placeholder="v25.0"
+                />
+              </Field>
             </div>
-
-            <div className="border-t border-border/60 pt-4">
-              <div className="mb-3 flex items-center gap-2">
-                <KeyRound className="size-4 text-muted-foreground" aria-hidden />
-                <p className="text-sm font-medium">Credit reminders — WhatsApp lookup</p>
-              </div>
-              <p className="mb-3 text-xs text-muted-foreground">
-                Platform defaults for RapidAPI WhatsApp number lookup. Tenants can override in Credit
-                tab reminders.
-              </p>
-              {settings ? (
-                <p className="mb-2 text-xs text-muted-foreground">
-                  Stored key: {settings.hasRapidapiWhatsappKey ? "yes" : "no"}
-                </p>
+            <Field id="sa-meta-verify-token" label="Webhook verify token">
+              <Input
+                id="sa-meta-verify-token"
+                type="password"
+                autoComplete="off"
+                placeholder={
+                  settings?.hasWhatsappMetaWebhookVerifyToken
+                    ? "••••••••  (leave blank to keep)"
+                    : "Same token configured in Meta dashboard"
+                }
+                value={whatsappMetaWebhookVerifyToken}
+                onChange={(ev) => setWhatsappMetaWebhookVerifyToken(ev.target.value)}
+              />
+              {settings?.hasWhatsappMetaWebhookVerifyToken ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-destructive hover:text-destructive"
+                  disabled={busy}
+                  onClick={() => void onClearMetaWebhookVerifyToken()}
+                >
+                  Clear stored token
+                </Button>
               ) : null}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="sa-rapidapi-wa-key">
-                    RapidAPI key
-                  </label>
+            </Field>
+            <Field id="sa-meta-app-secret" label="App secret">
+              <Input
+                id="sa-meta-app-secret"
+                type="password"
+                autoComplete="off"
+                placeholder={
+                  settings?.hasWhatsappMetaAppSecret
+                    ? "••••••••  (leave blank to keep)"
+                    : "Meta app secret for X-Hub-Signature-256"
+                }
+                value={whatsappMetaAppSecret}
+                onChange={(ev) => setWhatsappMetaAppSecret(ev.target.value)}
+              />
+              {settings?.hasWhatsappMetaAppSecret ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-destructive hover:text-destructive"
+                  disabled={busy}
+                  onClick={() => void onClearMetaAppSecret()}
+                >
+                  Clear stored secret
+                </Button>
+              ) : null}
+            </Field>
+            <p className="text-xs text-muted-foreground">
+              Callback URL:{" "}
+              <span className="font-mono">{"{API_PUBLIC_BASE_URL}/webhooks/whatsapp"}</span>
+            </p>
+          </div>
+        </SaSection>
+
+        <SaSection
+          title="WhatsApp lookup"
+          description="Platform defaults for RapidAPI WhatsApp number lookup. Tenants can override in Credit tab reminders."
+        >
+          <div className="space-y-4">
+            {settings ? (
+              <p className="text-xs text-muted-foreground">
+                Stored key: {settings.hasRapidapiWhatsappKey ? "yes" : "no"}
+              </p>
+            ) : null}
+            <Field id="sa-rapidapi-wa-key" label="RapidAPI key">
+              <Input
+                id="sa-rapidapi-wa-key"
+                type="password"
+                autoComplete="off"
+                placeholder={
+                  settings?.hasRapidapiWhatsappKey
+                    ? "••••••••  (leave blank to keep)"
+                    : "Paste RapidAPI key"
+                }
+                value={rapidApiWhatsappKey}
+                onChange={(ev) => setRapidApiWhatsappKey(ev.target.value)}
+              />
+              {settings?.hasRapidapiWhatsappKey ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-destructive hover:text-destructive"
+                  disabled={busy}
+                  onClick={() => void onClearWhatsappKey()}
+                >
+                  Clear stored key
+                </Button>
+              ) : null}
+            </Field>
+            <Field id="sa-rapidapi-wa-url" label="Lookup URL">
+              <Input
+                id="sa-rapidapi-wa-url"
+                value={rapidApiWhatsappLookupUrl}
+                onChange={(ev) => setRapidApiWhatsappLookupUrl(ev.target.value)}
+                placeholder="https://whatsapp-osint.p.rapidapi.com/bizos"
+              />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field id="sa-rapidapi-wa-host" label="RapidAPI host">
+                <Input
+                  id="sa-rapidapi-wa-host"
+                  value={rapidApiWhatsappHost}
+                  onChange={(ev) => setRapidApiWhatsappHost(ev.target.value)}
+                  placeholder="whatsapp-osint.p.rapidapi.com"
+                />
+              </Field>
+              <Field id="sa-rapidapi-wa-field" label="Phone JSON field">
+                <Input
+                  id="sa-rapidapi-wa-field"
+                  value={rapidApiWhatsappPhoneField}
+                  onChange={(ev) => setRapidApiWhatsappPhoneField(ev.target.value)}
+                  placeholder="phone"
+                />
+              </Field>
+            </div>
+            <SaToggleRow
+              id="sa-rapidapi-wa-digits"
+              label="Send digits only"
+              description="Strip + and spaces before lookup."
+              checked={rapidApiWhatsappPhoneDigitsOnly}
+              onChange={setRapidApiWhatsappPhoneDigitsOnly}
+            />
+          </div>
+        </SaSection>
+
+        <SaSection
+          title="SMS fallback"
+          description="Choose the platform default SMS provider. Tenants can override per business on the Credit tab. Env vars are optional last-resort fallback only."
+        >
+          <div className="space-y-4">
+            <Field id="sa-sms-provider" label="Default SMS provider">
+              <select
+                id="sa-sms-provider"
+                className={`${saSelectClass} sm:max-w-xs`}
+                value={smsProvider}
+                onChange={(ev) => setSmsProvider(ev.target.value)}
+              >
+                <option value="none">None</option>
+                <option value="textsms">TextSMS (textsms.co.ke)</option>
+                <option value="sozuri">Sozuri</option>
+                <option value="africas_talking">Africa&apos;s Talking (tenant creds)</option>
+              </select>
+            </Field>
+
+            {smsProvider === "sozuri" ? (
+              <>
+                {settings ? (
+                  <p className="text-xs text-muted-foreground">
+                    Stored Sozuri key: {settings.hasSozuriApiKey ? "yes" : "no"}
+                  </p>
+                ) : null}
+                <Field id="sa-sozuri-project" label="Sozuri project">
                   <Input
-                    id="sa-rapidapi-wa-key"
+                    id="sa-sozuri-project"
+                    value={sozuriProject}
+                    onChange={(ev) => setSozuriProject(ev.target.value)}
+                    placeholder="kiosk.ke"
+                  />
+                </Field>
+                <Field id="sa-sozuri-key" label="Sozuri API key">
+                  <Input
+                    id="sa-sozuri-key"
                     type="password"
                     autoComplete="off"
                     placeholder={
-                      settings?.hasRapidapiWhatsappKey
+                      settings?.hasSozuriApiKey
                         ? "••••••••  (leave blank to keep)"
-                        : "Paste RapidAPI key"
+                        : "Paste Sozuri API key"
                     }
-                    value={rapidApiWhatsappKey}
-                    onChange={(ev) => setRapidApiWhatsappKey(ev.target.value)}
+                    value={sozuriApiKey}
+                    onChange={(ev) => setSozuriApiKey(ev.target.value)}
                   />
-                  {settings?.hasRapidapiWhatsappKey ? (
+                  {settings?.hasSozuriApiKey ? (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="h-8 text-destructive hover:text-destructive"
                       disabled={busy}
-                      onClick={() => void onClearWhatsappKey()}
+                      onClick={() => void onClearSozuriKey()}
                     >
                       Clear stored key
                     </Button>
                   ) : null}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="sa-rapidapi-wa-url">
-                    Lookup URL
-                  </label>
-                  <Input
-                    id="sa-rapidapi-wa-url"
-                    value={rapidApiWhatsappLookupUrl}
-                    onChange={(ev) => setRapidApiWhatsappLookupUrl(ev.target.value)}
-                    placeholder="https://whatsapp-osint.p.rapidapi.com/bizos"
-                  />
-                </div>
+                </Field>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="sa-rapidapi-wa-host">
-                      RapidAPI host
-                    </label>
+                  <Field id="sa-sozuri-from" label="Sender ID (from)">
                     <Input
-                      id="sa-rapidapi-wa-host"
-                      value={rapidApiWhatsappHost}
-                      onChange={(ev) => setRapidApiWhatsappHost(ev.target.value)}
-                      placeholder="whatsapp-osint.p.rapidapi.com"
+                      id="sa-sozuri-from"
+                      value={sozuriFrom}
+                      onChange={(ev) => setSozuriFrom(ev.target.value)}
+                      placeholder="Sozuri"
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="sa-rapidapi-wa-field">
-                      Phone JSON field
-                    </label>
-                    <Input
-                      id="sa-rapidapi-wa-field"
-                      value={rapidApiWhatsappPhoneField}
-                      onChange={(ev) => setRapidApiWhatsappPhoneField(ev.target.value)}
-                      placeholder="phone"
-                    />
-                  </div>
+                  </Field>
+                  <Field id="sa-sozuri-type" label="Message type">
+                    <select
+                      id="sa-sozuri-type"
+                      className={saSelectClass}
+                      value={sozuriType}
+                      onChange={(ev) => setSozuriType(ev.target.value)}
+                    >
+                      <option value="transactional">Transactional</option>
+                      <option value="promotional">Promotional</option>
+                    </select>
+                  </Field>
                 </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="size-4 rounded border-border"
-                    checked={rapidApiWhatsappPhoneDigitsOnly}
-                    onChange={(ev) => setRapidApiWhatsappPhoneDigitsOnly(ev.target.checked)}
+                <Field id="sa-sozuri-url" label="API URL">
+                  <Input
+                    id="sa-sozuri-url"
+                    value={sozuriApiUrl}
+                    onChange={(ev) => setSozuriApiUrl(ev.target.value)}
+                    placeholder="https://sozuri.net/api/v1/messaging"
                   />
-                  <span>Send digits only (strip + / spaces)</span>
-                </label>
-              </div>
-            </div>
+                </Field>
+                <p className="text-xs text-muted-foreground">
+                  Callbacks: <span className="font-mono">/webhooks/sozuri/inbox</span> and{" "}
+                  <span className="font-mono">/webhooks/sozuri/delivery</span> on your API host.
+                </p>
+              </>
+            ) : null}
 
-            <div className="border-t border-border/60 pt-4">
-              <div className="mb-3 flex items-center gap-2">
-                <MessageSquare className="size-4 text-muted-foreground" aria-hidden />
-                <p className="text-sm font-medium">SMS fallback</p>
-              </div>
-              <p className="mb-3 text-xs text-muted-foreground">
-                Choose the platform default SMS provider and configure credentials here. Tenants can
-                override per business on the Credit tab. Env vars are optional last-resort fallback
-                only.
-              </p>
-              <div className="space-y-4">
-                <div className="space-y-2 sm:max-w-xs">
-                  <label className="text-sm font-medium" htmlFor="sa-sms-provider">
-                    Default SMS provider
-                  </label>
-                  <select
-                    id="sa-sms-provider"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={smsProvider}
-                    onChange={(ev) => setSmsProvider(ev.target.value)}
-                  >
-                    <option value="none">None</option>
-                    <option value="textsms">TextSMS (textsms.co.ke)</option>
-                    <option value="sozuri">Sozuri</option>
-                    <option value="africas_talking">Africa&apos;s Talking (tenant creds)</option>
-                  </select>
-                </div>
-
-                {smsProvider === "sozuri" ? (
-                  <>
-                    {settings ? (
-                      <p className="text-xs text-muted-foreground">
-                        Stored Sozuri key: {settings.hasSozuriApiKey ? "yes" : "no"}
-                      </p>
-                    ) : null}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="sa-sozuri-project">
-                        Sozuri project
-                      </label>
-                      <Input
-                        id="sa-sozuri-project"
-                        value={sozuriProject}
-                        onChange={(ev) => setSozuriProject(ev.target.value)}
-                        placeholder="kiosk.ke"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="sa-sozuri-key">
-                        Sozuri API key
-                      </label>
-                      <Input
-                        id="sa-sozuri-key"
-                        type="password"
-                        autoComplete="off"
-                        placeholder={
-                          settings?.hasSozuriApiKey
-                            ? "••••••••  (leave blank to keep)"
-                            : "Paste Sozuri API key"
-                        }
-                        value={sozuriApiKey}
-                        onChange={(ev) => setSozuriApiKey(ev.target.value)}
-                      />
-                      {settings?.hasSozuriApiKey ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-destructive hover:text-destructive"
-                          disabled={busy}
-                          onClick={() => void onClearSozuriKey()}
-                        >
-                          Clear stored key
-                        </Button>
-                      ) : null}
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium" htmlFor="sa-sozuri-from">
-                          Sender ID (from)
-                        </label>
-                        <Input
-                          id="sa-sozuri-from"
-                          value={sozuriFrom}
-                          onChange={(ev) => setSozuriFrom(ev.target.value)}
-                          placeholder="Sozuri"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium" htmlFor="sa-sozuri-type">
-                          Message type
-                        </label>
-                        <select
-                          id="sa-sozuri-type"
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                          value={sozuriType}
-                          onChange={(ev) => setSozuriType(ev.target.value)}
-                        >
-                          <option value="transactional">Transactional</option>
-                          <option value="promotional">Promotional</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="sa-sozuri-url">
-                        API URL
-                      </label>
-                      <Input
-                        id="sa-sozuri-url"
-                        value={sozuriApiUrl}
-                        onChange={(ev) => setSozuriApiUrl(ev.target.value)}
-                        placeholder="https://sozuri.net/api/v1/messaging"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Callbacks:{" "}
-                      <span className="font-mono">/webhooks/sozuri/inbox</span> and{" "}
-                      <span className="font-mono">/webhooks/sozuri/delivery</span> on your API host.
-                    </p>
-                  </>
-                ) : null}
-
-                {smsProvider === "textsms" ? (
-                  <>
-                    {settings ? (
-                      <p className="text-xs text-muted-foreground">
-                        Stored TextSMS key: {settings.hasTextsmsApiKey ? "yes" : "no"}
-                      </p>
-                    ) : null}
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium" htmlFor="sa-textsms-partner">
-                          Partner ID
-                        </label>
-                        <Input
-                          id="sa-textsms-partner"
-                          value={textsmsPartnerId}
-                          onChange={(ev) => setTextsmsPartnerId(ev.target.value)}
-                          placeholder="Partner ID from TextSMS"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium" htmlFor="sa-textsms-shortcode">
-                          Shortcode / sender ID
-                        </label>
-                        <Input
-                          id="sa-textsms-shortcode"
-                          value={textsmsShortcode}
-                          onChange={(ev) => setTextsmsShortcode(ev.target.value)}
-                          placeholder="Approved shortcode"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="sa-textsms-key">
-                        API key
-                      </label>
-                      <Input
-                        id="sa-textsms-key"
-                        type="password"
-                        autoComplete="off"
-                        placeholder={
-                          settings?.hasTextsmsApiKey
-                            ? "••••••••  (leave blank to keep)"
-                            : "Paste TextSMS API key"
-                        }
-                        value={textsmsApiKey}
-                        onChange={(ev) => setTextsmsApiKey(ev.target.value)}
-                      />
-                      {settings?.hasTextsmsApiKey ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-destructive hover:text-destructive"
-                          disabled={busy}
-                          onClick={() => void onClearTextsmsKey()}
-                        >
-                          Clear stored key
-                        </Button>
-                      ) : null}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="sa-textsms-url">
-                        API URL
-                      </label>
-                      <Input
-                        id="sa-textsms-url"
-                        value={textsmsApiUrl}
-                        onChange={(ev) => setTextsmsApiUrl(ev.target.value)}
-                        placeholder="https://sms.textsms.co.ke/api/services/sendsms/"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Sends to{" "}
-                      <span className="font-mono">sms.textsms.co.ke</span> with partner ID, API key,
-                      mobile (digits), message, and shortcode.
-                    </p>
-                  </>
-                ) : null}
-
-                {smsProvider === "africas_talking" ? (
+            {smsProvider === "textsms" ? (
+              <>
+                {settings ? (
                   <p className="text-xs text-muted-foreground">
-                    Africa&apos;s Talking credentials are configured per tenant on the Credit tab
-                    reminders settings.
+                    Stored TextSMS key: {settings.hasTextsmsApiKey ? "yes" : "no"}
                   </p>
                 ) : null}
-              </div>
-            </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field id="sa-textsms-partner" label="Partner ID">
+                    <Input
+                      id="sa-textsms-partner"
+                      value={textsmsPartnerId}
+                      onChange={(ev) => setTextsmsPartnerId(ev.target.value)}
+                      placeholder="Partner ID from TextSMS"
+                    />
+                  </Field>
+                  <Field id="sa-textsms-shortcode" label="Shortcode / sender ID">
+                    <Input
+                      id="sa-textsms-shortcode"
+                      value={textsmsShortcode}
+                      onChange={(ev) => setTextsmsShortcode(ev.target.value)}
+                      placeholder="Approved shortcode"
+                    />
+                  </Field>
+                </div>
+                <Field id="sa-textsms-key" label="API key">
+                  <Input
+                    id="sa-textsms-key"
+                    type="password"
+                    autoComplete="off"
+                    placeholder={
+                      settings?.hasTextsmsApiKey
+                        ? "••••••••  (leave blank to keep)"
+                        : "Paste TextSMS API key"
+                    }
+                    value={textsmsApiKey}
+                    onChange={(ev) => setTextsmsApiKey(ev.target.value)}
+                  />
+                  {settings?.hasTextsmsApiKey ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-destructive hover:text-destructive"
+                      disabled={busy}
+                      onClick={() => void onClearTextsmsKey()}
+                    >
+                      Clear stored key
+                    </Button>
+                  ) : null}
+                </Field>
+                <Field id="sa-textsms-url" label="API URL">
+                  <Input
+                    id="sa-textsms-url"
+                    value={textsmsApiUrl}
+                    onChange={(ev) => setTextsmsApiUrl(ev.target.value)}
+                    placeholder="https://sms.textsms.co.ke/api/services/sendsms/"
+                  />
+                </Field>
+                <p className="text-xs text-muted-foreground">
+                  Sends to <span className="font-mono">sms.textsms.co.ke</span> with partner ID, API
+                  key, mobile (digits), message, and shortcode.
+                </p>
+              </>
+            ) : null}
 
-            <Button type="submit" disabled={busy || !settings}>
-              {busy ? "Saving…" : "Save settings"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            {smsProvider === "africas_talking" ? (
+              <p className="text-xs text-muted-foreground">
+                Africa&apos;s Talking credentials are configured per tenant on the Credit tab
+                reminders settings.
+              </p>
+            ) : null}
+          </div>
+        </SaSection>
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={busy || !settings}>
+            {busy ? "Saving…" : "Save settings"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

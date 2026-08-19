@@ -9,6 +9,8 @@ import { AuthCard } from "@/components/auth/auth-card";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { APP_ROUTES } from "@/lib/config";
 import { loginSuperAdmin } from "@/lib/super-admin-api";
 import { getSuperAdminAccessToken } from "@/lib/super-admin-session";
@@ -22,7 +24,7 @@ export default function SuperAdminLoginPage() {
 
   useEffect(() => {
     if (getSuperAdminAccessToken()) {
-      router.replace(APP_ROUTES.superAdminBusinesses);
+      router.replace(APP_ROUTES.superAdminDashboard);
     }
   }, [router]);
 
@@ -32,7 +34,7 @@ export default function SuperAdminLoginPage() {
     setBusy(true);
     try {
       await loginSuperAdmin(email, password);
-      router.push(APP_ROUTES.superAdminBusinesses);
+      router.push(APP_ROUTES.superAdminDashboard);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {
@@ -48,31 +50,29 @@ export default function SuperAdminLoginPage() {
           title="Super-admin sign in"
           description="Platform operator access. Creates and manages tenants (businesses). Separate from shop staff login."
         />
-        <form className="space-y-3" onSubmit={onSubmit}>
-          <label className="text-sm font-medium" htmlFor="sa-email">
-            Email
-          </label>
-          <input
-            id="sa-email"
-            type="email"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-            value={email}
-            onChange={(ev) => setEmail(ev.target.value)}
-            autoComplete="username"
-            required
-          />
-          <label className="text-sm font-medium" htmlFor="sa-password">
-            Password
-          </label>
-          <input
-            id="sa-password"
-            type="password"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-            value={password}
-            onChange={(ev) => setPassword(ev.target.value)}
-            autoComplete="current-password"
-            required
-          />
+        <form className="space-y-4" onSubmit={onSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="sa-email">Email</Label>
+            <Input
+              id="sa-email"
+              type="email"
+              value={email}
+              onChange={(ev) => setEmail(ev.target.value)}
+              autoComplete="username"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sa-password">Password</Label>
+            <Input
+              id="sa-password"
+              type="password"
+              value={password}
+              onChange={(ev) => setPassword(ev.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
           <Button type="submit" className="w-full" disabled={busy}>
             {busy ? "Signing in…" : "Sign in"}
           </Button>

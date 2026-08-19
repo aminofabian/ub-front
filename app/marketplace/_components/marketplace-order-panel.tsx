@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   ArrowLeft,
+  BookOpen,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -44,12 +45,17 @@ import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
 import { cn, formatMoney } from "@/lib/utils";
 
 import {
+  buildMarketplaceCataloguePdf,
+} from "../_lib/marketplace-catalogue-pdf";
+import {
   buildMarketplaceOrderPdf,
+  buildMarketplaceOrderText,
   buildWhatsAppOrderUrl,
+  downloadBlob,
   normalizeWhatsAppPhone,
   shareOrDownloadOrderPdf,
 } from "../_lib/marketplace-order-pdf";
-import { mktBtn, mktBtnGhost } from "./marketplace-ui";
+import { mktBtnGhost } from "./marketplace-ui";
 
 type CartQty = Record<string, number>;
 type OrderLayout = "default" | "shelf";
@@ -305,6 +311,7 @@ export function MarketplaceOrderWorkspace({
     return {};
   });
   const [sendingOrder, setSendingOrder] = useState(false);
+  const [catalogueBusy, setCatalogueBusy] = useState(false);
   const [filter, setFilter] = useState("");
   const [parentFilterId, setParentFilterId] = useState<string | null>(() => {
     if (!isShelf || !focusProduct) return null;
@@ -491,6 +498,57 @@ export function MarketplaceOrderWorkspace({
     ? parentOptions.find((p) => p.id === parentFilterId)?.label ?? "Shelf"
     : "Shelf";
 
+  const orderLines = useMemo(
+    () =>
+      cartLines.map(({ product, qty }) => ({
+        name: product.name,
+        sku: product.sku,
+        barcode: product.barcode,
+        qty,
+        unitPrice: product.unitPrice,
+        currency: product.currency,
+      })),
+    [cartLines],
+  );
+
+  const orderFilename = `order-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
+  const catalogueFilename = `catalogue-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
+
+  /** Absolute URL of the current page — used inside handlers only (client-only). */
+  const pageUrl = () =>
+    typeof window === "undefined" ? "" : window.location.href;
+
+  const orderPdfInput = () => ({
+    supplierName: detail.name,
+    supplierPhone: detail.contactPhone,
+    location: areaLabel || detail.location,
+    listedBy: detail.listedBy,
+    lines: orderLines,
+  });
+
+  const downloadCatalogue = async () => {
+    if (detail.products.length === 0) {
+      toast.error("No products in this catalogue yet.");
+      return;
+    }
+    setCatalogueBusy(true);
+    try {
+      const blob = await buildMarketplaceCataloguePdf({
+        detail,
+        origin: typeof window === "undefined" ? undefined : window.location.origin,
+      });
+      downloadBlob(blob, catalogueFilename);
+      toast.success("Catalogue downloaded — share it with your buyers.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not build catalogue",
+      );
+    } finally {
+      setCatalogueBusy(false);
+    }
+  };
+
+  /** Primary action: opens WhatsApp with the order list (incl. catalogue link). */
   const sendOrder = async () => {
     if (cartLines.length === 0) {
       toast.error("Add at least one product to the order.");
@@ -498,38 +556,24 @@ export function MarketplaceOrderWorkspace({
     }
     setSendingOrder(true);
     try {
-      const lines = cartLines.map(({ product, qty }) => ({
-        name: product.name,
-        sku: product.sku,
-        barcode: product.barcode,
-        qty,
-        unitPrice: product.unitPrice,
-        currency: product.currency,
-      }));
-      const filename = `order-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
-      const blob = buildMarketplaceOrderPdf({
-        supplierName: detail.name,
-        supplierPhone: detail.contactPhone,
-        location: areaLabel || detail.location,
-        listedBy: detail.listedBy,
-        lines,
-      });
       const wa = buildWhatsAppOrderUrl({
         phone: detail.contactPhone,
         supplierName: detail.name,
-        lines,
-        filename,
+        lines: orderLines,
+        filename: orderFilename,
+        catalogueUrl: pageUrl(),
       });
-      if (!wa && !detail.contactPhone) {
-        toast.message("No WhatsApp number on this supplier — downloading PDF.");
+      if (wa) {
+        window.open(wa, "_blank", "noopener,noreferrer");
+        toast.success("WhatsApp opened with your order list.");
+        return;
       }
-      const mode = await shareOrDownloadOrderPdf(blob, filename, wa);
-      toast.success(
+      const blob = buildMarketplaceOrderPdf(orderPdfInput());
+      const mode = await shareOrDownloadOrderPdf(blob, orderFilename, null);
+      toast.message(
         mode === "shared"
-          ? "Order shared — pick WhatsApp to send the PDF."
-          : wa
-            ? "PDF downloaded and WhatsApp opened with your order."
-            : "PDF downloaded. Attach it in WhatsApp to the supplier.",
+          ? "Order shared — pick WhatsApp to send it."
+          : "No WhatsApp number on this supplier — PDF downloaded, attach it in WhatsApp.",
       );
     } catch (error) {
       toast.error(
@@ -538,6 +582,39 @@ export function MarketplaceOrderWorkspace({
     } finally {
       setSendingOrder(false);
     }
+  };
+
+  const downloadOrderPdf = async () => {
+    if (cartLines.length === 0) {
+      toast.error("Add at least one product to the order.");
+      return;
+    }
+    setSendingOrder(true);
+    try {
+      downloadBlob(buildMarketplaceOrderPdf(orderPdfInput()), orderFilename);
+      toast.success("Order PDF downloaded.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not build order PDF",
+      );
+    } finally {
+      setSendingOrder(false);
+    }
+  };
+
+  const copyOrderList = async () => {
+    if (orderLines.length === 0) {
+      toast.error("Add at least one product to the order.");
+      return;
+    }
+    await copyText(
+      buildMarketplaceOrderText(orderLines, {
+        supplierName: detail.name,
+        filename: orderFilename,
+        catalogueUrl: pageUrl(),
+      }),
+      "Order list",
+    );
   };
 
   const orderActions = (
@@ -560,28 +637,44 @@ export function MarketplaceOrderWorkspace({
       </div>
       <button
         type="button"
-        className={cn(
-          isShelf
-            ? "inline-flex h-11 w-full items-center justify-center gap-2 bg-[var(--pos-primary,#0f766e)] px-4 text-sm font-semibold text-[var(--pos-primary-ink,#fff)] transition hover:opacity-95 disabled:pointer-events-none disabled:opacity-50"
-            : cn(mktBtn, "w-full"),
-        )}
+        className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[#128c4a] px-4 text-sm font-semibold text-white transition hover:bg-[#0f7a3f] disabled:pointer-events-none disabled:opacity-50"
         disabled={sendingOrder || cartLines.length === 0}
         onClick={() => void sendOrder()}
       >
         {sendingOrder ? (
           <>
             <Loader2 className="size-4 animate-spin" />
-            Preparing…
+            Opening WhatsApp…
           </>
         ) : (
           <>
-            <FileDown className="size-4" />
-            Download PDF & open WhatsApp
+            <MessageCircle className="size-4" />
+            Send order on WhatsApp
           </>
         )}
       </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          className="inline-flex h-10 items-center justify-center gap-1.5 border border-border bg-background px-3 text-xs font-semibold text-foreground transition hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+          disabled={sendingOrder || cartLines.length === 0}
+          onClick={() => void downloadOrderPdf()}
+        >
+          <FileDown className="size-3.5" />
+          Download PDF
+        </button>
+        <button
+          type="button"
+          className="inline-flex h-10 items-center justify-center gap-1.5 border border-border bg-background px-3 text-xs font-semibold text-foreground transition hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+          disabled={sendingOrder || cartLines.length === 0}
+          onClick={() => void copyOrderList()}
+        >
+          <Copy className="size-3.5" />
+          Copy list
+        </button>
+      </div>
       <p className="text-center text-[11px] text-muted-foreground">
-        Downloads an order sheet, then opens WhatsApp with the supplier.
+        WhatsApp opens with your order list; the PDF is saved for attachment.
       </p>
     </div>
   );
@@ -642,25 +735,45 @@ export function MarketplaceOrderWorkspace({
                       ) : null}
                     </p>
                   </div>
-                  {shelfPhone ? (
-                    <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-                      <TelLink
-                        phone={shelfPhone}
-                        className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
-                      />
-                      {shelfWa ? (
-                        <a
-                          href={`https://wa.me/${shelfWa}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                        >
-                          <MessageCircle className="size-3" />
-                          WhatsApp
-                        </a>
-                      ) : null}
-                    </div>
-                  ) : null}
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    {shelfPhone ? (
+                      <div className="flex flex-col items-end gap-0.5 text-right">
+                        <TelLink
+                          phone={shelfPhone}
+                          className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                        />
+                        {shelfWa ? (
+                          <a
+                            href={`https://wa.me/${shelfWa}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                          >
+                            <MessageCircle className="size-3" />
+                            WhatsApp
+                          </a>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => void downloadCatalogue()}
+                      disabled={catalogueBusy || detail.products.length === 0}
+                      className={cn(
+                        "inline-flex h-7 shrink-0 items-center gap-1.5 border px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
+                        "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)]",
+                        "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]",
+                        "text-[var(--pos-ink,#1c1915)] disabled:pointer-events-none disabled:opacity-50",
+                      )}
+                    >
+                      {catalogueBusy ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <BookOpen className="size-3.5" />
+                      )}
+                      Catalogue PDF
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center justify-between gap-2 pl-2">
@@ -760,9 +873,13 @@ export function MarketplaceOrderWorkspace({
               lines={cartLines}
               currency={cartCurrency}
               sending={sendingOrder}
+              catalogueBusy={catalogueBusy}
               onSetQty={(productId, qty) => setQty(productId, qty)}
               onRemove={(productId) => setQty(productId, 0)}
               onSend={() => void sendOrder()}
+              onDownloadPdf={() => void downloadOrderPdf()}
+              onCopy={() => void copyOrderList()}
+              onCatalogue={() => void downloadCatalogue()}
             />
           </div>
         </div>
@@ -856,9 +973,13 @@ export function MarketplaceOrderWorkspace({
                 lines={cartLines}
                 currency={cartCurrency}
                 sending={sendingOrder}
+                catalogueBusy={catalogueBusy}
                 onSetQty={(productId, qty) => setQty(productId, qty)}
                 onRemove={(productId) => setQty(productId, 0)}
                 onSend={() => void sendOrder()}
+                onDownloadPdf={() => void downloadOrderPdf()}
+                onCopy={() => void copyOrderList()}
+                onCatalogue={() => void downloadCatalogue()}
                 onClose={() => setMobileOrderOpen(false)}
                 className="min-h-0 flex-1 border-0"
               />
@@ -1467,9 +1588,13 @@ function OrderManifestPanel({
   lines,
   currency,
   sending,
+  catalogueBusy,
   onSetQty,
   onRemove,
   onSend,
+  onDownloadPdf,
+  onCopy,
+  onCatalogue,
   onClose,
   className,
 }: {
@@ -1477,9 +1602,13 @@ function OrderManifestPanel({
   lines: { product: MarketplaceCatalogProductPreview; qty: number }[];
   currency: string;
   sending: boolean;
+  catalogueBusy: boolean;
   onSetQty: (productId: string, qty: number) => void;
   onRemove: (productId: string) => void;
   onSend: () => void;
+  onDownloadPdf: () => void;
+  onCopy: () => void;
+  onCatalogue: () => void;
   onClose?: () => void;
   className?: string;
 }) {
@@ -1608,22 +1737,58 @@ function OrderManifestPanel({
           </div>
           <button
             type="button"
-            className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[var(--pos-primary,#0f766e)] px-4 text-sm font-semibold text-[var(--pos-primary-ink,#fff)] transition hover:opacity-95 disabled:pointer-events-none disabled:opacity-50"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[#128c4a] px-4 text-sm font-semibold text-white transition hover:bg-[#0f7a3f] disabled:pointer-events-none disabled:opacity-50"
             disabled={sending || lines.length === 0}
             onClick={onSend}
           >
             {sending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Preparing…
+                Opening WhatsApp…
               </>
             ) : (
               <>
-                <FileDown className="size-4" />
-                PDF & WhatsApp
+                <MessageCircle className="size-4" />
+                Send on WhatsApp
               </>
             )}
           </button>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              className="inline-flex h-9 items-center justify-center gap-1 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#faf7f1)] text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-ink,#1c1915)] transition hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] disabled:pointer-events-none disabled:opacity-50"
+              disabled={sending || lines.length === 0}
+              onClick={onDownloadPdf}
+            >
+              <FileDown className="size-3.5" />
+              PDF
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-9 items-center justify-center gap-1 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#faf7f1)] text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-ink,#1c1915)] transition hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] disabled:pointer-events-none disabled:opacity-50"
+              disabled={sending || lines.length === 0}
+              onClick={onCopy}
+            >
+              <Copy className="size-3.5" />
+              Copy
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-9 items-center justify-center gap-1 border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-ink,#1c1915)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)] disabled:pointer-events-none disabled:opacity-50"
+              disabled={sending}
+              onClick={onCatalogue}
+            >
+              {catalogueBusy ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <BookOpen className="size-3.5" />
+              )}
+              Catalogue
+            </button>
+          </div>
+          <p className="text-center text-[10px] leading-snug text-muted-foreground">
+            WhatsApp opens with your list; PDF saved for attachment.
+          </p>
         </div>
       </div>
     </aside>

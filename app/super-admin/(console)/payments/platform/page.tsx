@@ -1,15 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CreditCard, Loader2, Shield, Wallet } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AuthAlert } from "@/components/auth/auth-alert";
 import { PlatformAirtimeSection } from "@/components/super-admin/platform-airtime-section";
+import { SaSection, saSelectClass } from "@/components/super-admin/sa-section";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   type PlatformGatewayRecord,
@@ -36,7 +39,6 @@ import {
   patchPlatformKioskPaySettings,
   resumeSaKioskPayWithdrawals,
 } from "@/lib/super-admin-api";
-import { cn } from "@/lib/utils";
 
 function money(n: number | null | undefined) {
   const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
@@ -52,10 +54,8 @@ function shortId(id: string) {
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </p>
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-0.5 truncate font-heading text-sm font-semibold tabular-nums">{value}</p>
     </div>
   );
@@ -276,62 +276,48 @@ export default function SuperAdminPlatformPaymentsPage() {
 
   if (loadError) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-6">
         <SuperAdminPageHeader
           title="Payment gateways"
           description="Control which payment gateways are available to all tenants."
         />
-        <Card className="border-destructive/25 bg-destructive/[0.04] shadow-sm">
-          <CardHeader className="flex flex-row items-center gap-3">
-            <Shield className="size-8 text-destructive" aria-hidden />
-            <div>
-              <CardTitle className="text-destructive">Could not load</CardTitle>
-              <CardDescription className="text-destructive/90">{loadError}</CardDescription>
-            </div>
-          </CardHeader>
-          <CardFooter>
-            <Button variant="outline" onClick={() => void reload()}>
-              Try again
-            </Button>
-          </CardFooter>
-        </Card>
+        <AuthAlert variant="error">{loadError}</AuthAlert>
+        <Button variant="outline" onClick={() => void reload()}>
+          Try again
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <SuperAdminPageHeader
         title="Payment gateways"
         description="Enable BYO providers for tenants, and configure Kiosk Pay (platform custody + withdraw) and airtime resale."
       />
 
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Wallet className="size-5 text-muted-foreground" aria-hidden />
-              <div>
-                <CardTitle className="font-heading text-base">Kiosk Pay</CardTitle>
-                <CardDescription>
-                  Platform Paystack collects; tenants see a wallet and withdraw via platform
-                  KopoKopo Send Money.
-                </CardDescription>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={kioskPay?.enabled ? "success" : "secondary"}>
-                {kioskPay?.enabled ? "On" : "Off"}
-              </Badge>
-              <Switch
-                checked={Boolean(kioskPay?.enabled)}
-                disabled={kioskSaving || !kioskPay}
-                onCheckedChange={(on) => void saveKioskPay(on)}
-              />
-            </div>
+      <SaSection
+        title="Kiosk Pay"
+        description="Platform Paystack collects; tenants see a wallet and withdraw via platform KopoKopo Send Money."
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge variant={kioskPay?.enabled ? "success" : "secondary"}>
+              {kioskPay?.enabled ? "On" : "Off"}
+            </Badge>
+            <Switch
+              checked={Boolean(kioskPay?.enabled)}
+              disabled={kioskSaving || !kioskPay}
+              onCheckedChange={(on) => void saveKioskPay(on)}
+            />
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        }
+        footer={
+          <Button disabled={kioskSaving} onClick={() => void saveKioskPay()}>
+            {kioskSaving ? "Saving…" : "Save Kiosk Pay settings"}
+          </Button>
+        }
+      >
+        <div className="space-y-4">
           {kioskPay?.sendMoneyFloatConstrainedUntil ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
               <p>
@@ -354,162 +340,149 @@ export default function SuperAdminPlatformPaymentsPage() {
               </Button>
             </div>
           ) : null}
-          <p className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             No platform markup. Paystack / KopoKopo processing fees are deducted from
             the merchant&apos;s Kiosk Pay balance.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1 text-sm">
-              <span className="text-xs text-muted-foreground">Min withdraw</span>
-              <input
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-min-withdraw">Min withdraw</Label>
+              <Input
+                id="sa-min-withdraw"
                 value={minWithdraw}
                 onChange={(e) => setMinWithdraw(e.target.value)}
               />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="text-xs text-muted-foreground">Daily withdraw limit</span>
-              <input
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-daily-limit">Daily withdraw limit</Label>
+              <Input
+                id="sa-daily-limit"
                 value={dailyLimit}
                 onChange={(e) => setDailyLimit(e.target.value)}
               />
-            </label>
+            </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="space-y-2 rounded-lg border border-border/60 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium">
-                Paystack (collect){" "}
-                <span className="text-xs text-muted-foreground">
-                  {kioskPay?.hasPaystackCredentials
-                    ? `· configured ${kioskPay.paystackPublicKeyHint ?? ""}`
-                    : "· not configured"}
-                </span>
-              </p>
-              {kioskPay?.hasPaystackCredentials ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 shrink-0 px-2 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  disabled={kioskSaving}
-                  onClick={clearPaystackCreds}
-                >
-                  Clear
-                </Button>
-              ) : null}
-            </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">
+                  Paystack (collect){" "}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {kioskPay?.hasPaystackCredentials
+                      ? `· configured ${kioskPay.paystackPublicKeyHint ?? ""}`
+                      : "· not configured"}
+                  </span>
+                </p>
+                {kioskPay?.hasPaystackCredentials ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 shrink-0 px-2 text-xs text-destructive hover:text-destructive"
+                    disabled={kioskSaving}
+                    onClick={clearPaystackCreds}
+                  >
+                    Clear
+                  </Button>
+                ) : null}
+              </div>
               <select
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                className={saSelectClass}
                 value={paystackEnv}
                 onChange={(e) => setPaystackEnv(e.target.value)}
+                aria-label="Paystack environment"
               >
                 <option value="sandbox">Sandbox</option>
                 <option value="production">Production</option>
               </select>
-              <input
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm"
+              <Input
+                className="font-mono"
                 placeholder="pk_… public key"
                 value={paystackPublic}
                 onChange={(e) => setPaystackPublic(e.target.value)}
               />
-              <input
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm"
+              <Input
+                className="font-mono"
+                type="password"
+                autoComplete="off"
                 placeholder="sk_… secret key"
                 value={paystackSecret}
                 onChange={(e) => setPaystackSecret(e.target.value)}
               />
             </div>
-            <div className="space-y-2 rounded-lg border border-border/60 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium">
-                KopoKopo (withdraw){" "}
-                <span className="text-xs text-muted-foreground">
-                  {kioskPay?.hasKopokopoCredentials ? "· configured" : "· not configured"}
-                </span>
-              </p>
-              {kioskPay?.hasKopokopoCredentials ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 shrink-0 px-2 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  disabled={kioskSaving}
-                  onClick={clearKopokopoCreds}
-                >
-                  Clear
-                </Button>
-              ) : null}
-            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">
+                  KopoKopo (withdraw){" "}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {kioskPay?.hasKopokopoCredentials ? "· configured" : "· not configured"}
+                  </span>
+                </p>
+                {kioskPay?.hasKopokopoCredentials ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 shrink-0 px-2 text-xs text-destructive hover:text-destructive"
+                    disabled={kioskSaving}
+                    onClick={clearKopokopoCreds}
+                  >
+                    Clear
+                  </Button>
+                ) : null}
+              </div>
               <select
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                className={saSelectClass}
                 value={kopokopoEnv}
                 onChange={(e) => setKopokopoEnv(e.target.value)}
+                aria-label="KopoKopo environment"
               >
                 <option value="sandbox">Sandbox</option>
                 <option value="production">Production</option>
               </select>
-              <input
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm"
+              <Input
+                className="font-mono"
                 placeholder="Client ID"
                 value={kkClientId}
                 onChange={(e) => setKkClientId(e.target.value)}
               />
-              <input
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm"
+              <Input
+                className="font-mono"
+                type="password"
+                autoComplete="off"
                 placeholder="Client Secret"
                 value={kkClientSecret}
                 onChange={(e) => setKkClientSecret(e.target.value)}
               />
-              <input
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm"
+              <Input
+                className="font-mono"
+                type="password"
+                autoComplete="off"
                 placeholder="API Key"
                 value={kkApiKey}
                 onChange={(e) => setKkApiKey(e.target.value)}
               />
-              <input
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              <Input
                 placeholder="Till number"
                 value={kkTill}
                 onChange={(e) => setKkTill(e.target.value)}
               />
             </div>
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button disabled={kioskSaving} onClick={() => void saveKioskPay()}>
-            {kioskSaving ? "Saving…" : "Save Kiosk Pay settings"}
-          </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </SaSection>
 
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Wallet className="size-5 text-muted-foreground" aria-hidden />
-            <div>
-              <CardTitle className="font-heading text-base">Tenant wallets</CardTitle>
-              <CardDescription>
-                Platform custody float — reconcile PSP settlements against these totals.
-              </CardDescription>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={accountsLoading}
-            onClick={() => void reload()}
-          >
-            {accountsLoading ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              "Refresh"
-            )}
+      <SaSection
+        title="Tenant wallets"
+        description="Platform custody float — reconcile PSP settlements against these totals."
+        actions={
+          <Button variant="outline" size="sm" disabled={accountsLoading} onClick={() => void reload()}>
+            {accountsLoading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : "Refresh"}
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        }
+      >
+        <div className="space-y-4">
           {accountSummary ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <SummaryTile label="Accounts" value={String(accountSummary.accountCount)} />
@@ -520,78 +493,131 @@ export default function SuperAdminPlatformPaymentsPage() {
             </div>
           ) : null}
           {accounts.length > 0 ? (
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <table className="w-full min-w-[680px] text-left text-xs">
-                <thead className="border-b border-border/60 bg-muted/20 text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Business</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                    <th className="px-3 py-2 text-right font-medium">Available</th>
-                    <th className="px-3 py-2 text-right font-medium">Pending</th>
-                    <th className="px-3 py-2 text-right font-medium">Lifetime in</th>
-                    <th className="px-3 py-2 text-right font-medium">Lifetime out</th>
-                    <th className="px-3 py-2 font-medium" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {accounts.map((a) => (
-                    <tr key={a.businessId}>
-                      <td className="px-3 py-2 font-mono">{shortId(a.businessId)}</td>
-                      <td className="px-3 py-2">
-                        <Badge variant={a.status === "ACTIVE" ? "success" : "secondary"}>
-                          {a.status}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {money(a.availableBalance)}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{money(a.pendingBalance)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{money(a.lifetimeIn)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{money(a.lifetimeOut)}</td>
-                      <td className="px-3 py-2 text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setAdjustTarget(a);
-                            setAdjustDelta("");
-                            setAdjustNote("");
-                          }}
-                        >
-                          Adjust
-                        </Button>
-                      </td>
+            <>
+              <ul className="divide-y divide-border/60 lg:hidden">
+                {accounts.map((a) => (
+                  <li key={a.businessId} className="flex items-start justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm">{shortId(a.businessId)}</p>
+                      <p className="mt-1 text-sm tabular-nums">
+                        {money(a.availableBalance)}{" "}
+                        <span className="text-muted-foreground">available</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        Pending {money(a.pendingBalance)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <Badge variant={a.status === "ACTIVE" ? "success" : "secondary"}>{a.status}</Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setAdjustTarget(a);
+                          setAdjustDelta("");
+                          setAdjustNote("");
+                        }}
+                      >
+                        Adjust
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden overflow-x-auto lg:block">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-y border-border/60 text-muted-foreground">
+                    <tr>
+                      <th className="px-1 py-2 font-medium">Business</th>
+                      <th className="px-1 py-2 font-medium">Status</th>
+                      <th className="px-1 py-2 text-right font-medium">Available</th>
+                      <th className="px-1 py-2 text-right font-medium">Pending</th>
+                      <th className="px-1 py-2 text-right font-medium">Lifetime in</th>
+                      <th className="px-1 py-2 text-right font-medium">Lifetime out</th>
+                      <th className="px-1 py-2 font-medium" />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {accounts.map((a) => (
+                      <tr key={a.businessId}>
+                        <td className="px-1 py-2 font-mono text-xs">{shortId(a.businessId)}</td>
+                        <td className="px-1 py-2">
+                          <Badge variant={a.status === "ACTIVE" ? "success" : "secondary"}>
+                            {a.status}
+                          </Badge>
+                        </td>
+                        <td className="px-1 py-2 text-right tabular-nums">{money(a.availableBalance)}</td>
+                        <td className="px-1 py-2 text-right tabular-nums">{money(a.pendingBalance)}</td>
+                        <td className="px-1 py-2 text-right tabular-nums">{money(a.lifetimeIn)}</td>
+                        <td className="px-1 py-2 text-right tabular-nums">{money(a.lifetimeOut)}</td>
+                        <td className="px-1 py-2 text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setAdjustTarget(a);
+                              setAdjustDelta("");
+                              setAdjustNote("");
+                            }}
+                          >
+                            Adjust
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
-            <p className="text-xs text-muted-foreground">No tenant Kiosk Pay accounts yet.</p>
+            <p className="text-sm text-muted-foreground">No tenant Kiosk Pay accounts yet.</p>
           )}
           {withdrawals.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Recent withdrawals
-              </p>
-              <div className="overflow-x-auto rounded-lg border border-border/60">
-                <table className="w-full min-w-[680px] text-left text-xs">
-                  <thead className="border-b border-border/60 bg-muted/20 text-muted-foreground">
+              <p className="text-sm font-medium">Recent withdrawals</p>
+              <ul className="divide-y divide-border/60 lg:hidden">
+                {withdrawals.map((w) => (
+                  <li key={w.id} className="py-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-mono text-sm">{shortId(w.businessId)}</p>
+                      <Badge
+                        variant={
+                          w.status === "SUCCESS"
+                            ? "success"
+                            : w.status === "FAILED"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                      >
+                        {w.status}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-sm tabular-nums">{money(w.amount)}</p>
+                    <p className="text-xs text-muted-foreground">{w.phoneNumber}</p>
+                    {w.failureReason ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{w.failureReason}</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden overflow-x-auto lg:block">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-y border-border/60 text-muted-foreground">
                     <tr>
-                      <th className="px-3 py-2 font-medium">Business</th>
-                      <th className="px-3 py-2 text-right font-medium">Amount</th>
-                      <th className="px-3 py-2 font-medium">Phone</th>
-                      <th className="px-3 py-2 font-medium">Status</th>
-                      <th className="px-3 py-2 font-medium">Reason</th>
+                      <th className="px-1 py-2 font-medium">Business</th>
+                      <th className="px-1 py-2 text-right font-medium">Amount</th>
+                      <th className="px-1 py-2 font-medium">Phone</th>
+                      <th className="px-1 py-2 font-medium">Status</th>
+                      <th className="px-1 py-2 font-medium">Reason</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
                     {withdrawals.map((w) => (
                       <tr key={w.id}>
-                        <td className="px-3 py-2 font-mono">{shortId(w.businessId)}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{money(w.amount)}</td>
-                        <td className="px-3 py-2">{w.phoneNumber}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-1 py-2 font-mono text-xs">{shortId(w.businessId)}</td>
+                        <td className="px-1 py-2 text-right tabular-nums">{money(w.amount)}</td>
+                        <td className="px-1 py-2">{w.phoneNumber}</td>
+                        <td className="px-1 py-2">
                           <Badge
                             variant={
                               w.status === "SUCCESS"
@@ -604,7 +630,7 @@ export default function SuperAdminPlatformPaymentsPage() {
                             {w.status}
                           </Badge>
                         </td>
-                        <td className="max-w-[260px] px-3 py-2 text-muted-foreground">
+                        <td className="max-w-[260px] px-1 py-2 text-muted-foreground">
                           <span className="line-clamp-2" title={w.failureReason ?? undefined}>
                             {w.failureReason ?? "—"}
                           </span>
@@ -616,78 +642,55 @@ export default function SuperAdminPlatformPaymentsPage() {
               </div>
             </div>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </SaSection>
 
       <PlatformAirtimeSection />
 
-      <Card className="border-border/70 bg-muted/20 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="font-heading text-base">BYO gateways</CardTitle>
-          <CardDescription className="text-sm leading-relaxed">
+      <SaSection
+        title="BYO gateways"
+        description={
+          <>
             Enable providers so tenants can connect <span className="font-medium text-foreground">their own</span>{" "}
             credentials under Payments → Settings. Money settles to the tenant — not Kiosk Pay.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {gateways.map((gw) => (
-          <Card
-            key={gw.gatewayType}
-            className={cn(
-              "group border-border/70 shadow-sm transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md",
-              gw.isEnabled && "ring-1 ring-primary/20",
-            )}
-          >
-            <CardHeader className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2">
-                  <span
-                    className={cn(
-                      "size-2.5 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-background",
-                      gw.isEnabled ? "bg-emerald-500 ring-emerald-500/30" : "bg-muted-foreground/25 ring-transparent",
-                    )}
-                    aria-hidden
-                  />
-                  <CardTitle className="truncate font-heading text-base leading-snug">{gw.displayName}</CardTitle>
-                </div>
-                <Badge variant={gw.isEnabled ? "success" : "secondary"}>{gw.isEnabled ? "On" : "Off"}</Badge>
-              </div>
-              {gw.description ? (
-                <CardDescription className="line-clamp-3">{gw.description}</CardDescription>
-              ) : null}
-            </CardHeader>
-            <CardContent className="text-xs text-muted-foreground tabular-nums">
-              Sort order: {gw.sortOrder} · <span className="font-mono">{gw.gatewayType}</span>
-            </CardContent>
-            <CardFooter className="border-t border-border/50 bg-muted/15 pt-4">
-              <Button
-                variant={gw.isEnabled ? "outline" : "default"}
-                size="sm"
-                disabled={saving === gw.gatewayType}
-                onClick={() => onToggle(gw.gatewayType, gw)}
-                className="w-full"
-              >
-                {saving === gw.gatewayType
-                  ? "Saving…"
-                  : gw.isEnabled
-                    ? "Disable for platform"
-                    : "Enable for platform"}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      {gateways.length === 0 ? (
-        <Card className="border-dashed border-border/80 bg-muted/10">
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground">
-            <CreditCard className="size-8 opacity-40" aria-hidden />
+          </>
+        }
+        padded={false}
+      >
+        {gateways.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground sm:px-5">
             No gateways returned from the API.
-          </CardContent>
-        </Card>
-      ) : null}
+          </p>
+        ) : (
+          <ul className="divide-y divide-border/60">
+            {gateways.map((gw) => (
+              <li
+                key={gw.gatewayType}
+                className="flex items-start justify-between gap-4 px-4 py-3.5 sm:px-5"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium">{gw.displayName}</p>
+                  {gw.description ? (
+                    <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{gw.description}</p>
+                  ) : null}
+                  <p className="mt-1 font-mono text-xs text-muted-foreground">{gw.gatewayType}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Badge variant={gw.isEnabled ? "success" : "secondary"}>
+                    {gw.isEnabled ? "On" : "Off"}
+                  </Badge>
+                  <Switch
+                    checked={gw.isEnabled}
+                    disabled={saving === gw.gatewayType}
+                    onCheckedChange={() => void onToggle(gw.gatewayType, gw)}
+                    aria-label={`${gw.isEnabled ? "Disable" : "Enable"} ${gw.displayName}`}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SaSection>
 
       <Dialog
         open={adjustTarget !== null}
@@ -705,30 +708,30 @@ export default function SuperAdminPlatformPaymentsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-1">
-            <label className="space-y-1.5 text-sm">
-              <span className="text-xs font-medium text-muted-foreground">Delta (KES)</span>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-adjust-delta">Delta (KES)</Label>
+              <Input
+                id="sa-adjust-delta"
                 type="number"
                 step="0.01"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
                 placeholder="e.g. -500 or 250.50"
                 value={adjustDelta}
                 disabled={adjustSaving}
                 onChange={(e) => setAdjustDelta(e.target.value)}
                 autoFocus
               />
-            </label>
-            <label className="space-y-1.5 text-sm">
-              <span className="text-xs font-medium text-muted-foreground">Note (audit trail)</span>
-              <input
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-adjust-note">Note (audit trail)</Label>
+              <Input
+                id="sa-adjust-note"
                 type="text"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
                 placeholder="e.g. refund for voided sale #123"
                 value={adjustNote}
                 disabled={adjustSaving}
                 onChange={(e) => setAdjustNote(e.target.value)}
               />
-            </label>
+            </div>
           </div>
           <DialogFooter>
             <Button

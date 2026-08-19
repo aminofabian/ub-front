@@ -17,6 +17,8 @@ export const APP_ROUTES = {
   superAdminLogin: "/super-admin/login",
   superAdminDashboard: "/super-admin",
   superAdminBusinesses: "/super-admin/businesses",
+  superAdminCampaigns: "/super-admin/campaigns",
+  superAdminCampaignNew: "/super-admin/campaigns/new",
   superAdminSettings: "/super-admin/settings",
   superAdminPlatformIntegrations: "/super-admin/platform/integrations",
   superAdminPlatformSokoMind: "/super-admin/platform/sokomind",
@@ -221,6 +223,8 @@ export const API_ROUTES = {
   superAdminAuthLogin: "/api/v1/super-admin/auth/login",
   superAdminAuthRefresh: "/api/v1/super-admin/auth/refresh",
   superAdminBusinesses: "/api/v1/super-admin/businesses",
+  superAdminEmailRecipients: "/api/v1/super-admin/email-recipients",
+  superAdminEmailCampaigns: "/api/v1/super-admin/email-campaigns",
   superAdminPlatformPaymentGateways:
     "/api/v1/super-admin/payments/platform-gateways",
   superAdminKioskPay: "/api/v1/super-admin/payments/kiosk-pay",
@@ -247,6 +251,7 @@ export const API_ROUTES = {
   airtime: "/api/v1/airtime",
   paymentSupplierPayout: "/api/v1/payments/supplier-payout",
   paymentDisplayInstructions: "/api/v1/payments/display-instructions",
+  auditEvents: "/api/v1/audit-events",
 } as const;
 
 /** Spring Data page query (flat params). */

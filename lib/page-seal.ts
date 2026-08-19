@@ -1,4 +1,5 @@
 import { apiUrl } from "@/lib/config";
+import { toKenyanLocal07 } from "@/lib/kenyan-phone";
 import { isSessionRelatedProblem } from "@/lib/problem";
 import {
   getSupplierPortalAccessToken,
@@ -31,7 +32,10 @@ export type PageSealUnlockResult = {
 export type PageSealScope = "supplier" | "customer-tab" | "shop-supplier";
 
 function storageKey(scope: PageSealScope, key: string): string {
-  return `ub.pageSeal.unlock:${scope}:${key.trim().toLowerCase()}`;
+  const raw = key.trim().toLowerCase();
+  const subject =
+    scope === "customer-tab" ? toKenyanLocal07(raw) || raw : raw;
+  return `ub.pageSeal.unlock:${scope}:${subject}`;
 }
 
 function tenantHostHeaders(extra?: Record<string, string>): Record<string, string> {

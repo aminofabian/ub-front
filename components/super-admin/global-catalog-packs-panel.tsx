@@ -4,11 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ImageOff } from "lucide-react";
 import { toast } from "sonner";
 
+import { SaSection, saSelectClass } from "@/components/super-admin/sa-section";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
+import { Switch } from "@/components/ui/switch";
 import {
   fetchSaGlobalPack,
   fetchSaGlobalProduct,
@@ -173,36 +175,49 @@ export function GlobalCatalogPacksPanel({
 
   if (packs.length === 0) {
     return (
-      <div className="rounded-2xl border border-border/70 px-4 py-12 text-center text-sm text-muted-foreground">
-        No starter packs found.
-      </div>
+      <SaSection title="Starter packs">
+        <p className="py-8 text-center text-sm text-muted-foreground">No starter packs found.</p>
+      </SaSection>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/40 p-4 sm:flex-row sm:items-end">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <Label htmlFor="pack-select">Starter pack</Label>
-          <select
-            id="pack-select"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            value={selectedPackId}
-            onChange={(e) => {
-              const next = e.target.value;
-              if (!dirty) {
-                setSelectedPackId(next);
-                return;
-              }
-              showThemedConfirmToast({
-                id: "discard-pack-changes",
-                title: "Discard unsaved changes?",
-                description: "Switching packs will lose edits you have not saved.",
-                confirmLabel: "Discard",
-                onConfirm: () => setSelectedPackId(next),
-              });
-            }}
-          >
+      <SaSection
+        title="Starter pack"
+        description={
+          packDetail
+            ? `${packDetail.description || "No description"} · ${memberIds.length} members${packDetail.storeKitId ? ` · kit ${packDetail.storeKitId}` : ""}${dirty ? " · unsaved changes" : ""}`
+            : undefined
+        }
+        actions={
+          <Button disabled={busy || !dirty} onClick={() => void onSave()}>
+            Save pack
+          </Button>
+        }
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Label htmlFor="pack-select">Pack</Label>
+            <select
+              id="pack-select"
+              className={saSelectClass}
+              value={selectedPackId}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (!dirty) {
+                  setSelectedPackId(next);
+                  return;
+                }
+                showThemedConfirmToast({
+                  id: "discard-pack-changes",
+                  title: "Discard unsaved changes?",
+                  description: "Switching packs will lose edits you have not saved.",
+                  confirmLabel: "Discard",
+                  onConfirm: () => setSelectedPackId(next),
+                });
+              }}
+            >
             {packs.map((pack) => {
               const pct =
                 pack.productCount > 0
@@ -220,7 +235,7 @@ export function GlobalCatalogPacksPanel({
           <Label htmlFor="pack-store-kit">Onboarding kit</Label>
           <select
             id="pack-store-kit"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className={saSelectClass}
             value={storeKitId}
             onChange={(e) => {
               setStoreKitId(e.target.value);
@@ -235,24 +250,11 @@ export function GlobalCatalogPacksPanel({
             ))}
           </select>
         </div>
-        <Button disabled={busy || !dirty} onClick={() => void onSave()}>
-          Save pack
-        </Button>
-      </div>
-
-      {packDetail ? (
-        <p className="text-sm text-muted-foreground">
-          {packDetail.description || "No description"} · {memberIds.length} members
-          {packDetail.storeKitId ? ` · kit ${packDetail.storeKitId}` : ""}
-          {dirty ? " · unsaved changes" : ""}
-        </p>
-      ) : null}
+        </div>
+      </SaSection>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="overflow-hidden rounded-2xl border border-border/70">
-          <div className="border-b border-border/60 bg-muted/30 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            In pack ({memberRows.length})
-          </div>
+        <SaSection title="In pack" description={`${memberRows.length} members`} padded={false}>
           <ul className="max-h-[28rem] divide-y divide-border/60 overflow-y-auto">
             {memberRows.length === 0 ? (
               <li className="px-4 py-10 text-center text-sm text-muted-foreground">
@@ -285,26 +287,19 @@ export function GlobalCatalogPacksPanel({
               ))
             )}
           </ul>
-        </section>
+        </SaSection>
 
-        <section className="overflow-hidden rounded-2xl border border-border/70">
-          <div className="space-y-3 border-b border-border/60 bg-muted/30 px-4 py-3">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Add published products
-            </div>
+        <SaSection title="Add published products" padded={false}>
+          <div className="space-y-3 border-b border-border/60 px-4 py-3 sm:px-5">
             <Input
               value={candidateQ}
               onChange={(e) => setCandidateQ(e.target.value)}
               placeholder="Search published products…"
             />
-            <label className="flex items-center gap-2 text-xs text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={preferImaged}
-                onChange={(e) => setPreferImaged(e.target.checked)}
-              />
-              Prefer products with images
-            </label>
+            <div className="flex items-center gap-2">
+              <Switch id="pack-prefer-imaged" checked={preferImaged} onCheckedChange={setPreferImaged} />
+              <Label htmlFor="pack-prefer-imaged">Prefer products with images</Label>
+            </div>
           </div>
           <ul className="max-h-[28rem] divide-y divide-border/60 overflow-y-auto">
             {candidates
@@ -329,7 +324,7 @@ export function GlobalCatalogPacksPanel({
                 </li>
               ))}
           </ul>
-        </section>
+        </SaSection>
       </div>
     </div>
   );

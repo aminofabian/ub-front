@@ -2,6 +2,7 @@
 
 import { ScrollText } from "lucide-react";
 
+import { AuditLogPanel } from "@/components/audit-log-panel";
 import { OpsClientLogsPanel } from "@/components/ops-client-logs-panel";
 import {
   DASHBOARD_MAX,
@@ -11,16 +12,16 @@ import {
 import { useDashboard } from "@/components/dashboard-provider";
 
 export default function BusinessLogsPage() {
-  const { loading, canManageBusinessSettings } = useDashboard();
+  const { loading, canViewAuditLog } = useDashboard();
 
   if (loading) {
     return null;
   }
-  if (!canManageBusinessSettings) {
+  if (!canViewAuditLog) {
     return (
       <DashboardAccessDenied
-        title="System logs unavailable"
-        description="Only business admins can view client API errors from this device."
+        title="Activity log unavailable"
+        description="Only owners, admins, and managers can view the activity log."
       />
     );
   }
@@ -30,10 +31,18 @@ export default function BusinessLogsPage() {
       <DashboardPageHero
         icon={ScrollText}
         eyebrow="Organization"
-        title="System logs"
-        description="API reachability and proxy-config errors from this browser. Tills never toast this detail — it is recorded here instead."
+        title="Activity log"
+        description="Every auditable event across the business — sales, shifts, security, inventory, and system failures. Filter by severity, category, or time, and switch to failures-only to spot problems fast."
       />
-      <OpsClientLogsPanel />
+      <AuditLogPanel />
+      <details className="group">
+        <summary className="cursor-pointer list-none rounded-xl border border-border/60 bg-card/50 px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
+          Device diagnostics — this browser only
+        </summary>
+        <div className="mt-4">
+          <OpsClientLogsPanel />
+        </div>
+      </details>
     </div>
   );
 }

@@ -7,23 +7,15 @@ import {
   PlugZap,
   RefreshCw,
   RotateCcw,
-  Signal,
   TriangleAlert,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { SaSection } from "@/components/super-admin/sa-section";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import {
   type PlatformAirtimeSettingsRecord,
@@ -275,33 +267,28 @@ export function PlatformAirtimeSection() {
   const paused = Boolean(settings?.floatConstrainedUntil);
 
   return (
-    <Card className="border-border/70 shadow-sm">
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Signal className="size-5 text-muted-foreground" aria-hidden />
-            <div>
-              <CardTitle className="font-heading text-base">Airtime (Instalipa)</CardTitle>
-              <CardDescription>
-                One platform float sells airtime for every tenant. Merchants pay from
-                their Kiosk Pay wallet and keep the commission you set below.
-              </CardDescription>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={settings?.enabled ? "success" : "secondary"}>
-              {settings?.enabled ? "On" : "Off"}
-            </Badge>
-            <Switch
-              checked={Boolean(settings?.enabled)}
-              disabled={saving || loading || !settings}
-              onCheckedChange={(on) => void save(on)}
-            />
-          </div>
+    <SaSection
+      title="Airtime (Instalipa)"
+      description="One platform float sells airtime for every tenant. Merchants pay from their Kiosk Pay wallet and keep the commission you set below."
+      actions={
+        <div className="flex items-center gap-2">
+          <Badge variant={settings?.enabled ? "success" : "secondary"}>
+            {settings?.enabled ? "On" : "Off"}
+          </Badge>
+          <Switch
+            checked={Boolean(settings?.enabled)}
+            disabled={saving || loading || !settings}
+            onCheckedChange={(on) => void save(on)}
+          />
         </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
+      }
+      footer={
+        <Button disabled={saving || loading} onClick={() => void save()}>
+          {saving ? "Saving…" : "Save airtime settings"}
+        </Button>
+      }
+    >
+      <div className="space-y-4">
         {loading ? (
           <div className="flex items-center gap-2 px-1 py-6 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -590,14 +577,8 @@ export function PlatformAirtimeSection() {
             </div>
           </>
         )}
-      </CardContent>
-
-      <CardFooter>
-        <Button disabled={saving || loading} onClick={() => void save()}>
-          {saving ? "Saving…" : "Save airtime settings"}
-        </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </SaSection>
   );
 }
 
@@ -611,15 +592,13 @@ function SummaryTile({
   hint?: string;
 }) {
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </p>
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-0.5 truncate font-heading text-sm font-semibold tabular-nums">
         {value}
       </p>
       {hint ? (
-        <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{hint}</p>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );

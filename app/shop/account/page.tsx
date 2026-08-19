@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, LogOut } from "lucide-react";
 
 import { ShopAccountHub, SHOP_FLOOR_HREF, fmtMoney } from "@/components/storefront/shop-account-hub";
+import { ShopperPhoneLogin } from "@/components/storefront/shop-phone-login";
 import styles from "@/components/storefront/shop-account.module.css";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
 import { fetchBusiness, fetchMe, logoutRemote, type MeResponse } from "@/lib/api";
@@ -60,7 +61,7 @@ export default function ShopAccountPage() {
     router.refresh();
   };
 
-  const loginHref = `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`;
+  const loginHref = `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}&mode=email`;
   const currency = peekCurrency ?? "KES";
 
   if (!ready || state === "loading") {
@@ -81,16 +82,21 @@ export default function ShopAccountPage() {
       <div className={styles.page}>
         <article className={styles.passbook}>
           <div className={styles.passHead}>
-            <h1 className={styles.hello}>Sign in to see your shop</h1>
+            <h1 className={styles.hello}>Your number is your account</h1>
             <p className={styles.lead}>
-              Purchase history, your M-Pesa number, wallet, and in-store tab — then hop back to the
-              aisles.
+              If you already buy on tab here, you&apos;re already a customer. Verify the phone,
+              enter or set a PIN, and you&apos;re in.
             </p>
           </div>
           <div className={styles.passTop}>
             <div className={styles.stamp}>
-              <p className={styles.stampPhone}>— — —</p>
-              <p className={styles.stampMeta}>Your number shows here after you sign in</p>
+              <ShopperPhoneLogin
+                variant="passbook"
+                onSignedIn={() => {
+                  void loadMe();
+                  router.refresh();
+                }}
+              />
             </div>
           </div>
           <dl className={styles.strip}>
@@ -117,14 +123,11 @@ export default function ShopAccountPage() {
             </div>
           </dl>
           <div className={styles.actions}>
-            <Link href={loginHref} className={styles.ctaAccent}>
-              Sign in
-            </Link>
-            <Link href={APP_ROUTES.signup} className={styles.ghost}>
-              Create account
-            </Link>
             <Link href={SHOP_FLOOR_HREF} className={styles.quiet}>
               Continue shopping
+            </Link>
+            <Link href={loginHref} className={styles.quiet}>
+              Use email instead
             </Link>
           </div>
         </article>

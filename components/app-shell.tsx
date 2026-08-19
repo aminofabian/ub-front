@@ -168,8 +168,8 @@ const NAV_SECTIONS: readonly NavSection[] = [
       },
       {
         href: APP_ROUTES.businessLogs,
-        label: "System logs",
-        group: "Inbox",
+        label: "Activity log",
+        group: "Monitoring",
       },
       {
         href: APP_ROUTES.businessImport,
@@ -436,6 +436,7 @@ type NavGate = {
   canListUsers: boolean;
   canViewPayroll: boolean;
   canManageBusinessSettings: boolean;
+  canViewAuditLog: boolean;
   canViewCategories: boolean;
   canViewPurchasingIntelligence: boolean;
   canAddSupplies: boolean;
@@ -612,7 +613,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.customerPhones) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.messages) return gate.canViewMessages;
   if (item.href === APP_ROUTES.businessLogs)
-    return gate.canManageBusinessSettings;
+    return gate.canViewAuditLog;
   if (item.href === APP_ROUTES.creditsPaymentClaims)
     return gate.canReviewPaymentClaims;
   if (item.href === APP_ROUTES.purchasingRecordPayment)
@@ -823,6 +824,7 @@ export function AppShell({ children }: AppShellProps) {
     canListUsers,
     canViewPayroll,
     canManageBusinessSettings,
+    canViewAuditLog,
     canViewCategories,
     canViewPurchasingIntelligence,
     canPathBWrite,
@@ -920,6 +922,7 @@ export function AppShell({ children }: AppShellProps) {
       canListUsers,
       canViewPayroll,
       canManageBusinessSettings,
+      canViewAuditLog,
       canViewCategories,
       canViewPurchasingIntelligence,
       canAddSupplies,
@@ -968,6 +971,7 @@ export function AppShell({ children }: AppShellProps) {
     canListUsers,
     canViewPayroll,
     canManageBusinessSettings,
+    canViewAuditLog,
     canViewCategories,
     canViewPurchasingIntelligence,
     canAddSupplies,
