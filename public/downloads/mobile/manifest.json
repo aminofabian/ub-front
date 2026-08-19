@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T14:15:22.340Z",
+  "generatedAt": "2026-08-19T15:05:31.510Z",
   "storeLinks": {
     "ios": null,
     "android": null
@@ -11,8 +11,8 @@
       "version": "0.0.1",
       "platform": "android",
       "file": "kiosk-shopper-0.0.1-android.apk",
-      "url": "https://expo.dev/artifacts/eas/WS5-VMdF8OVSBuYr0q8Q8Lx67zpyF8oURNQ2A6v8WU4.apk",
-      "sizeBytes": 95520653
+      "url": "https://expo.dev/artifacts/eas/gosHpsqfO13nXb6UKpG7EjFbtYIQB2oFu6JaIMphiVI.apk",
+      "sizeBytes": 95980737
     },
     {
       "id": "admin",
