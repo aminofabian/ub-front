@@ -385,6 +385,9 @@ export function ShopStorefrontChrome({
           />
         </Suspense>
       ) : null}
+      {!compactChrome ? (
+        <ShopAirtimeLauncher slug={slug} accentHex={accentHex} />
+      ) : null}
       <div
         className={cn(
           "flex min-h-0 flex-1 flex-col",
@@ -406,9 +409,6 @@ export function ShopStorefrontChrome({
         />
       ) : null}
       {!isCustomChrome ? <FloatingCartButton accentHex={accentHex} /> : null}
-      {!compactChrome ? (
-        <ShopAirtimeLauncher slug={slug} accentHex={accentHex} />
-      ) : null}
       </div>
     </ShopCartProvider>
   );

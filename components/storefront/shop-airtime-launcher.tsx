@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Signal } from "lucide-react";
+import { ChevronRight, Signal } from "lucide-react";
 
 import { ShopAirtimeFlow } from "@/components/storefront/shop-airtime-flow";
 import {
@@ -19,18 +19,27 @@ import {
 } from "@/lib/public-storefront-client";
 import { cn } from "@/lib/utils";
 
-/** Storefront routes where a floating pill would fight the primary action. */
+/** Routes where an airtime entry would fight the primary action. */
 const HIDDEN_ON: readonly string[] = [
   APP_ROUTES.shopCheckout,
   APP_ROUTES.shopCart,
   APP_ROUTES.shopAirtime,
 ];
 
+function isCatalogPath(pathname: string): boolean {
+  return (
+    pathname === APP_ROUTES.shop ||
+    pathname === "/" ||
+    pathname.startsWith(`${APP_ROUTES.shop}/c/`)
+  );
+}
+
 /**
- * Always-reachable airtime entry point for the storefront.
+ * Storefront airtime entry.
  *
- * <p>Sits opposite the cart pill so a shopper can top up a line mid-browse
- * without losing their basket. Renders nothing when the shop has airtime off.
+ * Phones get an in-flow row on the catalogue so it never covers products or
+ * the cart dock. From the `md` breakpoint up, a corner pill stays reachable
+ * while browsing. Renders nothing when the shop has airtime off.
  */
 export function ShopAirtimeLauncher({
   slug,
@@ -62,12 +71,40 @@ export function ShopAirtimeLauncher({
 
   return (
     <>
+      {isCatalogPath(pathname) ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center gap-3 border-b border-border bg-background px-4 py-2.5 text-left transition-colors hover:bg-muted/50 md:hidden"
+          aria-label="Buy airtime"
+        >
+          <span
+            className={cn(
+              "flex size-9 shrink-0 items-center justify-center rounded-full text-white",
+              !accent && "bg-primary",
+            )}
+            style={accent ? { backgroundColor: accent } : undefined}
+          >
+            <Signal className="size-4" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1 leading-tight">
+            <span className="block text-sm font-semibold text-foreground">
+              Airtime
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              Top up any line
+            </span>
+          </span>
+          <ChevronRight
+            className="size-4 shrink-0 text-muted-foreground"
+            aria-hidden
+          />
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={cn(
-          "fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-4 z-[55] flex items-center gap-2 rounded-full border border-border/80 bg-background/95 py-2 pl-2 pr-4 shadow-lg shadow-black/10 ring-1 ring-black/[0.04] backdrop-blur-md transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98]",
-        )}
+        className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-4 z-[55] hidden items-center gap-2 rounded-full border border-border/80 bg-background/95 py-2 pl-2 pr-4 shadow-lg shadow-black/10 ring-1 ring-black/[0.04] backdrop-blur-md transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98] md:flex"
         aria-label="Buy airtime"
       >
         <span
@@ -80,9 +117,6 @@ export function ShopAirtimeLauncher({
           <Signal className="size-4" aria-hidden />
         </span>
         <span className="flex flex-col items-start leading-tight">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Instant
-          </span>
           <span className="text-sm font-bold">Airtime</span>
         </span>
       </button>
