@@ -77,3 +77,11 @@ export function formatMoneyCompact(
     return `${code} ${Math.round(value).toLocaleString(locale)}`;
   }
 }
+
+/** Convenience alias: (currency, amount) arg order used by pricing/discount UIs. */
+export function formatDisplayPrice(
+  currency: string | null | undefined,
+  amount: number | string | null | undefined,
+): string {
+  return formatMoney(amount, currency);
+}
