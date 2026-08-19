@@ -48,6 +48,7 @@ import {
   tabOverlayKickerClass,
 } from "@/components/credits/tab-overlay";
 import type { PageSealStatus } from "@/lib/page-seal";
+import { useMediaMd } from "@/hooks/use-media-md";
 import { buildStorefrontThemeVars } from "@/lib/storefront-theme";
 import { cn } from "@/lib/utils";
 import {
@@ -914,6 +915,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [airtimeSheetOpen, setAirtimeSheetOpen] = useState(false);
   const [kplcSheetOpen, setKplcSheetOpen] = useState(false);
   const [airtimeConfig, setAirtimeConfig] = useState<PublicTabAirtimeConfig | null>(null);
+  const isMd = useMediaMd();
 
   const payKeyboardInset = useKeyboardInset(paySheetOpen);
   const walletKeyboardInset = useKeyboardInset(walletSheetOpen);
@@ -924,6 +926,10 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     setMounted(true);
     setPortalTheme(readPortalTheme());
   }, []);
+
+  useEffect(() => {
+    if (!isMd) setAirtimeSheetOpen(false);
+  }, [isMd]);
 
   const primary = branding.primaryHex || "#0b6e4f";
   const accent = branding.accentHex;
@@ -1147,6 +1153,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const showWalletTopUp =
     !loading && !notFound && mounted && owed <= 0 && !sealedLocked;
   const showAirtime =
+    isMd &&
     Boolean(airtimeConfig?.available) &&
     !loading &&
     !notFound &&
