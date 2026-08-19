@@ -243,8 +243,8 @@ function VerifyEmailContent() {
   const headerDescription = (() => {
     if (verifyPhase === "success") {
       return signedInAfterVerify
-        ? "Opening your business hub so you can finish setup."
-        : "You're in. Continue to your business hub — you'll sign in once if we couldn't start the session automatically.";
+        ? "Taking you to your account…"
+        : "You're in. Continue to your account — you'll sign in once if we couldn't start the session automatically.";
     }
     if (hasAutoToken && verifyPhase === "verifying") {
       return "Confirming your verification link…";
@@ -335,7 +335,7 @@ function VerifyEmailContent() {
         <div className="mt-5">
           {signedInAfterVerify ? (
             <AuthAlert variant="success">
-              Signed in. Taking you to your business hub…
+              Signed in. Taking you to your account…
             </AuthAlert>
           ) : (
             <>
@@ -348,7 +348,7 @@ function VerifyEmailContent() {
                 href={POST_VERIFY_LOGIN_HREF}
                 className={cn(primaryCtaClass, "mt-4")}
               >
-                Continue to your business hub
+                Continue to your account
               </Link>
             </>
           )}

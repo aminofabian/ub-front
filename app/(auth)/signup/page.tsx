@@ -15,7 +15,8 @@ import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
-  getSessionTokens,
+  hasAccessSession,
+  hasSessionPresenceCookie,
   persistSessionTenantHost,
   setSessionTenantId,
 } from "@/lib/auth";
@@ -59,7 +60,7 @@ function SignupPageContent() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!getSessionTokens()) {
+    if (!hasAccessSession() && !hasSessionPresenceCookie()) {
       return;
     }
     // Already signed in (e.g. revisiting /signup mid-onboarding): send the user
@@ -115,7 +116,7 @@ function SignupPageContent() {
         );
         setVerificationLink(link);
       } else {
-        const base = `You're almost done. We sent a link to ${result.email}. Open it to verify — we'll take you to your business hub.`;
+        const base = `You're almost done. We sent a link to ${result.email}. Open it to verify — we'll take you straight to your account.`;
         const localHint =
           process.env.NODE_ENV === "development"
             ? " Locally, if the API has no SMTP, the link is only in the backend terminal (yellow WARN + INFO with the verify URL), not in your inbox."
@@ -231,7 +232,7 @@ function SignupPageContent() {
             setVerificationLink(link);
           } else {
             setSuccessMessage(
-              `You're almost done. We sent a link to ${registerResult.email}. Open it to verify — we'll take you to your business hub.`,
+              `You're almost done. We sent a link to ${registerResult.email}. Open it to verify — we'll take you straight to your account.`,
             );
           }
         }
@@ -273,8 +274,8 @@ function SignupPageContent() {
         description="Browse the storefront, save carts, and check out pickups with your profile."
       />
       <p className="mt-1 text-sm text-muted-foreground">
-        Confirm your email when asked — we&apos;ll open your business hub so you can
-        finish setup. You won&apos;t need to sign in again.
+        Confirm your email when asked — we&apos;ll take you straight to your account.
+        No need to sign in again.
       </p>
 
       {/* Always-visible onboarding CTA — no need to fail first */}
@@ -494,7 +495,7 @@ function SignupPageContent() {
               href={`${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`}
               className="font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
             >
-              Continue to your business hub
+              Continue to your account
             </Link>
           </p>
         </div>
