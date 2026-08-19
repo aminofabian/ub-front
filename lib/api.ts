@@ -7946,7 +7946,17 @@ export async function tryPostSale(
     | { kind: "response"; response: Response }
     | { kind: "network"; message: string }
   > => {
-    const session = getSessionTokens();
+    let session = getSessionTokens();
+    if (!session && hasAccessSession()) {
+      await restoreClientSessionFromCookie();
+      session = getSessionTokens();
+    }
+    if (!session && !hasAccessSession()) {
+      const refresh = await refreshAccessToken();
+      if (refresh.kind === "ok") {
+        session = getSessionTokens();
+      }
+    }
     if (!session) {
       return { kind: "network", message: "Not signed in." };
     }

@@ -2,9 +2,11 @@
 
 import { ChevronDown, ShoppingBag } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { Suspense, type CSSProperties, type ReactNode } from "react";
+import { Suspense, type CSSProperties, type ReactNode, useEffect, useRef } from "react";
 
 import { APP_ROUTES } from "@/lib/config";
+import { hasAccessSession, hasSessionPresenceCookie } from "@/lib/auth";
+import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 
 import { ShopAirtimeLauncher } from "@/components/storefront/shop-airtime-launcher";
 import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
@@ -168,6 +170,20 @@ export function ShopStorefrontChrome({
   const isSpiritsCellar = chromeVariant === "spirits-cellar";
   const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isChemLab || isSpiritsCellar;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
+
+  const restoreAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (restoreAttemptedRef.current) return;
+    restoreAttemptedRef.current = true;
+
+    // Gap G3: after native login we often land on the shop page with tokens
+    // only in httpOnly cookies; restore must run client-side to populate
+    // session claims used by the storefront header / UI.
+    if (!hasSessionPresenceCookie()) return;
+    if (hasAccessSession()) return;
+
+    void restoreClientSessionFromCookie().catch(() => {});
+  }, []);
 
   const milkRunDigits = isMilkRun
     ? normalizeMilkRunWhatsApp(whatsappNumber)
