@@ -1825,7 +1825,7 @@ export default function ShopCheckoutForm({
       ? {
           eyebrow: "Ready for the next step",
           headline: "Tap below to review your order",
-          hint: "We'll show your cart and payment options next.",
+          hint: "We'll show a summary of your bag next.",
           actionLabel: "Continue to review",
           actionDisabled: false,
           onAction: () => void lockShippingAndContinue(),
@@ -1867,14 +1867,11 @@ export default function ShopCheckoutForm({
           actionType: "submit" as const,
           pulse: false,
         }
-      : showReviewStep && !termsAccepted
+        : showReviewStep && !termsAccepted
         ? {
             eyebrow: "Review your order",
             headline: "Accept the store terms to continue",
-            hint:
-              activePaymentMethod === "mpesa"
-                ? "M-Pesa is ready above — tick terms, then continue."
-                : "Check your items above, then tick the terms checkbox.",
+            hint: "Check your bag above, then tick the terms checkbox.",
             actionLabel: "Go to terms",
             actionDisabled: false,
             onAction: scrollToCheckoutTerms,
@@ -1883,18 +1880,10 @@ export default function ShopCheckoutForm({
           }
         : showReviewStep
           ? {
-              eyebrow:
-                activePaymentMethod === "mpesa" ? "Pay with M-Pesa" : "Review your order",
-              headline:
-                activePaymentMethod === "mpesa"
-                  ? "Number set — continue to place order"
-                  : "Ready when you are",
-              hint:
-                activePaymentMethod === "mpesa"
-                  ? "You'll send the M-Pesa prompt right after placing the order."
-                  : "Continue to place your order — pay the rider on delivery.",
-              actionLabel:
-                activePaymentMethod === "mpesa" ? "Continue to place & pay" : "Continue",
+              eyebrow: "Review your order",
+              headline: "Looks right? Continue to pay",
+              hint: "This is your bag and delivery. Payment is the next step.",
+              actionLabel: "Continue",
               actionDisabled: false,
               onAction: proceedToConfirmStep,
               actionType: "button" as const,
@@ -2330,19 +2319,6 @@ export default function ShopCheckoutForm({
             totalLabel={totalLabel}
             shippingSummary={shippingSummary}
             onEditShipping={startEditingShipping}
-            paymentOptions={paymentOptions}
-            paymentOptionsReady={paymentOptionsReady}
-            activePaymentMethod={activePaymentMethod}
-            onSelectPaymentMethod={selectPaymentMethod}
-            payOnDeliveryAvailable={payOnDeliveryAvailable}
-            areaCode={areaCode}
-            customerPhone={customerPhone}
-            onStkPay={
-              paymentOptions.online.length > 0 ? handleStkPay : undefined
-            }
-            redirectBusy={redirectBusy}
-            redirectMessage={redirectMessage}
-            onRedirectPay={handleRedirectPay}
             termsAccepted={termsAccepted}
             onTermsChange={handleTermsAgreementChange}
           />

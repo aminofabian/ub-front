@@ -2,26 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  MapPin,
-  Pencil,
-  ShoppingBag,
-  Smartphone,
-} from "lucide-react";
+import { MapPin, Pencil, ShoppingBag } from "lucide-react";
 
-import {
-  ShopCheckoutPaymentSection,
-  type CheckoutPaymentMethod,
-} from "@/components/storefront/shop-checkout-payment-section";
 import {
   CHECKOUT_CARD_PAD,
   CHECKOUT_SERIF_AMOUNT,
   CHECKOUT_VARIANT_PILL,
   formatDeliveryZone,
 } from "@/components/storefront/shop-checkout-design";
-import type {
-  PublicCheckoutPaymentOptions,
-} from "@/lib/public-storefront";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import type { PublicWebCart } from "@/lib/web-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -34,17 +22,6 @@ type Props = {
   totalLabel: string;
   shippingSummary: ShippingSummaryData;
   onEditShipping: () => void;
-  paymentOptions: PublicCheckoutPaymentOptions;
-  paymentOptionsReady: boolean;
-  activePaymentMethod: CheckoutPaymentMethod;
-  onSelectPaymentMethod: (method: CheckoutPaymentMethod) => void;
-  payOnDeliveryAvailable: boolean;
-  areaCode: string;
-  customerPhone: string;
-  onStkPay?: (configId: string, phoneNumber: string) => void;
-  redirectBusy?: boolean;
-  redirectMessage?: string | null;
-  onRedirectPay?: (configId: string) => void;
   termsAccepted: boolean;
   onTermsChange: (accepted: boolean) => void;
 };
@@ -54,17 +31,6 @@ export function ShopCheckoutReviewPanel({
   totalLabel,
   shippingSummary,
   onEditShipping,
-  paymentOptions,
-  paymentOptionsReady,
-  activePaymentMethod,
-  onSelectPaymentMethod,
-  payOnDeliveryAvailable,
-  areaCode,
-  customerPhone,
-  onStkPay,
-  redirectBusy,
-  redirectMessage,
-  onRedirectPay,
   termsAccepted,
   onTermsChange,
 }: Props) {
@@ -75,10 +41,10 @@ export function ShopCheckoutReviewPanel({
       shippingSummary.county,
     ) ?? shippingSummary.county;
   const itemCount = cart.lines.length;
+  const qtyTotal = cart.lines.reduce((sum, line) => sum + (line.quantity || 0), 0);
 
   return (
     <section className={cn("min-w-0 max-w-full space-y-2.5", CHECKOUT_CARD_PAD)}>
-      {/* Amount rail */}
       <div className="flex items-end justify-between gap-3 rounded-2xl border border-border/50 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--primary)_8%,var(--card)),var(--card))] px-3.5 py-3">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/85">
@@ -101,39 +67,6 @@ export function ShopCheckoutReviewPanel({
         </div>
       </div>
 
-      {/* Pay — M-Pesa first */}
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-1.5 px-0.5">
-          <Smartphone className="size-3.5 text-[#007a3d]" aria-hidden />
-          <p className="text-[11px] font-semibold tracking-tight text-foreground">
-            Pay with M-Pesa
-          </p>
-        </div>
-
-        {!paymentOptionsReady ? (
-          <div className="rounded-xl border border-border/50 bg-muted/20 px-3 py-4 text-center text-[12px] text-muted-foreground">
-            Loading payment methods…
-          </div>
-        ) : (
-          <ShopCheckoutPaymentSection
-            variant="review"
-            manual={paymentOptions.manual}
-            online={paymentOptions.online}
-            defaultAreaCode={areaCode}
-            defaultPhone={customerPhone}
-            selectedMethod={activePaymentMethod}
-            onSelectMethod={onSelectPaymentMethod}
-            payOnDeliveryAvailable={payOnDeliveryAvailable}
-            onStkPay={onStkPay}
-            redirectBusy={redirectBusy}
-            redirectMessage={redirectMessage}
-            onRedirectPay={onRedirectPay}
-            orderPlaced={false}
-          />
-        )}
-      </div>
-
-      {/* Delivery strip */}
       <button
         type="button"
         onClick={onEditShipping}
@@ -157,29 +90,29 @@ export function ShopCheckoutReviewPanel({
         </span>
       </button>
 
-      {/* Bag */}
       <div className="overflow-hidden rounded-xl border border-border/50 bg-card/80">
         <div className="flex items-center justify-between border-b border-border/40 px-3 py-2">
           <p className="text-[11px] font-semibold text-foreground">Your bag</p>
           <p className="text-[10px] font-medium tabular-nums text-muted-foreground">
             {itemCount} {itemCount === 1 ? "item" : "items"}
+            {qtyTotal !== itemCount ? ` · ${qtyTotal} qty` : ""}
           </p>
         </div>
         <ul
           className={cn(
             "divide-y divide-border/40",
-            itemCount > 3 && "max-h-[9.5rem] overflow-y-auto overscroll-contain",
+            itemCount > 6 && "max-h-[22rem] overflow-y-auto overscroll-contain",
           )}
         >
           {cart.lines.map((line) => (
-            <li key={line.itemId} className="flex items-center gap-2.5 px-3 py-2">
-              <div className="relative size-9 shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border/35">
+            <li key={line.itemId} className="flex items-center gap-2.5 px-3 py-2.5">
+              <div className="relative size-11 shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border/35">
                 {line.imageUrl ? (
                   <Image
                     src={line.imageUrl}
                     alt={line.name}
                     fill
-                    sizes="36px"
+                    sizes="44px"
                     className="object-cover"
                   />
                 ) : (
@@ -189,17 +122,22 @@ export function ShopCheckoutReviewPanel({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-medium leading-snug text-foreground">
+                <p className="truncate text-[13px] font-medium leading-snug text-foreground">
                   {line.name}
                 </p>
                 <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
                   <span>×{line.quantity}</span>
+                  {line.unitPrice != null ? (
+                    <span>
+                      · {formatDisplayPrice(cart.currency, line.unitPrice)} each
+                    </span>
+                  ) : null}
                   {line.variantName ? (
                     <span className={CHECKOUT_VARIANT_PILL}>{line.variantName}</span>
                   ) : null}
                 </p>
               </div>
-              <p className="shrink-0 text-[12px] font-semibold tabular-nums text-foreground">
+              <p className="shrink-0 text-[13px] font-semibold tabular-nums text-foreground">
                 {formatDisplayPrice(cart.currency, line.lineTotal ?? 0)}
               </p>
             </li>
@@ -207,7 +145,6 @@ export function ShopCheckoutReviewPanel({
         </ul>
       </div>
 
-      {/* Terms */}
       <label
         id="checkout-terms"
         className="flex scroll-mt-4 cursor-pointer items-start gap-2.5 rounded-xl px-1 py-1 text-[11px] leading-relaxed text-muted-foreground"

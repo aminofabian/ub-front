@@ -3,6 +3,7 @@
 import {
   CreditCard,
   MapPin,
+  ShoppingBag,
   Sparkles,
   User,
 } from "lucide-react";
@@ -42,8 +43,8 @@ function stepHint(
   }
   if (activeStep === 2) {
     return {
-      message: "Pay with M-Pesa above — then continue when you’re ready.",
-      icon: CreditCard,
+      message: "Check your bag and delivery — payment comes on the next step.",
+      icon: ShoppingBag,
     };
   }
   if (activeStep === 3) {
