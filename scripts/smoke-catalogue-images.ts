@@ -1,4 +1,4 @@
-// Catalogue PDF is a text price list — product JPEGs are not embedded.
+// Verify family JPEG embedding: one XObject per family, /DCTDecode, xref integrity.
 import { readFile } from "node:fs/promises";
 import { buildMarketplaceCataloguePdf } from "../app/marketplace/_lib/marketplace-catalogue-pdf";
 import type { MarketplaceSupplierDetail } from "../lib/marketplace-api";
@@ -32,7 +32,7 @@ const products = Array.from({ length: 9 }, (_, i) => ({
   itemId: `item-${i}`,
   variantOfItemId: null,
   parentItemName: null,
-  parentImageUrl: null,
+  parentImageUrl: i % 3 === 0 ? jpegUrl : null,
 }));
 
 const detail: MarketplaceSupplierDetail = {
@@ -66,13 +66,17 @@ const fs = await import("node:fs");
 fs.writeFileSync("/tmp/catalogue-with-images.pdf", Buffer.from(bytes));
 
 const failures: string[] = [];
-const imageObjects = (text.match(/\/Subtype \/Image /g) ?? []).length;
-if (imageObjects !== 0) failures.push(`expected 0 embedded images, got ${imageObjects}`);
+const imageObjects = [...text.matchAll(/\/Subtype \/Image \/Width (\d+) \/Height (\d+) /g)];
+if (imageObjects.length !== 1) failures.push(`expected 1 embedded family image, got ${imageObjects.length}`);
 
-if (!text.includes("Premium Cashews")) {
-  failures.push("missing cashew family on the price list");
-}
-if (!text.includes("Rice Pack")) failures.push("missing rice packs on the price list");
+const dct = (text.match(/\/Filter \/DCTDecode/g) ?? []).length;
+if (dct !== 1) failures.push(`expected 1 DCTDecode filter, got ${dct}`);
+
+const xobjects = (text.match(/\/XObject<< \/Im\d+ /g) ?? []).length;
+if (xobjects < 1) failures.push("no page references image XObjects");
+
+const jpegMagic = (text.match(/\u00ff\u00d8\u00ff/g) ?? []).length;
+if (jpegMagic !== 1) failures.push(`expected 1 jpeg payload in streams, got ${jpegMagic}`);
 
 const xrefMatch = text.match(/xref\n0 (\d+)\n/);
 if (!xrefMatch) failures.push("missing xref");
@@ -86,9 +90,9 @@ else {
   }
 }
 
-console.log(`images=${imageObjects} bytes=${bytes.length}`);
+console.log(`images=${imageObjects.length} dct=${dct} xobjectRefs=${xobjects} bytes=${bytes.length}`);
 if (failures.length) {
   console.error("FAILURES:\n" + failures.join("\n"));
   process.exit(1);
 }
-console.log("PASS — catalogue PDF is a text price list (no product images)");
+console.log("PASS — family JPEG embedding works");
