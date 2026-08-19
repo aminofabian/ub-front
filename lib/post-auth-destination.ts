@@ -6,6 +6,7 @@ import {
   isCustomerTabPath,
 } from "@/lib/buyer-role";
 import type { BusinessRecord } from "@/lib/api";
+import { IS_DESKTOP } from "@/lib/runtime";
 import {
   isButcheryOnlyBusiness,
   isGroceryOperationsBusiness,
@@ -116,6 +117,8 @@ export function isOnboardingIncomplete(
  * storefront before their shop is configured, and a failed business fetch must
  * not fall through to the storefront default. Staff/POS roles keep their
  * dedicated homes (grocery managers stay on /grocery, cashiers on /cashier…).
+ * The onboarding gate is cloud-only (`!IS_DESKTOP`): the desktop SKU uses its
+ * own `/setup` first-run wizard and should keep its prior routing.
  * Otherwise role homes beat generic defaults; tenant default is the storefront.
  */
 export function resolvePostAuthDestination(
@@ -137,6 +140,7 @@ export function resolvePostAuthDestination(
 
   const roleKey = roleKeyOf(me);
   if (
+    !IS_DESKTOP &&
     (roleKey === "owner" || roleKey === "admin") &&
     (isOnboardingIncomplete(business) || !business)
   ) {
