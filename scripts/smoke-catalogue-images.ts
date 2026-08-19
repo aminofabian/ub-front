@@ -68,10 +68,10 @@ fs.writeFileSync("/tmp/catalogue-with-images.pdf", Buffer.from(bytes));
 
 const failures: string[] = [];
 const imageObjects = [...text.matchAll(/\/Subtype \/Image \/Width (\d+) \/Height (\d+) /g)];
-if (imageObjects.length !== 3) failures.push(`expected 3 embedded images, got ${imageObjects.length}`);
+if (imageObjects.length !== 1) failures.push(`expected 1 embedded family image, got ${imageObjects.length}`);
 
 const dct = (text.match(/\/Filter \/DCTDecode/g) ?? []).length;
-if (dct !== 3) failures.push(`expected 3 DCTDecode filters, got ${dct}`);
+if (dct !== 1) failures.push(`expected 1 DCTDecode filter, got ${dct}`);
 
 // Every page with images must reference /Im1.. in its XObject dict
 const xobjects = (text.match(/\/XObject<< \/Im\d+ /g) ?? []).length;
@@ -79,7 +79,7 @@ if (xobjects < 1) failures.push("no page references image XObjects");
 
 // Image bytes should be present (JPEG magic FF D8 FF) inside streams
 const jpegMagic = (text.match(/\u00ff\u00d8\u00ff/g) ?? []).length;
-if (jpegMagic !== 3) failures.push(`expected 3 jpeg payloads in streams, got ${jpegMagic}`);
+if (jpegMagic !== 1) failures.push(`expected 1 jpeg payload in streams, got ${jpegMagic}`);
 
 // xref integrity
 const xrefMatch = text.match(/xref\n0 (\d+)\n/);

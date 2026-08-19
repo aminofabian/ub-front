@@ -30,10 +30,17 @@ else {
     failures.push(`bad wa.me prefix: ${wa.slice(0, 50)}`);
   }
   const decoded = decodeURIComponent(wa.split("?text=")[1]);
-  if (!decoded.includes("Hello Robinson Wholesalers")) failures.push("missing greeting");
-  if (!decoded.includes("4 × Golden Maize Flour")) failures.push("missing item line");
-  if (!decoded.includes("est. Ksh")) failures.push("missing estimate");
-  if (!decoded.includes("Catalogue: https://kiosk.ke/s/robinson")) failures.push("missing catalogue link");
+  if (!decoded.includes("Hello Robinson Wholesalers 👋")) failures.push("missing greeting");
+  if (!decoded.includes("I'd like to place the following order:")) failures.push("missing intro");
+  if (!decoded.includes("ORDER DETAILS")) failures.push("missing ORDER DETAILS");
+  if (!decoded.includes("Golden Maize Flour · 2kg × 4 @ Ksh 210.00 → Ksh 840.00")) {
+    failures.push("missing item line");
+  }
+  if (!decoded.includes("TOTAL: Ksh 4120.00")) failures.push("missing total");
+  if (!decoded.includes("3 items · 7 units")) failures.push("missing item/unit summary");
+  if (!decoded.includes("📄 Order PDF: order-robinson.pdf")) failures.push("missing order pdf line");
+  if (!decoded.includes("📋 Catalogue: https://kiosk.ke/s/robinson")) failures.push("missing catalogue link");
+  if (!decoded.includes("Thank you! 🙏")) failures.push("missing thanks");
   console.log("whatsapp message:\n---\n" + decoded + "\n---");
 }
 
@@ -42,7 +49,9 @@ const text = buildMarketplaceOrderText(lines, {
   supplierName: "Robinson Wholesalers",
   catalogueUrl: "https://kiosk.ke/s/robinson",
 });
-if (!text.includes("1. 4 × Golden Maize Flour")) failures.push("text numbering wrong");
+if (!text.includes("Golden Maize Flour · 2kg × 4 @ Ksh 210.00 → Ksh 840.00")) {
+  failures.push("text line format wrong");
+}
 
 // --- Order PDF ---
 const blob = buildMarketplaceOrderPdf({

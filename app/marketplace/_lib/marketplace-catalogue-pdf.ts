@@ -1,13 +1,9 @@
 /**
- * Well-styled supplier catalogue PDF (dependency-free).
+ * Supplier catalogue PDF (dependency-free A4).
  *
- * Builds a multi-page A4 brochure client-side:
- *   - cover page with brand band, supplier identity, stats, WhatsApp strip,
- *     and a short "how to order" guide
- *   - product grid pages grouped by parent/category, embedding product photos
- *     (JPEG only, fetched at runtime with graceful fallback to hue tiles)
- *
- * Mirrors the hand-rolled PDF approach of marketplace-order-pdf.ts.
+ * Cover is a directory: identity, WhatsApp, A–Z family index.
+ * Following pages are a price list: letter, family, packs, prices in one
+ * right-hand column. JPEG thumbs when they load; hue tiles otherwise.
  */
 import type {
   MarketplaceCatalogProductPreview,
@@ -16,6 +12,8 @@ import type {
 import {
   catalogPackLabel,
   groupCatalogProducts,
+  normalizeCatalogLabel,
+  type CatalogProductGroup,
 } from "@/lib/marketplace-catalog-groups";
 import { formatMoney } from "@/lib/money";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
@@ -29,11 +27,13 @@ const CONTENT_W = PAGE_W - MARGIN * 2; // 515
 // PDF y grows upward; content flows from near the top (high y) down to this
 // bottom limit (leaving room for the running footer).
 const TOP_Y = 794;
-const CONTENT_START_Y = 760;
-const BOTTOM_LIMIT = 100;
-const CARD_W = (CONTENT_W - 12) / 2; // 251.5
-const CARD_H = 84;
-const IMG_SIZE = 58;
+const CONTENT_START_Y = 752;
+const BOTTOM_LIMIT = 58;
+const LETTER_H = 20;
+const FAMILY_H = 20;
+const ROW_H = 18;
+const THUMB = 16;
+const FAMILY_GAP = 4;
 
 const C = {
   brand: [0.055, 0.455, 0.424] as Rgb, // #0f766e
@@ -111,6 +111,19 @@ class PdfCanvas {
 
   image(name: string, x: number, y: number, w: number, h: number) {
     this.ops.push("q", `${round(w)} 0 0 ${round(h)} ${round(x)} ${round(y)} cm`, `/${name} Do`, "Q");
+  }
+
+  dashLine(x1: number, y1: number, x2: number, y2: number, color: Rgb = C.line) {
+    if (x2 - x1 < 10) return;
+    this.ops.push(
+      "[1.1 2.4] 0 d",
+      "0.4 w",
+      `${rgb(color)} RG`,
+      `${round(x1)} ${round(y1)} m`,
+      `${round(x2)} ${round(y2)} l`,
+      "S",
+      "[] 0 d",
+    );
   }
 
   toStream(): string {
@@ -301,30 +314,43 @@ type PageBuild = {
   images: { data: Uint8Array; width: number; height: number }[];
 };
 
-function startProductPage(pages: PageBuild[], label: string, pageNo: number): PageBuild {
+function startListPage(pages: PageBuild[], label: string): PageBuild {
   const canvas = new PdfCanvas();
+  canvas.fill(0, 0, PAGE_W, PAGE_H, C.white);
   canvas.fill(0, PAGE_H - 8, PAGE_W, 8, C.brand);
-  canvas.text(MARGIN, TOP_Y, truncate(label, 74), { font: "bold", size: 10, color: C.ink });
-  canvas.textRight(PAGE_W - MARGIN, TOP_Y, `Catalogue · ${pageNo}`, { size: 9, color: C.muted });
+  canvas.text(MARGIN, TOP_Y, truncate(label, 58), { font: "bold", size: 10, color: C.ink });
+  canvas.textRight(PAGE_W - MARGIN, TOP_Y, "Price list", { size: 9, color: C.muted });
   canvas.line(MARGIN, TOP_Y - 10, PAGE_W - MARGIN, TOP_Y - 10);
-  const page = { canvas, images: [] };
+  canvas.text(MARGIN, TOP_Y - 24, "Item", { size: 8, color: C.muted });
+  canvas.textRight(PAGE_W - MARGIN, TOP_Y - 24, "Price", { font: "bold", size: 8, color: C.muted });
+  canvas.line(MARGIN, TOP_Y - 30, PAGE_W - MARGIN, TOP_Y - 30, C.line, 0.35);
+  const page = { canvas, images: [] as PageBuild["images"] };
   pages.push(page);
   return page;
 }
 
-function packLabel(product: MarketplaceCatalogProductPreview): string | null {
-  const bits: string[] = [];
-  if (product.packSize != null && product.packUnit?.trim()) {
-    bits.push(`pack of ${product.packSize} ${product.packUnit}`);
-  } else if (product.packSize != null) {
-    bits.push(`pack of ${product.packSize}`);
-  } else if (product.packUnit?.trim()) {
-    bits.push(`${product.packUnit}`);
-  }
-  if (product.minOrderQty != null && product.minOrderQty > 1) {
-    bits.push(`min order ${product.minOrderQty}`);
-  }
-  return bits.length ? bits.join(" · ") : null;
+function pdfPrice(product: MarketplaceCatalogProductPreview, currency: string): string {
+  if (product.unitPrice == null) return "Ask";
+  return formatMoney(product.unitPrice, product.currency ?? currency)
+    .replace(/\u00a0/g, " ")
+    .replace(/[—–]/g, "-");
+}
+
+function letterOf(label: string): string {
+  const ch = label.trim().charAt(0).toUpperCase();
+  return ch >= "A" && ch <= "Z" ? ch : "#";
+}
+
+function packsListedUnder(group: CatalogProductGroup): boolean {
+  if (group.items.length !== 1) return true;
+  const pack = catalogPackLabel(group.items[0], group.label);
+  return normalizeCatalogLabel(pack) !== normalizeCatalogLabel(group.label);
+}
+
+function familyHeight(group: CatalogProductGroup, withLetter: boolean): number {
+  const letter = withLetter ? LETTER_H : 0;
+  const rows = packsListedUnder(group) ? group.items.length * ROW_H : 0;
+  return letter + FAMILY_H + rows + FAMILY_GAP;
 }
 
 export type CataloguePdfInput = {
@@ -346,17 +372,20 @@ export async function buildMarketplaceCataloguePdf({
     .filter((l, i, arr) => arr.indexOf(l) === i)
     .join(" · ");
 
+  const groups = groupCatalogProducts(products);
   const images = await loadProductImages(
     products.map((p) => posTileThumbUrl(p.name, p.imageUrl)),
+  );
+  const imageById = new Map(
+    products.map((product, index) => [product.id, images[index] ?? null]),
   );
 
   const pages: PageBuild[] = [];
   const cover = { canvas: new PdfCanvas(), images: [] as PageBuild["images"] };
   pages.push(cover);
-  drawCover(cover.canvas, detail, { currency, areaLabel, origin, productCount: products.length });
-  drawProductPages(pages, detail, { products, currency, images });
+  drawCover(cover.canvas, detail, { areaLabel, origin, groups });
+  drawPriceList(pages, detail, { groups, currency, imageById });
 
-  // Running footers (page numbers need the final count).
   pages.forEach((page, index) => {
     if (index === 0) return;
     page.canvas.line(MARGIN, 44, PAGE_W - MARGIN, 44, C.line, 0.25);
@@ -380,106 +409,63 @@ export async function buildMarketplaceCataloguePdf({
 function drawCover(
   canvas: PdfCanvas,
   detail: MarketplaceSupplierDetail,
-  ctx: { currency: string; areaLabel: string; origin?: string; productCount: number },
+  ctx: {
+    areaLabel: string;
+    origin?: string;
+    groups: CatalogProductGroup[];
+  },
 ) {
-  // Top brand band
-  canvas.fill(0, PAGE_H - 14, PAGE_W, 14, C.brand);
+  canvas.fill(0, 0, PAGE_W, PAGE_H, C.white);
+  canvas.fill(0, PAGE_H - 10, PAGE_W, 10, C.brand);
 
-  let y = 806;
-  canvas.text(MARGIN, y, "SUPPLIER CATALOGUE", { font: "bold", size: 10, color: C.brand });
-  y -= 36;
-
-  for (const line of wrapText(detail.name, 30, CONTENT_W, 2)) {
-    canvas.text(MARGIN, y, line, { font: "bold", size: 30, color: C.ink });
-    y -= 37;
-  }
-  y -= 6;
-
-  if (ctx.areaLabel) {
-    canvas.text(MARGIN, y, ctx.areaLabel, { size: 12, color: C.muted });
-    y -= 24;
-  }
-  if (detail.description) {
-    for (const line of wrapText(detail.description, 10.5, CONTENT_W, 3)) {
-      canvas.text(MARGIN, y, line, { size: 10.5, color: C.muted });
-      y -= 15;
-    }
+  let y = 800;
+  for (const line of wrapText(detail.name, 26, CONTENT_W, 2)) {
+    canvas.text(MARGIN, y, line, { font: "bold", size: 26, color: C.ink });
+    y -= 32;
   }
 
-  // Stats strip
-  const priced = detail.products.filter((p) => p.unitPrice != null);
-  const prices = priced.map((p) => p.unitPrice as number);
-  const minPrice = prices.length ? Math.min(...prices) : null;
-  const maxPrice = prices.length ? Math.max(...prices) : null;
-  const priceRange =
-    minPrice != null && maxPrice != null
-      ? minPrice === maxPrice
-        ? formatMoney(minPrice, ctx.currency)
-        : `${formatMoney(minPrice, ctx.currency)} – ${formatMoney(maxPrice, ctx.currency)}`
-      : null;
-  const familyCount = groupCatalogProducts(detail.products).length;
-  const boxW = (CONTENT_W - 24) / 3;
-  const boxH = 64;
-  const boxTop = 520;
-  const stats: { value: string; label: string }[] = [
-    { value: String(ctx.productCount), label: "Products" },
-    { value: String(familyCount), label: "Families" },
-    { value: priceRange ?? "Ask", label: priceRange ? "Price range" : "Price" },
-  ];
-  stats.forEach((stat, i) => {
-    const x = MARGIN + i * (boxW + 12);
-    canvas.fill(x, boxTop - boxH, boxW, boxH, C.paper);
-    canvas.strokeRect(x, boxTop - boxH, boxW, boxH, C.line, 0.5);
-    canvas.text(x + 10, boxTop - 40, stat.value, { font: "bold", size: 16, color: C.ink });
-    canvas.text(x + 10, boxTop - 24, stat.label.toUpperCase(), { size: 7.5, color: C.muted });
-  });
+  const meta: string[] = [];
+  if (ctx.areaLabel) meta.push(ctx.areaLabel);
+  if (detail.listedBy?.trim()) meta.push(`Listed by ${detail.listedBy.trim()}`);
+  if (meta.length) {
+    canvas.text(MARGIN, y, truncate(meta.join("  ·  "), 92), { size: 11, color: C.muted });
+    y -= 22;
+  }
 
-  // WhatsApp / contact strip
   const phone = detail.contactPhone?.trim() || null;
-  const bandTop = boxTop - boxH - 34;
   if (phone) {
-    canvas.fill(0, bandTop - 62, PAGE_W, 62, C.green);
-    canvas.text(MARGIN, bandTop - 22, "ORDER BY WHATSAPP OR CALL", {
-      font: "bold",
-      size: 9,
-      color: C.greenInk,
-    });
-    canvas.text(MARGIN, bandTop - 44, phone, {
-      font: "bold",
-      size: 17,
-      color: C.white,
-    });
-    if (detail.listedBy) {
-      canvas.textRight(PAGE_W - MARGIN, bandTop - 44, `Listed by ${detail.listedBy}`, {
-        size: 9,
-        color: C.greenInk,
-      });
-    }
-  } else {
-    canvas.fill(MARGIN, bandTop - 62, CONTENT_W, 62, C.paper);
-    canvas.strokeRect(MARGIN, bandTop - 62, CONTENT_W, 62, C.line, 0.5);
-    canvas.text(MARGIN + 10, bandTop - 24, "ORDER", { font: "bold", size: 9, color: C.muted });
-    canvas.text(
-      MARGIN + 10,
-      bandTop - 44,
-      detail.listedBy ? `Listed by ${detail.listedBy}` : "Contact the supplier on the page",
-      { size: 11, color: C.ink },
+    canvas.fill(0, y - 50, PAGE_W, 50, C.green);
+    canvas.text(MARGIN, y - 30, phone, { font: "bold", size: 18, color: C.white });
+    canvas.textRight(
+      PAGE_W - MARGIN,
+      y - 30,
+      `${ctx.groups.length} families  ·  ${detail.products.length} packs`,
+      { size: 9, color: C.greenInk },
     );
+    y -= 66;
+  } else {
+    canvas.text(
+      MARGIN,
+      y,
+      `${ctx.groups.length} families  ·  ${detail.products.length} packs`,
+      { size: 11, color: C.muted },
+    );
+    y -= 22;
   }
 
-  // How to order
-  const stepsY = bandTop - 88;
-  canvas.text(MARGIN, stepsY, "HOW TO ORDER", { font: "bold", size: 10, color: C.brand });
-  const steps = [
-    "1.  Browse the shelf and tap products to build your list",
-    "2.  Send the list to the supplier on WhatsApp",
-    "3.  Confirm availability, delivery and payment",
-  ];
-  steps.forEach((step, i) => {
-    canvas.text(MARGIN, stepsY - 20 - i * 15, step, { size: 9.5, color: C.muted });
-  });
+  canvas.text(
+    MARGIN,
+    y,
+    "Call or WhatsApp this number with the packs and quantities you need.",
+    { size: 9.5, color: C.muted },
+  );
+  y -= 28;
 
-  // Cover footer
+  canvas.line(MARGIN, y, PAGE_W - MARGIN, y, C.line, 0.4);
+  y -= 18;
+
+  drawCoverIndex(canvas, ctx.groups, y);
+
   const footer = `Kiosk.ke${ctx.origin ? ` · ${ctx.origin.replace(/^https?:\/\//, "")}` : ""}`;
   const date = new Date().toLocaleDateString("en-KE", {
     day: "numeric",
@@ -491,166 +477,217 @@ function drawCover(
   canvas.textRight(PAGE_W - MARGIN, 34, date, { size: 8.5, color: C.muted });
 }
 
-/* ---------------------------------- products ---------------------------------- */
+function drawCoverIndex(canvas: PdfCanvas, groups: CatalogProductGroup[], topY: number) {
+  const cols = 3;
+  const colGap = 14;
+  const colW = (CONTENT_W - colGap * (cols - 1)) / cols;
+  const bottom = 58;
+  const lineH = 12;
+  const letterH = 16;
 
-function drawProductPages(
+  type Line = { kind: "letter" | "family"; text: string; extra?: string };
+  const lines: Line[] = [];
+  let prev = "";
+  for (const group of groups) {
+    const letter = letterOf(group.label);
+    if (letter !== prev) {
+      lines.push({ kind: "letter", text: letter });
+      prev = letter;
+    }
+    lines.push({
+      kind: "family",
+      text: group.label,
+      extra: String(group.items.length),
+    });
+  }
+
+  const perCol = Math.ceil(lines.length / cols);
+  for (let c = 0; c < cols; c += 1) {
+    const slice = lines.slice(c * perCol, (c + 1) * perCol);
+    const x = MARGIN + c * (colW + colGap);
+    let y = topY;
+    for (const line of slice) {
+      if (y - lineH < bottom) break;
+      if (line.kind === "letter") {
+        canvas.text(x, y, line.text, { font: "bold", size: 11, color: C.brand });
+        y -= letterH;
+      } else {
+        canvas.text(x, y, truncate(line.text, 28), { size: 8.5, color: C.ink });
+        canvas.textRight(x + colW, y, line.extra ?? "", {
+          font: "mono",
+          size: 8,
+          color: C.ink,
+        });
+        y -= lineH;
+      }
+    }
+  }
+}
+
+/* ---------------------------------- price list ---------------------------------- */
+
+function drawPriceList(
   pages: PageBuild[],
   detail: MarketplaceSupplierDetail,
-  ctx: { products: MarketplaceCatalogProductPreview[]; currency: string; images: (EmbeddedImage | null)[] },
+  ctx: {
+    groups: CatalogProductGroup[];
+    currency: string;
+    imageById: Map<string, EmbeddedImage | null>;
+  },
 ) {
-  const groups = groupCatalogProducts(ctx.products);
-  if (groups.length === 0) {
-    const page = startProductPage(pages, detail.name, 2);
+  if (ctx.groups.length === 0) {
+    const page = startListPage(pages, detail.name);
     page.canvas.text(
       MARGIN,
-      100,
+      CONTENT_START_Y - 24,
       "No products are linked to this catalogue yet.",
       { size: 11, color: C.muted },
     );
     return;
   }
 
-  let page = startProductPage(pages, detail.name, 2);
+  let page = startListPage(pages, detail.name);
   let cursorY = CONTENT_START_Y;
+  let currentLetter = "";
 
   const newPage = () => {
-    page = startProductPage(pages, detail.name, pages.length + 1);
+    page = startListPage(pages, detail.name);
     cursorY = CONTENT_START_Y;
-  };
-  const ensure = (h: number) => {
-    if (cursorY - h < BOTTOM_LIMIT) newPage();
+    currentLetter = "";
   };
 
-  let col = 0;
-  let rowY = 0;
-  const paintGroupBand = (label: string, count: number) => {
-    page.canvas.fill(MARGIN, cursorY - 20, CONTENT_W, 20, C.brandDark);
-    page.canvas.text(MARGIN + 8, cursorY - 7, truncate(label.toUpperCase(), 46), {
-      font: "bold",
-      size: 9,
-      color: C.white,
-    });
-    page.canvas.textRight(
-      PAGE_W - MARGIN - 8,
-      cursorY - 7,
-      `${count} pack${count === 1 ? "" : "s"}`,
-      { size: 8.5, color: C.white },
+  const familyImage = (group: CatalogProductGroup): EmbeddedImage | null => {
+    for (const item of group.items) {
+      const img = ctx.imageById.get(item.id);
+      if (img) return img;
+    }
+    return null;
+  };
+
+  for (const group of ctx.groups) {
+    const letter = letterOf(group.label);
+    const withLetter = letter !== currentLetter;
+    const height = familyHeight(group, withLetter);
+    if (cursorY - height < BOTTOM_LIMIT) newPage();
+
+    if (letter !== currentLetter) {
+      paintLetter(page.canvas, letter, cursorY);
+      cursorY -= LETTER_H;
+      currentLetter = letter;
+    }
+
+    const img = familyImage(group);
+    const listPacks = packsListedUnder(group);
+    paintFamilyBand(
+      page,
+      group,
+      img,
+      cursorY,
+      listPacks ? null : pdfPrice(group.items[0], ctx.currency),
     );
-    cursorY -= 26;
-  };
-
-  for (const group of groups) {
-    ensure(26 + CARD_H + 10);
-    paintGroupBand(group.label, group.items.length);
-
-    col = 0;
-    let firstRow = true;
-    for (const product of group.items) {
-      if (col === 0) {
-        const headerRepeat = firstRow ? 0 : 26;
-        const pageBefore = pages.length;
-        ensure(headerRepeat + CARD_H);
-        if (pages.length !== pageBefore && !firstRow) {
-          paintGroupBand(group.label, group.items.length);
-        }
-        rowY = cursorY - CARD_H;
-        firstRow = false;
-      }
-      const index = ctx.products.indexOf(product);
-      drawProductCard(
-        page,
-        product,
-        group.label,
-        ctx.images[index] ?? null,
-        ctx.currency,
-        MARGIN + col * (CARD_W + 12),
-        rowY,
-        page.images.length + 1,
-      );
-      col += 1;
-      if (col === 2) {
-        col = 0;
-        cursorY = rowY - 10;
-      }
+    cursorY -= FAMILY_H;
+    if (listPacks) {
+      group.items.forEach((product, index) => {
+        paintPackRow(page.canvas, product, group.label, ctx.currency, cursorY, index);
+        cursorY -= ROW_H;
+      });
     }
-    if (col !== 0) {
-      cursorY = rowY - 10;
-    }
-    cursorY -= 8;
+    cursorY -= FAMILY_GAP;
   }
 }
 
-function drawProductCard(
+function paintLetter(canvas: PdfCanvas, letter: string, cursorY: number) {
+  canvas.text(MARGIN, cursorY - 16, letter, { font: "bold", size: 13, color: C.brand });
+  canvas.line(MARGIN + 18, cursorY - 12, PAGE_W - MARGIN, cursorY - 12, C.line, 0.35);
+}
+
+function paintFamilyBand(
   page: PageBuild,
+  group: CatalogProductGroup,
+  image: EmbeddedImage | null,
+  cursorY: number,
+  price: string | null,
+) {
+  const y = cursorY - FAMILY_H;
+  const canvas = page.canvas;
+  canvas.fill(MARGIN, y, CONTENT_W, FAMILY_H, C.brandDark);
+  const thumbSize = THUMB;
+  paintThumb(
+    page,
+    image,
+    group.items[0]?.id ?? group.id,
+    group.label,
+    MARGIN + 4,
+    y + (FAMILY_H - thumbSize) / 2,
+    thumbSize,
+  );
+  canvas.text(MARGIN + 26, y + 6, truncate(group.label.toUpperCase(), 44), {
+    font: "bold",
+    size: 8.5,
+    color: C.white,
+  });
+  canvas.textRight(PAGE_W - MARGIN - 8, y + 6, price ?? `${group.items.length}`, {
+    font: price ? "mono" : "regular",
+    size: price ? 9 : 8,
+    color: C.white,
+  });
+}
+
+function paintPackRow(
+  canvas: PdfCanvas,
   product: MarketplaceCatalogProductPreview,
   familyLabel: string,
-  image: EmbeddedImage | null,
   currency: string,
+  cursorY: number,
+  index: number,
+) {
+  const y = cursorY - ROW_H;
+  if (index % 2 === 0) {
+    canvas.fill(MARGIN, y, CONTENT_W, ROW_H, C.paper);
+  }
+  const title = truncate(catalogPackLabel(product, familyLabel), 52);
+  const titleX = MARGIN + 12;
+  const price = pdfPrice(product, currency);
+  const priceW = textWidth(price, 9.5, true);
+  canvas.text(titleX, y + 6, title, { size: 9, color: C.ink });
+  canvas.textRight(PAGE_W - MARGIN, y + 6, price, {
+    font: "mono",
+    size: 9.5,
+    color: product.available ? C.ink : C.red,
+  });
+  const nameEnd = titleX + textWidth(title, 9);
+  canvas.dashLine(nameEnd + 6, y + 8, PAGE_W - MARGIN - priceW - 8, y + 8);
+}
+
+function paintThumb(
+  page: PageBuild,
+  image: EmbeddedImage | null,
+  id: string,
+  title: string,
   x: number,
   y: number,
-  imageNo: number,
+  size: number,
 ) {
   const { canvas, images } = page;
-  const title = catalogPackLabel(product, familyLabel);
-  const top = y + CARD_H;
-  const imgY = y + (CARD_H - IMG_SIZE) / 2;
-
-  canvas.fill(x, y, CARD_W, CARD_H, C.white);
-  canvas.strokeRect(x, y, CARD_W, CARD_H, C.line, 0.4);
-
   if (image) {
-    const scale = Math.min(IMG_SIZE / image.width, IMG_SIZE / image.height);
+    const scale = Math.min(size / image.width, size / image.height);
     const w = image.width * scale;
     const h = image.height * scale;
-    canvas.image(
-      `Im${imageNo}`,
-      x + 6 + (IMG_SIZE - w) / 2,
-      imgY + (IMG_SIZE - h) / 2,
-      w,
-      h,
-    );
+    const name = `Im${images.length + 1}`;
+    canvas.image(name, x + (size - w) / 2, y + (size - h) / 2, w, h);
     images.push(image);
   } else {
-    const hue = hueFromId(product.id);
-    const [tileR, tileG, tileB] = hslToRgb(hue, 62, 82);
-    const [inkR, inkG, inkB] = hslToRgb(hue, 55, 34);
-    canvas.fill(x + 6, imgY, IMG_SIZE, IMG_SIZE, [tileR, tileG, tileB]);
-    canvas.textCenter(x + 6 + IMG_SIZE / 2, imgY + IMG_SIZE / 2 - 9, (title.trim()[0] ?? "?").toUpperCase(), {
+    const hue = hueFromId(id);
+    const [tileR, tileG, tileB] = hslToRgb(hue, 42, 86);
+    const [inkR, inkG, inkB] = hslToRgb(hue, 50, 32);
+    canvas.fill(x, y, size, size, [tileR, tileG, tileB]);
+    canvas.textCenter(x + size / 2, y + size / 2 - 3, (title.trim()[0] ?? "?").toUpperCase(), {
       font: "bold",
-      size: 26,
+      size: Math.max(8, size * 0.55),
       color: [inkR, inkG, inkB],
     });
   }
-  canvas.strokeRect(x + 6, imgY, IMG_SIZE, IMG_SIZE, C.line, 0.5);
-
-  const textX = x + 72;
-  const textW = CARD_W - 80;
-  const nameLines = wrapText(title, 9, textW, 2);
-  nameLines.forEach((line, i) => {
-    canvas.text(textX, top - 18 - i * 12, line, { font: "bold", size: 9, color: C.ink });
-  });
-  const price =
-    product.unitPrice != null
-      ? formatMoney(product.unitPrice, product.currency ?? currency)
-      : "Ask";
-  canvas.text(textX, top - 22 - nameLines.length * 12, price, {
-    font: "bold",
-    size: 11,
-    color: C.ink,
-  });
-
-  if (!product.available) {
-    canvas.text(textX, y + 12, "Unavailable", { font: "bold", size: 8, color: C.red });
-  } else {
-    const meta: string[] = [];
-    if (product.sku) meta.push(product.sku);
-    const pack = packLabel(product);
-    if (pack) meta.push(pack);
-    const metaLine = truncate(meta.join(" · "), 40);
-    if (metaLine) {
-      canvas.text(textX, y + 12, metaLine, { font: "mono", size: 7, color: C.muted });
-    }
-  }
+  canvas.strokeRect(x, y, size, size, C.line, 0.4);
 }
 
 /* ---------------------------------- assembly ---------------------------------- */

@@ -353,6 +353,14 @@ export function normalizeWhatsAppPhone(phone: string | null | undefined): string
   return digits;
 }
 
+const WA_RULE = "━━━━━━━━━━━━━━";
+
+/** WhatsApp money: "Ksh 6.66" with a normal space and two decimals. */
+function waMoney(amount: number, currency: string): string {
+  const code = currency.trim().toUpperCase() === "KES" || !currency.trim() ? "Ksh" : currency.trim();
+  return `${code} ${amount.toFixed(2)}`;
+}
+
 /**
  * Plain-text order list shared between the WhatsApp URL and clipboard copy.
  */
@@ -368,41 +376,43 @@ export function buildMarketplaceOrderText(
   let estimatedTotal = 0;
   let pricedCount = 0;
 
-  const itemLines = lines
-    .map((line, index) => {
-      const n = index + 1;
-      const name = line.name.trim();
-      if (line.unitPrice != null) {
-        const lineTotal = line.unitPrice * line.qty;
-        estimatedTotal += lineTotal;
-        pricedCount += 1;
-        return `${n}. ${line.qty} × ${name}\n    ${formatMoney(line.unitPrice, currency)} each`;
-      }
-      return `${n}. ${line.qty} × ${name}`;
-    })
-    .join("\n");
+  const itemLines = lines.map((line) => {
+    const name = line.name.trim();
+    if (line.unitPrice != null) {
+      const lineTotal = line.unitPrice * line.qty;
+      estimatedTotal += lineTotal;
+      pricedCount += 1;
+      return `${name} × ${line.qty} @ ${waMoney(line.unitPrice, currency)} → ${waMoney(lineTotal, currency)}`;
+    }
+    return `${name} × ${line.qty}`;
+  });
 
   const totalUnits = lines.reduce((sum, l) => sum + l.qty, 0);
-  const summaryParts = [
-    `${lines.length} item${lines.length === 1 ? "" : "s"}`,
-    `${totalUnits} unit${totalUnits === 1 ? "" : "s"}`,
-  ];
-  if (pricedCount > 0) {
-    summaryParts.push(`est. ${formatMoney(estimatedTotal, currency)}`);
-  }
+  const itemWord = lines.length === 1 ? "item" : "items";
+  const unitWord = totalUnits === 1 ? "unit" : "units";
+  const totalLine =
+    pricedCount > 0 ? `TOTAL: ${waMoney(estimatedTotal, currency)}` : "TOTAL: Ask";
 
   const text = [
-    `Hello ${opts.supplierName},`,
+    `Hello ${opts.supplierName} 👋`,
     "",
-    "I'd like to place this order:",
+    "I'd like to place the following order:",
     "",
-    itemLines,
+    "ORDER DETAILS",
     "",
-    `Total: ${summaryParts.join(" · ")}`,
+    ...itemLines,
+    "",
+    WA_RULE,
+    totalLine,
+    `${lines.length} ${itemWord} · ${totalUnits} ${unitWord}`,
+    WA_RULE,
   ];
-  if (opts.filename) text.push("", `PDF: ${opts.filename}`);
-  if (opts.catalogueUrl) text.push("", `Catalogue: ${opts.catalogueUrl}`);
-  text.push("", "Please confirm availability and pricing. Thank you.");
+  if (opts.filename || opts.catalogueUrl) {
+    text.push("");
+    if (opts.filename) text.push(`📄 Order PDF: ${opts.filename}`);
+    if (opts.catalogueUrl) text.push(`📋 Catalogue: ${opts.catalogueUrl}`);
+  }
+  text.push("", "Please confirm availability and pricing.", "", "Thank you! 🙏");
 
   return text.join("\n");
 }
