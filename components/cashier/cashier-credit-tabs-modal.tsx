@@ -256,12 +256,12 @@ export function CashierCreditTabsModal({
           >
             <X className="size-4" />
           </button>
-          <div className="flex items-start gap-3 pr-8">
+          <div className="flex items-start gap-3 pr-8 min-w-0">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)] text-[var(--pos-primary)]">
               <Users className="size-5" />
             </div>
             <div className="min-w-0 space-y-1">
-              <DialogTitle className="text-base font-semibold tracking-tight">
+              <DialogTitle className="min-w-0 truncate text-base font-semibold tracking-tight">
                 {selected ? selected.name : "Credit tabs"}
               </DialogTitle>
               <DialogDescription className="text-xs leading-relaxed text-muted-foreground">
@@ -328,7 +328,7 @@ export function CashierCreditTabsModal({
                             className="mt-0.5"
                           />
                         </span>
-                        <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--pos-primary)]">
+                        <span className="shrink-0 max-w-[7.5rem] truncate text-right text-sm font-semibold tabular-nums text-[var(--pos-primary)]">
                           {money(row.balanceOwed, currency)}
                         </span>
                       </button>

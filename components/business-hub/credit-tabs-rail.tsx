@@ -131,7 +131,7 @@ export function CreditTabsRail({
                 <li
                   key={tab.customerId}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 transition-colors",
+                    "flex items-center gap-2 px-2.5 py-1.5 transition-colors",
                     newest && "bg-[#FCFAF6] hub-figure-pop",
                   )}
                 >
@@ -178,7 +178,7 @@ export function CreditTabsRail({
                       Owed
                     </span>
                   )}
-                  <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-[#141414]">
+                  <p className="shrink-0 max-w-[6.5rem] truncate font-mono text-[11px] font-semibold tabular-nums text-right text-[#141414]">
                     {fmtMoney(owed, currency)}
                   </p>
                 </li>
