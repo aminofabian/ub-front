@@ -137,7 +137,8 @@ export async function applyOnboardingQuestionnaire(
           formatBranchDisplayName(loc || `Shop ${i + 1}`),
         );
         // Re-read so a retry after a partial failure does not double-create.
-        const existing = [...(await fetchBranches())];
+        // Active-only, matching the dashboard's visible-branch semantics.
+        const existing = [...(await fetchBranches()).filter((b) => b.active)];
         for (let i = 0; i < count; i++) {
           const name = names[i]!;
           const branch = existing[i];
@@ -200,7 +201,8 @@ export async function applyOnboardingQuestionnaire(
       id: "item-types",
       run: async () => {
         // Re-read so a retry does not duplicate sections already created.
-        const freshTypes = await fetchItemTypes();
+        // Active-only, matching the dashboard's visible-section semantics.
+        const freshTypes = (await fetchItemTypes()).filter((t) => t.active);
         const existingKeys = new Set(
           freshTypes.map((t) =>
             (t.key ?? labelToItemTypeKey(t.label)).toLowerCase(),
