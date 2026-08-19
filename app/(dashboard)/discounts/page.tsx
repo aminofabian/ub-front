@@ -483,7 +483,7 @@ export default function DiscountsPage() {
   }
 
   if (!allowed) {
-    return <DashboardAccessDenied />;
+    return <DashboardAccessDenied title="Access denied" description="You don't have permission to manage discounts." />;
   }
 
   const targetCount =
