@@ -1144,11 +1144,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             </p>
                           );
                         }
+                        const creditRemainder = selectedCustomer && rem > 0.001 && sum > 0;
                         return (
                           <p
                             className={cn(
                               "text-[12px] font-medium",
-                              Math.abs(rem) <= 0.001
+                              Math.abs(rem) <= 0.001 || creditRemainder
                                 ? "text-emerald-700 dark:text-emerald-300"
                                 : "text-muted-foreground",
                             )}
@@ -1157,9 +1158,11 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               ? w > 0
                                 ? `Wallet ${w.toFixed(2)} · collect ${(c + m).toFixed(2)} ${currency}`
                                 : "Split covers the total"
-                              : rem > 0
-                                ? `Still need ${rem.toFixed(2)} ${currency}`
-                                : `Over by ${Math.abs(rem).toFixed(2)} ${currency}`}
+                              : creditRemainder
+                                ? `${rem.toFixed(2)} ${currency} to ${selectedCustomer.name}'s tab`
+                                : rem > 0
+                                  ? `Still need ${rem.toFixed(2)} ${currency}`
+                                  : `Over by ${Math.abs(rem).toFixed(2)} ${currency}`}
                           </p>
                         );
                       })()}

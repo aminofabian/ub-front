@@ -2274,11 +2274,19 @@ export function QuickSaleWorkspace({
         const bal = Number(selectedCustomer.credit.walletBalance);
         if (Number.isFinite(bal) && w > bal + 0.001) return false;
       }
+      const sum = roundMoney2(w + c + m);
+      const remainder = roundMoney2(grandTotal - sum);
+      // If a customer is selected, the remainder goes to their tab (credit).
+      if (selectedCustomer && remainder > 0.001 && sum > 0) {
+        return true;
+      }
       const positiveParts = [w, c, m].filter((n) => n > 0).length;
       if (positiveParts < 1) return false;
-      // Classic cash+M-Pesa still needs both; wallet+one other is enough.
-      if (w <= 0 && (c <= 0 || m <= 0)) return false;
-      return Math.abs(roundMoney2(w + c + m) - grandTotal) <= 0.001;
+      if (w <= 0 && (c <= 0 || m <= 0)) {
+        // Allow single-tender + credit when a customer is selected.
+        if (!selectedCustomer) return false;
+      }
+      return Math.abs(sum - grandTotal) <= 0.001;
     }
     if (payMethod === "cash") {
       const tender = parseMoney(cashTenderStr.trim());
@@ -3325,12 +3333,8 @@ export function QuickSaleWorkspace({
         setNotice("");
         return;
       }
-      if (w <= 0 && (c <= 0 || m <= 0)) {
-        setError(
-          w > 0
-            ? "Add cash or M-Pesa for the remaining balance."
-            : "Split tender needs positive cash and M-Pesa amounts (or include wallet).",
-        );
+      if (w <= 0 && c <= 0 && m <= 0) {
+        setError("Enter at least one split amount.");
         setNotice("");
         return;
       }
@@ -3350,9 +3354,17 @@ export function QuickSaleWorkspace({
         }
       }
       const sum = roundMoney2(w + c + m);
-      if (Math.abs(sum - grandTotal) > 0.001) {
+      const splitRemainder = roundMoney2(grandTotal - sum);
+      if (splitRemainder > 0.001 && !linkedCustomer) {
         setError(
-          `Split amounts (${sum.toFixed(2)}) must equal cart total (${grandTotal.toFixed(2)}).`,
+          `Split amounts (${sum.toFixed(2)}) must equal cart total (${grandTotal.toFixed(2)}). Select a customer to charge the rest to their tab.`,
+        );
+        setNotice("");
+        return;
+      }
+      if (sum > grandTotal + 0.001) {
+        setError(
+          `Split amounts (${sum.toFixed(2)}) exceed cart total (${grandTotal.toFixed(2)}).`,
         );
         setNotice("");
         return;
@@ -3376,6 +3388,10 @@ export function QuickSaleWorkspace({
           amount: m,
           reference: splitMpesaRef.trim() || null,
         });
+      }
+      const creditRem = roundMoney2(grandTotal - roundMoney2(w + c + m));
+      if (creditRem > 0.001 && linkedCustomer) {
+        payments.push({ method: "customer_credit", amount: creditRem });
       }
     } else if (
       creditChangeToWallet &&
