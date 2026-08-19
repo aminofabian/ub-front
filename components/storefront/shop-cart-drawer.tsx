@@ -22,9 +22,8 @@ function ShopCartDesktopDrawer() {
 }
 
 /**
- * After add-to-cart: compact floating card (all breakpoints).
- * Full slide-over drawer: desktop only, after the user expands the float
- * (or opens cart from the header).
+ * After add-to-cart on desktop: compact floating card, then full drawer.
+ * Mobile web skips the overlay and uses the cart dock instead.
  */
 export function ShopCartDrawer() {
   const isMd = useMediaMd();

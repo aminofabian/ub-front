@@ -72,7 +72,7 @@ type ShopCartContextValue = {
   setLineQty: (itemId: string, quantity: number) => Promise<void>;
   changeQty: (itemId: string, nextQty: number) => Promise<void>;
   removeLine: (itemId: string) => Promise<void>;
-  /** Open compact float focused on the product just added. */
+  /** Open the add-to-cart overlay on desktop; mobile web uses the cart dock. */
   notifyAdded: (itemId: string) => void;
 };
 
@@ -318,6 +318,14 @@ export function ShopCartProvider({
       removeLine,
       notifyAdded: (itemId: string) => {
         const id = itemId.trim();
+        const desktop =
+          typeof window !== "undefined" &&
+          window.matchMedia("(min-width: 768px)").matches;
+        if (!desktop) {
+          // Mobile web: the cart dock already updates. Skip the overlay.
+          if (id) notifyShopItemAdded(id, () => {});
+          return;
+        }
         if (!id) {
           openFullCart();
           return;
