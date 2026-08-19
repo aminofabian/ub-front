@@ -203,7 +203,7 @@ export default function DiscountsPage() {
     if (suppliers.length > 0) return;
     setSuppliersBusy(true);
     void fetchSuppliers()
-      .then((list) => setSuppliers(list.filter((s) => s.active)))
+      .then((list) => setSuppliers(list.filter((s) => s.status === "ACTIVE")))
       .catch(() => setSuppliers([]))
       .finally(() => setSuppliersBusy(false));
   }, [drawerOpen, scope, suppliersBusy, suppliers.length]);
