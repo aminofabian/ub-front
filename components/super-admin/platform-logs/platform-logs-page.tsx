@@ -107,10 +107,6 @@ export function PlatformLogsPage() {
     ? Math.round(rows.reduce((sum, row) => sum + row.durationMs, 0) / rows.length)
     : null;
 
-  const failedRate = summary && summary.total > 0
-    ? Math.round((summary.failed * 1000) / summary.total) / 10
-    : 0;
-
   return (
     <div className="space-y-6">
       <SuperAdminPageHeader
@@ -199,7 +195,6 @@ export function PlatformLogsPage() {
         windowLabel={windowLabel}
         avgLatencyMs={avgLatencyMs}
         sampleCount={rows.length}
-        failedRate={failedRate}
         lastRequestAt={rows[0]?.loggedAt ?? null}
       />
 
@@ -290,16 +285,16 @@ function MetricsReadout({
   windowLabel,
   avgLatencyMs,
   sampleCount,
-  failedRate,
   lastRequestAt,
 }: {
   summary: PlatformRequestLogSummary | null;
   windowLabel: string;
   avgLatencyMs: number | null;
   sampleCount: number;
-  failedRate: number;
   lastRequestAt: string | null;
 }) {
+  const unexpectedFailures = Math.max(0, (summary?.failed ?? 0) - (summary?.expectedMisses ?? 0));
+
   const metrics: Array<{
     label: string;
     value: string;
@@ -319,9 +314,14 @@ function MetricsReadout({
     },
     {
       label: "Failed",
-      value: (summary?.failed ?? 0).toLocaleString(),
-      sub: `${failedRate}% of traffic`,
-      tone: (summary?.failed ?? 0) > 0 ? "failed" : "default",
+      value: unexpectedFailures.toLocaleString(),
+      sub: "excluding expected host lookups",
+      tone: unexpectedFailures > 0 ? "failed" : "default",
+    },
+    {
+      label: "Host lookups",
+      value: (summary?.expectedMisses ?? 0).toLocaleString(),
+      sub: "expected misses · platform host",
     },
     {
       label: "Avg latency",
@@ -337,7 +337,7 @@ function MetricsReadout({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-      <dl className="grid grid-cols-2 divide-y divide-border/60 sm:grid-cols-3 lg:grid-cols-5 lg:divide-y-0 lg:divide-x lg:divide-border/60">
+      <dl className="grid grid-cols-2 divide-y divide-border/60 sm:grid-cols-3 xl:grid-cols-6 xl:divide-y-0 xl:divide-x xl:divide-border/60">
         {metrics.map((metric) => (
           <div key={metric.label} className="min-w-0 px-4 py-3.5 sm:px-5">
             <dt className="text-[0.7rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">

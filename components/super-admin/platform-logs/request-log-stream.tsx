@@ -13,6 +13,7 @@ import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   formatTime,
+  isExpectedHostLookup,
   shortId,
   statusTone,
 } from "./platform-logs-shared";
@@ -149,7 +150,9 @@ export function RequestLogStream({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {visible.map((row) => (
+                {visible.map((row) => {
+                  const expected = isExpectedHostLookup(row);
+                  return (
                   <tr
                     key={row.id}
                     tabIndex={0}
@@ -163,8 +166,8 @@ export function RequestLogStream({
                       }
                     }}
                     className={cn(
-                      "cursor-pointer outline-none transition-colors focus-visible:bg-muted/50 group",
-                      row.success
+                      "group cursor-pointer outline-none transition-colors focus-visible:bg-muted/50",
+                      row.success || expected
                         ? "hover:bg-muted/40 focus-visible:bg-muted/40"
                         : "bg-red-500/4 hover:bg-red-500/7 focus-visible:bg-red-500/7",
                     )}
@@ -200,10 +203,12 @@ export function RequestLogStream({
                       <span
                         className={cn(
                           "font-mono text-xs font-medium tabular-nums",
-                          statusTone(row.status, row.success),
+                          expected
+                            ? "text-slate-500 dark:text-slate-400"
+                            : statusTone(row.status, row.success),
                         )}
                       >
-                        {row.status} {row.success ? "✓" : "✗"}
+                        {row.status} {expected ? "· expected" : row.success ? "✓" : "✗"}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs tabular-nums text-muted-foreground">
@@ -216,7 +221,8 @@ export function RequestLogStream({
                       />
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

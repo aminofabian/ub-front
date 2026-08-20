@@ -15,6 +15,7 @@ import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   CATEGORY_TILE,
+  isExpectedHostLookup,
   shortId,
   timeAgo,
 } from "./platform-logs-shared";
@@ -37,7 +38,10 @@ export function InsightRail({
   onCategorySelect: (category: "all" | PlatformRequestLogCategory) => void;
   onRowClick: (row: PlatformRequestLogRow) => void;
 }) {
-  const failures = rows.filter((row) => !row.success).slice(0, 6);
+  const failures = rows
+    .filter((row) => !row.success && !isExpectedHostLookup(row))
+    .slice(0, 6);
+  const expectedMisses = summary?.expectedMisses ?? 0;
 
   return (
     <aside className="flex min-w-0 flex-col gap-4">
@@ -109,6 +113,9 @@ export function InsightRail({
                     </span>
                     <span className="mt-1 block text-[11px] text-muted-foreground">
                       last {timeAgo(row?.lastAt ?? null)}
+                      {category === "OTHER" && expectedMisses > 0
+                        ? ` · incl. ${expectedMisses.toLocaleString()} expected host lookups`
+                        : null}
                     </span>
                   </span>
                 </button>
@@ -125,7 +132,12 @@ export function InsightRail({
               <ShieldAlert className="size-4 text-red-600 dark:text-red-400" aria-hidden />
               Failures
             </h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">Recent failed requests in this stream.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Recent failed requests
+              {expectedMisses > 0
+                ? ` · ${expectedMisses.toLocaleString()} host lookups excluded as expected`
+                : " in this stream."}
+            </p>
           </div>
           {failures.length > 0 ? (
             <span className="rounded-full bg-red-500/10 px-2 py-0.5 font-mono text-xs tabular-nums text-red-600 dark:text-red-400">

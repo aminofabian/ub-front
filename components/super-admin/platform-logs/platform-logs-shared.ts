@@ -113,3 +113,16 @@ export function statusTone(status: number, success: boolean): string {
   if (status >= 400) return "text-amber-600 dark:text-amber-400";
   return "text-slate-500 dark:text-slate-400";
 }
+
+/**
+ * A 404 on a tenant host lookup is an expected miss, not a failure: the
+ * platform's own frontend probes {@code /api/v1/public/host/resolve*} for
+ * every host it renders, and hosts without a tenant (e.g. kiosk.ke itself)
+ * correctly answer 404.
+ */
+export function isExpectedHostLookup(row: {
+  path: string;
+  status: number;
+}): boolean {
+  return row.status === 404 && row.path.startsWith("/api/v1/public/host/resolve");
+}

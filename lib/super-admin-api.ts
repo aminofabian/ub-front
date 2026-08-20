@@ -631,6 +631,8 @@ export type PlatformRequestLogSummary = {
   success: number;
   failed: number;
   successRate: number;
+  /** 404s on tenant host lookups — the platform probing its own host, not real failures. */
+  expectedMisses: number;
   categories: PlatformRequestLogCategorySummary[];
 };
 

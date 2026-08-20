@@ -14,6 +14,7 @@ import {
   CATEGORY_LABELS,
   formatDateTime,
   formatDuration,
+  isExpectedHostLookup,
   shortId,
   statusTone,
 } from "./platform-logs-shared";
@@ -24,6 +25,7 @@ import {
  */
 export function RequestLogDrawerContent({ row }: { row: PlatformRequestLogRow }) {
   const [copied, setCopied] = useState<string | null>(null);
+  const expected = isExpectedHostLookup(row);
 
   const copy = async (key: string, value: string) => {
     try {
@@ -38,7 +40,7 @@ export function RequestLogDrawerContent({ row }: { row: PlatformRequestLogRow })
   const fields: Array<{ label: string; value: string; copyKey?: string; copyValue?: string; mono?: boolean }> = [
     { label: "Timestamp", value: formatDateTime(row.loggedAt) },
     { label: "Method", value: row.method, mono: true },
-    { label: "Status", value: `${row.status} ${row.success ? "· ok" : "· failed"}`, mono: true },
+    { label: "Status", value: `${row.status} ${row.success ? "· ok" : expected ? "· expected miss" : "· failed"}`, mono: true },
     { label: "Duration", value: formatDuration(row.durationMs), mono: true },
     { label: "Tenant", value: row.businessName ?? "—", copyKey: "tenant", copyValue: row.businessId ?? "" },
     { label: "Tenant id", value: row.businessId ?? "—", copyKey: "tenantId", copyValue: row.businessId ?? "", mono: true },
@@ -60,12 +62,14 @@ export function RequestLogDrawerContent({ row }: { row: PlatformRequestLogRow })
           variant="outline"
           className={cn(
             "border-transparent",
-            row.success
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : "bg-red-500/10 text-red-600 dark:text-red-400",
+            expected
+              ? "bg-slate-500/10 text-slate-500 dark:text-slate-400"
+              : row.success
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : "bg-red-500/10 text-red-600 dark:text-red-400",
           )}
         >
-          {row.success ? "Successful" : "Failed"}
+          {row.success ? "Successful" : expected ? "Expected miss" : "Failed"}
         </Badge>
       </div>
 
