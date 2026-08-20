@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Loader2, Radio, RefreshCw } from "lucide-react";
+import { Loader2, Radio, RefreshCw, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   fetchPlatformRequestLogs,
   fetchPlatformRequestLogSummary,
@@ -27,6 +28,8 @@ export function PlatformRequestLogsPanel() {
   const [category, setCategory] = useState<"all" | PlatformRequestLogCategory>("all");
   const [outcome, setOutcome] = useState<"all" | "success" | "failed">("all");
   const [windowMinutes, setWindowMinutes] = useState(60);
+  const [ipDraft, setIpDraft] = useState("");
+  const [ip, setIp] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -51,6 +54,7 @@ export function PlatformRequestLogsPanel() {
             success:
               outcome === "success" ? true : outcome === "failed" ? false : undefined,
             sinceMinutes: windowMinutes,
+            ip: ip || undefined,
           }),
           fetchPlatformRequestLogSummary(windowMinutes),
         ]);
@@ -64,7 +68,7 @@ export function PlatformRequestLogsPanel() {
         setLoading(false);
       }
     },
-    [category, outcome, windowMinutes],
+    [category, outcome, windowMinutes, ip],
   );
 
   useEffect(() => {
@@ -140,6 +144,44 @@ export function PlatformRequestLogsPanel() {
         <div className="flex flex-wrap items-center gap-2">
           <CategoryFilter value={category} onChange={setCategory} />
           <OutcomeFilter value={outcome} onChange={setOutcome} />
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setIp(ipDraft.trim());
+            }}
+          >
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                value={ipDraft}
+                onChange={(e) => setIpDraft(e.target.value)}
+                placeholder="Filter by IP"
+                className="h-8 w-44 pl-8"
+                aria-label="Filter by IP"
+              />
+            </div>
+            <Button type="submit" size="sm" variant="outline" className="h-8">
+              Filter
+            </Button>
+            {ip ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs"
+                onClick={() => {
+                  setIp("");
+                  setIpDraft("");
+                }}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </form>
         </div>
 
         {loading && rows.length === 0 ? (
@@ -161,14 +203,22 @@ export function PlatformRequestLogsPanel() {
                   <th scope="col" className="px-2 py-2 font-medium">Category</th>
                   <th scope="col" className="px-2 py-2 font-medium">Method</th>
                   <th scope="col" className="px-2 py-2 font-medium">Path</th>
-                  <th scope="col" className="px-2 py-2 font-medium">Business</th>
+                  <th scope="col" className="px-2 py-2 font-medium">Tenant</th>
+                  <th scope="col" className="px-2 py-2 font-medium">IP</th>
                   <th scope="col" className="px-2 py-2 text-right font-medium">Status</th>
                   <th scope="col" className="px-2 py-2 text-right font-medium">Duration</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
                 {rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-muted/40">
+                  <tr
+                    key={row.id}
+                    className={
+                      row.success
+                        ? "hover:bg-muted/40"
+                        : "bg-red-500/3 hover:bg-red-500/6"
+                    }
+                  >
                     <td className="whitespace-nowrap px-2 py-2.5 text-xs tabular-nums text-muted-foreground">
                       {formatTime(row.loggedAt)}
                     </td>
@@ -182,8 +232,17 @@ export function PlatformRequestLogsPanel() {
                     >
                       {row.path}
                     </td>
-                    <td className="whitespace-nowrap px-2 py-2.5 font-mono text-xs text-muted-foreground">
-                      {row.businessId ? shortId(row.businessId) : "—"}
+                    <td
+                      className="max-w-48 truncate whitespace-nowrap px-2 py-2.5 text-xs"
+                      title={row.businessId ?? undefined}
+                    >
+                      {row.businessName ?? (row.businessId ? shortId(row.businessId) : "—")}
+                    </td>
+                    <td
+                      className="whitespace-nowrap px-2 py-2.5 font-mono text-xs"
+                      title={row.ip ?? undefined}
+                    >
+                      {row.ip ?? "—"}
                     </td>
                     <td className="whitespace-nowrap px-2 py-2.5 text-right">
                       <StatusBadge status={row.status} success={row.success} />

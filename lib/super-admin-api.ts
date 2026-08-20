@@ -605,6 +605,7 @@ export type PlatformRequestLogRow = {
   path: string;
   category: PlatformRequestLogCategory;
   businessId: string | null;
+  businessName: string | null;
   userId: string | null;
   branchId: string | null;
   correlationId: string | null;
@@ -640,6 +641,7 @@ export async function fetchPlatformRequestLogs(
     category?: PlatformRequestLogCategory;
     success?: boolean;
     sinceMinutes?: number;
+    ip?: string;
   } = {},
 ): Promise<PlatformRequestLogRow[]> {
   const params = new URLSearchParams({
@@ -653,6 +655,9 @@ export async function fetchPlatformRequestLogs(
   }
   if (opts.sinceMinutes !== undefined && opts.sinceMinutes > 0) {
     params.set("sinceMinutes", String(opts.sinceMinutes));
+  }
+  if (opts.ip?.trim()) {
+    params.set("ip", opts.ip.trim());
   }
   return saRequest<PlatformRequestLogRow[]>(
     `${API_ROUTES.superAdminPlatformRequestLogs}?${params.toString()}`,
