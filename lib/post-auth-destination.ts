@@ -156,6 +156,13 @@ export function resolvePostAuthDestination(
     return roleHome;
   }
 
+  // The desktop SKU has no storefront. Owner/admin (and any role without a
+  // dedicated POS home) land on the dashboard overview instead of the cloud's
+  // /shop default, otherwise they'd bounce straight back to the login screen.
+  if (IS_DESKTOP) {
+    return APP_ROUTES.overview;
+  }
+
   if (isSafeAppPath(requested)) {
     return requested;
   }
