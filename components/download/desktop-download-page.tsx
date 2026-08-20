@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Download, Monitor, Smartphone } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, Monitor, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -176,6 +176,13 @@ function DesktopSection({
         and keeps selling with no internet.
         {muted ? " Open this page on your PC to install it there." : ""}
       </p>
+      <Link
+        href="/desktop/guide"
+        className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
+      >
+        Read the complete desktop guide
+        <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+      </Link>
 
       <div className="mt-6">
         {state.status === "loading" ? (
