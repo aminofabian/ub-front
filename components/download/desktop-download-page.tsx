@@ -176,13 +176,22 @@ function DesktopSection({
         and keeps selling with no internet.
         {muted ? " Open this page on your PC to install it there." : ""}
       </p>
-      <Link
-        href="/desktop/guide"
-        className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
-      >
-        Read the complete desktop guide
-        <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-      </Link>
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1">
+        <Link
+          href="/desktop/onboarding"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
+        >
+          New here? Start with the onboarding walkthrough
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+        </Link>
+        <Link
+          href="/desktop/guide"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--kiosk-text-dim)] underline-offset-2 transition-colors hover:text-[var(--kiosk-text)] hover:underline"
+        >
+          Read the complete desktop guide
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+        </Link>
+      </div>
 
       <div className="mt-6">
         {state.status === "loading" ? (
