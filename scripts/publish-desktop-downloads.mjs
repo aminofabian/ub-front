@@ -10,10 +10,10 @@
  * Copies each with a normalized, URL-safe name and writes manifest.json,
  * which /download and the landing page read at runtime.
  *
- * Files ≥ 95 MB exceed GitHub's push limit and are gitignored. For production
- * hosting set DESKTOP_DOWNLOAD_BASE_URL to a Releases / CDN prefix so the
- * manifest's `url` field points there (e.g.
- * https://github.com/org/repo/releases/download/desktop-v0.0.1).
+ * Files ≥ 95 MB exceed GitHub's push limit and are gitignored. The manifest's
+ * `url` field points at GitHub Releases by default (tag `desktop-v<version>`,
+ * derived from the git `origin` remote). Override with DESKTOP_DOWNLOAD_BASE_URL
+ * to use a custom CDN / self-hosted prefix instead.
  *
  * Run: node scripts/publish-desktop-downloads.mjs
  *      (or `bun run pack:desktop-downloads`)
@@ -31,6 +31,7 @@ import {
 } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { releaseBaseUrl } from "./release-base-url.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FRONTEND = join(__dirname, "..");
@@ -122,9 +123,9 @@ function collectCandidates() {
 function main() {
   const version = tauriVersion();
   const candidates = collectCandidates();
-  const baseUrl = (process.env.DESKTOP_DOWNLOAD_BASE_URL || "").replace(
-    /\/$/,
-    "",
+  const baseUrl = releaseBaseUrl(
+    "DESKTOP_DOWNLOAD_BASE_URL",
+    `desktop-v${version}`,
   );
 
   if (candidates.length === 0) {
@@ -213,16 +214,16 @@ function main() {
       console.warn(`  - ${f.outName} (${f.mb} MB)`);
     }
     console.warn("");
-    console.warn("  Host them via GitHub Releases / CDN, then republish with:");
-    console.warn(
-      "    DESKTOP_DOWNLOAD_BASE_URL=https://github.com/<org>/<repo>/releases/download/<tag> \\",
-    );
-    console.warn("      bun run pack:desktop-downloads");
-    if (!baseUrl) {
-      console.warn("");
+    if (baseUrl) {
       console.warn(
-        "  Manifest currently points at /downloads/desktop/… (local/dev only).",
+        `  Upload them to the "desktop-v${version}" release on GitHub;`,
       );
+      console.warn(`  the manifest already points at ${baseUrl}/…`);
+    } else {
+      console.warn(
+        "  No GitHub remote detected — set DESKTOP_DOWNLOAD_BASE_URL to",
+      );
+      console.warn("  your Releases/CDN prefix so the manifest gets real URLs.");
     }
   }
 }

@@ -12,6 +12,11 @@
  * The newest APK per app wins. Each is copied here with a normalized name
  * and manifest.json is written, which /download reads at runtime.
  *
+ * The manifest's `url` field is kept from the previous manifest for unchanged
+ * versions, or auto-derived from GitHub Releases (tag `mobile-v<version>`,
+ * from the git `origin` remote) for new builds. Override with
+ * MOBILE_DOWNLOAD_BASE_URL to use a custom CDN / self-hosted prefix.
+ *
  * iOS has no sideload path — App Store / Play Store badge URLs can be
  * injected via APP_MOBILE_STORE_LINK_IOS / APP_MOBILE_STORE_LINK_ANDROID
  * env vars when running this script.
@@ -32,6 +37,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { releaseBaseUrl } from "./release-base-url.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FRONTEND = join(__dirname, "..");
@@ -131,13 +137,17 @@ function main() {
     keepNames.add(outName);
     const sizeBytes = statSync(outPath).size;
     const prevApp = prevManifest?.apps?.find((a) => a?.id === appId);
+    const baseUrl = releaseBaseUrl("MOBILE_DOWNLOAD_BASE_URL", `mobile-v${version}`);
+    const url =
+      (prevApp && prevApp.version === version && prevApp.url) ||
+      (baseUrl ? `${baseUrl}/${outName}` : undefined);
     apps.push({
       id: appId,
       name: APPS[appId],
       version,
       platform: "android",
       file: outName,
-      url: prevApp?.url ?? undefined,
+      url,
       sizeBytes,
     });
     console.log(
