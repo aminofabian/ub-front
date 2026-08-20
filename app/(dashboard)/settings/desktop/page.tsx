@@ -208,7 +208,7 @@ export default function DesktopSettingsPage() {
         ? `Uploaded ${result.push.salesPushed} sale(s) from ${result.push.shiftsPushed} shift(s).`
         : "No pending sales to upload.";
       toast.success(
-        `Synced — ${result.pull.items} item(s), ${result.pull.categories} category(ies) refreshed. ${pushed}`,
+        `Synced — ${result.pull.items} item(s), ${result.pull.categories} categor(ies), ${result.pull.staff} staff, ${result.pull.images} image(s) refreshed. ${pushed}`,
       );
     } catch (e) {
       toast.error(
@@ -284,8 +284,9 @@ export default function DesktopSettingsPage() {
                 <span className="text-xs text-muted-foreground">
                   Last sync: {syncResult.pull.items} item(s),{" "}
                   {syncResult.pull.categories} categor(ies),{" "}
-                  {syncResult.pull.taxRates} tax rate(s) refreshed ·{" "}
-                  {syncResult.push.salesPushed} sale(s) uploaded.
+                  {syncResult.pull.taxRates} tax rate(s),{" "}
+                  {syncResult.pull.staff} staff, {syncResult.pull.images} image(s)
+                  refreshed · {syncResult.push.salesPushed} sale(s) uploaded.
                 </span>
               ) : null}
             </div>

@@ -72,7 +72,14 @@ export function restoreDesktopBackup(filename: string): Promise<void> {
 
 /** {@code POST /api/v1/desktop/sync/full} — pull master data + push pending shifts. */
 export type DesktopSyncFullResult = {
-  pull: { branches: number; categories: number; items: number; taxRates: number };
+  pull: {
+    branches: number;
+    categories: number;
+    items: number;
+    taxRates: number;
+    staff: number;
+    images: number;
+  };
   push: { shiftsPushed: number; salesPushed: number; configured: boolean };
 };
 
