@@ -542,6 +542,53 @@ export async function fetchSaAirtimeOrders(limit = 50): Promise<SaAirtimeOrderRo
   );
 }
 
+/* ── Desktop install logs (Super Admin → Platform → Logs) ────────────── */
+
+export type DesktopLogUploadRow = {
+  id: string;
+  installId: string;
+  businessId: string | null;
+  appVersion: string | null;
+  filename: string;
+  sizeBytes: number;
+  uploadedAt: string;
+};
+
+/** Log bundles shipped from Kiosk Desktop installs, newest first. */
+export async function fetchDesktopLogUploads(
+  opts: { installId?: string; limit?: number } = {},
+): Promise<DesktopLogUploadRow[]> {
+  const params = new URLSearchParams({
+    limit: String(Math.max(1, Math.min(opts.limit ?? 50, 200))),
+  });
+  if (opts.installId?.trim()) {
+    params.set("installId", opts.installId.trim());
+  }
+  return saRequest<DesktopLogUploadRow[]>(
+    `${API_ROUTES.superAdminPlatformDesktopLogs}?${params.toString()}`,
+  );
+}
+
+/** The raw gzip bundle for one upload, authenticated like any SA request. */
+export async function fetchDesktopLogContent(id: string): Promise<Blob> {
+  const token = await saAuthToken();
+  const response = await fetch(
+    apiUrl(`${API_ROUTES.superAdminPlatformDesktopLogs}/${encodeURIComponent(id)}/content`),
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (response.status === 401) {
+    clearSuperAdminSession();
+    if (typeof window !== "undefined") {
+      window.location.assign(APP_ROUTES.superAdminLogin);
+    }
+    throw new Error("Session expired. Sign in again.");
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to fetch log bundle (HTTP ${response.status})`);
+  }
+  return response.blob();
+}
+
 export async function requerySaAirtimeOrder(orderId: string): Promise<SaAirtimeOrderRow> {
   return saRequest<SaAirtimeOrderRow>(
     `${API_ROUTES.superAdminAirtime}/orders/${encodeURIComponent(orderId)}/requery`,

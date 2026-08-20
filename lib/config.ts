@@ -236,6 +236,8 @@ export const API_ROUTES = {
   superAdminPlatformSupplierPortal: "/api/v1/super-admin/platform/supplier-portal",
   superAdminMarketplaceSuppliers: "/api/v1/super-admin/marketplace/suppliers",
   superAdminGlobalCatalog: "/api/v1/super-admin/global-catalog",
+  superAdminPlatformDesktopLogs: "/api/v1/super-admin/platform/desktop-logs",
+  platformDesktopLogIngest: "/api/v1/platform/desktop-logs",
   aiStatus: "/api/v1/ai/status",
   aiChat: "/api/v1/ai/chat",
   aiFeedback: "/api/v1/ai/feedback",
