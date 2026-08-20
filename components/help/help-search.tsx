@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Search, X } from "lucide-react";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import type { HelpArticleRef } from "@/lib/help";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,19 @@ export function HelpSearch({
     [articles, deferred],
   );
   const showResults = deferred.trim().length > 0;
+
+  // The hub page is statically exported (desktop SKU), so `?q=` can't be
+  // read via server searchParams — pick it up from the URL client-side.
+  useEffect(() => {
+    if (initialQuery) {
+      return;
+    }
+    const urlQuery =
+      new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
+    if (urlQuery) {
+      setQuery(urlQuery);
+    }
+  }, [initialQuery]);
 
   return (
     <div className={cn("relative w-full", className)}>

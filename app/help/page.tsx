@@ -1,10 +1,8 @@
 import { HelpHubPage } from "@/components/help/help-pages";
 
-type PageProps = {
-  searchParams: Promise<{ q?: string }>;
-};
-
-export default async function HelpPage({ searchParams }: PageProps) {
-  const sp = await searchParams;
-  return <HelpHubPage initialQuery={sp.q?.trim() || ""} />;
+// Next static export (`output: "export"`, desktop SKU) cannot await
+// `searchParams` at prerender time. The `?q=` prefill is read client-side by
+// HelpSearch, so this page needs no searchParams dependency.
+export default function HelpPage() {
+  return <HelpHubPage />;
 }

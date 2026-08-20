@@ -41,8 +41,8 @@ const STASH_DIR = resolve(FRONTEND_ROOT, ".desktop-build-stash");
 const CLOUD_ONLY_PATHS = [
   // Next.js refuses `output: 'export'` if middleware.ts exists at all.
   "middleware.ts",
-  // BFF proxy — irrelevant to desktop; Spring serves /api/* directly.
-  "app/api/v1/[[...path]]/route.ts",
+  // BFF proxy + auth/session helpers — irrelevant to desktop; Spring serves /api/* directly.
+  "app/api",
   // Per-tenant SVG favicon endpoint — single-tenant desktop uses a static favicon.
   "app/tenant-favicon/route.ts",
   // Tenant-branded shopper PWA manifest — storefront is cloud-only.
@@ -55,6 +55,12 @@ const CLOUD_ONLY_PATHS = [
   // calling `headers()`); the desktop SKU explicitly hides the storefront.
   "app/[sku]",
   "app/shop",
+  // Public supplier passport short links (e.g. /s/robinson).
+  "app/s",
+  // Cloud marketplace storefront pages (dynamic slugs).
+  "app/marketplace/s",
+  // Public supplier landing pages.
+  "app/supplier",
   // Accidental Finder duplicate — same routes as `app/shop`; must not ship.
   "app/shop 2",
   // Super-admin console — multi-tenant only.
@@ -72,10 +78,9 @@ const CLOUD_ONLY_PATHS = [
   // route to declare `generateStaticParams()`; we'd have to refactor these
   // `"use client"` pages into server wrappers to add it, which is more
   // invasive than just keeping them out of the static build.
-  "app/(dashboard)/customers/[customerId]",
-  "app/(dashboard)/categories/[slug]",
-  "app/(dashboard)/inventory/stock-take/review/[id]",
-  "app/(dashboard)/inventory/supply-batches/[id]",
+  "app/(dashboard)/customers/[id]",
+  // Supplier portal shop detail — multi-tenant cloud only.
+  "app/(supplier-portal)/supplier-portal/shops/[localSupplierId]",
   // Payment-gateway settings (KopoKopo STK config + simulator). The nav entry
   // for these pages is already hidden via DESKTOP_HIDDEN_NAV_HREFS in
   // app-shell.tsx, but stashing the routes ensures they're not even reachable
@@ -87,6 +92,9 @@ const CLOUD_ONLY_PATHS = [
   "app/download",
   "public/downloads/desktop",
   "public/downloads/mobile",
+  // SEO metadata routes — irrelevant on a localhost desktop install.
+  "app/sitemap.ts",
+  "app/robots.ts",
 ];
 
 const swapped = [];
