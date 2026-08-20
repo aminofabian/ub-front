@@ -70,6 +70,20 @@ if (b7 < 2) failures.push(`expected · bytes in order pdf, got ${b7}`);
 if (c2b7 > 0) failures.push("order pdf still has UTF-8 double-byte ·");
 writeFileSync("/tmp/order-smoke.pdf", Buffer.from(bytes));
 
+const noPriceBlob = buildMarketplaceOrderPdf({
+  supplierName: "Robinson Wholesalers",
+  supplierPhone: "0722 555 000",
+  location: "Gikomba, Nairobi",
+  lines,
+  includePrices: false,
+});
+const noPricePdf = new TextDecoder("windows-1252").decode(
+  new Uint8Array(await noPriceBlob.arrayBuffer()),
+);
+if (noPricePdf.includes("Ksh")) failures.push("no-prices order pdf still has Ksh");
+if (noPricePdf.includes("TOTAL")) failures.push("no-prices order pdf still has TOTAL");
+if (!noPricePdf.includes("ORDER")) failures.push("no-prices order pdf missing ORDER bar");
+
 if (normalizeWhatsAppPhone("+254 722 555 000") !== "254722555000") failures.push("phone normalize failed");
 
 if (failures.length) {

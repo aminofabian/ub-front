@@ -98,6 +98,18 @@ console.log(`bytes=${bytes.length} pages=${pageCount} streams=${streams} images=
 const fs = await import("node:fs");
 fs.writeFileSync("/tmp/catalogue-smoke.pdf", Buffer.from(bytes));
 
+const noPriceBlob = await buildMarketplaceCataloguePdf({
+  detail,
+  origin: "https://kiosk.ke",
+  includePrices: false,
+});
+const noPriceText = new TextDecoder("windows-1252").decode(
+  new Uint8Array(await noPriceBlob.arrayBuffer()),
+);
+if (noPriceText.includes("PRICE")) failures.push("no-prices catalogue still has PRICE column");
+if (noPriceText.includes("Ksh")) failures.push("no-prices catalogue still has Ksh");
+if (!text.includes("PRICE")) failures.push("priced catalogue missing PRICE column");
+
 if (failures.length) {
   console.error("FAILURES:\n" + failures.join("\n"));
   process.exit(1);

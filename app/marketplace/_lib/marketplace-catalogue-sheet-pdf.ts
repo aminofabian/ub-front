@@ -404,11 +404,13 @@ function colX(col: number): number {
 export type CatalogueSheetPdfInput = {
   detail: MarketplaceSupplierDetail;
   origin?: string;
+  includePrices?: boolean;
 };
 
 export async function buildMarketplaceCatalogueSheetPdf({
   detail,
   origin,
+  includePrices = true,
 }: CatalogueSheetPdfInput): Promise<Blob> {
   const products = detail.products;
   const currency = products.find((p) => p.currency)?.currency ?? "KES";
@@ -451,6 +453,7 @@ export async function buildMarketplaceCatalogueSheetPdf({
       date,
       footerLeft,
       groups,
+      includePrices,
     });
     if (groups.length === 0 && first) {
       page.canvas.text(MARGIN, listTop - 16, "No products are linked to this catalogue yet.", {
@@ -459,7 +462,7 @@ export async function buildMarketplaceCatalogueSheetPdf({
       });
     } else {
       cols.forEach((column, col) => {
-        paintColumn(page, column, colX(col), listTop, currency, imageByFamily);
+        paintColumn(page, column, colX(col), listTop, currency, imageByFamily, includePrices);
       });
     }
     paintFooter(page.canvas, {
@@ -503,6 +506,7 @@ function paintChrome(
     date: string;
     footerLeft: string;
     groups: CatalogProductGroup[];
+    includePrices: boolean;
   },
 ) {
   canvas.fill(0, 0, PAGE_W, PAGE_H, C.white);
@@ -541,23 +545,25 @@ function paintChrome(
       });
       y -= 32;
     }
-    paintColumnHeads(canvas, y);
+    paintColumnHeads(canvas, y, ctx.includePrices);
   } else {
     const y = PAGE_H - 24;
     canvas.text(MARGIN, y, detail.name, { font: "bold", size: 11, color: C.brand });
     if (ctx.phone) {
       canvas.text(MARGIN + 200, y, ctx.phone, { font: "bold", size: 10, color: C.green });
     }
-    paintColumnHeads(canvas, y - 16);
+    paintColumnHeads(canvas, y - 16, ctx.includePrices);
   }
 }
 
-function paintColumnHeads(canvas: PdfCanvas, y: number) {
+function paintColumnHeads(canvas: PdfCanvas, y: number, includePrices: boolean) {
   for (let col = 0; col < COLS; col += 1) {
     const x = colX(col);
     canvas.roundRect(x, y - 12, COL_W, 16, 2, C.brandDark);
     canvas.text(x + 8, y - 7, "ITEM", { font: "bold", size: 7.5, color: C.white });
-    canvas.textRight(x + COL_W - 8, y - 7, "PRICE", { font: "bold", size: 7.5, color: C.white });
+    if (includePrices) {
+      canvas.textRight(x + COL_W - 8, y - 7, "PRICE", { font: "bold", size: 7.5, color: C.white });
+    }
   }
 }
 
@@ -625,6 +631,7 @@ function paintColumn(
   topY: number,
   currency: string,
   imageByFamily: Map<string, EmbeddedImage | null>,
+  includePrices: boolean,
 ) {
   const canvas = page.canvas;
   let y = topY;
@@ -648,13 +655,21 @@ function paintColumn(
       img,
       x,
       y,
-      listPacks ? null : pdfPrice(group.items[0], currency),
+      listPacks || !includePrices ? null : pdfPrice(group.items[0], currency),
       listPacks ? true : group.items[0].available,
     );
     y -= FAMILY_H;
     if (listPacks) {
       for (const product of group.items) {
-        paintPackRow(canvas, x, y, displayPackLabel(product, group.label), pdfPrice(product, currency), product.available);
+        paintPackRow(
+          canvas,
+          x,
+          y,
+          displayPackLabel(product, group.label),
+          includePrices ? pdfPrice(product, currency) : "",
+          product.available,
+          includePrices,
+        );
         y -= ROW_H;
       }
     }
@@ -699,19 +714,22 @@ function paintPackRow(
   title: string,
   price: string,
   available: boolean,
+  includePrices: boolean,
 ) {
   const y = cursorY - ROW_H;
-  const priceW = textWidth(price, 8);
+  const priceW = includePrices ? textWidth(price, 8) : 0;
   const titleX = x + THUMB + 4;
   const label = truncateToWidth(title, 7.5, COL_W - THUMB - 14 - priceW);
   canvas.text(titleX, y + 2.4, label, { size: 7.5, color: C.ink });
-  canvas.textRight(x + COL_W, y + 2.4, price, {
-    font: "bold",
-    size: 8,
-    color: available ? C.ink : C.red,
-  });
-  const nameEnd = titleX + textWidth(label, 7.5);
-  canvas.dashLine(nameEnd + 3, y + 4.2, x + COL_W - priceW - 4, y + 4.2);
+  if (includePrices) {
+    canvas.textRight(x + COL_W, y + 2.4, price, {
+      font: "bold",
+      size: 8,
+      color: available ? C.ink : C.red,
+    });
+    const nameEnd = titleX + textWidth(label, 7.5);
+    canvas.dashLine(nameEnd + 3, y + 4.2, x + COL_W - priceW - 4, y + 4.2);
+  }
 }
 
 function paintThumb(

@@ -296,11 +296,13 @@ type PageBuild = { canvas: PdfCanvas };
 export type CataloguePdfInput = {
   detail: MarketplaceSupplierDetail;
   origin?: string;
+  includePrices?: boolean;
 };
 
 export async function buildMarketplaceCataloguePdf({
   detail,
   origin,
+  includePrices = true,
 }: CataloguePdfInput): Promise<Blob> {
   const products = detail.products;
   const currency = products.find((p) => p.currency)?.currency ?? "KES";
@@ -334,6 +336,7 @@ export async function buildMarketplaceCataloguePdf({
     families: groups.length,
     packs: products.length,
     dateShort,
+    includePrices,
   });
   const contTop = PAGE_H - 72;
   const packed = packColumns(groups, firstTop - FOOTER, contTop - FOOTER);
@@ -348,6 +351,7 @@ export async function buildMarketplaceCataloguePdf({
       families: groups.length,
       packs: products.length,
       dateShort,
+      includePrices,
     });
     if (groups.length === 0 && first) {
       canvas.text(MARGIN, listTop - 16, "No products are linked to this catalogue yet.", {
@@ -356,7 +360,7 @@ export async function buildMarketplaceCataloguePdf({
       });
     } else {
       cols.forEach((column, col) => {
-        paintColumn(canvas, column, colX(col), listTop, currency);
+        paintColumn(canvas, column, colX(col), listTop, currency, includePrices);
       });
     }
     canvas.line(MARGIN, 32, PAGE_W - MARGIN, 32, C.line, 0.3);
@@ -382,6 +386,7 @@ function paintHero(
     families: number;
     packs: number;
     dateShort: string;
+    includePrices: boolean;
   },
 ): number {
   canvas.fill(0, 0, PAGE_W, PAGE_H, C.paper);
@@ -389,8 +394,11 @@ function paintHero(
   if (!ctx.first) {
     canvas.fill(0, PAGE_H - 44, PAGE_W, 44, C.forestDeep);
     canvas.text(MARGIN, PAGE_H - 28, detail.name, { font: "serif", size: 12, color: C.white });
-    canvas.textRight(PAGE_W - MARGIN, PAGE_H - 28, "Price list", { size: 9, color: C.heroMuted });
-    paintColumnHeads(canvas, PAGE_H - 58);
+    canvas.textRight(PAGE_W - MARGIN, PAGE_H - 28, ctx.includePrices ? "Price list" : "Catalogue", {
+      size: 9,
+      color: C.heroMuted,
+    });
+    paintColumnHeads(canvas, PAGE_H - 58, ctx.includePrices);
     return PAGE_H - 72;
   }
 
@@ -451,15 +459,17 @@ function paintHero(
   }
 
   const headsY = PAGE_H - drop - 18;
-  paintColumnHeads(canvas, headsY);
+  paintColumnHeads(canvas, headsY, ctx.includePrices);
   return headsY - 14;
 }
 
-function paintColumnHeads(canvas: PdfCanvas, y: number) {
+function paintColumnHeads(canvas: PdfCanvas, y: number, includePrices: boolean) {
   for (let col = 0; col < COLS; col += 1) {
     const x = colX(col);
     canvas.text(x, y, "ITEM", { font: "bold", size: 7.5, color: C.inkSoft });
-    canvas.textRight(x + COL_W, y, "PRICE", { font: "bold", size: 7.5, color: C.inkSoft });
+    if (includePrices) {
+      canvas.textRight(x + COL_W, y, "PRICE", { font: "bold", size: 7.5, color: C.inkSoft });
+    }
     canvas.line(x, y - 5, x + COL_W, y - 5, C.line, 0.4);
   }
 }
@@ -527,6 +537,7 @@ function paintColumn(
   x: number,
   topY: number,
   currency: string,
+  includePrices: boolean,
 ) {
   let y = topY;
   let currentLetter = "";
@@ -552,18 +563,19 @@ function paintColumn(
           x,
           y,
           displayPackLabel(product, group.label),
-          pdfPrice(product, currency),
-          { indent: 10, size: 8, variant: true },
+          includePrices ? pdfPrice(product, currency) : "",
+          { indent: 10, size: 8, variant: true, includePrices },
         );
         y -= ROW_H;
       }
     } else {
       const { name, unit } = singletonLabel(group);
       const label = unit ? `${name}  ·  ${unit}` : name;
-      paintPriceRow(canvas, x, y, label, pdfPrice(group.items[0], currency), {
+      paintPriceRow(canvas, x, y, label, includePrices ? pdfPrice(group.items[0], currency) : "", {
         indent: 0,
         size: 9,
         variant: false,
+        includePrices,
       });
       y -= FAMILY_H;
     }
@@ -587,11 +599,11 @@ function paintPriceRow(
   cursorY: number,
   title: string,
   price: string,
-  opts: { indent: number; size: number; variant: boolean },
+  opts: { indent: number; size: number; variant: boolean; includePrices: boolean },
 ) {
   const y = cursorY - (opts.variant ? ROW_H : FAMILY_H);
   const ask = price === "Ask";
-  const priceW = textWidth(price, 8.5, true);
+  const priceW = opts.includePrices ? textWidth(price, 8.5, true) : 0;
   const titleX = x + opts.indent;
   if (opts.variant) {
     canvas.fill(x + 2, y + 1, 1.5, ROW_H - 2, C.line);
@@ -602,13 +614,15 @@ function paintPriceRow(
     size: opts.size,
     color: C.ink,
   });
-  canvas.textRight(x + COL_W, y + 3, price, {
-    font: "mono",
-    size: 8.5,
-    color: ask ? C.tomato : C.mango,
-  });
-  const nameEnd = titleX + textWidth(label, opts.size);
-  canvas.dashLine(nameEnd + 4, y + 5, x + COL_W - priceW - 5, y + 5, C.line);
+  if (opts.includePrices) {
+    canvas.textRight(x + COL_W, y + 3, price, {
+      font: "mono",
+      size: 8.5,
+      color: ask ? C.tomato : C.mango,
+    });
+    const nameEnd = titleX + textWidth(label, opts.size);
+    canvas.dashLine(nameEnd + 4, y + 5, x + COL_W - priceW - 5, y + 5, C.line);
+  }
 }
 
 function assemblePdf(pages: PageBuild[]): Blob {

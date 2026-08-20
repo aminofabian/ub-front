@@ -14,6 +14,8 @@ export type MarketplaceOrderPdfInput = {
   listedBy?: string | null;
   lines: MarketplaceOrderLine[];
   note?: string;
+  /** When false, names and quantities only — no unit or line totals. */
+  includePrices?: boolean;
 };
 
 const PAGE_W = 595;
@@ -252,7 +254,7 @@ function paintHero(
       size: 9,
       color: C.heroMuted,
     });
-    paintColumnHeads(stream, PAGE_H - 58);
+    paintColumnHeads(stream, PAGE_H - 58, input.includePrices !== false);
     return PAGE_H - 72;
   }
 
@@ -311,13 +313,15 @@ function paintHero(
   }
 
   const headsY = PAGE_H - drop - 18;
-  paintColumnHeads(stream, headsY);
+  paintColumnHeads(stream, headsY, input.includePrices !== false);
   return headsY - 14;
 }
 
-function paintColumnHeads(stream: PdfCanvas, y: number) {
+function paintColumnHeads(stream: PdfCanvas, y: number, includePrices: boolean) {
   stream.text(MARGIN, y, "ITEM", { font: "bold", size: 7.5, color: C.inkSoft });
-  stream.textRight(PAGE_W - MARGIN, y, "TOTAL", { font: "bold", size: 7.5, color: C.inkSoft });
+  if (includePrices) {
+    stream.textRight(PAGE_W - MARGIN, y, "TOTAL", { font: "bold", size: 7.5, color: C.inkSoft });
+  }
   stream.line(MARGIN, y - 5, PAGE_W - MARGIN, y - 5, C.line, 0.4);
 }
 
@@ -331,14 +335,23 @@ function newPage(
   return { stream, cursorY };
 }
 
-function drawTableRow(page: PageLayout, line: MarketplaceOrderLine, currency: string) {
+function drawTableRow(
+  page: PageLayout,
+  line: MarketplaceOrderLine,
+  currency: string,
+  includePrices: boolean,
+) {
   const { stream } = page;
   const y = page.cursorY - ROW_H;
   const qty = `× ${line.qty}`;
   const price =
-    line.unitPrice != null ? waMoney(line.unitPrice * line.qty, line.currency ?? currency) : "Ask";
-  const ask = line.unitPrice == null;
-  const priceW = textWidth(price, 10, true);
+    includePrices
+      ? line.unitPrice != null
+        ? waMoney(line.unitPrice * line.qty, line.currency ?? currency)
+        : "Ask"
+      : "";
+  const ask = includePrices && line.unitPrice == null;
+  const priceW = includePrices ? textWidth(price, 10, true) : 0;
   const qtyW = textWidth(qty, 9);
   const nameMax = CONTENT_W - priceW - qtyW - 28;
   const name = truncateToWidth(line.name, 10, nameMax);
@@ -347,12 +360,14 @@ function drawTableRow(page: PageLayout, line: MarketplaceOrderLine, currency: st
   const nameEnd = MARGIN + textWidth(name, 10);
   stream.text(nameEnd + 6, y + 6, qty, { size: 9, color: C.inkSoft });
   const qtyEnd = nameEnd + 6 + qtyW;
-  stream.dashLine(qtyEnd + 6, y + 8, PAGE_W - MARGIN - priceW - 8, y + 8, C.line);
-  stream.textRight(PAGE_W - MARGIN, y + 6, price, {
-    font: "mono",
-    size: 10,
-    color: ask ? C.tomato : C.mango,
-  });
+  if (includePrices) {
+    stream.dashLine(qtyEnd + 6, y + 8, PAGE_W - MARGIN - priceW - 8, y + 8, C.line);
+    stream.textRight(PAGE_W - MARGIN, y + 6, price, {
+      font: "mono",
+      size: 10,
+      color: ask ? C.tomato : C.mango,
+    });
+  }
   stream.line(MARGIN, y, PAGE_W - MARGIN, y, C.line, 0.3);
   page.cursorY = y;
 }
@@ -364,16 +379,30 @@ function drawTotal(
   priced: boolean,
   items: number,
   units: number,
+  includePrices: boolean,
 ) {
   const { stream } = page;
   const y = page.cursorY - 36;
   stream.roundRect(MARGIN, y, CONTENT_W, 32, 6, C.forestDeep);
-  stream.text(MARGIN + 12, y + 12, "TOTAL", { font: "bold", size: 9, color: C.heroMuted });
-  stream.textRight(PAGE_W - MARGIN - 12, y + 11, priced ? waMoney(total, currency) : "Ask", {
-    font: "mono",
-    size: 13,
-    color: C.white,
+  stream.text(MARGIN + 12, y + 12, includePrices ? "TOTAL" : "ORDER", {
+    font: "bold",
+    size: 9,
+    color: C.heroMuted,
   });
+  stream.textRight(
+    PAGE_W - MARGIN - 12,
+    y + 11,
+    includePrices
+      ? priced
+        ? waMoney(total, currency)
+        : "Ask"
+      : `${items} ${items === 1 ? "item" : "items"}`,
+    {
+      font: "mono",
+      size: 13,
+      color: C.white,
+    },
+  );
   stream.text(
     MARGIN,
     y - 14,
@@ -390,13 +419,26 @@ function drawNote(page: PageLayout, note: string) {
   page.cursorY = y - 16;
 }
 
-function drawFooter(page: PageLayout, dateLong: string, pageNo: number, of: number) {
+function drawFooter(
+  page: PageLayout,
+  dateLong: string,
+  pageNo: number,
+  of: number,
+  includePrices: boolean,
+) {
   const { stream } = page;
   stream.line(MARGIN, 32, PAGE_W - MARGIN, 32, C.line, 0.3);
-  stream.text(MARGIN, 20, "Kiosk.ke · Please confirm availability and pricing.", {
-    size: 8,
-    color: C.inkSoft,
-  });
+  stream.text(
+    MARGIN,
+    20,
+    includePrices
+      ? "Kiosk.ke · Please confirm availability and pricing."
+      : "Kiosk.ke · Please confirm availability.",
+    {
+      size: 8,
+      color: C.inkSoft,
+    },
+  );
   stream.textRight(PAGE_W - MARGIN, 20, `${dateLong}  ·  ${pageNo} / ${of}`, {
     font: "mono",
     size: 8,
@@ -430,6 +472,7 @@ export function buildMarketplaceOrderPdf(input: MarketplaceOrderPdfInput): Blob 
   }
   const items = input.lines.length;
   const units = input.lines.reduce((sum, line) => sum + line.qty, 0);
+  const includePrices = input.includePrices !== false;
   const ctx = { dateShort, items, units };
 
   const pages: PageLayout[] = [];
@@ -440,14 +483,14 @@ export function buildMarketplaceOrderPdf(input: MarketplaceOrderPdfInput): Blob 
       pages.push(page);
       page = newPage(input, true, ctx);
     }
-    drawTableRow(page, line, currency);
+    drawTableRow(page, line, currency, includePrices);
   });
 
   if (page.cursorY < FOOTER_H + 70) {
     pages.push(page);
     page = newPage(input, true, ctx);
   }
-  drawTotal(page, total, currency, pricedCount > 0, items, units);
+  drawTotal(page, total, currency, pricedCount > 0, items, units, includePrices);
 
   if (input.note) {
     if (page.cursorY < FOOTER_H + 24) {
@@ -458,7 +501,7 @@ export function buildMarketplaceOrderPdf(input: MarketplaceOrderPdfInput): Blob 
   }
 
   pages.push(page);
-  pages.forEach((p, i) => drawFooter(p, dateLong, i + 1, pages.length));
+  pages.forEach((p, i) => drawFooter(p, dateLong, i + 1, pages.length, includePrices));
 
   return assemblePdf(pages.map((p) => p.stream.toStream()));
 }

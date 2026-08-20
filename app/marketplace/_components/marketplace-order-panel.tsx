@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   ArrowLeft,
+  Banknote,
   BookOpen,
   Check,
   ChevronDown,
@@ -19,6 +20,7 @@ import {
   ChevronUp,
   Copy,
   FileDown,
+  List,
   Loader2,
   MapPin,
   MessageCircle,
@@ -31,6 +33,14 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { kioskPlaceholderWashClass } from "@/components/cashier/kiosk-listing-styles";
 import { TelLink } from "@/components/tel-link";
@@ -70,6 +80,11 @@ import { mktBtnGhost } from "./marketplace-ui";
 
 type CartQty = Record<string, number>;
 type OrderLayout = "default" | "shelf";
+type PdfDownloadKind = "sheet" | "list" | "order";
+
+function pdfFilename(base: string, includePrices: boolean): string {
+  return includePrices ? base : base.replace(/\.pdf$/i, "-no-prices.pdf");
+}
 
 const SHELF_TILE = cn(
   "group relative flex h-full flex-col overflow-hidden border",
@@ -281,6 +296,7 @@ export function MarketplaceOrderWorkspace({
   });
   const [sendingOrder, setSendingOrder] = useState(false);
   const [catalogueBusy, setCatalogueBusy] = useState(false);
+  const [pdfDownloadKind, setPdfDownloadKind] = useState<PdfDownloadKind | null>(null);
   const [filter, setFilter] = useState("");
   const [parentFilterId, setParentFilterId] = useState<string | null>(() => {
     if (!isShelf || !focusProduct) return null;
@@ -460,15 +476,16 @@ export function MarketplaceOrderWorkspace({
   const pageUrl = () =>
     typeof window === "undefined" ? "" : window.location.href;
 
-  const orderPdfInput = () => ({
+  const orderPdfInput = (includePrices = true) => ({
     supplierName: detail.name,
     supplierPhone: detail.contactPhone,
     location: areaLabel || detail.location,
     listedBy: detail.listedBy,
     lines: orderLines,
+    includePrices,
   });
 
-  const downloadCatalogueList = async () => {
+  const downloadCatalogueList = async (includePrices: boolean) => {
     if (detail.products.length === 0) {
       toast.error("No products in this catalogue yet.");
       return;
@@ -478,9 +495,12 @@ export function MarketplaceOrderWorkspace({
       const blob = await buildMarketplaceCataloguePdf({
         detail,
         origin: typeof window === "undefined" ? undefined : window.location.origin,
+        includePrices,
       });
-      downloadBlob(blob, catalogueFilename);
-      toast.success("Price list downloaded.");
+      downloadBlob(blob, pdfFilename(catalogueFilename, includePrices));
+      toast.success(
+        includePrices ? "Price list downloaded." : "Catalogue downloaded without prices.",
+      );
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not build catalogue",
@@ -490,7 +510,7 @@ export function MarketplaceOrderWorkspace({
     }
   };
 
-  const downloadCatalogueSheet = async () => {
+  const downloadCatalogueSheet = async (includePrices: boolean) => {
     if (detail.products.length === 0) {
       toast.error("No products in this catalogue yet.");
       return;
@@ -500,9 +520,14 @@ export function MarketplaceOrderWorkspace({
       const blob = await buildMarketplaceCatalogueSheetPdf({
         detail,
         origin: typeof window === "undefined" ? undefined : window.location.origin,
+        includePrices,
       });
-      downloadBlob(blob, catalogueSheetFilename);
-      toast.success("Catalogue sheet downloaded.");
+      downloadBlob(blob, pdfFilename(catalogueSheetFilename, includePrices));
+      toast.success(
+        includePrices
+          ? "Catalogue sheet downloaded."
+          : "Catalogue sheet downloaded without prices.",
+      );
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not build catalogue",
@@ -510,6 +535,28 @@ export function MarketplaceOrderWorkspace({
     } finally {
       setCatalogueBusy(false);
     }
+  };
+
+  const requestPdfDownload = (kind: PdfDownloadKind) => {
+    if (kind === "order") {
+      if (cartLines.length === 0) {
+        toast.error("Add at least one product to the order.");
+        return;
+      }
+    } else if (detail.products.length === 0) {
+      toast.error("No products in this catalogue yet.");
+      return;
+    }
+    setPdfDownloadKind(kind);
+  };
+
+  const confirmPdfDownload = (includePrices: boolean) => {
+    const kind = pdfDownloadKind;
+    setPdfDownloadKind(null);
+    if (!kind) return;
+    if (kind === "sheet") void downloadCatalogueSheet(includePrices);
+    else if (kind === "list") void downloadCatalogueList(includePrices);
+    else void downloadOrderPdf(includePrices);
   };
 
   /** Primary action: opens WhatsApp with the order list (incl. catalogue link). */
@@ -548,15 +595,20 @@ export function MarketplaceOrderWorkspace({
     }
   };
 
-  const downloadOrderPdf = async () => {
+  const downloadOrderPdf = async (includePrices: boolean) => {
     if (cartLines.length === 0) {
       toast.error("Add at least one product to the order.");
       return;
     }
     setSendingOrder(true);
     try {
-      downloadBlob(buildMarketplaceOrderPdf(orderPdfInput()), orderFilename);
-      toast.success("Order PDF downloaded.");
+      downloadBlob(
+        buildMarketplaceOrderPdf(orderPdfInput(includePrices)),
+        pdfFilename(orderFilename, includePrices),
+      );
+      toast.success(
+        includePrices ? "Order PDF downloaded." : "Order PDF downloaded without prices.",
+      );
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not build order PDF",
@@ -622,7 +674,7 @@ export function MarketplaceOrderWorkspace({
           type="button"
           className="inline-flex h-10 items-center justify-center gap-1.5 border border-border bg-background px-3 text-xs font-semibold text-foreground transition hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
           disabled={sendingOrder || cartLines.length === 0}
-          onClick={() => void downloadOrderPdf()}
+          onClick={() => requestPdfDownload("order")}
         >
           <FileDown className="size-3.5" />
           Download PDF
@@ -654,6 +706,16 @@ export function MarketplaceOrderWorkspace({
     >
       {orderActions}
     </div>
+  );
+
+  const pdfDownloadDialog = (
+    <PdfPriceFilterDialog
+      kind={pdfDownloadKind}
+      onOpenChange={(open) => {
+        if (!open) setPdfDownloadKind(null);
+      }}
+      onConfirm={confirmPdfDownload}
+    />
   );
 
   if (isShelf) {
@@ -727,7 +789,7 @@ export function MarketplaceOrderWorkspace({
                     ) : null}
                     <button
                       type="button"
-                      onClick={() => void downloadCatalogueSheet()}
+                      onClick={() => requestPdfDownload("sheet")}
                       disabled={catalogueBusy || detail.products.length === 0}
                       className={cn(
                         "inline-flex h-7 shrink-0 items-center gap-1.5 border px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
@@ -895,9 +957,9 @@ export function MarketplaceOrderWorkspace({
               onSetQty={(productId, qty) => setQty(productId, qty)}
               onRemove={(productId) => setQty(productId, 0)}
               onSend={() => void sendOrder()}
-              onDownloadPdf={() => void downloadOrderPdf()}
+              onDownloadPdf={() => requestPdfDownload("order")}
               onCopy={() => void copyOrderList()}
-              onCatalogue={() => void downloadCatalogueList()}
+              onCatalogue={() => requestPdfDownload("list")}
             />
           </div>
         </div>
@@ -996,15 +1058,16 @@ export function MarketplaceOrderWorkspace({
                 onSetQty={(productId, qty) => setQty(productId, qty)}
                 onRemove={(productId) => setQty(productId, 0)}
                 onSend={() => void sendOrder()}
-                onDownloadPdf={() => void downloadOrderPdf()}
+                onDownloadPdf={() => requestPdfDownload("order")}
                 onCopy={() => void copyOrderList()}
-                onCatalogue={() => void downloadCatalogueList()}
+                onCatalogue={() => requestPdfDownload("list")}
                 onClose={() => setMobileOrderOpen(false)}
                 className="min-h-0 flex-1 border-0"
               />
             </div>
           </div>
         ) : null}
+        {pdfDownloadDialog}
       </div>
     );
   }
@@ -1117,6 +1180,7 @@ export function MarketplaceOrderWorkspace({
       </section>
 
       {orderFooter}
+      {pdfDownloadDialog}
     </div>
   );
 }
@@ -2013,5 +2077,80 @@ function ShelfProductTile({
         </div>
       </div>
     </div>
+  );
+}
+
+const PDF_KIND_COPY: Record<
+  PdfDownloadKind,
+  { title: string; description: string }
+> = {
+  sheet: {
+    title: "Download the pictured catalogue",
+    description: "Photos of each family, listed A–Z. Include prices, or names only.",
+  },
+  list: {
+    title: "Download the forest price list",
+    description: "The A–Z list without photos. Include prices, or names only.",
+  },
+  order: {
+    title: "Download this order",
+    description: "Include line prices and a total, or names and quantities only.",
+  },
+};
+
+function PdfPriceFilterDialog({
+  kind,
+  onOpenChange,
+  onConfirm,
+}: {
+  kind: PdfDownloadKind | null;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (includePrices: boolean) => void;
+}) {
+  const copy = kind ? PDF_KIND_COPY[kind] : PDF_KIND_COPY.order;
+  return (
+    <Dialog open={kind != null} onOpenChange={onOpenChange}>
+      <DialogContent
+        className={cn(
+          "z-[90] max-w-[22rem] gap-0 overflow-hidden rounded-none p-0",
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+          "bg-[color-mix(in_srgb,#faf7f1_98%,transparent)]",
+        )}
+        overlayClassName="z-[89]"
+      >
+        <div className="relative border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-5 pb-4 pt-5">
+          <span
+            aria-hidden
+            className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary,#0f766e)]"
+          />
+          <DialogHeader className="space-y-1.5 pl-2 text-left">
+            <DialogTitle className="text-[1.05rem] font-semibold leading-tight tracking-tight text-[var(--pos-ink,#1c1915)]">
+              {copy.title}
+            </DialogTitle>
+            <DialogDescription className="text-[13px] leading-relaxed text-muted-foreground">
+              {copy.description}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+        <div className="flex flex-col gap-2 p-4">
+          <button
+            type="button"
+            onClick={() => onConfirm(true)}
+            className="inline-flex h-11 items-center justify-center gap-2 bg-[var(--pos-primary,#0f766e)] px-4 text-sm font-semibold text-[var(--pos-primary-ink,#fff)] transition hover:brightness-[1.08]"
+          >
+            <Banknote className="size-4" />
+            With prices
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(false)}
+            className="inline-flex h-11 items-center justify-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#faf7f1)] px-4 text-sm font-semibold text-[var(--pos-ink,#1c1915)] transition hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
+          >
+            <List className="size-4" />
+            Without prices
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
