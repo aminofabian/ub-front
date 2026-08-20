@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T15:05:31.510Z",
+  "generatedAt": "2026-08-20T00:00:00.000Z",
   "storeLinks": {
     "ios": null,
     "android": null
@@ -11,7 +11,7 @@
       "version": "0.0.1",
       "platform": "android",
       "file": "kiosk-shopper-0.0.1-android.apk",
-      "url": "https://expo.dev/artifacts/eas/gosHpsqfO13nXb6UKpG7EjFbtYIQB2oFu6JaIMphiVI.apk",
+      "url": "https://github.com/aminofabian/ub-front/releases/download/mobile-v0.0.1/kiosk-shopper-0.0.1-android.apk",
       "sizeBytes": 95980737
     },
     {
@@ -20,7 +20,7 @@
       "version": "0.0.1",
       "platform": "android",
       "file": "kiosk-admin-0.0.1-android.apk",
-      "url": "https://expo.dev/artifacts/eas/0WEKk6luLdtKJQX1EHNkFhwnJ2hrRA0GJO_6n0zvvLo.apk",
+      "url": "https://github.com/aminofabian/ub-front/releases/download/mobile-v0.0.1/kiosk-admin-0.0.1-android.apk",
       "sizeBytes": 66956416
     },
     {
@@ -29,7 +29,7 @@
       "version": "0.0.1",
       "platform": "android",
       "file": "kiosk-stock-0.0.1-android.apk",
-      "url": "https://expo.dev/artifacts/eas/b6wFZzZxaB966FjE_ZFkwmx0_u8gx3Dgw6U6MY0BCCs.apk",
+      "url": "https://github.com/aminofabian/ub-front/releases/download/mobile-v0.0.1/kiosk-stock-0.0.1-android.apk",
       "sizeBytes": 89168591
     }
   ]
