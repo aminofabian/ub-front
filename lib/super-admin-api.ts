@@ -589,6 +589,85 @@ export async function fetchDesktopLogContent(id: string): Promise<Blob> {
   return response.blob();
 }
 
+/* ── Platform request log (Super Admin → Platform → Logs) ───────────── */
+
+export type PlatformRequestLogCategory =
+  | "CASHIER"
+  | "MPESA"
+  | "AIRTIME"
+  | "KPLC"
+  | "OTHER";
+
+export type PlatformRequestLogRow = {
+  id: string;
+  loggedAt: string;
+  method: string;
+  path: string;
+  category: PlatformRequestLogCategory;
+  businessId: string | null;
+  userId: string | null;
+  branchId: string | null;
+  correlationId: string | null;
+  status: number;
+  success: boolean;
+  durationMs: number;
+  ip: string | null;
+};
+
+export type PlatformRequestLogCategorySummary = {
+  category: PlatformRequestLogCategory;
+  total: number;
+  success: number;
+  failed: number;
+  successRate: number;
+  avgDurationMs: number;
+  lastAt: string | null;
+};
+
+export type PlatformRequestLogSummary = {
+  windowMinutes: number;
+  total: number;
+  success: number;
+  failed: number;
+  successRate: number;
+  categories: PlatformRequestLogCategorySummary[];
+};
+
+/** Newest API/webhook requests first, optional category / outcome / window filters. */
+export async function fetchPlatformRequestLogs(
+  opts: {
+    limit?: number;
+    category?: PlatformRequestLogCategory;
+    success?: boolean;
+    sinceMinutes?: number;
+  } = {},
+): Promise<PlatformRequestLogRow[]> {
+  const params = new URLSearchParams({
+    limit: String(Math.max(1, Math.min(opts.limit ?? 100, 500))),
+  });
+  if (opts.category) {
+    params.set("category", opts.category);
+  }
+  if (opts.success !== undefined) {
+    params.set("success", String(opts.success));
+  }
+  if (opts.sinceMinutes !== undefined && opts.sinceMinutes > 0) {
+    params.set("sinceMinutes", String(opts.sinceMinutes));
+  }
+  return saRequest<PlatformRequestLogRow[]>(
+    `${API_ROUTES.superAdminPlatformRequestLogs}?${params.toString()}`,
+  );
+}
+
+/** Success/failure counts per category for a rolling window (default 24 h). */
+export async function fetchPlatformRequestLogSummary(
+  windowMinutes = 1440,
+): Promise<PlatformRequestLogSummary> {
+  return saRequest<PlatformRequestLogSummary>(
+    `${API_ROUTES.superAdminPlatformRequestLogs}/summary?windowMinutes=${windowMinutes}`,
+  );
+}
+
 export async function requerySaAirtimeOrder(orderId: string): Promise<SaAirtimeOrderRow> {
   return saRequest<SaAirtimeOrderRow>(
     `${API_ROUTES.superAdminAirtime}/orders/${encodeURIComponent(orderId)}/requery`,
