@@ -30,6 +30,7 @@ import {
   loginWithPin,
   onboardBusiness,
   resolveBusinessByEmail,
+  setOwnPin,
 } from "@/lib/api";
 import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
@@ -63,6 +64,10 @@ function LoginPageContent() {
     () => searchParams.get("error")?.trim() ?? "",
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pinSetup, setPinSetup] = useState(false);
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [pinSaving, setPinSaving] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [countryCode, setCountryCode] = useState(DEFAULT_SELFSERVE_COUNTRY_CODE);
@@ -147,6 +152,18 @@ function LoginPageContent() {
         await completeAuthAndNavigate(pinPath, tenant?.slug);
       } else {
         await loginWithPassword(email, secret);
+        // A fresh desktop install (or a staff account with no PIN yet) has
+        // no till PIN — prompt to set one before entering the counter. The
+        // cloud web app does not force this: password-only sign-in is valid
+        // there.
+        if (IS_DESKTOP) {
+          const me = await fetchMe().catch(() => null);
+          if (me && me.hasPin === false) {
+            setSecret("");
+            setPinSetup(true);
+            return;
+          }
+        }
         const dest = await resolveAfterStaffAuth();
         await completeAuthAndNavigate(dest, tenant?.slug);
       }
@@ -163,6 +180,32 @@ function LoginPageContent() {
       if (!navigatedAway) {
         setIsSubmitting(false);
       }
+    }
+  };
+
+  const onSubmitPinSetup = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const pin = newPin.trim();
+    if (!/^\d{4,6}$/.test(pin)) {
+      setErrorMessage("PIN must be 4 to 6 digits.");
+      return;
+    }
+    if (pin !== confirmPin) {
+      setErrorMessage("PINs do not match.");
+      return;
+    }
+    setErrorMessage("");
+    setPinSaving(true);
+    try {
+      await setOwnPin(pin);
+      const dest = await resolveAfterStaffAuth();
+      await completeAuthAndNavigate(dest, tenant?.slug);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not save your PIN.",
+      );
+    } finally {
+      setPinSaving(false);
     }
   };
 
@@ -342,6 +385,72 @@ function LoginPageContent() {
           >
             Back to sign in
           </button>
+        </>
+      ) : pinSetup ? (
+        <>
+          <form className="mt-6 space-y-4" onSubmit={onSubmitPinSetup} noValidate>
+            <div>
+              <label className={fieldLabelClass} htmlFor="setup-pin">
+                Create your till PIN
+              </label>
+              <input
+                id="setup-pin"
+                className={cn(
+                  authInputClassName,
+                  "text-center text-2xl font-semibold tracking-[0.35em]",
+                )}
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                placeholder="••••"
+                value={newPin}
+                onChange={(event) => setNewPin(event.target.value)}
+                autoFocus
+                required
+              />
+            </div>
+            <div>
+              <label className={fieldLabelClass} htmlFor="setup-pin-confirm">
+                Confirm PIN
+              </label>
+              <input
+                id="setup-pin-confirm"
+                className={cn(
+                  authInputClassName,
+                  "text-center text-2xl font-semibold tracking-[0.35em]",
+                )}
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                placeholder="••••"
+                value={confirmPin}
+                onChange={(event) => setConfirmPin(event.target.value)}
+                required
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This PIN unlocks the till. You can change it later from Settings →
+              Users.
+            </p>
+            {errorMessage ? (
+              <AuthAlert variant="error">{errorMessage}</AuthAlert>
+            ) : null}
+            <button
+              type="submit"
+              className={primaryCtaClass}
+              disabled={pinSaving}
+              aria-busy={pinSaving}
+            >
+              {pinSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                "Save PIN and continue"
+              )}
+            </button>
+          </form>
         </>
       ) : (
         <>

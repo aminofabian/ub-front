@@ -16,6 +16,7 @@ import {
 } from "@/lib/auth-session-claims";
 import { businessIdFromAccessToken } from "@/lib/jwt-client";
 import { loginPathForNext } from "@/lib/login-audience";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { clearAllSessionBootstrap } from "@/lib/session-bootstrap";
 import { clearPersistedTillLock } from "@/lib/till-lock-persist";
 import { clearTillUnlockContext } from "@/lib/till-unlock-context";
@@ -99,6 +100,23 @@ function purgeLegacyAccessTokenStorage(): void {
   }
 }
 
+function persistDesktopTokens(accessToken: string, refreshToken?: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
+    const refresh = refreshToken?.trim();
+    if (refresh) {
+      window.localStorage.setItem(STORAGE_KEYS.refreshToken, refresh);
+    } else {
+      window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+    }
+  } catch {
+    /* private mode */
+  }
+}
+
 function adoptLegacyAccessTokenFromStorage(): string | null {
   if (typeof window === "undefined") {
     return null;
@@ -113,7 +131,9 @@ function adoptLegacyAccessTokenFromStorage(): string | null {
     }
     applyMemoryAccessToken(legacy);
     applyMemorySessionClaims(claimsFromAccessToken(legacy));
-    purgeLegacyAccessTokenStorage();
+    if (!IS_DESKTOP) {
+      purgeLegacyAccessTokenStorage();
+    }
     return legacy;
   } catch {
     return null;
@@ -319,7 +339,14 @@ export function setSessionTokens(tokens: SessionTokens): void {
   }
   applyMemoryAccessToken(access);
   applyMemorySessionClaims(claimsFromAccessToken(access));
-  purgeLegacyAccessTokenStorage();
+  if (IS_DESKTOP) {
+    // The desktop SKU has no httpOnly cookie / Next server to re-mint the JWT
+    // on a full page load, so persist it and let
+    // adoptLegacyAccessTokenFromStorage() recover it across navigations.
+    persistDesktopTokens(access, tokens.refreshToken);
+  } else {
+    purgeLegacyAccessTokenStorage();
+  }
   setSessionPresenceCookie();
   void ensureSessionPresenceCookie();
   postAuthBroadcast({

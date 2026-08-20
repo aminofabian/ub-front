@@ -2252,6 +2252,14 @@ export async function fetchMe(): Promise<MeResponse> {
   return request<MeResponse>(API_ROUTES.me);
 }
 
+/** Self-service: set the current user's till PIN (first-login onboarding / change). */
+export async function setOwnPin(pin: string): Promise<void> {
+  return request<void>(`${API_ROUTES.me}/pin`, {
+    method: "POST",
+    body: { pin: pin.trim() },
+  });
+}
+
 export type ShopperBalancesPayload = {
   walletBalance?: number | string | null;
   balanceOwed?: number | string | null;
