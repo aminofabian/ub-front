@@ -70,6 +70,19 @@ export function restoreDesktopBackup(filename: string): Promise<void> {
   );
 }
 
+/** {@code POST /api/v1/desktop/sync/full} — pull master data + push pending shifts. */
+export type DesktopSyncFullResult = {
+  pull: { branches: number; categories: number; items: number; taxRates: number };
+  push: { shiftsPushed: number; salesPushed: number; configured: boolean };
+};
+
+export function runDesktopSyncFull(): Promise<DesktopSyncFullResult> {
+  return apiRequest<DesktopSyncFullResult>("/api/v1/desktop/sync/full", {
+    method: "POST",
+    toast: false,
+  });
+}
+
 /** {@code GET/PUT /api/v1/desktop/printer} */
 export type DesktopPrinterConfig = {
   mode: "none" | "file" | "network" | string;

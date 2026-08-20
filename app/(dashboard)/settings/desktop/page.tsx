@@ -33,11 +33,13 @@ import {
   renewDesktopLicense,
   restoreDesktopBackup,
   runDesktopBackupNow,
+  runDesktopSyncFull,
   saveDesktopPrinterConfig,
   toggleDesktopLan,
   type DesktopBackupInfo,
   type DesktopLanStatus,
   type DesktopPrinterConfig,
+  type DesktopSyncFullResult,
 } from "@/lib/desktop-api";
 import { APP_ROUTES } from "@/lib/config";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -75,6 +77,8 @@ export default function DesktopSettingsPage() {
   const [backupRunning, setBackupRunning] = useState(false);
   const [restoring, setRestoring] = useState<string | null>(null);
   const [printerSaving, setPrinterSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<DesktopSyncFullResult | null>(null);
 
   useEffect(() => {
     if (!IS_DESKTOP) {
@@ -195,6 +199,26 @@ export default function DesktopSettingsPage() {
     }
   }
 
+  async function onSyncNow() {
+    setSyncing(true);
+    try {
+      const result = await runDesktopSyncFull();
+      setSyncResult(result);
+      const pushed = result.push.shiftsPushed > 0
+        ? `Uploaded ${result.push.salesPushed} sale(s) from ${result.push.shiftsPushed} shift(s).`
+        : "No pending sales to upload.";
+      toast.success(
+        `Synced — ${result.pull.items} item(s), ${result.pull.categories} category(ies) refreshed. ${pushed}`,
+      );
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Sync failed.",
+      );
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   function copyLanUrl() {
     const url = lan?.lanUrl;
     if (!url) return;
@@ -218,10 +242,56 @@ export default function DesktopSettingsPage() {
         icon={Shield}
         eyebrow="Desktop"
         title="Desktop & offline"
-        description="License, LAN tills, and local backups for this install. Everything stays on this PC unless you turn on LAN sharing."
+        description="License, online-shop sync, LAN tills, and local backups for this install. Everything stays on this PC unless you turn on LAN sharing."
       />
 
       {loadError ? <DashboardFeedback kind="error" text={loadError} /> : null}
+
+      {/* Online-shop sync */}
+      <section className={DASHBOARD_SECTION_SURFACE}>
+        <div className="flex items-start gap-3">
+          <RefreshCw className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 flex-1 space-y-4">
+            <div>
+              <h2 className="text-base font-semibold">Sync with your online shop</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Pull the latest products, prices and settings from kiosk.ke onto
+                this PC, and upload any sales from closed shifts. The counter
+                keeps working offline either way.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={syncing}
+                onClick={() => void onSyncNow()}
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Syncing…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="size-4" />
+                    Sync now
+                  </>
+                )}
+              </Button>
+              {syncResult ? (
+                <span className="text-xs text-muted-foreground">
+                  Last sync: {syncResult.pull.items} item(s),{" "}
+                  {syncResult.pull.categories} categor(ies),{" "}
+                  {syncResult.pull.taxRates} tax rate(s) refreshed ·{" "}
+                  {syncResult.push.salesPushed} sale(s) uploaded.
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* License */}
       <section className={DASHBOARD_SECTION_SURFACE}>

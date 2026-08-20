@@ -54,6 +54,7 @@ const COUNTRY_DEFAULTS = WORLD_COUNTRY_DEFAULTS;
 
 export default function DesktopSetupPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"create" | "connect">("create");
   const [submitState, setSubmitState] = useState<SubmitState>({ kind: "idle" });
   const [businessName, setBusinessName] = useState("");
   const [currency, setCurrency] = useState("KES");
@@ -62,6 +63,13 @@ export default function DesktopSetupPage() {
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
+
+  // Connect-to-existing-shop fields.
+  const [cloudOrigin, setCloudOrigin] = useState(
+    "https://kiosk.zelisline.com",
+  );
+  const [cloudEmail, setCloudEmail] = useState("");
+  const [cloudPassword, setCloudPassword] = useState("");
 
   // Defensive redirect — should be unreachable on a desktop bundle because
   // this page is only routed to from <DesktopRootRedirect>, but if a cloud
@@ -119,6 +127,45 @@ export default function DesktopSetupPage() {
     }
   }
 
+  async function onSubmitConnect(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitState({ kind: "submitting" });
+    try {
+      const res = await fetch("/api/v1/desktop/connect", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          origin: cloudOrigin.trim(),
+          email: cloudEmail.trim(),
+          password: cloudPassword,
+        }),
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as
+          | { detail?: string; title?: string; message?: string }
+          | null;
+        const message =
+          body?.detail ||
+          body?.message ||
+          body?.title ||
+          `Connect failed (${res.status})`;
+        setSubmitState({ kind: "error", message });
+        return;
+      }
+      setSubmitState({ kind: "success" });
+      // Tiny pause so the user sees the success state before the page shifts.
+      setTimeout(() => router.replace("/login/staff"), 600);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Could not reach the backend";
+      setSubmitState({ kind: "error", message });
+    }
+  }
+
   const submitting = submitState.kind === "submitting";
 
   return (
@@ -126,10 +173,16 @@ export default function DesktopSetupPage() {
       title="Welcome to Kiosk Desktop"
       message={
         submitState.kind === "success"
-          ? "Shop created. Taking you to sign in…"
+          ? mode === "connect"
+            ? "Shop connected. Taking you to sign in…"
+            : "Shop created. Taking you to sign in…"
           : submitting
-            ? "Creating your shop…"
-            : "Set up your shop on this PC — nothing is uploaded to the cloud."
+            ? mode === "connect"
+              ? "Connecting your online shop…"
+              : "Creating your shop…"
+            : mode === "connect"
+              ? "Sign in with your kiosk.ke account to copy your shop onto this PC."
+              : "Set up your shop on this PC — nothing is uploaded to the cloud."
       }
       status={
         submitState.kind === "success"
@@ -140,7 +193,47 @@ export default function DesktopSetupPage() {
       }
     >
       <div className="w-full space-y-4 rounded-2xl border border-border/60 bg-card/95 p-6 text-left shadow-sm backdrop-blur-sm">
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <div
+          role="tablist"
+          aria-label="Setup mode"
+          className="grid grid-cols-2 gap-1 rounded-lg border border-border/60 bg-muted/50 p-1 text-sm"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "create"}
+            className={`rounded-md px-3 py-2 font-medium transition ${
+              mode === "create"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => {
+              setMode("create");
+              setSubmitState({ kind: "idle" });
+            }}
+          >
+            New shop
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "connect"}
+            className={`rounded-md px-3 py-2 font-medium transition ${
+              mode === "connect"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => {
+              setMode("connect");
+              setSubmitState({ kind: "idle" });
+            }}
+          >
+            I already have a shop
+          </button>
+        </div>
+
+        {mode === "create" ? (
+          <form className="space-y-4" onSubmit={onSubmit}>
           <fieldset className="space-y-3" disabled={submitting}>
             <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Your shop
@@ -293,6 +386,82 @@ export default function DesktopSetupPage() {
             {submitting ? "Setting up…" : "Create my shop"}
           </button>
         </form>
+        ) : (
+          <form className="space-y-4" onSubmit={onSubmitConnect}>
+            <fieldset className="space-y-3" disabled={submitting}>
+              <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Your online shop
+              </legend>
+              <p className="text-[12px] leading-relaxed text-muted-foreground">
+                Sign in with the email and password you use on{" "}
+                <span className="font-medium text-foreground">kiosk.ke</span>.
+                Kiosk will copy your products, prices and settings onto this PC
+                so the counter keeps working offline.
+              </p>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  Kiosk website
+                </span>
+                <input
+                  className={inputClass}
+                  type="url"
+                  value={cloudOrigin}
+                  onChange={(e) => setCloudOrigin(e.target.value)}
+                  autoComplete="url"
+                  required
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  Email
+                </span>
+                <input
+                  className={inputClass}
+                  type="email"
+                  placeholder="you@shop.com"
+                  value={cloudEmail}
+                  onChange={(e) => setCloudEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                  maxLength={191}
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-foreground">
+                  Password
+                </span>
+                <input
+                  className={inputClass}
+                  type="password"
+                  value={cloudPassword}
+                  onChange={(e) => setCloudPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+              </label>
+            </fieldset>
+
+            {submitState.kind === "error" ? (
+              <div
+                role="alert"
+                className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100"
+              >
+                {submitState.message}
+              </div>
+            ) : null}
+
+            <button
+              type="submit"
+              className="h-11 w-full rounded-md bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              disabled={submitting || submitState.kind === "success"}
+            >
+              {submitting ? "Connecting…" : "Connect my online shop"}
+            </button>
+          </form>
+        )}
       </div>
     </DesktopBootShell>
   );

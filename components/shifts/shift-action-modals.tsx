@@ -1259,6 +1259,12 @@ export function CloseShiftModal({
         denominations: entries.length > 0 ? entries : undefined,
       });
       clearCloseShiftDraft(businessId, userId, shift.id);
+      // Desktop SKU: push the closed shift's sales to the online shop
+      // (store-and-forward). Fire-and-forget — a slow/failed upload never
+      // blocks the shift close; unsynced shifts are retried on the next sync.
+      if (process.env.NEXT_PUBLIC_RUNTIME === "desktop") {
+        void fetch("/api/v1/desktop/sync", { method: "POST" }).catch(() => {});
+      }
       onClosed();
       onClose();
     } catch (e) {
