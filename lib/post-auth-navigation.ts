@@ -14,6 +14,14 @@ import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
 import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
 
 function navigateAfterAuth(path: string): void {
+  // The desktop SKU has no Next.js server route for `/api/auth/store-session`
+  // (that prefetch/cookie-mint endpoint is cloud-only). It also has no
+  // cross-subdomain handoff — the till stays on one origin — so navigate
+  // straight to the post-auth destination.
+  if (IS_DESKTOP) {
+    window.location.assign(path || "/");
+    return;
+  }
   submitStoreSessionNavigate(path);
 }
 
