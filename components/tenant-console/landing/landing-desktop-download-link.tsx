@@ -6,33 +6,33 @@ import { useEffect, useState } from "react";
 
 import {
   desktopAppInstallerUrl,
+  desktopAppOsLabel,
   desktopAppPlatformsForOs,
   detectDesktopAppOs,
   fetchDesktopAppManifest,
+  formatInstallerSize,
 } from "@/lib/desktop-app-download";
 import { detectMobileDeviceOs } from "@/lib/mobile-app-download";
+import { ghostCtaClass } from "./landing-styles";
 
-const linkClass =
-  "group inline-flex items-center gap-2 text-[13px] text-[var(--kiosk-text-dim)] transition-colors duration-200 hover:text-[var(--kiosk-gold)] sm:text-sm";
-
-const iconClass = "h-3.5 w-3.5 text-[var(--kiosk-gold)]";
-
-const labelClass =
-  "underline decoration-[var(--kiosk-border-strong)] underline-offset-4 transition-colors group-hover:decoration-[var(--kiosk-gold)]";
+type DirectDownload = {
+  href: string;
+  label: string;
+  caption: string;
+};
 
 /**
- * "Download the app" link for the landing hero.
+ * "Download" button for the landing hero.
  *
  * Phones/tablets get "Get the mobile app" → /download#mobile. On desktop,
- * when exactly one published installer matches the visitor's OS the link
+ * when exactly one published installer matches the visitor's OS the button
  * downloads it directly (one click → installer on disk); otherwise it goes
- * to /download where every platform is listed.
+ * to /download where every platform is listed. The manifest is fetched
+ * client-side, so the button is a safe link until that resolves.
  */
 export function LandingDesktopDownloadLink() {
   const [onPhone, setOnPhone] = useState(false);
-  const [direct, setDirect] = useState<{ href: string; label: string } | null>(
-    null,
-  );
+  const [direct, setDirect] = useState<DirectDownload | null>(null);
 
   useEffect(() => {
     if (detectMobileDeviceOs() !== "other") {
@@ -46,7 +46,10 @@ export function LandingDesktopDownloadLink() {
       if (matches.length === 1) {
         setDirect({
           href: desktopAppInstallerUrl(matches[0]),
-          label: `Download the desktop app · ${matches[0].label}`,
+          label: `Download for ${desktopAppOsLabel(matches[0].os)}`,
+          caption: `v${manifest.version} · ${formatInstallerSize(
+            matches[0].sizeBytes,
+          )} · works offline`,
         });
       }
     });
@@ -55,31 +58,39 @@ export function LandingDesktopDownloadLink() {
     };
   }, []);
 
+  const buttonClass = `${ghostCtaClass} px-6 py-3.5`;
+
   if (onPhone) {
     return (
-      <Link href="/download#mobile" className={linkClass}>
-        <Smartphone className={iconClass} strokeWidth={2} aria-hidden />
-        <span className={labelClass}>Get the mobile app</span>
+      <Link href="/download#mobile" className={buttonClass}>
+        <Smartphone className="h-4 w-4 text-[var(--kiosk-gold)]" strokeWidth={2} aria-hidden />
+        Get the mobile app
       </Link>
     );
   }
 
-  const inner = (
-    <>
-      <Download className={iconClass} strokeWidth={2} aria-hidden />
-      <span className={labelClass}>
-        {direct ? direct.label : "Download the desktop app"}
-      </span>
-    </>
+  const icon = (
+    <Download className="h-4 w-4 text-[var(--kiosk-gold)]" strokeWidth={2} aria-hidden />
   );
 
-  return direct ? (
-    <a href={direct.href} download className={linkClass}>
-      {inner}
-    </a>
-  ) : (
-    <Link href="/download" className={linkClass}>
-      {inner}
+  if (direct) {
+    return (
+      <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+        <a href={direct.href} download className={buttonClass}>
+          {icon}
+          <span className="font-medium">{direct.label}</span>
+        </a>
+        <span className="font-mono text-[11px] text-[var(--kiosk-text-faint)]">
+          {direct.caption}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <Link href="/download" className={buttonClass}>
+      {icon}
+      <span className="font-medium">Download the desktop app</span>
     </Link>
   );
 }

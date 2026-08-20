@@ -1,6 +1,7 @@
 "use client";
 
-import { Menu, Search, X } from "lucide-react";
+import { Download, Menu, Search, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
@@ -113,6 +114,13 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
             >
               Find shop
             </button>
+            <Link
+              href="/download"
+              className="landing-nav-ticket landing-nav-ticket--ghost landing-nav-ticket--desktop"
+            >
+              <Download className="h-3.5 w-3.5 text-[var(--kiosk-gold)]" strokeWidth={2} aria-hidden />
+              Download
+            </Link>
             <button
               type="button"
               className="landing-nav-ticket landing-nav-ticket--primary landing-nav-ticket--desktop"
@@ -149,6 +157,14 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
           </nav>
 
           <div className="mt-auto flex flex-col gap-3 border-t border-[var(--kiosk-border-soft)] pt-6">
+            <Link
+              href="/download"
+              className="landing-nav-sheet-btn landing-nav-sheet-btn--ghost"
+              onClick={closeMenu}
+            >
+              <Download className="h-4 w-4 text-[var(--kiosk-gold)]" strokeWidth={2} aria-hidden />
+              Download desktop app
+            </Link>
             <button
               type="button"
               className="landing-nav-sheet-btn landing-nav-sheet-btn--primary"
