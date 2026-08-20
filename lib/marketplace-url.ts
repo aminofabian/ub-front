@@ -125,6 +125,12 @@ export function findMarketplaceProduct(
   return candidates.length === 1 ? candidates[0]! : null;
 }
 
+export function supplierPortalClaimPath(phone?: string | null): string {
+  const trimmed = phone?.trim();
+  if (!trimmed) return APP_ROUTES.supplierPortalClaim;
+  return `${APP_ROUTES.supplierPortalClaim}?phone=${encodeURIComponent(trimmed)}`;
+}
+
 export function marketplaceSupplierDescription(
   detail: MarketplaceSupplierDetail,
 ): string {

@@ -163,6 +163,8 @@ export type SupplierPortalProfile = {
   description: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
+  altContactPhone: string | null;
+  contactLocation: string | null;
   status: string;
   deliveryRegions: string[];
   categoryTags: string[];
@@ -638,20 +640,26 @@ export async function verifySupplierPortalInviteCode(
 export async function completeSupplierPortalClaim(body: {
   phone: string;
   setupToken: string;
-  password: string;
+  password?: string;
+  pin?: string;
   name?: string;
   email?: string;
   username?: string;
+  altPhone?: string;
+  location?: string;
 }): Promise<SupplierPortalLoginResult> {
   const data = await publicSupplierAuthFetch<SupplierPortalLoginResult>(
     API_ROUTES.supplierPortalAuthClaimComplete,
     {
       phone: body.phone.trim(),
       setupToken: body.setupToken,
-      password: body.password,
+      password: body.password?.trim() || undefined,
+      pin: body.pin?.trim() || undefined,
       name: body.name?.trim() || undefined,
       email: body.email?.trim() || undefined,
       username: body.username?.trim() || undefined,
+      altPhone: body.altPhone?.trim() || undefined,
+      location: body.location?.trim() || undefined,
     },
   );
   if (data.accessToken) {
@@ -682,6 +690,8 @@ export async function patchSupplierPortalProfile(body: {
   description?: string;
   contactEmail?: string;
   contactPhone?: string;
+  altContactPhone?: string;
+  contactLocation?: string;
   deliveryRegions?: string[];
   categoryTags?: string[];
 }): Promise<SupplierPortalProfile> {

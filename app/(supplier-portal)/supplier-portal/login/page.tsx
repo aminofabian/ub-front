@@ -1,10 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
-import { SupplierClaimModal } from "@/components/supplier-portal/supplier-claim-modal";
 import {
   spBtnPrimary,
   spEyebrow,
@@ -20,7 +20,12 @@ export default function SupplierPortalLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [claimOpen, setClaimOpen] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const phone = params.get("phone")?.trim();
+    if (phone) setIdentifier(phone);
+  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +82,7 @@ export default function SupplierPortalLoginPage() {
             Welcome back
           </h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Phone or email you claimed with, plus your password.
+            The stall phone or email, plus the PIN or password you set.
           </p>
 
           <form className="mt-5 space-y-3.5" onSubmit={onSubmit}>
@@ -98,7 +103,7 @@ export default function SupplierPortalLoginPage() {
             </label>
             <label className="block">
               <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                Password
+                PIN or password
               </span>
               <input
                 id="sp-password"
@@ -123,18 +128,16 @@ export default function SupplierPortalLoginPage() {
 
           <p className="mt-5 text-center text-sm text-muted-foreground">
             New here?{" "}
-            <button
-              type="button"
-              onClick={() => setClaimOpen(true)}
+            <Link
+              href={APP_ROUTES.supplierPortalClaim}
               className="font-medium text-[var(--pos-primary,#0f766e)] underline underline-offset-2"
             >
-              Claim with phone
-            </button>
+              Open with the stall phone
+            </Link>
           </p>
         </div>
       </div>
-
-      <SupplierClaimModal open={claimOpen} onOpenChange={setClaimOpen} />
     </div>
   );
 }
+

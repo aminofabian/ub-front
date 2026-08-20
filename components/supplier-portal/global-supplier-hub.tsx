@@ -32,11 +32,10 @@ import {
   formatMoneyCompact,
   resolveCurrencyCode,
 } from "@/lib/money";
-import { marketplaceSupplierPath } from "@/lib/marketplace-url";
+import { marketplaceSupplierPath, supplierPortalClaimPath } from "@/lib/marketplace-url";
 import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
 import { cn } from "@/lib/utils";
 import { SupplierActivityTabs } from "@/components/supplier-portal/supplier-activity-tabs";
-import { SupplierClaimModal } from "@/components/supplier-portal/supplier-claim-modal";
 import { PageSealGate } from "@/components/page-seal/page-seal-gate";
 import {
   fetchSupplierPageSealStatus,
@@ -424,10 +423,8 @@ function PassportStrip({
 
 function EmptyGlobalFallback({
   username,
-  onClaim,
 }: {
   username: string;
-  onClaim: () => void;
 }) {
   const q = usernameToSearchQuery(username);
   const searchHref = `${APP_ROUTES.marketplace}?q=${encodeURIComponent(q)}`;
@@ -447,17 +444,16 @@ function EmptyGlobalFallback({
         >
           Search marketplace
         </Link>
-        <button
-          type="button"
-          onClick={onClaim}
+        <Link
+          href={APP_ROUTES.supplierPortalClaim}
           className={cn(
             "inline-flex h-10 items-center border px-4 text-sm font-semibold",
             INK_BORDER,
             "text-[var(--pos-ink,#1c1915)]",
           )}
         >
-          Claim passport
-        </button>
+          This is your stall
+        </Link>
       </div>
     </div>
   );
@@ -503,7 +499,6 @@ export function GlobalSupplierHubView({ username }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sealStatus, setSealStatus] = useState<PageSealStatus | null>(null);
   const [sealEpoch, setSealEpoch] = useState(0);
-  const [claimOpen, setClaimOpen] = useState(false);
 
   const refreshAuth = useCallback(() => {
     const token = getSupplierPortalAccessToken();
@@ -572,11 +567,7 @@ export function GlobalSupplierHubView({ username }: Props) {
   if (!detail && !hub) {
     return (
       <HubShell>
-        <EmptyGlobalFallback
-          username={username}
-          onClaim={() => setClaimOpen(true)}
-        />
-        <SupplierClaimModal open={claimOpen} onOpenChange={setClaimOpen} />
+        <EmptyGlobalFallback username={username} />
       </HubShell>
     );
   }
@@ -640,17 +631,16 @@ export function GlobalSupplierHubView({ username }: Props) {
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
                       {!hub ? (
-                        <button
-                          type="button"
-                          onClick={() => setClaimOpen(true)}
+                        <Link
+                          href={supplierPortalClaimPath(detail.contactPhone)}
                           className={cn(
                             "inline-flex h-7 items-center border px-2 text-[10px] font-semibold uppercase tracking-[0.1em]",
                             "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
                             "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
                           )}
                         >
-                          Claim passport
-                        </button>
+                          This is your stall
+                        </Link>
                       ) : null}
                       {detail.slug ? (
                         <Link
@@ -674,7 +664,6 @@ export function GlobalSupplierHubView({ username }: Props) {
           )}
         </PageSealGate>
       </div>
-      <SupplierClaimModal open={claimOpen} onOpenChange={setClaimOpen} />
     </HubShell>
   );
 }

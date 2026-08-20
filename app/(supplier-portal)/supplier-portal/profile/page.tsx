@@ -26,6 +26,8 @@ export default function SupplierPortalProfilePage() {
   const [description, setDescription] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [altContactPhone, setAltContactPhone] = useState("");
+  const [contactLocation, setContactLocation] = useState("");
   const [deliveryRegions, setDeliveryRegions] = useState("");
   const [usernameDraft, setUsernameDraft] = useState("");
   const [candidates, setCandidates] = useState<SupplierPortalLinkCandidate[]>([]);
@@ -38,6 +40,8 @@ export default function SupplierPortalProfilePage() {
     setDescription(row.description ?? "");
     setContactEmail(row.contactEmail ?? "");
     setContactPhone(row.contactPhone ?? "");
+    setAltContactPhone(row.altContactPhone ?? "");
+    setContactLocation(row.contactLocation ?? "");
     setDeliveryRegions((row.deliveryRegions ?? []).join(", "));
     if (row.username) {
       setUsernameDraft(row.username);
@@ -76,6 +80,8 @@ export default function SupplierPortalProfilePage() {
         description: description.trim() || undefined,
         contactEmail: contactEmail.trim() || undefined,
         contactPhone: contactPhone.trim() || undefined,
+        altContactPhone: altContactPhone.trim() || undefined,
+        contactLocation: contactLocation.trim() || undefined,
         deliveryRegions: deliveryRegions
           .split(",")
           .map((s) => s.trim())
@@ -274,6 +280,22 @@ export default function SupplierPortalProfilePage() {
             <label className="block space-y-1 text-sm">
               <span className="font-medium">Contact phone</span>
               <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="font-medium">Second WhatsApp</span>
+              <Input
+                value={altContactPhone}
+                onChange={(e) => setAltContactPhone(e.target.value)}
+                placeholder="07…"
+              />
+            </label>
+            <label className="block space-y-1 text-sm sm:col-span-2">
+              <span className="font-medium">Area or market</span>
+              <Input
+                value={contactLocation}
+                onChange={(e) => setContactLocation(e.target.value)}
+                placeholder="Githurai, Kawangware…"
+              />
             </label>
           </div>
           <label className="block space-y-1 text-sm">

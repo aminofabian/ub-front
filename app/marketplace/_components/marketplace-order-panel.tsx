@@ -47,7 +47,7 @@ import {
   firstFamilyForLetter,
   groupCatalogProducts,
 } from "@/lib/marketplace-catalog-groups";
-import { marketplacePassportProductPath } from "@/lib/marketplace-url";
+import { marketplacePassportProductPath, supplierPortalClaimPath } from "@/lib/marketplace-url";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
 import { cn, formatMoney } from "@/lib/utils";
@@ -691,6 +691,12 @@ export function MarketplaceOrderWorkspace({
                             WhatsApp
                           </a>
                         ) : null}
+                        <Link
+                          href={supplierPortalClaimPath(shelfPhone)}
+                          className="text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                        >
+                          This is your stall?
+                        </Link>
                       </div>
                     ) : null}
                     <button
@@ -855,6 +861,7 @@ export function MarketplaceOrderWorkspace({
           <div className="hidden h-full min-h-0 w-[min(100%,20rem)] shrink-0 overflow-hidden lg:flex xl:w-[22rem]">
             <OrderManifestPanel
               supplierName={detail.name}
+              claimPhone={shelfPhone}
               lines={cartLines}
               currency={cartCurrency}
               sending={sendingOrder}
@@ -955,6 +962,7 @@ export function MarketplaceOrderWorkspace({
               </div>
               <OrderManifestPanel
                 supplierName={detail.name}
+                claimPhone={shelfPhone}
                 lines={cartLines}
                 currency={cartCurrency}
                 sending={sendingOrder}
@@ -1570,6 +1578,7 @@ function ParentFolderButton({
 
 function OrderManifestPanel({
   supplierName,
+  claimPhone,
   lines,
   currency,
   sending,
@@ -1584,6 +1593,7 @@ function OrderManifestPanel({
   className,
 }: {
   supplierName: string;
+  claimPhone?: string | null;
   lines: { product: MarketplaceCatalogProductPreview; qty: number }[];
   currency: string;
   sending: boolean;
@@ -1773,6 +1783,17 @@ function OrderManifestPanel({
           </div>
           <p className="text-center text-[10px] leading-snug text-muted-foreground">
             WhatsApp opens with your list. Catalogue downloads a PDF price list.
+            {claimPhone ? (
+              <>
+                {" "}
+                <Link
+                  href={supplierPortalClaimPath(claimPhone)}
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  This is your stall?
+                </Link>
+              </>
+            ) : null}
           </p>
         </div>
       </div>
