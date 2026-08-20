@@ -55,3 +55,6 @@ public/downloads/desktop/*.AppImage
 public/downloads/desktop/*.deb
 public/downloads/mobile/*.apk
 public/downloads/mobile/*.aab
+
+# Local desktop-packaging backup tree — never commit
+/.desktop-build-stash/
