@@ -22,6 +22,31 @@ const LOCALHOST_SUFFIX = ".localhost";
  */
 const IS_DESKTOP_BUILD = process.env.NEXT_PUBLIC_RUNTIME === "desktop";
 
+/**
+ * Hosts that are the platform itself (no tenant), from {@code PLATFORM_HOST}
+ * (comma-separated; {@code www.} variants are implied). Tenant resolution is
+ * skipped for these — the backend would answer 404 anyway, so avoiding the
+ * probe removes an expected-miss request on every platform page render.
+ */
+const PLATFORM_HOSTS: ReadonlySet<string> = buildPlatformHostSet();
+
+function buildPlatformHostSet(): ReadonlySet<string> {
+  const set = new Set<string>();
+  for (const raw of (process.env.PLATFORM_HOST ?? "").split(",")) {
+    const host = raw.trim().toLowerCase();
+    if (!host) {
+      continue;
+    }
+    set.add(host);
+    set.add(`www.${host}`);
+  }
+  return set;
+}
+
+function isPlatformHost(hostname: string): boolean {
+  return PLATFORM_HOSTS.has(hostname);
+}
+
 function parseHostname(raw: string): string {
   // Proxies may send "shop.example.com, apex.example.com" — use the leftmost.
   const first = raw.split(",")[0]?.trim() ?? "";
@@ -123,6 +148,10 @@ async function resolveTenantContextUncached(): Promise<TenantContext | null> {
   if (!hostname) {
     return null;
   }
+  if (isPlatformHost(hostname)) {
+    // The platform itself has no tenant; skip the backend probe entirely.
+    return null;
+  }
   return tenantFromHostname(hostname);
 }
 
@@ -131,8 +160,9 @@ async function resolveTenantContextUncached(): Promise<TenantContext | null> {
  * 1. Backend resolve API for the incoming `Host`/`X-Forwarded-Host`.
  * 2. `*.localhost` fallback for dev (synthesised in-process).
  *
- * Returns `null` only when no host can be determined or the backend returns
- * an unknown host outside the localhost convention.
+ * Returns `null` for the platform host (see {@link PLATFORM_HOSTS}), when no
+ * host can be determined, or when the backend returns an unknown host outside
+ * the localhost convention.
  *
  * Wrapped in React `cache()` so metadata, layout, and tree share one resolve per request.
  */
