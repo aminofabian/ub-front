@@ -80,7 +80,7 @@ export function SupplierSignupFlow({ initialPhone, autoSendCode = false }: Props
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Could not load sign-up settings");
+          setError(signupError(err, "Sign-up isn't available right now. Try again shortly."));
         }
       });
     return () => {
@@ -101,7 +101,7 @@ export function SupplierSignupFlow({ initialPhone, autoSendCode = false }: Props
     void sendSupplierPortalClaimCode(from)
       .then((res) => applySendResult(res))
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Could not send code");
+        setError(signupError(err, "We couldn't send the code. Check the number and try again in a moment."));
       })
       .finally(() => setBusy(false));
   }, [config, inviteOnly, bootstrapped, autoSendCode, initialPhone, phone]);
@@ -136,7 +136,7 @@ export function SupplierSignupFlow({ initialPhone, autoSendCode = false }: Props
     try {
       applySendResult(await sendSupplierPortalClaimCode(phone));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send code");
+      setError(signupError(err, "We couldn't send the code. Check the number and try again in a moment."));
     } finally {
       setBusy(false);
     }
@@ -157,7 +157,7 @@ export function SupplierSignupFlow({ initialPhone, autoSendCode = false }: Props
       const res = await verifySupplierPortalClaimCode(phone, code);
       goToUnlock(res.setupToken, res.suggestedName);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not verify code");
+      setError(signupError(err, "That code didn't match. Try again."));
     } finally {
       setBusy(false);
     }
@@ -171,7 +171,7 @@ export function SupplierSignupFlow({ initialPhone, autoSendCode = false }: Props
       const res = await verifySupplierPortalInviteCode(code, phone || undefined);
       goToUnlock(res.setupToken, res.suggestedName);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not verify invitation");
+      setError(signupError(err, "That invitation didn't work. Check the code and try again."));
     } finally {
       setBusy(false);
     }
@@ -229,7 +229,7 @@ export function SupplierSignupFlow({ initialPhone, autoSendCode = false }: Props
         router.replace(`${APP_ROUTES.supplierPortalLogin}?claimed=1`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not open the portal");
+      setError(signupError(err, "We couldn't open the portal. Try again in a moment."));
     } finally {
       setBusy(false);
     }
@@ -756,4 +756,26 @@ function formatListingPhone(raw: string) {
     return `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}`;
   }
   return raw.trim();
+}
+
+function signupError(err: unknown, fallback: string): string {
+  const raw = err instanceof Error ? err.message.trim() : "";
+  if (raw) {
+    console.warn("[supplier-signup]", raw);
+  }
+  const lower = raw.toLowerCase();
+  if (
+    !raw ||
+    lower.includes("sozuri") ||
+    lower.includes("textsms") ||
+    lower.includes("super admin") ||
+    lower.includes("platform") ||
+    lower.includes("sms") ||
+    lower.includes("whatsapp") ||
+    lower.includes("gateway") ||
+    lower.includes("could not send")
+  ) {
+    return fallback;
+  }
+  return raw;
 }

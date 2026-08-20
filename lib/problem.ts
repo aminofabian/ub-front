@@ -91,13 +91,17 @@ export function formatApiProblemMessage(payload: unknown): string {
 
   const detail = problem?.detail?.trim();
   if (detail && detail.length > 0) {
-    if (GENERIC_PROBLEM_TITLES.has(title) || detail === title) {
-      return detail;
-    }
-    return `${title}\n${detail}`;
+    const combined =
+      GENERIC_PROBLEM_TITLES.has(title) || detail === title
+        ? detail
+        : `${title}\n${detail}`;
+    return friendlyOtpDeliveryMessage(combined) ?? combined;
   }
 
-  return title.length > 0 ? title : DEFAULT_PROBLEM_TITLE.replace(/\.$/, "");
+  if (title.length > 0) {
+    return friendlyOtpDeliveryMessage(title) ?? title;
+  }
+  return DEFAULT_PROBLEM_TITLE.replace(/\.$/, "");
 }
 
 export function parseProblem(payload: unknown): ProblemResponse | null {
@@ -270,6 +274,10 @@ export function getProblemTitle(payload: unknown): string {
     return detail;
   }
   if (detail) {
+    const friendlyOtp = friendlyOtpDeliveryMessage(detail);
+    if (friendlyOtp) {
+      return friendlyOtp;
+    }
     const friendlyBranch = friendlyBranchRequiredMessage(detail);
     if (friendlyBranch) {
       return friendlyBranch;
@@ -279,7 +287,34 @@ export function getProblemTitle(payload: unknown): string {
     return detail;
   }
 
-  return problem.title.length > 0 ? problem.title : DEFAULT_PROBLEM_TITLE;
+  if (problem.title.length > 0) {
+    const friendlyOtp = friendlyOtpDeliveryMessage(problem.title);
+    if (friendlyOtp) {
+      return friendlyOtp;
+    }
+    return problem.title;
+  }
+
+  return DEFAULT_PROBLEM_TITLE;
+}
+
+/** Hide operator SMS/WhatsApp setup copy from shoppers and suppliers. */
+function friendlyOtpDeliveryMessage(text: string): string | null {
+  const normalized = text.trim().toLowerCase();
+  if (
+    normalized.includes("sozuri") ||
+    normalized.includes("textsms") ||
+    normalized.includes("super admin") ||
+    normalized.includes("platform integrations") ||
+    normalized.includes("sms is required") ||
+    normalized.includes("messaging is not configured") ||
+    normalized.includes("configure sms") ||
+    normalized.includes("24h window") ||
+    normalized.includes("free-form whatsapp")
+  ) {
+    return "We couldn't send the code. Check the number and try again in a moment.";
+  }
+  return null;
 }
 
 /** Soften harsh branch-resolution copy into actionable guidance. */

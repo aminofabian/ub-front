@@ -56,6 +56,9 @@ import {
   buildMarketplaceCataloguePdf,
 } from "../_lib/marketplace-catalogue-pdf";
 import {
+  buildMarketplaceCatalogueSheetPdf,
+} from "../_lib/marketplace-catalogue-sheet-pdf";
+import {
   buildMarketplaceOrderPdf,
   buildMarketplaceOrderText,
   buildWhatsAppOrderUrl,
@@ -451,6 +454,7 @@ export function MarketplaceOrderWorkspace({
 
   const orderFilename = `order-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
   const catalogueFilename = `catalogue-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
+  const catalogueSheetFilename = `catalogue-sheet-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
 
   /** Absolute URL of the current page — used inside handlers only (client-only). */
   const pageUrl = () =>
@@ -464,7 +468,7 @@ export function MarketplaceOrderWorkspace({
     lines: orderLines,
   });
 
-  const downloadCatalogue = async () => {
+  const downloadCatalogueList = async () => {
     if (detail.products.length === 0) {
       toast.error("No products in this catalogue yet.");
       return;
@@ -476,7 +480,29 @@ export function MarketplaceOrderWorkspace({
         origin: typeof window === "undefined" ? undefined : window.location.origin,
       });
       downloadBlob(blob, catalogueFilename);
-      toast.success("Catalogue downloaded — share it with your buyers.");
+      toast.success("Price list downloaded.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not build catalogue",
+      );
+    } finally {
+      setCatalogueBusy(false);
+    }
+  };
+
+  const downloadCatalogueSheet = async () => {
+    if (detail.products.length === 0) {
+      toast.error("No products in this catalogue yet.");
+      return;
+    }
+    setCatalogueBusy(true);
+    try {
+      const blob = await buildMarketplaceCatalogueSheetPdf({
+        detail,
+        origin: typeof window === "undefined" ? undefined : window.location.origin,
+      });
+      downloadBlob(blob, catalogueSheetFilename);
+      toast.success("Catalogue sheet downloaded.");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not build catalogue",
@@ -701,7 +727,7 @@ export function MarketplaceOrderWorkspace({
                     ) : null}
                     <button
                       type="button"
-                      onClick={() => void downloadCatalogue()}
+                      onClick={() => void downloadCatalogueSheet()}
                       disabled={catalogueBusy || detail.products.length === 0}
                       className={cn(
                         "inline-flex h-7 shrink-0 items-center gap-1.5 border px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
@@ -871,7 +897,7 @@ export function MarketplaceOrderWorkspace({
               onSend={() => void sendOrder()}
               onDownloadPdf={() => void downloadOrderPdf()}
               onCopy={() => void copyOrderList()}
-              onCatalogue={() => void downloadCatalogue()}
+              onCatalogue={() => void downloadCatalogueList()}
             />
           </div>
         </div>
@@ -972,7 +998,7 @@ export function MarketplaceOrderWorkspace({
                 onSend={() => void sendOrder()}
                 onDownloadPdf={() => void downloadOrderPdf()}
                 onCopy={() => void copyOrderList()}
-                onCatalogue={() => void downloadCatalogue()}
+                onCatalogue={() => void downloadCatalogueList()}
                 onClose={() => setMobileOrderOpen(false)}
                 className="min-h-0 flex-1 border-0"
               />
@@ -1782,7 +1808,8 @@ function OrderManifestPanel({
             </button>
           </div>
           <p className="text-center text-[10px] leading-snug text-muted-foreground">
-            WhatsApp opens with your list. Catalogue downloads a PDF price list.
+            WhatsApp opens with your list. Catalogue PDF is the pictured sheet
+            with photos. Catalogue is the forest price list.
             {claimPhone ? (
               <>
                 {" "}
