@@ -67,6 +67,9 @@ function crumbsFor(pathname: string): Crumb[] {
   if (pathname === APP_ROUTES.superAdminPlatformLogs) {
     return [{ label: "Platform" }, { label: "Logs" }];
   }
+  if (pathname === APP_ROUTES.superAdminPlatformDesktopLicenses) {
+    return [{ label: "Platform" }, { label: "Desktop licenses" }];
+  }
   if (pathname === APP_ROUTES.superAdminPlatformSupplierPortal) {
     return [{ label: "Platform" }, { label: "Supplier portal" }];
   }
@@ -226,6 +229,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               <NavItem href={APP_ROUTES.superAdminPlatformSokoMind} label="SokoMind" />
               <NavGroupLabel>Ops</NavGroupLabel>
               <NavItem href={APP_ROUTES.superAdminPlatformDomains} label="Domains" />
+              <NavItem href={APP_ROUTES.superAdminPlatformDesktopLicenses} label="Desktop licenses" />
               <NavItem href={APP_ROUTES.superAdminPlatformLogs} label="Logs" />
             </div>
           </Collapsible.Content>

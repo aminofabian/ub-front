@@ -589,6 +589,65 @@ export async function fetchDesktopLogContent(id: string): Promise<Blob> {
   return response.blob();
 }
 
+/* ── Desktop licenses (Super Admin → Platform → Desktop licenses) ──── */
+
+export type DesktopLicenseIssuerStatus = {
+  /** Whether the cloud can sign tokens (APP_DESKTOP_LICENSE_PRIVATE_KEY set). */
+  configured: boolean;
+};
+
+export type IssueDesktopLicensePayload = {
+  businessName: string;
+  /** counter | shop | lan (defaults to shop when blank). */
+  plan?: string;
+  /** Exactly one of days / expiresAt / perpetual is required. */
+  days?: number;
+  /** ISO-8601 instant, e.g. 2027-08-20T00:00:00Z. */
+  expiresAt?: string;
+  perpetual?: boolean;
+  /** Optional SHA-256 fingerprint carried in the token (not yet enforced). */
+  fingerprint?: string;
+  /** Only used by issueAndEmailDesktopLicense. */
+  email?: string;
+};
+
+export type DesktopLicenseIssueResult = {
+  token: string;
+  businessName: string;
+  plan: string;
+  issuedAt: string;
+  expiresAt: string | null;
+  machineFingerprint: string | null;
+  emailedTo: string | null;
+  emailSent: boolean;
+};
+
+export async function fetchDesktopLicenseIssuerStatus(): Promise<DesktopLicenseIssuerStatus> {
+  return saRequest<DesktopLicenseIssuerStatus>(
+    `${API_ROUTES.superAdminPlatformDesktopLicenses}/status`,
+  );
+}
+
+/** Sign a token (console shows it with a copy button). */
+export async function issueDesktopLicense(
+  body: IssueDesktopLicensePayload,
+): Promise<DesktopLicenseIssueResult> {
+  return saRequest<DesktopLicenseIssueResult>(
+    `${API_ROUTES.superAdminPlatformDesktopLicenses}/issue`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+/** Sign a token and email it to the shop owner. */
+export async function issueAndEmailDesktopLicense(
+  body: IssueDesktopLicensePayload,
+): Promise<DesktopLicenseIssueResult> {
+  return saRequest<DesktopLicenseIssueResult>(
+    `${API_ROUTES.superAdminPlatformDesktopLicenses}/issue-and-email`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
 /* ── Platform request log (Super Admin → Platform → Logs) ───────────── */
 
 export type PlatformRequestLogCategory =
