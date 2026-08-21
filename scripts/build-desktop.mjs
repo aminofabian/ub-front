@@ -18,7 +18,13 @@
  * Cloud builds (`bun run build`) are unaffected — this script is never run.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -123,6 +129,51 @@ function moveAside(rel) {
   swapped.push(rel);
 }
 
+/**
+ * Heal a previous build that was killed between {@link moveAside} and
+ * {@link restoreAll} (SIGKILL / power loss / "stop" in the editor). The stash
+ * only ever contains paths this script moved aside, so move them all back
+ * before doing anything else — without this, the next run would silently
+ * rebuild over the missing files and then `rm -rf` the only copy.
+ */
+function healInterruptedBuild() {
+  if (!existsSync(STASH_DIR)) {
+    return;
+  }
+  let healed = 0;
+  for (const rel of [...CLOUD_ONLY_PATHS].reverse()) {
+    const from = stashPathFor(rel);
+    if (!existsSync(from)) {
+      continue;
+    }
+    const to = abs(rel);
+    if (existsSync(to)) {
+      // The source was recreated after the interrupted run — the stash copy is
+      // stale; drop it instead of clobbering the newer file.
+      rmSync(from, { recursive: true, force: true });
+      continue;
+    }
+    mkdirSync(dirname(to), { recursive: true });
+    renameSync(from, to);
+    healed++;
+  }
+  if (healed > 0) {
+    console.log(
+      `[build-desktop] restored ${healed} path(s) left by an interrupted build.`,
+    );
+  }
+  const remaining = existsSync(STASH_DIR)
+    ? readdirSync(STASH_DIR, { recursive: true }).length
+    : 0;
+  if (remaining > 0) {
+    console.warn(
+      `[build-desktop] stash still contains ${remaining} entry/ies outside CLOUD_ONLY_PATHS; leaving them for manual review.`,
+    );
+  } else if (existsSync(STASH_DIR)) {
+    rmSync(STASH_DIR, { recursive: true, force: true });
+  }
+}
+
 function restoreAll() {
   // Restore in reverse order so nested paths come back before their parents.
   const remaining = [...swapped].reverse();
@@ -131,6 +182,7 @@ function restoreAll() {
       `[build-desktop] restoring ${remaining.length} stashed path(s)...`,
     );
   }
+  let failed = false;
   for (const rel of remaining) {
     const from = stashPathFor(rel);
     const to = abs(rel);
@@ -144,6 +196,7 @@ function restoreAll() {
       mkdirSync(dirname(to), { recursive: true });
       renameSync(from, to);
     } catch (err) {
+      failed = true;
       console.error(
         `[build-desktop] failed to restore ${rel}:`,
         err.message ?? err,
@@ -151,7 +204,14 @@ function restoreAll() {
     }
   }
   swapped.length = 0;
-  // Best-effort cleanup of the empty stash dir.
+  // Never rm -rf the stash when a restore failed — the unrecovered copy is
+  // the only one left.
+  if (failed) {
+    console.warn(
+      "[build-desktop] some paths failed to restore; leaving the stash in place.",
+    );
+    return;
+  }
   if (existsSync(STASH_DIR)) {
     try {
       rmSync(STASH_DIR, { recursive: true, force: true });
@@ -198,6 +258,7 @@ process.on("SIGINT", () => onSignal("SIGINT"));
 process.on("SIGTERM", () => onSignal("SIGTERM"));
 
 try {
+  healInterruptedBuild();
   for (const rel of CLOUD_ONLY_PATHS) {
     moveAside(rel);
   }
