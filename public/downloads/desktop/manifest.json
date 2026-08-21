@@ -1,7 +1,7 @@
 {
   "product": "Kiosk Desktop",
   "version": "0.0.1",
-  "generatedAt": "2026-08-21T19:07:50.033Z",
+  "generatedAt": "2026-08-21T19:31:38.389Z",
   "platforms": [
     {
       "id": "windows-x86_64",
@@ -9,7 +9,7 @@
       "arch": "x86_64",
       "label": "Windows (64-bit)",
       "file": "kiosk-desktop-0.0.1-windows-x86_64.exe",
-      "sizeBytes": 405392156,
+      "sizeBytes": 405385383,
       "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.1/kiosk-desktop-0.0.1-windows-x86_64.exe"
     }
   ]
