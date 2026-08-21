@@ -1,16 +1,16 @@
 {
   "product": "Kiosk Desktop",
-  "version": "0.0.2",
-  "generatedAt": "2026-08-21T20:13:15.854Z",
+  "version": "0.0.3",
+  "generatedAt": "2026-08-21T20:42:10.983Z",
   "platforms": [
     {
       "id": "windows-x86_64",
       "os": "windows",
       "arch": "x86_64",
       "label": "Windows (64-bit)",
-      "file": "kiosk-desktop-0.0.2-windows-x86_64.exe",
-      "sizeBytes": 405380698,
-      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.2/kiosk-desktop-0.0.2-windows-x86_64.exe"
+      "file": "kiosk-desktop-0.0.3-windows-x86_64.exe",
+      "sizeBytes": 405397608,
+      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.3/kiosk-desktop-0.0.3-windows-x86_64.exe"
     }
   ]
 }

@@ -77,9 +77,11 @@ export type DashboardFeedbackKind = "success" | "error" | "warning";
 export function DashboardFeedback({
   kind,
   text,
+  className,
 }: {
   kind: DashboardFeedbackKind;
   text: string;
+  className?: string;
 }) {
   return (
     <div
@@ -92,6 +94,7 @@ export function DashboardFeedback({
           "border-destructive/25 bg-destructive/5 text-destructive",
         kind === "warning" &&
           "border-amber-500/25 bg-amber-500/[0.07] text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-50",
+        className,
       )}
     >
       {kind === "success" ? (

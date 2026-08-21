@@ -19,6 +19,11 @@ export type DesktopLanStatus = {
   detectedAddresses: string[];
   port: number;
   restartRequired?: boolean;
+  /**
+   * Non-null when LAN is on but Windows Firewall has no inbound rule for the
+   * port (other devices can't connect). Includes the admin command to open it.
+   */
+  firewallNote?: string | null;
 };
 
 /** {@code GET /api/v1/desktop/backups} */

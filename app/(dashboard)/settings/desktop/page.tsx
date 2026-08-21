@@ -594,6 +594,14 @@ export default function DesktopSettingsPage() {
                 text="Restart Kiosk Desktop for the bind address change to take effect."
               />
             ) : null}
+
+            {lan?.firewallNote ? (
+              <DashboardFeedback
+                kind="warning"
+                className="whitespace-pre-wrap break-all"
+                text={lan.firewallNote}
+              />
+            ) : null}
           </div>
         </div>
       </section>
