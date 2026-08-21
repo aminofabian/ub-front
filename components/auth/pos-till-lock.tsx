@@ -26,6 +26,7 @@ import {
   logoutRemoteAndRedirectToLogin,
 } from "@/lib/api";
 import { signOutClientAndRedirectToLogin } from "@/lib/auth";
+import { isApiReachable } from "@/lib/browser-network";
 import { APP_ROUTES } from "@/lib/config";
 import { POS_TILL_IDLE_LOCK_MS } from "@/lib/pos-till-lock-constants";
 import { createPosTillIdleController } from "@/lib/pos-till-idle";
@@ -277,7 +278,7 @@ export function PosTillLockProvider({ children }: PosTillLockProviderProps) {
         );
       }
 
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (typeof navigator !== "undefined" && !isApiReachable()) {
         throw new Error("Reconnect to unlock.");
       }
 

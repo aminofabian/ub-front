@@ -1,8 +1,23 @@
+import { IS_DESKTOP } from "@/lib/runtime";
+
 export function getBrowserOnline(): boolean {
   if (typeof navigator === "undefined") {
     return true;
   }
   return navigator.onLine;
+}
+
+/**
+ * True when the app's own API is reachable.
+ *
+ * Desktop SKU: the page is served by the local backend (127.0.0.1), so the API
+ * is reachable whenever the page is up. `navigator.onLine` is the *internet*
+ * state and WebView2 can report false even on a working LAN — gating the POS
+ * on it would block search, aisle browsing, till unlock, and sale completion
+ * for no reason.
+ */
+export function isApiReachable(): boolean {
+  return IS_DESKTOP ? true : getBrowserOnline();
 }
 
 /** Subscribe to `online` / `offline` events; invokes `cb` immediately with current state. */

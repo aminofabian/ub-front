@@ -128,6 +128,7 @@ import {
 } from "@/lib/customer-phone";
 import { toKenyanMsisdn254 } from "@/lib/kenyan-phone";
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
+import { isApiReachable } from "@/lib/browser-network";
 import { kickCashDrawer, printPosReceipt } from "@/lib/desktop-print";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
@@ -3139,7 +3140,7 @@ export function QuickSaleWorkspace({
         setNotice("");
         return;
       }
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (typeof navigator !== "undefined" && !isApiReachable()) {
         setError("Sending a remote bill requires an online connection.");
         setNotice("");
         return;
@@ -3205,7 +3206,7 @@ export function QuickSaleWorkspace({
       return;
     }
 
-    const offlineEarly = typeof navigator !== "undefined" && !navigator.onLine;
+    const offlineEarly = !isApiReachable();
     if (
       offlineEarly &&
       (payMethodNeedsCustomer(payMethod) ||
@@ -3446,7 +3447,7 @@ export function QuickSaleWorkspace({
     setError("");
     setNotice("");
 
-    const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+    const offlineNow = !isApiReachable();
     if (offlineNow) {
       if (lines.some(isAirtimeCartLine)) {
         setError("Airtime needs a live connection so the wallet can fund the telco.");
