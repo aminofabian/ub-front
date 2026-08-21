@@ -129,7 +129,11 @@ function LoginPageContent() {
       }
 
       const id = await ensureTenantResolved();
-      if (!id?.trim()) {
+      // The desktop SKU is single-tenant: its backend resolves the business
+      // itself, so a bare 127.0.0.1 host must NOT fall through to the
+      // cloud's email → subdomain redirect (which would bounce the webview
+      // to test.kiosk.ke and appear as a logout loop).
+      if (!id?.trim() && !IS_DESKTOP) {
         const biz = await resolveBusinessByEmail(email);
         if (biz?.slug) {
           const shopUrl = slugDerivedShopUrl(biz.slug);
@@ -142,7 +146,7 @@ function LoginPageContent() {
         setShowOnboarding(true);
         return;
       }
-      persistTenantId(id);
+      persistTenantId(id ?? "");
 
       if (usePin) {
         await loginWithPin(email, secret.trim());
