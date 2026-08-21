@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Copy,
   HardDrive,
@@ -31,6 +31,7 @@ import {
   fetchDesktopLanStatus,
   fetchDesktopMediaStatus,
   fetchDesktopPrinterConfig,
+  fetchDesktopSyncStatus,
   reconnectDesktop,
   renewDesktopLicense,
   restoreDesktopBackup,
@@ -42,7 +43,7 @@ import {
   type DesktopLanStatus,
   type DesktopMediaStatus,
   type DesktopPrinterConfig,
-  type DesktopSyncFullResult,
+  type DesktopSyncStatus,
 } from "@/lib/desktop-api";
 import { APP_ROUTES } from "@/lib/config";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -53,6 +54,19 @@ function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Human label for the live sync phase shown next to the Sync now button. */
+function syncPhaseLabel(status: DesktopSyncStatus | null): string {
+  if (!status || status.phase === "IDLE") return "Starting sync…";
+  if (status.phase === "DOWNLOADING") return "Downloading shop data…";
+  if (status.phase === "APPLYING") {
+    return status.itemsTotal > 0
+      ? `Updating products… ${status.itemsDone}/${status.itemsTotal}`
+      : "Updating products…";
+  }
+  if (status.phase === "UPLOADING") return "Uploading sales…";
+  return status.detail || "Syncing…";
 }
 
 function formatWhen(iso: string): string {
@@ -81,7 +95,7 @@ export default function DesktopSettingsPage() {
   const [restoring, setRestoring] = useState<string | null>(null);
   const [printerSaving, setPrinterSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<DesktopSyncFullResult | null>(null);
+  const [syncStatus, setSyncStatus] = useState<DesktopSyncStatus | null>(null);
   const [mediaStatus, setMediaStatus] = useState<DesktopMediaStatus | null>(null);
   const [reconnectOpen, setReconnectOpen] = useState(false);
   const [reconnectOrigin, setReconnectOrigin] = useState("https://kiosk.zelisline.com");
@@ -223,23 +237,72 @@ export default function DesktopSettingsPage() {
 
   async function onSyncNow() {
     setSyncing(true);
+    setSyncStatus(null);
     try {
-      const result = await runDesktopSyncFull();
-      setSyncResult(result);
-      void pollMediaStatus();
-      const pushed = result.push.shiftsPushed > 0
-        ? `Uploaded ${result.push.salesPushed} sale(s) from ${result.push.shiftsPushed} shift(s).`
-        : "No pending sales to upload.";
-      toast.success(
-        `Synced — ${result.pull.items} item(s), ${result.pull.categories} categor(ies), ${result.pull.staff} staff, ${result.pull.images} image(s) refreshed. ${pushed}`,
-      );
+      await runDesktopSyncFull();
     } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : "Sync failed.",
-      );
-    } finally {
       setSyncing(false);
+      toast.error(e instanceof Error ? e.message : "Could not start sync.");
+      return;
     }
+    void pollSyncStatus();
+  }
+
+  const syncPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function stopSyncPolling() {
+    if (syncPollRef.current) {
+      clearInterval(syncPollRef.current);
+      syncPollRef.current = null;
+    }
+  }
+
+  useEffect(() => {
+    return () => stopSyncPolling();
+  }, []);
+
+  // The full sync runs on a background thread (it can take minutes on a big
+  // shop), so poll /sync/status and render the phase while it works. The
+  // sync itself is never cancelled by a dropped poll — only DONE/ERROR stop
+  // the loop.
+  async function pollSyncStatus() {
+    const tick = async (): Promise<boolean> => {
+      try {
+        const status = await fetchDesktopSyncStatus();
+        setSyncStatus(status);
+        if (status.phase === "DONE") {
+          setSyncing(false);
+          void pollMediaStatus();
+          const pull = status.pull;
+          if (pull) {
+            const pushed =
+              status.push && status.push.shiftsPushed > 0
+                ? `Uploaded ${status.push.salesPushed} sale(s) from ${status.push.shiftsPushed} shift(s).`
+                : "No pending sales to upload.";
+            toast.success(
+              `Synced — ${pull.items} item(s), ${pull.categories} categor(ies), ${pull.staff} staff, ${pull.images} image(s) refreshed. ${pushed}`,
+            );
+          }
+          return false;
+        }
+        if (status.phase === "ERROR") {
+          setSyncing(false);
+          toast.error(status.error || "Sync failed.");
+          return false;
+        }
+      } catch {
+        /* transient poll failure — keep polling; the server-side sync runs on */
+      }
+      return true;
+    };
+    if (!(await tick())) {
+      return;
+    }
+    syncPollRef.current = setInterval(async () => {
+      if (!(await tick())) {
+        stopSyncPolling();
+      }
+    }, 1500);
   }
 
   async function onReconnect(e: React.FormEvent<HTMLFormElement>) {
@@ -323,13 +386,19 @@ export default function DesktopSettingsPage() {
                   </>
                 )}
               </Button>
-              {syncResult ? (
+              {syncing ? (
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="size-3 animate-spin" />
+                  {syncPhaseLabel(syncStatus)}
+                </span>
+              ) : syncStatus?.phase === "DONE" && syncStatus.pull ? (
                 <span className="text-xs text-muted-foreground">
-                  Last sync: {syncResult.pull.items} item(s),{" "}
-                  {syncResult.pull.categories} categor(ies),{" "}
-                  {syncResult.pull.taxRates} tax rate(s),{" "}
-                  {syncResult.pull.staff} staff, {syncResult.pull.images} image(s)
-                  refreshed · {syncResult.push.salesPushed} sale(s) uploaded.
+                  Last sync: {syncStatus.pull.items} item(s),{" "}
+                  {syncStatus.pull.categories} categor(ies),{" "}
+                  {syncStatus.pull.taxRates} tax rate(s),{" "}
+                  {syncStatus.pull.staff} staff, {syncStatus.pull.images}{" "}
+                  image(s) refreshed · {syncStatus.push?.salesPushed ?? 0} sale(s){" "}
+                  uploaded.
                 </span>
               ) : null}
               {mediaStatus?.downloading ? (

@@ -280,9 +280,14 @@ function fetchWithClientTimeout(
         if (existingSignal?.aborted) {
           throw error;
         }
-        throw new Error(
+        // Client timeout. Name it so `request()` can re-throw it as-is —
+        // without this it is swallowed into the generic "can't reach the
+        // server" network error even though the server is fine and working.
+        const timeoutError = new Error(
           "Request timed out. Check your connection and try again.",
         );
+        timeoutError.name = "ClientTimeoutError";
+        throw timeoutError;
       }
       throw error;
     })
@@ -1701,7 +1706,10 @@ async function request<T>(
         timeoutMs ?? CLIENT_FETCH_TIMEOUT_MS,
       );
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
+      if (
+        error instanceof Error &&
+        (error.name === "AbortError" || error.name === "ClientTimeoutError")
+      ) {
         throw error;
       }
       throwUnreachable(path);
@@ -1768,7 +1776,10 @@ async function requestMultipartJson<T>(
         body: form,
       });
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
+      if (
+        error instanceof Error &&
+        (error.name === "AbortError" || error.name === "ClientTimeoutError")
+      ) {
         throw error;
       }
       throwUnreachable(path);

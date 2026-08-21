@@ -100,22 +100,50 @@ export function reconnectDesktop(
   );
 }
 
-/** {@code POST /api/v1/desktop/sync/full} — pull master data + push pending shifts. */
-export type DesktopSyncFullResult = {
-  pull: {
-    branches: number;
-    categories: number;
-    items: number;
-    taxRates: number;
-    staff: number;
-    images: number;
-  };
-  push: { shiftsPushed: number; salesPushed: number; configured: boolean };
+/** Pull counts of a finished sync ({@code GET /api/v1/desktop/sync/status}). */
+export type DesktopSyncPullResult = {
+  branches: number;
+  categories: number;
+  items: number;
+  taxRates: number;
+  staff: number;
+  images: number;
 };
 
-export function runDesktopSyncFull(): Promise<DesktopSyncFullResult> {
-  return apiRequest<DesktopSyncFullResult>("/api/v1/desktop/sync/full", {
+/** Push counts of a finished sync. */
+export type DesktopSyncPushResult = {
+  shiftsPushed: number;
+  salesPushed: number;
+  configured: boolean;
+};
+
+/** Live progress of the background full sync. */
+export type DesktopSyncStatus = {
+  phase: "IDLE" | "DOWNLOADING" | "APPLYING" | "UPLOADING" | "DONE" | "ERROR";
+  detail: string;
+  startedAt: number;
+  finishedAt: number;
+  itemsDone: number;
+  itemsTotal: number;
+  pull: DesktopSyncPullResult | null;
+  push: DesktopSyncPushResult | null;
+  error: string | null;
+};
+
+/**
+ * {@code POST /api/v1/desktop/sync/full} — starts the background pull+push
+ * sync. Returns immediately; poll {@link fetchDesktopSyncStatus} for progress.
+ */
+export function runDesktopSyncFull(): Promise<{ started: boolean }> {
+  return apiRequest<{ started: boolean }>("/api/v1/desktop/sync/full", {
     method: "POST",
+    toast: false,
+  });
+}
+
+/** {@code GET /api/v1/desktop/sync/status} — live phase + counts. */
+export function fetchDesktopSyncStatus(): Promise<DesktopSyncStatus> {
+  return apiRequest<DesktopSyncStatus>("/api/v1/desktop/sync/status", {
     toast: false,
   });
 }
