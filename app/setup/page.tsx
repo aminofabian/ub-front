@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { DesktopBootShell } from "@/components/desktop/desktop-boot-shell";
+import { fetchDesktopMediaStatus, type DesktopMediaStatus } from "@/lib/desktop-api";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
   WORLD_COUNTRY_DEFAULTS,
@@ -71,6 +72,10 @@ export default function DesktopSetupPage() {
   const [cloudEmail, setCloudEmail] = useState("");
   const [cloudPassword, setCloudPassword] = useState("");
 
+  // Photo-download progress shown after a successful connect.
+  const [mediaStatus, setMediaStatus] = useState<DesktopMediaStatus | null>(null);
+  const [mediaSkipped, setMediaSkipped] = useState(false);
+
   // Defensive redirect — should be unreachable on a desktop bundle because
   // this page is only routed to from <DesktopRootRedirect>, but if a cloud
   // user types /setup we want them out, not stranded on a non-functional form.
@@ -118,7 +123,7 @@ export default function DesktopSetupPage() {
         return;
       }
       setSubmitState({ kind: "success" });
-      // Tiny pause so the user sees the success state before the page shifts.
+      // New-shop setup has no product photos to download — go straight to login.
       setTimeout(() => router.replace("/login/staff"), 600);
     } catch (err) {
       const message =
@@ -157,8 +162,9 @@ export default function DesktopSetupPage() {
         return;
       }
       setSubmitState({ kind: "success" });
-      // Tiny pause so the user sees the success state before the page shifts.
-      setTimeout(() => router.replace("/login/staff"), 600);
+      // Start polling the background photo download; redirect when it finishes
+      // (or immediately when there are no photos to download).
+      void pollConnectMedia();
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Could not reach the backend";
@@ -166,30 +172,58 @@ export default function DesktopSetupPage() {
     }
   }
 
+  async function pollConnectMedia() {
+    try {
+      const s = await fetchDesktopMediaStatus();
+      setMediaStatus(s);
+      if (s.downloading) {
+        window.setTimeout(() => void pollConnectMedia(), 1500);
+        return;
+      }
+    } catch {
+      // If we can't read progress, just proceed to sign-in.
+    }
+    window.setTimeout(() => router.replace("/login/staff"), 400);
+  }
+
+  function skipMedia() {
+    setMediaSkipped(true);
+    router.replace("/login/staff");
+  }
+
   const submitting = submitState.kind === "submitting";
+  const showConnectProgress =
+    mode === "connect" &&
+    submitState.kind === "success" &&
+    mediaStatus?.downloading === true &&
+    !mediaSkipped;
 
   return (
     <DesktopBootShell
       title="Welcome to Kiosk Desktop"
       message={
-        submitState.kind === "success"
-          ? mode === "connect"
-            ? "Shop connected. Taking you to sign in…"
-            : "Shop created. Taking you to sign in…"
-          : submitting
+        showConnectProgress
+          ? "Shop connected. Downloading your products…"
+          : submitState.kind === "success"
             ? mode === "connect"
-              ? "Connecting your online shop…"
-              : "Creating your shop…"
-            : mode === "connect"
-              ? "Sign in with your kiosk.ke account to copy your shop onto this PC."
-              : "Set up your shop on this PC — nothing is uploaded to the cloud."
+              ? "Shop connected. Taking you to sign in…"
+              : "Shop created. Taking you to sign in…"
+            : submitting
+              ? mode === "connect"
+                ? "Connecting your online shop…"
+                : "Creating your shop…"
+              : mode === "connect"
+                ? "Sign in with your kiosk.ke account to copy your shop onto this PC."
+                : "Set up your shop on this PC — nothing is uploaded to the cloud."
       }
       status={
-        submitState.kind === "success"
-          ? "success"
-          : submitting
-            ? "loading"
-            : undefined
+        showConnectProgress
+          ? "loading"
+          : submitState.kind === "success"
+            ? "success"
+            : submitting
+              ? "loading"
+              : undefined
       }
     >
       <div className="w-full space-y-4 rounded-2xl border border-border/60 bg-card/95 p-6 text-left shadow-sm backdrop-blur-sm">
@@ -386,6 +420,53 @@ export default function DesktopSetupPage() {
             {submitting ? "Setting up…" : "Create my shop"}
           </button>
         </form>
+        ) : showConnectProgress ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold">
+                Downloading your products
+              </h2>
+              <p className="text-[12px] leading-relaxed text-muted-foreground">
+                Kiosk is copying your product photos onto this PC so the
+                counter keeps working fully offline. Keep this PC online until
+                it finishes.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-medium text-foreground">
+                <span>
+                  {mediaStatus
+                    ? `${mediaStatus.done} of ${mediaStatus.total} photos`
+                    : "Starting…"}
+                </span>
+                <span>
+                  {mediaStatus && mediaStatus.total > 0
+                    ? Math.round((mediaStatus.done / mediaStatus.total) * 100)
+                    : 0}
+                  %
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{
+                    width: `${
+                      mediaStatus && mediaStatus.total > 0
+                        ? Math.round((mediaStatus.done / mediaStatus.total) * 100)
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              className="h-10 w-full rounded-md border border-border text-sm font-medium text-muted-foreground transition hover:text-foreground"
+              onClick={skipMedia}
+            >
+              Skip for now
+            </button>
+          </div>
         ) : (
           <form className="space-y-4" onSubmit={onSubmitConnect}>
             <fieldset className="space-y-3" disabled={submitting}>
