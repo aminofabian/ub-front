@@ -29,6 +29,7 @@ import { DesktopLanQr } from "@/components/desktop/desktop-lan-qr";
 import {
   fetchDesktopBackups,
   fetchDesktopLanStatus,
+  fetchDesktopMediaStatus,
   fetchDesktopPrinterConfig,
   renewDesktopLicense,
   restoreDesktopBackup,
@@ -38,6 +39,7 @@ import {
   toggleDesktopLan,
   type DesktopBackupInfo,
   type DesktopLanStatus,
+  type DesktopMediaStatus,
   type DesktopPrinterConfig,
   type DesktopSyncFullResult,
 } from "@/lib/desktop-api";
@@ -79,6 +81,19 @@ export default function DesktopSettingsPage() {
   const [printerSaving, setPrinterSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<DesktopSyncFullResult | null>(null);
+  const [mediaStatus, setMediaStatus] = useState<DesktopMediaStatus | null>(null);
+
+  const pollMediaStatus = useCallback(async () => {
+    try {
+      const s = await fetchDesktopMediaStatus();
+      setMediaStatus(s);
+      if (s.downloading) {
+        setTimeout(() => void pollMediaStatus(), 2000);
+      }
+    } catch {
+      /* media status is best-effort */
+    }
+  }, []);
 
   useEffect(() => {
     if (!IS_DESKTOP) {
@@ -99,6 +114,7 @@ export default function DesktopSettingsPage() {
       setLan(lanStatus);
       setBackups(backupList);
       setPrinter(printerCfg);
+      void pollMediaStatus();
     } catch (e) {
       setLoadError(
         e instanceof Error ? e.message : "Could not load desktop settings.",
@@ -204,6 +220,7 @@ export default function DesktopSettingsPage() {
     try {
       const result = await runDesktopSyncFull();
       setSyncResult(result);
+      void pollMediaStatus();
       const pushed = result.push.shiftsPushed > 0
         ? `Uploaded ${result.push.salesPushed} sale(s) from ${result.push.shiftsPushed} shift(s).`
         : "No pending sales to upload.";
@@ -287,6 +304,17 @@ export default function DesktopSettingsPage() {
                   {syncResult.pull.taxRates} tax rate(s),{" "}
                   {syncResult.pull.staff} staff, {syncResult.pull.images} image(s)
                   refreshed · {syncResult.push.salesPushed} sale(s) uploaded.
+                </span>
+              ) : null}
+              {mediaStatus?.downloading ? (
+                <span className="flex items-center gap-2 text-xs text-amber-600">
+                  <Loader2 className="size-3 animate-spin" />
+                  Downloading product photos: {mediaStatus.done}/{mediaStatus.total}…
+                  keep this PC online until it finishes for full offline images.
+                </span>
+              ) : mediaStatus && mediaStatus.total > 0 ? (
+                <span className="text-xs text-muted-foreground">
+                  {mediaStatus.done} product photo(s) stored for offline use.
                 </span>
               ) : null}
             </div>

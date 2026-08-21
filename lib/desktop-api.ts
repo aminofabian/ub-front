@@ -70,6 +70,19 @@ export function restoreDesktopBackup(filename: string): Promise<void> {
   );
 }
 
+/** {@code GET /api/v1/desktop/sync/media-status} — background photo download progress. */
+export type DesktopMediaStatus = {
+  downloading: boolean;
+  total: number;
+  done: number;
+};
+
+export function fetchDesktopMediaStatus(): Promise<DesktopMediaStatus> {
+  return apiRequest<DesktopMediaStatus>("/api/v1/desktop/sync/media-status", {
+    toast: false,
+  });
+}
+
 /** {@code POST /api/v1/desktop/sync/full} — pull master data + push pending shifts. */
 export type DesktopSyncFullResult = {
   pull: {
