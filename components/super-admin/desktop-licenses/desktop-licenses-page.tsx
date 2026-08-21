@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { Check, Copy, KeyRound, Loader2, Mail, ShieldAlert } from "lucide-react";
+import { Check, Copy, KeyRound, Loader2, Mail, RefreshCw, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { SaSection, saSelectClass } from "@/components/super-admin/sa-section";
@@ -11,8 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   fetchDesktopLicenseIssuerStatus,
+  fetchDesktopLicenseIssues,
   issueAndEmailDesktopLicense,
   issueDesktopLicense,
+  resendDesktopLicense,
+  type DesktopLicenseIssueRecord,
   type DesktopLicenseIssueResult,
   type DesktopLicenseIssuerStatus,
 } from "@/lib/super-admin-api";
@@ -41,6 +44,9 @@ function formatExpiry(iso: string | null): string {
 export function DesktopLicensesPage() {
   const [status, setStatus] = useState<DesktopLicenseIssuerStatus | null>(null);
   const [loadError, setLoadError] = useState("");
+  const [issues, setIssues] = useState<DesktopLicenseIssueRecord[]>([]);
+  const [issuesLoading, setIssuesLoading] = useState(true);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   const [businessName, setBusinessName] = useState("");
   const [plan, setPlan] = useState("shop");
@@ -61,9 +67,21 @@ export function DesktopLicensesPage() {
     }
   }, []);
 
+  const loadIssues = useCallback(async () => {
+    setIssuesLoading(true);
+    try {
+      setIssues(await fetchDesktopLicenseIssues(50));
+    } catch {
+      /* the list is best-effort — the issue form still works */
+    } finally {
+      setIssuesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadStatus();
-  }, [loadStatus]);
+    void loadIssues();
+  }, [loadStatus, loadIssues]);
 
   async function copyToken() {
     if (!result) return;
@@ -105,10 +123,24 @@ export function DesktopLicensesPage() {
         : await issueDesktopLicense(buildPayload());
       setResult(next);
       toast.success(emailIt ? `License issued and emailed to ${target}.` : "License issued.");
+      void loadIssues();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not issue the license.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onResend(id: string) {
+    setResendingId(id);
+    try {
+      await resendDesktopLicense(id);
+      toast.success("License token re-emailed.");
+      void loadIssues();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not re-email the license.");
+    } finally {
+      setResendingId(null);
     }
   }
 
@@ -290,6 +322,78 @@ export function DesktopLicensesPage() {
           </pre>
         </SaSection>
       ) : null}
+
+      <SaSection
+        title="Recent licenses"
+        description="Everything issued from this console — resend the email or re-issue an expired one."
+        actions={
+          <Button type="button" size="sm" variant="ghost" onClick={() => void loadIssues()} disabled={issuesLoading}>
+            <RefreshCw className={cn("size-4", issuesLoading && "animate-spin")} />
+            Refresh
+          </Button>
+        }
+      >
+        {issues.length === 0 && !issuesLoading ? (
+          <p className="text-sm text-muted-foreground">No licenses issued yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border/70 text-xs text-muted-foreground">
+                  <th className="px-3 py-2 font-medium">Shop</th>
+                  <th className="px-3 py-2 font-medium">Plan</th>
+                  <th className="px-3 py-2 font-medium">Expires</th>
+                  <th className="px-3 py-2 font-medium">Sent to</th>
+                  <th className="px-3 py-2 font-medium">Issued</th>
+                  <th className="px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {issues.map((row) => (
+                  <tr key={row.id} className="border-b border-border/50 last:border-0">
+                    <td className="px-3 py-2.5 font-medium">{row.businessName}</td>
+                    <td className="px-3 py-2.5 capitalize">{row.plan}</td>
+                    <td className="px-3 py-2.5">{formatExpiry(row.expiresAt)}</td>
+                    <td className="px-3 py-2.5">
+                      {row.recipientEmail ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          {row.emailSent ? (
+                            <Mail className="size-3.5 text-muted-foreground" aria-hidden />
+                          ) : null}
+                          {row.recipientEmail}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">not emailed</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
+                      {new Date(row.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {row.recipientEmail ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={resendingId === row.id}
+                          onClick={() => void onResend(row.id)}
+                        >
+                          {resendingId === row.id ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Mail className="size-3.5" />
+                          )}
+                          Resend
+                        </Button>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SaSection>
     </div>
   );
 }

@@ -612,6 +612,7 @@ export type IssueDesktopLicensePayload = {
 };
 
 export type DesktopLicenseIssueResult = {
+  id: string;
   token: string;
   businessName: string;
   plan: string;
@@ -620,11 +621,44 @@ export type DesktopLicenseIssueResult = {
   machineFingerprint: string | null;
   emailedTo: string | null;
   emailSent: boolean;
+  createdAt: string;
+};
+
+/** History row from the console list (token intentionally omitted). */
+export type DesktopLicenseIssueRecord = {
+  id: string;
+  businessName: string;
+  plan: string;
+  issuedAt: string;
+  expiresAt: string | null;
+  machineFingerprint: string | null;
+  recipientEmail: string | null;
+  emailSent: boolean;
+  createdAt: string;
 };
 
 export async function fetchDesktopLicenseIssuerStatus(): Promise<DesktopLicenseIssuerStatus> {
   return saRequest<DesktopLicenseIssuerStatus>(
     `${API_ROUTES.superAdminPlatformDesktopLicenses}/status`,
+  );
+}
+
+/** Recent issued licenses, newest first. */
+export async function fetchDesktopLicenseIssues(
+  limit = 50,
+): Promise<DesktopLicenseIssueRecord[]> {
+  return saRequest<DesktopLicenseIssueRecord[]>(
+    `${API_ROUTES.superAdminPlatformDesktopLicenses}?limit=${limit}`,
+  );
+}
+
+/** Re-email the stored token of a previously issued license. */
+export async function resendDesktopLicense(
+  id: string,
+): Promise<DesktopLicenseIssueRecord> {
+  return saRequest<DesktopLicenseIssueRecord>(
+    `${API_ROUTES.superAdminPlatformDesktopLicenses}/${encodeURIComponent(id)}/resend`,
+    { method: "POST" },
   );
 }
 
