@@ -83,6 +83,23 @@ export function fetchDesktopMediaStatus(): Promise<DesktopMediaStatus> {
   });
 }
 
+/** {@code POST /api/v1/desktop/reconnect} — re-auth after the cloud session expires. */
+export function reconnectDesktop(
+  origin: string,
+  email: string,
+  password: string,
+): Promise<{ businessId: string; message: string }> {
+  return apiRequest<{ businessId: string; message: string }>(
+    "/api/v1/desktop/reconnect",
+    {
+      method: "POST",
+      body: { origin: origin.trim(), email: email.trim(), password },
+      requiresAuth: false,
+      toast: false,
+    },
+  );
+}
+
 /** {@code POST /api/v1/desktop/sync/full} — pull master data + push pending shifts. */
 export type DesktopSyncFullResult = {
   pull: {

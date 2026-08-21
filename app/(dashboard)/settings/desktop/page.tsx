@@ -31,6 +31,7 @@ import {
   fetchDesktopLanStatus,
   fetchDesktopMediaStatus,
   fetchDesktopPrinterConfig,
+  reconnectDesktop,
   renewDesktopLicense,
   restoreDesktopBackup,
   runDesktopBackupNow,
@@ -82,6 +83,11 @@ export default function DesktopSettingsPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<DesktopSyncFullResult | null>(null);
   const [mediaStatus, setMediaStatus] = useState<DesktopMediaStatus | null>(null);
+  const [reconnectOpen, setReconnectOpen] = useState(false);
+  const [reconnectOrigin, setReconnectOrigin] = useState("https://kiosk.zelisline.com");
+  const [reconnectEmail, setReconnectEmail] = useState("");
+  const [reconnectPassword, setReconnectPassword] = useState("");
+  const [reconnecting, setReconnecting] = useState(false);
 
   const pollMediaStatus = useCallback(async () => {
     try {
@@ -236,6 +242,26 @@ export default function DesktopSettingsPage() {
     }
   }
 
+  async function onReconnect(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setReconnecting(true);
+    try {
+      const res = await reconnectDesktop(
+        reconnectOrigin,
+        reconnectEmail,
+        reconnectPassword,
+      );
+      setReconnectOpen(false);
+      setReconnectPassword("");
+      toast.success(res.message || "Reconnected to your online shop.");
+      void onSyncNow();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Reconnect failed.");
+    } finally {
+      setReconnecting(false);
+    }
+  }
+
   function copyLanUrl() {
     const url = lan?.lanUrl;
     if (!url) return;
@@ -317,7 +343,51 @@ export default function DesktopSettingsPage() {
                   {mediaStatus.done} product photo(s) stored for offline use.
                 </span>
               ) : null}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setReconnectOpen((v) => !v)}
+              >
+                Reconnect…
+              </Button>
             </div>
+
+            {reconnectOpen ? (
+              <form className="space-y-3 rounded-lg border border-border/60 bg-muted/40 p-4" onSubmit={onReconnect}>
+                <p className="text-xs text-muted-foreground">
+                  If “session expired” keeps appearing, sign in again to refresh
+                  the connection to your online shop.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <input
+                    className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                    placeholder="Shop address"
+                    value={reconnectOrigin}
+                    onChange={(e) => setReconnectOrigin(e.target.value)}
+                  />
+                  <input
+                    className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                    type="email"
+                    placeholder="Email"
+                    value={reconnectEmail}
+                    onChange={(e) => setReconnectEmail(e.target.value)}
+                    required
+                  />
+                  <input
+                    className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                    type="password"
+                    placeholder="Password"
+                    value={reconnectPassword}
+                    onChange={(e) => setReconnectPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" disabled={reconnecting}>
+                  {reconnecting ? "Reconnecting…" : "Reconnect"}
+                </Button>
+              </form>
+            ) : null}
           </div>
         </div>
       </section>
