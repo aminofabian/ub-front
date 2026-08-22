@@ -6,7 +6,13 @@ import { BeautyEditCatalog } from "@/components/storefront/templates/store/beaut
 import { beautyEditFontVariables } from "@/components/storefront/templates/store/beauty-edit-fonts";
 import { BeautyEditNewsletter } from "@/components/storefront/templates/store/beauty-edit-newsletter";
 import styles from "@/components/storefront/templates/store/beauty-edit.module.css";
+import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
+import {
+  resolveStorefrontDesign,
+  storefrontSectionConfig,
+  type StorefrontHeroSectionSettings,
+} from "@/lib/storefront-design";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -33,13 +39,28 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
     featured,
     heroTitle,
     types,
+    announcement,
+    areaLabel,
+    branchHint,
+    logoUrl,
+    heroBannerUrls,
+    showcaseImage,
     landingContent,
     primaryHex,
     accentHex,
+    design,
   } = props;
 
   const gold = accentHex?.trim() || "#b5853a";
   const ink = primaryHex?.trim() || "#0e0e0e";
+  const heroSection = storefrontSectionConfig(design, "hero");
+  const heroOn = heroSection?.enabled === true;
+  const heroSettings = heroSection?.settings as
+    | StorefrontHeroSectionSettings
+    | undefined;
+  const productsConfig = storefrontSectionConfig(design, "products");
+  const productsOn = productsConfig ? productsConfig.enabled : true;
+  const buttons = resolveStorefrontDesign(design).buttons;
 
   const seen = new Set<string>();
   const heroItems: typeof catalogItems = [];
@@ -51,7 +72,9 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
   }
 
   const carouselItems = featured.length > 0 ? featured : catalogItems.slice(0, 8);
-  const catalogRest = catalogItems.filter((item) => !seen.has(item.id));
+  const catalogRest = heroOn
+    ? catalogItems
+    : catalogItems.filter((item) => !seen.has(item.id));
   const wa = landingContent?.whatsapp?.replace(/\D/g, "") || "";
 
   return (
@@ -65,40 +88,69 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
         } as CSSProperties
       }
     >
-      <section className={styles.hero} aria-label="Featured collections">
-        {heroItems.length > 0 ? (
-          heroItems.map((item, i) => (
-            <BeautyEditHeroPanel
-              key={item.id}
-              item={item}
-              currency={currency}
-              headline={HERO_COPY[i]?.headline ?? item.name}
-              cta={HERO_COPY[i]?.cta ?? "Shop now"}
-            />
-          ))
-        ) : (
-          HERO_COPY.map((copy, i) => (
-            <div key={i} className={styles.heroPanel} aria-hidden={i > 0}>
-              <span className={styles.heroPanelFallback} />
-              <span className={styles.heroShade} />
-              <span className={styles.heroPanelCopy}>
-                <span className={styles.heroPanelTitle}>{copy.headline}</span>
-                <span className={styles.heroPanelCta}>{copy.cta}</span>
-              </span>
-            </div>
-          ))
-        )}
-      </section>
+      {heroOn ? (
+        <StorefrontHeroSection
+          title={heroTitle}
+          tagline={
+            heroSettings?.headline.trim() ? heroSettings.headline : announcement
+          }
+          subheadline={heroSettings?.subheadline ?? null}
+          height={heroSettings?.height ?? "medium"}
+          overlay={heroSettings?.overlay ?? "none"}
+          showCta={heroSettings?.showCta ?? true}
+          showWhatsapp={heroSettings?.showWhatsapp ?? true}
+          buttons={buttons}
+          branchHint={branchHint}
+          areaLabel={areaLabel}
+          primaryHex={primaryHex}
+          accentHex={accentHex}
+          showcaseImage={showcaseImage}
+          logoUrl={logoUrl}
+          heroBannerUrls={heroBannerUrls}
+          design={design}
+          whatsappNumber={landingContent?.whatsapp ?? landingContent?.phone ?? null}
+          ctaAnchor="#catalog"
+        />
+      ) : (
+        <section className={styles.hero} aria-label="Featured collections">
+          {heroItems.length > 0 ? (
+            heroItems.map((item, i) => (
+              <BeautyEditHeroPanel
+                key={item.id}
+                item={item}
+                currency={currency}
+                headline={HERO_COPY[i]?.headline ?? item.name}
+                cta={HERO_COPY[i]?.cta ?? "Shop now"}
+              />
+            ))
+          ) : (
+            HERO_COPY.map((copy, i) => (
+              <div key={i} className={styles.heroPanel} aria-hidden={i > 0}>
+                <span className={styles.heroPanelFallback} />
+                <span className={styles.heroShade} />
+                <span className={styles.heroPanelCopy}>
+                  <span className={styles.heroPanelTitle}>{copy.headline}</span>
+                  <span className={styles.heroPanelCta}>{copy.cta}</span>
+                </span>
+              </div>
+            ))
+          )}
+        </section>
+      )}
 
-      <BeautyEditCarousel items={carouselItems} currency={currency} />
+      {productsOn ? (
+        <>
+          <BeautyEditCarousel items={carouselItems} currency={currency} />
 
-      <BeautyEditCatalog
-        slug={slug}
-        currency={currency}
-        initialItems={catalogRest.length > 0 ? catalogRest : catalogItems}
-        initialNextCursor={nextCursor}
-        totalCount={totalCount}
-      />
+          <BeautyEditCatalog
+            slug={slug}
+            currency={currency}
+            initialItems={catalogRest.length > 0 ? catalogRest : catalogItems}
+            initialNextCursor={nextCursor}
+            totalCount={totalCount}
+          />
+        </>
+      ) : null}
 
       <BeautyEditNewsletter />
 

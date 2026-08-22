@@ -11,7 +11,13 @@ import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
-import type { StorefrontDesign } from "@/lib/storefront-design";
+import { whatsappHref } from "@/components/storefront/sections/shared";
+import type {
+  StorefrontDesign,
+  StorefrontDesignButtons,
+  StorefrontHeroSectionHeight,
+  StorefrontHeroSectionOverlay,
+} from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 function whatsAppOrderHref(): string | null {
@@ -22,10 +28,29 @@ function whatsAppOrderHref(): string | null {
   return `https://wa.me/${raw}?text=${text}`;
 }
 
+const HERO_HEIGHT_CLASSES: Record<
+  StorefrontHeroSectionHeight,
+  string
+> = {
+  small: "min-h-[92px] md:min-h-[128px] lg:min-h-[140px]",
+  medium: "min-h-[120px] md:min-h-[168px] lg:min-h-[188px]",
+  large: "min-h-[168px] md:min-h-[220px] lg:min-h-[252px]",
+};
+
+const HERO_OVERLAY_CLASSES: Record<StorefrontHeroSectionOverlay, string> = {
+  none: "",
+  light: "bg-white/15",
+  dark: "bg-black/30",
+};
+
 function heroCtaStyle(
   primary: string | null,
   accent: string | null,
+  outline = false,
 ): CSSProperties | undefined {
+  if (outline) {
+    return { backgroundColor: "transparent", color: "#fff" };
+  }
   if (accent) {
     return { backgroundColor: accent, color: "#0f172a" };
   }
@@ -38,7 +63,12 @@ function heroCtaStyle(
   return undefined;
 }
 
-export function ShopHeroMart({
+/**
+ * The merchant's hero — theme-agnostic. Rendered in place of a theme's own
+ * hero when the merchant enables the `hero` section, so their headline, photo,
+ * focal point and buttons look the same whichever theme surrounds them.
+ */
+export function StorefrontHeroSection({
   title,
   tagline,
   branchHint,
@@ -49,6 +79,14 @@ export function ShopHeroMart({
   logoUrl,
   heroBannerUrls,
   design,
+  subheadline,
+  height = "medium",
+  overlay = "none",
+  showCta = true,
+  showWhatsapp = true,
+  buttons = "solid",
+  whatsappNumber,
+  ctaAnchor = "#shop-catalog",
 }: {
   title: string;
   tagline?: string | null;
@@ -62,8 +100,21 @@ export function ShopHeroMart({
   heroBannerUrls?: string[] | null;
   /** Merchant design overrides — the hero photo slot with focal point wins. */
   design?: StorefrontDesign | null;
+  /** Hero-section copy override; empty = business tagline, then a default. */
+  subheadline?: string | null;
+  height?: StorefrontHeroSectionHeight;
+  overlay?: StorefrontHeroSectionOverlay;
+  showCta?: boolean;
+  showWhatsapp?: boolean;
+  buttons?: StorefrontDesignButtons;
+  /** Business WhatsApp (from the profile) — env var used only as a fallback. */
+  whatsappNumber?: string | null;
+  /** Anchor the “Shop now” CTA scrolls to (theme catalog section). */
+  ctaAnchor?: string;
 }) {
-  const wa = whatsAppOrderHref();
+  const wa =
+    whatsappHref(whatsappNumber, "Hi! I'd like to place an order.") ??
+    whatsAppOrderHref();
   const primary =
     primaryHex && /^#[0-9a-fA-F]{6}$/.test(primaryHex.trim())
       ? primaryHex.trim()
@@ -80,11 +131,11 @@ export function ShopHeroMart({
     ? `color-mix(in srgb, ${primary} 88%, #020617)`
     : "#0f172a";
 
-  const headline =
-    tagline?.trim() ||
+  const headline = tagline?.trim() || "Quality essentials, delivered.";
+  const subhead =
+    subheadline?.trim() ||
     design?.business?.tagline?.trim() ||
-    "Quality essentials, delivered.";
-  const subhead = "Right to your door.";
+    "Right to your door.";
   const area = areaLabel?.trim() || null;
   const description = design?.business?.description?.trim() || null;
   const body = description
@@ -123,7 +174,12 @@ export function ShopHeroMart({
       className="overflow-hidden rounded-[4px] text-white shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-black/10"
       style={{ backgroundColor: heroBg }}
     >
-      <div className="grid min-h-[120px] grid-cols-1 md:min-h-[168px] md:grid-cols-[minmax(0,1fr)_1.15fr] lg:min-h-[188px]">
+      <div
+        className={cn(
+          "grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1.15fr]",
+          HERO_HEIGHT_CLASSES[height],
+        )}
+      >
         {/* Copy */}
         <div className="relative z-10 flex flex-col justify-center gap-1.5 px-4 py-3.5 md:gap-2 md:px-5 md:py-4 lg:gap-2.5 lg:px-6 lg:py-5">
           <h1 className="font-heading text-[1.15rem] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[1.35rem] lg:text-[1.65rem]">
@@ -138,18 +194,23 @@ export function ShopHeroMart({
           </p>
 
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
-            <Link
-              href="#shop-catalog"
-              className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-[length:var(--sf-button-radius,3px)] px-3.5 text-[12px] font-semibold shadow-sm transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98]",
-                !accent && !primary && "bg-sky-500 text-white",
-              )}
-              style={heroCtaStyle(primary, accent)}
-            >
-              Shop now
-              <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-            {wa ? (
+            {showCta ? (
+              <Link
+                href={ctaAnchor}
+                className={cn(
+                  "inline-flex h-8 items-center gap-1.5 rounded-[length:var(--sf-button-radius,3px)] px-3.5 text-[12px] font-semibold transition-[filter,transform,background-color,border-color] duration-200 active:scale-[0.98]",
+                  buttons === "outline"
+                    ? "border-2 border-white/70 bg-transparent text-white hover:bg-white/10"
+                    : "shadow-sm hover:brightness-105",
+                  !accent && !primary && !(buttons === "outline") && "bg-sky-500 text-white",
+                )}
+                style={heroCtaStyle(primary, accent, buttons === "outline")}
+              >
+                Shop now
+                <ArrowRight className="size-3.5" aria-hidden />
+              </Link>
+            ) : null}
+            {showWhatsapp && wa ? (
               <a
                 href={wa}
                 target="_blank"
@@ -284,6 +345,15 @@ export function ShopHeroMart({
             className="pointer-events-none absolute inset-y-0 left-0 w-[12%] bg-gradient-to-r from-black/25 to-transparent"
             aria-hidden
           />
+          {overlay !== "none" ? (
+            <div
+              className={cn(
+                "pointer-events-none absolute inset-0",
+                HERO_OVERLAY_CLASSES[overlay],
+              )}
+              aria-hidden
+            />
+          ) : null}
         </div>
       </div>
     </section>

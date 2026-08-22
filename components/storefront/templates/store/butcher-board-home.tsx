@@ -9,7 +9,13 @@ import { butcherBoardFontVariables } from "@/components/storefront/templates/sto
 import { ButcherBoardMobileSearch } from "@/components/storefront/templates/store/butcher-board-header";
 import { ButcherBoardTickets } from "@/components/storefront/templates/store/butcher-board-tickets";
 import styles from "@/components/storefront/templates/store/butcher-board.module.css";
+import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
+import {
+  resolveStorefrontDesign,
+  storefrontSectionConfig,
+  type StorefrontHeroSectionSettings,
+} from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 /**
@@ -40,13 +46,25 @@ export function ButcherBoardStoreHome(props: StoreHomeTemplateProps) {
     primaryHex,
     accentHex,
     types,
+    logoUrl,
+    heroBannerUrls,
+    showcaseImage,
     landingContent,
+    design,
   } = props;
 
   const gold = accentHex?.trim() || "#F5C518";
   const crimson = primaryHex?.trim() || "#E31C23";
   const headline =
     announcement?.trim() || "Cut to order.";
+  const heroSection = storefrontSectionConfig(design, "hero");
+  const heroOn = heroSection?.enabled === true;
+  const heroSettings = heroSection?.settings as
+    | StorefrontHeroSectionSettings
+    | undefined;
+  const productsConfig = storefrontSectionConfig(design, "products");
+  const productsOn = productsConfig ? productsConfig.enabled : true;
+  const buttons = resolveStorefrontDesign(design).buttons;
   const lead = featured[0] ?? catalogItems[0] ?? null;
   const seen = new Set(lead ? [lead.id] : []);
   const stack: typeof catalogItems = [];
@@ -56,7 +74,9 @@ export function ButcherBoardStoreHome(props: StoreHomeTemplateProps) {
     stack.push(item);
     if (stack.length >= 3) break;
   }
-  const rest = catalogItems.filter((item) => !seen.has(item.id));
+  const rest = heroOn
+    ? catalogItems
+    : catalogItems.filter((item) => !seen.has(item.id));
   const locality =
     [areaLabel?.trim(), branchHint?.trim()].filter(Boolean).join(" · ") || null;
   const hours = landingContent?.hours?.trim() || null;
@@ -86,11 +106,36 @@ export function ButcherBoardStoreHome(props: StoreHomeTemplateProps) {
         <Suspense fallback={null}>
           <ButcherBoardMobileSearch />
         </Suspense>
-        <Suspense fallback={null}>
-          <ButcherBoardTickets types={types} />
-        </Suspense>
+        {productsOn ? (
+          <Suspense fallback={null}>
+            <ButcherBoardTickets types={types} />
+          </Suspense>
+        ) : null}
 
-        {lead ? (
+        {heroOn ? (
+          <StorefrontHeroSection
+            title={heroTitle}
+            tagline={
+              heroSettings?.headline.trim() ? heroSettings.headline : announcement
+            }
+            subheadline={heroSettings?.subheadline ?? null}
+            height={heroSettings?.height ?? "medium"}
+            overlay={heroSettings?.overlay ?? "none"}
+            showCta={heroSettings?.showCta ?? true}
+            showWhatsapp={heroSettings?.showWhatsapp ?? true}
+            buttons={buttons}
+            branchHint={branchHint}
+            areaLabel={areaLabel}
+            primaryHex={primaryHex}
+            accentHex={accentHex}
+            showcaseImage={showcaseImage}
+            logoUrl={logoUrl}
+            heroBannerUrls={heroBannerUrls}
+            design={design}
+            whatsappNumber={landingContent?.whatsapp ?? landingContent?.phone ?? null}
+            ctaAnchor="#board"
+          />
+        ) : lead ? (
           <section className={styles.billboard} aria-label="Featured on the board">
             <ButcherBoardHero
               item={lead}
@@ -127,13 +172,15 @@ export function ButcherBoardStoreHome(props: StoreHomeTemplateProps) {
           </section>
         )}
 
-        <ButcherBoardCatalog
-          slug={slug}
-          currency={currency}
-          initialItems={rest}
-          initialNextCursor={nextCursor}
-          totalCount={totalCount}
-        />
+        {productsOn ? (
+          <ButcherBoardCatalog
+            slug={slug}
+            currency={currency}
+            initialItems={rest}
+            initialNextCursor={nextCursor}
+            totalCount={totalCount}
+          />
+        ) : null}
 
         <footer className={styles.footer}>
           <div className={styles.wordmarkText}>{heroTitle}</div>

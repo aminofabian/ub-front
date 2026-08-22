@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
+  STOREFRONT_PREVIEW_DESIGN_HEADER,
+  STOREFRONT_PREVIEW_DESIGN_PARAM,
   STOREFRONT_PREVIEW_LANDING_HEADER,
   STOREFRONT_PREVIEW_LANDING_PARAM,
   STOREFRONT_PREVIEW_THEME_HEADER,
@@ -42,12 +44,19 @@ export function middleware(request: NextRequest) {
   const previewLanding = searchParams
     .get(STOREFRONT_PREVIEW_LANDING_PARAM)
     ?.trim();
+  const previewDesign = searchParams
+    .get(STOREFRONT_PREVIEW_DESIGN_PARAM)
+    ?.trim();
   if (previewTheme) {
     requestHeaders.set(STOREFRONT_PREVIEW_THEME_HEADER, previewTheme);
     mutated = true;
   }
   if (previewLanding) {
     requestHeaders.set(STOREFRONT_PREVIEW_LANDING_HEADER, previewLanding);
+    mutated = true;
+  }
+  if (previewDesign) {
+    requestHeaders.set(STOREFRONT_PREVIEW_DESIGN_HEADER, previewDesign);
     mutated = true;
   }
 

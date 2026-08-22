@@ -3,17 +3,23 @@ import Link from "next/link";
 
 import { PromoCountdown } from "@/components/storefront/sections/promo-countdown";
 import { whatsappHref } from "@/components/storefront/sections/shared";
-import type { StorefrontPromoSectionSettings } from "@/lib/storefront-design";
+import type {
+  StorefrontDesignButtons,
+  StorefrontPromoSectionSettings,
+} from "@/lib/storefront-design";
+import { cn } from "@/lib/utils";
 
 /** Flash-sale banner: headline, countdown, coupon code, WhatsApp CTA. */
 export function PromoSection({
   settings,
   primaryHex,
   accentHex,
+  buttons = "solid",
 }: {
   settings: StorefrontPromoSectionSettings;
   primaryHex: string | null;
   accentHex: string | null;
+  buttons?: StorefrontDesignButtons;
 }) {
   const title = settings.title.trim();
   if (!title) {
@@ -76,7 +82,12 @@ export function PromoSection({
             href={waHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[length:var(--sf-button-radius,0.5rem)] bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-[filter,transform] duration-200 hover:brightness-95 active:scale-[0.98]"
+            className={cn(
+              "inline-flex h-10 shrink-0 items-center gap-2 rounded-[length:var(--sf-button-radius,0.5rem)] px-4 text-sm font-semibold transition-[filter,transform,background-color,border-color] duration-200 active:scale-[0.98]",
+              buttons === "outline"
+                ? "border-2 border-white bg-transparent text-white hover:bg-white/10"
+                : "bg-white text-slate-900 shadow-sm hover:brightness-95",
+            )}
           >
             <MessageCircle className="size-4" aria-hidden />
             {ctaLabel}

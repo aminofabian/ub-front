@@ -5,7 +5,13 @@ import { OxideCatalog } from "@/components/storefront/templates/store/oxide-cata
 import { oxideFontVariables } from "@/components/storefront/templates/store/oxide-fonts";
 import { OxideSignup } from "@/components/storefront/templates/store/oxide-signup";
 import styles from "@/components/storefront/templates/store/oxide.module.css";
+import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
+import {
+  resolveStorefrontDesign,
+  storefrontSectionConfig,
+  type StorefrontHeroSectionSettings,
+} from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 function RegistrationMark({
@@ -35,12 +41,25 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
     heroTitle,
     announcement,
     areaLabel,
+    branchHint,
     logoUrl,
     showcaseImage,
     accentHex,
+    primaryHex,
+    heroBannerUrls,
+    landingContent,
+    design,
   } = props;
 
   const accent = accentHex?.trim() || "#FF3D1F";
+  const heroSection = storefrontSectionConfig(design, "hero");
+  const heroOn = heroSection?.enabled === true;
+  const heroSettings = heroSection?.settings as
+    | StorefrontHeroSectionSettings
+    | undefined;
+  const productsConfig = storefrontSectionConfig(design, "products");
+  const productsOn = productsConfig ? productsConfig.enabled : true;
+  const buttons = resolveStorefrontDesign(design).buttons;
   const lead = featured[0] ?? catalogItems[0] ?? null;
   const panelImage = showcaseImage || lead?.imageUrl || null;
   const year = new Date().getFullYear();
@@ -51,7 +70,33 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
       data-store-theme-id="oxide"
       style={{ ["--oxide-accent" as string]: accent }}
     >
-      <section className={styles.hero}>
+      {heroOn ? (
+        <StorefrontHeroSection
+          title={heroTitle}
+          tagline={
+            heroSettings?.headline.trim() ? heroSettings.headline : announcement
+          }
+          subheadline={heroSettings?.subheadline ?? null}
+          height={heroSettings?.height ?? "medium"}
+          overlay={heroSettings?.overlay ?? "none"}
+          showCta={heroSettings?.showCta ?? true}
+          showWhatsapp={heroSettings?.showWhatsapp ?? true}
+          buttons={buttons}
+          branchHint={branchHint}
+          areaLabel={areaLabel}
+          primaryHex={primaryHex}
+          accentHex={accentHex}
+          showcaseImage={showcaseImage}
+          logoUrl={logoUrl}
+          heroBannerUrls={heroBannerUrls}
+          design={design}
+          whatsappNumber={
+            landingContent?.whatsapp ?? landingContent?.phone ?? null
+          }
+          ctaAnchor="#catalog"
+        />
+      ) : (
+        <section className={styles.hero}>
         <div className={styles.heroGrid}>
           <div className={styles.heroLeft}>
             <div className={styles.eyebrow}>
@@ -160,22 +205,27 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
           </div>
         </div>
       </section>
+      )}
 
-      <div className={styles.cutline}>
-        <span>×</span>
-        <div className={styles.dashLine} />
-        <span>Pattern ref. 0117 — do not scale</span>
-        <div className={styles.dashLine} />
-        <span>×</span>
-      </div>
+      {productsOn ? (
+        <div className={styles.cutline}>
+          <span>×</span>
+          <div className={styles.dashLine} />
+          <span>Pattern ref. 0117 — do not scale</span>
+          <div className={styles.dashLine} />
+          <span>×</span>
+        </div>
+      ) : null}
 
-      <OxideCatalog
-        slug={slug}
-        currency={currency}
-        initialItems={catalogItems}
-        initialNextCursor={nextCursor}
-        totalCount={totalCount}
-      />
+      {productsOn ? (
+        <OxideCatalog
+          slug={slug}
+          currency={currency}
+          initialItems={catalogItems}
+          initialNextCursor={nextCursor}
+          totalCount={totalCount}
+        />
+      ) : null}
 
       <section id="manifest">
         <div className={styles.manifest}>

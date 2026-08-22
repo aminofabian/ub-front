@@ -9,7 +9,13 @@ import { spiritsCellarFontVariables } from "@/components/storefront/templates/st
 import { SpiritsCellarMobileSearch } from "@/components/storefront/templates/store/spirits-cellar-header";
 import { SpiritsCellarKeys } from "@/components/storefront/templates/store/spirits-cellar-keys";
 import styles from "@/components/storefront/templates/store/spirits-cellar.module.css";
+import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
+import {
+  resolveStorefrontDesign,
+  storefrontSectionConfig,
+  type StorefrontHeroSectionSettings,
+} from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,13 +44,25 @@ export function SpiritsCellarStoreHome(props: StoreHomeTemplateProps) {
     primaryHex,
     accentHex,
     types,
+    logoUrl,
+    heroBannerUrls,
+    showcaseImage,
     landingContent,
+    design,
   } = props;
 
   const wax = primaryHex?.trim() || "#8B2635";
   const spirit = accentHex?.trim() || "#C4B5FD";
   const headline =
     announcement?.trim() || "Tonight's sealed essence.";
+  const heroSection = storefrontSectionConfig(design, "hero");
+  const heroOn = heroSection?.enabled === true;
+  const heroSettings = heroSection?.settings as
+    | StorefrontHeroSectionSettings
+    | undefined;
+  const productsConfig = storefrontSectionConfig(design, "products");
+  const productsOn = productsConfig ? productsConfig.enabled : true;
+  const buttons = resolveStorefrontDesign(design).buttons;
   const lead = featured[0] ?? catalogItems[0] ?? null;
   const seen = new Set(lead ? [lead.id] : []);
   const stack: typeof catalogItems = [];
@@ -54,7 +72,9 @@ export function SpiritsCellarStoreHome(props: StoreHomeTemplateProps) {
     stack.push(item);
     if (stack.length >= 3) break;
   }
-  const rest = catalogItems.filter((item) => !seen.has(item.id));
+  const rest = heroOn
+    ? catalogItems
+    : catalogItems.filter((item) => !seen.has(item.id));
   const locality =
     [areaLabel?.trim(), branchHint?.trim()].filter(Boolean).join(" · ") || null;
   const hours = landingContent?.hours?.trim() || null;
@@ -75,11 +95,38 @@ export function SpiritsCellarStoreHome(props: StoreHomeTemplateProps) {
         <Suspense fallback={null}>
           <SpiritsCellarMobileSearch />
         </Suspense>
-        <Suspense fallback={null}>
-          <SpiritsCellarKeys types={types} />
-        </Suspense>
+        {productsOn ? (
+          <Suspense fallback={null}>
+            <SpiritsCellarKeys types={types} />
+          </Suspense>
+        ) : null}
 
-        {lead ? (
+        {heroOn ? (
+          <StorefrontHeroSection
+            title={heroTitle}
+            tagline={
+              heroSettings?.headline.trim() ? heroSettings.headline : announcement
+            }
+            subheadline={heroSettings?.subheadline ?? null}
+            height={heroSettings?.height ?? "medium"}
+            overlay={heroSettings?.overlay ?? "none"}
+            showCta={heroSettings?.showCta ?? true}
+            showWhatsapp={heroSettings?.showWhatsapp ?? true}
+            buttons={buttons}
+            branchHint={branchHint}
+            areaLabel={areaLabel}
+            primaryHex={primaryHex}
+            accentHex={accentHex}
+            showcaseImage={showcaseImage}
+            logoUrl={logoUrl}
+            heroBannerUrls={heroBannerUrls}
+            design={design}
+            whatsappNumber={
+              landingContent?.whatsapp ?? landingContent?.phone ?? null
+            }
+            ctaAnchor="#vault-catalog"
+          />
+        ) : lead ? (
           <section className={styles.descent} aria-label="Grand niche">
             <SpiritsCellarHero item={lead} currency={currency} headline={headline} />
             {stack.length > 0 ? (
@@ -110,13 +157,15 @@ export function SpiritsCellarStoreHome(props: StoreHomeTemplateProps) {
           </section>
         )}
 
-        <SpiritsCellarCatalog
-          slug={slug}
-          currency={currency}
-          initialItems={rest}
-          initialNextCursor={nextCursor}
-          totalCount={totalCount}
-        />
+        {productsOn ? (
+          <SpiritsCellarCatalog
+            slug={slug}
+            currency={currency}
+            initialItems={rest}
+            initialNextCursor={nextCursor}
+            totalCount={totalCount}
+          />
+        ) : null}
 
         <footer className={styles.footer}>
           <div className={styles.footerName}>{heroTitle}</div>

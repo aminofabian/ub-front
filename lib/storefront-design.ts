@@ -98,11 +98,14 @@ export type StorefrontDesignBusiness = {
  * Merchant sections render in two zones around the theme's product engine:
  * `pre` = between the header and the products, `post` = below the products.
  */
-export type StorefrontSectionRegion = "pre" | "post";
+export type StorefrontSectionRegion = "pre" | "shelves" | "post";
 
 export type StorefrontSectionId =
   | "announcement"
   | "promo"
+  | "hero"
+  | "categories"
+  | "products"
   | "about"
   | "social"
   | "contact";
@@ -121,6 +124,25 @@ export type StorefrontPromoSectionSettings = {
   /** WhatsApp number for the CTA (digits as typed); empty = no CTA. */
   whatsapp: string;
 };
+
+/** Hero sizes map onto the theme's built-in hero heights. */
+export type StorefrontHeroSectionHeight = "small" | "medium" | "large";
+/** Darkens the hero photo so text stays readable. */
+export type StorefrontHeroSectionOverlay = "none" | "light" | "dark";
+
+export type StorefrontHeroSectionSettings = {
+  /** Empty = fall back to the shop announcement / tagline. */
+  headline: string;
+  /** Empty = fall back to the business tagline. */
+  subheadline: string;
+  height: StorefrontHeroSectionHeight;
+  overlay: StorefrontHeroSectionOverlay;
+  showCta: boolean;
+  showWhatsapp: boolean;
+};
+
+/** Pure show/hide sections (the shelves). */
+export type StorefrontEmptySectionSettings = Record<string, never>;
 
 export type StorefrontAboutSectionSettings = {
   heading: string;
@@ -141,6 +163,8 @@ export type StorefrontContactSectionSettings = {
 export type StorefrontSectionSettings =
   | StorefrontAnnouncementSectionSettings
   | StorefrontPromoSectionSettings
+  | StorefrontHeroSectionSettings
+  | StorefrontEmptySectionSettings
   | StorefrontAboutSectionSettings
   | StorefrontSocialSectionSettings
   | StorefrontContactSectionSettings;
@@ -162,6 +186,9 @@ export type StorefrontSectionSchema = {
 export const STOREFRONT_SECTION_IDS: readonly StorefrontSectionId[] = [
   "announcement",
   "promo",
+  "hero",
+  "categories",
+  "products",
   "about",
   "social",
   "contact",
@@ -179,6 +206,24 @@ export const STOREFRONT_SECTION_SCHEMAS: readonly StorefrontSectionSchema[] = [
     label: "Offer banner",
     description: "Flash sale with countdown, coupon code and a WhatsApp button.",
     region: "pre",
+  },
+  {
+    id: "hero",
+    label: "Hero",
+    description: "The big welcome at the top — headline, photo and buttons.",
+    region: "shelves",
+  },
+  {
+    id: "categories",
+    label: "Categories",
+    description: "The grid of categories people tap to browse.",
+    region: "shelves",
+  },
+  {
+    id: "products",
+    label: "Products",
+    description: "The product shelves — the heart of the shop.",
+    region: "shelves",
   },
   {
     id: "about",
@@ -231,6 +276,18 @@ export function storefrontSectionDefaultSettings(
         ctaLabel: "",
         whatsapp: "",
       };
+    case "hero":
+      return {
+        headline: "",
+        subheadline: "",
+        height: "medium",
+        overlay: "none",
+        showCta: true,
+        showWhatsapp: true,
+      };
+    case "categories":
+    case "products":
+      return {};
     case "about":
       return { heading: "", text: "", imageUrl: "" };
     case "social":
@@ -238,6 +295,14 @@ export function storefrontSectionDefaultSettings(
     case "contact":
       return { heading: "", showHours: true, showMap: true };
   }
+}
+
+export function isStorefrontHeroHeight(v: unknown): v is StorefrontHeroSectionHeight {
+  return v === "small" || v === "medium" || v === "large";
+}
+
+export function isStorefrontHeroOverlay(v: unknown): v is StorefrontHeroSectionOverlay {
+  return v === "none" || v === "light" || v === "dark";
 }
 
 function normalizeSectionSettings(
@@ -268,6 +333,21 @@ function normalizeSectionSettings(
         whatsapp: text("whatsapp", 32),
       };
     }
+    case "hero":
+      return {
+        headline: text("headline", 120),
+        subheadline: text("subheadline", 120),
+        height: isStorefrontHeroHeight(o.height) ? o.height : "medium",
+        overlay: isStorefrontHeroOverlay(o.overlay) ? o.overlay : "none",
+        showCta: flag("showCta", (defaults as StorefrontHeroSectionSettings).showCta),
+        showWhatsapp: flag(
+          "showWhatsapp",
+          (defaults as StorefrontHeroSectionSettings).showWhatsapp,
+        ),
+      };
+    case "categories":
+    case "products":
+      return {};
     case "about":
       return {
         heading: text("heading", 80),
@@ -312,6 +392,22 @@ export function storefrontSectionsInRegion(
   return sections.filter(
     (s) => s.enabled && storefrontSectionSchema(s.id).region === region,
   );
+}
+
+/** The stored config for one section, or `null` when the merchant never touched it. */
+export function storefrontSectionConfig(
+  design: StorefrontDesign | null | undefined,
+  id: StorefrontSectionId,
+): StorefrontSectionConfig | null {
+  return design?.sections?.find((s) => s.id === id) ?? null;
+}
+
+/** True when the merchant explicitly enabled a section. */
+export function storefrontSectionEnabled(
+  design: StorefrontDesign | null | undefined,
+  id: StorefrontSectionId,
+): boolean {
+  return storefrontSectionConfig(design, id)?.enabled === true;
 }
 
 /** A photo slot with the merchant's chosen focal point ("keep this part visible"). */

@@ -17,6 +17,7 @@ import {
   normalizeStoreThemeId,
   storeThemeMeta,
 } from "@/lib/storefront-templates";
+import { parseStorefrontDesignJson } from "@/lib/storefront-design";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
 import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
 import { cn } from "@/lib/utils";
@@ -82,7 +83,12 @@ export async function StorefrontShell({
   const preview = parseStorefrontPreview(
     previewThemeId?.trim() || fromHeaders.themeId,
     previewLandingId?.trim() || fromHeaders.landingId,
+    fromHeaders.designJson,
   );
+  // Unsaved draft (previewDesign) wins over the saved design.
+  const designOverride = preview.designJson
+    ? parseStorefrontDesignJson(preview.designJson)
+    : null;
   const forceLandingPreview = Boolean(preview.landingId);
   const isComingSoon = Boolean(slug && !storefront) || forceLandingPreview;
   const storeThemeId = normalizeStoreThemeId(
@@ -116,7 +122,7 @@ export async function StorefrontShell({
     <StorefrontThemeScope
       primaryHex={primary}
       accentHex={accent}
-      design={tenant?.design ?? null}
+      design={designOverride ?? tenant?.design ?? null}
       className={cn(
         "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[oklch(0.985_0.002_90)] dark:bg-background",
         chromeVariant === "dark" && "bg-stone-950 dark:bg-stone-950",

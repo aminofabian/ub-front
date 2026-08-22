@@ -968,6 +968,47 @@ export type StorefrontPatchPayload = {
   designJson?: string | null;
 };
 
+/** AI-suggested storefront changes (server-validated; every field optional). */
+export type StorefrontAiBrandKitSuggestion = {
+  radius?: string | null;
+  buttons?: string | null;
+  density?: string | null;
+  surface?: string | null;
+};
+
+export type StorefrontAiCopySuggestion = {
+  tagline?: string | null;
+  description?: string | null;
+  announcement?: string | null;
+  promoTitle?: string | null;
+  promoSubtitle?: string | null;
+  coupon?: string | null;
+  ctaLabel?: string | null;
+  heroHeadline?: string | null;
+  heroSubheadline?: string | null;
+  aboutHeading?: string | null;
+  socialHeading?: string | null;
+  contactHeading?: string | null;
+};
+
+export type StorefrontAiSuggestResponse = {
+  requestId: string;
+  summary: string | null;
+  brandKit: StorefrontAiBrandKitSuggestion | null;
+  copy: StorefrontAiCopySuggestion | null;
+};
+
+export async function suggestStorefrontDesign(
+  prompt: string,
+  designJson: string | null,
+): Promise<StorefrontAiSuggestResponse> {
+  return request<StorefrontAiSuggestResponse>("/api/v1/ai/storefront-design/suggest", {
+    method: "POST",
+    requiresAuth: true,
+    body: { prompt, designJson: designJson ?? undefined },
+  });
+}
+
 export type StocktakePatchPayload = {
   showSystemStockToStockManager?: boolean;
   dailyAuditSampleSize?: number;

@@ -16,7 +16,9 @@ import {
   formatBusinessHours,
   type StorefrontContactSectionSettings,
   type StorefrontDesignBusiness,
+  type StorefrontDesignButtons,
 } from "@/lib/storefront-design";
+import { cn } from "@/lib/utils";
 
 function googleMapsUrl(location: StorefrontDesignBusiness["location"]): string | null {
   if (location?.mapUrl?.trim()) {
@@ -34,9 +36,11 @@ function googleMapsUrl(location: StorefrontDesignBusiness["location"]): string |
 export function ContactSection({
   settings,
   business,
+  buttons = "solid",
 }: {
   settings: StorefrontContactSectionSettings;
   business: StorefrontDesignBusiness | null | undefined;
+  buttons?: StorefrontDesignButtons;
 }) {
   const location = business?.location;
   const address = [location?.address?.trim(), location?.town?.trim()]
@@ -79,7 +83,12 @@ export function ContactSection({
                   href={mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-[length:var(--sf-button-radius,0.375rem)] bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98]"
+                  className={cn(
+                    "mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-[length:var(--sf-button-radius,0.375rem)] px-3 text-[12px] font-semibold transition-[filter,transform,background-color,border-color] duration-200 active:scale-[0.98]",
+                    buttons === "outline"
+                      ? "border-2 border-primary bg-transparent text-primary hover:bg-primary/10"
+                      : "bg-primary text-primary-foreground hover:brightness-105",
+                  )}
                 >
                   <Navigation className="size-3.5" aria-hidden />
                   Get directions
@@ -137,7 +146,12 @@ export function ContactSection({
                 href={waHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[length:var(--sf-button-radius,0.375rem)] bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98]"
+                className={cn(
+                  "inline-flex h-9 items-center justify-center gap-1.5 rounded-[length:var(--sf-button-radius,0.375rem)] px-3 text-[13px] font-semibold transition-[filter,transform,background-color,border-color] duration-200 active:scale-[0.98]",
+                  buttons === "outline"
+                    ? "border-2 border-primary bg-transparent text-primary hover:bg-primary/10"
+                    : "bg-primary text-primary-foreground hover:brightness-105",
+                )}
               >
                 Message us
               </Link>

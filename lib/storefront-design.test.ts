@@ -8,6 +8,8 @@ import {
   parseStorefrontDesignJson,
   resolveStorefrontDesign,
   serializeStorefrontDesign,
+  storefrontSectionConfig,
+  storefrontSectionEnabled,
   storefrontSectionsInRegion,
 } from "@/lib/storefront-design";
 
@@ -43,7 +45,7 @@ describe("parseStorefrontDesignJson", () => {
         photos: {
           hero: { url: "https://cdn.example/hero.jpg", focalX: 999, focalY: -5 },
         },
-        sections: [{ id: "hero" }],
+        sections: [{ id: "testimonials" }],
       }),
     );
     expect(design?.brandKit?.radius).toBeUndefined();
@@ -305,6 +307,62 @@ describe("sections", () => {
       storefrontSectionsInRegion(design, "post").map((s) => s.id),
     ).toEqual(["social", "contact", "about"]);
     expect(storefrontSectionsInRegion(null, "pre")).toEqual([]);
+  });
+
+  it("normalizes the hero section settings", () => {
+    const section = normalizeStorefrontSection({
+      id: "hero",
+      enabled: true,
+      settings: {
+        headline: "Fresh groceries",
+        height: "huge",
+        overlay: "dark",
+        showCta: false,
+      },
+    });
+    expect(section?.enabled).toBe(true);
+    if (section?.id === "hero") {
+      expect(section.settings.headline).toBe("Fresh groceries");
+      expect(section.settings.height).toBe("medium"); // invalid → default
+      expect(section.settings.overlay).toBe("dark");
+      expect(section.settings.showCta).toBe(false);
+      expect(section.settings.showWhatsapp).toBe(true);
+      expect(section.settings.subheadline).toBe("");
+    }
+  });
+
+  it("keeps shelves sections with empty settings", () => {
+    const categories = normalizeStorefrontSection({
+      id: "categories",
+      enabled: true,
+      settings: { bogus: true },
+    });
+    expect(categories?.enabled).toBe(true);
+    expect(categories?.settings).toEqual({});
+    const products = normalizeStorefrontSection({ id: "products", enabled: false });
+    expect(products?.settings).toEqual({});
+  });
+
+  it("groups shelves sections in their own region and exposes helpers", () => {
+    const design = parseStorefrontDesignJson(
+      JSON.stringify({
+        version: 1,
+        sections: [
+          { id: "announcement", enabled: true, settings: { text: "Free delivery" } },
+          { id: "hero", enabled: true, settings: { height: "large" } },
+          { id: "categories", enabled: false, settings: {} },
+          { id: "products", enabled: true, settings: {} },
+        ],
+      }),
+    );
+    expect(
+      storefrontSectionsInRegion(design, "shelves").map((s) => s.id),
+    ).toEqual(["hero", "products"]);
+    expect(storefrontSectionEnabled(design, "hero")).toBe(true);
+    expect(storefrontSectionEnabled(design, "categories")).toBe(false);
+    expect(storefrontSectionEnabled(design, "social")).toBe(false);
+    expect(storefrontSectionConfig(design, "products")?.enabled).toBe(true);
+    expect(storefrontSectionConfig(null, "hero")).toBeNull();
   });
 
   it("round-trips sections through serialize", () => {

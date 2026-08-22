@@ -16,13 +16,16 @@ import {
   ChevronRight,
   ChevronUp,
   ExternalLink,
+  Image as ImageIcon,
   ImagePlus,
+  LayoutGrid,
   LayoutList,
   Loader2,
   MapPinned,
   Megaphone,
   Save,
   Share2,
+  ShoppingBag,
   Store,
   Undo2,
   X,
@@ -30,6 +33,7 @@ import {
 } from "lucide-react";
 
 import { ImageFocalPointPicker } from "@/components/business/image-focal-point-picker";
+import { StorefrontDesignAiCard } from "@/components/business/storefront-design-ai";
 import {
   DashboardFeedback,
   DASHBOARD_SECTION_SURFACE,
@@ -45,6 +49,7 @@ import {
   updateBusiness,
   uploadToCloudinary,
   type BusinessRecord,
+  type StorefrontAiSuggestResponse,
 } from "@/lib/api";
 import { APP_ROUTES, PLATFORM_DOMAIN, slugDerivedShopUrl } from "@/lib/config";
 import {
@@ -64,11 +69,16 @@ import {
   type StorefrontContactSectionSettings,
   type StorefrontDesign,
   type StorefrontDesignBusiness,
+  type StorefrontDesignButtons,
   type StorefrontDesignDayHours,
   type StorefrontDesignDayKey,
+  type StorefrontDesignDensity,
   type StorefrontDesignHours,
   type StorefrontDesignImageFit,
   type StorefrontDesignRadius,
+  type StorefrontHeroSectionHeight,
+  type StorefrontHeroSectionOverlay,
+  type StorefrontHeroSectionSettings,
   type StorefrontPromoSectionSettings,
   type StorefrontSectionConfig,
   type StorefrontSectionId,
@@ -94,6 +104,40 @@ const RADIUS_OPTIONS: {
 const FIT_OPTIONS: { value: StorefrontDesignImageFit; label: string }[] = [
   { value: "cover", label: "Fill the frame" },
   { value: "contain", label: "Show the whole photo" },
+];
+
+const BUTTON_OPTIONS: {
+  value: StorefrontDesignButtons;
+  label: string;
+}[] = [
+  { value: "solid", label: "Solid" },
+  { value: "outline", label: "Outline" },
+  { value: "pill", label: "Pill" },
+];
+
+const DENSITY_OPTIONS: {
+  value: StorefrontDesignDensity;
+  label: string;
+  hint: string;
+}[] = [
+  { value: "compact", label: "Compact", hint: "Tighter" },
+  { value: "cozy", label: "Cozy", hint: "Balanced" },
+  { value: "airy", label: "Airy", hint: "Room to breathe" },
+];
+
+const HERO_HEIGHT_OPTIONS: { value: StorefrontHeroSectionHeight; label: string }[] = [
+  { value: "small", label: "Small" },
+  { value: "medium", label: "Medium" },
+  { value: "large", label: "Large" },
+];
+
+const HERO_OVERLAY_OPTIONS: {
+  value: StorefrontHeroSectionOverlay;
+  label: string;
+}[] = [
+  { value: "none", label: "None" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
 ];
 
 const SOCIAL_FIELDS: {
@@ -128,6 +172,8 @@ type BusinessForm = {
 
 type DesignForm = {
   radius: StorefrontDesignRadius;
+  buttons: StorefrontDesignButtons;
+  density: StorefrontDesignDensity;
   /** Page background override; empty = use the theme's own background. */
   surface: string;
   heroUrl: string;
@@ -135,7 +181,7 @@ type DesignForm = {
   heroFocalY: number;
   heroFit: StorefrontDesignImageFit;
   business: BusinessForm;
-  /** All five section slots in canonical order; enable + configure as wanted. */
+  /** All section slots in canonical order; enable + configure as wanted. */
   sections: StorefrontSectionConfig[];
 };
 
@@ -186,6 +232,8 @@ function formFromDesign(design: StorefrontDesign | null | undefined): DesignForm
   });
   return {
     radius: design?.brandKit?.radius ?? "sharp",
+    buttons: design?.brandKit?.buttons ?? "solid",
+    density: design?.brandKit?.density ?? "cozy",
     surface: design?.brandKit?.surface ?? "",
     heroUrl: design?.photos?.hero?.url ?? "",
     heroFocalX: design?.photos?.hero?.focalX ?? 50,
@@ -270,6 +318,12 @@ function buildDesign(form: DesignForm): StorefrontDesign | null {
   const brandKit: StorefrontDesign["brandKit"] = {};
   if (form.radius !== "sharp") {
     brandKit.radius = form.radius;
+  }
+  if (form.buttons !== "solid") {
+    brandKit.buttons = form.buttons;
+  }
+  if (form.density !== "cozy") {
+    brandKit.density = form.density;
   }
   const surface = form.surface.trim();
   if (HEX_REGEX.test(surface)) {
@@ -360,6 +414,13 @@ export function StorefrontDesignEditor({
     [],
   );
 
+  const patchSection = useCallback((id: StorefrontSectionId, patch: Partial<StorefrontSectionConfig>) => {
+    setForm((f) => ({
+      ...f,
+      sections: f.sections.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+    }));
+  }, []);
+
   const patchSectionSettings = useCallback((id: StorefrontSectionId, settings: StorefrontSectionSettings) => {
     setForm((f) => ({
       ...f,
@@ -409,13 +470,17 @@ export function StorefrontDesignEditor({
     ? slugDerivedShopUrl(business.slug) ||
       `https://${business.slug}.${PLATFORM_DOMAIN}`
     : "";
-  const liveUrl = shopBase
-    ? storefrontPreviewUrl(
-        shopBase,
-        "store",
-        normalizeStoreThemeId(business?.storefront?.storeThemeId),
-      )
-    : null;
+  const themeId = normalizeStoreThemeId(business?.storefront?.storeThemeId);
+  const liveUrl = shopBase ? storefrontPreviewUrl(shopBase, "store", themeId) : null;
+  const draftJson = useMemo(
+    () => serializeStorefrontDesign(buildDesign(form)) ?? null,
+    [form],
+  );
+  const draftPreviewUrl =
+    shopBase && draftJson
+      ? storefrontPreviewUrl(shopBase, "store", themeId, { designJson: draftJson })
+      : null;
+  const draftTooLarge = Boolean(draftJson && draftJson.length > 8000);
 
   const hoursPreview = useMemo(() => {
     if (!form.business.hoursEnabled) return null;
@@ -492,7 +557,8 @@ export function StorefrontDesignEditor({
       const result = await uploadToCloudinary(file, sig);
       const settings = about?.settings as StorefrontAboutSectionSettings | undefined;
       patchSectionSettings("about", {
-        ...(settings ?? storefrontSectionDefaultSettings("about")),
+        heading: settings?.heading ?? "",
+        text: settings?.text ?? "",
         imageUrl: result.secure_url,
       });
     } catch (e) {
@@ -506,12 +572,99 @@ export function StorefrontDesignEditor({
     }
   };
 
+  const applyAiSuggestion = (suggestion: StorefrontAiSuggestResponse) => {
+    const bk = suggestion.brandKit;
+    if (bk) {
+      if (bk.radius) set("radius", bk.radius as StorefrontDesignRadius);
+      if (bk.buttons) set("buttons", bk.buttons as StorefrontDesignButtons);
+      if (bk.density) set("density", bk.density as StorefrontDesignDensity);
+      if (bk.surface) set("surface", bk.surface);
+    }
+
+    const cp = suggestion.copy;
+    if (cp) {
+      const businessPatch: Partial<BusinessForm> = {};
+      if (cp.tagline) businessPatch.tagline = cp.tagline;
+      if (cp.description) businessPatch.description = cp.description;
+      if (Object.keys(businessPatch).length > 0) {
+        setBusiness(businessPatch);
+      }
+
+      if (cp.announcement) {
+        patchSectionSettings("announcement", { text: cp.announcement });
+        patchSection("announcement", { enabled: true });
+      }
+      if (cp.promoTitle || cp.promoSubtitle || cp.coupon || cp.ctaLabel) {
+        const current = form.sections.find((s) => s.id === "promo")?.settings as
+          | StorefrontPromoSectionSettings
+          | undefined;
+        patchSectionSettings("promo", {
+          title: cp.promoTitle ?? current?.title ?? "",
+          subtitle: cp.promoSubtitle ?? current?.subtitle ?? "",
+          endsAt: current?.endsAt ?? "",
+          coupon: cp.coupon ?? current?.coupon ?? "",
+          ctaLabel: cp.ctaLabel ?? current?.ctaLabel ?? "",
+          whatsapp: current?.whatsapp ?? "",
+        });
+        patchSection("promo", { enabled: true });
+      }
+      if (cp.heroHeadline || cp.heroSubheadline) {
+        const current = form.sections.find((s) => s.id === "hero")?.settings as
+          | StorefrontHeroSectionSettings
+          | undefined;
+        patchSectionSettings("hero", {
+          headline: cp.heroHeadline ?? current?.headline ?? "",
+          subheadline: cp.heroSubheadline ?? current?.subheadline ?? "",
+          height: current?.height ?? "medium",
+          overlay: current?.overlay ?? "none",
+          showCta: current?.showCta ?? true,
+          showWhatsapp: current?.showWhatsapp ?? true,
+        });
+        patchSection("hero", { enabled: true });
+      }
+      if (cp.aboutHeading) {
+        const current = form.sections.find((s) => s.id === "about")?.settings as
+          | StorefrontAboutSectionSettings
+          | undefined;
+        patchSectionSettings("about", {
+          heading: cp.aboutHeading,
+          text: current?.text ?? "",
+          imageUrl: current?.imageUrl ?? "",
+        });
+        patchSection("about", { enabled: true });
+      }
+      if (cp.socialHeading) {
+        patchSectionSettings("social", { heading: cp.socialHeading });
+        patchSection("social", { enabled: true });
+      }
+      if (cp.contactHeading) {
+        const current = form.sections.find((s) => s.id === "contact")?.settings as
+          | StorefrontContactSectionSettings
+          | undefined;
+        patchSectionSettings("contact", {
+          heading: cp.contactHeading,
+          showHours: current?.showHours ?? true,
+          showMap: current?.showMap ?? true,
+        });
+        patchSection("contact", { enabled: true });
+      }
+    }
+    setFeedback(
+      "AI suggestions applied — review the form, then save when you're happy.",
+    );
+  };
+
   const b = form.business;
 
   return (
     <div className="space-y-6">
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
       {feedback ? <DashboardFeedback kind="success" text={feedback} /> : null}
+
+      <StorefrontDesignAiCard
+        draftDesignJson={draftJson}
+        onApply={(suggestion) => applyAiSuggestion(suggestion)}
+      />
 
       <div className={DASHBOARD_SECTION_SURFACE}>
         <div className="flex items-start gap-3">
@@ -612,6 +765,70 @@ export function StorefrontDesignEditor({
                 Leave blank to keep the theme&apos;s own background.
               </p>
             )}
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-6 lg:grid-cols-2">
+          <div className="space-y-2">
+            <span className={dashboardLabelClass()}>Button style</span>
+            <div
+              className="grid grid-cols-3 gap-2"
+              role="radiogroup"
+              aria-label="Button style"
+            >
+              {BUTTON_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={form.buttons === opt.value}
+                  onClick={() => set("buttons", opt.value)}
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                    form.buttons === opt.value
+                      ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary/30"
+                      : "border-border/70 bg-background text-muted-foreground hover:border-foreground/25",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className={dashboardHintClass()}>
+              Solid fills, outlined edges, or fully round pills — on the shop
+              front&apos;s buttons and offers.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <span className={dashboardLabelClass()}>Spacing</span>
+            <div
+              className="grid grid-cols-3 gap-2"
+              role="radiogroup"
+              aria-label="Spacing"
+            >
+              {DENSITY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={form.density === opt.value}
+                  onClick={() => set("density", opt.value)}
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                    form.density === opt.value
+                      ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary/30"
+                      : "border-border/70 bg-background text-muted-foreground hover:border-foreground/25",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className={dashboardHintClass()}>
+              How much breathing room between sections — compact shops pack
+              more above the fold.
+            </p>
           </div>
         </div>
       </div>
@@ -995,15 +1212,28 @@ export function StorefrontDesignEditor({
         </div>
 
         <div className="mt-5 space-y-6">
-          {(["pre", "post"] as const).map((region) => {
+          {(["pre", "shelves", "post"] as const).map((region) => {
             const regionSections = form.sections.filter(
               (s) => storefrontSectionSchema(s.id).region === region,
             );
             return (
               <div key={region} className="space-y-2">
-                <p className={dashboardFilterFieldLabelClass()}>
-                  {region === "pre" ? "Above the products" : "Below the products"}
-                </p>
+                <div className="flex flex-wrap items-baseline justify-between gap-1">
+                  <p className={dashboardFilterFieldLabelClass()}>
+                    {region === "pre"
+                      ? "Above the products"
+                      : region === "shelves"
+                        ? "The shop shelves"
+                        : "Below the products"}
+                  </p>
+                  {region === "shelves" ? (
+                    <p className={dashboardHintClass()}>
+                      Parts built into the theme. The hero and the product
+                      shelves work on every theme; the category grid is
+                      currently on Mart aisles only.
+                    </p>
+                  ) : null}
+                </div>
                 <div className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
                   {regionSections.map((section) => {
                     const schema = storefrontSectionSchema(section.id);
@@ -1080,12 +1310,15 @@ export function StorefrontDesignEditor({
                               aboutBusy={aboutBusy}
                               aboutInputRef={aboutInputRef}
                               onAboutImagePick={(file) => void onAboutImagePick(file)}
-                              onClearAboutImage={() =>
+                              onClearAboutImage={() => {
+                                const s =
+                                  section.settings as StorefrontAboutSectionSettings;
                                 patchSectionSettings("about", {
-                                  ...(section.settings as StorefrontAboutSectionSettings),
+                                  heading: s.heading,
+                                  text: s.text,
                                   imageUrl: "",
-                                })
-                              }
+                                });
+                              }}
                             />
                           </div>
                         ) : null}
@@ -1117,6 +1350,27 @@ export function StorefrontDesignEditor({
           <Undo2 className="size-4" aria-hidden />
           Undo changes
         </Button>
+        {draftPreviewUrl ? (
+          <Button asChild variant="outline" className="gap-1.5">
+            <Link
+              href={draftPreviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={
+                draftTooLarge
+                  ? "This design is too large to preview without saving."
+                  : "Preview the shop with your unsaved changes"
+              }
+              aria-disabled={draftTooLarge}
+              onClick={(e) => {
+                if (draftTooLarge) e.preventDefault();
+              }}
+            >
+              <ExternalLink className="size-4" aria-hidden />
+              Preview my shop
+            </Link>
+          </Button>
+        ) : null}
         {liveUrl ? (
           <Button asChild variant="ghost" className="gap-1.5">
             <Link href={liveUrl} target="_blank" rel="noopener noreferrer">
@@ -1126,6 +1380,15 @@ export function StorefrontDesignEditor({
           </Button>
         ) : null}
       </div>
+
+      {draftPreviewUrl ? (
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          <span className="font-medium text-foreground">Preview my shop</span>{" "}
+          opens your page with these changes — no saving needed.{" "}
+          <span className="font-medium text-foreground">Open live shop</span>{" "}
+          shows what customers see right now.
+        </p>
+      ) : null}
 
       {!business?.storefront?.enabled ? (
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -1147,6 +1410,9 @@ export function StorefrontDesignEditor({
 const SECTION_ICONS: Record<StorefrontSectionId, LucideIcon> = {
   announcement: Megaphone,
   promo: BadgePercent,
+  hero: ImageIcon,
+  categories: LayoutGrid,
+  products: ShoppingBag,
   about: Store,
   social: Share2,
   contact: MapPinned,
@@ -1290,6 +1556,124 @@ function SectionSettingsPanel({
         </div>
       );
     }
+    case "hero": {
+      const settings = section.settings as StorefrontHeroSectionSettings;
+      return (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SettingsField id={`sf-hero-headline`} label="Headline">
+            <input
+              id={`sf-hero-headline`}
+              className={dashboardInputClass()}
+              value={settings.headline}
+              maxLength={120}
+              onChange={(e) => onChange({ ...settings, headline: e.target.value })}
+              placeholder="Leave blank to use the shop announcement"
+            />
+          </SettingsField>
+          <SettingsField id={`sf-hero-subhead`} label="Subheadline">
+            <input
+              id={`sf-hero-subhead`}
+              className={dashboardInputClass()}
+              value={settings.subheadline}
+              maxLength={120}
+              onChange={(e) =>
+                onChange({ ...settings, subheadline: e.target.value })
+              }
+              placeholder="Leave blank to use the business tagline"
+            />
+          </SettingsField>
+          <div className="space-y-2">
+            <span className={dashboardLabelClass()}>Height</span>
+            <div
+              className="flex flex-wrap gap-2"
+              role="radiogroup"
+              aria-label="Hero height"
+            >
+              {HERO_HEIGHT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={settings.height === opt.value}
+                  onClick={() => onChange({ ...settings, height: opt.value })}
+                  className={cn(
+                    "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                    settings.height === opt.value
+                      ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary/30"
+                      : "border-border/70 bg-background text-muted-foreground hover:border-foreground/25",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <span className={dashboardLabelClass()}>Photo overlay</span>
+            <div
+              className="flex flex-wrap gap-2"
+              role="radiogroup"
+              aria-label="Hero photo overlay"
+            >
+              {HERO_OVERLAY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={settings.overlay === opt.value}
+                  onClick={() => onChange({ ...settings, overlay: opt.value })}
+                  className={cn(
+                    "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                    settings.overlay === opt.value
+                      ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary/30"
+                      : "border-border/70 bg-background text-muted-foreground hover:border-foreground/25",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-5 sm:col-span-2">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+              <input
+                type="checkbox"
+                checked={settings.showCta}
+                onChange={(e) => onChange({ ...settings, showCta: e.target.checked })}
+                className="size-4 accent-primary"
+              />
+              Show the “Shop now” button
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+              <input
+                type="checkbox"
+                checked={settings.showWhatsapp}
+                onChange={(e) =>
+                  onChange({ ...settings, showWhatsapp: e.target.checked })
+                }
+                className="size-4 accent-primary"
+              />
+              Show the WhatsApp button
+            </label>
+          </div>
+        </div>
+      );
+    }
+    case "categories":
+      return (
+        <p className={dashboardHintClass()}>
+          Hiding this removes the category grid — customers can still browse
+          everything from the search bar and the filters above the products.
+        </p>
+      );
+    case "products":
+      return (
+        <p className={dashboardHintClass()}>
+          Hiding this removes the product shelves and the filters. Use it for a
+          “coming soon” shop front that only shows your story and contact
+          details.
+        </p>
+      );
     case "about": {
       const settings = section.settings as StorefrontAboutSectionSettings;
       return (

@@ -6,7 +6,13 @@ import { TintLabHero } from "@/components/storefront/templates/store/tint-lab-he
 import { TintLabShadeStory } from "@/components/storefront/templates/store/tint-lab-shade-story";
 import { TintLabSignup } from "@/components/storefront/templates/store/tint-lab-signup";
 import styles from "@/components/storefront/templates/store/tint-lab.module.css";
+import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
+import {
+  resolveStorefrontDesign,
+  storefrontSectionConfig,
+  type StorefrontHeroSectionSettings,
+} from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 const INGREDIENTS = [
@@ -48,11 +54,25 @@ export function TintLabStoreHome(props: StoreHomeTemplateProps) {
     heroTitle,
     announcement,
     areaLabel,
+    branchHint,
     showcaseImage,
     accentHex,
+    primaryHex,
+    logoUrl,
+    heroBannerUrls,
+    landingContent,
+    design,
   } = props;
 
   const lead = featured[0] ?? catalogItems[0] ?? null;
+  const heroSection = storefrontSectionConfig(design, "hero");
+  const heroOn = heroSection?.enabled === true;
+  const heroSettings = heroSection?.settings as
+    | StorefrontHeroSectionSettings
+    | undefined;
+  const productsConfig = storefrontSectionConfig(design, "products");
+  const productsOn = productsConfig ? productsConfig.enabled : true;
+  const buttons = resolveStorefrontDesign(design).buttons;
   const year = new Date().getFullYear();
   const nameParts = heroTitle.trim().split(/\s+/);
   const brandFirst = nameParts[0] || "Tint";
@@ -68,27 +88,56 @@ export function TintLabStoreHome(props: StoreHomeTemplateProps) {
           : undefined
       }
     >
-      <TintLabHero
-        heroTitle={heroTitle}
-        announcement={announcement}
-        areaLabel={areaLabel}
-        showcaseImage={showcaseImage || lead?.imageUrl || null}
-        featuredName={lead?.name}
-        featuredSku={lead?.sku}
-        accentHex={accentHex}
-      />
+      {heroOn ? (
+        <StorefrontHeroSection
+          title={heroTitle}
+          tagline={
+            heroSettings?.headline.trim() ? heroSettings.headline : announcement
+          }
+          subheadline={heroSettings?.subheadline ?? null}
+          height={heroSettings?.height ?? "medium"}
+          overlay={heroSettings?.overlay ?? "none"}
+          showCta={heroSettings?.showCta ?? true}
+          showWhatsapp={heroSettings?.showWhatsapp ?? true}
+          buttons={buttons}
+          branchHint={branchHint}
+          areaLabel={areaLabel}
+          primaryHex={primaryHex}
+          accentHex={accentHex}
+          showcaseImage={showcaseImage}
+          logoUrl={logoUrl}
+          heroBannerUrls={heroBannerUrls}
+          design={design}
+          whatsappNumber={
+            landingContent?.whatsapp ?? landingContent?.phone ?? null
+          }
+          ctaAnchor="#edit"
+        />
+      ) : (
+        <TintLabHero
+          heroTitle={heroTitle}
+          announcement={announcement}
+          areaLabel={areaLabel}
+          showcaseImage={showcaseImage || lead?.imageUrl || null}
+          featuredName={lead?.name}
+          featuredSku={lead?.sku}
+          accentHex={accentHex}
+        />
+      )}
 
       <div className={styles.noteStrip}>
         Formulated without parabens, sulfates, or mystery fragrance — every
         batch lot-coded
       </div>
 
-      <TintLabCatalog
-        slug={slug}
-        currency={currency}
-        initialItems={catalogItems}
-        initialNextCursor={nextCursor}
-      />
+      {productsOn ? (
+        <TintLabCatalog
+          slug={slug}
+          currency={currency}
+          initialItems={catalogItems}
+          initialNextCursor={nextCursor}
+        />
+      ) : null}
 
       <TintLabShadeStory />
 

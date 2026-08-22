@@ -9,7 +9,13 @@ import { boutiqueShelfFontVariables } from "@/components/storefront/templates/st
 import { BoutiqueShelfMobileSearch } from "@/components/storefront/templates/store/boutique-shelf-header";
 import { BoutiqueShelfLabels } from "@/components/storefront/templates/store/boutique-shelf-labels";
 import styles from "@/components/storefront/templates/store/boutique-shelf.module.css";
+import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
+import {
+  resolveStorefrontDesign,
+  storefrontSectionConfig,
+  type StorefrontHeroSectionSettings,
+} from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,13 +44,25 @@ export function BoutiqueShelfStoreHome(props: StoreHomeTemplateProps) {
     primaryHex,
     accentHex,
     types,
+    logoUrl,
+    heroBannerUrls,
+    showcaseImage,
     landingContent,
+    design,
   } = props;
 
   const rose = primaryHex?.trim() || "#DB2777";
   const brass = accentHex?.trim() || "#C9A227";
   const headline =
     announcement?.trim() || "Curated for the counter.";
+  const heroSection = storefrontSectionConfig(design, "hero");
+  const heroOn = heroSection?.enabled === true;
+  const heroSettings = heroSection?.settings as
+    | StorefrontHeroSectionSettings
+    | undefined;
+  const productsConfig = storefrontSectionConfig(design, "products");
+  const productsOn = productsConfig ? productsConfig.enabled : true;
+  const buttons = resolveStorefrontDesign(design).buttons;
   const lead = featured[0] ?? catalogItems[0] ?? null;
   const seen = new Set(lead ? [lead.id] : []);
   const stack: typeof catalogItems = [];
@@ -54,7 +72,9 @@ export function BoutiqueShelfStoreHome(props: StoreHomeTemplateProps) {
     stack.push(item);
     if (stack.length >= 3) break;
   }
-  const rest = catalogItems.filter((item) => !seen.has(item.id));
+  const rest = heroOn
+    ? catalogItems
+    : catalogItems.filter((item) => !seen.has(item.id));
   const locality =
     [areaLabel?.trim(), branchHint?.trim()].filter(Boolean).join(" · ") || null;
   const hours = landingContent?.hours?.trim() || null;
@@ -75,11 +95,38 @@ export function BoutiqueShelfStoreHome(props: StoreHomeTemplateProps) {
         <Suspense fallback={null}>
           <BoutiqueShelfMobileSearch />
         </Suspense>
-        <Suspense fallback={null}>
-          <BoutiqueShelfLabels types={types} />
-        </Suspense>
+        {productsOn ? (
+          <Suspense fallback={null}>
+            <BoutiqueShelfLabels types={types} />
+          </Suspense>
+        ) : null}
 
-        {lead ? (
+        {heroOn ? (
+          <StorefrontHeroSection
+            title={heroTitle}
+            tagline={
+              heroSettings?.headline.trim() ? heroSettings.headline : announcement
+            }
+            subheadline={heroSettings?.subheadline ?? null}
+            height={heroSettings?.height ?? "medium"}
+            overlay={heroSettings?.overlay ?? "none"}
+            showCta={heroSettings?.showCta ?? true}
+            showWhatsapp={heroSettings?.showWhatsapp ?? true}
+            buttons={buttons}
+            branchHint={branchHint}
+            areaLabel={areaLabel}
+            primaryHex={primaryHex}
+            accentHex={accentHex}
+            showcaseImage={showcaseImage}
+            logoUrl={logoUrl}
+            heroBannerUrls={heroBannerUrls}
+            design={design}
+            whatsappNumber={
+              landingContent?.whatsapp ?? landingContent?.phone ?? null
+            }
+            ctaAnchor="#shelf"
+          />
+        ) : lead ? (
           <section className={styles.display} aria-label="Alcove display">
             <BoutiqueShelfHero item={lead} currency={currency} headline={headline} />
             {stack.length > 0 ? (
@@ -109,13 +156,15 @@ export function BoutiqueShelfStoreHome(props: StoreHomeTemplateProps) {
           </section>
         )}
 
-        <BoutiqueShelfCatalog
-          slug={slug}
-          currency={currency}
-          initialItems={rest}
-          initialNextCursor={nextCursor}
-          totalCount={totalCount}
-        />
+        {productsOn ? (
+          <BoutiqueShelfCatalog
+            slug={slug}
+            currency={currency}
+            initialItems={rest}
+            initialNextCursor={nextCursor}
+            totalCount={totalCount}
+          />
+        ) : null}
 
         <footer className={styles.footer}>
           <div className={styles.footerName}>{heroTitle}</div>

@@ -13,6 +13,7 @@ import type {
   StorefrontSectionConfig,
   StorefrontSocialSectionSettings,
 } from "@/lib/storefront-design";
+import { resolveStorefrontDesign } from "@/lib/storefront-design";
 
 /**
  * Renders the merchant's configured sections for one zone (`pre` = above the
@@ -35,8 +36,13 @@ export function StorefrontSectionsStack({
   if (sections.length === 0) {
     return null;
   }
+  const buttons = resolveStorefrontDesign(design).buttons;
   return (
-    <div className={sectionContainerClass("flex flex-col gap-3 py-2")}>
+    <div
+      className={sectionContainerClass(
+        "flex flex-col gap-[calc(0.75rem*var(--sf-density,1))] py-2",
+      )}
+    >
       {sections.map((section) => {
         switch (section.id) {
           case "announcement":
@@ -54,6 +60,7 @@ export function StorefrontSectionsStack({
                 settings={section.settings as StorefrontPromoSectionSettings}
                 primaryHex={primaryHex}
                 accentHex={accentHex}
+                buttons={buttons}
               />
             );
           case "about":
@@ -79,6 +86,7 @@ export function StorefrontSectionsStack({
                 key={section.id}
                 settings={section.settings as StorefrontContactSectionSettings}
                 business={design.business}
+                buttons={buttons}
               />
             );
           default:

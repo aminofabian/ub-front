@@ -29,6 +29,7 @@ import {
   normalizeStoreThemeId,
 } from "@/lib/storefront-templates";
 import {
+  parseStorefrontDesignJson,
   storefrontSectionsInRegion,
 } from "@/lib/storefront-design";
 
@@ -118,6 +119,7 @@ export async function StorefrontCatalogHome({
   const preview = parseStorefrontPreview(
     previewThemeId?.trim() || fromHeaders.themeId,
     previewLandingId?.trim() || fromHeaders.landingId,
+    fromHeaders.designJson,
   );
 
   const landingTemplateId = normalizeLandingTemplateId(
@@ -194,7 +196,11 @@ export async function StorefrontCatalogHome({
 
   const StoreHome = resolveStoreHome(themeId);
 
-  const design = tenant?.design ?? null;
+  // Unsaved draft (previewDesign) wins over the saved design.
+  const designOverride = preview.designJson
+    ? parseStorefrontDesignJson(preview.designJson)
+    : null;
+  const design = designOverride ?? tenant?.design ?? null;
   const storeName =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? slug;
   const preSections =
@@ -250,7 +256,7 @@ export async function StorefrontCatalogHome({
         showcaseImage={showcaseImage}
         storefront={storefront}
         landingContent={tenant?.landingContent ?? null}
-        design={tenant?.design ?? null}
+        design={design}
       />
       {sections && postSections.length > 0 ? (
         <StorefrontSectionsStack

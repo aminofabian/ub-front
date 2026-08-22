@@ -11,7 +11,13 @@ import {
 } from "@/components/storefront/templates/store/carbon-desk-header";
 import { CarbonDeskTabs } from "@/components/storefront/templates/store/carbon-desk-tabs";
 import styles from "@/components/storefront/templates/store/carbon-desk.module.css";
+import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
+import {
+  resolveStorefrontDesign,
+  storefrontSectionConfig,
+  type StorefrontHeroSectionSettings,
+} from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 /**
@@ -40,13 +46,25 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
     primaryHex,
     accentHex,
     types,
+    logoUrl,
+    heroBannerUrls,
+    showcaseImage,
     landingContent,
+    design,
   } = props;
 
   const stamp = primaryHex?.trim() || "#B91C1C";
   const carbon = accentHex?.trim() || "#3D6B9E";
   const headline =
     announcement?.trim() || "Today's counter copy.";
+  const heroSection = storefrontSectionConfig(design, "hero");
+  const heroOn = heroSection?.enabled === true;
+  const heroSettings = heroSection?.settings as
+    | StorefrontHeroSectionSettings
+    | undefined;
+  const productsConfig = storefrontSectionConfig(design, "products");
+  const productsOn = productsConfig ? productsConfig.enabled : true;
+  const buttons = resolveStorefrontDesign(design).buttons;
   const lead = featured[0] ?? catalogItems[0] ?? null;
   const seen = new Set(lead ? [lead.id] : []);
   const stack: typeof catalogItems = [];
@@ -56,7 +74,9 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
     stack.push(item);
     if (stack.length >= 3) break;
   }
-  const rest = catalogItems.filter((item) => !seen.has(item.id));
+  const rest = heroOn
+    ? catalogItems
+    : catalogItems.filter((item) => !seen.has(item.id));
   const locality =
     [areaLabel?.trim(), branchHint?.trim()].filter(Boolean).join(" · ") || null;
   const hours = landingContent?.hours?.trim() || null;
@@ -78,11 +98,38 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
         <Suspense fallback={null}>
           <CarbonDeskMobileSearch />
         </Suspense>
-        <Suspense fallback={null}>
-          <CarbonDeskTabs types={types} />
-        </Suspense>
+        {productsOn ? (
+          <Suspense fallback={null}>
+            <CarbonDeskTabs types={types} />
+          </Suspense>
+        ) : null}
 
-        {lead ? (
+        {heroOn ? (
+          <StorefrontHeroSection
+            title={heroTitle}
+            tagline={
+              heroSettings?.headline.trim() ? heroSettings.headline : announcement
+            }
+            subheadline={heroSettings?.subheadline ?? null}
+            height={heroSettings?.height ?? "medium"}
+            overlay={heroSettings?.overlay ?? "none"}
+            showCta={heroSettings?.showCta ?? true}
+            showWhatsapp={heroSettings?.showWhatsapp ?? true}
+            buttons={buttons}
+            branchHint={branchHint}
+            areaLabel={areaLabel}
+            primaryHex={primaryHex}
+            accentHex={accentHex}
+            showcaseImage={showcaseImage}
+            logoUrl={logoUrl}
+            heroBannerUrls={heroBannerUrls}
+            design={design}
+            whatsappNumber={
+              landingContent?.whatsapp ?? landingContent?.phone ?? null
+            }
+            ctaAnchor="#file"
+          />
+        ) : lead ? (
           <section className={styles.counter} aria-label="Counter duplicate">
             <CarbonDeskHero item={lead} currency={currency} headline={headline} />
             {stack.length > 0 ? (
@@ -119,13 +166,15 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
           </section>
         )}
 
-        <CarbonDeskCatalog
-          slug={slug}
-          currency={currency}
-          initialItems={rest}
-          initialNextCursor={nextCursor}
-          totalCount={totalCount}
-        />
+        {productsOn ? (
+          <CarbonDeskCatalog
+            slug={slug}
+            currency={currency}
+            initialItems={rest}
+            initialNextCursor={nextCursor}
+            totalCount={totalCount}
+          />
+        ) : null}
 
         <footer className={styles.footer}>
           <div className={styles.footerName}>{heroTitle}</div>
