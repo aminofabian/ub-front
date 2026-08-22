@@ -8,37 +8,49 @@ import {
   buildStorefrontThemeVars,
   parseStorefrontHex,
 } from "@/lib/storefront-theme";
+import { resolveStorefrontDesign, type StorefrontDesign } from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 export function StorefrontThemeScope({
   primaryHex,
   accentHex,
+  design,
   className,
   children,
 }: {
   primaryHex?: string | null;
   accentHex?: string | null;
+  /** Merchant design overrides; `null` = pure theme defaults. */
+  design?: StorefrontDesign | null;
   className?: string;
   children: ReactNode;
 }) {
   const primary = parseStorefrontHex(primaryHex);
   const accent = parseStorefrontHex(accentHex);
-  const themeStyle = buildStorefrontThemeVars(primary, accent);
+  const resolved = resolveStorefrontDesign(design);
+  const themeStyle = buildStorefrontThemeVars(primary, accent, design);
 
   useEffect(() => {
-    if (!primary) return undefined;
-    return applyStorefrontThemeToDocument(primary, accent);
-  }, [primary, accent]);
+    if (!primary && !design) return undefined;
+    return applyStorefrontThemeToDocument(primary, accent, design);
+  }, [primary, accent, design]);
+
+  const surfaceStyle: CSSProperties | undefined = resolved.surfaceHex
+    ? { backgroundColor: resolved.surfaceHex }
+    : undefined;
 
   return (
     <div
       className={cn(
         "flex min-h-0 flex-1 flex-col",
-        // Sharp storefront chrome; keep radius on real buttons only.
-        "[&_*:not(button):not([role=button]):not([data-slot=button]):not(input[type=submit]):not(input[type=button]):not(.animate-spin)]:!rounded-none",
+        // Sharp storefront chrome; keep radius on real buttons only. When the
+        // merchant picks a soft/round look, drop the forcing so component
+        // radii and the design tokens take over.
+        resolved.radius === "sharp" &&
+          "[&_*:not(button):not([role=button]):not([data-slot=button]):not(input[type=submit]):not(input[type=button]):not(.animate-spin)]:!rounded-none",
         className,
       )}
-      style={themeStyle}
+      style={{ ...themeStyle, ...surfaceStyle }}
     >
       {children}
     </div>

@@ -116,6 +116,7 @@ function localTenantFallback(hostname: string): TenantContext | null {
     storeThemeId: "mart",
     landingTemplateId: "coming-soon-editorial",
     landingContent: null,
+    design: null,
     resolvedAt: new Date().toISOString(),
     countryCode: null,
     branchLocalities: [],

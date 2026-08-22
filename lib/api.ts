@@ -791,6 +791,11 @@ export type StorefrontSettingsRecord = {
   storeThemeId?: string | null;
   landingTemplateId?: string | null;
   landingContent?: LandingContentRecord | null;
+  /**
+   * Opaque versioned merchant design overrides (see {@code StorefrontDesign}).
+   * The theme is the starting point; this survives theme switches.
+   */
+  designJson?: string | null;
 };
 
 export type BrandingRecord = {
@@ -960,6 +965,7 @@ export type StorefrontPatchPayload = {
   storeThemeId?: string | null;
   landingTemplateId?: string | null;
   landingContent?: LandingContentRecord | null;
+  designJson?: string | null;
 };
 
 export type StocktakePatchPayload = {

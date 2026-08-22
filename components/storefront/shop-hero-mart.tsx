@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import type { StorefrontDesign } from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 function whatsAppOrderHref(): string | null {
@@ -47,6 +48,7 @@ export function ShopHeroMart({
   showcaseImage,
   logoUrl,
   heroBannerUrls,
+  design,
 }: {
   title: string;
   tagline?: string | null;
@@ -58,6 +60,8 @@ export function ShopHeroMart({
   showcaseImage?: string | null;
   logoUrl?: string | null;
   heroBannerUrls?: string[] | null;
+  /** Merchant design overrides — the hero photo slot with focal point wins. */
+  design?: StorefrontDesign | null;
 }) {
   const wa = whatsAppOrderHref();
   const primary =
@@ -76,14 +80,21 @@ export function ShopHeroMart({
     ? `color-mix(in srgb, ${primary} 88%, #020617)`
     : "#0f172a";
 
-  const headline = tagline?.trim() || "Quality essentials, delivered.";
+  const headline =
+    tagline?.trim() ||
+    design?.business?.tagline?.trim() ||
+    "Quality essentials, delivered.";
   const subhead = "Right to your door.";
   const area = areaLabel?.trim() || null;
-  const body = area
-    ? `Fresh products, fair prices, and fast delivery — from your neighborhood store in ${area}, now online.`
-    : "Fresh products, fair prices, and fast delivery — all from your neighborhood store, now online.";
+  const description = design?.business?.description?.trim() || null;
+  const body = description
+    ? description
+    : area
+      ? `Fresh products, fair prices, and fast delivery — from your neighborhood store in ${area}, now online.`
+      : "Fresh products, fair prices, and fast delivery — all from your neighborhood store, now online.";
 
   const banners = heroBannerUrls?.length ? heroBannerUrls : null;
+  const designPhoto = design?.photos?.hero ?? null;
   const [activeIndex, setActiveIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
@@ -130,7 +141,7 @@ export function ShopHeroMart({
             <Link
               href="#shop-catalog"
               className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-[3px] px-3.5 text-[12px] font-semibold shadow-sm transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98]",
+                "inline-flex h-8 items-center gap-1.5 rounded-[length:var(--sf-button-radius,3px)] px-3.5 text-[12px] font-semibold shadow-sm transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98]",
                 !accent && !primary && "bg-sky-500 text-white",
               )}
               style={heroCtaStyle(primary, accent)}
@@ -143,7 +154,7 @@ export function ShopHeroMart({
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-8 items-center gap-1.5 rounded-[3px] border border-white/22 bg-white/[0.06] px-3 text-[12px] font-semibold text-white transition-colors hover:border-white/35 hover:bg-white/10"
+                className="inline-flex h-8 items-center gap-1.5 rounded-[length:var(--sf-button-radius,3px)] border border-white/22 bg-white/[0.06] px-3 text-[12px] font-semibold text-white transition-colors hover:border-white/35 hover:bg-white/10"
               >
                 <MessageCircle className="size-3.5" aria-hidden />
                 WhatsApp
@@ -166,7 +177,21 @@ export function ShopHeroMart({
             setTouchStart(null);
           }}
         >
-          {banners ? (
+          {designPhoto ? (
+            <Image
+              src={designPhoto.url}
+              alt=""
+              fill
+              priority
+              sizes="50vw"
+              unoptimized
+              className="scale-[1.02]"
+              style={{
+                objectFit: designPhoto.fit,
+                objectPosition: `${designPhoto.focalX}% ${designPhoto.focalY}%`,
+              }}
+            />
+          ) : banners ? (
             <>
               {banners.map((url, i) => (
                 <div

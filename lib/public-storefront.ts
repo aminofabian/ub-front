@@ -10,6 +10,11 @@ import {
   normalizeStoreThemeId,
   type LandingContent,
 } from "@/lib/storefront-templates";
+import {
+  applyBusinessProfileToLandingContent,
+  parseStorefrontDesignJson,
+  type StorefrontDesign,
+} from "@/lib/storefront-design";
 
 export type PublicCatalogItemCard = {
   id: string;
@@ -239,6 +244,8 @@ export type TenantContext = {
   storeThemeId: string;
   landingTemplateId: string;
   landingContent: LandingContentPayload | null;
+  /** Parsed merchant design overrides (theme-agnostic customization). */
+  design: StorefrontDesign | null;
   resolvedAt: string;
   /** ISO-3166 alpha-2 when known (e.g. KE). */
   countryCode: string | null;
@@ -721,7 +728,15 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
   const landingTemplateId = normalizeLandingTemplateId(
     typeof o.landingTemplateId === "string" ? o.landingTemplateId : null,
   );
-  const landingContent = normalizeLandingContentPayload(o.landingContent);
+  const landingContentRaw = normalizeLandingContentPayload(o.landingContent);
+  const design = parseStorefrontDesignJson(
+    typeof o.designJson === "string" ? o.designJson : null,
+  );
+  // Business profile is the source of truth; legacy landingContent fills gaps.
+  const landingContent = applyBusinessProfileToLandingContent(
+    landingContentRaw,
+    design?.business ?? null,
+  );
   const resolvedAt =
     typeof o.resolvedAt === "string" && o.resolvedAt.trim()
       ? o.resolvedAt.trim()
@@ -751,6 +766,7 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
     storeThemeId,
     landingTemplateId,
     landingContent,
+    design,
     resolvedAt,
     countryCode,
     branchLocalities,

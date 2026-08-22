@@ -12,6 +12,7 @@ import {
   Building2,
   ChevronDown,
   ChevronUp,
+  Brush,
   Globe,
   LayoutTemplate,
   Loader2,
@@ -848,6 +849,12 @@ function RelatedLinks() {
       label: "Themes",
       desc: "How the customer website looks",
       icon: LayoutTemplate,
+    },
+    {
+      href: APP_ROUTES.businessDesign,
+      label: "Design",
+      desc: "Photos, colors & focal points",
+      icon: Brush,
     },
     {
       href: APP_ROUTES.businessDomains,

@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
 import { StorefrontAnalyticsBeacon } from "@/components/storefront/storefront-analytics-beacon";
+import { StorefrontSectionsStack } from "@/components/storefront/sections/storefront-sections-stack";
 import {
   resolveLandingPage,
   resolveStoreHome,
@@ -27,6 +28,9 @@ import {
   normalizeLandingTemplateId,
   normalizeStoreThemeId,
 } from "@/lib/storefront-templates";
+import {
+  storefrontSectionsInRegion,
+} from "@/lib/storefront-design";
 
 function isHexColor(value: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(value.trim());
@@ -190,6 +194,19 @@ export async function StorefrontCatalogHome({
 
   const StoreHome = resolveStoreHome(themeId);
 
+  const design = tenant?.design ?? null;
+  const storeName =
+    tenant?.branding?.displayName ?? tenant?.tenantName ?? slug;
+  const preSections =
+    design && tenant?.storefrontEnabled
+      ? storefrontSectionsInRegion(design, "pre")
+      : [];
+  const postSections =
+    design && tenant?.storefrontEnabled
+      ? storefrontSectionsInRegion(design, "post")
+      : [];
+  const sections = preSections.length || postSections.length ? design : null;
+
   return (
     <>
       <StorefrontAnalyticsBeacon
@@ -198,6 +215,15 @@ export async function StorefrontCatalogHome({
         storeThemeId={themeId}
         landingTemplateId={landingTemplateId}
       />
+      {sections && preSections.length > 0 ? (
+        <StorefrontSectionsStack
+          design={sections}
+          sections={preSections}
+          storeName={storeName}
+          primaryHex={primary}
+          accentHex={accentHex}
+        />
+      ) : null}
       <StoreHome
         themeId={themeId}
         slug={slug}
@@ -224,7 +250,17 @@ export async function StorefrontCatalogHome({
         showcaseImage={showcaseImage}
         storefront={storefront}
         landingContent={tenant?.landingContent ?? null}
+        design={tenant?.design ?? null}
       />
+      {sections && postSections.length > 0 ? (
+        <StorefrontSectionsStack
+          design={sections}
+          sections={postSections}
+          storeName={storeName}
+          primaryHex={primary}
+          accentHex={accentHex}
+        />
+      ) : null}
     </>
   );
 }

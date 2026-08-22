@@ -2,12 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  Brush,
-  LayoutTemplate,
-  Palette,
-} from "lucide-react";
+import { ArrowLeft, Brush, LayoutTemplate } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -16,12 +11,12 @@ import {
   DashboardLoadError,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
-import { StorefrontThemesStudio } from "@/components/business/storefront-themes-studio";
+import { StorefrontDesignEditor } from "@/components/business/storefront-design-editor";
 import { Button } from "@/components/ui/button";
 import { fetchBusiness, type BusinessRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 
-export default function BusinessThemesPage() {
+export default function BusinessDesignPage() {
   const { canManageBusinessSettings } = useDashboard();
   const [business, setBusiness] = useState<BusinessRecord | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -40,7 +35,7 @@ export default function BusinessThemesPage() {
         setErrorText(
           e instanceof Error && e.message.trim()
             ? e.message
-            : "Could not load the looks for your customer website.",
+            : "Could not load your shop design.",
         );
       });
   }, []);
@@ -64,8 +59,11 @@ export default function BusinessThemesPage() {
   if (!business && !loadFailed) {
     return (
       <div className={DASHBOARD_MAX_WIDE}>
-        <ThemesPageHeader />
-        <ThemesStudioSkeleton />
+        <DesignPageHeader />
+        <div className="space-y-6" aria-busy="true" aria-label="Loading shop design">
+          <div className="h-40 animate-pulse rounded-2xl bg-muted" />
+          <div className="h-72 animate-pulse rounded-2xl bg-muted" />
+        </div>
       </div>
     );
   }
@@ -73,8 +71,8 @@ export default function BusinessThemesPage() {
   if (loadFailed && !business) {
     return (
       <DashboardLoadError
-        title="Could not load shop looks"
-        message={errorText ?? "Could not load the looks for your customer website."}
+        title="Could not load shop design"
+        message={errorText ?? "Could not load your shop design."}
         onRetry={() => void load()}
       />
     );
@@ -83,8 +81,8 @@ export default function BusinessThemesPage() {
   return (
     <div className={DASHBOARD_MAX_WIDE}>
       <div className="space-y-8">
-        <ThemesPageHeader />
-        <StorefrontThemesStudio
+        <DesignPageHeader />
+        <StorefrontDesignEditor
           business={business}
           onSaved={(next) => setBusiness(next)}
         />
@@ -93,26 +91,20 @@ export default function BusinessThemesPage() {
   );
 }
 
-function ThemesPageHeader() {
+function DesignPageHeader() {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <DashboardPageHero
         compact
-        icon={LayoutTemplate}
-        title="How your shop looks online"
-        description="Each picture is the customer website — the page people open on their phone. This back office stays private. Pick a style, then save to hang it on the shop front."
+        icon={Brush}
+        title="Design your shop"
+        description="The theme is the starting point — this is where you make it yours. Colors and photos you set here survive a theme change, so your identity stays put."
       />
       <div className="flex flex-wrap gap-2 sm:pt-1">
         <Button asChild variant="outline" size="sm" className="gap-1.5">
-          <Link href={APP_ROUTES.businessDesign}>
-            <Brush className="size-3.5" aria-hidden />
-            Design
-          </Link>
-        </Button>
-        <Button asChild variant="outline" size="sm" className="gap-1.5">
-          <Link href={APP_ROUTES.businessBranding}>
-            <Palette className="size-3.5" aria-hidden />
-            Branding
+          <Link href={APP_ROUTES.businessThemes}>
+            <LayoutTemplate className="size-3.5" aria-hidden />
+            Themes
           </Link>
         </Button>
         <Button asChild variant="ghost" size="sm" className="gap-1.5">
@@ -121,32 +113,6 @@ function ThemesPageHeader() {
             Settings
           </Link>
         </Button>
-      </div>
-    </div>
-  );
-}
-
-function ThemesStudioSkeleton() {
-  return (
-    <div className="space-y-6" aria-busy="true" aria-label="Loading shop looks">
-      <div className="h-16 animate-pulse rounded-xl bg-muted" />
-      <div className="space-y-2">
-        <div className="h-5 w-32 animate-pulse rounded bg-muted" />
-        <div className="h-4 w-56 animate-pulse rounded bg-muted/70" />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="overflow-hidden rounded-2xl border border-border/70"
-          >
-            <div className="aspect-[16/10] animate-pulse bg-muted" />
-            <div className="space-y-2 p-3.5">
-              <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
-              <div className="h-3 w-full animate-pulse rounded bg-muted/70" />
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );

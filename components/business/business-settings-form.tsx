@@ -448,7 +448,16 @@ export function BusinessSettingsForm({
                   <div className="space-y-1.5 sm:col-span-2">
                     <p className={labelClass()}>Landing page copy (optional)</p>
                     <p className={hintClass()}>
-                      Overrides default template text when set.
+                      Overrides default template text when set. Prefer the
+                      structured fields in{" "}
+                      <Link
+                        href={APP_ROUTES.businessDesign}
+                        className="font-medium underline underline-offset-2"
+                      >
+                        Design → Business details
+                      </Link>{" "}
+                      (hours, tagline, contact) — every theme uses those
+                      automatically.
                     </p>
                   </div>
                   {(

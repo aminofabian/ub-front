@@ -5,6 +5,7 @@ import type {
   PublicStorefrontPayload,
 } from "@/lib/public-storefront";
 import type { LandingContent, StoreThemeId } from "@/lib/storefront-templates";
+import type { StorefrontDesign } from "@/lib/storefront-design";
 
 export type StoreHomeTemplateProps = {
   themeId: StoreThemeId;
@@ -33,6 +34,8 @@ export type StoreHomeTemplateProps = {
   storefront: PublicStorefrontPayload | null;
   /** Contact / hours CMS fields (also used by landing templates). */
   landingContent?: LandingContent | null;
+  /** Merchant design overrides (photos, tokens) on top of the theme. */
+  design?: StorefrontDesign | null;
 };
 
 export type LandingTemplateProps = {

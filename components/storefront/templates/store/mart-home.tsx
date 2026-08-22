@@ -32,6 +32,7 @@ export function MartStoreHome(props: StoreHomeTemplateProps) {
     logoUrl,
     heroBannerUrls,
     showcaseImage,
+    design,
   } = props;
 
   return (
@@ -49,6 +50,7 @@ export function MartStoreHome(props: StoreHomeTemplateProps) {
               showcaseImage={showcaseImage}
               logoUrl={logoUrl}
               heroBannerUrls={heroBannerUrls}
+              design={design}
             />
 
             <Suspense fallback={null}>
