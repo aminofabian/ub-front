@@ -499,7 +499,7 @@ export function ProductsWorkspace() {
               </div>
               <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border">
                 {D ? (
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-0">
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pb-24 p-0">
                     <ProductDetailPanel {...p} />
                   </div>
                 ) : (

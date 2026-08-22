@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { History, Loader2, Package, ScanBarcode } from "lucide-react";
 
 import {
@@ -68,6 +68,7 @@ function entryAccent(entry: ItemTimelineEntryRecord): string {
 }
 
 export function ProductItemTimeline({ itemId }: { itemId: string }) {
+  const sectionRef = useRef<HTMLElement>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,11 +108,24 @@ export function ProductItemTimeline({ itemId }: { itemId: string }) {
   }, [open, itemId]);
 
   return (
-    <section className={detailSectionClass}>
+    <section ref={sectionRef} className={detailSectionClass}>
       <button
         type="button"
-        className={detailCollapsibleTriggerClass}
-        onClick={() => setOpen((o) => !o)}
+        className={cn(detailCollapsibleTriggerClass, "pr-4")}
+        onClick={() => {
+          setOpen((o) => {
+            const next = !o;
+            if (next) {
+              requestAnimationFrame(() => {
+                sectionRef.current?.scrollIntoView({
+                  block: "nearest",
+                  behavior: "smooth",
+                });
+              });
+            }
+            return next;
+          });
+        }}
         aria-expanded={open}
       >
         <History

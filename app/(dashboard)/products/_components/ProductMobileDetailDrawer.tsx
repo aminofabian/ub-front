@@ -236,10 +236,10 @@ export function ProductMobileDetailDrawer({
 
           <div
             ref={scrollRef}
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pb-8"
           >
             {d ? (
-              <div className="mx-auto w-full max-w-lg px-4 pb-8 pt-4">
+              <div className="mx-auto w-full max-w-lg px-4 pb-10 pt-4">
                 <ProductDetailPanel
                   {...detailPanelProps}
                   showMobileStickyActions={false}

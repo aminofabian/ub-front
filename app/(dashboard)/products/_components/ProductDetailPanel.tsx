@@ -70,6 +70,7 @@ import {
   detailSectionHeadClass,
   detailSectionLabelClass,
   detailSellingStripClass,
+  detailSkuListClass,
   detailShellClass,
   detailStatCellClass,
   detailFieldLabelClass,
@@ -1259,7 +1260,7 @@ export function ProductDetailPanel(props: Props) {
                 </div>
               </div>
             ) : (
-              <div className="divide-y divide-border border-t border-border bg-background">
+              <div className={detailSkuListClass}>
                 {variantRows.map((v) => {
                   const vThumb = itemListThumbnailUrl(v);
                   const vSelected = selectedId === v.id;
@@ -1400,18 +1401,18 @@ export function ProductDetailPanel(props: Props) {
                     </Fragment>
                   );
                 })}
-                {isChildVariant && canCatalogWrite ? (
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-center gap-2 border-t border-dashed border-border/60 bg-muted/10 px-3 py-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground"
-                    onClick={openAddVariant}
-                  >
-                    <GitBranchPlus className="size-3.5 shrink-0" aria-hidden />
-                    Add another option under {variantParentDisplayName ?? "parent"}
-                  </button>
-                ) : null}
               </div>
             )}
+            {variantRows.length > 0 && isChildVariant && canCatalogWrite ? (
+              <button
+                type="button"
+                className="flex w-full items-center justify-center gap-2 border-t border-dashed border-border/60 bg-muted/10 px-3 py-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground"
+                onClick={openAddVariant}
+              >
+                <GitBranchPlus className="size-3.5 shrink-0" aria-hidden />
+                Add another option under {variantParentDisplayName ?? "parent"}
+              </button>
+            ) : null}
           </>
         ) : null}
       </section>

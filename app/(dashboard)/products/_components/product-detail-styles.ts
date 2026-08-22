@@ -58,7 +58,11 @@ export function detailPanelTone(kind: DetailPanelKind): DetailPanelTone {
 }
 
 export const detailShellClass =
-  "relative flex h-full min-h-0 flex-col gap-0 divide-y divide-border overflow-hidden border-0 bg-background shadow-none lg:border-l lg:border-border";
+  "relative flex min-h-0 flex-col gap-0 divide-y divide-border border-0 bg-background pb-[5.5rem] shadow-none lg:border-l lg:border-border lg:pb-20";
+
+/** Long sibling/package lists scroll in place so Activity stays reachable. */
+export const detailSkuListClass =
+  "max-h-[min(22rem,42vh)] divide-y divide-border overflow-y-auto overscroll-contain border-t border-border bg-background";
 
 export const detailHeroClass = cn(
   "relative overflow-hidden rounded-none border-0 bg-muted/15 p-2.5 shadow-none",
