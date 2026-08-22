@@ -9745,6 +9745,46 @@ export async function recordTabPayment(body: {
   );
 }
 
+/**
+ * Restore the balance owed after a mistaken tab payment (reverses the most
+ * recent payment on the account). Requires claims.review.
+ */
+export async function reverseTabPayment(
+  customerId: string,
+): Promise<{ claimId: string; balanceOwed: string }> {
+  return request<{ claimId: string; balanceOwed: string }>(
+    "/api/v1/credits/tab-payments/reverse",
+    {
+      method: "POST",
+      body: { customerId },
+    },
+  );
+}
+
+/**
+ * Reverse a mistaken tab payment and record the corrected amount in one step.
+ * Requires claims.review.
+ */
+export async function amendTabPayment(body: {
+  customerId: string;
+  amount: number | string;
+  channel: "cash" | "mpesa";
+  reference?: string | null;
+}): Promise<{ claimId: string; balanceOwed: string }> {
+  return request<{ claimId: string; balanceOwed: string }>(
+    "/api/v1/credits/tab-payments/amend",
+    {
+      method: "POST",
+      body: {
+        customerId: body.customerId,
+        amount: body.amount,
+        channel: body.channel,
+        reference: body.reference?.trim() || null,
+      },
+    },
+  );
+}
+
 /** Send a WhatsApp/SMS balance reminder to one customer. */
 export async function remindCustomerPayment(
   customerId: string,

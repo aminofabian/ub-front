@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, IdCard, Users } from "lucide-react";
 
 import {
@@ -24,6 +24,7 @@ import {
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
 import { RevealCustomerPhoneCard } from "@/components/credits/reveal-customer-phone-card";
+import { TabPaymentActions } from "@/components/credits/tab-payment-actions";
 
 function fmtMoney(value: number | string | null | undefined): string {
   const n = Number(value ?? 0);
@@ -33,15 +34,35 @@ function fmtMoney(value: number | string | null | undefined): string {
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const customerId = params?.id?.trim() ?? "";
-  const { loading, canViewCustomers, canManageCustomers } = useDashboard();
+  const { loading, canViewCustomers, canManageCustomers, canReviewPaymentClaims } =
+    useDashboard();
 
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [statement, setStatement] = useState<CreditStatementRecord | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [cardOpen, setCardOpen] = useState(false);
-  const [message, setMessage] = useState<{ text: string; kind: "error" } | null>(
-    null,
-  );
+  const [message, setMessage] = useState<{
+    text: string;
+    kind: "error" | "success";
+  } | null>(null);
+
+  const refresh = useCallback(async () => {
+    // Keep the page visible; just re-pull customer + statement after a mutation.
+    try {
+      const [cust, stmt] = await Promise.all([
+        fetchCustomerById(customerId),
+        fetchCustomerCreditStatement(customerId),
+      ]);
+      setCustomer(cust);
+      setStatement(stmt);
+    } catch (error) {
+      setMessage({
+        text:
+          error instanceof Error ? error.message : "Failed to load customer.",
+        kind: "error",
+      });
+    }
+  }, [customerId]);
 
   useEffect(() => {
     if (loading || !canViewCustomers || !customerId) return;
@@ -98,6 +119,21 @@ export default function CustomerDetailPage() {
       />
     );
   }
+
+  const statementLines = statement?.lines ?? [];
+  const paymentIndexes = statementLines.reduce<number[]>((acc, line, index) => {
+    if (line.kind === "credit_payment") acc.push(index);
+    return acc;
+  }, []);
+  const latestPaymentIndex =
+    paymentIndexes.length > 0 ? paymentIndexes[paymentIndexes.length - 1] : -1;
+  const latestPaymentLine =
+    latestPaymentIndex >= 0 ? statementLines[latestPaymentIndex] : null;
+  const latestPaymentReversed =
+    latestPaymentIndex >= 0 &&
+    statementLines
+      .slice(latestPaymentIndex + 1)
+      .some((line) => line.kind === "credit_payment_reversal");
 
   return (
     <div className={DASHBOARD_MAX}>
@@ -192,6 +228,9 @@ export default function CustomerDetailPage() {
                     <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">
                       Memo
                     </th>
+                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -208,6 +247,22 @@ export default function CustomerDetailPage() {
                       <td className="px-4 py-3 sm:px-5">{fmtMoney(line.credit)}</td>
                       <td className="px-4 py-3 text-muted-foreground sm:px-5">
                         {line.memo || "—"}
+                      </td>
+                      <td className="px-4 py-3 sm:px-5">
+                        {index === latestPaymentIndex &&
+                        latestPaymentLine &&
+                        canReviewPaymentClaims &&
+                        !latestPaymentReversed ? (
+                          <TabPaymentActions
+                            customerId={customerId}
+                            paymentAmount={latestPaymentLine.credit}
+                            paymentAt={latestPaymentLine.at}
+                            onChanged={() => void refresh()}
+                            onFeedback={(kind, text) =>
+                              setMessage({ kind, text })
+                            }
+                          />
+                        ) : null}
                       </td>
                     </tr>
                   ))}
