@@ -10,6 +10,8 @@ export type DesktopLicenseStatus = {
   daysRemaining: number | null;
   expiresAt: string | null;
   readOnly: boolean;
+  /** This machine's fingerprint — send it to your vendor so they can issue a bound key. */
+  machineId: string | null;
 };
 
 /** {@code GET /api/v1/desktop/lan/status} */

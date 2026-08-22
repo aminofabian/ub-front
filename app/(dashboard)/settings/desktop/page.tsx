@@ -496,6 +496,45 @@ export default function DesktopSettingsPage() {
               </div>
             ) : null}
 
+            {license?.machineId ? (
+              <div className="space-y-2">
+                <label className={dashboardLabelClass()} htmlFor="machine-id">
+                  Machine ID
+                </label>
+                <div className="flex items-center gap-2">
+                  <code
+                    id="machine-id"
+                    className={cn(
+                      dashboardInputClass(),
+                      "flex-1 truncate font-mono text-xs",
+                    )}
+                  >
+                    {license.machineId}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      void navigator.clipboard
+                        .writeText(license.machineId ?? "")
+                        .then(
+                          () => toast.success("Machine ID copied."),
+                          () => toast.error("Could not copy to clipboard."),
+                        );
+                    }}
+                  >
+                    <Copy className="size-3.5" />
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Your license is bound to this computer. Send this ID to your
+                  vendor so they can issue a key that only works here.
+                </p>
+              </div>
+            ) : null}
+
             {isOwner ? (
               <div className="space-y-2">
                 <label className={dashboardLabelClass()} htmlFor="license-key">

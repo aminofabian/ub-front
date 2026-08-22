@@ -123,7 +123,7 @@ export function DesktopLicensesPage() {
       ...(perpetual
         ? { perpetual: true }
         : { days: Math.max(1, Math.min(36500, Number(days) || 365)) }),
-      ...(fingerprint.trim() ? { fingerprint: fingerprint.trim() } : {}),
+      fingerprint: fingerprint.trim(),
     };
   }
 
@@ -131,6 +131,13 @@ export function DesktopLicensesPage() {
     const name = businessName.trim();
     if (!name) {
       toast.error("Enter the shop name the license is issued to (must match the till exactly).");
+      return;
+    }
+    const machineId = fingerprint.trim();
+    if (!machineId) {
+      toast.error(
+        "Machine ID is required — ask the shop owner for the Machine ID shown in Kiosk Desktop → Settings → License.",
+      );
       return;
     }
     const target = email.trim();
@@ -483,16 +490,20 @@ export function DesktopLicensesPage() {
 
             <div className="sm:col-span-2">
               <label className={LABEL_CLASS} htmlFor="lic-fingerprint">
-                Machine fingerprint (optional)
+                Machine ID (required)
               </label>
               <input
                 id="lic-fingerprint"
                 className={cn(INPUT_CLASS, "mt-1.5 font-mono text-xs")}
-                placeholder="SHA-256 of MAC + disk — carried in the token, not yet enforced"
+                placeholder="64-char Machine ID from the till (Settings → License)"
                 value={fingerprint}
                 onChange={(e) => setFingerprint(e.target.value)}
                 disabled={!canIssue}
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                The key only works on the machine with this ID — this is what
+                stops a license being used on another shop's computer.
+              </p>
             </div>
 
             <div className="sm:col-span-2">

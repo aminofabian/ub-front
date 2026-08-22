@@ -613,8 +613,8 @@ export type IssueDesktopLicensePayload = {
   /** ISO-8601 instant, e.g. 2027-08-20T00:00:00Z. */
   expiresAt?: string;
   perpetual?: boolean;
-  /** Optional SHA-256 fingerprint carried in the token (not yet enforced). */
-  fingerprint?: string;
+  /** The till's Machine ID (Settings → License). Required — the key only works on that machine. */
+  fingerprint: string;
   /** Only used by issueAndEmailDesktopLicense. */
   email?: string;
 };
