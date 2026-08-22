@@ -6,7 +6,6 @@ import { ArrowLeft, Brush, LayoutTemplate } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
-  DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardLoadError,
   DashboardPageHero,
@@ -15,6 +14,9 @@ import { StorefrontDesignEditor } from "@/components/business/storefront-design-
 import { Button } from "@/components/ui/button";
 import { fetchBusiness, type BusinessRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+
+/** Studio layout needs more width than the standard dashboard column. */
+const STUDIO_WRAPPER = "mx-auto w-full max-w-[1400px] space-y-8 pb-10";
 
 export default function BusinessDesignPage() {
   const { canManageBusinessSettings } = useDashboard();
@@ -58,7 +60,7 @@ export default function BusinessDesignPage() {
 
   if (!business && !loadFailed) {
     return (
-      <div className={DASHBOARD_MAX_WIDE}>
+      <div className={STUDIO_WRAPPER}>
         <DesignPageHeader />
         <div className="space-y-6" aria-busy="true" aria-label="Loading shop design">
           <div className="h-40 animate-pulse rounded-2xl bg-muted" />
@@ -79,7 +81,7 @@ export default function BusinessDesignPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX_WIDE}>
+    <div className={STUDIO_WRAPPER}>
       <div className="space-y-8">
         <DesignPageHeader />
         <StorefrontDesignEditor
@@ -98,7 +100,7 @@ function DesignPageHeader() {
         compact
         icon={Brush}
         title="Design your shop"
-        description="The theme is the starting point — this is where you make it yours. Colors and photos you set here survive a theme change, so your identity stays put."
+        description="This is your shop window. Change anything on the left and watch it happen in the preview — your identity stays put when you switch themes."
       />
       <div className="flex flex-wrap gap-2 sm:pt-1">
         <Button asChild variant="outline" size="sm" className="gap-1.5">

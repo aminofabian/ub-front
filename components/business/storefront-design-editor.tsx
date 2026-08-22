@@ -1,8 +1,30 @@
+/*
+ * STOREFRONT DESIGN STUDIO
+ * THESIS: This page is a shop window, not a settings form — the merchant edits
+ * on the left and watches their shop change in a live phone-frame miniature on
+ * the right, so every toggle proves itself instead of being described.
+ * OWN-WORLD: The Kiosk dashboard's restrained neutral palette and Inter,
+ * sharpened with one studio motif — a miniature shop front that borrows the
+ * storefront's own materials (surface color, radius, buttons, density) — and
+ * soft offset elevation, no nested cards.
+ * STORY: A shop owner lands on a page that already looks like their shop,
+ * reaches for the control that bothers them, and watches it change on the
+ * spot; they save when the miniature matches the shop they imagine.
+ * FIRST VIEWPORT: Three columns — a step rail with completion dots, the
+ * control stack, and a sticky phone-frame preview rendering the current
+ * design; a floating sticky action bar carries Save, Preview and the change
+ * count.
+ * FORM: Studio arrangement inside the established dashboard world (Operate
+ * mode); chosen directly, no world replacement, tokens stay.
+ * FINISH: unreviewed and undocumented is unfinished; this build ends with the
+ * finish review, the verdict, and DESIGN.md
+ */
 "use client";
 
 import Link from "next/link";
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -12,10 +34,12 @@ import {
 import {
   BadgePercent,
   Building2,
+  Check,
   ChevronDown,
   ChevronRight,
   ChevronUp,
   ExternalLink,
+  Eye,
   Image as ImageIcon,
   ImagePlus,
   LayoutGrid,
@@ -23,6 +47,7 @@ import {
   Loader2,
   MapPinned,
   Megaphone,
+  Palette,
   Save,
   Share2,
   ShoppingBag,
@@ -35,6 +60,7 @@ import {
 import { ImageFocalPointPicker } from "@/components/business/image-focal-point-picker";
 import { StorefrontDesignAiCard } from "@/components/business/storefront-design-ai";
 import { CloudinaryTransformRow } from "@/components/business/cloudinary-transform-row";
+import { StorefrontMiniPreview, type MiniPreviewData } from "@/components/business/storefront-mini-preview";
 import {
   DashboardFeedback,
   DASHBOARD_SECTION_SURFACE,
@@ -478,6 +504,21 @@ export function StorefrontDesignEditor({
       | undefined)?.imageUrl ?? "",
   );
 
+  // Studio navigation: step rail scroll-spy + mobile preview toggle.
+  const [activeStep, setActiveStep] = useState<
+    "brand" | "photos" | "business" | "sections" | null
+  >(null);
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const stepRefs = {
+    brand: useRef<HTMLDivElement>(null),
+    photos: useRef<HTMLDivElement>(null),
+    business: useRef<HTMLDivElement>(null),
+    sections: useRef<HTMLDivElement>(null),
+  };
+  const scrollToStep = (id: keyof typeof stepRefs) => {
+    stepRefs[id].current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const shopBase = business?.slug
     ? slugDerivedShopUrl(business.slug) ||
       `https://${business.slug}.${PLATFORM_DOMAIN}`
@@ -493,6 +534,134 @@ export function StorefrontDesignEditor({
       ? storefrontPreviewUrl(shopBase, "store", themeId, { designJson: draftJson })
       : null;
   const draftTooLarge = Boolean(draftJson && draftJson.length > 8000);
+
+  const previewData = useMemo<MiniPreviewData>(() => {
+    const hero = form.sections.find((s) => s.id === "hero");
+    const heroSettings = hero?.settings as StorefrontHeroSectionSettings | undefined;
+    const announcement = form.sections.find((s) => s.id === "announcement");
+    const promo = form.sections.find((s) => s.id === "promo");
+    const promoSettings = promo?.settings as StorefrontPromoSectionSettings | undefined;
+    const products = form.sections.find((s) => s.id === "products");
+    return {
+      storeName: business?.branding?.displayName?.trim() || business?.name || "Your shop",
+      primaryHex: business?.branding?.primaryColor ?? null,
+      surface: form.surface || "#FAFAF8",
+      radius: form.radius,
+      buttons: form.buttons,
+      density: form.density,
+      heroUrl: form.heroUrl,
+      heroFocalX: form.heroFocalX,
+      heroFocalY: form.heroFocalY,
+      heroHeadline: heroSettings?.headline || "",
+      heroSubheadline: heroSettings?.subheadline || form.business.tagline || "",
+      heroEnabled: hero?.enabled === true,
+      announcementEnabled: announcement?.enabled === true,
+      announcement:
+        (announcement?.settings as StorefrontAnnouncementSectionSettings | undefined)?.text || "",
+      promoEnabled: promo?.enabled === true,
+      promoTitle: promoSettings?.title || "",
+      promoSubtitle: promoSettings?.subtitle || "",
+      promoCoupon: promoSettings?.coupon || "",
+      productsEnabled: products ? products.enabled : true,
+      aboutEnabled: form.sections.find((s) => s.id === "about")?.enabled === true,
+      socialEnabled: form.sections.find((s) => s.id === "social")?.enabled === true,
+      contactEnabled: form.sections.find((s) => s.id === "contact")?.enabled === true,
+    };
+  }, [form, business]);
+
+  const changes = useMemo(() => {
+    const groups: Record<string, string> = {
+      brand: JSON.stringify({
+        radius: form.radius,
+        buttons: form.buttons,
+        density: form.density,
+        surface: form.surface.trim().toLowerCase(),
+      }),
+      photos: JSON.stringify({
+        url: form.heroUrl.trim(),
+        focalX: form.heroFocalX,
+        focalY: form.heroFocalY,
+        fit: form.heroFit,
+      }),
+      business: JSON.stringify(form.business),
+      sections: JSON.stringify(form.sections),
+    };
+    const base: Record<string, string> = {
+      brand: JSON.stringify({
+        radius: snapshot.radius,
+        buttons: snapshot.buttons,
+        density: snapshot.density,
+        surface: snapshot.surface.trim().toLowerCase(),
+      }),
+      photos: JSON.stringify({
+        url: snapshot.heroUrl.trim(),
+        focalX: snapshot.heroFocalX,
+        focalY: snapshot.heroFocalY,
+        fit: snapshot.heroFit,
+      }),
+      business: JSON.stringify(snapshot.business),
+      sections: JSON.stringify(snapshot.sections),
+    };
+    return Object.keys(groups).filter((key) => groups[key] !== base[key]).length;
+  }, [form, snapshot]);
+
+  const stepState = useMemo(
+    () => ({
+      brand:
+        form.radius !== "sharp" ||
+        form.buttons !== "solid" ||
+        form.density !== "cozy" ||
+        form.surface.trim() !== "",
+      photos: form.heroUrl.trim() !== "",
+      business:
+        [
+          form.business.tagline,
+          form.business.description,
+          form.business.phone,
+          form.business.whatsapp,
+          form.business.email,
+          form.business.address,
+          form.business.town,
+          form.business.mapUrl,
+          form.business.hoursNote,
+          form.business.instagram,
+          form.business.facebook,
+          form.business.tiktok,
+          form.business.x,
+          form.business.youtube,
+        ].some((v) => v.trim() !== "") || form.business.hoursEnabled,
+      sections: form.sections.some((s) => s.enabled),
+    }),
+    [form],
+  );
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const id = entry.target.id.replace("design-step-", "");
+            if (
+              id === "brand" ||
+              id === "photos" ||
+              id === "business" ||
+              id === "sections"
+            ) {
+              setActiveStep(id);
+            }
+          }
+        }
+      },
+      { rootMargin: "-15% 0px -65% 0px" },
+    );
+    for (const key of ["brand", "photos", "business", "sections"] as const) {
+      const el = stepRefs[key].current;
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+    // Refs are stable across renders; re-running would re-observe on every edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const hoursPreview = useMemo(() => {
     if (!form.business.hoursEnabled) return null;
@@ -692,19 +861,89 @@ export function StorefrontDesignEditor({
   const b = form.business;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
       {feedback ? <DashboardFeedback kind="success" text={feedback} /> : null}
 
-      <StorefrontDesignAiCard
-        draftDesignJson={draftJson}
-        onApply={(suggestion) => applyAiSuggestion(suggestion)}
-      />
+      {showMobilePreview ? (
+        <div className="flex justify-center rounded-2xl border border-border/70 bg-card p-5 shadow-sm lg:hidden">
+          <StorefrontMiniPreview data={previewData} />
+        </div>
+      ) : null}
 
-      <div className={DASHBOARD_SECTION_SURFACE}>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] xl:grid-cols-[196px_minmax(0,1fr)_minmax(220px,280px)]">
+        <aside className="sticky top-24 hidden xl:block">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Your shop
+          </p>
+          <nav className="mt-3 space-y-1" aria-label="Design steps">
+            {(
+              [
+                { id: "brand", label: "Brand", icon: Palette },
+                { id: "photos", label: "Photos", icon: ImageIcon },
+                { id: "business", label: "Business", icon: Building2 },
+                { id: "sections", label: "Sections", icon: LayoutList },
+              ] as const
+            ).map((step, i) => {
+              const done = stepState[step.id];
+              const active = activeStep === step.id;
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => scrollToStep(step.id)}
+                  aria-current={active ? "step" : undefined}
+                  className={cn(
+                    "group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors",
+                    active ? "bg-muted" : "hover:bg-muted/60",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors",
+                      done
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground",
+                      active && "border-primary/50",
+                    )}
+                  >
+                    {done ? (
+                      <Check className="size-3.5" aria-hidden />
+                    ) : (
+                      i + 1
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground",
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+            Changes appear live in the preview.
+          </p>
+        </aside>
+
+        <div className="min-w-0 space-y-6">
+          <StorefrontDesignAiCard
+            draftDesignJson={draftJson}
+            onApply={(suggestion) => applyAiSuggestion(suggestion)}
+          />
+
+      <div
+        ref={stepRefs.brand}
+        id="design-step-brand"
+        className={cn(DASHBOARD_SECTION_SURFACE, "scroll-mt-24")}
+      >
         <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
-            <ImagePlus className="size-5" aria-hidden />
+          <div className="rounded-xl bg-violet-500/10 p-2.5 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400">
+            <Palette className="size-5" aria-hidden />
           </div>
           <div className="min-w-0">
             <h2 className="text-base font-semibold tracking-tight text-foreground">
@@ -907,10 +1146,14 @@ export function StorefrontDesignEditor({
         </div>
       </div>
 
-      <div className={DASHBOARD_SECTION_SURFACE}>
+      <div
+        ref={stepRefs.photos}
+        id="design-step-photos"
+        className={cn(DASHBOARD_SECTION_SURFACE, "scroll-mt-24")}
+      >
         <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
-            <ImagePlus className="size-5" aria-hidden />
+          <div className="rounded-xl bg-amber-500/10 p-2.5 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
+            <ImageIcon className="size-5" aria-hidden />
           </div>
           <div className="min-w-0">
             <h2 className="text-base font-semibold tracking-tight text-foreground">
@@ -1024,9 +1267,13 @@ export function StorefrontDesignEditor({
         </div>
       </div>
 
-      <div className={DASHBOARD_SECTION_SURFACE}>
+      <div
+        ref={stepRefs.business}
+        id="design-step-business"
+        className={cn(DASHBOARD_SECTION_SURFACE, "scroll-mt-24")}
+      >
         <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+          <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400">
             <Building2 className="size-5" aria-hidden />
           </div>
           <div className="min-w-0">
@@ -1280,9 +1527,13 @@ export function StorefrontDesignEditor({
         </div>
       </div>
 
-      <div className={DASHBOARD_SECTION_SURFACE}>
+      <div
+        ref={stepRefs.sections}
+        id="design-step-sections"
+        className={cn(DASHBOARD_SECTION_SURFACE, "scroll-mt-24")}
+      >
         <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+          <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
             <LayoutList className="size-5" aria-hidden />
           </div>
           <div className="min-w-0">
@@ -1420,63 +1671,123 @@ export function StorefrontDesignEditor({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => void save()} disabled={saving || !dirty}>
-          {saving ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <Save className="size-4" aria-hidden />
-          )}
-          {dirty ? "Save design" : "Saved"}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={revert}
-          disabled={!dirty || saving}
-          className="gap-1.5"
-        >
-          <Undo2 className="size-4" aria-hidden />
-          Undo changes
-        </Button>
-        {draftPreviewUrl ? (
-          <Button asChild variant="outline" className="gap-1.5">
-            <Link
-              href={draftPreviewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={
-                draftTooLarge
-                  ? "This design is too large to preview without saving."
-                  : "Preview the shop with your unsaved changes"
-              }
-              aria-disabled={draftTooLarge}
-              onClick={(e) => {
-                if (draftTooLarge) e.preventDefault();
-              }}
-            >
-              <ExternalLink className="size-4" aria-hidden />
-              Preview my shop
-            </Link>
-          </Button>
-        ) : null}
-        {liveUrl ? (
-          <Button asChild variant="ghost" className="gap-1.5">
-            <Link href={liveUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="size-4" aria-hidden />
-              Open live shop
-            </Link>
-          </Button>
-        ) : null}
+        </div>
+
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 flex flex-col items-center gap-3">
+            <StorefrontMiniPreview data={previewData} />
+            <div className="text-center">
+              <p className="text-xs font-semibold text-foreground">Live preview</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                Your shop changes as you edit.
+              </p>
+              {draftPreviewUrl ? (
+                <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5">
+                  <Link
+                    href={draftPreviewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={
+                      draftTooLarge
+                        ? "This design is too large to preview without saving."
+                        : "Open the real shop with your unsaved changes"
+                    }
+                    aria-disabled={draftTooLarge}
+                    onClick={(e) => {
+                      if (draftTooLarge) e.preventDefault();
+                    }}
+                  >
+                    <ExternalLink className="size-4" aria-hidden />
+                    Preview as customer
+                  </Link>
+                </Button>
+              ) : null}
+              {liveUrl ? (
+                <Link
+                  href={liveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-xs font-medium text-primary underline underline-offset-2"
+                >
+                  Open live shop
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </aside>
       </div>
 
-      {draftPreviewUrl ? (
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          <span className="font-medium text-foreground">Preview my shop</span>{" "}
-          opens your page with these changes — no saving needed.{" "}
-          <span className="font-medium text-foreground">Open live shop</span>{" "}
-          shows what customers see right now.
-        </p>
-      ) : null}
+      <div className="sticky bottom-4 z-20">
+        <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-background/95 p-3 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.4)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">
+              {dirty
+                ? `${changes} ${changes === 1 ? "area" : "areas"} changed`
+                : "All changes saved"}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {dirty
+                ? "Review the live preview, then save when it feels right."
+                : "Customers see the saved design."}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 lg:hidden"
+              onClick={() => setShowMobilePreview((v) => !v)}
+            >
+              <Eye className="size-4" aria-hidden />
+              {showMobilePreview ? "Hide preview" : "Preview"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={revert}
+              disabled={!dirty || saving}
+              className="gap-1.5"
+            >
+              <Undo2 className="size-4" aria-hidden />
+              Undo
+            </Button>
+            {draftPreviewUrl ? (
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Link
+                  href={draftPreviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={
+                    draftTooLarge
+                      ? "This design is too large to preview without saving."
+                      : "Preview the shop with your unsaved changes"
+                  }
+                  aria-disabled={draftTooLarge}
+                  onClick={(e) => {
+                    if (draftTooLarge) e.preventDefault();
+                  }}
+                >
+                  <ExternalLink className="size-4" aria-hidden />
+                  Preview my shop
+                </Link>
+              </Button>
+            ) : null}
+            <Button
+              onClick={() => void save()}
+              disabled={saving || !dirty}
+              size="sm"
+              className="gap-1.5"
+            >
+              {saving ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Save className="size-4" aria-hidden />
+              )}
+              {dirty ? "Save design" : "Saved"}
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {!business?.storefront?.enabled ? (
         <p className="text-sm leading-relaxed text-muted-foreground">
