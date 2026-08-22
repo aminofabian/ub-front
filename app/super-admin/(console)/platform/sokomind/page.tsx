@@ -15,6 +15,7 @@ import {
   updateSokoMindSettings,
   type SokoMindSettingsRecord,
 } from "@/lib/super-admin-api";
+import { cn } from "@/lib/utils";
 
 function Field({
   id,
@@ -59,9 +60,10 @@ export default function SuperAdminSokoMindSettingsPage() {
   const [anthropicSmartModel, setAnthropicSmartModel] = useState("claude-sonnet-4-5-20250929");
 
   const [deepseekApiKey, setDeepseekApiKey] = useState("");
-  const [deepseekBaseUrl, setDeepseekBaseUrl] = useState("https://deepseek-v31.p.rapidapi.com/");
+  const [deepseekBaseUrl, setDeepseekBaseUrl] = useState("https://api.deepseek.com/chat/completions");
   const [deepseekHost, setDeepseekHost] = useState("deepseek-v31.p.rapidapi.com");
   const [deepseekModel, setDeepseekModel] = useState("DeepSeek-V3-0324");
+  const [rapidapiDeepseekApiKey, setRapidapiDeepseekApiKey] = useState("");
 
   const [industryCompareEnabled, setIndustryCompareEnabled] = useState(false);
   const [industryCompareMinTwins, setIndustryCompareMinTwins] = useState(8);
@@ -84,7 +86,7 @@ export default function SuperAdminSokoMindSettingsPage() {
     setAnthropicBaseUrl(row.anthropicBaseUrl ?? "");
     setAnthropicMiniModel(row.anthropicMiniModel || "claude-haiku-4-5-20251001");
     setAnthropicSmartModel(row.anthropicSmartModel || "claude-sonnet-4-5-20250929");
-    setDeepseekBaseUrl(row.deepseekBaseUrl || "https://deepseek-v31.p.rapidapi.com/");
+    setDeepseekBaseUrl(row.deepseekBaseUrl || "https://api.deepseek.com/chat/completions");
     setDeepseekHost(row.deepseekHost || "deepseek-v31.p.rapidapi.com");
     setDeepseekModel(row.deepseekModel || "DeepSeek-V3-0324");
     setIndustryCompareEnabled(row.industryCompareEnabled);
@@ -97,6 +99,7 @@ export default function SuperAdminSokoMindSettingsPage() {
     setOpenaiApiKey("");
     setAnthropicApiKey("");
     setDeepseekApiKey("");
+    setRapidapiDeepseekApiKey("");
   }, []);
 
   const load = useCallback(async () => {
@@ -154,6 +157,9 @@ export default function SuperAdminSokoMindSettingsPage() {
       if (openaiApiKey.trim()) body.openaiApiKey = openaiApiKey.trim();
       if (anthropicApiKey.trim()) body.anthropicApiKey = anthropicApiKey.trim();
       if (deepseekApiKey.trim()) body.deepseekApiKey = deepseekApiKey.trim();
+      if (rapidapiDeepseekApiKey.trim()) {
+        body.rapidapiDeepseekApiKey = rapidapiDeepseekApiKey.trim();
+      }
 
       const updated = await updateSokoMindSettings(body);
       applySettings(updated);
@@ -166,7 +172,7 @@ export default function SuperAdminSokoMindSettingsPage() {
   };
 
   const clearKey = (
-    field: "openaiApiKey" | "anthropicApiKey" | "deepseekApiKey",
+    field: "openaiApiKey" | "anthropicApiKey" | "deepseekApiKey" | "rapidapiDeepseekApiKey",
     label: string,
   ) => {
     showThemedConfirmToast({
@@ -191,11 +197,38 @@ export default function SuperAdminSokoMindSettingsPage() {
     });
   };
 
+  const providerCards = [
+    {
+      id: "openai",
+      name: "OpenAI",
+      description: "GPT models via api.openai.com",
+      ready: Boolean(settings?.hasOpenaiApiKey || settings?.envOpenaiConfigured),
+    },
+    {
+      id: "anthropic",
+      name: "Anthropic",
+      description: "Claude models via api.anthropic.com",
+      ready: Boolean(settings?.hasAnthropicApiKey || settings?.envAnthropicConfigured),
+    },
+    {
+      id: "deepseek",
+      name: "DeepSeek · direct",
+      description: "api.deepseek.com — your platform.deepseek.com key",
+      ready: Boolean(settings?.hasDeepseekApiKey || settings?.envDeepseekConfigured),
+    },
+    {
+      id: "rapidapi_deepseek",
+      name: "DeepSeek · RapidAPI",
+      description: "RapidAPI proxy — needs its own RapidAPI key",
+      ready: Boolean(settings?.hasRapidapiDeepseekApiKey || settings?.envDeepseekConfigured),
+    },
+  ] as const;
+
   return (
     <div className="space-y-6">
       <SuperAdminPageHeader
         title="SokoMind"
-        description="Platform AI co-pilot — Guide (help), Brain (analytics / pricing), Eye (vision / images). Keys are encrypted at rest; never returned after save."
+        description="Platform AI co-pilot — Guide (help), Brain (analytics / pricing), Eye (vision / images). Keys are encrypted at rest and never returned after save. DeepSeek direct and DeepSeek via RapidAPI are separate setups with separate keys."
       />
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
@@ -253,32 +286,76 @@ export default function SuperAdminSokoMindSettingsPage() {
               checked={eyeEnabled}
               onChange={setEyeEnabled}
             />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Primary provider" id="sa-soko-provider">
-                <select
-                  id="sa-soko-provider"
-                  className={saSelectClass}
-                  value={primaryProvider}
-                  onChange={(e) => setPrimaryProvider(e.target.value)}
-                >
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic</option>
-                  <option value="deepseek">DeepSeek (direct)</option>
-                  <option value="rapidapi_deepseek">DeepSeek via RapidAPI</option>
-                </select>
-              </Field>
-              <Field label="Default locale" id="sa-soko-locale">
-                <select
-                  id="sa-soko-locale"
-                  className={saSelectClass}
-                  value={defaultLocale}
-                  onChange={(e) => setDefaultLocale(e.target.value)}
-                >
-                  <option value="en-KE">English (Kenya)</option>
-                  <option value="sw-KE">Swahili (Kenya)</option>
-                </select>
-              </Field>
+            <div className="space-y-2">
+              <span className="text-sm font-medium leading-none text-foreground">
+                Primary provider
+              </span>
+              <div
+                className="grid gap-2 sm:grid-cols-2"
+                role="radiogroup"
+                aria-label="Primary AI provider"
+              >
+                {providerCards.map((card) => {
+                  const active = primaryProvider === card.id;
+                  return (
+                    <button
+                      key={card.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setPrimaryProvider(card.id)}
+                      className={cn(
+                        "relative rounded-xl border p-3 text-left transition-colors",
+                        active
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                          : "border-border/70 bg-background hover:border-foreground/25",
+                      )}
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-foreground">
+                          {card.name}
+                        </span>
+                        {active ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-primary">
+                            Active
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="mt-1 block text-xs leading-snug text-muted-foreground">
+                        {card.description}
+                      </span>
+                      <span
+                        className={cn(
+                          "mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                          card.ready
+                            ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
+                            : "bg-amber-500/10 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full",
+                            card.ready ? "bg-emerald-500" : "bg-amber-500",
+                          )}
+                        />
+                        {card.ready ? "Key ready" : "Needs a key"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+            <Field label="Default locale" id="sa-soko-locale">
+              <select
+                id="sa-soko-locale"
+                className={saSelectClass}
+                value={defaultLocale}
+                onChange={(e) => setDefaultLocale(e.target.value)}
+              >
+                <option value="en-KE">English (Kenya)</option>
+                <option value="sw-KE">Swahili (Kenya)</option>
+              </select>
+            </Field>
           </div>
         </SaSection>
 
@@ -395,47 +472,152 @@ export default function SuperAdminSokoMindSettingsPage() {
           title="DeepSeek"
           description={
             <>
-              Stored key: {settings?.hasDeepseekApiKey ? "yes" : "no"}
-              {settings?.envDeepseekConfigured ? " · env fallback configured" : ""}
-              . Separate from catalog DeepSeek under Integrations (product descriptions).
+              Two separate setups with two separate keys — a direct key will not
+              work against the RapidAPI proxy and vice versa. Stored: direct{" "}
+              {settings?.hasDeepseekApiKey ? "yes" : "no"}
+              {settings?.envDeepseekConfigured ? " · env fallback" : ""}, RapidAPI{" "}
+              {settings?.hasRapidapiDeepseekApiKey ? "yes" : "no"}. Independent
+              from catalog DeepSeek under Integrations (product descriptions).
             </>
           }
         >
-          <div className="space-y-3">
-            <Field label="API key" id="sa-deepseek-key">
-              <div className="flex gap-2">
-                <Input
-                  id="sa-deepseek-key"
-                  type="password"
-                  autoComplete="off"
-                  placeholder={
-                    settings?.hasDeepseekApiKey ? "•••••••• (leave blank to keep)" : "RapidAPI / DeepSeek key"
-                  }
-                  value={deepseekApiKey}
-                  onChange={(e) => setDeepseekApiKey(e.target.value)}
-                />
-                {settings?.hasDeepseekApiKey ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => clearKey("deepseekApiKey", "DeepSeek API key")}
-                  >
-                    Clear
-                  </Button>
-                ) : null}
+          <div className="space-y-4">
+            <div className="rounded-xl border border-sky-500/25 bg-sky-500/[0.04] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  Direct API <span className="font-normal text-muted-foreground">— platform.deepseek.com</span>
+                </p>
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                    primaryProvider === "deepseek"
+                      ? "bg-primary/10 text-primary"
+                      : settings?.hasDeepseekApiKey
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {primaryProvider === "deepseek"
+                    ? "Active provider"
+                    : settings?.hasDeepseekApiKey
+                      ? "Key stored"
+                      : "No key"}
+                </span>
               </div>
-            </Field>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Base URL" id="sa-deepseek-base">
-                <Input id="sa-deepseek-base" value={deepseekBaseUrl} onChange={(e) => setDeepseekBaseUrl(e.target.value)} />
-              </Field>
-              <Field label="Host (RapidAPI header)" id="sa-deepseek-host">
-                <Input id="sa-deepseek-host" value={deepseekHost} onChange={(e) => setDeepseekHost(e.target.value)} />
-              </Field>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Your key from platform.deepseek.com, sent with Bearer auth to{" "}
+                <code className="rounded bg-muted px-1 font-mono text-[11px]">api.deepseek.com</code>.
+              </p>
+              <div className="mt-3 space-y-3">
+                <Field label="Direct API key" id="sa-deepseek-key">
+                  <div className="flex gap-2">
+                    <Input
+                      id="sa-deepseek-key"
+                      type="password"
+                      autoComplete="off"
+                      placeholder={
+                        settings?.hasDeepseekApiKey ? "•••••••• (leave blank to keep)" : "sk-…"
+                      }
+                      value={deepseekApiKey}
+                      onChange={(e) => setDeepseekApiKey(e.target.value)}
+                    />
+                    {settings?.hasDeepseekApiKey ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => clearKey("deepseekApiKey", "DeepSeek direct API key")}
+                      >
+                        Clear
+                      </Button>
+                    ) : null}
+                  </div>
+                </Field>
+                <Field label="Base URL (optional)" id="sa-deepseek-base">
+                  <Input
+                    id="sa-deepseek-base"
+                    value={deepseekBaseUrl}
+                    onChange={(e) => setDeepseekBaseUrl(e.target.value)}
+                    placeholder="https://api.deepseek.com/chat/completions"
+                  />
+                </Field>
+              </div>
             </div>
-            <Field label="Model" id="sa-deepseek-model">
-              <Input id="sa-deepseek-model" value={deepseekModel} onChange={(e) => setDeepseekModel(e.target.value)} />
+
+            <div className="rounded-xl border border-violet-500/25 bg-violet-500/[0.04] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  Via RapidAPI <span className="font-normal text-muted-foreground">— rapidapi.com key</span>
+                </p>
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                    primaryProvider === "rapidapi_deepseek"
+                      ? "bg-primary/10 text-primary"
+                      : settings?.hasRapidapiDeepseekApiKey
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {primaryProvider === "rapidapi_deepseek"
+                    ? "Active provider"
+                    : settings?.hasRapidapiDeepseekApiKey
+                      ? "Key stored"
+                      : "No key"}
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Your <span className="font-medium text-foreground">RapidAPI</span> key, sent with{" "}
+                <code className="rounded bg-muted px-1 font-mono text-[11px]">x-rapidapi-key</code>{" "}
+                to the proxy host. Needs its own key from rapidapi.com — a direct
+                DeepSeek key will not work here.
+              </p>
+              <div className="mt-3 space-y-3">
+                <Field label="RapidAPI key" id="sa-rapidapi-deepseek-key">
+                  <div className="flex gap-2">
+                    <Input
+                      id="sa-rapidapi-deepseek-key"
+                      type="password"
+                      autoComplete="off"
+                      placeholder={
+                        settings?.hasRapidapiDeepseekApiKey
+                          ? "•••••••• (leave blank to keep)"
+                          : "RapidAPI key"
+                      }
+                      value={rapidapiDeepseekApiKey}
+                      onChange={(e) => setRapidapiDeepseekApiKey(e.target.value)}
+                    />
+                    {settings?.hasRapidapiDeepseekApiKey ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() =>
+                          clearKey("rapidapiDeepseekApiKey", "DeepSeek RapidAPI key")
+                        }
+                      >
+                        Clear
+                      </Button>
+                    ) : null}
+                  </div>
+                </Field>
+                <Field label="RapidAPI host (optional)" id="sa-deepseek-host">
+                  <Input
+                    id="sa-deepseek-host"
+                    value={deepseekHost}
+                    onChange={(e) => setDeepseekHost(e.target.value)}
+                    placeholder="deepseek-v31.p.rapidapi.com"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <Field label="Model (shared by both setups)" id="sa-deepseek-model">
+              <Input
+                id="sa-deepseek-model"
+                value={deepseekModel}
+                onChange={(e) => setDeepseekModel(e.target.value)}
+              />
             </Field>
           </div>
         </SaSection>

@@ -1009,6 +1009,25 @@ export async function suggestStorefrontDesign(
   });
 }
 
+export type AiStatusRecord = {
+  enabled: boolean;
+  guideEnabled: boolean;
+  brainEnabled: boolean;
+  eyeEnabled: boolean;
+  providerConfigured: boolean;
+  primaryProvider: string;
+  defaultLocale: string;
+};
+
+/** Whether the platform AI provider is switched on and has a key configured. */
+export async function fetchAiStatus(): Promise<AiStatusRecord | null> {
+  try {
+    return await request<AiStatusRecord>(API_ROUTES.aiStatus, { requiresAuth: true });
+  } catch {
+    return null;
+  }
+}
+
 export type StocktakePatchPayload = {
   showSystemStockToStockManager?: boolean;
   dailyAuditSampleSize?: number;

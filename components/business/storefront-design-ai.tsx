@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Loader2, Sparkles, Wand2, X } from "lucide-react";
 
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import {
+  fetchAiStatus,
   suggestStorefrontDesign,
   type StorefrontAiBrandKitSuggestion,
   type StorefrontAiCopySuggestion,
@@ -40,7 +41,32 @@ const COPY_LABELS: { key: keyof StorefrontAiCopySuggestion; label: string }[] = 
   { key: "contactHeading", label: "Contact heading" },
 ];
 
-const BRAND_KIT_LABELS: { key: keyof StorefrontAiBrandKitSuggestion; label: string }[] = [
+const PROVIDER_LABELS: Record<string, string> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  deepseek: "DeepSeek (direct)",
+  rapidapi_deepseek: "DeepSeek via RapidAPI",
+};
+
+type AiReadiness = "ready" | "off" | "unset" | "unknown";
+
+function readinessLabel(readiness: AiReadiness, provider: string | null): string {
+  switch (readiness) {
+    case "ready":
+      return `AI is ready — powered by ${PROVIDER_LABELS[provider ?? ""] ?? provider ?? "your provider"}.`;
+    case "off":
+      return "AI is switched off by the platform — ask your admin to enable it.";
+    case "unset":
+      return "AI has no provider key yet — ask your platform admin to connect one.";
+    default:
+      return "AI status is unavailable right now — try again in a moment.";
+  }
+}
+
+const BRAND_KIT_LABELS: {
+  key: keyof StorefrontAiBrandKitSuggestion;
+  label: string;
+}[] = [
   { key: "radius", label: "Corner radius" },
   { key: "buttons", label: "Button style" },
   { key: "density", label: "Spacing" },
@@ -63,6 +89,26 @@ export function StorefrontDesignAiCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState<StorefrontAiSuggestResponse | null>(null);
+  const [readiness, setReadiness] = useState<AiReadiness>("unknown");
+  const [provider, setProvider] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchAiStatus().then((status) => {
+      if (cancelled || !status) return;
+      setProvider(status.primaryProvider ?? null);
+      if (!status.enabled) {
+        setReadiness("off");
+      } else if (!status.providerConfigured) {
+        setReadiness("unset");
+      } else {
+        setReadiness("ready");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const run = async (text: string) => {
     const value = text.trim();
@@ -115,6 +161,25 @@ export function StorefrontDesignAiCard({
       </div>
 
       {error ? <DashboardFeedback kind="error" text={error} className="mt-4" /> : null}
+
+      {readiness !== "unknown" ? (
+        <p
+          className={cn(
+            "mt-4 flex items-center gap-2 text-xs font-medium",
+            readiness === "ready"
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-amber-600 dark:text-amber-400",
+          )}
+        >
+          <span
+            className={cn(
+              "size-1.5 shrink-0 rounded-full",
+              readiness === "ready" ? "bg-emerald-500" : "bg-amber-500",
+            )}
+          />
+          {readinessLabel(readiness, provider)}
+        </p>
+      ) : null}
 
       {suggestion ? (
         <div className="mt-4 space-y-4 rounded-xl border border-primary/20 bg-primary/4 p-4">

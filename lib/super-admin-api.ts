@@ -990,6 +990,7 @@ export type SokoMindSettingsRecord = {
   anthropicMiniModel: string;
   anthropicSmartModel: string;
   hasDeepseekApiKey: boolean;
+  hasRapidapiDeepseekApiKey: boolean;
   deepseekBaseUrl: string;
   deepseekHost: string;
   deepseekModel: string;
@@ -1027,6 +1028,7 @@ export type UpdateSokoMindSettingsPayload = Partial<{
   deepseekBaseUrl: string | null;
   deepseekHost: string | null;
   deepseekModel: string | null;
+  rapidapiDeepseekApiKey: string | null;
   industryCompareEnabled: boolean;
   industryCompareMinTwins: number;
   dailyTokenBudgetPerTenant: number | null;
