@@ -1,34 +1,34 @@
 {
   "product": "Kiosk Desktop",
-  "version": "0.0.8",
-  "generatedAt": "2026-08-22T18:13:39.152Z",
+  "version": "0.0.9",
+  "generatedAt": "2026-08-22T19:46:21.658Z",
   "platforms": [
     {
       "id": "linux-x86_64",
       "os": "linux",
       "arch": "x86_64",
       "label": "Linux (64-bit)",
-      "file": "kiosk-desktop-0.0.8-linux-x86_64.deb",
-      "sizeBytes": 463663642,
-      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.8/kiosk-desktop-0.0.8-linux-x86_64.deb"
+      "file": "kiosk-desktop-0.0.9-linux-x86_64.deb",
+      "sizeBytes": 463689178,
+      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.9/kiosk-desktop-0.0.9-linux-x86_64.deb"
     },
     {
       "id": "macos-aarch64",
       "os": "macos",
       "arch": "aarch64",
       "label": "macOS (Apple Silicon)",
-      "file": "kiosk-desktop-0.0.8-macos-aarch64.dmg",
-      "sizeBytes": 266268364,
-      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.8/kiosk-desktop-0.0.8-macos-aarch64.dmg"
+      "file": "kiosk-desktop-0.0.9-macos-aarch64.dmg",
+      "sizeBytes": 266263595,
+      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.9/kiosk-desktop-0.0.9-macos-aarch64.dmg"
     },
     {
       "id": "windows-x86_64",
       "os": "windows",
       "arch": "x86_64",
       "label": "Windows (64-bit)",
-      "file": "kiosk-desktop-0.0.8-windows-x86_64.exe",
-      "sizeBytes": 405475678,
-      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.8/kiosk-desktop-0.0.8-windows-x86_64.exe"
+      "file": "kiosk-desktop-0.0.9-windows-x86_64.exe",
+      "sizeBytes": 405483261,
+      "url": "https://github.com/aminofabian/ub-front/releases/download/desktop-v0.0.9/kiosk-desktop-0.0.9-windows-x86_64.exe"
     }
   ]
 }
