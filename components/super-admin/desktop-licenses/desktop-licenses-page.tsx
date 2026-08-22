@@ -2,19 +2,35 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { Check, Copy, KeyRound, Loader2, Mail, RefreshCw, ShieldAlert } from "lucide-react";
+import {
+  Check,
+  Copy,
+  KeyRound,
+  Loader2,
+  Mail,
+  RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  Wand2,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { SaSection, saSelectClass } from "@/components/super-admin/sa-section";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
+  clearDesktopLicenseIssuerKey,
   fetchDesktopLicenseIssuerStatus,
   fetchDesktopLicenseIssues,
+  generateDesktopLicenseIssuerKey,
   issueAndEmailDesktopLicense,
   issueDesktopLicense,
   resendDesktopLicense,
+  setDesktopLicenseIssuerKey,
   type DesktopLicenseIssueRecord,
   type DesktopLicenseIssueResult,
   type DesktopLicenseIssuerStatus,
@@ -58,6 +74,12 @@ export function DesktopLicensesPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<DesktopLicenseIssueResult | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const [keyPrivate, setKeyPrivate] = useState("");
+  const [keyPublic, setKeyPublic] = useState("");
+  const [keyBusy, setKeyBusy] = useState(false);
+  const [generatedPublicKey, setGeneratedPublicKey] = useState<string | null>(null);
+  const [pubCopied, setPubCopied] = useState(false);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -144,6 +166,87 @@ export function DesktopLicensesPage() {
     }
   }
 
+  async function copyPublicKey() {
+    const value = generatedPublicKey ?? status?.publicKey ?? null;
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setPubCopied(true);
+      setTimeout(() => setPubCopied(false), 2000);
+    } catch {
+      toast.error("Could not copy to clipboard — select the key and copy manually.");
+    }
+  }
+
+  async function onSaveIssuerKey() {
+    const priv = keyPrivate.trim();
+    if (!priv) {
+      toast.error("Paste the PRIVATE_KEY from backend/scripts/generate-license.sh keys (or generate a pair below).");
+      return;
+    }
+    setKeyBusy(true);
+    try {
+      const next = await setDesktopLicenseIssuerKey(priv, keyPublic);
+      setStatus(next);
+      setKeyPrivate("");
+      setKeyPublic("");
+      setGeneratedPublicKey(null);
+      toast.success("Signing key saved — license issuance is now enabled.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save the signing key.");
+    } finally {
+      setKeyBusy(false);
+    }
+  }
+
+  function onGenerateIssuerKey() {
+    showThemedConfirmToast({
+      id: "generate-issuer-key",
+      title: "Generate a new license signing key?",
+      description:
+        "This replaces the signing key in the console. Installs already shipped keep verifying against the public key baked into their JAR — licenses issued after this change will be REJECTED by those installs until a new desktop release ships with the new PUBLIC_KEY.\n\nOnly do this if you are ready to rebuild the desktop app.",
+      confirmLabel: "Generate key",
+      onConfirm: async () => {
+        setKeyBusy(true);
+        try {
+          const result = await generateDesktopLicenseIssuerKey();
+          setGeneratedPublicKey(result.publicKey);
+          setKeyPrivate("");
+          setKeyPublic("");
+          await loadStatus();
+          toast.success("New key pair generated and active.");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not generate a key pair.");
+        } finally {
+          setKeyBusy(false);
+        }
+      },
+    });
+  }
+
+  function onClearIssuerKey() {
+    showThemedConfirmToast({
+      id: "clear-issuer-key",
+      title: "Remove the console-managed signing key?",
+      description:
+        "License issuance will be disabled unless APP_DESKTOP_LICENSE_PRIVATE_KEY is set in the deployment environment.",
+      confirmLabel: "Remove key",
+      onConfirm: async () => {
+        setKeyBusy(true);
+        try {
+          const next = await clearDesktopLicenseIssuerKey();
+          setStatus(next);
+          setGeneratedPublicKey(null);
+          toast.success("Console-managed signing key removed.");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not remove the signing key.");
+        } finally {
+          setKeyBusy(false);
+        }
+      },
+    });
+  }
+
   const canIssue = !loadError && status?.configured === true && !busy;
 
   return (
@@ -163,16 +266,153 @@ export function DesktopLicensesPage() {
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3.5 text-sm leading-relaxed text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-50">
           <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
           <div className="min-w-0">
-            <p className="font-medium">The license issuer is not configured on this deployment.</p>
+            <p className="font-medium">The license issuer is not configured.</p>
             <p className="mt-1">
-              Set the vendor private key (<code className="break-all">APP_DESKTOP_LICENSE_PRIVATE_KEY</code>)
-              on the cloud deployment and restart. Generate it with{" "}
-              <code>backend/scripts/generate-license.sh keys</code> — the matching{" "}
-              <code>PUBLIC_KEY</code> is what ships in the desktop JAR.
+              Set the signing key in the <b>License issuer key</b> section below — it is
+              stored encrypted in the platform database, so no deployment changes or
+              restart are needed.
             </p>
           </div>
         </div>
       ) : null}
+
+      <SaSection
+        title="License issuer key"
+        description="The Ed25519 private key that signs desktop licenses. Save it here (stored encrypted in the platform database, picked up immediately — no restart) or via APP_DESKTOP_LICENSE_PRIVATE_KEY on the deployment. The matching public key must ship inside the desktop app (app.desktop.license.public-key)."
+      >
+        <div className="grid max-w-2xl gap-5">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {status?.configured ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                <ShieldCheck className="size-3.5" aria-hidden /> Configured
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                <ShieldAlert className="size-3.5" aria-hidden /> Not configured
+              </span>
+            )}
+            <span className="text-muted-foreground">
+              Source:{" "}
+              {status?.source === "env"
+                ? "deployment environment (APP_DESKTOP_LICENSE_PRIVATE_KEY)"
+                : status?.source === "console"
+                  ? "this console (stored encrypted)"
+                  : "none"}
+              {status?.updatedAt
+                ? ` · updated ${new Date(status.updatedAt).toLocaleString()}`
+                : ""}
+            </span>
+          </div>
+
+          {status?.source === "env" ? (
+            <p className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              <b>APP_DESKTOP_LICENSE_PRIVATE_KEY</b> is set in the deployment environment and
+              takes precedence over any key saved here. Remove it (and restart) to use the
+              console-managed key.
+            </p>
+          ) : null}
+
+          {status?.encryptionEphemeral ? (
+            <p className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-xs leading-relaxed text-amber-950 dark:border-amber-500/30 dark:text-amber-50">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <span>
+                This server has no persistent <code>APP_PAYMENTS_ENCRYPTION_KEY</code> — a key
+                saved here becomes unreadable after a restart. Set it in the deployment
+                environment first.
+              </span>
+            </p>
+          ) : null}
+
+          {status?.publicKey ? (
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">Public key in use</p>
+                <Button type="button" size="sm" variant="outline" onClick={() => void copyPublicKey()}>
+                  {pubCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                  {pubCopied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+              <pre className="mt-1.5 overflow-x-auto rounded-lg border border-border/70 bg-muted/30 px-3 py-2 font-mono text-xs break-all whitespace-pre-wrap">
+                {status.publicKey}
+              </pre>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Must match <code>app.desktop.license.public-key</code> in the desktop JAR
+                (application-desktop.properties). If it differs, rebuild the desktop app before
+                issuing.
+              </p>
+            </div>
+          ) : null}
+
+          {generatedPublicKey ? (
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-amber-950 dark:text-amber-50">
+                  New PUBLIC_KEY — bake into the next desktop release
+                </p>
+                <Button type="button" size="sm" variant="outline" onClick={() => void copyPublicKey()}>
+                  {pubCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                  {pubCopied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+              <pre className="mt-1.5 overflow-x-auto rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-3 py-2 font-mono text-xs break-all whitespace-pre-wrap">
+                {generatedPublicKey}
+              </pre>
+              <p className="mt-1 text-xs text-amber-950/80 dark:text-amber-50/80">
+                Set <code>app.desktop.license.public-key</code> to this value, rebuild, and ship —
+                installs with the old public key will reject licenses issued from now on.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="grid gap-3 rounded-xl border border-border/70 p-4">
+            <p className="text-sm font-medium">Paste a key pair from the script</p>
+            <div>
+              <label className={LABEL_CLASS} htmlFor="issuer-private">
+                PRIVATE_KEY
+              </label>
+              <textarea
+                id="issuer-private"
+                rows={2}
+                className={cn(INPUT_CLASS, "mt-1.5 font-mono text-xs")}
+                placeholder="base64 PKCS#8 — from backend/scripts/generate-license.sh keys"
+                value={keyPrivate}
+                onChange={(e) => setKeyPrivate(e.target.value)}
+                disabled={keyBusy}
+              />
+            </div>
+            <div>
+              <label className={LABEL_CLASS} htmlFor="issuer-public">
+                PUBLIC_KEY <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <textarea
+                id="issuer-public"
+                rows={2}
+                className={cn(INPUT_CLASS, "mt-1.5 font-mono text-xs")}
+                placeholder="Matching public key — checked on save (must pair with the private key)"
+                value={keyPublic}
+                onChange={(e) => setKeyPublic(e.target.value)}
+                disabled={keyBusy}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" onClick={() => void onSaveIssuerKey()} disabled={keyBusy}>
+                {keyBusy ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}
+                Save signing key
+              </Button>
+              <Button type="button" variant="outline" onClick={onGenerateIssuerKey} disabled={keyBusy}>
+                <Wand2 className="size-4" />
+                Generate new key pair
+              </Button>
+              {status?.source === "console" ? (
+                <Button type="button" variant="ghost" onClick={onClearIssuerKey} disabled={keyBusy}>
+                  <Trash2 className="size-4" />
+                  Remove key
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </SaSection>
 
       <SaSection
         title="Issue a license"

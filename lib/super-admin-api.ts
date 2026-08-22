@@ -592,8 +592,16 @@ export async function fetchDesktopLogContent(id: string): Promise<Blob> {
 /* ── Desktop licenses (Super Admin → Platform → Desktop licenses) ──── */
 
 export type DesktopLicenseIssuerStatus = {
-  /** Whether the cloud can sign tokens (APP_DESKTOP_LICENSE_PRIVATE_KEY set). */
+  /** Whether the cloud can sign tokens (env var or console-managed key set). */
   configured: boolean;
+  /** Where the signing key comes from: deployment env var, this console, or nothing. */
+  source: "env" | "console" | "none";
+  /** Base64 public key recorded with the console-managed key (null when unknown). */
+  publicKey: string | null;
+  /** When the console-managed key was last saved (null when never). */
+  updatedAt: string | null;
+  /** True when the server has no persistent encryption key — console keys are lost on restart. */
+  encryptionEphemeral: boolean;
 };
 
 export type IssueDesktopLicensePayload = {
@@ -640,6 +648,39 @@ export type DesktopLicenseIssueRecord = {
 export async function fetchDesktopLicenseIssuerStatus(): Promise<DesktopLicenseIssuerStatus> {
   return saRequest<DesktopLicenseIssuerStatus>(
     `${API_ROUTES.superAdminPlatformDesktopLicenses}/status`,
+  );
+}
+
+/** Store a signing key pasted from `backend/scripts/generate-license.sh keys`. */
+export async function setDesktopLicenseIssuerKey(
+  privateKey: string,
+  publicKey?: string,
+): Promise<DesktopLicenseIssuerStatus> {
+  return saRequest<DesktopLicenseIssuerStatus>(
+    `${API_ROUTES.superAdminPlatformDesktopLicenses}/issuer/key`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        privateKey,
+        ...(publicKey?.trim() ? { publicKey: publicKey.trim() } : {}),
+      }),
+    },
+  );
+}
+
+/** Generate a fresh signing key pair in the console (returns the public key). */
+export async function generateDesktopLicenseIssuerKey(): Promise<{ publicKey: string }> {
+  return saRequest<{ publicKey: string }>(
+    `${API_ROUTES.superAdminPlatformDesktopLicenses}/issuer/generate`,
+    { method: "POST" },
+  );
+}
+
+/** Remove the console-managed signing key (env var still wins if set). */
+export async function clearDesktopLicenseIssuerKey(): Promise<DesktopLicenseIssuerStatus> {
+  return saRequest<DesktopLicenseIssuerStatus>(
+    `${API_ROUTES.superAdminPlatformDesktopLicenses}/issuer/key`,
+    { method: "DELETE" },
   );
 }
 
