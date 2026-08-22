@@ -34,6 +34,7 @@ import {
 
 import { ImageFocalPointPicker } from "@/components/business/image-focal-point-picker";
 import { StorefrontDesignAiCard } from "@/components/business/storefront-design-ai";
+import { CloudinaryTransformRow } from "@/components/business/cloudinary-transform-row";
 import {
   DashboardFeedback,
   DASHBOARD_SECTION_SURFACE,
@@ -87,6 +88,10 @@ import {
 } from "@/lib/storefront-design";
 import { storefrontPreviewUrl } from "@/lib/storefront-preview";
 import { normalizeStoreThemeId } from "@/lib/storefront-templates";
+import {
+  STORE_PERSONALITY_PRESETS,
+  type StorePersonalityPreset,
+} from "@/lib/storefront-personality";
 import { cn } from "@/lib/utils";
 
 const HEX_REGEX = /^#[0-9a-fA-F]{6}$/;
@@ -465,6 +470,13 @@ export function StorefrontDesignEditor({
   const [openSection, setOpenSection] = useState<StorefrontSectionId | null>(null);
   const aboutInputRef = useRef<HTMLInputElement>(null);
   const [aboutBusy, setAboutBusy] = useState(false);
+  // Original (untransformed) Cloudinary URLs, so “improve” can always revert.
+  const heroBaseRef = useRef(form.heroUrl);
+  const aboutBaseRef = useRef(
+    (form.sections.find((s) => s.id === "about")?.settings as
+      | StorefrontAboutSectionSettings
+      | undefined)?.imageUrl ?? "",
+  );
 
   const shopBase = business?.slug
     ? slugDerivedShopUrl(business.slug) ||
@@ -531,6 +543,7 @@ export function StorefrontDesignEditor({
       const folder = `ub/${business.id}/design/hero`;
       const sig = await getCloudinarySignature(folder);
       const result = await uploadToCloudinary(file, sig);
+      heroBaseRef.current = result.secure_url;
       set("heroUrl", result.secure_url);
     } catch (e) {
       setError(
@@ -556,6 +569,7 @@ export function StorefrontDesignEditor({
       const sig = await getCloudinarySignature(folder);
       const result = await uploadToCloudinary(file, sig);
       const settings = about?.settings as StorefrontAboutSectionSettings | undefined;
+      aboutBaseRef.current = result.secure_url;
       patchSectionSettings("about", {
         heading: settings?.heading ?? "",
         text: settings?.text ?? "",
@@ -570,6 +584,27 @@ export function StorefrontDesignEditor({
     } finally {
       setAboutBusy(false);
     }
+  };
+
+  const pickAboutImage = (url: string) => {
+    const current = form.sections.find((s) => s.id === "about")?.settings as
+      | StorefrontAboutSectionSettings
+      | undefined;
+    patchSectionSettings("about", {
+      heading: current?.heading ?? "",
+      text: current?.text ?? "",
+      imageUrl: url,
+    });
+  };
+
+  const applyPersonality = (preset: StorePersonalityPreset) => {
+    set("radius", preset.tokens.radius);
+    set("buttons", preset.tokens.buttons);
+    set("density", preset.tokens.density);
+    set("surface", preset.tokens.surface);
+    setFeedback(
+      `Applied “${preset.name}” — fine-tune below, then save when you're happy.`,
+    );
   };
 
   const applyAiSuggestion = (suggestion: StorefrontAiSuggestResponse) => {
@@ -681,6 +716,45 @@ export function StorefrontDesignEditor({
               alone.
             </p>
           </div>
+        </div>
+
+        <div className="mt-5 space-y-2">
+          <span className={dashboardLabelClass()}>Start from a mood</span>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {STORE_PERSONALITY_PRESETS.map((preset) => {
+              const active =
+                form.radius === preset.tokens.radius &&
+                form.buttons === preset.tokens.buttons &&
+                form.density === preset.tokens.density &&
+                form.surface.toLowerCase() ===
+                  preset.tokens.surface.toLowerCase();
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyPersonality(preset)}
+                  className={cn(
+                    "rounded-xl border p-3 text-left transition-colors",
+                    active
+                      ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                      : "border-border/70 bg-background hover:border-foreground/25",
+                  )}
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <span aria-hidden>{preset.emoji}</span>
+                    {preset.name}
+                  </span>
+                  <span className="mt-1 block text-xs leading-snug text-muted-foreground">
+                    {preset.vibe}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className={dashboardHintClass()}>
+            A starting point — fine-tune below and preview. Your identity stays
+            even if you change themes later.
+          </p>
         </div>
 
         <div className="mt-5 grid gap-6 lg:grid-cols-2">
@@ -927,6 +1001,18 @@ export function StorefrontDesignEditor({
                     </button>
                   ))}
                 </div>
+              </div>
+              <div className="space-y-2">
+                <span className={dashboardLabelClass()}>Improve the photo</span>
+                <CloudinaryTransformRow
+                  baseUrl={heroBaseRef.current}
+                  url={form.heroUrl}
+                  onPick={(url) => set("heroUrl", url)}
+                />
+                <p className={dashboardHintClass()}>
+                  Try an improvement — the shop keeps the original until you
+                  save.
+                </p>
               </div>
             </>
           ) : (
@@ -1309,7 +1395,9 @@ export function StorefrontDesignEditor({
                               }
                               aboutBusy={aboutBusy}
                               aboutInputRef={aboutInputRef}
+                              aboutBaseUrl={aboutBaseRef.current}
                               onAboutImagePick={(file) => void onAboutImagePick(file)}
+                              onPickAboutImage={(url) => pickAboutImage(url)}
                               onClearAboutImage={() => {
                                 const s =
                                   section.settings as StorefrontAboutSectionSettings;
@@ -1459,14 +1547,18 @@ function SectionSettingsPanel({
   onChange,
   aboutBusy,
   aboutInputRef,
+  aboutBaseUrl,
   onAboutImagePick,
+  onPickAboutImage,
   onClearAboutImage,
 }: {
   section: StorefrontSectionConfig;
   onChange: (settings: StorefrontSectionSettings) => void;
   aboutBusy: boolean;
   aboutInputRef: RefObject<HTMLInputElement | null>;
+  aboutBaseUrl: string;
   onAboutImagePick: (file: File) => void;
+  onPickAboutImage: (url: string) => void;
   onClearAboutImage: () => void;
 }) {
   const id = section.id;
@@ -1739,12 +1831,19 @@ function SectionSettingsPanel({
               ) : null}
             </div>
             {settings.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={settings.imageUrl}
-                alt="About section photo preview"
-                className="h-28 w-full max-w-xs rounded-lg border border-border/70 object-cover"
-              />
+              <div className="space-y-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={settings.imageUrl}
+                  alt="About section photo preview"
+                  className="h-28 w-full max-w-xs rounded-lg border border-border/70 object-cover"
+                />
+                <CloudinaryTransformRow
+                  baseUrl={aboutBaseUrl}
+                  url={settings.imageUrl}
+                  onPick={onPickAboutImage}
+                />
+              </div>
             ) : null}
           </div>
         </div>
