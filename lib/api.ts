@@ -11205,6 +11205,36 @@ export async function fetchRestockRun(
   );
 }
 
+export type RestockPrepItemRecord = {
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  target: "po" | "pad";
+  onHand: number | string;
+  par: number | string;
+  suggestedQty: number | string;
+  reasonCode: string;
+  evidence: string;
+  confidence: "high" | "medium" | "low";
+};
+
+export type RestockPrepRecord = {
+  runId: string;
+  branchName: string;
+  runDate: string;
+  status: RestockRunStatus;
+  lineCount: number;
+  estTotal: number | string;
+  currency: string;
+  items: RestockPrepItemRecord[];
+};
+
+export async function fetchRestockPrep(runId: string): Promise<RestockPrepRecord> {
+  return request<RestockPrepRecord>(
+    `/api/v1/inventory/restock/runs/${encodeURIComponent(runId)}/prep`,
+  );
+}
+
 export type RestockActiveRunRecord = {
   runId: string | null;
   runDate: string | null;

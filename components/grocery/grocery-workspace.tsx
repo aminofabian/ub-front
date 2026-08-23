@@ -637,6 +637,9 @@ export function GroceryWorkspace() {
   }, [branches, branchId]);
 
   // "Tonight's list" chip — shows when the branch has an actionable digest run.
+  const canReviewDigest =
+    hasPermission(me?.permissions, Permission.PurchasingPathARead) ||
+    hasPermission(me?.permissions, Permission.OrderPadRead);
   const [activeRestockRun, setActiveRestockRun] = useState<RestockActiveRunRecord | null>(null);
   useEffect(() => {
     if (!online || !branchId?.trim()) {
@@ -1426,7 +1429,7 @@ export function GroceryWorkspace() {
                 ) : null}
                 {activeRestockRun?.runId ? (
                   <Link
-                    href={`/inventory/restock-digest/${activeRestockRun.runId}`}
+                    href={`/inventory/restock-digest/${activeRestockRun.runId}${canReviewDigest ? "" : "/prep"}`}
                     title={`Tonight's list — ${activeRestockRun.lineCount} items`}
                     className="inline-flex max-w-full items-center gap-1 border-l border-white/20 pl-2 font-semibold text-[var(--pos-primary-ink,#fff)] underline-offset-2 hover:underline"
                   >
