@@ -111,6 +111,8 @@ export function TenantOrderWorkspace() {
   const [parentFilterId, setParentFilterId] = useState<string | null>(null);
   const [mobileOrderOpen, setMobileOrderOpen] = useState(false);
   const [supplierPickerOpen, setSupplierPickerOpen] = useState(false);
+  /** Round the order total to the nearest 10 (default on; toggle in the footer). */
+  const [roundTo10, setRoundTo10] = useState(true);
   const cartsBySupplierRef = useRef<Record<string, CartQty>>({});
   const supplierIdRef = useRef<string | null>(null);
   supplierIdRef.current = supplierId;
@@ -342,6 +344,15 @@ export function TenantOrderWorkspace() {
     0,
   );
 
+  // Round to the nearest 10 (e.g. 100.04 → 100, 99.99 → 100). Tiny orders
+  // (under 5) stay exact so a small cart can never round to 0.
+  const roundedTotal = (() => {
+    const r = Math.round(cartTotal / 10) * 10;
+    return r > 0 ? r : cartTotal;
+  })();
+  const effectiveTotal = roundTo10 ? roundedTotal : cartTotal;
+  const roundingActive = roundTo10 && roundedTotal !== cartTotal;
+
   const setQty = (itemId: string, qty: number) => {
     setCart((prev) => {
       const next = { ...prev };
@@ -366,16 +377,30 @@ export function TenantOrderWorkspace() {
     }
     setPlacing(true);
     try {
+      // When rounding is on, nudge the last line's estimated unit cost so the
+      // recorded order total lands on the rounded figure (diff is a few cents).
+      const linesToPost = cartLines.map((line) => ({
+        itemId: line.link.itemId,
+        qtyOrdered: line.qty,
+        unitEstimatedCost: unitCost(line.link),
+      }));
+      if (roundingActive && linesToPost.length > 0) {
+        const last = linesToPost[linesToPost.length - 1];
+        const diff = Math.round((effectiveTotal - cartTotal) * 100) / 100;
+        last.unitEstimatedCost =
+          Math.round((last.unitEstimatedCost + diff / last.qtyOrdered) * 10000) /
+          10000;
+      }
       const po = await postPathAPurchaseOrder({
         supplierId,
         branchId: branchId.trim(),
         notes: "Created from Order marketplace",
       });
-      for (const line of cartLines) {
+      for (const line of linesToPost) {
         await postPathAPurchaseOrderLine(po.id, {
-          itemId: line.link.itemId,
-          qtyOrdered: line.qty,
-          unitEstimatedCost: unitCost(line.link),
+          itemId: line.itemId,
+          qtyOrdered: line.qtyOrdered,
+          unitEstimatedCost: line.unitEstimatedCost,
         });
       }
       try {
@@ -480,13 +505,37 @@ export function TenantOrderWorkspace() {
 
   const placeFooter = (
     <div className="shrink-0 space-y-2.5 border-t border-border bg-background px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      <div className="flex items-baseline justify-between">
-        <p className="text-[12px] text-muted-foreground">
-          {cartUnits} item{cartUnits === 1 ? "" : "s"}
-        </p>
-        <p className="font-mono text-[18px] font-semibold tabular-nums">
-          {formatMoney(cartTotal, ORDER_CURRENCY)}
-        </p>
+      <div className="flex items-end justify-between gap-2">
+        <div className="flex flex-col items-start gap-1">
+          <p className="text-[12px] text-muted-foreground">
+            {cartUnits} item{cartUnits === 1 ? "" : "s"}
+          </p>
+          <button
+            type="button"
+            onClick={() => setRoundTo10((v) => !v)}
+            className={cn(
+              "rounded-full border px-2.5 py-1 text-[10px] font-semibold transition",
+              roundTo10
+                ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] text-[var(--pos-primary,#0f766e)]"
+                : "border-border text-muted-foreground hover:text-foreground",
+            )}
+            aria-pressed={roundTo10}
+            title="Round the order total to the nearest 10"
+          >
+            {roundTo10 ? "Round to 10 · on" : "Round to 10 · off"}
+          </button>
+        </div>
+        <div className="text-right">
+          <p className="font-mono text-[18px] font-semibold tabular-nums">
+            {formatMoney(effectiveTotal, ORDER_CURRENCY)}
+          </p>
+          {roundingActive ? (
+            <p className="text-[10px] text-muted-foreground">
+              {effectiveTotal > cartTotal ? "rounded up" : "rounded down"} from{" "}
+              {formatMoney(cartTotal, ORDER_CURRENCY)}
+            </p>
+          ) : null}
+        </div>
       </div>
       <button
         type="button"
@@ -790,7 +839,7 @@ export function TenantOrderWorkspace() {
         </span>
         <span className="inline-flex items-center gap-2">
           <span className="font-mono text-[15px] font-semibold tabular-nums">
-            {formatMoney(cartTotal, ORDER_CURRENCY)}
+            {formatMoney(effectiveTotal, ORDER_CURRENCY)}
           </span>
           <ChevronUp className="size-4 opacity-90" />
         </span>
