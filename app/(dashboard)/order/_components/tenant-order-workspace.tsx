@@ -1036,7 +1036,7 @@ export function TenantOrderWorkspace({
                   : "No linked products."}
               </p>
             ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 min-[1440px]:grid-cols-8">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8">
                 {visibleLinks.map((link) => {
                   const qty = cart[link.itemId] ?? 0;
                   const stock = toNum(link.currentStock);
