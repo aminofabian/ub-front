@@ -34,12 +34,21 @@ function roleKeyOf(me: PostAuthMe | null | undefined): string {
   return me?.role?.key?.trim().toLowerCase() ?? "";
 }
 
-/** Storefront destinations from `?next=` — password login should honor these. */
+/**
+ * Storefront destinations from `?next=` — password login should honor these.
+ *
+ * Accepts the storefront root `/` (host-mapped homepage, D3) plus `/shop` and
+ * `/shop/*`. `/` is only ever *produced* by tenant-host components (the account
+ * links never render on the apex), so the apex console stays unreachable via
+ * this allowlist; Phase 4 adds the apex's own host-scoped forward building.
+ */
 export function isShopNextPath(path?: string | null): boolean {
   const next = path?.trim() ?? "";
   return (
     isSafeAppPath(next) &&
-    (next === APP_ROUTES.shop || next.startsWith(`${APP_ROUTES.shop}/`))
+    (next === APP_ROUTES.shop ||
+      next === "/" ||
+      next.startsWith(`${APP_ROUTES.shop}/`))
   );
 }
 

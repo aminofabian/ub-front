@@ -9,14 +9,9 @@ import { TenantLogo } from "@/components/brand/tenant-logo";
 import { GetTheAppDialog } from "@/components/storefront/get-the-app-dialog";
 import ShopSearchBar from "@/components/storefront/shop-search-bar";
 import { ShopCartTrigger } from "@/components/storefront/shop-cart-trigger";
-import {
-  useClientHasSession,
-  useClientSessionReady,
-} from "@/hooks/use-client-session";
+import { useStorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import { APP_ROUTES } from "@/lib/config";
 import { activeStorefrontCategorySlugFromPathname } from "@/lib/shop-url";
-
-const loginHref = `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`;
 
 function AccountNavLink({
   className,
@@ -27,14 +22,13 @@ function AccountNavLink({
   iconClassName?: string;
   showLabel?: boolean;
 }) {
-  const ready = useClientSessionReady();
-  const signedIn = useClientHasSession();
-  const href = ready && signedIn ? APP_ROUTES.shopAccount : loginHref;
-  const label = !ready ? "Account" : signedIn ? "Account" : "Sign in";
-  const Icon = ready && !signedIn ? LogIn : UserRound;
+  const { href, label, onActivate } = useStorefrontAccountLink();
+  // Pre-hydration the label reads "Account" (the hook's server snapshot), so
+  // the glyph follows the label rather than the raw signed-in state.
+  const Icon = label === "Sign in" ? LogIn : UserRound;
 
   return (
-    <Link href={href} className={className} aria-label={label}>
+    <Link href={href} className={className} aria-label={label} onClick={onActivate}>
       {showLabel ? (
         <>
           <span className="flex size-8 items-center justify-center rounded-[3px] bg-[var(--storefront-paper,#f4f5f4)] transition-colors group-hover:bg-[var(--storefront-rule,#e4e6e4)]">

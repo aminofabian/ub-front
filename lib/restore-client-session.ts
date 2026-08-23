@@ -8,6 +8,7 @@ import {
   writeSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
 } from "@/lib/session-bootstrap";
+import { setSessionRestoreStatus } from "@/lib/session-restore-status";
 
 type RestoreSessionResponse = {
   accessToken?: string;
@@ -46,6 +47,9 @@ export function restoreClientSessionFromCookie(
       return restorePromise;
     }
     if (hasAccessSession()) {
+      // Claims already in memory — the presence hint is confirmed, not just
+      // optimistic, so leave any earlier failure signal cleared (D8, §10).
+      setSessionRestoreStatus("ok");
       return Promise.resolve(true);
     }
   } else if (forceRestorePromise) {
@@ -53,8 +57,9 @@ export function restoreClientSessionFromCookie(
   }
 
   const run = (async () => {
+    let restored = false;
     try {
-      return await withAuthRefreshLock(async () => {
+      restored = await withAuthRefreshLock(async () => {
         if (!force && hasAccessSession()) {
           return true;
         }
@@ -124,9 +129,13 @@ export function restoreClientSessionFromCookie(
 
         return true;
       });
+      return restored;
     } catch {
       return false;
     } finally {
+      // Publish the outcome so presence-hint labels can downgrade to "Sign in"
+      // when the hint is stale. "failed" is silent — a label, never an error.
+      setSessionRestoreStatus(restored ? "ok" : "failed");
       if (force) {
         forceRestorePromise = null;
       } else {

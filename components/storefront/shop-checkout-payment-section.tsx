@@ -1,9 +1,10 @@
 "use client";
 
-import { Banknote, Check, ChevronRight, Copy, CreditCard, Smartphone, Sparkles, Truck, Zap } from "lucide-react";
+import { Banknote, Check, ChevronRight, Copy, CreditCard, MessageCircle, Smartphone, Sparkles, Truck, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import {
   CHECKOUT_INPUT,
   CHECKOUT_LABEL,
@@ -660,6 +661,9 @@ export function ShopCheckoutPaymentSection({
   const showMethodPicker = Boolean(onSelectMethod) && payOnDeliveryAvailable;
   const mpesaSelected = selectedMethod === "mpesa";
   const codSelected = selectedMethod === "pay_on_delivery";
+  const shopCart = useShopCartOptional();
+  const whatsappCheckout = shopCart?.whatsappCheckout ?? null;
+  const openWhatsAppCheckout = shopCart?.openWhatsAppCheckout;
 
   if (!hasManual && !hasOnline && !payOnDeliveryAvailable) return null;
 
@@ -868,6 +872,23 @@ export function ShopCheckoutPaymentSection({
           <p className="text-[11px] leading-snug text-muted-foreground">
             Or pay on delivery — cash or M-Pesa to the rider when your order arrives.
           </p>
+        </div>
+      ) : null}
+      {!orderPlaced && whatsappCheckout && openWhatsAppCheckout ? (
+        <div className={cn(CHECKOUT_PAY_SECONDARY, "p-3")}>
+          <button
+            type="button"
+            onClick={openWhatsAppCheckout}
+            className="flex w-full items-start gap-2.5 rounded-xl border border-dashed border-border px-3.5 py-3 text-left transition-colors hover:border-[#25D366]/60 hover:bg-[#25D366]/5"
+          >
+            <MessageCircle className="mt-0.5 size-4 shrink-0 text-[#128C4A]" aria-hidden />
+            <span className="text-xs font-semibold text-foreground">
+              Order on WhatsApp instead
+              <span className="mt-0.5 block font-normal leading-snug text-muted-foreground">
+                Just your name and phone — the shop confirms stock and payment in chat.
+              </span>
+            </span>
+          </button>
         </div>
       ) : null}
     </div>

@@ -19,9 +19,11 @@ const NAV_LINKS = [
 type LandingNavProps = {
   onCreateShop: () => void;
   onFindShop: () => void;
+  /** Opens the apex one-door sheet on the shopper step (Phase 4). */
+  onSignIn: () => void;
 };
 
-export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
+export function LandingNav({ onCreateShop, onFindShop, onSignIn }: LandingNavProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -44,6 +46,11 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
   const handleCreateShop = () => {
     closeMenu();
     onCreateShop();
+  };
+
+  const handleSignIn = () => {
+    closeMenu();
+    onSignIn();
   };
 
   return (
@@ -110,6 +117,13 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
             <button
               type="button"
               className="landing-nav-ticket landing-nav-ticket--ghost landing-nav-ticket--desktop"
+              onClick={onSignIn}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              className="landing-nav-ticket landing-nav-ticket--ghost landing-nav-ticket--desktop"
               onClick={onFindShop}
             >
               Find shop
@@ -157,6 +171,13 @@ export function LandingNav({ onCreateShop, onFindShop }: LandingNavProps) {
           </nav>
 
           <div className="mt-auto flex flex-col gap-3 border-t border-[var(--kiosk-border-soft)] pt-6">
+            <button
+              type="button"
+              className="landing-nav-sheet-btn landing-nav-sheet-btn--ghost"
+              onClick={handleSignIn}
+            >
+              Sign in
+            </button>
             <Link
               href="/download"
               className="landing-nav-sheet-btn landing-nav-sheet-btn--ghost"

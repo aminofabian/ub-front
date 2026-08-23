@@ -2,7 +2,7 @@
 
 import { ChevronDown, ShoppingBag } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { Suspense, type CSSProperties, type ReactNode, useEffect, useRef } from "react";
+import { Suspense, type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
 
 import { APP_ROUTES } from "@/lib/config";
 import { hasAccessSession, hasSessionPresenceCookie } from "@/lib/auth";
@@ -44,10 +44,16 @@ import { useMediaMd } from "@/hooks/use-media-md";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
 import { ShopUtilityBar } from "@/components/storefront/shop-utility-bar";
-import { ShopCartProvider, useShopCart } from "@/hooks/use-shop-cart";
-import type { PublicCategory, PublicDeliveryArea } from "@/lib/public-storefront";
+import { ShopCartProvider, useShopCart, type WhatsAppCheckoutConfig } from "@/hooks/use-shop-cart";
+import { StorefrontSignInProvider } from "@/components/storefront/storefront-sign-in-sheet";
+import { WhatsAppCheckoutSheet } from "@/components/storefront/whatsapp-checkout-sheet";
+import type {
+  PublicCategory,
+  PublicCheckoutPaymentOptions,
+  PublicDeliveryArea,
+} from "@/lib/public-storefront";
+import { fetchPublicCheckoutPaymentOptionsBrowser } from "@/lib/public-storefront-client";
 import { formatDisplayPrice } from "@/lib/public-storefront";
-import { normalizeMilkRunWhatsApp } from "@/lib/milk-run-whatsapp-order";
 import { cn } from "@/lib/utils";
 
 function RailFallback() {
@@ -56,10 +62,10 @@ function RailFallback() {
 
 function FloatingCartButton({ accentHex }: { accentHex?: string | null }) {
   const pathname = usePathname();
-  const { itemCount, cart, drawerOpen, checkoutOpen, checkoutChoiceOpen, toggleDrawer, loading } =
+  const { itemCount, cart, drawerOpen, checkoutOpen, checkoutChoiceOpen, whatsAppSheetOpen, toggleDrawer, loading } =
     useShopCart();
 
-  if (pathname === APP_ROUTES.shopCheckout || checkoutOpen || checkoutChoiceOpen) {
+  if (pathname === APP_ROUTES.shopCheckout || checkoutOpen || checkoutChoiceOpen || whatsAppSheetOpen) {
     return null;
   }
   const accent =
@@ -140,6 +146,7 @@ export function ShopStorefrontChrome({
   deliveryAreas = [],
   chromeVariant = "default",
   storeThemeId,
+  hasPresence,
   whatsappNumber,
   children,
 }: {
@@ -153,11 +160,12 @@ export function ShopStorefrontChrome({
   deliveryAreas?: PublicDeliveryArea[];
   chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "chem-lab" | "spirits-cellar";
   storeThemeId?: string | null;
+  /** D8: `ub.session` presence hint from `StorefrontShell` (label-only). */
+  hasPresence: boolean;
   /** Tenant WhatsApp for Milk Run dual-path checkout. */
   whatsappNumber?: string | null;
   children: ReactNode;
 }) {
-  const pathname = usePathname();
   const compactChrome = useCompactStorefrontChrome();
   const isOxide = chromeVariant === "oxide";
   const isTintLab = chromeVariant === "tint-lab";
@@ -185,12 +193,36 @@ export function ShopStorefrontChrome({
     void restoreClientSessionFromCookie().catch(() => {});
   }, []);
 
-  const milkRunDigits = isMilkRun
-    ? normalizeMilkRunWhatsApp(whatsappNumber)
-    : null;
-  const milkRunCheckout =
-    isMilkRun && milkRunDigits
-      ? { storeName: headerTitle, whatsappDigits: milkRunDigits }
+  // WhatsApp checkout capability comes from checkout-options (scope D7), not the
+  // theme — so every theme can offer it. Fetched once on mount; the sheet
+  // re-checks eligibility before submitting.
+  const [checkoutOptions, setCheckoutOptions] =
+    useState<PublicCheckoutPaymentOptions | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const s = slug.trim();
+    if (!s) return;
+    void fetchPublicCheckoutPaymentOptionsBrowser(s)
+      .then((opts) => {
+        if (!cancelled) setCheckoutOptions(opts);
+      })
+      .catch(() => {
+        /* capability stays hidden on failure */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+  const wa = checkoutOptions?.whatsappCheckout;
+  const whatsappCheckout: WhatsAppCheckoutConfig | null =
+    wa?.enabled && wa.digits
+      ? {
+          storeName: headerTitle,
+          whatsappDigits: wa.digits,
+          greeting: wa.greeting ?? null,
+          mode: wa.mode ?? null,
+          usesChoiceSheet: isMilkRun,
+        }
       : null;
 
   const shellStyle: CSSProperties | undefined = isOxide && accentHex
@@ -233,7 +265,12 @@ export function ShopStorefrontChrome({
         : undefined;
 
   return (
-    <ShopCartProvider slug={slug} milkRunCheckout={milkRunCheckout}>
+    <ShopCartProvider slug={slug} whatsappCheckout={whatsappCheckout}>
+      <StorefrontSignInProvider
+        surface="storefront"
+        storeName={headerTitle}
+        hasPresence={hasPresence}
+      >
       <div
         data-store-theme-id={storeThemeId ?? undefined}
         className={cn(
@@ -398,6 +435,7 @@ export function ShopStorefrontChrome({
       </div>
       <ShopCartDrawer />
       <ShopCheckoutDrawer />
+      <WhatsAppCheckoutSheet />
       {isMilkRun ? <MilkRunCheckoutChoice /> : null}
       {!isCustomChrome ? (
         <ShopLeadCaptureCard
@@ -410,6 +448,7 @@ export function ShopStorefrontChrome({
       ) : null}
       {!isCustomChrome ? <FloatingCartButton accentHex={accentHex} /> : null}
       </div>
+      </StorefrontSignInProvider>
     </ShopCartProvider>
   );
 }

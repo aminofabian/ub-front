@@ -925,11 +925,26 @@ export type PublicOnlinePaymentMethod = {
   kind?: string;
 };
 
+export type WhatsAppCheckoutOption = {
+  enabled: boolean;
+  /** Normalised digits for `wa.me/{digits}` (missing when disabled). */
+  digits?: string;
+  /** "fallback" | "always" — the merchant's effective mode. */
+  mode?: "fallback" | "always";
+  label?: string | null;
+  /** Optional greeting prepended to the order message. */
+  greeting?: string | null;
+  /** How long an unconfirmed order holds stock, in minutes. */
+  expiryMins?: number;
+};
+
 export type PublicCheckoutPaymentOptions = {
   manual: PublicPaymentInstruction[];
   online: PublicOnlinePaymentMethod[];
   /** When true (default), cart + checkout listen for Buy Goods till payments. */
   tillListenEnabled?: boolean;
+  /** WhatsApp checkout capability (scope §6); absent = not offered. */
+  whatsappCheckout?: WhatsAppCheckoutOption;
 };
 
 export type PublicWebStkPushResult = {

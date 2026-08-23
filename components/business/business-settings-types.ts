@@ -40,6 +40,10 @@ export type StorefrontForm = {
   landingHours: string;
   landingAddress: string;
   landingCtaLabel: string;
+  /** "Orders on WhatsApp" (all themes, scope §7). */
+  waCheckoutMode: "off" | "fallback" | "always";
+  waGreeting: string;
+  waExpiryMins: string;
 };
 
 export type InventoryForm = {
@@ -153,6 +157,9 @@ export const DEFAULT_STOREFRONT: StorefrontForm = {
   landingHours: "",
   landingAddress: "",
   landingCtaLabel: "",
+  waCheckoutMode: "fallback",
+  waGreeting: "",
+  waExpiryMins: "180",
 };
 
 export const DEFAULT_DAILY_AUDIT_SAMPLE_SIZE = 25;
@@ -291,7 +298,27 @@ export function storefrontFromRecord(
     landingHours: String(lc?.hours ?? ""),
     landingAddress: String(lc?.address ?? ""),
     landingCtaLabel: String(lc?.ctaLabel ?? ""),
+    waCheckoutMode:
+      s?.whatsappCheckout?.mode === "always" || s?.whatsappCheckout?.mode === "off"
+        ? s.whatsappCheckout.mode
+        : "fallback",
+    waGreeting: String(s?.whatsappCheckout?.greeting ?? ""),
+    waExpiryMins: String(s?.whatsappCheckout?.expiryMins ?? 180),
   };
+}
+
+export const DEFAULT_WHATSAPP_EXPIRY_MINS = 180;
+export const MIN_WHATSAPP_EXPIRY_MINS = 15;
+export const MAX_WHATSAPP_EXPIRY_MINS = 10080;
+
+/** Clamp the "hold stock for unconfirmed orders" window (scope §7). */
+export function clampWhatsAppExpiryMins(raw: string | number): number {
+  const n = typeof raw === "number" ? raw : Number(String(raw).trim());
+  if (!Number.isFinite(n)) return DEFAULT_WHATSAPP_EXPIRY_MINS;
+  return Math.max(
+    MIN_WHATSAPP_EXPIRY_MINS,
+    Math.min(MAX_WHATSAPP_EXPIRY_MINS, Math.round(n)),
+  );
 }
 
 export function clampDailyAuditSampleSize(raw: number): number {

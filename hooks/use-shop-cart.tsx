@@ -37,9 +37,13 @@ export function findCartLine(cart: PublicWebCart | null, itemId: string) {
   return cart?.lines.find((l) => l.itemId === id) ?? null;
 }
 
-type MilkRunCheckoutConfig = {
+export type WhatsAppCheckoutConfig = {
   storeName: string;
   whatsappDigits: string;
+  greeting?: string | null;
+  mode?: "fallback" | "always" | null;
+  /** Milk Run routes the primary checkout through its two-lane choice sheet. */
+  usesChoiceSheet?: boolean;
 };
 
 type ShopCartContextValue = {
@@ -53,7 +57,12 @@ type ShopCartContextValue = {
   checkoutOpen: boolean;
   /** Milk Run dual-path checkout sheet. */
   checkoutChoiceOpen: boolean;
-  milkRunCheckout: MilkRunCheckoutConfig | null;
+  /** Theme-agnostic WhatsApp checkout capability (scope D1). */
+  whatsappCheckout: WhatsAppCheckoutConfig | null;
+  /** Shared "Order on WhatsApp" sheet (order-first handoff). */
+  whatsAppSheetOpen: boolean;
+  openWhatsAppCheckout: () => void;
+  closeWhatsAppCheckout: () => void;
   /** When set, mobile float shows only this line until user expands. */
   focusItemId: string | null;
   cartViewMode: "focus" | "all";
@@ -81,12 +90,12 @@ const ShopCartContext = createContext<ShopCartContextValue | null>(null);
 export function ShopCartProvider({
   slug,
   children,
-  milkRunCheckout = null,
+  whatsappCheckout = null,
 }: {
   slug: string;
   children: ReactNode;
-  /** When set with a WhatsApp number, checkout opens the Milk Run till choice. */
-  milkRunCheckout?: MilkRunCheckoutConfig | null;
+  /** When set with a valid WhatsApp number, checkout surfaces the WhatsApp option. */
+  whatsappCheckout?: WhatsAppCheckoutConfig | null;
 }) {
   const router = useRouter();
   const [cart, setCart] = useState<PublicWebCart | null>(null);
@@ -95,6 +104,7 @@ export function ShopCartProvider({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutChoiceOpen, setCheckoutChoiceOpen] = useState(false);
+  const [whatsAppSheetOpen, setWhatsAppSheetOpen] = useState(false);
   const [focusItemId, setFocusItemId] = useState<string | null>(null);
   const [cartViewMode, setCartViewMode] = useState<"focus" | "all">("all");
 
@@ -258,17 +268,30 @@ export function ShopCartProvider({
     setCheckoutChoiceOpen(false);
   }, []);
 
+  const openWhatsAppCheckout = useCallback(() => {
+    setDrawerOpen(false);
+    setCheckoutOpen(false);
+    setCheckoutChoiceOpen(false);
+    setFocusItemId(null);
+    setCartViewMode("all");
+    setWhatsAppSheetOpen(true);
+  }, []);
+
+  const closeWhatsAppCheckout = useCallback(() => {
+    setWhatsAppSheetOpen(false);
+  }, []);
+
   const requestCheckout = useCallback(() => {
     setDrawerOpen(false);
     setFocusItemId(null);
     setCartViewMode("all");
-    if (milkRunCheckout?.whatsappDigits) {
+    if (whatsappCheckout?.whatsappDigits && whatsappCheckout.usesChoiceSheet) {
       setCheckoutOpen(false);
       setCheckoutChoiceOpen(true);
       return;
     }
     openCheckout();
-  }, [milkRunCheckout, openCheckout]);
+  }, [whatsappCheckout, openCheckout]);
 
   const beginOrdinaryCheckout = useCallback(() => {
     setCheckoutChoiceOpen(false);
@@ -286,7 +309,10 @@ export function ShopCartProvider({
       drawerOpen,
       checkoutOpen,
       checkoutChoiceOpen,
-      milkRunCheckout,
+      whatsappCheckout,
+      whatsAppSheetOpen,
+      openWhatsAppCheckout,
+      closeWhatsAppCheckout,
       focusItemId,
       cartViewMode,
       openDrawer: openFullCart,
@@ -346,7 +372,10 @@ export function ShopCartProvider({
       drawerOpen,
       checkoutOpen,
       checkoutChoiceOpen,
-      milkRunCheckout,
+      whatsappCheckout,
+      whatsAppSheetOpen,
+      openWhatsAppCheckout,
+      closeWhatsAppCheckout,
       focusItemId,
       cartViewMode,
       openFullCart,

@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
+import { useStorefrontSignIn } from "@/components/storefront/storefront-sign-in-sheet";
 import { APP_ROUTES } from "@/lib/config";
 import type { LandingContent } from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { getSessionTokens } from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
+import { useSessionRestoreFailed } from "@/lib/session-restore-status";
 
 const STOREFRONT_PREVIEW_LANDING_PARAM = "previewLanding";
 
@@ -96,8 +98,9 @@ const LANDING_ACCOUNT_LOGIN_HREF = `${APP_ROUTES.login}?next=${encodeURIComponen
 export const LANDING_STAFF_LOGIN_HREF = `${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`;
 
 /**
- * Shopper door for landing templates (D4). Still plain navigation to `/login`
- * in Phase 1; the Phase 2 sheet intercepts the click. The template owns all
+ * Shopper door for landing templates (D4). Plain navigation to `/login` when
+ * the sheet is unavailable (no JS, not hydrated, provider not mounted); the
+ * Phase 2 sheet intercepts the click when it is ready. The template owns all
  * styling via `className`/`style` (Phase 0 contract); a glyph can replace the
  * label via `children`.
  */
@@ -112,9 +115,25 @@ export function LandingAccountAction({
   children?: ReactNode;
 }) {
   const ready = useClientSessionReady();
-  const signedIn = useClientHasSession();
-  const isSignedIn = ready && signedIn;
+  const hasSession = useClientHasSession();
+  const restoreFailed = useSessionRestoreFailed();
+  const { ready: sheetReady, open, hasPresence } = useStorefrontSignIn();
+
+  // D8 (§10): the server-rendered presence hint shows "My orders" before
+  // hydration; a failed cookie-only restore downgrades back to "Sign in".
+  const clientSignedIn = ready && hasSession;
+  const isSignedIn = clientSignedIn || (hasPresence && !restoreFailed);
   const label = isSignedIn ? "My orders" : "Sign in";
+
+  const onActivate = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (clientSignedIn || !sheetReady) {
+      return;
+    }
+    event.preventDefault();
+    // Landing surfaces have no catalog to return to — the sheet resolves to
+    // the account page after sign-in (see §7).
+    open({ reason: "landing", next: APP_ROUTES.shopAccount });
+  };
 
   return (
     <Link
@@ -122,6 +141,7 @@ export function LandingAccountAction({
       className={className}
       style={style}
       aria-label={label}
+      onClick={onActivate}
     >
       {children ?? label}
     </Link>

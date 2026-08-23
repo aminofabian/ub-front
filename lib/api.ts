@@ -537,6 +537,46 @@ export async function resolveBusinessByShopQuery(
   }
 }
 
+export type PublicShopSearchResult = {
+  slug: string;
+  name: string;
+  logoUrl?: string | null;
+  primaryHost?: string | null;
+};
+
+const PUBLIC_SHOPS_SEARCH_PATH = "/api/v1/public/shops/search";
+
+/**
+ * Phase 4 apex "one door": public shop directory search (name, slug, or host).
+ * Returns public directory rows only — never phone numbers or shopper data.
+ */
+export async function searchPublicShops(
+  query: string,
+): Promise<PublicShopSearchResult[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const url = `${apiUrl(PUBLIC_SHOPS_SEARCH_PATH)}?q=${encodeURIComponent(q)}`;
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) return [];
+    const payload = (await response.json()) as unknown;
+    if (!Array.isArray(payload)) return [];
+    return (payload as PublicShopSearchResult[]).filter(
+      (row) =>
+        row &&
+        typeof row === "object" &&
+        typeof row.slug === "string" &&
+        row.slug.trim() !== "" &&
+        typeof row.name === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
 export type RoleSummary = {
   id?: string;
   key?: string;
@@ -781,6 +821,13 @@ export type LandingContentRecord = {
   ctaLabel?: string | null;
 };
 
+export type WhatsAppCheckoutSettingsRecord = {
+  number?: string | null;
+  mode?: "off" | "fallback" | "always" | string | null;
+  greeting?: string | null;
+  expiryMins?: number | null;
+};
+
 export type StorefrontSettingsRecord = {
   enabled: boolean;
   catalogBranchId?: string | null;
@@ -791,6 +838,8 @@ export type StorefrontSettingsRecord = {
   storeThemeId?: string | null;
   landingTemplateId?: string | null;
   landingContent?: LandingContentRecord | null;
+  /** "Orders on WhatsApp" settings (all themes). */
+  whatsappCheckout?: WhatsAppCheckoutSettingsRecord | null;
   /**
    * Opaque versioned merchant design overrides (see {@code StorefrontDesign}).
    * The theme is the starting point; this survives theme switches.
@@ -973,6 +1022,8 @@ export type StorefrontPatchPayload = {
   storeThemeId?: string | null;
   landingTemplateId?: string | null;
   landingContent?: LandingContentRecord | null;
+  /** "Orders on WhatsApp" settings (all themes). */
+  whatsappCheckout?: WhatsAppCheckoutSettingsRecord | null;
   designJson?: string | null;
 };
 
@@ -5813,6 +5864,10 @@ export async function fetchInventoryExpiryPipeline(
 
 export type WebOrderSummary = {
   id: string;
+  /** Canonical short order code (scope D11). */
+  orderCode?: string | null;
+  /** "WHATSAPP" | "WEB" (scope D5/§12). */
+  channel?: string | null;
   status: string;
   fulfillmentStatus?: string | null;
   grandTotal: number | string;

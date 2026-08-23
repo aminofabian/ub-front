@@ -5,6 +5,7 @@ import { ArrowRight, ShoppingBag, Tag, Truck } from "lucide-react";
 import { useState } from "react";
 
 import { ShopCartLines } from "@/components/storefront/shop-cart-lines";
+import { WhatsAppCheckoutButton } from "@/components/storefront/whatsapp-checkout-button";
 import { Button } from "@/components/ui/button";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -12,7 +13,7 @@ import { cartIsCheckoutReady } from "@/lib/web-cart";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 
 export default function ShopCartView({ slug }: { slug: string }) {
-  const { cart, loading, error, changeQty, removeLine, requestCheckout, milkRunCheckout } =
+  const { cart, loading, error, changeQty, removeLine, requestCheckout, whatsappCheckout } =
     useShopCart();
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
   const [promo, setPromo] = useState("");
@@ -125,7 +126,7 @@ export default function ShopCartView({ slug }: { slug: string }) {
           </div>
 
           {cartIsCheckoutReady(cart) ? (
-            milkRunCheckout?.whatsappDigits ? (
+            whatsappCheckout?.usesChoiceSheet ? (
               <Button
                 type="button"
                 className="h-11 w-full gap-2 rounded-xl text-sm font-semibold"
@@ -148,6 +149,9 @@ export default function ShopCartView({ slug }: { slug: string }) {
               store. Remove unpriced items or ask the branch to set a shelf price.
             </p>
           )}
+          {cartIsCheckoutReady(cart) ? (
+            <WhatsAppCheckoutButton surface="cart-page" />
+          ) : null}
 
           <p className="text-center text-xs leading-relaxed text-muted-foreground">
             Checkout submits a pickup request. Pay using the instructions shown at checkout.

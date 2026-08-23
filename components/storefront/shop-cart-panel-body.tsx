@@ -5,6 +5,7 @@ import { useMemo, useState, type KeyboardEvent } from "react";
 import { ArrowRight, Check, ChevronRight, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Truck, X } from "lucide-react";
 
 import { ShopCartLinesScroll } from "@/components/storefront/shop-cart-lines-scroll";
+import { WhatsAppCheckoutButton } from "@/components/storefront/whatsapp-checkout-button";
 import { Button } from "@/components/ui/button";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { useShopTillListen } from "@/hooks/use-shop-till-listen";
@@ -64,7 +65,7 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
     cartViewMode,
     showAllCartItems,
     requestCheckout,
-    milkRunCheckout,
+    whatsappCheckout,
     drawerOpen,
   } = useShopCart();
 
@@ -326,7 +327,7 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
                     )}
                     onClick={startCheckout}
                   >
-                    {milkRunCheckout ? "Pick a till" : "Checkout"}
+                    {whatsappCheckout?.usesChoiceSheet ? "Pick a till" : "Checkout"}
                     <ArrowRight className="size-3.5" aria-hidden />
                   </Button>
                 ) : (
@@ -334,6 +335,14 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand }: Props) {
                     Waiting on branch pricing for one or more items.
                   </p>
                 )}
+                {canCheckout ? (
+                  <WhatsAppCheckoutButton
+                    className={cn(
+                      compactHeader ? "h-9 rounded-[3px] text-xs" : "h-10",
+                    )}
+                    surface="cart-drawer"
+                  />
+                ) : null}
                 {onExpand ? (
                   <Button
                     type="button"

@@ -7,7 +7,10 @@ import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
 import { LandingCta } from "./landing/landing-cta";
 import { LandingFaq } from "./landing/landing-faq";
 import { LandingFeatures } from "./landing/landing-features";
-import { LandingFindShopModal } from "./landing/landing-find-shop-modal";
+import {
+  LandingSignInModal,
+  type ApexSignInMode,
+} from "./landing/landing-sign-in-modal";
 import { LandingFooter } from "./landing/landing-footer";
 import { LandingGuides } from "./landing/landing-guides";
 import { LandingHero } from "./landing/landing-hero";
@@ -23,7 +26,8 @@ import { LandingTestimonials } from "./landing/landing-testimonials";
 
 export function TenantConsolePage() {
   const [signupOpen, setSignupOpen] = useState(false);
-  const [findShopOpen, setFindShopOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
+  const [signInMode, setSignInMode] = useState<ApexSignInMode>("shopper");
   const [talkOpen, setTalkOpen] = useState(false);
 
   const host =
@@ -33,8 +37,9 @@ export function TenantConsolePage() {
     setSignupOpen(true);
   };
 
-  const openFindShop = () => {
-    setFindShopOpen(true);
+  const openSignIn = (mode: ApexSignInMode = "shopper") => {
+    setSignInMode(mode);
+    setSignInOpen(true);
   };
 
   const openTalk = () => {
@@ -47,7 +52,11 @@ export function TenantConsolePage() {
       style={landingRootStyle()}
     >
       <div className="landing-page-canvas" aria-hidden />
-      <LandingNav onCreateShop={openSignup} onFindShop={openFindShop} />
+      <LandingNav
+        onCreateShop={openSignup}
+        onFindShop={() => openSignIn("staff")}
+        onSignIn={() => openSignIn("shopper")}
+      />
 
       <main>
         <LandingHero onCreateShop={openSignup} />
@@ -70,10 +79,11 @@ export function TenantConsolePage() {
         onOpenChange={setSignupOpen}
         host={host}
       />
-      <LandingFindShopModal
-        open={findShopOpen}
-        onOpenChange={setFindShopOpen}
+      <LandingSignInModal
+        open={signInOpen}
+        onOpenChange={setSignInOpen}
         onCreateShop={openSignup}
+        initialMode={signInMode}
       />
       <TalkToUsModal
         open={talkOpen}

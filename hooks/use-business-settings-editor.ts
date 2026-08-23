@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   applyBusinessSnapshot,
   clampDailyAuditSampleSize,
+  clampWhatsAppExpiryMins,
   isDailyAuditScheduleOrdered,
   normalizeDailyAuditTime,
   DEFAULT_MORNING_STARTS_AT,
@@ -340,6 +341,11 @@ export function useBusinessSettingsEditor() {
               hours: storefront.landingHours.trim() || null,
               address: storefront.landingAddress.trim() || null,
               ctaLabel: storefront.landingCtaLabel.trim() || null,
+            },
+            whatsappCheckout: {
+              mode: storefront.waCheckoutMode,
+              greeting: storefront.waGreeting.trim() || null,
+              expiryMins: clampWhatsAppExpiryMins(storefront.waExpiryMins),
             },
           };
         }

@@ -408,37 +408,100 @@ export function BusinessSettingsForm({
                 </Link>
               </div>
 
-              {storefront.enabled && storefront.storeThemeId === "milk-run" ? (
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className={labelClass()} htmlFor="sf-milk-run-wa">
-                    WhatsApp (Milk Run)
-                  </label>
+              {storefront.enabled ? (
+                <div className="space-y-2.5 sm:col-span-2">
+                  <p className={labelClass()}>Orders on WhatsApp</p>
                   <p className={hintClass()}>
-                    Customers use this number on your shop&apos;s chat button.
+                    Shoppers can send the cart straight to this number — no
+                    payment gateway needed. Works on every theme.
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    <input
-                      id="sf-milk-run-wa"
-                      className={cn(inputClass(), "min-w-0 flex-1")}
-                      placeholder="254712345678"
-                      value={storefront.landingWhatsapp}
-                      onChange={(e) =>
-                        setStorefront((s) => ({
-                          ...s,
-                          landingWhatsapp: e.target.value,
-                        }))
-                      }
-                    />
-                    {!storefront.landingWhatsapp.trim() ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setMilkRunWaPromptOpen(true)}
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className={labelClass()} htmlFor="sf-wa-number">
+                        WhatsApp number
+                      </label>
+                      <input
+                        id="sf-wa-number"
+                        className={inputClass()}
+                        placeholder="0712 345 678"
+                        value={storefront.landingWhatsapp}
+                        onChange={(e) =>
+                          setStorefront((s) => ({
+                            ...s,
+                            landingWhatsapp: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className={labelClass()} htmlFor="sf-wa-mode">
+                        When to show it
+                      </label>
+                      <select
+                        id="sf-wa-mode"
+                        className={inputClass()}
+                        value={storefront.waCheckoutMode}
+                        onChange={(e) =>
+                          setStorefront((s) => ({
+                            ...s,
+                            waCheckoutMode: e.target
+                              .value as StorefrontForm["waCheckoutMode"],
+                          }))
+                        }
                       >
-                        Add number
-                      </Button>
-                    ) : null}
+                        <option value="fallback">
+                          Only when online payment is off
+                        </option>
+                        <option value="always">
+                          Always, alongside other options
+                        </option>
+                        <option value="off">Turn it off</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className={labelClass()} htmlFor="sf-wa-expiry">
+                        Hold stock (minutes)
+                      </label>
+                      <input
+                        id="sf-wa-expiry"
+                        type="number"
+                        min={15}
+                        max={10080}
+                        className={inputClass()}
+                        value={storefront.waExpiryMins}
+                        onChange={(e) =>
+                          setStorefront((s) => ({
+                            ...s,
+                            waExpiryMins: e.target.value,
+                          }))
+                        }
+                      />
+                      <p className={hintClass()}>
+                        Unconfirmed orders hold stock for this long before
+                        expiring.
+                      </p>
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className={labelClass()} htmlFor="sf-wa-greeting">
+                        Greeting line{" "}
+                        <span className="font-normal text-muted-foreground">
+                          (optional, ≤ 120 chars)
+                        </span>
+                      </label>
+                      <input
+                        id="sf-wa-greeting"
+                        className={inputClass()}
+                        maxLength={120}
+                        placeholder="Karibu! Send this and we'll confirm."
+                        value={storefront.waGreeting}
+                        onChange={(e) =>
+                          setStorefront((s) => ({
+                            ...s,
+                            waGreeting: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
               ) : null}

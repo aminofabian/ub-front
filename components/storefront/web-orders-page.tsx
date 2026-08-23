@@ -11,6 +11,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import {
   Loader2,
+  MessageCircle,
   Package,
   Printer,
   RefreshCw,
@@ -42,6 +43,7 @@ import {
 } from "@/lib/desktop-print";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
+import { cartOrderCode, normalizeWhatsApp } from "@/lib/whatsapp-order";
 import { cn } from "@/lib/utils";
 
 const OPEN_FULFILLMENT = new Set([
@@ -85,6 +87,25 @@ function shortId(id: string): string {
   const t = id.trim();
   if (t.length <= 8) return t.toUpperCase();
   return t.slice(-8).toUpperCase();
+}
+
+/** V1 channel marker lives in order notes (scope D5). */
+function isWhatsAppOrder(notes: string | null | undefined): boolean {
+  return (notes ?? "").toLowerCase().includes("channel: whatsapp");
+}
+
+/** One-tap merchant reply — the highest-value affordance in this feature (§12). */
+function waReplyHref(
+  phone: string,
+  name: string | null | undefined,
+  orderId: string,
+  grandTotal: number | string,
+  currency: string,
+): string {
+  const digits = normalizeWhatsApp(phone);
+  if (!digits) return "https://wa.me/";
+  const text = `Hi ${(name ?? "").trim() || "there"}, thanks for order ${cartOrderCode(orderId)}. Everything is available — total ${fmtMoney(grandTotal, currency || "KES")}. Pay by …`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
 function labelStatus(raw: string | null | undefined): string {
@@ -176,6 +197,7 @@ export function WebOrdersPage() {
   const [printing, setPrinting] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"open" | "all">("open");
+  const [channelTab, setChannelTab] = useState<"all" | "whatsapp">("all");
 
   const deepLinkId = searchParams.get("orderId")?.trim() || null;
 
@@ -253,14 +275,22 @@ export function WebOrdersPage() {
   }, [orders, branchId]);
 
   const visibleOrders = useMemo(() => {
-    const rows = tab === "open" ? scopedOrders.filter(isOpenOrder) : scopedOrders;
+    let rows = tab === "open" ? scopedOrders.filter(isOpenOrder) : scopedOrders;
+    if (channelTab === "whatsapp") {
+      rows = rows.filter((o) => o.channel === "WHATSAPP");
+    }
     return [...rows].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [scopedOrders, tab]);
+  }, [scopedOrders, tab, channelTab]);
 
   const openCount = useMemo(
     () => scopedOrders.filter(isOpenOrder).length,
+    [scopedOrders],
+  );
+
+  const waCount = useMemo(
+    () => scopedOrders.filter((o) => o.channel === "WHATSAPP").length,
     [scopedOrders],
   );
 
@@ -355,6 +385,23 @@ export function WebOrdersPage() {
               {t.label}
             </button>
           ))}
+          {waCount > 0 ? (
+            <button
+              key="whatsapp"
+              type="button"
+              onClick={() => setChannelTab(channelTab === "whatsapp" ? "all" : "whatsapp")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                channelTab === "whatsapp"
+                  ? "border-[#128C4A] bg-[#25D366]/15 text-[#128C4A]"
+                  : "border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground",
+              )}
+              aria-pressed={channelTab === "whatsapp"}
+            >
+              <MessageCircle className="size-3" aria-hidden />
+              WhatsApp ({waCount})
+            </button>
+          ) : null}
         </div>
         <Button
           type="button"
@@ -423,11 +470,17 @@ export function WebOrdersPage() {
                           <StatusPill tone={fulfillmentTone(fulfillment)}>
                             {labelStatus(fulfillment)}
                           </StatusPill>
+                          {order.channel === "WHATSAPP" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[11px] font-semibold text-[#128C4A]">
+                              <MessageCircle className="size-3" aria-hidden />
+                              WhatsApp
+                            </span>
+                          ) : null}
                         </div>
                         <p className="mt-1 truncate text-xs text-muted-foreground">
                           {order.customerPhone || "—"} ·{" "}
                           {order.catalogBranchName || "Branch"} · #
-                          {shortId(order.id)}
+                          {order.orderCode ?? shortId(order.id)}
                         </p>
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
                           {formatWhen(order.createdAt)}
@@ -503,8 +556,21 @@ export function WebOrdersPage() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {detail.catalogBranchName} · {formatWhen(detail.createdAt)} · #
-                  {shortId(detail.id)}
+                  {detail.notes?.toLowerCase().includes("channel: whatsapp")
+                    ? cartOrderCode(detail.id)
+                    : shortId(detail.id)}
                 </p>
+                {isWhatsAppOrder(detail.notes) ? (
+                  <a
+                    href={waReplyHref(detail.customerPhone, detail.customerName, detail.id, detail.grandTotal, detail.currency)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#25D366]/15 px-3 text-xs font-semibold text-[#128C4A] transition-colors hover:bg-[#25D366]/25"
+                  >
+                    <MessageCircle className="size-3.5" aria-hidden />
+                    Reply on WhatsApp
+                  </a>
+                ) : null}
               </div>
 
               <div className="flex flex-wrap gap-2">

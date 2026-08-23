@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import { APP_ROUTES } from "@/lib/config";
 import {
   applyShopperTabHint,
+  isShopNextPath,
   resolvePostAuthDestination,
   roleLandingRedirect,
 } from "@/lib/post-auth-destination";
@@ -18,6 +19,27 @@ const completedOnboarding = {
 const dismissedOnboarding = {
   onboarding: { status: "dismissed" },
 };
+
+describe("isShopNextPath", () => {
+  it("accepts the storefront root and shop paths", () => {
+    expect(isShopNextPath("/")).toBe(true);
+    expect(isShopNextPath(APP_ROUTES.shop)).toBe(true);
+    expect(isShopNextPath(APP_ROUTES.shopAccount)).toBe(true);
+    expect(isShopNextPath("/shop/cart")).toBe(true);
+    expect(isShopNextPath("/shop/account?x=1")).toBe(true);
+  });
+
+  it("rejects external, malformed, and non-storefront targets", () => {
+    expect(isShopNextPath("//evil.com")).toBe(false);
+    expect(isShopNextPath("https://evil.com")).toBe(false);
+    expect(isShopNextPath("javascript:alert(1)")).toBe(false);
+    expect(isShopNextPath(APP_ROUTES.login)).toBe(false);
+    expect(isShopNextPath("/shopping")).toBe(false);
+    expect(isShopNextPath("/shop_account")).toBe(false);
+    expect(isShopNextPath("")).toBe(false);
+    expect(isShopNextPath(null)).toBe(false);
+  });
+});
 
 describe("resolvePostAuthDestination", () => {
   it("sends grocery clerks to /grocery", () => {

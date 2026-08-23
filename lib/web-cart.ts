@@ -114,6 +114,8 @@ function cartBase(slug: string): string {
 
 export type PublicCheckoutResult = {
   orderId: string;
+  /** Canonical short order code (scope D11) — what the WhatsApp message quotes. */
+  orderCode?: string;
   status: string;
   grandTotal: number;
   currency: string;

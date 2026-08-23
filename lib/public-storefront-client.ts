@@ -303,9 +303,46 @@ export async function fetchPublicCheckoutPaymentOptionsBrowser(
       manual: body.manual ?? [],
       online: body.online ?? [],
       tillListenEnabled: body.tillListenEnabled !== false,
+      whatsappCheckout: body.whatsappCheckout,
     };
   } catch {
     return { manual: [], online: [], tillListenEnabled: true };
+  }
+}
+
+export type PublicOrderTracking = {
+  orderId: string;
+  orderCode: string;
+  status: string;
+  fulfillmentStatus: string | null;
+  grandTotal: number | string;
+  currency: string;
+  catalogBranchName: string;
+  createdAt: string;
+};
+
+/** Guest order tracking by short code + phone last-4 (scope §15). */
+export async function fetchPublicOrderTracking(
+  slug: string,
+  code: string,
+  phoneLast4: string,
+): Promise<PublicOrderTracking | null> {
+  const s = sanitizeStorefrontSlug(slug);
+  const c = code.trim();
+  const last4 = phoneLast4.replace(/\D/g, "");
+  if (!s || !c || last4.length !== 4) return null;
+  try {
+    const res = await fetch(
+      apiUrl(
+        `/api/v1/public/businesses/${encodeURIComponent(s)}/orders/by-code/${encodeURIComponent(c)}`,
+      ) +
+        `?phoneLast4=${encodeURIComponent(last4)}`,
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as PublicOrderTracking;
+  } catch {
+    return null;
   }
 }
 

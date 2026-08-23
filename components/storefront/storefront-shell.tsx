@@ -2,6 +2,7 @@ import { ShopStorefrontChrome } from "@/components/storefront/shop-storefront-ch
 import { ShopStorefrontRealtime } from "@/components/storefront/shop-storefront-realtime";
 import { StorefrontPwaRuntime } from "@/components/storefront/storefront-pwa-runtime";
 import { StorefrontPreviewBanner } from "@/components/storefront/storefront-preview-banner";
+import { StorefrontSignInProvider } from "@/components/storefront/storefront-sign-in-sheet";
 import { StorefrontThemeScope } from "@/components/storefront/storefront-theme-scope";
 import { resolveStoreChromeVariant } from "@/components/storefront/templates/registry";
 import {
@@ -20,6 +21,7 @@ import {
 import { parseStorefrontDesignJson } from "@/lib/storefront-design";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
 import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
+import { hasSessionPresenceCookieServer } from "@/lib/session-presence";
 import { cn } from "@/lib/utils";
 
 /**
@@ -37,6 +39,9 @@ export async function StorefrontShell({
 }) {
   const slug = await resolveStorefrontSlug();
   let tenant = await resolveTenantContext();
+  // D8: returning-shopper label hint. Label-only, may be stale — the client
+  // restore downgrades it (§10).
+  const hasPresence = await hasSessionPresenceCookieServer();
   // Dev: plain localhost + env slug — resolve branding via `<slug>.localhost`
   if (slug && !parseStorefrontHex(tenant?.branding?.primaryColor)) {
     const byDevHost = await fetchTenantContext(`${slug}.localhost`);
@@ -113,7 +118,13 @@ export async function StorefrontShell({
         }
       >
         {previewBanner}
-        {children}
+        <StorefrontSignInProvider
+          surface="landing"
+          storeName={headerTitle}
+          hasPresence={hasPresence}
+        >
+          {children}
+        </StorefrontSignInProvider>
       </div>
     );
   }
@@ -150,6 +161,7 @@ export async function StorefrontShell({
           deliveryAreas={storefront?.deliveryAreas ?? []}
           chromeVariant={chromeVariant}
           storeThemeId={storeThemeId}
+          hasPresence={hasPresence}
           whatsappNumber={
             tenant?.landingContent?.whatsapp ??
             tenant?.landingContent?.phone ??

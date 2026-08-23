@@ -132,6 +132,8 @@ export const APP_ROUTES = {
   shopAccount: "/shop/account",
   shopCart: "/shop/cart",
   shopCheckout: "/shop/checkout",
+  /** Guest order tracking by short code (scope §15). */
+  shopOrderTrack: (code: string) => `/shop/o/${encodeURIComponent(code)}`,
   barcode: "/barcode",
   paymentsSettings: "/payments/settings",
   /** Day tender tape — chronological sale payments for reconciling / following along. */

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
 import { GetTheAppDialog } from "@/components/storefront/get-the-app-dialog";
+import { useStorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import {
   useClientHasSession,
   useClientSessionReady,
@@ -30,6 +31,7 @@ export function ShopUtilityBar({
 }) {
   const ready = useClientSessionReady();
   const signedIn = useClientHasSession();
+  const { href: signInHref, onActivate } = useStorefrontAccountLink();
   const [talkOpen, setTalkOpen] = useState(false);
 
   const onSignOut = useCallback(async () => {
@@ -135,8 +137,9 @@ export function ShopUtilityBar({
             </>
           ) : (
             <Link
-              href={`${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`}
+              href={signInHref}
               className="rounded-md px-2 py-0.5 font-semibold transition hover:bg-white/10"
+              onClick={onActivate}
             >
               Sign in
             </Link>

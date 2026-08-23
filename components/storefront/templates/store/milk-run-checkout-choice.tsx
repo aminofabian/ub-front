@@ -5,7 +5,6 @@ import { useEffect, useId, useRef } from "react";
 import { milkRunFontVariables } from "@/components/storefront/templates/store/milk-run-fonts";
 import styles from "@/components/storefront/templates/store/milk-run.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
-import { buildMilkRunCartWhatsAppUrl } from "@/lib/milk-run-whatsapp-order";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
@@ -110,7 +109,8 @@ export function MilkRunCheckoutChoice() {
     checkoutChoiceOpen,
     closeCheckoutChoice,
     beginOrdinaryCheckout,
-    milkRunCheckout,
+    whatsappCheckout,
+    openWhatsAppCheckout,
   } = useShopCart();
 
   useEffect(() => {
@@ -128,16 +128,9 @@ export function MilkRunCheckoutChoice() {
     };
   }, [checkoutChoiceOpen, closeCheckoutChoice]);
 
-  if (!checkoutChoiceOpen || !cart || !milkRunCheckout) {
+  if (!checkoutChoiceOpen || !cart || !whatsappCheckout) {
     return null;
   }
-
-  const storeName = milkRunCheckout.storeName;
-  const waUrl = buildMilkRunCartWhatsAppUrl({
-    phone: milkRunCheckout.whatsappDigits,
-    storeName,
-    cart,
-  });
 
   const subtotal =
     cart.subtotal != null
@@ -146,9 +139,9 @@ export function MilkRunCheckoutChoice() {
   const itemLabel = `${cart.lines.length} item${cart.lines.length === 1 ? "" : "s"}`;
 
   const openChat = () => {
-    if (!waUrl) return;
-    window.open(waUrl, "_blank", "noopener,noreferrer");
-    closeCheckoutChoice();
+    // Order-first handoff: the shared sheet captures name + phone, creates the
+    // order, then opens wa.me with the order code (scope D2).
+    openWhatsAppCheckout();
   };
 
   return (
@@ -196,7 +189,7 @@ export function MilkRunCheckoutChoice() {
             type="button"
             className={cn(styles.tillLane, styles.tillLaneChat)}
             onClick={openChat}
-            disabled={!waUrl}
+            disabled={!whatsappCheckout.whatsappDigits}
           >
             <div
               className={styles.tillLaneFlap}
