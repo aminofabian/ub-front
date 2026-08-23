@@ -29,6 +29,7 @@ export function TenantOrderDrawer({
       width="full"
       appearance="sharp"
       headerDensity="compact"
+      bodyLayout="fill"
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {open ? (

@@ -33,6 +33,12 @@ export type FormDrawerProps = {
   appearance?: "default" | "sharp";
   /** Tighter header row — icon, kicker, and title on one line */
   headerDensity?: "default" | "compact";
+  /**
+   * `scroll` (default): body scrolls as one column.
+   * `fill`: body is a fixed-height flex column — child manages its own scroll
+   * (e.g. full-viewport Order workspace).
+   */
+  bodyLayout?: "scroll" | "fill";
   /** When set, marks the drawer panel for onboarding tour spotlight. */
   onboardingTarget?: OnboardingTargetId;
 };
@@ -120,10 +126,12 @@ export function FormDrawer({
   width = "default",
   appearance = "default",
   headerDensity = "default",
+  bodyLayout = "scroll",
   onboardingTarget,
 }: FormDrawerProps) {
   const sharp = appearance === "sharp";
   const compactHeader = headerDensity === "compact";
+  const fillBody = bodyLayout === "fill";
   const isFull = width === "full";
   const dash = useOptionalDashboard();
   const brandStops = React.useMemo(
@@ -455,18 +463,27 @@ export function FormDrawer({
               </div>
             ) : null}
 
-            <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div
+              className={cn(
+                "relative min-h-0 flex-1",
+                fillBody
+                  ? "flex flex-col overflow-hidden"
+                  : "overflow-y-auto overscroll-contain",
+              )}
+            >
               <div
                 className={cn(
-                  compactHeader && isFull
-                    ? "px-3 pb-2 pt-1.5"
-                    : isFull
-                      ? "space-y-2 px-2.5 pb-3 pt-2 sm:space-y-5 sm:px-6 sm:pb-8 sm:pt-5"
-                      : compactHeader && !isFull
-                        ? "space-y-2 px-3 pb-4 pt-2"
-                        : width === "half"
-                          ? "space-y-4 px-4 pb-6 pt-4 sm:px-5"
-                          : "space-y-5 px-5 pb-8 pt-5 sm:space-y-6 sm:px-6 sm:pt-6",
+                  fillBody
+                    ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+                    : compactHeader && isFull
+                      ? "px-3 pb-2 pt-1.5"
+                      : isFull
+                        ? "space-y-2 px-2.5 pb-3 pt-2 sm:space-y-5 sm:px-6 sm:pb-8 sm:pt-5"
+                        : compactHeader && !isFull
+                          ? "space-y-2 px-3 pb-4 pt-2"
+                          : width === "half"
+                            ? "space-y-4 px-4 pb-6 pt-4 sm:px-5"
+                            : "space-y-5 px-5 pb-8 pt-5 sm:space-y-6 sm:px-6 sm:pt-6",
                 )}
               >
                 {children}

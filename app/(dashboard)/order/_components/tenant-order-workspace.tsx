@@ -933,7 +933,7 @@ export function TenantOrderWorkspace({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        <aside className="hidden w-52 shrink-0 flex-col border-r border-border lg:flex xl:w-56">
+        <aside className="hidden min-h-0 w-52 shrink-0 flex-col overflow-hidden border-r border-border lg:flex xl:w-56">
           <div className="relative border-b border-border">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -1036,7 +1036,7 @@ export function TenantOrderWorkspace({
                   : "No linked products."}
               </p>
             ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 min-[1440px]:grid-cols-8">
                 {visibleLinks.map((link) => {
                   const qty = cart[link.itemId] ?? 0;
                   const stock = toNum(link.currentStock);
@@ -1068,7 +1068,7 @@ export function TenantOrderWorkspace({
                             src={thumb}
                             alt=""
                             fill
-                            sizes="(max-width: 640px) 48vw, 140px"
+                            sizes="(max-width: 640px) 48vw, (min-width: 1440px) 11vw, 140px"
                             className="object-contain p-2"
                             unoptimized
                           />
@@ -1143,7 +1143,7 @@ export function TenantOrderWorkspace({
           </div>
         </div>
 
-        <aside className="hidden w-72 shrink-0 flex-col border-l border-border lg:flex xl:w-80">
+        <aside className="hidden min-h-0 w-72 shrink-0 flex-col overflow-hidden border-l border-border lg:flex xl:w-80">
           <div className="flex h-10 shrink-0 items-center justify-between border-b border-border px-3">
             <p className="text-[12px] font-medium text-muted-foreground">
               Order list
