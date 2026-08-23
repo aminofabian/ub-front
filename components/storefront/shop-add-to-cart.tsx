@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { MessageCircle } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
 import { Button } from "@/components/ui/button";
@@ -366,6 +367,27 @@ export default function ShopAddToCart({
           </Link>
         ) : null}
       </div>
+      {cartCtx?.whatsappCheckout ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={async () => {
+            try {
+              // One-line cart, then the same order-first WhatsApp flow (§13).
+              const q = inCart ? roundQty(inCartQty) : 1;
+              await cartCtx.setLineQty(itemId, q);
+              cartCtx.openWhatsAppCheckout();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Could not update cart.");
+            }
+          }}
+          disabled={busy}
+          className="h-11 w-full rounded-full text-sm font-semibold"
+        >
+          <MessageCircle className="size-4 text-[#128C4A]" aria-hidden />
+          Order this on WhatsApp
+        </Button>
+      ) : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {message ? <p className="text-sm text-emerald-600">{message}</p> : null}
     </div>

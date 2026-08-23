@@ -176,6 +176,7 @@ export function WhatsAppCheckoutSheet() {
           customerName: trimmedName,
           customerPhone: trimmedPhone,
           notes,
+          channel: "WHATSAPP",
         });
 
         clearWebCartHandle();

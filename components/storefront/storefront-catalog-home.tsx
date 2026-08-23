@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
 import { StorefrontAnalyticsBeacon } from "@/components/storefront/storefront-analytics-beacon";
+import { WhatsAppLandingCta } from "@/components/storefront/whatsapp-landing-cta";
 import { StorefrontSectionsStack } from "@/components/storefront/sections/storefront-sections-stack";
 import {
   resolveLandingPage,
@@ -151,6 +152,7 @@ export async function StorefrontCatalogHome({
           accentHex={isHexColor(accentRaw) ? accentRaw : null}
           landingContent={tenant?.landingContent ?? null}
         />
+        <WhatsAppLandingCta slug={slug} storeName={storeName} />
       </>
     );
   }

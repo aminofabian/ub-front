@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
+import { normalizeWhatsApp } from "@/lib/whatsapp-order";
 
 /** WhatsApp deep link with a prefilled message; `null` when the number is unusable. */
 export function whatsappHref(
   rawNumber: string | null | undefined,
   message: string,
 ): string | null {
-  const digits = (rawNumber ?? "").replace(/\D/g, "");
+  const digits = normalizeWhatsApp(rawNumber);
   if (!digits) {
     return null;
   }

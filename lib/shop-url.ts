@@ -1,5 +1,6 @@
 import { APP_ROUTES } from "@/lib/config";
 import type { PublicCategory } from "@/lib/public-storefront";
+import { normalizeWhatsApp } from "@/lib/whatsapp-order";
 
 /** Public shop category URLs: `/shop/c/:slug`. */
 export const SHOP_CATEGORY_PATH_PREFIX = `${APP_ROUTES.shop}/c/` as const;
@@ -120,10 +121,10 @@ export function shopListPath(query: ShopListQuery): string {
 
 /** E.164 without + preferred (e.g. 2547…). When unset, PDP hides the WhatsApp CTA. */
 export function whatsAppProductLink(productTitle: string): string | null {
-  const raw = process.env.NEXT_PUBLIC_STOREFRONT_WHATSAPP?.replace(/\D/g, "") ?? "";
-  if (!raw) {
+  const digits = normalizeWhatsApp(process.env.NEXT_PUBLIC_STOREFRONT_WHATSAPP);
+  if (!digits) {
     return null;
   }
   const text = encodeURIComponent(`Hi! I'm interested in: ${productTitle}`);
-  return `https://wa.me/${raw}?text=${text}`;
+  return `https://wa.me/${digits}?text=${text}`;
 }

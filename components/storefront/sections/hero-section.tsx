@@ -18,14 +18,14 @@ import type {
   StorefrontHeroSectionHeight,
   StorefrontHeroSectionOverlay,
 } from "@/lib/storefront-design";
+import { normalizeWhatsApp } from "@/lib/whatsapp-order";
 import { cn } from "@/lib/utils";
 
 function whatsAppOrderHref(): string | null {
-  const raw =
-    process.env.NEXT_PUBLIC_STOREFRONT_WHATSAPP?.replace(/\D/g, "") ?? "";
-  if (!raw) return null;
+  const digits = normalizeWhatsApp(process.env.NEXT_PUBLIC_STOREFRONT_WHATSAPP);
+  if (!digits) return null;
   const text = encodeURIComponent("Hi! I'd like to place an order.");
-  return `https://wa.me/${raw}?text=${text}`;
+  return `https://wa.me/${digits}?text=${text}`;
 }
 
 const HERO_HEIGHT_CLASSES: Record<

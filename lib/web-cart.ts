@@ -314,6 +314,8 @@ export async function submitWebCheckout(
     customerPhone: string;
     customerEmail?: string;
     notes?: string;
+    /** "WHATSAPP" | "WEB" — first-class channel marker (Phase 3). */
+    channel?: string;
   },
 ): Promise<PublicCheckoutResult> {
   const res = await fetch(`${cartBase(slug)}/${encodeURIComponent(cartId.trim())}/checkout`, {
@@ -327,6 +329,7 @@ export async function submitWebCheckout(
       customerPhone: payload.customerPhone.trim(),
       customerEmail: payload.customerEmail?.trim() || undefined,
       notes: payload.notes?.trim() || undefined,
+      channel: payload.channel?.trim() || undefined,
     }),
   });
   if (res.status === 404) {

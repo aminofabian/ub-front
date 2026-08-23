@@ -8,6 +8,7 @@ import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-s
 import { useStorefrontSignIn } from "@/components/storefront/storefront-sign-in-sheet";
 import { APP_ROUTES } from "@/lib/config";
 import type { LandingContent } from "@/lib/storefront-templates";
+import { normalizeWhatsApp } from "@/lib/whatsapp-order";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
@@ -238,7 +239,8 @@ export function ContactActions({
   ctaLabel: string;
   brand: string;
 }) {
-  const wa = whatsapp?.replace(/\D/g, "") || phone?.replace(/\D/g, "");
+  // wa.me needs international digits (0… → 254…); phone is only a fallback.
+  const wa = normalizeWhatsApp(whatsapp) ?? normalizeWhatsApp(phone);
   return (
     <div className="flex flex-wrap gap-3">
       {wa ? (

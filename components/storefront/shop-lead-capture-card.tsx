@@ -23,6 +23,7 @@ import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
 import type { PublicDeliveryArea } from "@/lib/public-storefront";
 import { isStkPhoneValid } from "@/lib/stk-phone";
+import { normalizeWhatsApp } from "@/lib/whatsapp-order";
 import { cn } from "@/lib/utils";
 import {
   SHOP_ITEM_ADDED_EVENT,
@@ -72,13 +73,12 @@ function needsLocationGate(slug: string, signedIn: boolean): boolean {
 }
 
 function whatsAppGeneralLink(): string | null {
-  const raw =
-    process.env.NEXT_PUBLIC_STOREFRONT_WHATSAPP?.replace(/\D/g, "") ?? "";
-  if (!raw) return null;
+  const digits = normalizeWhatsApp(process.env.NEXT_PUBLIC_STOREFRONT_WHATSAPP);
+  if (!digits) return null;
   const text = encodeURIComponent(
     "Hi! I'd like to know which areas you deliver to.",
   );
-  return `https://wa.me/${raw}?text=${text}`;
+  return `https://wa.me/${digits}?text=${text}`;
 }
 
 /** Soft format: 712 345 678 */

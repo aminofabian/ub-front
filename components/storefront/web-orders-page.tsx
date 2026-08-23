@@ -13,6 +13,7 @@ import {
   Loader2,
   MessageCircle,
   Package,
+  PhoneCall,
   Printer,
   RefreshCw,
   ShoppingBag,
@@ -106,6 +107,40 @@ function waReplyHref(
   if (!digits) return "https://wa.me/";
   const text = `Hi ${(name ?? "").trim() || "there"}, thanks for order ${cartOrderCode(orderId)}. Everything is available — total ${fmtMoney(grandTotal, currency || "KES")}. Pay by …`;
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+}
+
+/** "Chat not confirmed" hint (§12): opened long ago but nothing moved, or expired. */
+function whatsAppHint(
+  detail: WebOrderDetail | null,
+): { tone: "stale" | "expired"; text: string } | null {
+  if (!detail) return null;
+  const isWa =
+    detail.channel === "WHATSAPP" ||
+    (detail.notes ?? "").toLowerCase().includes("channel: whatsapp");
+  if (!isWa) return null;
+  const fulfillment = (detail.fulfillmentStatus ?? "").trim().toLowerCase();
+  const unconfirmed = !fulfillment || fulfillment === "awaiting_confirmation";
+  if (!unconfirmed) return null;
+  const now = Date.now();
+  const expired =
+    detail.handoffState === "expired" ||
+    (detail.expiresAt ? new Date(detail.expiresAt).getTime() <= now : false);
+  if (expired) {
+    return {
+      tone: "expired",
+      text: "This order was never confirmed — its stock reservation was released. Confirm it to reserve again, or call the shopper.",
+    };
+  }
+  const openedAt = detail.handoffOpenedAt
+    ? new Date(detail.handoffOpenedAt).getTime()
+    : null;
+  if (openedAt && now - openedAt >= 60 * 60 * 1000) {
+    return {
+      tone: "stale",
+      text: "The shopper opened WhatsApp but may not have sent it — worth a call.",
+    };
+  }
+  return null;
 }
 
 function labelStatus(raw: string | null | undefined): string {
@@ -571,6 +606,23 @@ export function WebOrdersPage() {
                     Reply on WhatsApp
                   </a>
                 ) : null}
+                {(() => {
+                  const hint = whatsAppHint(detail);
+                  if (!hint) return null;
+                  return (
+                    <p
+                      className={cn(
+                        "mt-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs leading-relaxed",
+                        hint.tone === "expired"
+                          ? "border-amber-300 bg-amber-50 text-amber-900"
+                          : "border-sky-200 bg-sky-50 text-sky-900",
+                      )}
+                    >
+                      <PhoneCall className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                      {hint.text}
+                    </p>
+                  );
+                })()}
               </div>
 
               <div className="flex flex-wrap gap-2">
