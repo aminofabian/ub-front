@@ -11107,3 +11107,145 @@ export async function payStaffPayroll(
     { method: "POST", body },
   );
 }
+
+// ---------------------------------------------------------------- nightly restock digest
+
+export type RestockSuggestionStatus =
+  | "pending"
+  | "accepted"
+  | "snoozed"
+  | "dismissed";
+
+export type RestockSuggestionRecord = {
+  id: string;
+  runId: string;
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  supplierId: string | null;
+  supplierName: string | null;
+  target: "po" | "pad";
+  onHand: number | string;
+  inbound: number | string;
+  reorderLevel: number | string | null;
+  par: number | string;
+  suggestedQty: number | string;
+  acceptedQty: number | string | null;
+  unitCost: number | string | null;
+  packSize: number | string | null;
+  leadTimeDays: number | null;
+  reasonCode: string;
+  evidence: string;
+  confidence: "high" | "medium" | "low";
+  status: RestockSuggestionStatus;
+  snoozeUntil: string | null;
+  purchaseOrderId: string | null;
+  orderPadItemId: string | null;
+  createdAt: string;
+};
+
+export type RestockRunStatus =
+  | "generated"
+  | "notified"
+  | "partially_accepted"
+  | "accepted"
+  | "expired";
+
+export type RestockRunRecord = {
+  id: string;
+  businessId: string;
+  branchId: string;
+  branchName: string;
+  runDate: string;
+  generatedAt: string;
+  status: RestockRunStatus;
+  lineCount: number;
+  poLineCount: number;
+  padLineCount: number;
+  estTotal: number | string;
+  currency: string;
+  trigger: string;
+  errorNote: string | null;
+  suggestions: RestockSuggestionRecord[];
+};
+
+export type RestockCreatedPoRecord = {
+  purchaseOrderId: string;
+  poNumber: string;
+  supplierId: string;
+  supplierName: string;
+  lineCount: number;
+};
+
+export type RestockSkippedLineRecord = {
+  suggestionId: string;
+  itemId: string;
+  itemName: string;
+  reason: string;
+};
+
+export type RestockAcceptResponse = {
+  run: RestockRunRecord;
+  purchaseOrders: RestockCreatedPoRecord[];
+  padLinesCreated: number;
+  skippedLines: RestockSkippedLineRecord[];
+};
+
+export type RestockAcceptPayload = {
+  lineIds?: string[];
+  qtyOverrides?: Record<string, number | string>;
+  mode?: "po" | "pad" | "all";
+};
+
+export async function fetchRestockRun(
+  runId: string,
+): Promise<RestockRunRecord> {
+  return request<RestockRunRecord>(
+    `/api/v1/inventory/restock/runs/${encodeURIComponent(runId)}`,
+  );
+}
+
+export type RestockActiveRunRecord = {
+  runId: string | null;
+  runDate: string | null;
+  status: RestockRunStatus | null;
+  lineCount: number;
+};
+
+export async function fetchRestockActiveRun(
+  branchId: string,
+): Promise<RestockActiveRunRecord> {
+  const params = new URLSearchParams({ branchId: branchId.trim() });
+  return request<RestockActiveRunRecord>(
+    `/api/v1/inventory/restock/runs/active?${params}`,
+  );
+}
+
+export async function postRestockRunAccept(
+  runId: string,
+  body: RestockAcceptPayload,
+): Promise<RestockAcceptResponse> {
+  return request<RestockAcceptResponse>(
+    `/api/v1/inventory/restock/runs/${encodeURIComponent(runId)}/accept`,
+    { method: "POST", body },
+  );
+}
+
+export async function postRestockSuggestionDismiss(
+  suggestionId: string,
+): Promise<RestockRunRecord> {
+  return request<RestockRunRecord>(
+    `/api/v1/inventory/restock/suggestions/${encodeURIComponent(suggestionId)}/dismiss`,
+    { method: "POST" },
+  );
+}
+
+export async function postRestockSuggestionSnooze(
+  suggestionId: string,
+  days: number,
+): Promise<RestockRunRecord> {
+  return request<RestockRunRecord>(
+    `/api/v1/inventory/restock/suggestions/${encodeURIComponent(suggestionId)}/snooze`,
+    { method: "POST", body: { days } },
+  );
+}

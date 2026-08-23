@@ -24,6 +24,7 @@ import {
   type CSSProperties,
 } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   Search,
@@ -43,6 +44,7 @@ import {
   Loader2,
   ImagePlus,
   ClipboardCheck,
+  ClipboardList,
 } from "lucide-react";
 
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
@@ -60,10 +62,12 @@ import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { cn } from "@/lib/utils";
 import {
   fetchItems,
+  fetchRestockActiveRun,
   postStandaloneWastage,
   setPosItemWeighed,
   uploadItemImageFile,
   type ItemSummaryRecord,
+  type RestockActiveRunRecord,
   itemListThumbnailUrl,
 } from "@/lib/api";
 import {
@@ -631,6 +635,26 @@ export function GroceryWorkspace() {
   const activeBranchName = useMemo(() => {
     return branches.find((b) => b.id === branchId)?.name?.trim() ?? "";
   }, [branches, branchId]);
+
+  // "Tonight's list" chip — shows when the branch has an actionable digest run.
+  const [activeRestockRun, setActiveRestockRun] = useState<RestockActiveRunRecord | null>(null);
+  useEffect(() => {
+    if (!online || !branchId?.trim()) {
+      setActiveRestockRun(null);
+      return;
+    }
+    let cancelled = false;
+    fetchRestockActiveRun(branchId.trim())
+      .then((r) => {
+        if (!cancelled) setActiveRestockRun(r.runId && r.lineCount > 0 ? r : null);
+      })
+      .catch(() => {
+        if (!cancelled) setActiveRestockRun(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [online, branchId]);
 
   const showDepartmentRail = itemTypes.length > 1;
 
@@ -1399,6 +1423,19 @@ export function GroceryWorkspace() {
                   <span className="inline-flex items-center gap-1 border-l border-white/20 pl-2">
                     {activeDepartmentLabel}
                   </span>
+                ) : null}
+                {activeRestockRun?.runId ? (
+                  <Link
+                    href={`/inventory/restock-digest/${activeRestockRun.runId}`}
+                    title={`Tonight's list — ${activeRestockRun.lineCount} items`}
+                    className="inline-flex max-w-full items-center gap-1 border-l border-white/20 pl-2 font-semibold text-[var(--pos-primary-ink,#fff)] underline-offset-2 hover:underline"
+                  >
+                    <ClipboardList className="size-3 shrink-0" aria-hidden />
+                    <span className="truncate">Tonight&apos;s list</span>
+                    <span className="rounded-none bg-white/25 px-1 text-[10px] font-bold tabular-nums">
+                      {activeRestockRun.lineCount}
+                    </span>
+                  </Link>
                 ) : null}
                 {cashierName ? (
                   <span className="hidden border-l border-white/20 pl-2 sm:inline">
