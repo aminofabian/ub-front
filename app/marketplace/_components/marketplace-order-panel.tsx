@@ -60,6 +60,7 @@ import {
 import {
   marketplacePassportProductPath,
   marketplaceSupplierOrderPath,
+  marketplaceSupplierPath,
   parseMarketplaceOrderQuery,
   supplierPortalClaimPath,
 } from "@/lib/marketplace-url";
@@ -591,6 +592,14 @@ export function MarketplaceOrderWorkspace({
       ? shareableOrderPath
       : `${window.location.origin}${shareableOrderPath}`;
 
+  /** Short supplier passport link for WhatsApp — order lines are already in the message. */
+  const cataloguePageUrl = () => {
+    const path = marketplaceSupplierPath(detail);
+    return typeof window === "undefined"
+      ? path
+      : `${window.location.origin}${path}`;
+  };
+
   const orderPdfInput = (includePrices = true) => ({
     supplierName: detail.name,
     supplierPhone: detail.contactPhone,
@@ -688,7 +697,7 @@ export function MarketplaceOrderWorkspace({
         supplierName: detail.name,
         lines: orderLines,
         filename: orderFilename,
-        catalogueUrl: orderUrl(),
+        catalogueUrl: cataloguePageUrl(),
         totalOverride: roundingActive ? effectiveTotal : undefined,
       });
       if (wa) {
@@ -744,7 +753,7 @@ export function MarketplaceOrderWorkspace({
       buildMarketplaceOrderText(orderLines, {
         supplierName: detail.name,
         filename: orderFilename,
-        catalogueUrl: orderUrl(),
+        catalogueUrl: cataloguePageUrl(),
         totalOverride: roundingActive ? effectiveTotal : undefined,
       }),
       "Order list",

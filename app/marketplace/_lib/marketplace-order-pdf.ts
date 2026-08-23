@@ -611,8 +611,7 @@ export function buildMarketplaceOrderText(
       const lineTotal = line.totalOverride ?? line.unitPrice * line.qty;
       estimatedTotal += lineTotal;
       pricedCount += 1;
-      const rounded = line.totalOverride != null ? " (rounded)" : "";
-      return `${name} × ${line.qty} @ ${waMoney(line.unitPrice, currency)} → ${waMoney(lineTotal, currency)}${rounded}`;
+      return `${name} × ${line.qty} @ ${waMoney(line.unitPrice, currency)} → ${waMoney(lineTotal, currency)}`;
     }
     return `${name} × ${line.qty}`;
   });
