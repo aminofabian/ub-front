@@ -7,7 +7,10 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  Copy,
+  Link2,
   Loader2,
+  MessageCircle,
   Package,
   Search,
   ShoppingCart,
@@ -16,15 +19,21 @@ import {
 import { toast } from "sonner";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import {
+  buildMarketplaceOrderText,
+  buildWhatsAppOrderUrl,
+} from "@/app/marketplace/_lib/marketplace-order-pdf";
 import { getSessionTenantId } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchSupplierContacts,
   fetchSupplierItemLinks,
   fetchSuppliers,
   postPathAPurchaseOrder,
   postPathAPurchaseOrderLine,
   postPathAPurchaseOrderSend,
   postPathAPurchaseOrderSendToSupplier,
+  type SupplierContactRecord,
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
@@ -34,6 +43,13 @@ import {
   writeOrderCartDraft,
   type OrderCartQty,
 } from "@/lib/order-cart-storage";
+import {
+  encodeTenantCartTicket,
+  matchOrderTicketToLinks,
+  parseOrderTicket,
+  parseOrderTicketFromInput,
+  tenantOrderTicketPath,
+} from "@/lib/order-ticket";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
 
@@ -42,6 +58,15 @@ import { type OrderParentOption } from "./order-parent-floater";
 const ORDER_CURRENCY = "KES";
 
 type CartQty = OrderCartQty;
+
+async function copyText(value: string, label: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
+  } catch {
+    toast.error(`Could not copy ${label.toLowerCase()}`);
+  }
+}
 
 function toNum(v: unknown): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -95,17 +120,32 @@ function linkParentLabel(link: SupplierItemLinkRecord): string {
   return sep > 0 ? name.slice(0, sep) : name;
 }
 
-export function TenantOrderWorkspace() {
+export function TenantOrderWorkspace({
+  initialTicket = null,
+  initialSupplierId = null,
+  initialMarketplaceSupplierId = null,
+  initialRoundTo10 = false,
+}: {
+  /** Shared order ticket from `/order?ticket=` or marketplace `?o=`. */
+  initialTicket?: string | null;
+  initialSupplierId?: string | null;
+  initialMarketplaceSupplierId?: string | null;
+  initialRoundTo10?: boolean;
+} = {}) {
   const { branchId } = useDashboard();
   const businessId = getSessionTenantId()?.trim() ?? "";
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
-  const [supplierId, setSupplierId] = useState<string | null>(null);
+  const [supplierId, setSupplierId] = useState<string | null>(
+    initialSupplierId?.trim() || null,
+  );
   const [links, setLinks] = useState<SupplierItemLinkRecord[]>([]);
+  const [contacts, setContacts] = useState<SupplierContactRecord[]>([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(true);
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [filter, setFilter] = useState("");
   const [cart, setCart] = useState<CartQty>({});
   const [placing, setPlacing] = useState(false);
+  const [whatsapping, setWhatsapping] = useState(false);
   const [supplierQuery, setSupplierQuery] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [parentFilterId, setParentFilterId] = useState<string | null>(null);
@@ -113,8 +153,12 @@ export function TenantOrderWorkspace() {
   const [supplierPickerOpen, setSupplierPickerOpen] = useState(false);
   /** Round the order total to the nearest 10 (default on; toggle in the footer). */
   const [roundTo10, setRoundTo10] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
   const cartsBySupplierRef = useRef<Record<string, CartQty>>({});
   const supplierIdRef = useRef<string | null>(null);
+  const ticketAppliedRef = useRef(false);
+  const pendingTicketRef = useRef(parseOrderTicket(initialTicket));
   supplierIdRef.current = supplierId;
 
   const persistDraft = (
@@ -145,16 +189,25 @@ export function TenantOrderWorkspace() {
     const draft = readOrderCartDraft(businessId, branchId);
     if (draft) {
       cartsBySupplierRef.current = draft.cartsBySupplier;
-      if (draft.selectedSupplierId) {
-        setSupplierId(draft.selectedSupplierId);
-        setCart(draft.cartsBySupplier[draft.selectedSupplierId] ?? {});
+      const preferred =
+        initialSupplierId?.trim() ||
+        draft.selectedSupplierId ||
+        null;
+      if (preferred) {
+        setSupplierId(preferred);
+        // Shared tickets replace the draft cart for that supplier.
+        if (pendingTicketRef.current.length > 0) {
+          setCart({});
+        } else {
+          setCart(draft.cartsBySupplier[preferred] ?? {});
+        }
       }
     } else {
       cartsBySupplierRef.current = {};
-      setCart({});
+      if (!initialSupplierId?.trim()) setCart({});
     }
     setHydrated(true);
-  }, [businessId, branchId]);
+  }, [businessId, branchId, initialSupplierId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,8 +221,18 @@ export function TenantOrderWorkspace() {
         setSuppliers(active);
         setSupplierId((current) => {
           if (current && active.some((s) => s.id === current)) return current;
+          const fromMarketplace = initialMarketplaceSupplierId?.trim();
+          if (fromMarketplace) {
+            const linked = active.find(
+              (s) => s.marketplaceSupplierId === fromMarketplace,
+            );
+            if (linked) return linked.id;
+          }
+          const fromSid = initialSupplierId?.trim();
+          if (fromSid && active.some((s) => s.id === fromSid)) return fromSid;
           return active[0]?.id ?? null;
         });
+        if (initialRoundTo10) setRoundTo10(true);
       })
       .catch((error) => {
         toast.error(
@@ -182,7 +245,25 @@ export function TenantOrderWorkspace() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialMarketplaceSupplierId, initialRoundTo10, initialSupplierId]);
+
+  useEffect(() => {
+    if (!supplierId) {
+      setContacts([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchSupplierContacts(supplierId)
+      .then((rows) => {
+        if (!cancelled) setContacts(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setContacts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [supplierId]);
 
   useEffect(() => {
     if (!supplierId) {
@@ -213,6 +294,35 @@ export function TenantOrderWorkspace() {
       cancelled = true;
     };
   }, [supplierId, branchId]);
+
+  // Apply a shared order ticket once the supplier catalogue is ready.
+  useEffect(() => {
+    if (ticketAppliedRef.current) return;
+    if (loadingLinks || links.length === 0) return;
+    const pending = pendingTicketRef.current;
+    if (pending.length === 0) {
+      ticketAppliedRef.current = true;
+      return;
+    }
+    const result = matchOrderTicketToLinks(pending, links);
+    ticketAppliedRef.current = true;
+    pendingTicketRef.current = [];
+    if (result.matched === 0) {
+      toast.error("Could not match that shared order to this supplier’s catalogue");
+      return;
+    }
+    setCart(result.cart);
+    setMobileOrderOpen(true);
+    if (result.missed.length > 0) {
+      toast.message(
+        `Loaded ${result.matched} line${result.matched === 1 ? "" : "s"} · ${result.missed.length} unmatched`,
+      );
+    } else {
+      toast.success(
+        `Loaded shared order · ${result.matched} line${result.matched === 1 ? "" : "s"}`,
+      );
+    }
+  }, [loadingLinks, links]);
 
   useEffect(() => {
     setParentFilterId(null);
@@ -326,10 +436,6 @@ export function TenantOrderWorkspace() {
     });
   }, [links, filter, parentFilterId]);
 
-  const activeParentLabel = parentFilterId
-    ? parentOptions.find((p) => p.id === parentFilterId)?.label ?? null
-    : null;
-
   const cartLines = useMemo(
     () =>
       links
@@ -353,6 +459,219 @@ export function TenantOrderWorkspace() {
   const effectiveTotal = roundTo10 ? roundedTotal : cartTotal;
   const roundingActive = roundTo10 && roundedTotal !== cartTotal;
 
+  const supplierPhone = useMemo(() => {
+    const primary =
+      contacts.find((c) => c.primaryContact)?.phone?.trim() ||
+      contacts.find((c) => c.phone?.trim())?.phone?.trim() ||
+      activeSupplier?.payoutPhone?.trim() ||
+      null;
+    return primary;
+  }, [contacts, activeSupplier]);
+
+  const orderTicketPath = useMemo(() => {
+    if (!supplierId || cartLines.length === 0) return APP_ROUTES.order;
+    return tenantOrderTicketPath({
+      ticket: encodeTenantCartTicket(cartLines),
+      supplierId,
+      marketplaceSupplierId: activeSupplier?.marketplaceSupplierId,
+      roundTo10: roundingActive,
+    });
+  }, [activeSupplier?.marketplaceSupplierId, cartLines, roundingActive, supplierId]);
+
+  const orderTicketUrl = () => {
+    const path = orderTicketPath;
+    return typeof window === "undefined"
+      ? path
+      : `${window.location.origin}${path}`;
+  };
+
+  const whatsappLines = useMemo(
+    () =>
+      cartLines.map(({ link, qty }) => ({
+        name: link.itemName,
+        sku: link.sku,
+        barcode: link.barcode,
+        qty,
+        unitPrice: unitCost(link) || null,
+        currency: ORDER_CURRENCY,
+      })),
+    [cartLines],
+  );
+
+  const applyImportedTicket = (raw: string) => {
+    const lines = parseOrderTicketFromInput(raw);
+    if (lines.length === 0) {
+      toast.error("That doesn’t look like a shareable order link");
+      return;
+    }
+    if (links.length === 0) {
+      pendingTicketRef.current = lines;
+      ticketAppliedRef.current = false;
+      toast.message("Pick a supplier — we’ll load the ticket onto their catalogue");
+      setImportOpen(false);
+      setImportText("");
+      return;
+    }
+    const result = matchOrderTicketToLinks(lines, links);
+    if (result.matched === 0) {
+      toast.error("No products on this supplier matched that order");
+      return;
+    }
+    setCart(result.cart);
+    setImportOpen(false);
+    setImportText("");
+    setMobileOrderOpen(true);
+    toast.success(
+      `Imported ${result.matched} line${result.matched === 1 ? "" : "s"}${
+        result.missed.length ? ` · ${result.missed.length} skipped` : ""
+      }`,
+    );
+  };
+
+  const savePurchaseOrder = async (): Promise<string | null> => {
+    if (!supplierId || !activeSupplier) {
+      toast.error("Pick a supplier first");
+      return null;
+    }
+    if (!branchId.trim()) {
+      toast.error("Select a branch before ordering");
+      return null;
+    }
+    if (cartLines.length === 0) {
+      toast.error("Add products to the order");
+      return null;
+    }
+
+    const linesToPost = cartLines.map((line) => ({
+      itemId: line.link.itemId,
+      qtyOrdered: line.qty,
+      unitEstimatedCost: unitCost(line.link),
+    }));
+    if (roundingActive && linesToPost.length > 0) {
+      const last = linesToPost[linesToPost.length - 1];
+      const diff = Math.round((effectiveTotal - cartTotal) * 100) / 100;
+      last.unitEstimatedCost =
+        Math.round((last.unitEstimatedCost + diff / last.qtyOrdered) * 10000) /
+        10000;
+    }
+
+    const po = await postPathAPurchaseOrder({
+      supplierId,
+      branchId: branchId.trim(),
+      notes: "Created from Order",
+    });
+    for (const line of linesToPost) {
+      await postPathAPurchaseOrderLine(po.id, {
+        itemId: line.itemId,
+        qtyOrdered: line.qtyOrdered,
+        unitEstimatedCost: line.unitEstimatedCost,
+      });
+    }
+    try {
+      await postPathAPurchaseOrderSendToSupplier(po.id, { toast: false });
+    } catch {
+      await postPathAPurchaseOrderSend(po.id);
+    }
+
+    setCart({});
+    if (businessId) {
+      clearOrderCartForSupplier({
+        businessId,
+        branchId,
+        supplierId,
+      });
+      const maps = { ...cartsBySupplierRef.current };
+      delete maps[supplierId];
+      cartsBySupplierRef.current = maps;
+    }
+    return po.poNumber;
+  };
+
+  const openWhatsAppOrder = async (opts?: { savedPoNumber?: string | null }) => {
+    if (whatsappLines.length === 0) {
+      toast.error("Add products to the order");
+      return false;
+    }
+    const filename = `order-${(activeSupplier?.name || "supplier")
+      .replace(/\s+/g, "-")
+      .toLowerCase()
+      .slice(0, 40)}.pdf`;
+    const ticketUrl = orderTicketUrl();
+    const shortOrderUrl =
+      typeof window === "undefined"
+        ? APP_ROUTES.order
+        : `${window.location.origin}${APP_ROUTES.order}${
+            supplierId ? `?sid=${encodeURIComponent(supplierId)}` : ""
+          }`;
+    const wa = buildWhatsAppOrderUrl({
+      phone: supplierPhone,
+      supplierName: activeSupplier?.name || "Supplier",
+      lines: whatsappLines,
+      filename,
+      catalogueUrl: shortOrderUrl,
+      totalOverride: roundingActive ? effectiveTotal : undefined,
+    });
+    if (wa) {
+      window.open(wa, "_blank", "noopener,noreferrer");
+      toast.success(
+        opts?.savedPoNumber
+          ? `Order ${opts.savedPoNumber} saved — WhatsApp opened`
+          : "WhatsApp opened with your order ticket",
+      );
+      return true;
+    }
+
+    // No supplier phone — share the ticket text so the receiver can open /order.
+    const text = buildMarketplaceOrderText(whatsappLines, {
+      supplierName: activeSupplier?.name || "Supplier",
+      filename,
+      catalogueUrl: ticketUrl,
+      totalOverride: roundingActive ? effectiveTotal : undefined,
+    });
+    await copyText(text, "Order message");
+    toast.message(
+      "No supplier WhatsApp number — order message copied. Paste it to the person receiving.",
+    );
+    return false;
+  };
+
+  const placeOrder = async (alsoWhatsApp = false) => {
+    setPlacing(true);
+    if (alsoWhatsApp) setWhatsapping(true);
+    try {
+      const poNumber = await savePurchaseOrder();
+      if (!poNumber) return;
+      if (alsoWhatsApp) {
+        await openWhatsAppOrder({ savedPoNumber: poNumber });
+      } else {
+        toast.success(`Order ${poNumber} placed — confirm when goods arrive`);
+      }
+      setMobileOrderOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not place order");
+    } finally {
+      setPlacing(false);
+      setWhatsapping(false);
+    }
+  };
+
+  const whatsappOnly = async () => {
+    setWhatsapping(true);
+    try {
+      await openWhatsAppOrder();
+    } finally {
+      setWhatsapping(false);
+    }
+  };
+
+  const copyOrderTicket = async () => {
+    if (cartLines.length === 0) {
+      toast.error("Add products to the order");
+      return;
+    }
+    await copyText(orderTicketUrl(), "Order ticket link");
+  };
+
   const setQty = (itemId: string, qty: number) => {
     setCart((prev) => {
       const next = { ...prev };
@@ -361,76 +680,6 @@ export function TenantOrderWorkspace() {
       return next;
     });
   };
-
-  const placeOrder = async () => {
-    if (!supplierId || !activeSupplier) {
-      toast.error("Pick a supplier first");
-      return;
-    }
-    if (!branchId.trim()) {
-      toast.error("Select a branch before ordering");
-      return;
-    }
-    if (cartLines.length === 0) {
-      toast.error("Add products to the order");
-      return;
-    }
-    setPlacing(true);
-    try {
-      // When rounding is on, nudge the last line's estimated unit cost so the
-      // recorded order total lands on the rounded figure (diff is a few cents).
-      const linesToPost = cartLines.map((line) => ({
-        itemId: line.link.itemId,
-        qtyOrdered: line.qty,
-        unitEstimatedCost: unitCost(line.link),
-      }));
-      if (roundingActive && linesToPost.length > 0) {
-        const last = linesToPost[linesToPost.length - 1];
-        const diff = Math.round((effectiveTotal - cartTotal) * 100) / 100;
-        last.unitEstimatedCost =
-          Math.round((last.unitEstimatedCost + diff / last.qtyOrdered) * 10000) /
-          10000;
-      }
-      const po = await postPathAPurchaseOrder({
-        supplierId,
-        branchId: branchId.trim(),
-        notes: "Created from Order marketplace",
-      });
-      for (const line of linesToPost) {
-        await postPathAPurchaseOrderLine(po.id, {
-          itemId: line.itemId,
-          qtyOrdered: line.qtyOrdered,
-          unitEstimatedCost: line.unitEstimatedCost,
-        });
-      }
-      try {
-        await postPathAPurchaseOrderSendToSupplier(po.id, { toast: false });
-      } catch {
-        await postPathAPurchaseOrderSend(po.id);
-      }
-      setCart({});
-      if (businessId) {
-        clearOrderCartForSupplier({
-          businessId,
-          branchId,
-          supplierId,
-        });
-        const maps = { ...cartsBySupplierRef.current };
-        delete maps[supplierId];
-        cartsBySupplierRef.current = maps;
-      }
-      toast.success(`Order ${po.poNumber} placed — confirm when goods arrive`);
-      setMobileOrderOpen(false);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not place order");
-    } finally {
-      setPlacing(false);
-    }
-  };
-
-
-
-
 
   const familyChips = parentOptions.filter((o) => o.id !== "all");
   const showFamilies = familyChips.length >= 2;
@@ -539,22 +788,90 @@ export function TenantOrderWorkspace() {
       </div>
       <button
         type="button"
-        disabled={placing || cartLines.length === 0}
-        onClick={() => void placeOrder()}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[var(--pos-primary,#0f766e)] text-sm font-semibold text-white disabled:opacity-40"
+        disabled={placing || whatsapping || cartLines.length === 0}
+        onClick={() => void placeOrder(true)}
+        className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[#128c4a] text-sm font-semibold text-white disabled:opacity-40"
       >
-        {placing ? (
+        {placing || whatsapping ? (
           <>
             <Loader2 className="size-4 animate-spin" />
-            Placing…
+            {placing ? "Saving…" : "Opening WhatsApp…"}
           </>
         ) : (
           <>
-            <ShoppingCart className="size-4" />
-            Place order
+            <MessageCircle className="size-4" />
+            Save & WhatsApp
           </>
         )}
       </button>
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          disabled={placing || cartLines.length === 0}
+          onClick={() => void placeOrder(false)}
+          className="inline-flex h-9 items-center justify-center gap-1 border border-border bg-background text-[10px] font-semibold uppercase tracking-[0.06em] disabled:opacity-40"
+        >
+          <ShoppingCart className="size-3.5" />
+          Save only
+        </button>
+        <button
+          type="button"
+          disabled={whatsapping || cartLines.length === 0}
+          onClick={() => void whatsappOnly()}
+          className="inline-flex h-9 items-center justify-center gap-1 border border-border bg-background text-[10px] font-semibold uppercase tracking-[0.06em] disabled:opacity-40"
+        >
+          <MessageCircle className="size-3.5" />
+          WhatsApp
+        </button>
+        <button
+          type="button"
+          disabled={cartLines.length === 0}
+          onClick={() => void copyOrderTicket()}
+          className="inline-flex h-9 items-center justify-center gap-1 border border-border bg-background text-[10px] font-semibold uppercase tracking-[0.06em] disabled:opacity-40"
+        >
+          <Link2 className="size-3.5" />
+          Ticket
+        </button>
+      </div>
+      <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => setImportOpen((v) => !v)}
+          className="underline underline-offset-2 hover:text-foreground"
+        >
+          {importOpen ? "Hide import" : "Import marketplace / ticket link"}
+        </button>
+        {supplierPhone ? (
+          <span className="truncate font-mono tabular-nums">
+            WA {supplierPhone}
+          </span>
+        ) : (
+          <span>No supplier phone — Ticket still shares</span>
+        )}
+      </div>
+      {importOpen ? (
+        <div className="space-y-2 border border-dashed border-border/70 p-2">
+          <p className="text-[10px] leading-snug text-muted-foreground">
+            Paste a marketplace order URL (`?o=`) or an `/order?ticket=` link to
+            load it onto this supplier.
+          </p>
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            rows={2}
+            placeholder="https://…/marketplace/s/…?o=… or /order?ticket=…"
+            className="w-full resize-none border border-border bg-background px-2 py-1.5 text-[12px] outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => applyImportedTicket(importText)}
+            className="inline-flex h-8 w-full items-center justify-center gap-1.5 bg-[var(--pos-primary,#0f766e)] text-[11px] font-semibold text-white"
+          >
+            <Copy className="size-3.5" />
+            Load into this order
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 

@@ -58,6 +58,10 @@ import {
   groupCatalogProducts,
 } from "@/lib/marketplace-catalog-groups";
 import {
+  encodeOrderTicket,
+  tenantOrderTicketPath,
+} from "@/lib/order-ticket";
+import {
   marketplacePassportProductPath,
   marketplaceSupplierOrderPath,
   marketplaceSupplierPath,
@@ -580,6 +584,36 @@ export function MarketplaceOrderWorkspace({
         roundTo10,
       ),
     [cartLines, detail, roundedLineIds, roundTo10],
+  );
+
+  /** Bridge into tenant /order using SKU-first keys so shops can import the ticket. */
+  const tenantOrderBridgePath = useMemo(
+    () =>
+      tenantOrderTicketPath({
+        ticket: encodeOrderTicket(
+          cartLines.flatMap(({ product, qty }) => {
+            const key =
+              product.sku?.trim() ||
+              product.barcode?.trim() ||
+              product.slug?.trim();
+            if (!key || qty <= 0) return [];
+            const rawTotal = productLineTotal(product, qty);
+            return [
+              {
+                slug: key,
+                qty,
+                lineTotal:
+                  roundedLineIds[product.id] && rawTotal != null
+                    ? roundMoneyTo10(rawTotal)
+                    : undefined,
+              },
+            ];
+          }),
+        ),
+        marketplaceSupplierId: detail.id,
+        roundTo10,
+      }),
+    [cartLines, detail.id, roundedLineIds, roundTo10],
   );
 
   const orderFilename = `order-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
@@ -1115,6 +1149,7 @@ export function MarketplaceOrderWorkspace({
               roundedLineIds={roundedLineIds}
               roundTo10={roundTo10}
               orderHref={shareableOrderPath}
+              shopOrderHref={tenantOrderBridgePath}
               sending={sendingOrder}
               catalogueBusy={catalogueBusy}
               onSetQty={(productId, qty) => setQty(productId, qty)}
@@ -1224,6 +1259,7 @@ export function MarketplaceOrderWorkspace({
                 roundedLineIds={roundedLineIds}
                 roundTo10={roundTo10}
                 orderHref={shareableOrderPath}
+                shopOrderHref={tenantOrderBridgePath}
                 sending={sendingOrder}
                 catalogueBusy={catalogueBusy}
                 onSetQty={(productId, qty) => setQty(productId, qty)}
@@ -1850,6 +1886,7 @@ function OrderManifestPanel({
   roundedLineIds,
   roundTo10,
   orderHref,
+  shopOrderHref,
   sending,
   catalogueBusy,
   onSetQty,
@@ -1873,6 +1910,7 @@ function OrderManifestPanel({
   roundedLineIds: Record<string, boolean>;
   roundTo10: boolean;
   orderHref: string;
+  shopOrderHref?: string | null;
   sending: boolean;
   catalogueBusy: boolean;
   onSetQty: (productId: string, qty: number) => void;
@@ -2110,23 +2148,34 @@ function OrderManifestPanel({
             </button>
           </div>
           {lines.length > 0 ? (
-            <div className="flex h-8 items-stretch border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#faf7f1)]">
-              <Link
-                href={orderHref}
-                className="min-w-0 flex-1 truncate px-2 py-2 text-[9px] font-medium underline underline-offset-2 hover:text-foreground"
-                title={orderHref}
-              >
-                Shareable order link
-              </Link>
-              <button
-                type="button"
-                onClick={onCopyOrderLink}
-                className="inline-flex shrink-0 items-center gap-1 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2 text-[9px] font-semibold uppercase tracking-[0.06em] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
-                aria-label="Copy shareable order link"
-              >
-                <Copy className="size-3" />
-                Copy link
-              </button>
+            <div className="space-y-2">
+              <div className="flex h-8 items-stretch border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#faf7f1)]">
+                <Link
+                  href={orderHref}
+                  className="min-w-0 flex-1 truncate px-2 py-2 text-[9px] font-medium underline underline-offset-2 hover:text-foreground"
+                  title={orderHref}
+                >
+                  Shareable order link
+                </Link>
+                <button
+                  type="button"
+                  onClick={onCopyOrderLink}
+                  className="inline-flex shrink-0 items-center gap-1 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2 text-[9px] font-semibold uppercase tracking-[0.06em] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
+                  aria-label="Copy shareable order link"
+                >
+                  <Copy className="size-3" />
+                  Copy link
+                </button>
+              </div>
+              {shopOrderHref ? (
+                <Link
+                  href={shopOrderHref}
+                  className="inline-flex h-9 w-full items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--pos-ink,#1c1915)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)]"
+                >
+                  <ShoppingCart className="size-3.5" />
+                  Open in shop Order
+                </Link>
+              ) : null}
             </div>
           ) : null}
           <p className="text-center text-[10px] leading-snug text-muted-foreground">
