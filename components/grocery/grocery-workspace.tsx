@@ -42,7 +42,6 @@ import {
   Camera,
   Loader2,
   ImagePlus,
-  ClipboardList,
   ClipboardCheck,
 } from "lucide-react";
 
@@ -76,7 +75,7 @@ import {
 } from "@/components/cashier/cashier-qty-control";
 import { CashierReceiveTillDrawer } from "@/components/cashier/cashier-receive-till-drawer";
 import { CashierOrderConfirmDrawer } from "@/components/cashier/cashier-order-confirm-drawer";
-import { OrderPadDrawer } from "@/components/order-pad/order-pad-drawer";
+import { TenantOrderDrawer } from "@/components/order/tenant-order-drawer";
 import {
   GroceryModeSwitcher,
   groceryModeTitle,
@@ -1417,11 +1416,11 @@ export function GroceryWorkspace() {
               <button
                 type="button"
                 onClick={() => setOrderPadOpen(true)}
-                title="Order pad"
+                title="Order"
                 className="inline-flex items-center gap-1.5 rounded-none border border-white/25 bg-white/15 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--pos-primary-ink,#fff)] transition-colors hover:bg-white/25"
               >
-                <ClipboardList className="size-3" aria-hidden />
-                <span className="hidden min-[420px]:inline">Order pad</span>
+                <ShoppingBasket className="size-3" aria-hidden />
+                <span className="hidden min-[420px]:inline">Order</span>
               </button>
             ) : null}
             {allowGroceryOrderConfirm ? (
@@ -2130,11 +2129,17 @@ export function GroceryWorkspace() {
         supplierName={receiveTillSupplier?.name}
       />
 
-      <OrderPadDrawer
+      <TenantOrderDrawer
         open={orderPadOpen}
         onOpenChange={setOrderPadOpen}
-        branchId={branchId?.trim() ?? ""}
-        canWrite={allowGroceryOrderPad}
+        onOpenConfirm={
+          allowGroceryOrderConfirm
+            ? () => {
+                setOrderPadOpen(false);
+                setOrderConfirmOpen(true);
+              }
+            : undefined
+        }
       />
 
       <CashierOrderConfirmDrawer

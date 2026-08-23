@@ -114,8 +114,8 @@ export function canGroceryEditMinStock(
 }
 
 /**
- * Order pad chip — permission or grocery-role override (backend delegates
- * order_pad.* when the stockLevels flag is on).
+ * Supplier Order drawer — Path A place/WhatsApp (backend delegates path_a when
+ * the grocery Order flag is on).
  */
 export function canGroceryOrderPad(
   me: MeResponse | null | undefined,
@@ -124,7 +124,7 @@ export function canGroceryOrderPad(
   if (!groceryClerkOrderPadEnabled(business)) {
     return false;
   }
-  if (hasPermission(me?.permissions, Permission.OrderPadWrite)) {
+  if (hasPermission(me?.permissions, Permission.PurchasingPathAWrite)) {
     return true;
   }
   return isGroceryCounterRole(me);

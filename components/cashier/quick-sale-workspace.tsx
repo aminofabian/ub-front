@@ -384,7 +384,7 @@ export function QuickSaleWorkspace({
   const allowCreditTabs =
     variant === "cashier" && canCashierClearTabs(me, business);
   const allowOrderPad =
-    hasPermission(me?.permissions, Permission.OrderPadWrite) &&
+    hasPermission(me?.permissions, Permission.PurchasingPathAWrite) &&
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderPad] !== false;
   const allowOrderConfirm =
     hasPermission(me?.permissions, Permission.PurchasingPathAWrite) &&

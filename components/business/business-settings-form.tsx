@@ -1026,8 +1026,8 @@ export function BusinessSettingsForm({
                   }))
                 }
                 icon={<Warehouse className="size-4 text-muted-foreground" />}
-                title="Allow grocery clerks to use Order pad"
-                description="Shows Order pad on the grocery counter so clerks can list items to order."
+                title="Allow grocery clerks to use Order"
+                description="Shows Order on the grocery counter — the supplier order workspace (place PO + WhatsApp)."
               />
               <ToggleRow
                 checked={inventory.allowOrderConfirmForGroceryClerk}
@@ -1287,8 +1287,8 @@ export function BusinessSettingsForm({
                     orderPad: checked,
                   }))
                 }
-                title="Order pad on the till"
-                description="Show a full-screen Order pad drawer on cashier for staff with order-pad permission."
+                title="Order on the till"
+                description="Show a full-screen supplier Order drawer on cashier (place PO + WhatsApp) for staff with Path A purchasing permission."
               />
               <ToggleRow
                 checked={cashierCapabilities.orderConfirm}

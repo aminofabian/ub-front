@@ -845,7 +845,7 @@ export type StockLevelsSettingsRecord = {
   allowSpoilsForGroceryClerk?: boolean;
   /** Grocery Edit stock: set minimum / reorder. Default on when absent. */
   allowMinStockForGroceryClerk?: boolean;
-  /** Grocery Order pad drawer. Default on when absent. */
+  /** Grocery supplier Order drawer. Default on when absent. */
   allowOrderPadForGroceryClerk?: boolean;
   /** Grocery Confirm (Path A) drawer. Default on when absent. */
   allowOrderConfirmForGroceryClerk?: boolean;

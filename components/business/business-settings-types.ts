@@ -177,7 +177,7 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowSpoilsForGroceryClerk: true,
   /** Match backend: grocery min / reorder in Edit stock defaults on. */
   allowMinStockForGroceryClerk: true,
-  /** Match backend: grocery Order pad defaults on. */
+  /** Match backend: grocery supplier Order defaults on. */
   allowOrderPadForGroceryClerk: true,
   /** Match backend: grocery Confirm orders defaults on. */
   allowOrderConfirmForGroceryClerk: true,

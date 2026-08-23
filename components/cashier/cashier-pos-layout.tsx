@@ -14,7 +14,6 @@ import {
   Camera,
   ChevronLeft,
   ClipboardCheck,
-  ClipboardList,
   Loader2,
   LogOut,
   Package,
@@ -32,7 +31,7 @@ import { toast } from "sonner";
 
 import { useOptionalPosTillLock } from "@/components/auth/pos-till-lock";
 import { CashierOrderConfirmDrawer } from "@/components/cashier/cashier-order-confirm-drawer";
-import { OrderPadDrawer } from "@/components/order-pad/order-pad-drawer";
+import { TenantOrderDrawer } from "@/components/order/tenant-order-drawer";
 import { Button } from "@/components/ui/button";
 import {
   fetchItems,
@@ -1517,8 +1516,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 onClick={() => setOrderPadOpen(true)}
                 className={POS_PRIMARY_CHIP_CLASS}
               >
-                <ClipboardList className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                Order pad
+                <ShoppingCart className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                Order
               </button>
             ) : null}
             {allowOrderConfirm ? (
@@ -2446,14 +2445,20 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         receiptPrinter={cart.receiptPrinter}
       />
 
-      <OrderPadDrawer
+      <TenantOrderDrawer
         open={orderPadOpen}
         onOpenChange={(o) => {
           setOrderPadOpen(o);
           if (!o) window.requestAnimationFrame(() => focusSearch());
         }}
-        branchId={branchId}
-        canWrite={allowOrderPad}
+        onOpenConfirm={
+          allowOrderConfirm
+            ? () => {
+                setOrderPadOpen(false);
+                setOrderConfirmOpen(true);
+              }
+            : undefined
+        }
       />
 
       <CashierOrderConfirmDrawer

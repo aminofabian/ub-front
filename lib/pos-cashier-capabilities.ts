@@ -6,8 +6,8 @@ export const POS_CASHIER_CAPABILITY_FLAGS = {
   /** Owners/admins may upload product photos from the cashier shelf. */
   addPhoto: "pos.cashier_add_photo",
   /**
-   * Show Order pad on the till. Absent defaults to on; set false to hide
-   * even when the user has order-pad permission.
+   * Show supplier Order on the till. Absent defaults to on; set false to hide
+   * even when the user has Path A purchasing permission.
    */
   orderPad: "pos.cashier_order_pad",
   /**

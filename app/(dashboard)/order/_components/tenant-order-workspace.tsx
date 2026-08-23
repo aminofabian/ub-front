@@ -125,12 +125,18 @@ export function TenantOrderWorkspace({
   initialSupplierId = null,
   initialMarketplaceSupplierId = null,
   initialRoundTo10 = false,
+  embedded = false,
+  onOpenConfirm,
 }: {
   /** Shared order ticket from `/order?ticket=` or marketplace `?o=`. */
   initialTicket?: string | null;
   initialSupplierId?: string | null;
   initialMarketplaceSupplierId?: string | null;
   initialRoundTo10?: boolean;
+  /** Fill parent (e.g. till / grocery drawer) instead of page viewport height. */
+  embedded?: boolean;
+  /** When set, Confirm opens this callback instead of navigating to receive. */
+  onOpenConfirm?: () => void;
 } = {}) {
   const { branchId } = useDashboard();
   const businessId = getSessionTenantId()?.trim() ?? "";
@@ -879,8 +885,10 @@ export function TenantOrderWorkspace({
     <div
       className={cn(
         "relative flex w-full flex-col overflow-hidden border border-border bg-background font-sans",
-        /* Clear tablet header + floating bottom nav */
-        "h-[calc(100dvh-12.25rem)] min-h-[20rem] sm:h-[min(68dvh,46rem)]",
+        embedded
+          ? "h-full min-h-0 flex-1 border-0"
+          : /* Clear tablet header + floating bottom nav */
+            "h-[calc(100dvh-12.25rem)] min-h-[20rem] sm:h-[min(68dvh,46rem)]",
       )}
       style={{ ["--pos-primary" as string]: "#0f766e" }}
     >
@@ -904,13 +912,24 @@ export function TenantOrderWorkspace({
           </div>
           <ChevronDown className="size-4 shrink-0 text-muted-foreground lg:hidden" />
         </button>
-        <Link
-          href={APP_ROUTES.orderReceive}
-          className="inline-flex shrink-0 items-center gap-1.5 border-l border-border px-3 text-[12px] font-medium text-[var(--pos-primary,#0f766e)]"
-        >
-          <ClipboardList className="size-3.5" />
-          Confirm
-        </Link>
+        {onOpenConfirm ? (
+          <button
+            type="button"
+            onClick={onOpenConfirm}
+            className="inline-flex shrink-0 items-center gap-1.5 border-l border-border px-3 text-[12px] font-medium text-[var(--pos-primary,#0f766e)]"
+          >
+            <ClipboardList className="size-3.5" />
+            Confirm
+          </button>
+        ) : (
+          <Link
+            href={APP_ROUTES.orderReceive}
+            className="inline-flex shrink-0 items-center gap-1.5 border-l border-border px-3 text-[12px] font-medium text-[var(--pos-primary,#0f766e)]"
+          >
+            <ClipboardList className="size-3.5" />
+            Confirm
+          </Link>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">

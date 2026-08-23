@@ -218,11 +218,12 @@ export function CashierAdminCapabilitiesModal({
             />
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-foreground">
-                Order pad on till
+                Order on till
               </span>
               <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
-                Full-screen order pad drawer for staff who can write the order
-                pad. Flag: {POS_CASHIER_CAPABILITY_FLAGS.orderPad}
+                Full-screen supplier Order drawer (place PO + WhatsApp) for staff
+                with Path A purchasing. Flag:{" "}
+                {POS_CASHIER_CAPABILITY_FLAGS.orderPad}
               </span>
             </span>
           </label>
