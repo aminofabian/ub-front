@@ -100,6 +100,25 @@
   color: var(--fw-glow);
 }
 
+.navOwnerGroup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.navOwnerMuted {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(245 235 224 / 0.38);
+  text-decoration: none;
+}
+
+.navOwnerMuted:hover {
+  color: var(--fw-glow);
+}
+
 /* ---------- hero / window ---------- */
 .hero {
   position: relative;

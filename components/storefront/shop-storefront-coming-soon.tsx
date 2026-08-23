@@ -27,6 +27,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { cormorant } from "@/app/fonts/cormorant";
 import styles from "@/components/storefront/shop-storefront-coming-soon.module.css";
+import { LandingAccountAction } from "@/components/storefront/templates/landing/shared";
 import { buildComingSoonTheme, type ComingSoonTheme } from "@/lib/coming-soon-theme";
 import { APP_ROUTES } from "@/lib/config";
 import { hasAccessSession } from "@/lib/auth";
@@ -390,16 +391,19 @@ function ComingSoonPageBody({
             />
           )}
         </a>
-        <span
-          className="rounded-full border px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
-          style={{
-            borderColor: `color-mix(in srgb, ${theme.primary} 28%, transparent)`,
-            backgroundColor: theme.accentPale,
-            color: theme.primaryDeep,
-          }}
-        >
-          Opening Soon
-        </span>
+        <div className="flex items-center gap-3">
+          <LandingAccountAction className="text-[13px] font-medium text-[var(--cs-warm-gray)] underline-offset-4 hover:text-[var(--cs-charcoal)] hover:underline" />
+          <span
+            className="rounded-full border px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
+            style={{
+              borderColor: `color-mix(in srgb, ${theme.primary} 28%, transparent)`,
+              backgroundColor: theme.accentPale,
+              color: theme.primaryDeep,
+            }}
+          >
+            Opening Soon
+          </span>
+        </div>
       </nav>
 
       <MarqueeRibbon storeName={displayName} theme={theme} />

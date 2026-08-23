@@ -2,13 +2,14 @@
 
 import {
   ContactActions,
+  LandingAccountAction,
   LandingShell,
+  LANDING_STAFF_LOGIN_HREF,
   resolveLandingCopy,
 } from "@/components/storefront/templates/landing/shared";
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import type { LandingTemplateProps } from "@/components/storefront/templates/types";
 import Link from "next/link";
-import { APP_ROUTES } from "@/lib/config";
 
 export function BrandPosterLanding(props: LandingTemplateProps) {
   const brand = props.primaryHex || props.accentHex || "#171717";
@@ -57,12 +58,15 @@ export function BrandPosterLanding(props: LandingTemplateProps) {
             />
           </div>
         )}
-        <Link
-          href={APP_ROUTES.login}
-          className="mt-10 text-sm text-stone-500 underline-offset-4 hover:underline"
-        >
-          Owner login
-        </Link>
+        <div className="mt-10 flex flex-col items-center gap-1.5">
+          <LandingAccountAction className="text-sm text-stone-500 underline-offset-4 hover:underline" />
+          <Link
+            href={LANDING_STAFF_LOGIN_HREF}
+            className="text-xs text-stone-400 underline-offset-4 hover:underline"
+          >
+            Staff
+          </Link>
+        </div>
       </div>
     </LandingShell>
   );

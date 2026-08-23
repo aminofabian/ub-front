@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
 import { APP_ROUTES } from "@/lib/config";
 import type { LandingContent } from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { getSessionTokens } from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
 
@@ -84,6 +86,48 @@ export function LandingShell({
   );
 }
 
+/**
+ * Where a signed-out shopper lands after signing in from a landing template:
+ * the account page — a coming-soon shop has no catalog page to return to (§7).
+ */
+const LANDING_ACCOUNT_LOGIN_HREF = `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`;
+
+/** Demoted owner/staff door shared by every landing template (D5). */
+export const LANDING_STAFF_LOGIN_HREF = `${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`;
+
+/**
+ * Shopper door for landing templates (D4). Still plain navigation to `/login`
+ * in Phase 1; the Phase 2 sheet intercepts the click. The template owns all
+ * styling via `className`/`style` (Phase 0 contract); a glyph can replace the
+ * label via `children`.
+ */
+export function LandingAccountAction({
+  className,
+  style,
+  children,
+}: {
+  className?: string;
+  style?: CSSProperties;
+  /** Theme glyph rendered instead of the text label. */
+  children?: ReactNode;
+}) {
+  const ready = useClientSessionReady();
+  const signedIn = useClientHasSession();
+  const isSignedIn = ready && signedIn;
+  const label = isSignedIn ? "My orders" : "Sign in";
+
+  return (
+    <Link
+      href={isSignedIn ? APP_ROUTES.shopAccount : LANDING_ACCOUNT_LOGIN_HREF}
+      className={className}
+      style={style}
+      aria-label={label}
+    >
+      {children ?? label}
+    </Link>
+  );
+}
+
 export function LandingBrandHeader({
   storeName,
   logoUrl,
@@ -116,18 +160,26 @@ export function LandingBrandHeader({
           </p>
         </div>
       </div>
-      <Link
-        href={APP_ROUTES.login}
-        className={cn(
-          "shrink-0 text-sm font-medium underline-offset-4 hover:underline",
-          light ? "text-white/80" : "text-stone-600",
-        )}
-        style={
-          !light && primaryHex ? { color: primaryHex } : undefined
-        }
-      >
-        Owner login
-      </Link>
+      <div className="flex shrink-0 items-center gap-2.5">
+        <LandingAccountAction
+          className={cn(
+            "text-sm font-medium underline-offset-4 hover:underline",
+            light ? "text-white/80" : "text-stone-600",
+          )}
+          style={
+            !light && primaryHex ? { color: primaryHex } : undefined
+          }
+        />
+        <Link
+          href={LANDING_STAFF_LOGIN_HREF}
+          className={cn(
+            "text-xs font-medium underline-offset-4 hover:underline",
+            light ? "text-white/55" : "text-stone-400",
+          )}
+        >
+          Staff
+        </Link>
+      </div>
     </header>
   );
 }

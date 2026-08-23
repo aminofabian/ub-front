@@ -7,11 +7,12 @@ import { frontWindowFontVariables } from "@/components/storefront/templates/land
 import styles from "@/components/storefront/templates/landing/front-window.module.css";
 import {
   ContactActions,
+  LandingAccountAction,
   LandingShell,
+  LANDING_STAFF_LOGIN_HREF,
   resolveLandingCopy,
 } from "@/components/storefront/templates/landing/shared";
 import type { LandingTemplateProps } from "@/components/storefront/templates/types";
-import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 const CARRY = [
@@ -110,9 +111,16 @@ export function FrontWindowLanding(props: LandingTemplateProps) {
               </a>
             </li>
           </ul>
-          <Link href={APP_ROUTES.login} className={styles.navOwner}>
-            Owner
-          </Link>
+          <div className={styles.navOwnerGroup}>
+            <LandingAccountAction className={styles.navOwner} />
+            <Link
+              href={LANDING_STAFF_LOGIN_HREF}
+              className={styles.navOwnerMuted}
+              aria-label="Staff sign-in"
+            >
+              Staff
+            </Link>
+          </div>
         </div>
       </nav>
 
