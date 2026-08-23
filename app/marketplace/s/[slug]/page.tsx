@@ -5,8 +5,10 @@ import { APP_BASE_URL } from "@/lib/config";
 import { tryFetchMarketplaceSupplierBySlug } from "@/lib/marketplace-api";
 import {
   marketplaceSupplierDescription,
+  marketplaceSupplierOrderPath,
   marketplaceSupplierPath,
   marketplaceSupplierSlugIsCanonical,
+  parseMarketplaceOrderQuery,
 } from "@/lib/marketplace-url";
 import {
   marketplaceWholesaleSupplierTitle,
@@ -22,8 +24,17 @@ import { MarketplacePageFrame } from "../../_components/marketplace-page-frame";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ p?: string | string[] }>;
+  searchParams: Promise<{
+    p?: string | string[];
+    o?: string | string[];
+    r?: string | string[];
+  }>;
 };
+
+function firstQueryValue(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -73,13 +84,20 @@ export default async function MarketplaceSupplierSlugPage({
 }: PageProps) {
   const { slug } = await params;
   const query = await searchParams;
-  const selectedProductSlug = Array.isArray(query.p) ? query.p[0] : query.p;
+  const selectedProductSlug = firstQueryValue(query.p);
+  const orderQuery = firstQueryValue(query.o);
+  const roundOrderTo10 = firstQueryValue(query.r) === "10";
   const detail = await tryFetchMarketplaceSupplierBySlug(slug);
   if (!detail) notFound();
 
   if (!marketplaceSupplierSlugIsCanonical(slug, detail)) {
     permanentRedirect(
-      marketplaceSupplierPath(detail, selectedProductSlug ?? null),
+      marketplaceSupplierOrderPath(
+        detail,
+        parseMarketplaceOrderQuery(orderQuery),
+        selectedProductSlug,
+        roundOrderTo10,
+      ),
     );
   }
 
@@ -94,7 +112,9 @@ export default async function MarketplaceSupplierSlugPage({
           <MarketplaceOrderWorkspace
             detail={detail}
             layout="shelf"
-            selectedProductSlug={selectedProductSlug ?? null}
+            selectedProductSlug={selectedProductSlug}
+            orderQuery={orderQuery}
+            roundOrderTo10={roundOrderTo10}
           />
         </div>
       </MarketplacePageFrame>

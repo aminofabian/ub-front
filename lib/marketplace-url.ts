@@ -67,6 +67,79 @@ export function marketplaceSupplierPath(
   return `${base}?p=${encodeURIComponent(product)}`;
 }
 
+/** One line in a shareable marketplace order (`?o=`). */
+export type MarketplaceOrderQueryLine = {
+  slug: string;
+  qty: number;
+  /** Optional line total override (e.g. after round-to-10). */
+  lineTotal?: number;
+};
+
+/**
+ * Compact cart encoding for `?o=` —
+ * `slug*qty` or `slug*qty*lineTotal`, comma-separated.
+ */
+export function encodeMarketplaceOrderQuery(
+  lines: MarketplaceOrderQueryLine[],
+): string {
+  return lines
+    .filter((l) => l.slug.trim() && l.qty > 0)
+    .map((l) => {
+      const slug = l.slug.trim();
+      const qty = Math.max(1, Math.round(l.qty));
+      if (l.lineTotal != null && Number.isFinite(l.lineTotal) && l.lineTotal > 0) {
+        const total = Math.round(l.lineTotal * 100) / 100;
+        return `${slug}*${qty}*${total}`;
+      }
+      return `${slug}*${qty}`;
+    })
+    .join(",");
+}
+
+/** Parse `?o=` cart encoding back into lines. */
+export function parseMarketplaceOrderQuery(
+  raw: string | null | undefined,
+): MarketplaceOrderQueryLine[] {
+  const text = raw?.trim();
+  if (!text) return [];
+  const out: MarketplaceOrderQueryLine[] = [];
+  for (const part of text.split(",")) {
+    const piece = part.trim();
+    if (!piece) continue;
+    const match = piece.match(/^([^*]+)\*(\d+)(?:\*(\d+(?:\.\d+)?))?$/);
+    if (!match) continue;
+    const slug = match[1]!.trim();
+    const qty = Number(match[2]);
+    if (!slug || !Number.isFinite(qty) || qty <= 0) continue;
+    const line: MarketplaceOrderQueryLine = { slug, qty };
+    if (match[3]) {
+      const total = Number(match[3]);
+      if (Number.isFinite(total) && total > 0) line.lineTotal = total;
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+/** Supplier passport URL with the current order encoded in `?o=`. */
+export function marketplaceSupplierOrderPath(
+  detail: Pick<MarketplaceSupplierDetail, "slug">,
+  lines: MarketplaceOrderQueryLine[],
+  productSlug?: string | null,
+  roundTotalTo10 = false,
+): string {
+  if (!detail.slug?.trim()) return APP_ROUTES.marketplace;
+  const params = new URLSearchParams();
+  const product = productSlug?.trim();
+  if (product) params.set("p", product);
+  const encoded = encodeMarketplaceOrderQuery(lines);
+  if (encoded) params.set("o", encoded);
+  if (roundTotalTo10) params.set("r", "10");
+  const qs = params.toString();
+  const path = APP_ROUTES.marketplaceSupplier(detail.slug);
+  return qs ? `${path}?${qs}` : path;
+}
+
 /** Passport URL for a supplier catalogue product (shelf + selection), not the old /p/ page. */
 export function marketplacePassportProductPath(
   supplierSlug: string | null | undefined,

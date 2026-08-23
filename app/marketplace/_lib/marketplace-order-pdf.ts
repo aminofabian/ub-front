@@ -5,6 +5,8 @@ export type MarketplaceOrderLine = {
   qty: number;
   unitPrice?: number | null;
   currency?: string | null;
+  /** Optional displayed line total, used when this item was rounded. */
+  totalOverride?: number;
 };
 
 export type MarketplaceOrderPdfInput = {
@@ -352,7 +354,10 @@ function drawTableRow(
   const price =
     includePrices
       ? line.unitPrice != null
-        ? waMoney(line.unitPrice * line.qty, line.currency ?? currency)
+        ? waMoney(
+            line.totalOverride ?? line.unitPrice * line.qty,
+            line.currency ?? currency,
+          )
         : "Ask"
       : "";
   const ask = includePrices && line.unitPrice == null;
@@ -471,7 +476,7 @@ export function buildMarketplaceOrderPdf(input: MarketplaceOrderPdfInput): Blob 
   for (const line of input.lines) {
     if (line.currency) currency = line.currency;
     if (line.unitPrice != null) {
-      total += line.unitPrice * line.qty;
+      total += line.totalOverride ?? line.unitPrice * line.qty;
       pricedCount += 1;
     }
   }
@@ -603,10 +608,11 @@ export function buildMarketplaceOrderText(
   const itemLines = lines.map((line) => {
     const name = line.name.trim();
     if (line.unitPrice != null) {
-      const lineTotal = line.unitPrice * line.qty;
+      const lineTotal = line.totalOverride ?? line.unitPrice * line.qty;
       estimatedTotal += lineTotal;
       pricedCount += 1;
-      return `${name} × ${line.qty} @ ${waMoney(line.unitPrice, currency)} → ${waMoney(lineTotal, currency)}`;
+      const rounded = line.totalOverride != null ? " (rounded)" : "";
+      return `${name} × ${line.qty} @ ${waMoney(line.unitPrice, currency)} → ${waMoney(lineTotal, currency)}${rounded}`;
     }
     return `${name} × ${line.qty}`;
   });

@@ -57,7 +57,12 @@ import {
   firstFamilyForLetter,
   groupCatalogProducts,
 } from "@/lib/marketplace-catalog-groups";
-import { marketplacePassportProductPath, supplierPortalClaimPath } from "@/lib/marketplace-url";
+import {
+  marketplacePassportProductPath,
+  marketplaceSupplierOrderPath,
+  parseMarketplaceOrderQuery,
+  supplierPortalClaimPath,
+} from "@/lib/marketplace-url";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
 import { cn, formatMoney } from "@/lib/utils";
@@ -144,6 +149,19 @@ function hueFromId(id: string): number {
 
 function isJunkLocation(value: string): boolean {
   return /^(optional|n\/a|na|none|-)$/i.test(value.trim());
+}
+
+/** Round money to the nearest 10 (e.g. 100.07 → 100, 106.56 → 110). */
+function roundMoneyTo10(value: number): number {
+  const rounded = Math.round(value / 10) * 10;
+  return rounded > 0 ? rounded : value;
+}
+
+function productLineTotal(
+  product: MarketplaceCatalogProductPreview,
+  qty: number,
+): number | null {
+  return product.unitPrice == null ? null : product.unitPrice * qty;
 }
 
 async function copyText(value: string, label: string) {
@@ -267,11 +285,17 @@ function QtyControl({
 export function MarketplaceOrderWorkspace({
   detail,
   selectedProductSlug,
+  orderQuery,
+  roundOrderTo10,
   layout = "default",
   embedded = false,
 }: {
   detail: MarketplaceSupplierDetail;
   selectedProductSlug?: string | null;
+  /** Shareable cart encoded in the supplier page's `?o=` query parameter. */
+  orderQuery?: string | null;
+  /** Whether the shared order's grand total is rounded to the nearest 10. */
+  roundOrderTo10?: boolean;
   layout?: OrderLayout;
   /** Fill parent height without outer border (e.g. nested in marketplace). */
   embedded?: boolean;
@@ -289,11 +313,34 @@ export function MarketplaceOrderWorkspace({
     ? null
     : (focusProduct ?? detail.products[0] ?? null);
 
+  const sharedOrder = useMemo(
+    () => parseMarketplaceOrderQuery(orderQuery),
+    [orderQuery],
+  );
   const [cart, setCart] = useState<CartQty>(() => {
+    if (isShelf && sharedOrder.length > 0) {
+      return Object.fromEntries(
+        sharedOrder.flatMap((line) => {
+          const product = detail.products.find((p) => p.slug === line.slug);
+          return product ? [[product.id, line.qty]] : [];
+        }),
+      );
+    }
     if (isShelf && focusProduct) return { [focusProduct.id]: 1 };
     if (!isShelf && selected) return { [selected.id]: 1 };
     return {};
   });
+  const [roundedLineIds, setRoundedLineIds] = useState<
+    Record<string, boolean>
+  >(() =>
+    Object.fromEntries(
+      sharedOrder.flatMap((line) => {
+        if (line.lineTotal == null) return [];
+        const product = detail.products.find((p) => p.slug === line.slug);
+        return product ? [[product.id, true]] : [];
+      }),
+    ),
+  );
   const [sendingOrder, setSendingOrder] = useState(false);
   const [catalogueBusy, setCatalogueBusy] = useState(false);
   const [pdfDownloadKind, setPdfDownloadKind] = useState<PdfDownloadKind | null>(null);
@@ -303,15 +350,17 @@ export function MarketplaceOrderWorkspace({
     return catalogFamilyId(focusProduct);
   });
   const [mobileOrderOpen, setMobileOrderOpen] = useState(false);
-  /** Round the order total to the nearest 10 (default on; toggle in the order bar). */
-  const [roundTo10, setRoundTo10] = useState(true);
+  /** Whole-order rounding remains available after optional per-line rounding. */
+  const [roundTo10, setRoundTo10] = useState(
+    roundOrderTo10 ?? !isShelf,
+  );
 
   // Opening a product page starts a fresh order with only that product.
   // Related rows stay at Add (0) until the buyer chooses them.
   useEffect(() => {
     if (isShelf) return;
     setCart(selected ? { [selected.id]: 1 } : {});
-  }, [selected?.id, isShelf]);
+  }, [selected, isShelf]);
 
   // Passport deep-link: select parent, seed cart, scroll product into view.
   useEffect(() => {
@@ -328,19 +377,34 @@ export function MarketplaceOrderWorkspace({
         ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }, 120);
     return () => window.clearTimeout(timer);
-  }, [isShelf, focusProduct?.id]);
+  }, [isShelf, focusProduct]);
 
   const setQty = (productId: string, qty: number, announce = false) => {
     setCart((prev) => {
       const next = { ...prev };
       const prevQty = prev[productId] ?? 0;
-      if (qty <= 0) delete next[productId];
+      if (qty <= 0) {
+        delete next[productId];
+        setRoundedLineIds((rounded) => {
+          if (!rounded[productId]) return rounded;
+          const nextRounded = { ...rounded };
+          delete nextRounded[productId];
+          return nextRounded;
+        });
+      }
       else next[productId] = qty;
       if (announce && prevQty === 0 && qty > 0) {
         queueMicrotask(() => toast.message("Added to order"));
       }
       return next;
     });
+  };
+
+  const toggleLineRounding = (productId: string) => {
+    setRoundedLineIds((prev) => ({
+      ...prev,
+      [productId]: !prev[productId],
+    }));
   };
 
   const cartLines = useMemo(
@@ -356,23 +420,33 @@ export function MarketplaceOrderWorkspace({
     [cartLines],
   );
 
-  const cartTotal = useMemo(
+  const rawCartTotal = useMemo(
     () =>
       cartLines.reduce((sum, line) => {
-        if (line.product.unitPrice == null) return sum;
-        return sum + line.product.unitPrice * line.qty;
+        const total = productLineTotal(line.product, line.qty);
+        return total == null ? sum : sum + total;
       }, 0),
     [cartLines],
   );
 
-  // Round to the nearest 10 (e.g. 100.04 → 100, 99.99 → 100). Tiny orders
-  // (under 5) stay exact so a small cart can never round to 0.
-  const roundedTotal = (() => {
-    const r = Math.round(cartTotal / 10) * 10;
-    return r > 0 ? r : cartTotal;
-  })();
+  const cartTotal = useMemo(
+    () =>
+      cartLines.reduce((sum, line) => {
+        const total = productLineTotal(line.product, line.qty);
+        if (total == null) return sum;
+        return (
+          sum +
+          (roundedLineIds[line.product.id] ? roundMoneyTo10(total) : total)
+        );
+      }, 0),
+    [cartLines, roundedLineIds],
+  );
+
+  const roundedTotal = roundMoneyTo10(cartTotal);
   const effectiveTotal = roundTo10 ? roundedTotal : cartTotal;
-  const roundingActive = roundTo10 && roundedTotal !== cartTotal;
+  const roundingActive =
+    effectiveTotal !== rawCartTotal ||
+    Object.keys(roundedLineIds).some((id) => roundedLineIds[id]);
 
   const cartCurrency =
     cartLines.find((l) => l.product.currency)?.product.currency ?? "KES";
@@ -475,17 +549,47 @@ export function MarketplaceOrderWorkspace({
         qty,
         unitPrice: product.unitPrice,
         currency: product.currency,
+        totalOverride:
+          roundedLineIds[product.id] && product.unitPrice != null
+            ? roundMoneyTo10(product.unitPrice * qty)
+            : undefined,
       })),
-    [cartLines],
+    [cartLines, roundedLineIds],
+  );
+
+  const shareableOrderPath = useMemo(
+    () =>
+      marketplaceSupplierOrderPath(
+        detail,
+        cartLines.flatMap(({ product, qty }) => {
+          if (!product.slug) return [];
+          const rawTotal = productLineTotal(product, qty);
+          return [
+            {
+              slug: product.slug,
+              qty,
+              lineTotal:
+                roundedLineIds[product.id] && rawTotal != null
+                  ? roundMoneyTo10(rawTotal)
+                  : undefined,
+            },
+          ];
+        }),
+        null,
+        roundTo10,
+      ),
+    [cartLines, detail, roundedLineIds, roundTo10],
   );
 
   const orderFilename = `order-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
   const catalogueFilename = `catalogue-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
   const catalogueSheetFilename = `catalogue-sheet-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
 
-  /** Absolute URL of the current page — used inside handlers only (client-only). */
-  const pageUrl = () =>
-    typeof window === "undefined" ? "" : window.location.href;
+  /** Absolute supplier URL with the current cart in the `?o=` query parameter. */
+  const orderUrl = () =>
+    typeof window === "undefined"
+      ? shareableOrderPath
+      : `${window.location.origin}${shareableOrderPath}`;
 
   const orderPdfInput = (includePrices = true) => ({
     supplierName: detail.name,
@@ -584,7 +688,7 @@ export function MarketplaceOrderWorkspace({
         supplierName: detail.name,
         lines: orderLines,
         filename: orderFilename,
-        catalogueUrl: pageUrl(),
+        catalogueUrl: orderUrl(),
         totalOverride: roundingActive ? effectiveTotal : undefined,
       });
       if (wa) {
@@ -640,11 +744,19 @@ export function MarketplaceOrderWorkspace({
       buildMarketplaceOrderText(orderLines, {
         supplierName: detail.name,
         filename: orderFilename,
-        catalogueUrl: pageUrl(),
+        catalogueUrl: orderUrl(),
         totalOverride: roundingActive ? effectiveTotal : undefined,
       }),
       "Order list",
     );
+  };
+
+  const copyOrderLink = async () => {
+    if (cartLines.length === 0) {
+      toast.error("Add at least one product to the order.");
+      return;
+    }
+    await copyText(orderUrl(), "Order link");
   };
 
   const orderActions = (
@@ -682,7 +794,7 @@ export function MarketplaceOrderWorkspace({
             </button>
             {roundingActive ? (
               <span className="text-[9px] text-muted-foreground">
-                from {formatMoney(cartTotal, cartCurrency)}
+                from {formatMoney(rawCartTotal, cartCurrency)}
               </span>
             ) : null}
           </span>
@@ -989,13 +1101,21 @@ export function MarketplaceOrderWorkspace({
               claimPhone={shelfPhone}
               lines={cartLines}
               currency={cartCurrency}
+              total={effectiveTotal}
+              rawTotal={rawCartTotal}
+              roundedLineIds={roundedLineIds}
+              roundTo10={roundTo10}
+              orderHref={shareableOrderPath}
               sending={sendingOrder}
               catalogueBusy={catalogueBusy}
               onSetQty={(productId, qty) => setQty(productId, qty)}
               onRemove={(productId) => setQty(productId, 0)}
+              onToggleLineRounding={toggleLineRounding}
+              onToggleOrderRounding={() => setRoundTo10((value) => !value)}
               onSend={() => void sendOrder()}
               onDownloadPdf={() => requestPdfDownload("order")}
               onCopy={() => void copyOrderList()}
+              onCopyOrderLink={() => void copyOrderLink()}
               onCatalogue={() => requestPdfDownload("list")}
             />
           </div>
@@ -1090,13 +1210,21 @@ export function MarketplaceOrderWorkspace({
                 claimPhone={shelfPhone}
                 lines={cartLines}
                 currency={cartCurrency}
+                total={effectiveTotal}
+                rawTotal={rawCartTotal}
+                roundedLineIds={roundedLineIds}
+                roundTo10={roundTo10}
+                orderHref={shareableOrderPath}
                 sending={sendingOrder}
                 catalogueBusy={catalogueBusy}
                 onSetQty={(productId, qty) => setQty(productId, qty)}
                 onRemove={(productId) => setQty(productId, 0)}
+                onToggleLineRounding={toggleLineRounding}
+                onToggleOrderRounding={() => setRoundTo10((value) => !value)}
                 onSend={() => void sendOrder()}
                 onDownloadPdf={() => requestPdfDownload("order")}
                 onCopy={() => void copyOrderList()}
+                onCopyOrderLink={() => void copyOrderLink()}
                 onCatalogue={() => requestPdfDownload("list")}
                 onClose={() => setMobileOrderOpen(false)}
                 className="min-h-0 flex-1 border-0"
@@ -1708,13 +1836,21 @@ function OrderManifestPanel({
   claimPhone,
   lines,
   currency,
+  total,
+  rawTotal,
+  roundedLineIds,
+  roundTo10,
+  orderHref,
   sending,
   catalogueBusy,
   onSetQty,
   onRemove,
+  onToggleLineRounding,
+  onToggleOrderRounding,
   onSend,
   onDownloadPdf,
   onCopy,
+  onCopyOrderLink,
   onCatalogue,
   onClose,
   className,
@@ -1723,21 +1859,25 @@ function OrderManifestPanel({
   claimPhone?: string | null;
   lines: { product: MarketplaceCatalogProductPreview; qty: number }[];
   currency: string;
+  total: number;
+  rawTotal: number;
+  roundedLineIds: Record<string, boolean>;
+  roundTo10: boolean;
+  orderHref: string;
   sending: boolean;
   catalogueBusy: boolean;
   onSetQty: (productId: string, qty: number) => void;
   onRemove: (productId: string) => void;
+  onToggleLineRounding: (productId: string) => void;
+  onToggleOrderRounding: () => void;
   onSend: () => void;
   onDownloadPdf: () => void;
   onCopy: () => void;
+  onCopyOrderLink: () => void;
   onCatalogue: () => void;
   onClose?: () => void;
   className?: string;
 }) {
-  const total = lines.reduce((sum, line) => {
-    if (line.product.unitPrice == null) return sum;
-    return sum + line.product.unitPrice * line.qty;
-  }, 0);
   const units = lines.reduce((sum, line) => sum + line.qty, 0);
 
   return (
@@ -1782,11 +1922,23 @@ function OrderManifestPanel({
               Tap shelf products to build this order.
             </p>
           ) : (
-            lines.map((line, index) => (
-              <div
-                key={line.product.id}
-                className="space-y-1.5 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 last:border-b-0"
-              >
+            lines.map((line, index) => {
+              const rawLineTotal = productLineTotal(line.product, line.qty);
+              const roundedLineTotal =
+                rawLineTotal == null ? null : roundMoneyTo10(rawLineTotal);
+              const canRound =
+                roundedLineTotal != null && roundedLineTotal !== rawLineTotal;
+              const lineIsRounded =
+                canRound && Boolean(roundedLineIds[line.product.id]);
+              const displayedLineTotal = lineIsRounded
+                ? roundedLineTotal
+                : rawLineTotal;
+
+              return (
+                <div
+                  key={line.product.id}
+                  className="space-y-1.5 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 last:border-b-0"
+                >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="flex items-start gap-1.5 text-[12px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
@@ -1832,17 +1984,36 @@ function OrderManifestPanel({
                       <Plus className="size-3" />
                     </button>
                   </div>
-                  <p className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
-                    {line.product.unitPrice != null
-                      ? formatMoney(
-                          line.product.unitPrice * line.qty,
-                          line.product.currency ?? currency,
-                        )
-                      : "Ask"}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    {canRound ? (
+                      <button
+                        type="button"
+                        onClick={() => onToggleLineRounding(line.product.id)}
+                        className={cn(
+                          "border px-1.5 py-1 text-[9px] font-semibold transition",
+                          lineIsRounded
+                            ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                            : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] text-muted-foreground hover:text-foreground",
+                        )}
+                        aria-pressed={lineIsRounded}
+                        title="Round this item total to the nearest 10"
+                      >
+                        {lineIsRounded ? "Rounded" : "Round"}
+                      </button>
+                    ) : null}
+                    <p className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+                      {displayedLineTotal != null
+                        ? formatMoney(
+                            displayedLineTotal,
+                            line.product.currency ?? currency,
+                          )
+                        : "Ask"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))
+                </div>
+              );
+            })
           )}
         </div>
 
@@ -1853,8 +2024,29 @@ function OrderManifestPanel({
                 ? "No lines yet"
                 : `${units} unit${units === 1 ? "" : "s"} · ${lines.length} line${lines.length === 1 ? "" : "s"}`}
             </span>
-            <span className="font-mono text-[14px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
-              {formatMoney(total, currency)}
+            <span className="flex flex-col items-end gap-0.5">
+              <span className="font-mono text-[14px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+                {formatMoney(total, currency)}
+              </span>
+              <button
+                type="button"
+                onClick={onToggleOrderRounding}
+                className={cn(
+                  "border px-1.5 py-0.5 text-[9px] font-semibold transition",
+                  roundTo10
+                    ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent)] text-[var(--pos-primary,#0f766e)]"
+                    : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] text-muted-foreground hover:text-foreground",
+                )}
+                aria-pressed={roundTo10}
+                title="Round the whole order total to the nearest 10"
+              >
+                {roundTo10 ? "Total rounded" : "Round total"}
+              </button>
+              {total !== rawTotal ? (
+                <span className="text-[9px] text-muted-foreground">
+                  from {formatMoney(rawTotal, currency)}
+                </span>
+              ) : null}
             </span>
           </div>
           <button
@@ -1908,6 +2100,26 @@ function OrderManifestPanel({
               Catalogue
             </button>
           </div>
+          {lines.length > 0 ? (
+            <div className="flex h-8 items-stretch border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#faf7f1)]">
+              <Link
+                href={orderHref}
+                className="min-w-0 flex-1 truncate px-2 py-2 text-[9px] font-medium underline underline-offset-2 hover:text-foreground"
+                title={orderHref}
+              >
+                Shareable order link
+              </Link>
+              <button
+                type="button"
+                onClick={onCopyOrderLink}
+                className="inline-flex shrink-0 items-center gap-1 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2 text-[9px] font-semibold uppercase tracking-[0.06em] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
+                aria-label="Copy shareable order link"
+              >
+                <Copy className="size-3" />
+                Copy link
+              </button>
+            </div>
+          ) : null}
           <p className="text-center text-[10px] leading-snug text-muted-foreground">
             WhatsApp opens with your list. Catalogue PDF is the pictured sheet
             with photos. Catalogue is the forest price list.
