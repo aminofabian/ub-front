@@ -383,7 +383,12 @@ export function QuickSaleWorkspace({
     variant === "cashier" && canPathBWrite && canViewSuppliers;
   const allowCreditTabs =
     variant === "cashier" && canCashierClearTabs(me, business);
-  const allowOrderPad = hasPermission(me?.permissions, Permission.OrderPadWrite);
+  const allowOrderPad =
+    hasPermission(me?.permissions, Permission.OrderPadWrite) &&
+    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderPad] !== false;
+  const allowOrderConfirm =
+    hasPermission(me?.permissions, Permission.PurchasingPathAWrite) &&
+    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false;
   const allowAirtime = hasPermission(me?.permissions, Permission.AirtimeSell);
   const requirePhoneVerification = phoneVerificationRequiredForNewTab(business);
   const allowSearchCustomersByName = canSearchCustomersByName(business);
@@ -4460,6 +4465,7 @@ export function QuickSaleWorkspace({
         allowReceiveSupply={allowReceiveSupply}
         allowCreditTabs={allowCreditTabs}
         allowOrderPad={allowOrderPad}
+        allowOrderConfirm={allowOrderConfirm}
         allowAirtime={allowAirtime}
         allowWeighedToggle={allowWeighedToggle}
         weighedToggleBusyItemId={weighedToggleBusyItemId}

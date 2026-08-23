@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canGroceryEditMinStock,
   canGroceryEditStock,
+  canGroceryOrderConfirm,
+  canGroceryOrderPad,
   groceryClerkStockEditEnabled,
   groceryCounterModesAvailable,
 } from "@/lib/grocery-counter-access";
@@ -32,5 +35,30 @@ describe("grocery-counter-access stock edit", () => {
     expect(groceryCounterModesAvailable(clerk, business)).not.toContain(
       "stockEdit",
     );
+  });
+});
+
+describe("grocery-counter-access order pad / confirm / min stock", () => {
+  it("defaults order pad, confirm, and min stock on", () => {
+    const business: BusinessRecord = { name: "Palmart" };
+    expect(canGroceryOrderPad(clerk, business)).toBe(true);
+    expect(canGroceryOrderConfirm(clerk, business)).toBe(true);
+    expect(canGroceryEditMinStock(clerk, business)).toBe(true);
+  });
+
+  it("hides each when the admin override is off", () => {
+    const business: BusinessRecord = {
+      name: "Palmart",
+      inventory: {
+        stockLevels: {
+          allowOrderPadForGroceryClerk: false,
+          allowOrderConfirmForGroceryClerk: false,
+          allowMinStockForGroceryClerk: false,
+        },
+      },
+    };
+    expect(canGroceryOrderPad(clerk, business)).toBe(false);
+    expect(canGroceryOrderConfirm(clerk, business)).toBe(false);
+    expect(canGroceryEditMinStock(clerk, business)).toBe(false);
   });
 });

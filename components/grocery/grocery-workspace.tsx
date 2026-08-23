@@ -42,6 +42,8 @@ import {
   Camera,
   Loader2,
   ImagePlus,
+  ClipboardList,
+  ClipboardCheck,
 } from "lucide-react";
 
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
@@ -73,6 +75,8 @@ import {
   formatCartQtyValue,
 } from "@/components/cashier/cashier-qty-control";
 import { CashierReceiveTillDrawer } from "@/components/cashier/cashier-receive-till-drawer";
+import { CashierOrderConfirmDrawer } from "@/components/cashier/cashier-order-confirm-drawer";
+import { OrderPadDrawer } from "@/components/order-pad/order-pad-drawer";
 import {
   GroceryModeSwitcher,
   groceryModeTitle,
@@ -87,6 +91,9 @@ import {
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import {
+  canGroceryEditMinStock,
+  canGroceryOrderConfirm,
+  canGroceryOrderPad,
   groceryCounterModesAvailable,
   type GroceryCounterMode,
 } from "@/lib/grocery-counter-access";
@@ -481,6 +488,8 @@ export function GroceryWorkspace() {
     id: string;
     name: string;
   } | null>(null);
+  const [orderPadOpen, setOrderPadOpen] = useState(false);
+  const [orderConfirmOpen, setOrderConfirmOpen] = useState(false);
   const [stockEditItem, setStockEditItem] = useState<ItemSummaryRecord | null>(
     null,
   );
@@ -490,6 +499,18 @@ export function GroceryWorkspace() {
   } | null>(null);
   const availableModes = useMemo(
     () => groceryCounterModesAvailable(effectiveMe, business),
+    [effectiveMe, business],
+  );
+  const allowGroceryMinStock = useMemo(
+    () => canGroceryEditMinStock(effectiveMe, business),
+    [effectiveMe, business],
+  );
+  const allowGroceryOrderPad = useMemo(
+    () => canGroceryOrderPad(effectiveMe, business),
+    [effectiveMe, business],
+  );
+  const allowGroceryOrderConfirm = useMemo(
+    () => canGroceryOrderConfirm(effectiveMe, business),
     [effectiveMe, business],
   );
 
@@ -1392,6 +1413,28 @@ export function GroceryWorkspace() {
               className="order-2 w-full sm:order-1 sm:w-auto"
             />
             <div className="order-1 flex shrink-0 items-center gap-1.5 sm:order-2">
+            {allowGroceryOrderPad ? (
+              <button
+                type="button"
+                onClick={() => setOrderPadOpen(true)}
+                title="Order pad"
+                className="inline-flex items-center gap-1.5 rounded-none border border-white/25 bg-white/15 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--pos-primary-ink,#fff)] transition-colors hover:bg-white/25"
+              >
+                <ClipboardList className="size-3" aria-hidden />
+                <span className="hidden min-[420px]:inline">Order pad</span>
+              </button>
+            ) : null}
+            {allowGroceryOrderConfirm ? (
+              <button
+                type="button"
+                onClick={() => setOrderConfirmOpen(true)}
+                title="Confirm orders"
+                className="inline-flex items-center gap-1.5 rounded-none border border-white/25 bg-white/15 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--pos-primary-ink,#fff)] transition-colors hover:bg-white/25"
+              >
+                <ClipboardCheck className="size-3" aria-hidden />
+                <span className="hidden min-[420px]:inline">Confirm</span>
+              </button>
+            ) : null}
             {canEditProductImages ? (
               <button
                 type="button"
@@ -2087,10 +2130,23 @@ export function GroceryWorkspace() {
         supplierName={receiveTillSupplier?.name}
       />
 
+      <OrderPadDrawer
+        open={orderPadOpen}
+        onOpenChange={setOrderPadOpen}
+        branchId={branchId?.trim() ?? ""}
+        canWrite={allowGroceryOrderPad}
+      />
+
+      <CashierOrderConfirmDrawer
+        open={orderConfirmOpen}
+        onOpenChange={setOrderConfirmOpen}
+      />
+
       <GroceryStockEditDialog
         open={stockEditItem != null}
         item={stockEditItem}
         branchId={branchId?.trim() ?? ""}
+        allowMinStock={allowGroceryMinStock}
         onClose={() => setStockEditItem(null)}
         onSaved={applyStockEdit}
       />

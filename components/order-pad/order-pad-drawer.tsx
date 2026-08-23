@@ -190,11 +190,11 @@ export function OrderPadDrawer({
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Add to order"
-      description="One row per item."
-      contextLabel="Order pad"
+      title="Order pad"
+      description="One row per item. Saved to the shared order list for this branch."
+      contextLabel="Ordering"
       icon={<ClipboardList className="size-4" aria-hidden />}
-      width="default"
+      width="full"
       appearance="sharp"
       headerDensity="compact"
       banner={error ? <FormDrawerMessageBanner text={error} /> : null}

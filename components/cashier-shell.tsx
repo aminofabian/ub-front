@@ -323,6 +323,12 @@ export function CashierShell({ children }: CashierShellProps) {
           addPhotoEnabled={
             featureFlags[POS_CASHIER_CAPABILITY_FLAGS.addPhoto] === true
           }
+          orderPadEnabled={
+            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderPad] !== false
+          }
+          orderConfirmEnabled={
+            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false
+          }
           onSaved={() => refreshSession()}
         />
       ) : null}

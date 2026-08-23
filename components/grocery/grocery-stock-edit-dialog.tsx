@@ -14,27 +14,40 @@ import {
   applyItemOnHandQty,
   itemStockQty,
 } from "@/lib/apply-item-on-hand";
-import type { ItemSummaryRecord } from "@/lib/api";
+import {
+  patchItemStockThresholds,
+  type ItemSummaryRecord,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type GroceryStockEditDialogProps = {
   open: boolean;
   item: ItemSummaryRecord | null;
   branchId: string;
+  /** When true, show and save minimum / reorder level. */
+  allowMinStock?: boolean;
   onClose: () => void;
   onSaved: (itemId: string, qty: number) => void;
 };
+
+function thresholdNumber(value: number | string | null | undefined): string {
+  if (value == null || value === "") return "";
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? String(n) : "";
+}
 
 export function GroceryStockEditDialog({
   open,
   item,
   branchId,
+  allowMinStock = false,
   onClose,
   onSaved,
 }: GroceryStockEditDialogProps) {
   const current = item ? itemStockQty(item.stockQty) : 0;
   const [qty, setQty] = useState("");
   const [cost, setCost] = useState("");
+  const [minStock, setMinStock] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +55,9 @@ export function GroceryStockEditDialog({
     if (!open || !item) return;
     setQty(String(itemStockQty(item.stockQty)));
     setCost("");
+    setMinStock(
+      thresholdNumber(item.reorderLevel ?? item.minStockLevel ?? null),
+    );
     setError(null);
     setBusy(false);
   }, [open, item]);
@@ -65,6 +81,21 @@ export function GroceryStockEditDialog({
         target,
         unitCost: increasing ? unitCost : undefined,
       });
+
+      if (allowMinStock) {
+        const minRaw = minStock.trim();
+        if (minRaw !== "") {
+          const minVal = Number(minRaw);
+          if (!Number.isFinite(minVal) || minVal < 0) {
+            throw new Error("Minimum stock must be zero or a positive number.");
+          }
+          await patchItemStockThresholds(item.id, {
+            minStockLevel: minVal,
+            reorderLevel: minVal,
+          });
+        }
+      }
+
       onSaved(item.id, applied);
       onClose();
     } catch (e) {
@@ -118,6 +149,24 @@ export function GroceryStockEditDialog({
                 className="mt-1 h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-2.5 text-[15px] font-semibold tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/35"
               />
             </label>
+            {allowMinStock ? (
+              <label className="block">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                  Minimum stock
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  inputMode="decimal"
+                  value={minStock}
+                  disabled={busy}
+                  placeholder="Reorder when below"
+                  onChange={(e) => setMinStock(e.target.value)}
+                  className="mt-1 h-9 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-2.5 text-[13px] tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/35"
+                />
+              </label>
+            ) : null}
             {increasing ? (
               <label className="block">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">

@@ -843,6 +843,12 @@ export type StockLevelsSettingsRecord = {
   allowStockPageForStockManager?: boolean;
   /** Grocery counter Spoils mode. Default on when absent. */
   allowSpoilsForGroceryClerk?: boolean;
+  /** Grocery Edit stock: set minimum / reorder. Default on when absent. */
+  allowMinStockForGroceryClerk?: boolean;
+  /** Grocery Order pad drawer. Default on when absent. */
+  allowOrderPadForGroceryClerk?: boolean;
+  /** Grocery Confirm (Path A) drawer. Default on when absent. */
+  allowOrderConfirmForGroceryClerk?: boolean;
 };
 
 export type SuppliersAccessSettingsRecord = {
@@ -1044,6 +1050,9 @@ export type StockLevelsPatchPayload = {
   allowActivityForStockManager?: boolean;
   allowStockPageForStockManager?: boolean;
   allowSpoilsForGroceryClerk?: boolean;
+  allowMinStockForGroceryClerk?: boolean;
+  allowOrderPadForGroceryClerk?: boolean;
+  allowOrderConfirmForGroceryClerk?: boolean;
 };
 
 export type SuppliersAccessPatchPayload = {
@@ -1088,6 +1097,8 @@ export type FeatureFlagsPatchPayload = {
   posCashierCreateProduct?: boolean;
   posCashierWeighedToggle?: boolean;
   posCashierAddPhoto?: boolean;
+  posCashierOrderPad?: boolean;
+  posCashierOrderConfirm?: boolean;
   shiftsPrefillOpeningFromLastClose?: boolean;
   tillListen?: {
     checkout?: boolean;
@@ -3995,6 +4006,29 @@ export async function patchItem(
   const { notifyTenantCatalogChanged } =
     await import("@/lib/tenant-catalog-events");
   notifyTenantCatalogChanged();
+}
+
+/** Grocery / counter: set min + reorder without full catalog write. */
+export async function patchItemStockThresholds(
+  itemId: string,
+  body: { minStockLevel?: number; reorderLevel?: number },
+): Promise<{
+  itemId: string;
+  minStockLevel?: number | string | null;
+  reorderLevel?: number | string | null;
+}> {
+  const result = await request<{
+    itemId: string;
+    minStockLevel?: number | string | null;
+    reorderLevel?: number | string | null;
+  }>(
+    `/api/v1/inventory/items/${encodeURIComponent(itemId.trim())}/stock-thresholds`,
+    { method: "PATCH", body },
+  );
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return result;
 }
 
 export type CloudinarySignature = {

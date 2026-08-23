@@ -564,6 +564,42 @@ export function BusinessConfigurationForm({
             description="Shows Spoils mode on the grocery counter. Tapping products builds a spoils cart; recording writes stock off as spoilage."
           />
           <PolicySwitch
+            checked={inventory.allowMinStockForGroceryClerk}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                allowMinStockForGroceryClerk: checked,
+              }))
+            }
+            icon={<Warehouse className="size-4" aria-hidden />}
+            title="Allow grocery clerks to set minimum stock"
+            description="In Edit stock, clerks can set the minimum / reorder level for a product. Turn off to hide that field."
+          />
+          <PolicySwitch
+            checked={inventory.allowOrderPadForGroceryClerk}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                allowOrderPadForGroceryClerk: checked,
+              }))
+            }
+            icon={<Warehouse className="size-4" aria-hidden />}
+            title="Allow grocery clerks to use Order pad"
+            description="Shows Order pad on the grocery counter so clerks can list items to order."
+          />
+          <PolicySwitch
+            checked={inventory.allowOrderConfirmForGroceryClerk}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                allowOrderConfirmForGroceryClerk: checked,
+              }))
+            }
+            icon={<Warehouse className="size-4" aria-hidden />}
+            title="Allow grocery clerks to Confirm orders"
+            description="Shows Confirm on the grocery counter so clerks can mark Path A purchase orders as received."
+          />
+          <PolicySwitch
             checked={inventory.allowNegativeStock}
             onChange={(checked) =>
               setInventory((previous) => ({
@@ -805,6 +841,28 @@ export function BusinessConfigurationForm({
               }
               title="Add product photos from the till"
               description="Owners and admins can upload product photos from the cashier shelf (for items missing a photo)."
+            />
+            <PolicySwitch
+              checked={cashierCapabilities.orderPad}
+              onChange={(checked) =>
+                setCashierCapabilities((previous) => ({
+                  ...previous,
+                  orderPad: checked,
+                }))
+              }
+              title="Order pad on the till"
+              description="Show a full-screen Order pad drawer on cashier for staff with order-pad permission."
+            />
+            <PolicySwitch
+              checked={cashierCapabilities.orderConfirm}
+              onChange={(checked) =>
+                setCashierCapabilities((previous) => ({
+                  ...previous,
+                  orderConfirm: checked,
+                }))
+              }
+              title="Confirm orders on the till"
+              description="Show a full-screen Confirm drawer to receive Path A purchase orders from cashier."
             />
           </div>
         </PolicyPanel>

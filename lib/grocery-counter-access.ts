@@ -7,6 +7,11 @@ function roleKey(me: MeResponse | null | undefined): string {
   return me?.role?.key?.trim().toLowerCase() ?? "";
 }
 
+function isGroceryCounterRole(me: MeResponse | null | undefined): boolean {
+  const key = roleKey(me);
+  return key === "grocery_clerk" || key === "grocery_manager";
+}
+
 /** Spoils on grocery counter — default on when unset (matches backend). */
 export function groceryClerkSpoilsEnabled(
   business: BusinessRecord | null | undefined,
@@ -28,6 +33,29 @@ export function groceryClerkStockEditEnabled(
   return business?.inventory?.stockLevels?.allowStockEditForGroceryClerk !== false;
 }
 
+/** Min / reorder in Edit stock — default on when unset. */
+export function groceryClerkMinStockEnabled(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return business?.inventory?.stockLevels?.allowMinStockForGroceryClerk !== false;
+}
+
+/** Order pad on grocery — default on when unset. */
+export function groceryClerkOrderPadEnabled(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return business?.inventory?.stockLevels?.allowOrderPadForGroceryClerk !== false;
+}
+
+/** Confirm (Path A) on grocery — default on when unset. */
+export function groceryClerkOrderConfirmEnabled(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return (
+    business?.inventory?.stockLevels?.allowOrderConfirmForGroceryClerk !== false
+  );
+}
+
 export function canRecordGrocerySpoils(
   me: MeResponse | null | undefined,
   business: BusinessRecord | null | undefined,
@@ -36,7 +64,7 @@ export function canRecordGrocerySpoils(
     // Owners/admins on the grocery surface also get the mode.
     return groceryClerkSpoilsEnabled(business);
   }
-  if (roleKey(me) !== "grocery_clerk") {
+  if (!isGroceryCounterRole(me)) {
     return false;
   }
   return groceryClerkSpoilsEnabled(business);
@@ -49,7 +77,7 @@ export function canGroceryStockIn(
   if (hasPermission(me?.permissions, Permission.PurchasingPathBWrite)) {
     return groceryClerkStockInEnabled(business);
   }
-  if (roleKey(me) !== "grocery_clerk") {
+  if (!isGroceryCounterRole(me)) {
     return false;
   }
   return groceryClerkStockInEnabled(business);
@@ -62,10 +90,58 @@ export function canGroceryEditStock(
   if (hasPermission(me?.permissions, Permission.InventoryWrite)) {
     return groceryClerkStockEditEnabled(business);
   }
-  if (roleKey(me) !== "grocery_clerk") {
+  if (!isGroceryCounterRole(me)) {
     return false;
   }
   return groceryClerkStockEditEnabled(business);
+}
+
+/** Set minimum / reorder inside Edit stock dialog. */
+export function canGroceryEditMinStock(
+  me: MeResponse | null | undefined,
+  business: BusinessRecord | null | undefined,
+): boolean {
+  if (!groceryClerkMinStockEnabled(business)) {
+    return false;
+  }
+  if (
+    hasPermission(me?.permissions, Permission.InventoryWrite) ||
+    hasPermission(me?.permissions, Permission.CatalogItemsWrite)
+  ) {
+    return true;
+  }
+  return isGroceryCounterRole(me);
+}
+
+/**
+ * Order pad chip — permission or grocery-role override (backend delegates
+ * order_pad.* when the stockLevels flag is on).
+ */
+export function canGroceryOrderPad(
+  me: MeResponse | null | undefined,
+  business: BusinessRecord | null | undefined,
+): boolean {
+  if (!groceryClerkOrderPadEnabled(business)) {
+    return false;
+  }
+  if (hasPermission(me?.permissions, Permission.OrderPadWrite)) {
+    return true;
+  }
+  return isGroceryCounterRole(me);
+}
+
+/** Confirm orders chip — Path A write or grocery-role override. */
+export function canGroceryOrderConfirm(
+  me: MeResponse | null | undefined,
+  business: BusinessRecord | null | undefined,
+): boolean {
+  if (!groceryClerkOrderConfirmEnabled(business)) {
+    return false;
+  }
+  if (hasPermission(me?.permissions, Permission.PurchasingPathAWrite)) {
+    return true;
+  }
+  return isGroceryCounterRole(me);
 }
 
 export function groceryCounterModesAvailable(

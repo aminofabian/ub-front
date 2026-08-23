@@ -368,6 +368,12 @@ export function useBusinessSettingsEditor() {
               allowStockPageForStockManager:
                 inventory.allowStockPageForStockManager,
               allowSpoilsForGroceryClerk: inventory.allowSpoilsForGroceryClerk,
+              allowMinStockForGroceryClerk:
+                inventory.allowMinStockForGroceryClerk,
+              allowOrderPadForGroceryClerk:
+                inventory.allowOrderPadForGroceryClerk,
+              allowOrderConfirmForGroceryClerk:
+                inventory.allowOrderConfirmForGroceryClerk,
             },
             suppliers: {
               allowSupplierWriteForStockManager:
@@ -406,6 +412,8 @@ export function useBusinessSettingsEditor() {
             posCashierCreateProduct: cashierCapabilities.createProduct,
             posCashierWeighedToggle: cashierCapabilities.weighedToggle,
             posCashierAddPhoto: cashierCapabilities.addPhoto,
+            posCashierOrderPad: cashierCapabilities.orderPad,
+            posCashierOrderConfirm: cashierCapabilities.orderConfirm,
             shiftsPrefillOpeningFromLastClose:
               shiftSettings.prefillOpeningFromLastClose,
             tillListen: {

@@ -13,6 +13,8 @@ import Image from "next/image";
 import {
   Camera,
   ChevronLeft,
+  ClipboardCheck,
+  ClipboardList,
   Loader2,
   LogOut,
   Package,
@@ -21,7 +23,6 @@ import {
   ScanLine,
   Search,
   ShoppingCart,
-  ClipboardList,
   Truck,
   Users,
   Wallet,
@@ -30,6 +31,7 @@ import {
 import { toast } from "sonner";
 
 import { useOptionalPosTillLock } from "@/components/auth/pos-till-lock";
+import { CashierOrderConfirmDrawer } from "@/components/cashier/cashier-order-confirm-drawer";
 import { OrderPadDrawer } from "@/components/order-pad/order-pad-drawer";
 import { Button } from "@/components/ui/button";
 import {
@@ -262,6 +264,8 @@ export type CashierPosLayoutProps = {
   allowCreditTabs?: boolean;
   /** Add lines to the shared order pad. */
   allowOrderPad?: boolean;
+  /** Confirm Path A purchase orders from the till. */
+  allowOrderConfirm?: boolean;
   /** Offer the airtime chip — the panel hides itself if airtime is switched off. */
   allowAirtime?: boolean;
   /** Mark cart lines as sold by weight (permission or admin flag). */
@@ -949,6 +953,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowReceiveSupply = false,
     allowCreditTabs = false,
     allowOrderPad = false,
+    allowOrderConfirm = false,
     allowAirtime = false,
     allowWeighedToggle = false,
     weighedToggleBusyItemId = null,
@@ -980,6 +985,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   } | null>(null);
   const [creditTabsOpen, setCreditTabsOpen] = useState(false);
   const [orderPadOpen, setOrderPadOpen] = useState(false);
+  const [orderConfirmOpen, setOrderConfirmOpen] = useState(false);
   const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
   const allowManageSuppliers =
     allowCreateSupplier || allowLinkSupplierProducts || allowReceiveSupply;
@@ -1201,6 +1207,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       !receiveTillOpen &&
       !creditTabsOpen &&
       !orderPadOpen &&
+      !orderConfirmOpen &&
       editPriceKey == null,
     onScan: applyBarcodeSearch,
     searchInputRef,
@@ -1511,7 +1518,17 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 className={POS_PRIMARY_CHIP_CLASS}
               >
                 <ClipboardList className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                Order list
+                Order pad
+              </button>
+            ) : null}
+            {allowOrderConfirm ? (
+              <button
+                type="button"
+                onClick={() => setOrderConfirmOpen(true)}
+                className={POS_PRIMARY_CHIP_CLASS}
+              >
+                <ClipboardCheck className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                Confirm
               </button>
             ) : null}
             {allowAirtime ? (
@@ -2437,6 +2454,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         }}
         branchId={branchId}
         canWrite={allowOrderPad}
+      />
+
+      <CashierOrderConfirmDrawer
+        open={orderConfirmOpen}
+        onOpenChange={(o) => {
+          setOrderConfirmOpen(o);
+          if (!o) window.requestAnimationFrame(() => focusSearch());
+        }}
       />
 
       <CashierEditPriceModal

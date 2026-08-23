@@ -41,7 +41,15 @@ function todayIsoDate(): string {
 type ReceiveQty = Record<string, number>;
 type ItemMeta = { name: string; thumbnailUrl: string | null };
 
-export function OrderReceivePanel() {
+export function OrderReceivePanel({
+  embedded = false,
+  onConfirmed,
+}: {
+  /** Fill parent height without the page chrome (cashier full-screen drawer). */
+  embedded?: boolean;
+  /** Called after a successful confirm instead of navigating away. */
+  onConfirmed?: () => void;
+} = {}) {
   const router = useRouter();
   const { branchId } = useDashboard();
   const [orders, setOrders] = useState<PathAPurchaseOrderListRowRecord[]>([]);
@@ -241,9 +249,15 @@ export function OrderReceivePanel() {
         crypto.randomUUID(),
       );
 
-      toast.success("Order confirmed — opening supplies");
+      toast.success(
+        embedded ? "Order confirmed" : "Order confirmed — opening supplies",
+      );
       await refreshOrders();
-      router.push(`${APP_ROUTES.purchasingAddSupplies}?filter=all`);
+      if (embedded) {
+        onConfirmed?.();
+      } else {
+        router.push(`${APP_ROUTES.purchasingAddSupplies}?filter=all`);
+      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not confirm order",
@@ -255,7 +269,12 @@ export function OrderReceivePanel() {
 
   return (
     <div
-      className="flex h-[min(78dvh,56rem)] min-h-[28rem] flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] lg:flex-row"
+      className={cn(
+        "flex min-h-[28rem] flex-col overflow-hidden bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] lg:flex-row",
+        embedded
+          ? "h-[min(82dvh,52rem)] border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]"
+          : "h-[min(78dvh,56rem)] border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+      )}
       style={{ ["--pos-primary" as string]: "#0f766e" }}
     >
       <aside className="flex max-h-[35%] w-full shrink-0 flex-col overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] lg:max-h-none lg:w-[16rem] lg:border-b-0 lg:border-r">

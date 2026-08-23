@@ -52,6 +52,9 @@ export type InventoryForm = {
   allowStockEditForStockManager: boolean;
   allowStockEditForGroceryClerk: boolean;
   allowSpoilsForGroceryClerk: boolean;
+  allowMinStockForGroceryClerk: boolean;
+  allowOrderPadForGroceryClerk: boolean;
+  allowOrderConfirmForGroceryClerk: boolean;
   allowNegativeStock: boolean;
   allowActivityForStockManager: boolean;
   allowStockPageForStockManager: boolean;
@@ -80,6 +83,8 @@ export type CashierCapabilitiesForm = {
   createProduct: boolean;
   weighedToggle: boolean;
   addPhoto: boolean;
+  orderPad: boolean;
+  orderConfirm: boolean;
 };
 
 export type ShiftSettingsForm = {
@@ -92,6 +97,8 @@ export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
   /** Default on — cashiers need this for produce/kg sales; admin can still disable. */
   weighedToggle: true,
   addPhoto: false,
+  orderPad: true,
+  orderConfirm: true,
 };
 
 export const DEFAULT_SHIFT_SETTINGS: ShiftSettingsForm = {
@@ -108,6 +115,8 @@ export function cashierCapabilitiesFromRecord(
     // Absent flag → enabled (matches DEFAULT_CASHIER_CAPABILITIES).
     weighedToggle: ff[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false,
     addPhoto: ff[POS_CASHIER_CAPABILITY_FLAGS.addPhoto] === true,
+    orderPad: ff[POS_CASHIER_CAPABILITY_FLAGS.orderPad] !== false,
+    orderConfirm: ff[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false,
   };
 }
 
@@ -166,6 +175,12 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowStockEditForGroceryClerk: true,
   /** Match backend: grocery counter Spoils defaults on. */
   allowSpoilsForGroceryClerk: true,
+  /** Match backend: grocery min / reorder in Edit stock defaults on. */
+  allowMinStockForGroceryClerk: true,
+  /** Match backend: grocery Order pad defaults on. */
+  allowOrderPadForGroceryClerk: true,
+  /** Match backend: grocery Confirm orders defaults on. */
+  allowOrderConfirmForGroceryClerk: true,
   allowNegativeStock: false,
   /** Match backend: Activity + Stock pages default on for stock managers. */
   allowActivityForStockManager: true,
@@ -357,6 +372,12 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
       b?.inventory?.stockLevels?.allowStockEditForGroceryClerk !== false,
     allowSpoilsForGroceryClerk:
       b?.inventory?.stockLevels?.allowSpoilsForGroceryClerk !== false,
+    allowMinStockForGroceryClerk:
+      b?.inventory?.stockLevels?.allowMinStockForGroceryClerk !== false,
+    allowOrderPadForGroceryClerk:
+      b?.inventory?.stockLevels?.allowOrderPadForGroceryClerk !== false,
+    allowOrderConfirmForGroceryClerk:
+      b?.inventory?.stockLevels?.allowOrderConfirmForGroceryClerk !== false,
     allowNegativeStock: Boolean(
       b?.inventory?.stockLevels?.allowNegativeStock,
     ),

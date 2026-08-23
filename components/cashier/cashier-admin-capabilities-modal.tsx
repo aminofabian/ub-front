@@ -25,6 +25,8 @@ type CashierAdminCapabilitiesModalProps = {
   createProductEnabled: boolean;
   weighedToggleEnabled: boolean;
   addPhotoEnabled: boolean;
+  orderPadEnabled: boolean;
+  orderConfirmEnabled: boolean;
   onSaved: () => Promise<void> | void;
 };
 
@@ -36,12 +38,16 @@ export function CashierAdminCapabilitiesModal({
   createProductEnabled,
   weighedToggleEnabled,
   addPhotoEnabled,
+  orderPadEnabled,
+  orderConfirmEnabled,
   onSaved,
 }: CashierAdminCapabilitiesModalProps) {
   const [priceEdit, setPriceEdit] = useState(priceEditEnabled);
   const [createProduct, setCreateProduct] = useState(createProductEnabled);
   const [weighedToggle, setWeighedToggle] = useState(weighedToggleEnabled);
   const [addPhoto, setAddPhoto] = useState(addPhotoEnabled);
+  const [orderPad, setOrderPad] = useState(orderPadEnabled);
+  const [orderConfirm, setOrderConfirm] = useState(orderConfirmEnabled);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -50,12 +56,16 @@ export function CashierAdminCapabilitiesModal({
     setCreateProduct(createProductEnabled);
     setWeighedToggle(weighedToggleEnabled);
     setAddPhoto(addPhotoEnabled);
+    setOrderPad(orderPadEnabled);
+    setOrderConfirm(orderConfirmEnabled);
   }, [
     open,
     priceEditEnabled,
     createProductEnabled,
     weighedToggleEnabled,
     addPhotoEnabled,
+    orderPadEnabled,
+    orderConfirmEnabled,
   ]);
 
   const onSave = async () => {
@@ -67,6 +77,8 @@ export function CashierAdminCapabilitiesModal({
           posCashierCreateProduct: createProduct,
           posCashierWeighedToggle: weighedToggle,
           posCashierAddPhoto: addPhoto,
+          posCashierOrderPad: orderPad,
+          posCashierOrderConfirm: orderConfirm,
         },
       });
       await onSaved();
@@ -98,12 +110,13 @@ export function CashierAdminCapabilitiesModal({
               Allow cashiers on this business to edit prices, add products, or
               mark items as weighted from the POS. Photo upload is for owners
               and admins only. Managers with pricing/catalog permissions always
-              can use the cashier tools that match their permissions.
+              can use the cashier tools that match their permissions. Order pad
+              and Confirm still require the matching permissions.
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="space-y-3 px-4 py-4">
+        <div className="max-h-[min(70dvh,28rem)] space-y-3 overflow-y-auto px-4 py-4">
           <label
             className={cn(
               "flex cursor-pointer items-start gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-3",
@@ -191,6 +204,50 @@ export function CashierAdminCapabilitiesModal({
               </span>
             </span>
           </label>
+
+          <label
+            className={cn(
+              "flex cursor-pointer items-start gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-3",
+            )}
+          >
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 accent-[var(--pos-primary)]"
+              checked={orderPad}
+              onChange={(e) => setOrderPad(e.target.checked)}
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground">
+                Order pad on till
+              </span>
+              <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                Full-screen order pad drawer for staff who can write the order
+                pad. Flag: {POS_CASHIER_CAPABILITY_FLAGS.orderPad}
+              </span>
+            </span>
+          </label>
+
+          <label
+            className={cn(
+              "flex cursor-pointer items-start gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-3",
+            )}
+          >
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 accent-[var(--pos-primary)]"
+              checked={orderConfirm}
+              onChange={(e) => setOrderConfirm(e.target.checked)}
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground">
+                Confirm orders on till
+              </span>
+              <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                Full-screen drawer to receive Path A purchase orders. Flag:{" "}
+                {POS_CASHIER_CAPABILITY_FLAGS.orderConfirm}
+              </span>
+            </span>
+          </label>
         </div>
 
         <DialogFooter className="gap-2 border-t border-border/40 px-4 py-3">
@@ -205,8 +262,8 @@ export function CashierAdminCapabilitiesModal({
           <Button
             type="button"
             disabled={saving}
-            className="bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90"
             onClick={() => void onSave()}
+            className="bg-[var(--pos-primary)] text-[var(--pos-primary-foreground,#fff)] hover:bg-[var(--pos-primary)]/90"
           >
             {saving ? "Saving…" : "Save"}
           </Button>
