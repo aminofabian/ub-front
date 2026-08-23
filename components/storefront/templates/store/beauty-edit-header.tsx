@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import styles from "@/components/storefront/templates/store/beauty-edit.module.css";
 import { filterShopperTypes } from "@/components/storefront/shop-type-filters";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -166,9 +167,10 @@ export function BeautyEditHeader({
         </Link>
 
         <div className={styles.headerActions}>
-          <Link href={APP_ROUTES.shopAccount} className={styles.utilLink}>
-            Account
-          </Link>
+          <StorefrontAccountLink
+            className={styles.utilLink}
+            signUpClassName={styles.utilLink}
+          />
           <button type="button" className={styles.bagBtn} onClick={openDrawer}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path

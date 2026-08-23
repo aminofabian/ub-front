@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
+import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import styles from "@/components/storefront/templates/store/spirits-cellar.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -96,9 +97,10 @@ export function SpiritsCellarHeader({
         </Link>
         <SearchForm />
         <div className={styles.headerActions}>
-          <Link href={APP_ROUTES.shopAccount} className={styles.accountLink}>
-            Account
-          </Link>
+          <StorefrontAccountLink
+            className={styles.accountLink}
+            signUpClassName={styles.accountLink}
+          />
           <button
             type="button"
             className={styles.cartBtn}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import styles from "@/components/storefront/templates/store/oxide.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -54,6 +55,10 @@ export function OxideHeader({
         </nav>
         <div className={styles.navRight}>
           <RegistrationMark />
+          <StorefrontAccountLink
+            className={styles.accountLink}
+            signUpClassName={styles.accountLink}
+          />
           <button
             type="button"
             className={styles.cartCount}

@@ -1,0 +1,11 @@
+/* Wrapper keeps the sign-up link out of tight mobile headers without
+   overriding the display value each theme sets on the link itself. */
+.signUpWrap {
+  display: none;
+}
+
+@media (min-width: 720px) {
+  .signUpWrap {
+    display: contents;
+  }
+}

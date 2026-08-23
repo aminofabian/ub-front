@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import styles from "@/components/storefront/templates/store/milk-run.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -47,6 +48,10 @@ export function MilkRunHeader({
         </Link>
         <div className={styles.headerActions}>
           <span className={styles.headerNote}>{note}</span>
+          <StorefrontAccountLink
+            className={styles.accountLink}
+            signUpClassName={styles.accountLink}
+          />
           <button
             type="button"
             className={styles.cartBtn}

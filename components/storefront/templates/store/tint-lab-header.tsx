@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import styles from "@/components/storefront/templates/store/tint-lab.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -51,13 +52,10 @@ export function TintLabHeader({
           </ul>
         </nav>
         <div className={styles.navRight}>
-          <Link
-            href={APP_ROUTES.shopAccount}
-            className={styles.iconBtn}
-            aria-label="Account"
-          >
-            ♡
-          </Link>
+          <StorefrontAccountLink
+            className={styles.navLink}
+            signUpClassName={styles.navLink}
+          />
           <button
             type="button"
             className={cn(styles.iconBtn, styles.mono)}

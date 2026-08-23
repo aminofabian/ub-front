@@ -177,18 +177,12 @@
 }
 
 .accountLink {
-  display: none;
   font-size: 11px;
   text-decoration: none;
   color: var(--cd-ink-muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-@media (min-width: 720px) {
-  .accountLink {
-    display: inline;
-  }
+  white-space: nowrap;
 }
 
 .cartBtn {

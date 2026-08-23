@@ -91,6 +91,24 @@
   flex-shrink: 0;
 }
 
+.accountLink {
+  font-family: var(--font-milk-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  color: var(--milk-ink);
+  border: 2px solid var(--milk-ink);
+  border-radius: 100px;
+  padding: 7px 12px;
+  white-space: nowrap;
+}
+
+.accountLink:hover {
+  background: var(--milk-sunshine);
+}
+
 .cartBtn {
   font-family: var(--font-milk-mono), ui-monospace, monospace;
   font-size: 11px;
