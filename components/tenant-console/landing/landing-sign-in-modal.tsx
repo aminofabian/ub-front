@@ -273,6 +273,13 @@ export function LandingSignInModal({
                 >
                   Start free instead →
                 </button>
+                <button
+                  type="button"
+                  className="mt-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
+                  onClick={() => setStep({ status: "idle" })}
+                >
+                  ← Try another name
+                </button>
               </div>
             ) : (
               <form className="mt-6 space-y-4" onSubmit={(e) => void onSubmit(e)}>
@@ -284,9 +291,6 @@ export function LandingSignInModal({
                     value={query}
                     onChange={(event) => {
                       setQuery(event.target.value);
-                      if (step.status !== "idle" && step.status !== "loading") {
-                        setStep({ status: "idle" });
-                      }
                     }}
                     autoFocus
                     autoComplete="organization"
@@ -303,14 +307,10 @@ export function LandingSignInModal({
 
                 <button
                   type="submit"
-                  disabled={step.status === "loading" || query.trim().length < 2}
+                  disabled={query.trim().length < 2}
                   className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center disabled:opacity-50"
                 >
-                  {step.status === "loading"
-                    ? "Looking up…"
-                    : mode === "staff"
-                      ? "Find shop"
-                      : "Continue"}
+                  {mode === "staff" ? "Find shop" : "Continue"}
                 </button>
               </form>
             )}

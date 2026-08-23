@@ -1,4 +1,4 @@
-import { slugDerivedShopUrl } from "@/lib/config";
+import { APP_BASE_URL, slugDerivedShopUrl } from "@/lib/config";
 
 /**
  * Phase 4 (§8, §12, §21): the apex never authenticates — it identifies a shop
@@ -38,6 +38,26 @@ export function isValidTenantHost(host: string | null | undefined): host is stri
 }
 
 /**
+ * Slug-derived origin without throwing: some environments define a bare
+ * {@code window} with no {@code location}, which makes the shared
+ * {@code slugDerivedShopUrl} return empty. The apex forward must never crash
+ * the sheet, so it degrades to an {@code APP_BASE_URL}-derived origin instead.
+ */
+function slugDerivedOrigin(slug: string): string {
+  const derived = slugDerivedShopUrl(slug);
+  if (derived) {
+    return derived;
+  }
+  try {
+    const base = new URL(APP_BASE_URL);
+    const port = base.port ? `:${base.port}` : "";
+    return `${base.protocol}//${slug}.${base.hostname}${port}`;
+  } catch {
+    return "";
+  }
+}
+
+/**
  * The origin the apex forwards to for a shop. Prefers the tenant's own
  * {@code primaryHost} (custom domain or platform subdomain as recorded); falls
  * back to the slug-derived origin. In dev the local dev server runs on
@@ -49,16 +69,16 @@ export function resolveApexShopOrigin(shop: ApexShopRecord): string {
   if (!slug) {
     return "";
   }
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && window.location?.hostname) {
     const hostname = window.location.hostname.toLowerCase();
     if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return slugDerivedShopUrl(slug);
+      return slugDerivedOrigin(slug);
     }
   }
   if (isValidTenantHost(shop.primaryHost)) {
     return `https://${shop.primaryHost.trim().toLowerCase()}`;
   }
-  return slugDerivedShopUrl(slug);
+  return slugDerivedOrigin(slug);
 }
 
 /**

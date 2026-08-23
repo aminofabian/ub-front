@@ -14,11 +14,19 @@ function label(status: string): string {
   return status.replace(/_/g, " ");
 }
 
+/** WhatsApp orders settle in chat, so the merchant drives fulfillment while pending_payment. */
+function isWhatsAppOrder(order: WebOrderDetail): boolean {
+  return (
+    order.channel === "WHATSAPP" ||
+    (order.notes ?? "").toLowerCase().includes("channel: whatsapp")
+  );
+}
+
 export function WebOrderFulfillmentActions({ order, onUpdated }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  if (order.status !== "paid") {
+  if (order.status !== "paid" && !isWhatsAppOrder(order)) {
     return null;
   }
 

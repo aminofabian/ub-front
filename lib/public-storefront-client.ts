@@ -346,6 +346,27 @@ export async function fetchPublicOrderTracking(
   }
 }
 
+/**
+ * Fire-and-forget "the shopper opened the chat" marker (scope §15). Best
+ * effort with `keepalive` — never blocks the redirect to wa.me.
+ */
+export function recordWhatsAppOrderHandoff(slug: string, orderId: string): void {
+  const s = sanitizeStorefrontSlug(slug);
+  if (!s || !orderId.trim()) return;
+  try {
+    void fetch(
+      apiUrl(
+        `/api/v1/public/businesses/${encodeURIComponent(s)}/orders/${encodeURIComponent(orderId.trim())}/whatsapp-handoff`,
+      ),
+      { method: "POST", headers: { Accept: "application/json" }, keepalive: true },
+    ).catch(() => {
+      /* analytics-style best effort */
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function registerPublicTillAwait(
   slug: string,
   body: { amount: number | string; phoneNumber?: string | null },

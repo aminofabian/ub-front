@@ -5870,6 +5870,11 @@ export type WebOrderSummary = {
   channel?: string | null;
   status: string;
   fulfillmentStatus?: string | null;
+  /** opened | reopened | expired — observable handoff state (Phase 3). */
+  handoffState?: string | null;
+  handoffOpenedAt?: string | null;
+  /** When an unconfirmed WhatsApp order releases its stock. */
+  expiresAt?: string | null;
   grandTotal: number | string;
   currency: string;
   customerName: string;
@@ -5891,9 +5896,14 @@ export type WebOrderLineSnapshot = {
 
 export type WebOrderDetail = {
   id: string;
+  orderCode?: string | null;
+  channel?: string | null;
   cartId: string;
   status: string;
   fulfillmentStatus?: string | null;
+  handoffState?: string | null;
+  handoffOpenedAt?: string | null;
+  expiresAt?: string | null;
   grandTotal: number | string;
   currency: string;
   catalogBranchId: string;

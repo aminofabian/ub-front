@@ -33,6 +33,29 @@ export function normalizeWhatsApp(
 }
 
 /**
+ * Clean local Kenya phone for storage/display: strips a stray country-code +
+ * leading-zero combo (e.g. "+254 0714 282 874" → "0714 282 874").
+ */
+export function normalizeLocalPhone(
+  phone: string | null | undefined,
+): string {
+  let digits = (phone ?? "").replace(/\D/g, "");
+  if (digits.startsWith("254") && (digits.length === 12 || digits.length === 13)) {
+    digits = digits.slice(3); // +254 7XX... → 7XX... (with or without stray leading 0)
+  }
+  if (digits.length >= 9) {
+    if (digits.startsWith("0")) {
+      // already local
+    } else if (digits.startsWith("7") || digits.startsWith("1")) {
+      digits = `0${digits}`;
+    }
+    const local = digits.slice(0, 10);
+    return `${local.slice(0, 4)} ${local.slice(4, 7)} ${local.slice(7)}`.trim();
+  }
+  return phone?.trim() ?? "";
+}
+
+/**
  * Canonical short order code (mirrors the backend `WebOrderCodes`): last 8
  * hex chars of the compact order UUID, uppercased. Used when the checkout
  * response does not carry `orderCode`.

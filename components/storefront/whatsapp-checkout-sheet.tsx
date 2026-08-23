@@ -19,10 +19,12 @@ import {
   buildCartWhatsAppUrl,
   buildWhatsAppCheckoutNotes,
   cartOrderCode,
+  normalizeLocalPhone,
   normalizeWhatsApp,
   trackWhatsAppCheckoutEvent,
 } from "@/lib/whatsapp-order";
 import { clearWebCartHandle, readWebCartHandle, submitWebCheckout } from "@/lib/web-cart";
+import { recordWhatsAppOrderHandoff } from "@/lib/public-storefront-client";
 import { cn } from "@/lib/utils";
 
 const CHECKOUT_PREFILL_KEY = "ub.checkoutPrefill.v1";
@@ -147,7 +149,7 @@ export function WhatsAppCheckoutSheet() {
       if (!cart || !whatsappCheckout || submitting) return;
 
       const trimmedName = name.trim();
-      const trimmedPhone = phone.trim();
+      const trimmedPhone = normalizeLocalPhone(phone);
       if (!trimmedName) {
         setError("Enter your name so the shop knows who the order is from.");
         return;
@@ -199,6 +201,8 @@ export function WhatsAppCheckoutSheet() {
         if (waUrl && tab) {
           tab.location.href = waUrl;
         }
+        // Best-effort "shopper opened the chat" marker (scope §15).
+        recordWhatsAppOrderHandoff(slug, result.orderId);
         trackWhatsAppCheckoutEvent("wa_order_created", {
           items: cart.lines.length,
           subtotal: cart.subtotal,
