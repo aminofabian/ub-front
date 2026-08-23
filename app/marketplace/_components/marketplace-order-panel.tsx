@@ -1056,7 +1056,7 @@ export function MarketplaceOrderWorkspace({
             </span>
             <span className="flex shrink-0 flex-col items-end justify-center gap-0.5 border-l border-white/20 px-3 py-2.5">
               <span className="font-mono text-[15px] font-bold tabular-nums leading-none">
-                {formatMoney(cartTotal, cartCurrency)}
+                {formatMoney(effectiveTotal, cartCurrency)}
               </span>
               <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] opacity-90">
                 Open
