@@ -319,6 +319,10 @@ export type PublicOrderTracking = {
   currency: string;
   catalogBranchName: string;
   createdAt: string;
+  /** Phase 5: true only when the single-use receipt token was verified. */
+  receiptVerified?: boolean;
+  /** Phase 5: the order's contact phone — set only on the token path. */
+  customerPhone?: string | null;
 };
 
 /** Guest order tracking by short code + phone last-4 (scope §15). */
@@ -337,6 +341,35 @@ export async function fetchPublicOrderTracking(
         `/api/v1/public/businesses/${encodeURIComponent(s)}/orders/by-code/${encodeURIComponent(c)}`,
       ) +
         `?phoneLast4=${encodeURIComponent(last4)}`,
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as PublicOrderTracking;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Phase 5: one-tap tracking via the single-use receipt token from the
+ * WhatsApp/SMS link (`?t=`). No phone-last-4 prompt; the response carries the
+ * verified order's contact phone for the sign-in sheet prefill.
+ */
+export async function fetchPublicOrderTrackingByToken(
+  slug: string,
+  code: string,
+  token: string,
+): Promise<PublicOrderTracking | null> {
+  const s = sanitizeStorefrontSlug(slug);
+  const c = code.trim();
+  const t = token.trim();
+  if (!s || !c || !t) return null;
+  try {
+    const res = await fetch(
+      apiUrl(
+        `/api/v1/public/businesses/${encodeURIComponent(s)}/orders/by-code/${encodeURIComponent(c)}`,
+      ) +
+        `?t=${encodeURIComponent(t)}`,
       { headers: { Accept: "application/json" }, cache: "no-store" },
     );
     if (!res.ok) return null;

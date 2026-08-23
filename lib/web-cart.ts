@@ -121,6 +121,8 @@ export type PublicCheckoutResult = {
   currency: string;
   catalogBranchName: string;
   createdAt: string;
+  /** Phase 5: one-tap receipt token — append to the tracking link (`?t=`), single-use. */
+  receiptToken?: string | null;
 };
 
 async function readFetchErrorMessage(res: Response): Promise<string> {

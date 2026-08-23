@@ -12,11 +12,11 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { useShopCart } from "@/hooks/use-shop-cart";
-import { APP_ROUTES } from "@/lib/config";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import {
   buildCartWhatsAppText,
   buildCartWhatsAppUrl,
+  buildOrderTrackingUrl,
   buildWhatsAppCheckoutNotes,
   cartOrderCode,
   normalizeLocalPhone,
@@ -184,7 +184,11 @@ export function WhatsAppCheckoutSheet() {
         savePrefill({ name: trimmedName, phone: trimmedPhone, ward, street });
 
         const orderCode = result.orderCode ?? cartOrderCode(result.orderId);
-        const trackingUrl = `${window.location.origin}${APP_ROUTES.shopOrderTrack(orderCode)}`;
+        const trackingUrl = buildOrderTrackingUrl(
+          window.location.origin,
+          orderCode,
+          result.receiptToken,
+        );
         const messageOptions = {
           storeName: whatsappCheckout.storeName,
           cart,

@@ -74,6 +74,8 @@ type StorefrontSignInEntry = {
   reason: StorefrontSignInReason;
   /** Allowlisted post-auth destination (current path or `/shop/account`). */
   next?: string | null;
+  /** Phase 5: prefill the phone step from a receipt-token-verified order. */
+  initialPhone?: string | null;
 };
 
 type StorefrontSignInContextValue = {
@@ -275,6 +277,7 @@ function StorefrontSignInSheet({
           {mode === "phone" ? (
             <ShopperPhoneLoginLazy
               variant="plain"
+              initialPhone={entry?.initialPhone ?? ""}
               onSignedIn={() => void finishSignedIn()}
               footer={
                 <button

@@ -1,6 +1,7 @@
 import { joinProductNameParts } from "@/lib/catalog-display";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import type { PublicWebCart } from "@/lib/web-cart";
+import { APP_ROUTES } from "@/lib/config";
 
 /**
  * Theme-agnostic WhatsApp order builder (scope D1/D9/D11).
@@ -63,6 +64,23 @@ export function normalizeLocalPhone(
 export function cartOrderCode(orderId: string): string {
   const compact = (orderId ?? "").replace(/-/g, "");
   return compact.slice(-8).toUpperCase();
+}
+
+/**
+ * Phase 5: tracking URL for the WhatsApp/SMS message. Carries the single-use
+ * receipt token when present (`?t=`) so tapping the link verifies the order
+ * without the phone-last-4 prompt and can prefill the sign-in sheet.
+ */
+export function buildOrderTrackingUrl(
+  origin: string,
+  orderCode: string,
+  receiptToken?: string | null,
+): string {
+  const base = `${origin}${APP_ROUTES.shopOrderTrack(orderCode)}`;
+  if (!receiptToken) {
+    return base;
+  }
+  return `${base}?t=${encodeURIComponent(receiptToken)}`;
 }
 
 export type WhatsAppMessageOptions = {
