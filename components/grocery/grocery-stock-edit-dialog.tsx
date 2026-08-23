@@ -15,6 +15,7 @@ import {
   itemStockQty,
 } from "@/lib/apply-item-on-hand";
 import {
+  fetchItemById,
   patchItemStockThresholds,
   type ItemSummaryRecord,
 } from "@/lib/api";
@@ -55,12 +56,27 @@ export function GroceryStockEditDialog({
     if (!open || !item) return;
     setQty(String(itemStockQty(item.stockQty)));
     setCost("");
-    setMinStock(
-      thresholdNumber(item.reorderLevel ?? item.minStockLevel ?? null),
-    );
+    setMinStock("");
     setError(null);
     setBusy(false);
-  }, [open, item]);
+
+    if (!allowMinStock) return;
+
+    let cancelled = false;
+    void fetchItemById(item.id, { branchId: branchId || null })
+      .then((detail) => {
+        if (cancelled) return;
+        setMinStock(
+          thresholdNumber(detail.reorderLevel ?? detail.minStockLevel ?? null),
+        );
+      })
+      .catch(() => {
+        /* leave blank — clerk can still type a new minimum */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, item, allowMinStock, branchId]);
 
   const target = Number(qty.trim());
   const increasing =
