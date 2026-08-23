@@ -275,6 +275,10 @@ export type CashierPosLayoutProps = {
     CashierCartDrawerProps,
     | "lines"
     | "grandTotal"
+    | "payableTotal"
+    | "roundTo10"
+    | "setRoundTo10"
+    | "roundingEligible"
     | "removeLine"
     | "updateLine"
     | "payMethod"

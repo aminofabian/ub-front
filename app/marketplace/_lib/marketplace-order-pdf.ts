@@ -16,6 +16,11 @@ export type MarketplaceOrderPdfInput = {
   note?: string;
   /** When false, names and quantities only — no unit or line totals. */
   includePrices?: boolean;
+  /**
+   * When set, the printed order total uses this value instead of the computed
+   * line total (e.g. the total rounded to the nearest 10).
+   */
+  totalOverride?: number;
 };
 
 const PAGE_W = 595;
@@ -470,6 +475,9 @@ export function buildMarketplaceOrderPdf(input: MarketplaceOrderPdfInput): Blob 
       pricedCount += 1;
     }
   }
+  if (input.totalOverride != null) {
+    total = input.totalOverride;
+  }
   const items = input.lines.length;
   const units = input.lines.reduce((sum, line) => sum + line.qty, 0);
   const includePrices = input.includePrices !== false;
@@ -584,6 +592,8 @@ export function buildMarketplaceOrderText(
     supplierName: string;
     filename?: string;
     catalogueUrl?: string;
+    /** When set, the TOTAL line uses this value instead of the computed total. */
+    totalOverride?: number;
   },
 ): string {
   const currency = lines.find((l) => l.currency)?.currency?.trim() || "KES";
@@ -604,8 +614,9 @@ export function buildMarketplaceOrderText(
   const totalUnits = lines.reduce((sum, l) => sum + l.qty, 0);
   const itemWord = lines.length === 1 ? "item" : "items";
   const unitWord = totalUnits === 1 ? "unit" : "units";
+  const totalValue = opts.totalOverride ?? estimatedTotal;
   const totalLine =
-    pricedCount > 0 ? `TOTAL: ${waMoney(estimatedTotal, currency)}` : "TOTAL: Ask";
+    pricedCount > 0 ? `TOTAL: ${waMoney(totalValue, currency)}` : "TOTAL: Ask";
 
   const text = [
     `Hello ${opts.supplierName} 👋`,
@@ -637,6 +648,8 @@ export function buildWhatsAppOrderUrl(opts: {
   lines: MarketplaceOrderLine[];
   filename?: string;
   catalogueUrl?: string;
+  /** When set, the TOTAL line uses this value instead of the computed total. */
+  totalOverride?: number;
 }): string | null {
   const phone = normalizeWhatsAppPhone(opts.phone);
   if (!phone) return null;
@@ -645,6 +658,7 @@ export function buildWhatsAppOrderUrl(opts: {
     supplierName: opts.supplierName,
     filename: opts.filename,
     catalogueUrl: opts.catalogueUrl,
+    totalOverride: opts.totalOverride,
   });
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;

@@ -303,6 +303,8 @@ export function MarketplaceOrderWorkspace({
     return catalogFamilyId(focusProduct);
   });
   const [mobileOrderOpen, setMobileOrderOpen] = useState(false);
+  /** Round the order total to the nearest 10 (default on; toggle in the order bar). */
+  const [roundTo10, setRoundTo10] = useState(true);
 
   // Opening a product page starts a fresh order with only that product.
   // Related rows stay at Add (0) until the buyer chooses them.
@@ -362,6 +364,15 @@ export function MarketplaceOrderWorkspace({
       }, 0),
     [cartLines],
   );
+
+  // Round to the nearest 10 (e.g. 100.04 → 100, 99.99 → 100). Tiny orders
+  // (under 5) stay exact so a small cart can never round to 0.
+  const roundedTotal = (() => {
+    const r = Math.round(cartTotal / 10) * 10;
+    return r > 0 ? r : cartTotal;
+  })();
+  const effectiveTotal = roundTo10 ? roundedTotal : cartTotal;
+  const roundingActive = roundTo10 && roundedTotal !== cartTotal;
 
   const cartCurrency =
     cartLines.find((l) => l.product.currency)?.product.currency ?? "KES";
@@ -483,6 +494,7 @@ export function MarketplaceOrderWorkspace({
     listedBy: detail.listedBy,
     lines: orderLines,
     includePrices,
+    totalOverride: roundingActive ? effectiveTotal : undefined,
   });
 
   const downloadCatalogueList = async (includePrices: boolean) => {
@@ -573,6 +585,7 @@ export function MarketplaceOrderWorkspace({
         lines: orderLines,
         filename: orderFilename,
         catalogueUrl: pageUrl(),
+        totalOverride: roundingActive ? effectiveTotal : undefined,
       });
       if (wa) {
         window.open(wa, "_blank", "noopener,noreferrer");
@@ -628,6 +641,7 @@ export function MarketplaceOrderWorkspace({
         supplierName: detail.name,
         filename: orderFilename,
         catalogueUrl: pageUrl(),
+        totalOverride: roundingActive ? effectiveTotal : undefined,
       }),
       "Order list",
     );
@@ -642,13 +656,36 @@ export function MarketplaceOrderWorkspace({
             ? "Empty"
             : `${cartUnits} unit${cartUnits === 1 ? "" : "s"} · ${cartLines.length} line${cartLines.length === 1 ? "" : "s"}`}
         </span>
-        <span
-          className={cn(
-            "font-semibold tabular-nums",
-            isShelf ? "font-mono text-[1.05rem]" : "font-heading text-lg",
-          )}
-        >
-          {formatMoney(cartTotal, cartCurrency)}
+        <span className="flex flex-col items-end gap-0.5">
+          <span
+            className={cn(
+              "font-semibold tabular-nums",
+              isShelf ? "font-mono text-[1.05rem]" : "font-heading text-lg",
+            )}
+          >
+            {formatMoney(effectiveTotal, cartCurrency)}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setRoundTo10((v) => !v)}
+              className={cn(
+                "rounded-full border px-2 py-0.5 text-[9px] font-semibold transition",
+                roundTo10
+                  ? "border-[color-mix(in_srgb,#128c4a_40%,transparent)] bg-[color-mix(in_srgb,#128c4a_10%,transparent)] text-[#0f7a3f]"
+                  : "border-border text-muted-foreground hover:text-foreground",
+              )}
+              aria-pressed={roundTo10}
+              title="Round the order total to the nearest 10"
+            >
+              {roundTo10 ? "Round to 10 · on" : "Round to 10 · off"}
+            </button>
+            {roundingActive ? (
+              <span className="text-[9px] text-muted-foreground">
+                from {formatMoney(cartTotal, cartCurrency)}
+              </span>
+            ) : null}
+          </span>
         </span>
       </div>
       <button

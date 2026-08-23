@@ -2260,6 +2260,21 @@ export function QuickSaleWorkspace({
     return roundMoney2(t);
   }, [lines]);
 
+  // Round the amount collected to the nearest 10 (default on; toggle in the
+  // checkout drawer). Never rounds below the true total so the sale always
+  // records full payment — e.g. 99.99 → 100, 347.50 → 350, 342 → 342.
+  const [roundTo10, setRoundTo10] = useState(true);
+  const roundingEligible =
+    !splitPay &&
+    !activeCart.groceryInvoiceId &&
+    (payMethod === "cash" || isStkTender(payMethod)) &&
+    !lines.some(isAirtimeCartLine);
+  const payableTotal = useMemo(() => {
+    if (!roundTo10 || !roundingEligible) return grandTotal;
+    const rounded = Math.round(grandTotal / 10) * 10;
+    return roundMoney2(Math.max(rounded, grandTotal));
+  }, [grandTotal, roundTo10, roundingEligible]);
+
   const canCompleteSale = useMemo(() => {
     if (lines.length === 0 || grandTotal <= 0) {
       return false;
@@ -2737,7 +2752,7 @@ export function QuickSaleWorkspace({
       // Link customer by phone in the background — never delays the prompt.
       linkStkPhoneInBackground(phoneNumber);
       stkConfirmedToastKey.current = null;
-      const chargeAmount = roundKesWhole(grandTotal);
+      const chargeAmount = roundKesWhole(payableTotal);
       updateActiveCart({
         stkPushStatus: "sending",
         stkPushError: "",
@@ -2784,7 +2799,7 @@ export function QuickSaleWorkspace({
         });
       }
     },
-    [online, grandTotal, linkStkPhoneInBackground, updateActiveCart, payMethod],
+    [online, payableTotal, linkStkPhoneInBackground, updateActiveCart, payMethod],
   );
 
   useEffect(() => {
@@ -2901,7 +2916,7 @@ export function QuickSaleWorkspace({
       ? buildStkPhoneNumber(stkAreaCode, stkPhone)
       : "";
     const awaitKey = inStoreCheckout
-      ? `${roundKesWhole(grandTotal).toFixed(2)}|${phone}`
+      ? `${roundKesWhole(payableTotal).toFixed(2)}|${phone}`
       : "";
     tillListenDesiredRef.current = {
       listen: inStoreCheckout,
@@ -2957,7 +2972,7 @@ export function QuickSaleWorkspace({
           const { registerPosTillAwait } = await import("@/lib/api");
           const result = await registerPosTillAwait(
             {
-              amount: roundKesWhole(grandTotal),
+              amount: roundKesWhole(payableTotal),
               phoneNumber: phone || null,
             },
             nextIdempotencyKey(),
@@ -2985,7 +3000,7 @@ export function QuickSaleWorkspace({
             stkPushCheckoutId: result.checkoutRequestId,
             stkPushError: "",
             mpesaRef: "",
-            stkLockedAmount: roundKesWhole(grandTotal),
+            stkLockedAmount: roundKesWhole(payableTotal),
           });
         } catch {
           /* STK path still available; webhook await is best-effort */
@@ -3011,6 +3026,7 @@ export function QuickSaleWorkspace({
     payMethod,
     lines.length,
     grandTotal,
+    payableTotal,
     stkAreaCode,
     stkPhone,
     stkPushStatus,
@@ -3406,7 +3422,7 @@ export function QuickSaleWorkspace({
         : (payMethod as SalePaymentMethod);
       payments.push({
         method: saleMethod,
-        amount: mpesaPaymentAmount ?? grandTotal,
+        amount: mpesaPaymentAmount ?? payableTotal,
         reference: isStkTender(payMethod) ? mpesaRef.trim() || null : null,
       });
     }
@@ -3984,6 +4000,7 @@ export function QuickSaleWorkspace({
     branchId,
     lines,
     grandTotal,
+    payableTotal,
     payMethod,
     mpesaRef,
     stkPushStatus,
@@ -4015,6 +4032,7 @@ export function QuickSaleWorkspace({
     stkPhone,
     ensureCustomerForStkPhone,
     updateActiveCart,
+    dismissCompletedSaleUi,
   ]);
 
   // Auto-complete the sale once M-Pesa is gateway-verified (STK or till webhook).
@@ -4471,6 +4489,10 @@ export function QuickSaleWorkspace({
           setWalletSplitStr,
           cashTenderStr,
           setCashTenderStr,
+          payableTotal,
+          roundTo10,
+          setRoundTo10,
+          roundingEligible,
           creditChangeToWallet,
           setCreditChangeToWallet,
           stkAreaCode,
