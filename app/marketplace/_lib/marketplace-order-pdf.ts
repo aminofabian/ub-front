@@ -586,7 +586,18 @@ export function normalizeWhatsAppPhone(phone: string | null | undefined): string
   return digits;
 }
 
-const WA_RULE = "━━━━━━━━━━━━━━";
+const WA_RULE = "━━━━━━━━━━━━";
+
+/** Compact amount for WhatsApp lines: 25, 6.67 — no trailing zeros. */
+function waAmount(amount: number): string {
+  const rounded = Math.round(amount * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
+}
+
+function waCurrencyLabel(currency: string): string {
+  const code = currency.trim().toUpperCase();
+  return code === "KES" || !code ? "Ksh" : currency.trim();
+}
 
 /**
  * Plain-text order list shared between the WhatsApp URL and clipboard copy.
@@ -602,18 +613,20 @@ export function buildMarketplaceOrderText(
   },
 ): string {
   const currency = lines.find((l) => l.currency)?.currency?.trim() || "KES";
+  const currencyLabel = waCurrencyLabel(currency);
   let estimatedTotal = 0;
   let pricedCount = 0;
 
-  const itemLines = lines.map((line) => {
+  const itemLines = lines.map((line, index) => {
     const name = line.name.trim();
+    const n = `${index + 1}. ${name}`;
     if (line.unitPrice != null) {
       const lineTotal = line.totalOverride ?? line.unitPrice * line.qty;
       estimatedTotal += lineTotal;
       pricedCount += 1;
-      return `${name} × ${line.qty} @ ${waMoney(line.unitPrice, currency)} → ${waMoney(lineTotal, currency)}`;
+      return `${n} — ${line.qty} × ${waAmount(line.unitPrice)} = *${waAmount(lineTotal)}*`;
     }
-    return `${name} × ${line.qty}`;
+    return `${n} — ${line.qty}`;
   });
 
   const totalUnits = lines.reduce((sum, l) => sum + l.qty, 0);
@@ -621,28 +634,27 @@ export function buildMarketplaceOrderText(
   const unitWord = totalUnits === 1 ? "unit" : "units";
   const totalValue = opts.totalOverride ?? estimatedTotal;
   const totalLine =
-    pricedCount > 0 ? `TOTAL: ${waMoney(totalValue, currency)}` : "TOTAL: Ask";
+    pricedCount > 0
+      ? `*ORDER TOTAL: ${currencyLabel} ${waAmount(totalValue)}*`
+      : "*ORDER TOTAL: Ask*";
 
   const text = [
-    `Hello ${opts.supplierName} 👋`,
+    `🛒 *NEW ORDER — ${opts.supplierName}*`,
     "",
-    "I'd like to place the following order:",
-    "",
-    "ORDER DETAILS",
-    "",
+    "*Items:*",
     ...itemLines,
     "",
     WA_RULE,
     totalLine,
-    `${lines.length} ${itemWord} · ${totalUnits} ${unitWord}`,
+    `📦 ${lines.length} ${itemWord} • ${totalUnits} ${unitWord}`,
     WA_RULE,
   ];
   if (opts.filename || opts.catalogueUrl) {
     text.push("");
     if (opts.filename) text.push(`📄 Order PDF: ${opts.filename}`);
-    if (opts.catalogueUrl) text.push(`📋 Catalogue: ${opts.catalogueUrl}`);
+    if (opts.catalogueUrl) text.push(`🔗 Catalogue: ${opts.catalogueUrl}`);
   }
-  text.push("", "Please confirm availability and pricing.", "", "Thank you! 🙏");
+  text.push("", "✅ Please confirm availability & pricing.", "Thank you! 🙏");
 
   return text.join("\n");
 }
