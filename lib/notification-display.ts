@@ -18,6 +18,7 @@ const TYPE_LABELS: Record<string, string> = {
   "approval.resolved": "Approval resolved",
   "export.completed": "Export ready",
   "sales.daily_digest": "Daily sales summary",
+  "inventory.restock_digest": "Tonight's list",
   "catalog.back_in_stock": "Back in stock",
   "promo.price_drop": "Price drop",
   "promo.flash_sale": "Flash sale",
@@ -189,6 +190,23 @@ function formatPayloadBody(
       }
       if (revenue) {
         parts.push(currency ? formatMoney(revenue, currency) : revenue);
+      }
+      return parts.join(" · ");
+    }
+    case "inventory.restock_digest": {
+      const lineCount = readString(payload.lineCount);
+      const estTotal = readString(payload.estTotal);
+      const currency = readString(payload.currency);
+      const supplierCount = readString(payload.supplierCount);
+      const parts: string[] = [];
+      if (lineCount) {
+        parts.push(`${lineCount} items`);
+      }
+      if (estTotal) {
+        parts.push(currency ? formatMoney(estTotal, currency) : estTotal);
+      }
+      if (supplierCount) {
+        parts.push(`${supplierCount} suppliers`);
       }
       return parts.join(" · ");
     }

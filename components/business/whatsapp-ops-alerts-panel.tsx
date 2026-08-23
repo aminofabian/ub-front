@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   CheckCircle2,
+  ClipboardList,
   Loader2,
   MessageCircle,
   ShoppingBag,
@@ -98,6 +99,7 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
   const [alertShift, setAlertShift] = useState(true);
   const [alertSupply, setAlertSupply] = useState(true);
   const [alertCreditPayment, setAlertCreditPayment] = useState(true);
+  const [alertRestockDigest, setAlertRestockDigest] = useState(true);
 
   const applySettings = useCallback((data: OpsAlertSettingsRecord) => {
     setSettings(data);
@@ -106,6 +108,7 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
     setAlertShift(data.alertShift);
     setAlertSupply(data.alertSupply);
     setAlertCreditPayment(data.alertCreditPayment);
+    setAlertRestockDigest(data.alertRestockDigest);
     if (data.phone) {
       setPhoneInput(data.phone);
     }
@@ -188,6 +191,7 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
         alertShift,
         alertSupply,
         alertCreditPayment,
+        alertRestockDigest,
       });
       applySettings(updated);
       setMessage({ text: "WhatsApp alerts saved", kind: "success" });
@@ -452,6 +456,14 @@ export function WhatsAppOpsAlertsPanel({ canEdit }: Props) {
             icon={<Users className="size-4" aria-hidden />}
             title="Credit payments"
             description="When a customer tab payment is received"
+          />
+          <ToggleRow
+            checked={alertRestockDigest}
+            onChange={setAlertRestockDigest}
+            disabled={!canEdit}
+            icon={<ClipboardList className="size-4" aria-hidden />}
+            title="Tonight's restock list"
+            description="When the nightly restock list is ready to review"
           />
         </div>
 

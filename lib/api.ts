@@ -10185,6 +10185,7 @@ export type OpsAlertSettingsRecord = {
   alertShift: boolean;
   alertSupply: boolean;
   alertCreditPayment: boolean;
+  alertRestockDigest: boolean;
   messagingReady: boolean;
 };
 
@@ -10194,6 +10195,7 @@ export type UpdateOpsAlertSettingsPayload = {
   alertShift: boolean;
   alertSupply: boolean;
   alertCreditPayment: boolean;
+  alertRestockDigest: boolean;
 };
 
 export async function fetchOpsAlertSettings(): Promise<OpsAlertSettingsRecord> {
