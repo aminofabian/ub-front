@@ -139,6 +139,7 @@ export default function BusinessConfigurationPage() {
         editor.inventory.allowStockEditForGroceryClerk,
         editor.inventory.allowSpoilsForGroceryClerk,
         editor.inventory.allowMinStockForGroceryClerk,
+        editor.inventory.allowParLevelForGroceryClerk,
         editor.inventory.allowOrderPadForGroceryClerk,
         editor.inventory.allowOrderConfirmForGroceryClerk,
         editor.inventory.allowNegativeStock,

@@ -91,6 +91,7 @@ import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import {
   canGroceryEditMinStock,
+  canGroceryEditParLevel,
   canGroceryOrderConfirm,
   canGroceryOrderPad,
   groceryCounterModesAvailable,
@@ -502,6 +503,10 @@ export function GroceryWorkspace() {
   );
   const allowGroceryMinStock = useMemo(
     () => canGroceryEditMinStock(effectiveMe, business),
+    [effectiveMe, business],
+  );
+  const allowGroceryParLevel = useMemo(
+    () => canGroceryEditParLevel(effectiveMe, business),
     [effectiveMe, business],
   );
   const allowGroceryOrderPad = useMemo(
@@ -2152,6 +2157,7 @@ export function GroceryWorkspace() {
         item={stockEditItem}
         branchId={branchId?.trim() ?? ""}
         allowMinStock={allowGroceryMinStock}
+        allowParLevel={allowGroceryParLevel}
         onClose={() => setStockEditItem(null)}
         onSaved={applyStockEdit}
       />

@@ -370,6 +370,8 @@ export function useBusinessSettingsEditor() {
               allowSpoilsForGroceryClerk: inventory.allowSpoilsForGroceryClerk,
               allowMinStockForGroceryClerk:
                 inventory.allowMinStockForGroceryClerk,
+              allowParLevelForGroceryClerk:
+                inventory.allowParLevelForGroceryClerk,
               allowOrderPadForGroceryClerk:
                 inventory.allowOrderPadForGroceryClerk,
               allowOrderConfirmForGroceryClerk:

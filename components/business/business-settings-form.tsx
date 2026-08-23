@@ -1018,6 +1018,18 @@ export function BusinessSettingsForm({
                 description="In Edit stock, clerks can set the minimum / reorder level for a product. Turn off to hide that field."
               />
               <ToggleRow
+                checked={inventory.allowParLevelForGroceryClerk}
+                onChange={(checked) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowParLevelForGroceryClerk: checked,
+                  }))
+                }
+                icon={<Warehouse className="size-4 text-muted-foreground" />}
+                title="Allow grocery clerks to set order-up-to"
+                description="In Edit stock, clerks can set the order-up-to (par) quantity used for restock suggestions. Turn off to hide that field."
+              />
+              <ToggleRow
                 checked={inventory.allowOrderPadForGroceryClerk}
                 onChange={(checked) =>
                   setInventory((previous) => ({

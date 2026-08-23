@@ -845,6 +845,8 @@ export type StockLevelsSettingsRecord = {
   allowSpoilsForGroceryClerk?: boolean;
   /** Grocery Edit stock: set minimum / reorder. Default on when absent. */
   allowMinStockForGroceryClerk?: boolean;
+  /** Grocery Edit stock: set order-up-to (par). Default on when absent. */
+  allowParLevelForGroceryClerk?: boolean;
   /** Grocery supplier Order drawer. Default on when absent. */
   allowOrderPadForGroceryClerk?: boolean;
   /** Grocery Confirm (Path A) drawer. Default on when absent. */
@@ -1051,6 +1053,7 @@ export type StockLevelsPatchPayload = {
   allowStockPageForStockManager?: boolean;
   allowSpoilsForGroceryClerk?: boolean;
   allowMinStockForGroceryClerk?: boolean;
+  allowParLevelForGroceryClerk?: boolean;
   allowOrderPadForGroceryClerk?: boolean;
   allowOrderConfirmForGroceryClerk?: boolean;
 };
@@ -4008,19 +4011,25 @@ export async function patchItem(
   notifyTenantCatalogChanged();
 }
 
-/** Grocery / counter: set min + reorder without full catalog write. */
+/** Grocery / counter: set min + reorder + order-up-to without full catalog write. */
 export async function patchItemStockThresholds(
   itemId: string,
-  body: { minStockLevel?: number; reorderLevel?: number },
+  body: {
+    minStockLevel?: number;
+    reorderLevel?: number;
+    reorderQty?: number;
+  },
 ): Promise<{
   itemId: string;
   minStockLevel?: number | string | null;
   reorderLevel?: number | string | null;
+  reorderQty?: number | string | null;
 }> {
   const result = await request<{
     itemId: string;
     minStockLevel?: number | string | null;
     reorderLevel?: number | string | null;
+    reorderQty?: number | string | null;
   }>(
     `/api/v1/inventory/items/${encodeURIComponent(itemId.trim())}/stock-thresholds`,
     { method: "PATCH", body },

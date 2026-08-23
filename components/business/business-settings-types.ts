@@ -53,6 +53,7 @@ export type InventoryForm = {
   allowStockEditForGroceryClerk: boolean;
   allowSpoilsForGroceryClerk: boolean;
   allowMinStockForGroceryClerk: boolean;
+  allowParLevelForGroceryClerk: boolean;
   allowOrderPadForGroceryClerk: boolean;
   allowOrderConfirmForGroceryClerk: boolean;
   allowNegativeStock: boolean;
@@ -177,6 +178,8 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowSpoilsForGroceryClerk: true,
   /** Match backend: grocery min / reorder in Edit stock defaults on. */
   allowMinStockForGroceryClerk: true,
+  /** Match backend: grocery order-up-to (par) in Edit stock defaults on. */
+  allowParLevelForGroceryClerk: true,
   /** Match backend: grocery supplier Order defaults on. */
   allowOrderPadForGroceryClerk: true,
   /** Match backend: grocery Confirm orders defaults on. */
@@ -374,6 +377,8 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
       b?.inventory?.stockLevels?.allowSpoilsForGroceryClerk !== false,
     allowMinStockForGroceryClerk:
       b?.inventory?.stockLevels?.allowMinStockForGroceryClerk !== false,
+    allowParLevelForGroceryClerk:
+      b?.inventory?.stockLevels?.allowParLevelForGroceryClerk !== false,
     allowOrderPadForGroceryClerk:
       b?.inventory?.stockLevels?.allowOrderPadForGroceryClerk !== false,
     allowOrderConfirmForGroceryClerk:

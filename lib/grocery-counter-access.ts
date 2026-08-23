@@ -40,6 +40,13 @@ export function groceryClerkMinStockEnabled(
   return business?.inventory?.stockLevels?.allowMinStockForGroceryClerk !== false;
 }
 
+/** Order-up-to (par) in Edit stock — default on when unset. */
+export function groceryClerkParLevelEnabled(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return business?.inventory?.stockLevels?.allowParLevelForGroceryClerk !== false;
+}
+
 /** Order pad on grocery — default on when unset. */
 export function groceryClerkOrderPadEnabled(
   business: BusinessRecord | null | undefined,
@@ -102,6 +109,23 @@ export function canGroceryEditMinStock(
   business: BusinessRecord | null | undefined,
 ): boolean {
   if (!groceryClerkMinStockEnabled(business)) {
+    return false;
+  }
+  if (
+    hasPermission(me?.permissions, Permission.InventoryWrite) ||
+    hasPermission(me?.permissions, Permission.CatalogItemsWrite)
+  ) {
+    return true;
+  }
+  return isGroceryCounterRole(me);
+}
+
+/** Set order-up-to (par) inside Edit stock dialog. */
+export function canGroceryEditParLevel(
+  me: MeResponse | null | undefined,
+  business: BusinessRecord | null | undefined,
+): boolean {
+  if (!groceryClerkParLevelEnabled(business)) {
     return false;
   }
   if (

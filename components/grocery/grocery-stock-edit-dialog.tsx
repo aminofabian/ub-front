@@ -27,6 +27,8 @@ type GroceryStockEditDialogProps = {
   branchId: string;
   /** When true, show and save minimum / reorder level. */
   allowMinStock?: boolean;
+  /** When true, show and save order-up-to (par) level. */
+  allowParLevel?: boolean;
   onClose: () => void;
   onSaved: (itemId: string, qty: number) => void;
 };
@@ -42,6 +44,7 @@ export function GroceryStockEditDialog({
   item,
   branchId,
   allowMinStock = false,
+  allowParLevel = false,
   onClose,
   onSaved,
 }: GroceryStockEditDialogProps) {
@@ -49,6 +52,7 @@ export function GroceryStockEditDialog({
   const [qty, setQty] = useState("");
   const [cost, setCost] = useState("");
   const [minStock, setMinStock] = useState("");
+  const [parLevel, setParLevel] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,26 +61,32 @@ export function GroceryStockEditDialog({
     setQty(String(itemStockQty(item.stockQty)));
     setCost("");
     setMinStock("");
+    setParLevel("");
     setError(null);
     setBusy(false);
 
-    if (!allowMinStock) return;
+    if (!allowMinStock && !allowParLevel) return;
 
     let cancelled = false;
     void fetchItemById(item.id, { branchId: branchId || null })
       .then((detail) => {
         if (cancelled) return;
-        setMinStock(
-          thresholdNumber(detail.reorderLevel ?? detail.minStockLevel ?? null),
-        );
+        if (allowMinStock) {
+          setMinStock(
+            thresholdNumber(detail.reorderLevel ?? detail.minStockLevel ?? null),
+          );
+        }
+        if (allowParLevel) {
+          setParLevel(thresholdNumber(detail.reorderQty ?? null));
+        }
       })
       .catch(() => {
-        /* leave blank — clerk can still type a new minimum */
+        /* leave blank — clerk can still type a new value */
       });
     return () => {
       cancelled = true;
     };
-  }, [open, item, allowMinStock, branchId]);
+  }, [open, item, allowMinStock, allowParLevel, branchId]);
 
   const target = Number(qty.trim());
   const increasing =
@@ -98,6 +108,12 @@ export function GroceryStockEditDialog({
         unitCost: increasing ? unitCost : undefined,
       });
 
+      const thresholds: {
+        minStockLevel?: number;
+        reorderLevel?: number;
+        reorderQty?: number;
+      } = {};
+
       if (allowMinStock) {
         const minRaw = minStock.trim();
         if (minRaw !== "") {
@@ -105,11 +121,24 @@ export function GroceryStockEditDialog({
           if (!Number.isFinite(minVal) || minVal < 0) {
             throw new Error("Minimum stock must be zero or a positive number.");
           }
-          await patchItemStockThresholds(item.id, {
-            minStockLevel: minVal,
-            reorderLevel: minVal,
-          });
+          thresholds.minStockLevel = minVal;
+          thresholds.reorderLevel = minVal;
         }
+      }
+
+      if (allowParLevel) {
+        const parRaw = parLevel.trim();
+        if (parRaw !== "") {
+          const parVal = Number(parRaw);
+          if (!Number.isFinite(parVal) || parVal < 0) {
+            throw new Error("Order-up-to must be zero or a positive number.");
+          }
+          thresholds.reorderQty = parVal;
+        }
+      }
+
+      if (Object.keys(thresholds).length > 0) {
+        await patchItemStockThresholds(item.id, thresholds);
       }
 
       onSaved(item.id, applied);
@@ -179,6 +208,24 @@ export function GroceryStockEditDialog({
                   disabled={busy}
                   placeholder="Reorder when below"
                   onChange={(e) => setMinStock(e.target.value)}
+                  className="mt-1 h-9 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-2.5 text-[13px] tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/35"
+                />
+              </label>
+            ) : null}
+            {allowParLevel ? (
+              <label className="block">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                  Order up to
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  inputMode="decimal"
+                  value={parLevel}
+                  disabled={busy}
+                  placeholder="Leave blank to auto-calculate"
+                  onChange={(e) => setParLevel(e.target.value)}
                   className="mt-1 h-9 w-full rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-2.5 text-[13px] tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/35"
                 />
               </label>
