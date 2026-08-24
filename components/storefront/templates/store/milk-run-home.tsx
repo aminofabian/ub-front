@@ -1,9 +1,14 @@
+"use client";
+
 import { MilkRunCatalog } from "@/components/storefront/templates/store/milk-run-catalog";
 import { milkRunFontVariables } from "@/components/storefront/templates/store/milk-run-fonts";
 import { MilkRunFloats } from "@/components/storefront/templates/store/milk-run-floats";
 import styles from "@/components/storefront/templates/store/milk-run.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
-import { StorefrontQuickEditTarget } from "@/components/storefront/storefront-staff-edit";
+import {
+  StorefrontQuickEditTarget,
+  useStorefrontLiveDesign,
+} from "@/components/storefront/storefront-staff-edit";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
   resolveStorefrontDesign,
@@ -125,8 +130,9 @@ export function MilkRunStoreHome(props: StoreHomeTemplateProps) {
     heroBannerUrls,
     showcaseImage,
     landingContent,
-    design,
+    design: designProp,
   } = props;
+  const design = useStorefrontLiveDesign(designProp ?? null);
 
   const accent = accentHex?.trim() || "#E8412C";
   const { lead, accent: nameAccent } = splitWordmark(heroTitle);

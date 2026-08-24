@@ -128,7 +128,7 @@ export type CashierCartDrawerProps = {
 
   payMethod: SalePaymentMethod | "remote_bill" | "kiosk_pay";
   setPayMethod: (m: SalePaymentMethod | "remote_bill" | "kiosk_pay") => void;
-  /** Show Kiosk Pay tender (platform custody STK). Kept for status hints; tile always shows on web. */
+  /** Show Kiosk Pay tender only when the merchant has activated Kiosk Pay. */
   kioskPayAvailable?: boolean;
   /** Optional setup hint when Kiosk Pay STK is not fully ready. */
   kioskPayHint?: string | null;
@@ -301,6 +301,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onToggleWeighed,
     payMethod,
     setPayMethod,
+    kioskPayAvailable = false,
     kioskPayHint = null,
     mpesaRef,
     setSplitPay,
@@ -697,7 +698,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           hint="Your till STK"
                         />
                       ) : null}
-                      {!IS_DESKTOP ? (
+                      {!IS_DESKTOP && kioskPayAvailable ? (
                         <PayMethodTile
                           active={payMethod === "kiosk_pay"}
                           onClick={() => setPayMethod("kiosk_pay")}

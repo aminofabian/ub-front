@@ -1,3 +1,6 @@
+"use client";
+
+import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import { Suspense, type CSSProperties } from "react";
 
 import {
@@ -50,8 +53,9 @@ export function ButcherBoardStoreHome(props: StoreHomeTemplateProps) {
     heroBannerUrls,
     showcaseImage,
     landingContent,
-    design,
+    design: designProp,
   } = props;
+  const design = useStorefrontLiveDesign(designProp ?? null);
 
   const gold = accentHex?.trim() || "#F5C518";
   const crimson = primaryHex?.trim() || "#E31C23";

@@ -1,3 +1,6 @@
+"use client";
+
+import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import { Suspense, type CSSProperties } from "react";
 
 import {
@@ -48,8 +51,9 @@ export function SpiritsCellarStoreHome(props: StoreHomeTemplateProps) {
     heroBannerUrls,
     showcaseImage,
     landingContent,
-    design,
+    design: designProp,
   } = props;
+  const design = useStorefrontLiveDesign(designProp ?? null);
 
   const wax = primaryHex?.trim() || "#8B2635";
   const spirit = accentHex?.trim() || "#C4B5FD";

@@ -1,3 +1,6 @@
+"use client";
+
+import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import { type CSSProperties } from "react";
 
 import { BeautyEditHeroPanel } from "@/components/storefront/templates/store/beauty-edit-card";
@@ -48,8 +51,9 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
     landingContent,
     primaryHex,
     accentHex,
-    design,
+    design: designProp,
   } = props;
+  const design = useStorefrontLiveDesign(designProp ?? null);
 
   const gold = accentHex?.trim() || "#b5853a";
   const ink = primaryHex?.trim() || "#0e0e0e";

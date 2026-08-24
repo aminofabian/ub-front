@@ -491,8 +491,8 @@ export function QuickSaleWorkspace({
         );
       } catch {
         if (cancelled) return;
-        // Older backends may lack /pos — still show the tender; push validates.
-        setKioskPayAvailable(true);
+        // Fail closed — do not offer Kiosk Pay when availability cannot be confirmed.
+        setKioskPayAvailable(false);
         setKioskPayHint(null);
       }
     })();
@@ -500,6 +500,20 @@ export function QuickSaleWorkspace({
       cancelled = true;
     };
   }, [online, business?.id]);
+
+  // Drop a stale Kiosk Pay selection if the merchant has not activated it.
+  useEffect(() => {
+    if (kioskPayAvailable) return;
+    setCarts((prev) => {
+      let changed = false;
+      const next = prev.map((cart) => {
+        if (cart.payMethod !== "kiosk_pay") return cart;
+        changed = true;
+        return { ...cart, payMethod: "cash" as const };
+      });
+      return changed ? next : prev;
+    });
+  }, [kioskPayAvailable]);
 
   /** Update the active cart in-place within the carts array. */
   const updateActiveCart = useCallback(

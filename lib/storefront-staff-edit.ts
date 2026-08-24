@@ -3,6 +3,7 @@
  */
 
 import { isShopNextPath } from "@/lib/post-auth-destination";
+import { hasPermission, Permission } from "@/lib/permissions";
 
 /** `?edit=1` / `true` / `yes` — phone demo deep link into on-page edit mode. */
 export function storefrontWantsEditFromSearch(
@@ -15,6 +16,25 @@ export function storefrontWantsEditFromSearch(
   const v = params.get("edit")?.trim().toLowerCase() ?? "";
   return v === "1" || v === "true" || v === "yes";
 }
+
+/**
+ * V2 gate: owner/admin always, or any staff with `business.manage_settings`
+ * (covers manager / custom roles that can patch designJson).
+ */
+export function canStorefrontOnPageEdit(opts: {
+  roleKey?: string | null;
+  permissions?: string[] | null;
+}): boolean {
+  const key = (opts.roleKey ?? "").trim().toLowerCase();
+  if (key === "owner" || key === "admin") return true;
+  return hasPermission(
+    opts.permissions ?? undefined,
+    Permission.BusinessManageSettings,
+  );
+}
+
+/** Same 8KB URL ceiling as Design studio “Open live” draft preview. */
+export const STOREFRONT_DRAFT_PREVIEW_MAX_CHARS = 8000;
 
 export function storefrontStaffEditReturnPath(
   href: string | null | undefined = typeof window !== "undefined"
@@ -77,5 +97,22 @@ export function resolveStorefrontDesignReturnTo(
   } catch {
     return null;
   }
+}
+
+/** Lightweight analytics for on-page edit (scope §18) — CustomEvent + dataLayer. */
+export function trackStorefrontEditEvent(
+  name: string,
+  data?: Record<string, unknown>,
+): void {
+  if (typeof window === "undefined") return;
+  const detail: Record<string, unknown> = {
+    event: name,
+    path: window.location.pathname,
+    ...data,
+  };
+  window.dispatchEvent(new CustomEvent("kiosk:storefront-event", { detail }));
+  const w = window as Window & { dataLayer?: Record<string, unknown>[] };
+  w.dataLayer = w.dataLayer || [];
+  w.dataLayer.push(detail);
 }
 

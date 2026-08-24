@@ -277,7 +277,10 @@ export function ShopStorefrontChrome({
         storeName={headerTitle}
         hasPresence={hasPresence}
       >
-      <StorefrontStaffEditProvider initialDesign={initialDesign}>
+      <StorefrontStaffEditProvider
+        initialDesign={initialDesign}
+        categories={categories}
+      >
       <div
         data-store-theme-id={storeThemeId ?? undefined}
         className={cn(

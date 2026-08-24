@@ -213,7 +213,7 @@ export async function StorefrontCatalogHome({
     design && tenant?.storefrontEnabled
       ? storefrontSectionsInRegion(design, "post")
       : [];
-  const sections = preSections.length || postSections.length ? design : null;
+  const showSectionStacks = Boolean(design && tenant?.storefrontEnabled);
 
   return (
     <>
@@ -223,10 +223,11 @@ export async function StorefrontCatalogHome({
         storeThemeId={themeId}
         landingTemplateId={landingTemplateId}
       />
-      {sections && preSections.length > 0 ? (
+      {showSectionStacks ? (
         <StorefrontSectionsStack
-          design={sections}
+          design={design!}
           sections={preSections}
+          region="pre"
           storeName={storeName}
           primaryHex={primary}
           accentHex={accentHex}
@@ -260,10 +261,11 @@ export async function StorefrontCatalogHome({
         landingContent={tenant?.landingContent ?? null}
         design={design}
       />
-      {sections && postSections.length > 0 ? (
+      {showSectionStacks ? (
         <StorefrontSectionsStack
-          design={sections}
+          design={design!}
           sections={postSections}
+          region="post"
           storeName={storeName}
           primaryHex={primary}
           accentHex={accentHex}

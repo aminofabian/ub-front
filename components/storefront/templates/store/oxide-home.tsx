@@ -1,3 +1,6 @@
+"use client";
+
+import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -48,8 +51,9 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
     primaryHex,
     heroBannerUrls,
     landingContent,
-    design,
+    design: designProp,
   } = props;
+  const design = useStorefrontLiveDesign(designProp ?? null);
 
   const accent = accentHex?.trim() || "#FF3D1F";
   const heroSection = storefrontSectionConfig(design, "hero");

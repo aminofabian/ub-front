@@ -1,3 +1,6 @@
+"use client";
+
+import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import { Suspense, type CSSProperties } from "react";
 
 import {
@@ -50,8 +53,9 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
     heroBannerUrls,
     showcaseImage,
     landingContent,
-    design,
+    design: designProp,
   } = props;
+  const design = useStorefrontLiveDesign(designProp ?? null);
 
   const stamp = primaryHex?.trim() || "#B91C1C";
   const carbon = accentHex?.trim() || "#3D6B9E";

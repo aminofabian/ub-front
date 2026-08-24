@@ -19,7 +19,17 @@ import {
   StorefrontQuickEditDialog,
   type StorefrontQuickEditField,
 } from "@/components/storefront/storefront-quick-edit-dialog";
+import { StorefrontCategoryPhotosDialog } from "@/components/storefront/storefront-category-photos-dialog";
+import { StorefrontHeroPhotoDialog } from "@/components/storefront/storefront-hero-photo-dialog";
+import { StorefrontSectionsToggleDialog } from "@/components/storefront/storefront-sections-toggle-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   fetchBusiness,
   fetchMe,
@@ -27,6 +37,8 @@ import {
 } from "@/lib/api";
 import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
+import { hasPermission, Permission } from "@/lib/permissions";
+import type { PublicCategory } from "@/lib/public-storefront";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import {
   STOREFRONT_DAY_KEYS,
@@ -41,16 +53,22 @@ import {
   type StorefrontDesignDayHours,
   type StorefrontDesignDayKey,
   type StorefrontDesignHours,
+  type StorefrontDesignPhoto,
   type StorefrontHeroSectionSettings,
   type StorefrontPromoSectionSettings,
   type StorefrontSectionConfig,
   type StorefrontSectionId,
 } from "@/lib/storefront-design";
 import {
+  canStorefrontOnPageEdit,
+  STOREFRONT_DRAFT_PREVIEW_MAX_CHARS,
   storefrontStaffEditReturnAbsoluteUrl,
   storefrontStaffEditReturnPath,
   storefrontWantsEditFromSearch,
+  trackStorefrontEditEvent,
 } from "@/lib/storefront-staff-edit";
+import { storefrontPreviewUrl } from "@/lib/storefront-preview";
+import { normalizeStoreThemeId } from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 
 export type { StorefrontQuickEditField };
@@ -133,22 +151,35 @@ function hoursFormDefaults(
 type StaffEditContextValue = {
   ready: boolean;
   canEdit: boolean;
+  /** Role/settings gate AND `catalog.items.write` — mirrors grocery photo editing. */
+  canEditPhotos: boolean;
+  /** Role/settings gate AND `catalog.categories.write` — category / aisle photos. */
+  canEditCategoryPhotos: boolean;
   editMode: boolean;
   setEditMode: (on: boolean) => void;
   design: StorefrontDesign | null;
+  /** True when working design differs from last published / loaded design. */
+  dirty: boolean;
+  publishDraft: () => Promise<void>;
+  discardDraft: () => void;
+  previewDraft: () => void;
   imageOverrides: Record<string, string>;
   setImageOverride: (itemId: string, imageUrl: string) => void;
   displayImageUrl: (itemId: string, fallback: string | null) => string | null;
+  categoryIconOverrides: Record<string, string>;
+  setCategoryIconOverride: (categoryId: string, imageUrl: string) => void;
+  displayCategoryIconUrl: (
+    categoryId: string,
+    fallback: string | null,
+  ) => string | null;
   openQuickEdit: (field: StorefrontQuickEditField) => void;
+  openHeroPhoto: () => void;
+  openSectionsPanel: () => void;
+  openCategoryPhotos: () => void;
   saving: boolean;
 };
 
 const StaffEditContext = createContext<StaffEditContextValue | null>(null);
-
-function isOwnerOrAdminRole(roleKey: string | null | undefined): boolean {
-  const key = (roleKey ?? "").trim().toLowerCase();
-  return key === "owner" || key === "admin";
-}
 
 function storefrontWantsEditFromWindow(): boolean {
   if (typeof window === "undefined") return false;
@@ -216,32 +247,88 @@ export function useStorefrontDisplayImage(
   return ctx.displayImageUrl(itemId, base);
 }
 
+/** Category icon URL with optimistic staff override when present. */
+export function useStorefrontDisplayCategoryIcon(
+  categoryId: string,
+  fallback: string | null | undefined,
+): string | null {
+  const ctx = useStorefrontStaffEditOptional();
+  const base = fallback?.trim() || null;
+  if (!ctx) return base;
+  return ctx.displayCategoryIconUrl(categoryId, base);
+}
+
+/**
+ * Prefer the staff working design while edit mode is on so draft text / sections
+ * / hero photo update on the page without waiting for Publish + refresh.
+ */
+export function useStorefrontLiveDesign(
+  fallback: StorefrontDesign | null | undefined,
+): StorefrontDesign | null {
+  const ctx = useStorefrontStaffEditOptional();
+  const base = fallback ?? null;
+  if (ctx?.editMode && ctx.design) return ctx.design;
+  return base;
+}
+
+const SECTION_TO_QUICK_FIELD: Partial<
+  Record<StorefrontSectionId, StorefrontQuickEditField>
+> = {
+  announcement: "announcement",
+  promo: "promo",
+  hero: "hero",
+  about: "about",
+  contact: "contact",
+};
+
 export function StorefrontStaffEditProvider({
   initialDesign,
+  categories = [],
   children,
 }: {
   initialDesign?: StorefrontDesign | null;
+  categories?: PublicCategory[];
   children: ReactNode;
 }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
+  const [canEditPhotos, setCanEditPhotos] = useState(false);
+  const [canEditCategoryPhotos, setCanEditCategoryPhotos] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [design, setDesign] = useState<StorefrontDesign | null>(
     initialDesign ?? null,
   );
+  const [businessId, setBusinessId] = useState<string | null>(null);
   const [imageOverrides, setImageOverrides] = useState<Record<string, string>>(
     {},
   );
+  const [categoryIconOverrides, setCategoryIconOverrides] = useState<
+    Record<string, string>
+  >({});
   const [saving, setSaving] = useState(false);
   const [quickField, setQuickField] = useState<StorefrontQuickEditField | null>(
     null,
   );
+  const [heroPhotoOpen, setHeroPhotoOpen] = useState(false);
+  const [sectionsOpen, setSectionsOpen] = useState(false);
+  const [categoryPhotosOpen, setCategoryPhotosOpen] = useState(false);
   const [editDeepLink, setEditDeepLink] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [storeThemeId, setStoreThemeId] = useState(() =>
+    normalizeStoreThemeId(null),
+  );
   const autoEditAppliedRef = useRef(false);
+  const publishedDesignRef = useRef<StorefrontDesign | null>(
+    initialDesign ?? null,
+  );
+  const dirtyRef = useRef(false);
+  dirtyRef.current = dirty;
 
   useEffect(() => {
+    if (dirtyRef.current) return;
     setDesign(initialDesign ?? null);
+    publishedDesignRef.current = initialDesign ?? null;
   }, [initialDesign]);
 
   useEffect(() => {
@@ -256,15 +343,33 @@ export function StorefrontStaffEditProvider({
         if (!hasAccessSession() && !getSessionTokens()) {
           if (!cancelled) {
             setCanEdit(false);
+            setCanEditPhotos(false);
+            setCanEditCategoryPhotos(false);
             setReady(true);
           }
           return;
         }
         const me = await fetchMe();
         if (cancelled) return;
-        setCanEdit(isOwnerOrAdminRole(me.role?.key));
+        const allowed = canStorefrontOnPageEdit({
+          roleKey: me.role?.key,
+          permissions: me.permissions,
+        });
+        setCanEdit(allowed);
+        setCanEditPhotos(
+          allowed &&
+            hasPermission(me.permissions, Permission.CatalogItemsWrite),
+        );
+        setCanEditCategoryPhotos(
+          allowed &&
+            hasPermission(me.permissions, Permission.CatalogCategoriesWrite),
+        );
       } catch {
-        if (!cancelled) setCanEdit(false);
+        if (!cancelled) {
+          setCanEdit(false);
+          setCanEditPhotos(false);
+          setCanEditCategoryPhotos(false);
+        }
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -275,12 +380,19 @@ export function StorefrontStaffEditProvider({
   }, []);
 
   const ensureDesignLoaded = useCallback(async (): Promise<StorefrontDesign | null> => {
+    if (dirtyRef.current && design) return design;
     try {
       const business = await fetchBusiness();
       const parsed = parseStorefrontDesignJson(
         business.storefront?.designJson ?? null,
       );
       setDesign(parsed);
+      publishedDesignRef.current = parsed;
+      setDirty(false);
+      setBusinessId(business.id?.trim() || null);
+      setStoreThemeId(
+        normalizeStoreThemeId(business.storefront?.storeThemeId),
+      );
       return parsed;
     } catch (e) {
       toast.error(
@@ -292,11 +404,25 @@ export function StorefrontStaffEditProvider({
 
   const setEditModeSafe = useCallback(
     (on: boolean) => {
+      if (!on && dirtyRef.current) {
+        const ok =
+          typeof window === "undefined" ||
+          window.confirm(
+            "You have unpublished changes. Discard them and exit edit mode?",
+          );
+        if (!ok) return;
+        setDesign(publishedDesignRef.current);
+        setDirty(false);
+      }
       setEditMode(on);
       if (on) {
+        trackStorefrontEditEvent("storefront_edit_mode_on");
         void ensureDesignLoaded();
       } else {
         setQuickField(null);
+        setHeroPhotoOpen(false);
+        setSectionsOpen(false);
+        setCategoryPhotosOpen(false);
       }
     },
     [ensureDesignLoaded],
@@ -326,6 +452,24 @@ export function StorefrontStaffEditProvider({
     [imageOverrides],
   );
 
+  const setCategoryIconOverride = useCallback(
+    (categoryId: string, imageUrl: string) => {
+      const id = categoryId.trim();
+      const url = imageUrl.trim();
+      if (!id || !url) return;
+      setCategoryIconOverrides((prev) => ({ ...prev, [id]: url }));
+    },
+    [],
+  );
+
+  const displayCategoryIconUrl = useCallback(
+    (categoryId: string, fallback: string | null) => {
+      const override = categoryIconOverrides[categoryId.trim()];
+      return override?.trim() || fallback;
+    },
+    [categoryIconOverrides],
+  );
+
   const openQuickEdit = useCallback(
     (field: StorefrontQuickEditField) => {
       if (!canEdit) return;
@@ -335,25 +479,115 @@ export function StorefrontStaffEditProvider({
     [canEdit, editMode, setEditModeSafe],
   );
 
-  const saveDesign = useCallback(
-    async (next: StorefrontDesign) => {
-      setSaving(true);
-      try {
-        const designJson = serializeStorefrontDesign(next) ?? "";
-        await updateBusiness({ storefront: { designJson } });
-        setDesign(next);
-        toast.success("Saved");
-        router.refresh();
-        setQuickField(null);
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Could not save");
-        throw e;
-      } finally {
-        setSaving(false);
+  const openHeroPhoto = useCallback(() => {
+    if (!canEdit) return;
+    if (!editMode) setEditModeSafe(true);
+    setHeroPhotoOpen(true);
+  }, [canEdit, editMode, setEditModeSafe]);
+
+  const openSectionsPanel = useCallback(() => {
+    if (!canEdit) return;
+    if (!editMode) setEditModeSafe(true);
+    setSectionsOpen(true);
+  }, [canEdit, editMode, setEditModeSafe]);
+
+  const openCategoryPhotos = useCallback(() => {
+    if (!canEdit) return;
+    if (!editMode) setEditModeSafe(true);
+    setCategoryPhotosOpen(true);
+  }, [canEdit, editMode, setEditModeSafe]);
+
+  /** Stage designJson changes locally — shoppers still see the last publish. */
+  const applyDraft = useCallback(
+    (
+      next: StorefrontDesign,
+      meta?: {
+        field?: string;
+        event?: string;
+        data?: Record<string, unknown>;
+      },
+    ) => {
+      setDesign(next);
+      setDirty(true);
+      if (meta?.event) {
+        trackStorefrontEditEvent(meta.event, {
+          field: meta.field,
+          draft: true,
+          ...meta.data,
+        });
+      } else if (meta?.field) {
+        trackStorefrontEditEvent("storefront_quick_text_saved", {
+          field: meta.field,
+          draft: true,
+        });
       }
+      setQuickField(null);
+      setHeroPhotoOpen(false);
     },
-    [router],
+    [],
   );
+
+  const publishDraft = useCallback(async () => {
+    if (!design || !dirtyRef.current) {
+      toast.message("Nothing to publish");
+      return;
+    }
+    setSaving(true);
+    try {
+      const designJson = serializeStorefrontDesign(design) ?? "";
+      await updateBusiness({ storefront: { designJson } });
+      publishedDesignRef.current = design;
+      setDirty(false);
+      toast.success("Published");
+      trackStorefrontEditEvent("storefront_design_published");
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not publish");
+      trackStorefrontEditEvent("storefront_edit_save_failed", {
+        field: "publish",
+      });
+      throw e;
+    } finally {
+      setSaving(false);
+    }
+  }, [design, router]);
+
+  const discardDraft = useCallback(() => {
+    if (!dirtyRef.current) return;
+    setDesign(publishedDesignRef.current);
+    setDirty(false);
+    setQuickField(null);
+    setHeroPhotoOpen(false);
+    setSectionsOpen(false);
+    toast.message("Draft discarded");
+    trackStorefrontEditEvent("storefront_draft_discarded");
+  }, []);
+
+  const previewDraft = useCallback(() => {
+    if (!design || !dirtyRef.current) {
+      toast.message("Make a change first, then preview");
+      return;
+    }
+    const designJson = serializeStorefrontDesign(design) ?? "";
+    if (!designJson) {
+      toast.error("Could not serialize draft for preview");
+      return;
+    }
+    if (designJson.length > STOREFRONT_DRAFT_PREVIEW_MAX_CHARS) {
+      toast.error(
+        "Draft is too large to preview in the URL. Publish to see it live.",
+      );
+      return;
+    }
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "";
+    if (!origin) return;
+    const url = storefrontPreviewUrl(origin, "store", storeThemeId, {
+      designJson,
+    });
+    window.open(url, "_blank", "noopener,noreferrer");
+    trackStorefrontEditEvent("storefront_draft_preview_opened");
+  }, [design, storeThemeId]);
 
   const handleQuickSave = useCallback(
     async (field: StorefrontQuickEditField, values: Record<string, string>) => {
@@ -475,10 +709,66 @@ export function StorefrontStaffEditProvider({
         };
       }
 
-      await saveDesign(next);
+      applyDraft(next, { field });
     },
-    [design, ensureDesignLoaded, saveDesign],
+    [design, ensureDesignLoaded, applyDraft],
   );
+
+  const handleHeroPhotoSave = useCallback(
+    async (photo: StorefrontDesignPhoto | null) => {
+      let base = design;
+      if (!base) {
+        base = await ensureDesignLoaded();
+      }
+      const next: StorefrontDesign = {
+        ...(base ?? { version: 1 }),
+        version: 1,
+        photos: photo ? { hero: photo } : null,
+      };
+      // Enable hero section when adding a photo so the merchant hero renders.
+      const withHero = photo
+        ? upsertSection(next, "hero", { enabled: true })
+        : next;
+      applyDraft(withHero, {
+        field: "hero_photo",
+        event: "storefront_hero_photo_saved",
+        data: { hasPhoto: Boolean(photo) },
+      });
+    },
+    [design, ensureDesignLoaded, applyDraft],
+  );
+
+  const handleSectionToggle = useCallback(
+    async (id: StorefrontSectionId, enabled: boolean) => {
+      let base = design;
+      if (!base) {
+        base = await ensureDesignLoaded();
+      }
+      const next = upsertSection(base, id, { enabled });
+      applyDraft(next, {
+        field: id,
+        event: "storefront_section_toggled",
+        data: { sectionId: id, enabled },
+      });
+    },
+    [design, ensureDesignLoaded, applyDraft],
+  );
+
+  const handleSectionEdit = useCallback(
+    (id: StorefrontSectionId) => {
+      const field = SECTION_TO_QUICK_FIELD[id];
+      if (field) openQuickEdit(field);
+    },
+    [openQuickEdit],
+  );
+
+  const sectionEnabledById = useMemo(() => {
+    const map: Partial<Record<StorefrontSectionId, boolean>> = {};
+    for (const section of design?.sections ?? []) {
+      map[section.id] = section.enabled;
+    }
+    return map;
+  }, [design]);
 
   const dialogDefaults = useMemo(() => {
     const announcement = design?.sections?.find((s) => s.id === "announcement");
@@ -523,33 +813,57 @@ export function StorefrontStaffEditProvider({
     () => ({
       ready,
       canEdit,
+      canEditPhotos,
+      canEditCategoryPhotos,
       editMode,
       setEditMode: setEditModeSafe,
       design,
+      dirty,
+      publishDraft,
+      discardDraft,
+      previewDraft,
       imageOverrides,
       setImageOverride,
       displayImageUrl,
+      categoryIconOverrides,
+      setCategoryIconOverride,
+      displayCategoryIconUrl,
       openQuickEdit,
+      openHeroPhoto,
+      openSectionsPanel,
+      openCategoryPhotos,
       saving,
     }),
     [
       ready,
       canEdit,
+      canEditPhotos,
+      canEditCategoryPhotos,
       editMode,
       setEditModeSafe,
       design,
+      dirty,
+      publishDraft,
+      discardDraft,
+      previewDraft,
       imageOverrides,
       setImageOverride,
       displayImageUrl,
+      categoryIconOverrides,
+      setCategoryIconOverride,
+      displayCategoryIconUrl,
       openQuickEdit,
+      openHeroPhoto,
+      openSectionsPanel,
+      openCategoryPhotos,
       saving,
     ],
   );
 
   return (
     <StaffEditContext.Provider value={value}>
-      {children}
       <StorefrontStaffEditBar editDeepLink={editDeepLink} />
+      {children}
       <StorefrontQuickEditDialog
         field={quickField}
         open={quickField != null}
@@ -560,12 +874,35 @@ export function StorefrontStaffEditProvider({
         saving={saving}
         onSave={handleQuickSave}
       />
+      <StorefrontHeroPhotoDialog
+        open={heroPhotoOpen}
+        onOpenChange={setHeroPhotoOpen}
+        businessId={businessId}
+        photo={design?.photos?.hero ?? null}
+        saving={saving}
+        onSave={handleHeroPhotoSave}
+      />
+      <StorefrontSectionsToggleDialog
+        open={sectionsOpen}
+        onOpenChange={setSectionsOpen}
+        enabledById={sectionEnabledById}
+        saving={saving}
+        onToggle={handleSectionToggle}
+        onEdit={handleSectionEdit}
+      />
+      <StorefrontCategoryPhotosDialog
+        open={categoryPhotosOpen}
+        onOpenChange={setCategoryPhotosOpen}
+        categories={categories}
+        iconOverrides={categoryIconOverrides}
+      />
     </StaffEditContext.Provider>
   );
 }
 
 function StorefrontStaffEditBar({ editDeepLink }: { editDeepLink: boolean }) {
   const ctx = useStorefrontStaffEditOptional();
+  const [moreOpen, setMoreOpen] = useState(false);
   if (!ctx?.ready) return null;
 
   function designStudioHref(): string {
@@ -590,7 +927,7 @@ function StorefrontStaffEditBar({ editDeepLink }: { editDeepLink: boolean }) {
       >
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
           <p className="text-[12px] font-medium">
-            Sign in as owner or admin to edit this shop.
+            Sign in as staff with shop settings access to edit this shop.
           </p>
           <Button asChild size="sm" className="rounded-md">
             <Link href={href}>Staff sign in</Link>
@@ -600,9 +937,35 @@ function StorefrontStaffEditBar({ editDeepLink }: { editDeepLink: boolean }) {
     );
   }
 
-  const { editMode, setEditMode, openQuickEdit } = ctx;
+  const {
+    editMode,
+    setEditMode,
+    openQuickEdit,
+    openHeroPhoto,
+    openSectionsPanel,
+    openCategoryPhotos,
+    dirty,
+    publishDraft,
+    discardDraft,
+    previewDraft,
+    saving,
+  } = ctx;
+
+  const fieldItems = [
+    { label: "Sections", action: () => openSectionsPanel() },
+    { label: "Hero photo", action: () => openHeroPhoto() },
+    { label: "Categories", action: () => openCategoryPhotos() },
+    { label: "Announcement", action: () => openQuickEdit("announcement") },
+    { label: "Offer", action: () => openQuickEdit("promo") },
+    { label: "Headline", action: () => openQuickEdit("hero") },
+    { label: "Tagline", action: () => openQuickEdit("tagline") },
+    { label: "About", action: () => openQuickEdit("about") },
+    { label: "Contact", action: () => openQuickEdit("contact") },
+    { label: "Hours", action: () => openQuickEdit("hours") },
+  ];
 
   return (
+    <>
     <div
       className={cn(
         "sticky top-0 z-[70] border-b shadow-sm",
@@ -637,87 +1000,115 @@ function StorefrontStaffEditBar({ editDeepLink }: { editDeepLink: boolean }) {
           </Button>
           {editMode ? (
             <p className="text-[12px] font-medium text-amber-900/80">
-              Tap a field or product photo to edit
+              {dirty
+                ? "Draft on this page — Publish to go live"
+                : "Tap a field or product photo to edit"}
             </p>
           ) : null}
         </div>
 
         {editMode ? (
           <div className="flex flex-wrap items-center gap-1.5">
+            {dirty ? (
+              <>
+                <Button
+                  type="button"
+                  size="xs"
+                  className="rounded-md"
+                  disabled={saving}
+                  onClick={() => void publishDraft()}
+                >
+                  Publish
+                </Button>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="outline"
+                  className="rounded-md border-amber-600/30 bg-white/80"
+                  disabled={saving}
+                  onClick={() => previewDraft()}
+                >
+                  Preview
+                </Button>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  className="rounded-md text-amber-950"
+                  disabled={saving}
+                  onClick={() => discardDraft()}
+                >
+                  Discard
+                </Button>
+              </>
+            ) : null}
+
             <Button
               type="button"
               size="xs"
               variant="outline"
-              className="rounded-md border-amber-600/30 bg-white/80"
-              onClick={() => openQuickEdit("announcement")}
+              className="rounded-md border-amber-600/30 bg-white/80 sm:hidden"
+              onClick={() => setMoreOpen(true)}
             >
-              Announcement
+              More
             </Button>
-            <Button
-              type="button"
-              size="xs"
-              variant="outline"
-              className="rounded-md border-amber-600/30 bg-white/80"
-              onClick={() => openQuickEdit("promo")}
-            >
-              Offer
-            </Button>
-            <Button
-              type="button"
-              size="xs"
-              variant="outline"
-              className="rounded-md border-amber-600/30 bg-white/80"
-              onClick={() => openQuickEdit("hero")}
-            >
-              Headline
-            </Button>
-            <Button
-              type="button"
-              size="xs"
-              variant="outline"
-              className="rounded-md border-amber-600/30 bg-white/80"
-              onClick={() => openQuickEdit("tagline")}
-            >
-              Tagline
-            </Button>
-            <Button
-              type="button"
-              size="xs"
-              variant="outline"
-              className="rounded-md border-amber-600/30 bg-white/80"
-              onClick={() => openQuickEdit("about")}
-            >
-              About
-            </Button>
-            <Button
-              type="button"
-              size="xs"
-              variant="outline"
-              className="rounded-md border-amber-600/30 bg-white/80"
-              onClick={() => openQuickEdit("contact")}
-            >
-              Contact
-            </Button>
-            <Button
-              type="button"
-              size="xs"
-              variant="outline"
-              className="rounded-md border-amber-600/30 bg-white/80"
-              onClick={() => openQuickEdit("hours")}
-            >
-              Hours
-            </Button>
-            <Link
-              href={designStudioHref()}
-              className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-amber-950 underline-offset-2 hover:underline"
-            >
-              <Sparkles className="size-3" aria-hidden />
-              Full design studio
-            </Link>
+
+            <div className="hidden flex-wrap items-center gap-1.5 sm:flex">
+              {fieldItems.map((item) => (
+                <Button
+                  key={item.label}
+                  type="button"
+                  size="xs"
+                  variant="outline"
+                  className="rounded-md border-amber-600/30 bg-white/80"
+                  onClick={item.action}
+                >
+                  {item.label}
+                </Button>
+              ))}
+              <Link
+                href={designStudioHref()}
+                className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-amber-950 underline-offset-2 hover:underline"
+              >
+                <Sparkles className="size-3" aria-hidden />
+                Full design studio
+              </Link>
+            </div>
           </div>
         ) : null}
       </div>
     </div>
+
+    <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
+      <DialogContent side="bottom" className="gap-3 p-5 sm:max-w-md sm:rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit shop</DialogTitle>
+          <DialogDescription>
+            Add content or open a panel. Design changes stage as a draft.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-1.5">
+          {fieldItems.map((item) => (
+            <Button
+              key={item.label}
+              type="button"
+              variant="outline"
+              className="justify-start rounded-lg"
+              onClick={() => {
+                setMoreOpen(false);
+                item.action();
+              }}
+            >
+              {item.label}
+            </Button>
+          ))}
+          <Button asChild variant="ghost" className="justify-start rounded-lg">
+            <Link href={designStudioHref()}>Full design studio</Link>
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

@@ -1,3 +1,6 @@
+"use client";
+
+import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import Link from "next/link";
 
 import { TintLabCatalog } from "@/components/storefront/templates/store/tint-lab-catalog";
@@ -61,8 +64,9 @@ export function TintLabStoreHome(props: StoreHomeTemplateProps) {
     logoUrl,
     heroBannerUrls,
     landingContent,
-    design,
+    design: designProp,
   } = props;
+  const design = useStorefrontLiveDesign(designProp ?? null);
 
   const lead = featured[0] ?? catalogItems[0] ?? null;
   const heroSection = storefrontSectionConfig(design, "hero");

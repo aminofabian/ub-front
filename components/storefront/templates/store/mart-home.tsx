@@ -1,3 +1,6 @@
+"use client";
+
+import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import { Suspense } from "react";
 
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
@@ -45,8 +48,9 @@ export function MartStoreHome(props: StoreHomeTemplateProps) {
     heroBannerUrls,
     showcaseImage,
     landingContent,
-    design,
+    design: designProp,
   } = props;
+  const design = useStorefrontLiveDesign(designProp ?? null);
 
   const heroSection = storefrontSectionConfig(design, "hero");
   const heroOn = heroSection?.enabled === true;

@@ -329,6 +329,10 @@ export function StorefrontQuickEditDialog({
           </div>
         ) : activeField === "hours" ? (
           <div className="flex flex-col gap-3">
+            <p className="text-[12px] leading-relaxed text-muted-foreground">
+              Weekdays share one open/close time; saving replaces the shop&apos;s
+              current per-day hours with these.
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Weekdays open" htmlFor="sf-edit-wd-open">
                 <Input
@@ -433,7 +437,7 @@ export function StorefrontQuickEditDialog({
             <Input
               id="sf-edit-tagline"
               value={text}
-              maxLength={160}
+              maxLength={120}
               onChange={(e) => setText(e.target.value)}
               placeholder="Everyday essentials on the shelf."
               autoFocus
@@ -455,7 +459,7 @@ export function StorefrontQuickEditDialog({
             disabled={saving}
             onClick={() => void handleSave()}
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : "Add to draft"}
           </Button>
         </DialogFooter>
       </DialogContent>

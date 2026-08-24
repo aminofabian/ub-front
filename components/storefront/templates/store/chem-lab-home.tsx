@@ -1,3 +1,6 @@
+"use client";
+
+import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import { Suspense, type CSSProperties } from "react";
 
 import {
@@ -48,8 +51,9 @@ export function ChemLabStoreHome(props: StoreHomeTemplateProps) {
     heroBannerUrls,
     showcaseImage,
     landingContent,
-    design,
+    design: designProp,
   } = props;
+  const design = useStorefrontLiveDesign(designProp ?? null);
 
   const neon = primaryHex?.trim() || "#84CC16";
   const amber = accentHex?.trim() || "#F59E0B";

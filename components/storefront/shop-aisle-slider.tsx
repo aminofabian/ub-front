@@ -14,6 +14,8 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
+import { StorefrontCategoryPhotoButton } from "@/components/storefront/storefront-category-photo-button";
+import { useStorefrontDisplayCategoryIcon } from "@/components/storefront/storefront-staff-edit";
 import type { PublicCategory } from "@/lib/public-storefront";
 import { shopListPath, storefrontCategoryPathSlug } from "@/lib/shop-url";
 import { categoryIconImageUrl, cn } from "@/lib/utils";
@@ -43,6 +45,7 @@ function AisleCard({
   customIconSrc,
   tint,
   tintFallback,
+  categoryId,
 }: {
   href: string;
   label: string;
@@ -51,6 +54,7 @@ function AisleCard({
   customIconSrc?: string | null;
   tint: string | null;
   tintFallback: string;
+  categoryId: string;
 }) {
   const color = tint ?? tintFallback;
   return (
@@ -98,7 +102,43 @@ function AisleCard({
           </span>
         ) : null}
       </span>
+
+      <StorefrontCategoryPhotoButton
+        categoryId={categoryId}
+        categoryName={label}
+        className="bottom-auto top-1.5 right-1.5 z-20"
+      />
     </Link>
+  );
+}
+
+function AisleCardWithOverride({
+  category,
+  tint,
+  tintFallback,
+}: {
+  category: PublicCategory;
+  tint: string | null;
+  tintFallback: string;
+}) {
+  const Icon = pickIcon(category.name);
+  const customIconSrc = useStorefrontDisplayCategoryIcon(
+    category.id,
+    categoryIconImageUrl(category.icon ?? null),
+  );
+  return (
+    <AisleCard
+      href={shopListPath({
+        categoryPathSlug: storefrontCategoryPathSlug(category),
+      })}
+      label={category.name}
+      itemCount={category.itemCount}
+      Icon={Icon}
+      customIconSrc={customIconSrc}
+      tint={tint}
+      tintFallback={tintFallback}
+      categoryId={category.id}
+    />
   );
 }
 
@@ -131,20 +171,12 @@ export function ShopAisleSlider({
         )}
       >
         {categories.map((c, i) => {
-          const Icon = pickIcon(c.name);
           const tint = i % 2 === 0 ? primary : accent;
           const tintFallback = i % 2 === 0 ? "var(--color-primary)" : "#0ea5e9";
-          const customIconSrc = categoryIconImageUrl(c.icon ?? null);
           return (
-            <AisleCard
+            <AisleCardWithOverride
               key={c.id}
-              href={shopListPath({
-                categoryPathSlug: storefrontCategoryPathSlug(c),
-              })}
-              label={c.name}
-              itemCount={c.itemCount}
-              Icon={Icon}
-              customIconSrc={customIconSrc}
+              category={c}
               tint={tint}
               tintFallback={tintFallback}
             />

@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  Camera,
   ChevronLeft,
   ChevronRight,
   MessageCircle,
@@ -12,7 +13,11 @@ import { useEffect, useState, type CSSProperties } from "react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { whatsappHref } from "@/components/storefront/sections/shared";
-import { StorefrontQuickEditTarget } from "@/components/storefront/storefront-staff-edit";
+import {
+  StorefrontQuickEditTarget,
+  useStorefrontLiveDesign,
+  useStorefrontStaffEditOptional,
+} from "@/components/storefront/storefront-staff-edit";
 import type {
   StorefrontDesign,
   StorefrontDesignButtons,
@@ -116,6 +121,8 @@ export function StorefrontHeroSection({
   const wa =
     whatsappHref(whatsappNumber, "Hi! I'd like to place an order.") ??
     whatsAppOrderHref();
+  const liveDesign = useStorefrontLiveDesign(design ?? null);
+
   const primary =
     primaryHex && /^#[0-9a-fA-F]{6}$/.test(primaryHex.trim())
       ? primaryHex.trim()
@@ -135,10 +142,10 @@ export function StorefrontHeroSection({
   const headline = tagline?.trim() || "Quality essentials, delivered.";
   const subhead =
     subheadline?.trim() ||
-    design?.business?.tagline?.trim() ||
+    liveDesign?.business?.tagline?.trim() ||
     "Right to your door.";
   const area = areaLabel?.trim() || null;
-  const description = design?.business?.description?.trim() || null;
+  const description = liveDesign?.business?.description?.trim() || null;
   const body = description
     ? description
     : area
@@ -146,7 +153,7 @@ export function StorefrontHeroSection({
       : "Fresh products, fair prices, and fast delivery — all from your neighborhood store, now online.";
 
   const banners = heroBannerUrls?.length ? heroBannerUrls : null;
-  const designPhoto = design?.photos?.hero ?? null;
+  const designPhoto = liveDesign?.photos?.hero ?? null;
   const [activeIndex, setActiveIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
@@ -170,12 +177,30 @@ export function StorefrontHeroSection({
     setActiveIndex(0);
   }, [banners]);
 
+  const staff = useStorefrontStaffEditOptional();
+
   return (
     <StorefrontQuickEditTarget field="hero" label="hero headline">
     <section
-      className="overflow-hidden rounded-[4px] text-white shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-black/10"
+      className="relative overflow-hidden rounded-[4px] text-white shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-black/10"
       style={{ backgroundColor: heroBg }}
     >
+      {staff?.editMode ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            staff.openHeroPhoto();
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute bottom-3 left-3 z-30 inline-flex items-center gap-1.5 rounded-md border border-white/40 bg-black/55 px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-sm backdrop-blur-sm transition hover:bg-black/70"
+          aria-label="Edit hero photo"
+        >
+          <Camera className="size-3.5" aria-hidden />
+          Photo
+        </button>
+      ) : null}
       <div
         className={cn(
           "grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1.15fr]",
