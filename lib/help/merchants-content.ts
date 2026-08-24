@@ -329,33 +329,211 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
     slug: "create-your-kiosk-shop",
     title: "Create your Kiosk shop",
     description:
-      "Sign up, name your business, and claim yourshop.kiosk.ke in a few minutes.",
-    updatedAt: "2026-07-01",
-    tags: ["signup", "subdomain", "onboarding"],
+      "Sign up, name your business, verify your email, and set up the till — screenshots for every step of the journey.",
+    updatedAt: "2026-08-24",
+    tags: ["signup", "subdomain", "onboarding", "verify email", "business name", "questionnaire"],
     popular: true,
     relatedSlugs: [
       "why-kiosk-stands-out",
       "claim-your-subdomain",
       "invite-your-first-staff",
+      "get-the-most-from-kiosk",
+      "how-to-add-products",
     ],
     body: [
       {
         type: "paragraph",
-        text: "Kiosk is built for shop counters in Kenya. You can create a business, stock a catalog, and start selling from the cashier screen the same day.",
-      },
-      {
-        type: "steps",
-        items: [
-          "Open kiosk.ke and choose Get started.",
-          "Enter your business name, phone, and email.",
-          "Verify your email, then sign in to the dashboard.",
-          "Complete the short onboarding flow to claim your subdomain.",
-        ],
+        text: "Kiosk is built for shop counters in Kenya — one system for the till, your catalog, suppliers, staff, and a free online storefront that shares the same stock. Creating your shop takes about ten minutes: create the account, name the business, verify your email, answer six quick questions, and you can take your first sale the same day.",
       },
       {
         type: "callout",
         tone: "tip",
-        text: "Use the business name customers already know — it appears on receipts and your online storefront.",
+        text: "You get a free yourshop.kiosk.ke subdomain with every shop, so you can start selling online without buying a domain. Add a custom domain later from Business → Domains when you are ready.",
+      },
+      {
+        type: "heading",
+        text: "What you need before you start",
+      },
+      {
+        type: "list",
+        items: [
+          "A business name — use the one customers already know; it appears on receipts and your online storefront.",
+          "An email address you can check right now (verification is the one blocker).",
+          "About ten minutes and any device — phone, tablet, or desktop.",
+          "Nothing else. No merchant ID, no hardware, no installation.",
+        ],
+      },
+      {
+        type: "heading",
+        text: "Step 1 — Create your account",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open kiosk.ke and choose Get started (or visit the signup page directly).",
+          "Enter your full name — this is the owner account.",
+          "Add your email and a password of at least 8 characters.",
+          "Tap Submit. You will verify the email in Step 3.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/signup-create-account.svg",
+        alt: "Create your account signup page with full name, email, and password fields, a Create your shop call-to-action card, and a branded operations-hub panel on the right",
+        caption:
+          "The signup page — full name, email, password. The Create your shop card above the form is the fast path for new businesses.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "Prefer to skip the form? Tap “Create your shop” on the signup page to name the business first — the account form fills in afterwards and you still become the owner.",
+      },
+      {
+        type: "heading",
+        text: "Step 2 — Name your business",
+      },
+      {
+        type: "paragraph",
+        text: "Back on the signup page, the Create your shop card asks for the business name and country. Your shop gets a free subdomain from the name, and you become the owner — no invite token needed.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Tap Create your shop on the signup page.",
+          "Enter the Business name exactly as customers know it (e.g. Sunrise Groceries).",
+          "Choose where you operate — Kiosk uses the country for currency, phone formats, and region defaults.",
+          "Tap Create business & sign up.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/signup-name-business.svg",
+        alt: "Name your business card with business name Sunrise Groceries showing an Available check, a country selector for Kenya, and a Create business and sign up button",
+        caption:
+          "Name the business — availability is checked instantly and your free subdomain follows (sunrisegroceries.kiosk.ke).",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "Keep the name short and close to your trading name. The subdomain is derived from it, and the name appears on receipts, reports, and the storefront.",
+      },
+      {
+        type: "heading",
+        text: "Step 3 — Verify your email",
+      },
+      {
+        type: "steps",
+        items: [
+          "Watch for an email from Kiosk — check the spam or promotions folder if nothing arrives in a minute.",
+          "Open the verification link in the same browser you signed up in. No need to sign in again.",
+          "You land straight in your dashboard, where the short setup questionnaire waits.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/verify-email.svg",
+        alt: "Email verification success screen with a green checkmark, a message that a link was sent to jane@company.com, an Open verification page button, and a note to check the inbox and spam",
+        caption:
+          "Verify once and the door opens — after the link, you are straight into your account.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "Still no email after a few minutes? Re-enter your email on the signup page or use the Open verification page button on screen.",
+      },
+      {
+        type: "heading",
+        text: "Step 4 — Tell us about your shop",
+      },
+      {
+        type: "paragraph",
+        text: "A six-question setup walks you through the decisions that shape your workspace. Answer honestly — everything is editable later, and the answers pre-fill your departments, storefront, and branding.",
+      },
+      {
+        type: "list",
+        items: [
+          "Locations — how many branches you run and what you call each one.",
+          "Shop type — mini mart, butchery, full grocery, fresh market, mixed shop, and more (pick all that apply).",
+          "Product sections — the departments you sell now; suggested automatically from your shop types.",
+          "Online store — turn on yourshop.kiosk.ke now, or stay in-store only and enable it later.",
+          "Branding — your display name and colours; the logo is optional.",
+          "Stock your shelves — import starter products from the shared catalog, or add products manually.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/onboarding-questionnaire.svg",
+        alt: "Setup questionnaire showing the shop-type step with Mini mart and Butchery selected, progress at 50 percent, and other options like full grocery and fresh market",
+        caption:
+          "The questionnaire — six steps, about a minute, and it pre-fills your shop.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "A mini mart can also include a butchery — select every format you sell. Sections and the online store can be changed later in Business settings, so do not overthink it.",
+      },
+      {
+        type: "heading",
+        text: "Step 5 — Land in your dashboard",
+      },
+      {
+        type: "paragraph",
+        text: "Setup ends in your dashboard, where a welcome drawer shows the fastest path to your first sale: add products (or import a starter pack), then open the cashier.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Tap Add your first product — the create drawer opens ready for a name and price.",
+          "Or import common products from the shared catalog in the final setup step.",
+          "Open Cashier and take a test sale — cash or M-Pesa STK.",
+          "Invite your first staff member from Users so the till is ready for the team.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/welcome-dashboard.svg",
+        alt: "Dashboard with a welcome drawer showing three mini steps for picking product type, setting prices and barcodes, and adding stock, plus an Add your first product button",
+        caption:
+          "The welcome drawer — a guided start to your first products, with the full guide one tap away.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "Nothing here is permanent: rename the business, tweak departments, redo branding, or change the subdomain (with care — shared links break) any time from Business settings.",
+      },
+      {
+        type: "heading",
+        text: "Where to go next",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Get the most out of Kiosk",
+            description: "The master guide — daily rhythm and every deeper guide linked from one page.",
+            href: "/help/merchants/getting-started/get-the-most-from-kiosk",
+          },
+          {
+            label: "Add products the right way",
+            description: "Single, groups, variants, and packages — with screenshots.",
+            href: "/help/merchants/inventory/how-to-add-products",
+          },
+          {
+            label: "Claim your subdomain",
+            description: "Choose and reserve the perfect yourshop.kiosk.ke address.",
+            href: "/help/merchants/getting-started/claim-your-subdomain",
+          },
+          {
+            label: "User roles & how to add users",
+            description: "Invite staff, pick roles, assign branches and PINs.",
+            href: "/help/merchants/staff-branches/user-roles-add-users",
+          },
+          {
+            label: "Open the cashier for the first time",
+            description: "Launch the till and take your first sale.",
+            href: "/help/merchants/getting-started/open-the-cashier-for-the-first-time",
+          },
+        ],
       },
       {
         type: "faq",
@@ -369,6 +547,31 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
             question: "Do I need a custom domain on day one?",
             answer:
               "No. Every shop gets a free yourshop.kiosk.ke subdomain. Add a custom domain later from Business → Domains.",
+          },
+          {
+            question: "What device do I need?",
+            answer:
+              "Any phone, tablet, or desktop with a browser. The cashier screen works on shared tablets with PIN login, and you can add a barcode scanner or receipt printer whenever you want.",
+          },
+          {
+            question: "Can I change the business name or country later?",
+            answer:
+              "The display name is editable from Business settings any time. The country drives currency and region defaults — change it early if you picked the wrong one, before suppliers and stock accumulate.",
+          },
+          {
+            question: "What if the verification email never arrives?",
+            answer:
+              "Check spam and promotions first, then re-enter your email on the signup page or use the Open verification page button. If it still fails, contact support from the help center.",
+          },
+          {
+            question: "Can I run more than one shop?",
+            answer:
+              "Yes. Add branches from Branches in the dashboard — each location keeps its own stock and sales under one business account.",
+          },
+          {
+            question: "Do I need a printer or scanner to start?",
+            answer:
+              "No. Search and camera scanning work without hardware, and receipts can be shared digitally. Add a thermal printer or USB scanner whenever the counter demands it.",
           },
         ],
       },

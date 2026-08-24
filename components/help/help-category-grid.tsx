@@ -1,36 +1,9 @@
 import Link from "next/link";
-import {
-  ClipboardList,
-  CreditCard,
-  Package,
-  Rocket,
-  RotateCcw,
-  ScanBarcode,
-  Smartphone,
-  Store,
-  Truck,
-  User,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
 
-import type { HelpCategory, HelpCategoryIcon } from "@/lib/help";
+import type { HelpCategory } from "@/lib/help";
 import { categoryHref } from "@/lib/help";
 import { landingIconWrapClass } from "@/components/tenant-console/landing/landing-styles";
-
-const ICONS: Record<HelpCategoryIcon, LucideIcon> = {
-  rocket: Rocket,
-  scan: ScanBarcode,
-  smartphone: Smartphone,
-  package: Package,
-  store: Store,
-  users: Users,
-  user: User,
-  truck: Truck,
-  "credit-card": CreditCard,
-  "rotate-ccw": RotateCcw,
-  "clipboard-list": ClipboardList,
-};
+import { HELP_CATEGORY_ICONS } from "./help-category-icons";
 
 type HelpCategoryGridProps = {
   categories: HelpCategory[];
@@ -40,7 +13,7 @@ export function HelpCategoryGrid({ categories }: HelpCategoryGridProps) {
   return (
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {categories.map((cat) => {
-        const Icon = ICONS[cat.icon];
+        const Icon = HELP_CATEGORY_ICONS[cat.icon];
         return (
           <li key={cat.slug}>
             <Link

@@ -18,10 +18,7 @@ import {
   getSessionTenantId,
   setSessionTenantId,
 } from "@/lib/auth";
-import {
-  AUTH_TENANT_RESOLVE_ERROR,
-  useTenantIdPrefill,
-} from "@/lib/auth-tenant-prefill";
+import { useTenantIdPrefill } from "@/lib/auth-tenant-prefill";
 import {
   fetchBusiness,
   fetchMe,
@@ -137,10 +134,10 @@ function CustomerLoginPageContent() {
             return;
           }
         }
-        setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
-        return;
+        // No shop address to send them to — sign in from here anyway; the API
+        // resolves the shop from the email when the host has no mapping.
       }
-      persistTenantId(id);
+      persistTenantId(id ?? "");
       if (usePin) {
         await loginWithPin(email, password.trim());
         const pinDest = await resolveAfterAuth({ honorNext: false });

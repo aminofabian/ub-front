@@ -81,22 +81,17 @@ export async function POST(request: NextRequest) {
       audience,
     );
   }
-  if (!tenantId) {
-    return loginErrorRedirect(
-      request,
-      "Could not determine your business from this page. Reload and try again.",
-      audience,
-    );
-  }
-
   const backendOrigin = getServerApiOrigin();
   const upstreamUrl = `${backendOrigin}/api/v1/auth/login`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
     "Idempotency-Key": newLoginIdempotencyKey(),
-    "X-Tenant-Id": tenantId,
   };
+  // Omitted on the platform apex: the API then resolves the shop from the email.
+  if (tenantId) {
+    headers["X-Tenant-Id"] = tenantId;
+  }
   if (tenantHost) {
     headers["X-Tenant-Host"] = tenantHost;
   }
@@ -125,6 +120,7 @@ export async function POST(request: NextRequest) {
   const payload = (await upstream.json()) as {
     accessToken?: string;
     refreshToken?: string;
+    user?: { businessId?: string };
   };
   const accessToken = payload.accessToken?.trim();
   if (!accessToken) {
@@ -134,10 +130,11 @@ export async function POST(request: NextRequest) {
       audience,
     );
   }
+  const sessionTenantId = tenantId || payload.user?.businessId?.trim() || "";
 
   const bootstrap = await prefetchSessionBootstrap(
     accessToken,
-    tenantId,
+    sessionTenantId,
     tenantHost,
   );
 
@@ -152,7 +149,7 @@ export async function POST(request: NextRequest) {
   const html = buildSessionFinalizeHtml({
     accessToken,
     refreshToken: payload.refreshToken?.trim(),
-    tenantId,
+    tenantId: sessionTenantId,
     tenantHost,
     nextPath,
     bootstrap,

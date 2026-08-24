@@ -84,6 +84,11 @@ function applyMemorySessionClaims(
     businessId: claims.businessId,
     sub: claims.sub,
   };
+  // The session's own tenant is the most reliable source of `X-Tenant-Id`:
+  // hosts without a domain mapping (platform apex, localhost) have no other one.
+  if (claims.businessId && typeof window !== "undefined") {
+    persistTenantIdToStorage(claims.businessId);
+  }
 }
 
 function purgeLegacyAccessTokenStorage(): void {

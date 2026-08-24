@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Ambient background -->
+  <rect width="960" height="640" fill="#ffffff"/>
+  <circle cx="140" cy="100" r="260" fill="#28a745" opacity="0.1"/>
+  <circle cx="860" cy="560" r="230" fill="#0d9488" opacity="0.09"/>
+
+  <!-- Card -->
+  <rect x="26" y="26" width="908" height="588" rx="32" fill="#ffffff" stroke="rgba(40,167,69,0.25)"/>
+
+  <!-- Left rail (muted form) -->
+  <rect x="26" y="26" width="470" height="588" rx="32" fill="#ffffff"/>
+  <circle cx="58" cy="58" r="14" fill="#28a745"/>
+  <path d="M51 63 l5 5 l10 -12" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="80" y="54" font-size="15" font-weight="700" fill="#0a0a0a">Kiosk</text>
+  <text x="80" y="68" font-size="9.5" font-weight="600" letter-spacing="1" fill="#737373">RETAIL PLATFORM</text>
+
+  <!-- Name business card -->
+  <rect x="40" y="100" width="440" height="470" rx="16" fill="#f7fdf9" stroke="rgba(40,167,69,0.3)"/>
+  <text x="62" y="138" font-size="16" font-weight="700" fill="#0a0a0a">Name your business</text>
+  <text x="62" y="158" font-size="11.5" fill="#737373">Pick a name for your shop. You'll get a free</text>
+  <text x="62" y="174" font-size="11.5" fill="#737373">subdomain and become the <tspan font-weight="600" fill="#0a0a0a">owner</tspan> — no</text>
+  <text x="62" y="190" font-size="11.5" fill="#737373">invite token needed.</text>
+
+  <text x="62" y="226" font-size="9.5" font-weight="700" letter-spacing="1" fill="#737373">BUSINESS NAME</text>
+  <rect x="62" y="232" width="396" height="38" rx="8" fill="#ffffff" stroke="#28a745" stroke-width="1.6"/>
+  <text x="74" y="256" font-size="13.5" font-weight="600" fill="#0a0a0a">Sunrise Groceries</text>
+  <rect x="340" y="238" width="106" height="26" rx="8" fill="#f0fdf4" stroke="#bbe7c3"/>
+  <text x="393" y="255" font-size="10" font-weight="600" fill="#166534" text-anchor="middle">Available ✓</text>
+
+  <text x="62" y="300" font-size="9.5" font-weight="700" letter-spacing="1" fill="#737373">WHERE DO YOU OPERATE?</text>
+  <rect x="62" y="306" width="396" height="38" rx="8" fill="#ffffff" stroke="#e5e5e5"/>
+  <text x="74" y="329" font-size="12.5" fill="#0a0a0a">Kenya 🇰🇪</text>
+  <path d="M428 320 l9 7 l9 -7" stroke="#737373" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+
+  <rect x="62" y="360" width="396" height="40" rx="10" fill="#28a745"/>
+  <text x="260" y="385" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Create business &amp; sign up</text>
+
+  <text x="260" y="426" font-size="11" font-weight="500" fill="#737373" text-anchor="middle" text-decoration="underline">Back to sign up</text>
+
+  <!-- Right hero -->
+  <rect x="496" y="26" width="438" height="588" rx="32" fill="#1c2a24"/>
+  <circle cx="715" cy="150" r="70" fill="#ffffff" opacity="0.12"/>
+  <circle cx="600" cy="220" r="90" fill="#ffffff" opacity="0.08"/>
+  <rect x="655" y="170" width="120" height="120" rx="16" fill="#ffffff" opacity="0.1"/>
+
+  <rect x="620" y="420" width="190" height="120" rx="14" fill="rgba(255,255,255,0.94)"/>
+  <text x="636" y="446" font-size="12" font-weight="700" fill="#0a0a0a">Your operations hub</text>
+  <text x="636" y="464" font-size="10" fill="#737373">Branded for Kiosk · sunrise-groceries</text>
+  <circle cx="642" cy="492" r="14" fill="#28a745"/>
+  <circle cx="668" cy="492" r="14" fill="#0d9488" opacity="0.8"/>
+  <circle cx="694" cy="492" r="14" fill="#f59e0b" opacity="0.85"/>
+  <circle cx="720" cy="492" r="14" fill="#6366f1" opacity="0.8"/>
+  <text x="746" y="496" font-size="10" fill="#737373">Team ready</text>
+
+  <!-- Callout -->
+  <rect x="500" y="60" width="220" height="64" rx="12" fill="#ffffff" stroke="#28a745" stroke-width="1.5"/>
+  <text x="516" y="86" font-size="11.5" font-weight="700" fill="#0a0a0a">Your subdomain follows</text>
+  <text x="516" y="104" font-size="10.5" fill="#737373">Sunrise Groceries →</text>
+  <text x="516" y="118" font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="#166534">sunrisegroceries.kiosk.ke</text>
+</svg>

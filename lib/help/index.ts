@@ -243,4 +243,72 @@ export function extractFaqPairs(article: HelpArticle) {
   return pairs;
 }
 
+/** Stable URL-safe id for a heading (used by the on-this-page rail). */
+export function headingId(text: string): string {
+  const id = text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return id || "section";
+}
+
+/** Heading blocks in an article body, in order (for the on-this-page rail). */
+export function extractHeadings(article: HelpArticle): {
+  id: string;
+  text: string;
+}[] {
+  const out: { id: string; text: string }[] = [];
+  for (const block of article.body) {
+    if (block.type === "heading") {
+      out.push({ id: headingId(block.text), text: block.text });
+    }
+  }
+  return out;
+}
+
+/** Rough reading time in minutes, estimated from every text block. */
+export function estimateReadingMinutes(article: HelpArticle): number {
+  let words = 0;
+  for (const block of article.body) {
+    if (
+      block.type === "paragraph" ||
+      block.type === "heading" ||
+      block.type === "callout"
+    ) {
+      words += block.text.split(/\s+/).length;
+    } else if (block.type === "steps" || block.type === "list") {
+      words += block.items.join(" ").split(/\s+/).length;
+    } else if (block.type === "faq") {
+      words += block.items
+        .map((i) => `${i.question} ${i.answer}`)
+        .join(" ")
+        .split(/\s+/).length;
+    } else if (block.type === "links") {
+      words += block.items
+        .map((i) => `${i.label} ${i.description ?? ""}`)
+        .join(" ")
+        .split(/\s+/).length;
+    }
+  }
+  return Math.max(1, Math.round(words / 200));
+}
+
+/** Previous / next article within the same category (for bottom paging). */
+export function getAdjacentArticles(
+  article: HelpArticle,
+): { prev: HelpArticleRef | null; next: HelpArticleRef | null } {
+  const sameCategory = ALL_ARTICLES.filter(
+    (a) => a.audience === article.audience && a.categorySlug === article.categorySlug,
+  );
+  const index = sameCategory.findIndex((a) => a.slug === article.slug);
+  return {
+    prev: index > 0 ? toRef(sameCategory[index - 1]!) : null,
+    next:
+      index >= 0 && index < sameCategory.length - 1
+        ? toRef(sameCategory[index + 1]!)
+        : null,
+  };
+}
+
 export { ALL_ARTICLES };

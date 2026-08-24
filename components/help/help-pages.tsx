@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, BookOpenCheck } from "lucide-react";
+import { ArrowRight, BookOpenCheck, CornerDownRight } from "lucide-react";
 
 import { HelpArticleList } from "@/components/help/help-article-list";
+import { HelpArticleNav } from "@/components/help/help-article-nav";
 import { HelpBreadcrumbs } from "@/components/help/help-breadcrumbs";
 import { HelpCategoryGrid } from "@/components/help/help-category-grid";
+import { HELP_CATEGORY_ICONS } from "@/components/help/help-category-icons";
 import { HelpContactCta } from "@/components/help/help-contact-cta";
 import { HelpSearch } from "@/components/help/help-search";
 import {
@@ -12,8 +14,8 @@ import {
   HelpHubStructuredData,
 } from "@/components/help/help-structured-data";
 import {
-  HELP_AUDIENCES,
   audienceLabel,
+  categoryHref,
   getSearchIndex,
   listCategories,
   listPopularArticles,
@@ -25,6 +27,10 @@ import {
   landingSectionClass,
   sectionLabelPillClass,
 } from "@/components/tenant-console/landing/landing-styles";
+
+/** 1fr : 3fr reader grid — titles on the left, content on the right. */
+const READER_GRID =
+  "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)] lg:gap-12";
 
 export function HelpHubPage({ initialQuery = "" }: { initialQuery?: string }) {
   const siteUrl = helpSiteUrl();
@@ -92,47 +98,79 @@ export function HelpHubPage({ initialQuery = "" }: { initialQuery?: string }) {
       </section>
 
       <section className="border-t border-[var(--kiosk-border-soft)] px-4 py-12 sm:px-10 sm:py-16">
-        <div className="mx-auto grid max-w-[1100px] gap-4 md:grid-cols-2">
-          {HELP_AUDIENCES.map((audience) => (
-            <Link
-              key={audience.id}
-              href={audience.href}
-              className="group relative overflow-hidden rounded-2xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] p-6 transition hover:border-[var(--kiosk-gold-border)] sm:p-8"
-            >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[var(--kiosk-gold-soft)] opacity-70 transition group-hover:opacity-100"
-              />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
-                {audience.id === "merchants" ? "Merchants" : "Shoppers"}
-              </p>
-              <h2 className="mt-3 font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-3xl">
-                {audience.title}
-              </h2>
-              <p className="mt-3 max-w-sm text-sm leading-relaxed text-[var(--kiosk-text-soft)]">
-                {audience.description}
-              </p>
-              <span className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-[var(--kiosk-gold)]">
-                Browse guides
-                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="border-t border-[var(--kiosk-border-soft)] px-4 py-12 sm:px-10 sm:py-16">
         <div className="mx-auto max-w-[1100px]">
-          <h2 className="font-heading text-[clamp(24px,4vw,36px)] tracking-[-0.02em] text-[var(--kiosk-text)]">
-            Popular articles
-          </h2>
-          <p className="mt-2 text-sm text-[var(--kiosk-text-soft)]">
-            Most-read guides for getting started and everyday selling.
-          </p>
-          <div className="mt-8">
-            <HelpArticleList articles={popular} />
+          <div className={READER_GRID}>
+            <aside className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
+                Browse by topic
+              </p>
+              <ul className="mt-3 space-y-1 rounded-2xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] p-2">
+                {listCategories("merchants").map((cat) => {
+                  const Icon = HELP_CATEGORY_ICONS[cat.icon];
+                  return (
+                    <li key={cat.slug}>
+                      <Link
+                        href={categoryHref("merchants", cat.slug)}
+                        className="group flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors hover:bg-[var(--kiosk-gold-surface)]"
+                      >
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-[var(--kiosk-border)] bg-[var(--kiosk-surface)] text-[var(--kiosk-gold)] transition-colors group-hover:border-[var(--kiosk-gold-border)]">
+                          <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[13px] font-medium text-[var(--kiosk-text)]">
+                            {cat.title}
+                          </span>
+                          <span className="block truncate text-[11px] text-[var(--kiosk-text-soft)]">
+                            {cat.description}
+                          </span>
+                        </span>
+                        <span className="shrink-0 font-mono text-[10px] tabular-nums text-[var(--kiosk-text-faint)]">
+                          {cat.articleCount}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <Link
+                href="/help/shoppers"
+                className="group mt-3 flex items-center gap-2.5 rounded-2xl border border-dashed border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] px-3.5 py-3 transition-colors hover:border-[var(--kiosk-gold-border)]"
+              >
+                <CornerDownRight
+                  className="size-4 shrink-0 text-[var(--kiosk-gold)] transition-transform group-hover:translate-x-0.5"
+                  aria-hidden
+                />
+                <span className="text-[13px] text-[var(--kiosk-text-muted)] transition-colors group-hover:text-[var(--kiosk-text)]">
+                  Shopping on a kiosk.ke storefront? Browse shopper guides.
+                </span>
+              </Link>
+            </aside>
+
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="font-heading text-[clamp(24px,4vw,36px)] tracking-[-0.02em] text-[var(--kiosk-text)]">
+                  Most-read guides
+                </h2>
+                <Link
+                  href="/help/merchants"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--kiosk-gold)] transition-colors hover:text-[var(--kiosk-gold-hover)]"
+                >
+                  All merchant guides
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              </div>
+              <p className="mt-2 text-sm text-[var(--kiosk-text-soft)]">
+                Most-read guides for getting started and everyday selling.
+              </p>
+              <div className="mt-8">
+                <HelpArticleList articles={popular} />
+              </div>
+              <div className="mt-10">
+                <HelpContactCta />
+              </div>
+            </div>
           </div>
-          <HelpContactCta />
         </div>
       </section>
     </>
@@ -174,31 +212,40 @@ export function HelpAudiencePage({ audience }: { audience: HelpAudience }) {
             ]}
             className="mb-8"
           />
-          <p className={sectionLabelPillClass}>
-            {audience === "merchants" ? "Merchants" : "Shoppers"}
-          </p>
-          <h1 className="mt-5 font-heading text-[clamp(1.85rem,5vw,3rem)] leading-[1.1] tracking-[-0.03em] text-[var(--kiosk-text)]">
-            {label}
-          </h1>
-          <p className="mt-4 max-w-xl text-base leading-[1.65] text-[var(--kiosk-text-soft)]">
-            {description}
-          </p>
-          <div className="mt-8 max-w-2xl">
-            <HelpSearch
-              articles={articles}
-              placeholder={
-                audience === "merchants"
-                  ? "Search merchant help…"
-                  : "Search shopper help…"
-              }
-            />
+
+          <div className={READER_GRID}>
+            <HelpArticleNav audience={audience} />
+
+            <div className="min-w-0">
+              <p className={sectionLabelPillClass}>
+                {audience === "merchants" ? "Merchants" : "Shoppers"}
+              </p>
+              <h1 className="mt-5 font-heading text-[clamp(1.85rem,5vw,3rem)] leading-[1.1] tracking-[-0.03em] text-[var(--kiosk-text)]">
+                {label}
+              </h1>
+              <p className="mt-4 max-w-2xl text-base leading-[1.65] text-[var(--kiosk-text-soft)]">
+                {description}
+              </p>
+              <div className="mt-8 max-w-2xl">
+                <HelpSearch
+                  articles={articles}
+                  placeholder={
+                    audience === "merchants"
+                      ? "Search merchant help…"
+                      : "Search shopper help…"
+                  }
+                />
+              </div>
+              <div className="mt-12">
+                <HelpCategoryGrid categories={categories} />
+              </div>
+              <div className="mt-12">
+                <HelpContactCta
+                  variant={audience === "merchants" ? "merchant" : "shopper"}
+                />
+              </div>
+            </div>
           </div>
-          <div className="mt-12">
-            <HelpCategoryGrid categories={categories} />
-          </div>
-          <HelpContactCta
-            variant={audience === "merchants" ? "merchant" : "shopper"}
-          />
         </div>
       </section>
     </>

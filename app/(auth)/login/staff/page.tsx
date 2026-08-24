@@ -135,16 +135,18 @@ function LoginPageContent() {
       // to test.kiosk.ke and appear as a logout loop).
       if (!id?.trim() && !IS_DESKTOP) {
         const biz = await resolveBusinessByEmail(email);
-        if (biz?.slug) {
-          const shopUrl = slugDerivedShopUrl(biz.slug);
-          if (shopUrl) {
-            navigatedAway = true;
-            redirectToTenantStaffLogin(shopUrl);
-            return;
-          }
+        if (!biz) {
+          setShowOnboarding(true);
+          return;
         }
-        setShowOnboarding(true);
-        return;
+        const shopUrl = biz.slug ? slugDerivedShopUrl(biz.slug) : null;
+        if (shopUrl) {
+          navigatedAway = true;
+          redirectToTenantStaffLogin(shopUrl);
+          return;
+        }
+        // Known account with no shop address to send them to — sign in from
+        // here; the API resolves the shop from the email.
       }
       persistTenantId(id ?? "");
 

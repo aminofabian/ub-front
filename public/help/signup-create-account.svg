@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Ambient background -->
+  <rect width="960" height="640" fill="#ffffff"/>
+  <circle cx="120" cy="90" r="240" fill="#28a745" opacity="0.1"/>
+  <circle cx="880" cy="580" r="230" fill="#0d9488" opacity="0.09"/>
+
+  <!-- Card -->
+  <rect x="26" y="26" width="908" height="588" rx="32" fill="#ffffff" stroke="rgba(40,167,69,0.25)"/>
+
+  <!-- Left form rail -->
+  <rect x="26" y="26" width="470" height="588" rx="32" fill="#ffffff"/>
+  <circle cx="58" cy="58" r="14" fill="#28a745"/>
+  <path d="M51 63 l5 5 l10 -12" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="80" y="54" font-size="15" font-weight="700" fill="#0a0a0a">Kiosk</text>
+  <text x="80" y="68" font-size="9.5" font-weight="600" letter-spacing="1" fill="#737373">RETAIL PLATFORM</text>
+  <rect x="430" y="42" width="48" height="20" rx="10" fill="rgba(40,167,69,0.14)"/>
+  <circle cx="438" cy="52" r="4" fill="#28a745"/>
+  <text x="448" y="56" font-size="8.5" font-weight="700" letter-spacing="0.8" fill="#28a745">LIVE</text>
+
+  <text x="48" y="110" font-size="21" font-weight="700" fill="#0a0a0a">Create your account</text>
+  <text x="48" y="130" font-size="12" fill="#737373">Browse the storefront, save carts, and check out pickups</text>
+  <text x="48" y="146" font-size="12" fill="#737373">with your profile.</text>
+
+  <!-- Business CTA -->
+  <rect x="48" y="162" width="424" height="58" rx="14" fill="#f7fdf9" stroke="rgba(40,167,69,0.35)" stroke-dasharray="5 4"/>
+  <rect x="60" y="174" width="32" height="32" rx="16" fill="#28a745"/>
+  <text x="76" y="196" font-size="15" text-anchor="middle">🏪</text>
+  <text x="102" y="186" font-size="11" font-weight="700" fill="#0a0a0a">Don't have a business yet?</text>
+  <text x="102" y="200" font-size="10" fill="#737373">Create your shop now and get a free subdomain.</text>
+  <rect x="380" y="174" width="78" height="26" rx="8" fill="#ffffff" stroke="rgba(40,167,69,0.4)"/>
+  <text x="419" y="191" font-size="10" font-weight="700" fill="#28a745" text-anchor="middle">Create →</text>
+
+  <!-- Form -->
+  <text x="48" y="248" font-size="9.5" font-weight="700" letter-spacing="1" fill="#737373">FULL NAME</text>
+  <rect x="48" y="254" width="424" height="36" rx="8" fill="#ffffff" stroke="#e5e5e5"/>
+  <text x="60" y="276" font-size="12.5" fill="#0a0a0a">Jane Doe</text>
+  <text x="48" y="312" font-size="9.5" font-weight="700" letter-spacing="1" fill="#737373">EMAIL</text>
+  <rect x="48" y="318" width="424" height="36" rx="8" fill="#ffffff" stroke="#e5e5e5"/>
+  <text x="60" y="340" font-size="12.5" fill="#0a0a0a">jane@company.com</text>
+  <text x="48" y="376" font-size="9.5" font-weight="700" letter-spacing="1" fill="#737373">PASSWORD</text>
+  <rect x="48" y="382" width="424" height="36" rx="8" fill="#ffffff" stroke="#e5e5e5"/>
+  <text x="60" y="404" font-size="13" letter-spacing="2" fill="#0a0a0a">••••••••</text>
+  <circle cx="452" cy="400" r="10" fill="#f5f5f5"/>
+  <path d="M448 400 a6 4.5 0 0 1 8 0 M450 400 a4 3 0 0 1 4 0" stroke="#737373" stroke-width="1.2" fill="none"/>
+  <text x="48" y="434" font-size="10.5" fill="#737373">At least 8 characters.</text>
+
+  <rect x="48" y="446" width="424" height="40" rx="10" fill="#28a745"/>
+  <text x="260" y="471" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Submit</text>
+
+  <line x1="48" y1="508" x2="472" y2="508" stroke="#f0f0f0"/>
+  <text x="48" y="536" font-size="12" fill="#737373">Already have an account?</text>
+  <text x="250" y="536" font-size="12" font-weight="700" fill="#28a745">Sign in</text>
+
+  <!-- Right hero -->
+  <rect x="496" y="26" width="438" height="588" rx="32" fill="#1c2a24"/>
+  <rect x="496" y="26" width="438" height="588" rx="32" fill="url(#heroWash)"/>
+  <defs>
+    <linearGradient id="heroWash" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#28a745" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#0d9488" stop-opacity="0.5"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="715" cy="150" r="70" fill="#ffffff" opacity="0.12"/>
+  <circle cx="600" cy="220" r="90" fill="#ffffff" opacity="0.08"/>
+  <rect x="655" y="170" width="120" height="120" rx="16" fill="#ffffff" opacity="0.1"/>
+  <circle cx="715" cy="230" r="14" fill="#ffffff" opacity="0.35"/>
+  <path d="M550 380 q70 -90 160 -40" stroke="#ffffff" stroke-width="3" opacity="0.25" fill="none"/>
+
+  <rect x="600" y="52" width="230" height="30" rx="15" fill="rgba(255,255,255,0.14)"/>
+  <path d="M612 67 l4 4 l7 -8" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="626" y="71" font-size="10.5" font-weight="600" fill="#ffffff">Kiosk</text>
+  <rect x="668" y="60" width="52" height="16" rx="8" fill="rgba(0,0,0,0.25)"/>
+  <text x="694" y="71" font-size="8.5" font-weight="700" letter-spacing="0.8" fill="#ffffff" text-anchor="middle">SECURE</text>
+
+  <rect x="620" y="420" width="190" height="120" rx="14" fill="rgba(255,255,255,0.94)"/>
+  <text x="636" y="446" font-size="12" font-weight="700" fill="#0a0a0a">Your operations hub</text>
+  <text x="636" y="464" font-size="10" fill="#737373">Branded for Kiosk · sunrise-groceries</text>
+  <circle cx="642" cy="492" r="14" fill="#28a745"/>
+  <circle cx="668" cy="492" r="14" fill="#0d9488" opacity="0.8"/>
+  <circle cx="694" cy="492" r="14" fill="#f59e0b" opacity="0.85"/>
+  <circle cx="720" cy="492" r="14" fill="#6366f1" opacity="0.8"/>
+  <text x="746" y="496" font-size="10" fill="#737373">Team ready</text>
+</svg>

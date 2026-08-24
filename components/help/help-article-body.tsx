@@ -1,7 +1,8 @@
 import Link from "next/link";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import type { HelpBlock } from "@/lib/help";
+import { headingId } from "@/lib/help";
 import { cn } from "@/lib/utils";
 
 type HelpArticleBodyProps = {
@@ -27,7 +28,8 @@ export function HelpArticleBody({ body }: HelpArticleBodyProps) {
             return (
               <h2
                 key={key}
-                className="pt-2 font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-[1.65rem]"
+                id={headingId(block.text)}
+                className="scroll-mt-28 pt-2 font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-[1.65rem]"
               >
                 {block.text}
               </h2>
@@ -91,24 +93,34 @@ export function HelpArticleBody({ body }: HelpArticleBodyProps) {
           case "faq":
             return (
               <div key={key} className="space-y-4">
-                <h2 className="font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)]">
+                <h2
+                  id={headingId("Frequently asked")}
+                  className="scroll-mt-28 font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)]"
+                >
                   Frequently asked
                 </h2>
-                <dl className="space-y-4">
-                  {block.items.map((item) => (
-                    <div
+                <div className="overflow-hidden rounded-xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)]">
+                  {block.items.map((item, itemIndex) => (
+                    <details
                       key={item.question}
-                      className="rounded-xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] px-4 py-4"
+                      name={`faq-${index}`}
+                      open={itemIndex === 0}
+                      className="group border-b border-[var(--kiosk-border-soft)] last:border-b-0"
                     >
-                      <dt className="font-medium text-[var(--kiosk-text)]">
+                      <summary className="flex cursor-pointer select-none items-center justify-between gap-3 px-4 py-3.5 text-[15px] font-medium text-[var(--kiosk-text)] transition-colors hover:bg-[var(--kiosk-gold-surface)] [&::-webkit-details-marker]:hidden">
                         {item.question}
-                      </dt>
-                      <dd className="mt-2 text-[15px] leading-[1.65] text-[var(--kiosk-text-soft)]">
+                        <ChevronDown
+                          className="size-4 shrink-0 text-[var(--kiosk-gold)] transition-transform group-open:rotate-180"
+                          strokeWidth={2}
+                          aria-hidden
+                        />
+                      </summary>
+                      <div className="border-t border-[var(--kiosk-border-soft)] bg-[var(--kiosk-surface)] px-4 py-3.5 text-[15px] leading-[1.7] text-[var(--kiosk-text-soft)]">
                         {item.answer}
-                      </dd>
-                    </div>
+                      </div>
+                    </details>
                   ))}
-                </dl>
+                </div>
               </div>
             );
           case "links":

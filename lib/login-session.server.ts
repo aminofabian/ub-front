@@ -30,8 +30,10 @@ function authUpstreamHeaders(
   const headers: Record<string, string> = {
     Accept: "application/json",
     Authorization: `Bearer ${accessToken}`,
-    "X-Tenant-Id": tenantId,
   };
+  if (tenantId) {
+    headers["X-Tenant-Id"] = tenantId;
+  }
   if (tenantHost) {
     headers["X-Tenant-Host"] = tenantHost;
   }
@@ -100,9 +102,14 @@ export function buildSessionFinalizeHtml(input: SessionFinalizeInput): string {
     `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.accessToken)});`,
     `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
     `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
-    `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
-    `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
   ];
+
+  if (tenantId) {
+    scriptLines.push(
+      `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
+      `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
+    );
+  }
 
   if (tenantHost) {
     scriptLines.push(
