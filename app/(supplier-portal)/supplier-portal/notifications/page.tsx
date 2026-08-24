@@ -119,7 +119,18 @@ export default function SupplierPortalNotificationsPage() {
                     </div>
                     <div className="flex gap-2">
                       {row.actionUrl ? (
-                        <Button asChild size="sm" variant="ghost">
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (unread) {
+                              void markSupplierPortalNotificationRead(row.id).catch(() => {
+                                /* navigation still proceeds */
+                              });
+                            }
+                          }}
+                        >
                           <Link href={row.actionUrl}>Open</Link>
                         </Button>
                       ) : null}

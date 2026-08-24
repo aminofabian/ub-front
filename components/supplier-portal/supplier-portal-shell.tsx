@@ -38,6 +38,7 @@ import { SupplierPortalSokoMindGuide } from "@/components/supplier-portal/suppli
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchSupplierPortalCapabilities,
+  fetchSupplierPortalUnreadCount,
   logoutSupplierPortal,
   type SupplierPortalCapabilities,
 } from "@/lib/marketplace-api";
@@ -50,6 +51,7 @@ type NavItem = {
   money?: boolean;
   team?: boolean;
   icon: LucideIcon;
+  badge?: number;
 };
 
 type NavGroup = {
@@ -130,15 +132,24 @@ function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function filterNavGroups(caps: SupplierPortalCapabilities | null): NavGroup[] {
+function filterNavGroups(
+  caps: SupplierPortalCapabilities | null,
+  unreadAlerts: number,
+): NavGroup[] {
   return NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => {
-      if (!caps) return !item.money && !item.team;
-      if (item.money && !caps.canViewMoney) return false;
-      if (item.team && !caps.canManageTeam) return false;
-      return true;
-    }),
+    items: group.items
+      .filter((item) => {
+        if (!caps) return !item.money && !item.team;
+        if (item.money && !caps.canViewMoney) return false;
+        if (item.team && !caps.canManageTeam) return false;
+        return true;
+      })
+      .map((item) =>
+        item.href === APP_ROUTES.supplierPortalNotifications && unreadAlerts > 0
+          ? { ...item, badge: unreadAlerts }
+          : item,
+      ),
   })).filter((group) => group.items.length > 0);
 }
 
@@ -154,13 +165,18 @@ function titleForPath(pathname: string): string {
 function SidebarNav({
   caps,
   pathname,
+  unreadAlerts,
   onNavigate,
 }: {
   caps: SupplierPortalCapabilities | null;
   pathname: string;
+  unreadAlerts: number;
   onNavigate?: () => void;
 }) {
-  const groups = useMemo(() => filterNavGroups(caps), [caps]);
+  const groups = useMemo(
+    () => filterNavGroups(caps, unreadAlerts),
+    [caps, unreadAlerts],
+  );
   const roleLabel = caps?.roleKey === "staff" ? "Staff" : "Owner";
 
   return (
@@ -211,7 +227,12 @@ function SidebarNav({
                       )}
                     >
                       <Icon className="size-3.5 opacity-70" aria-hidden />
-                      {item.label}
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                      {item.badge && item.badge > 0 ? (
+                        <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 font-mono text-[9px] font-bold text-white">
+                          {item.badge > 9 ? "9+" : item.badge}
+                        </span>
+                      ) : null}
                     </Link>
                   </li>
                 );
@@ -255,13 +276,18 @@ function MoreSheet({
   onClose,
   caps,
   pathname,
+  unreadAlerts,
 }: {
   open: boolean;
   onClose: () => void;
   caps: SupplierPortalCapabilities | null;
   pathname: string;
+  unreadAlerts: number;
 }) {
-  const groups = useMemo(() => filterNavGroups(caps), [caps]);
+  const groups = useMemo(
+    () => filterNavGroups(caps, unreadAlerts),
+    [caps, unreadAlerts],
+  );
   const roleLabel = caps?.roleKey === "staff" ? "Staff" : "Owner";
 
   useEffect(() => {
@@ -361,6 +387,11 @@ function MoreSheet({
                         >
                           {item.label}
                         </span>
+                        {item.badge && item.badge > 0 ? (
+                          <span className="inline-flex h-5 min-w-5 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1.5 font-mono text-[10px] font-bold text-white">
+                            {item.badge > 9 ? "9+" : item.badge}
+                          </span>
+                        ) : null}
                         <ChevronRight className="size-4 text-muted-foreground/70" aria-hidden />
                       </Link>
                     </li>
@@ -379,10 +410,12 @@ function MoreSheet({
 function MobileTabBar({
   pathname,
   moreActive,
+  unreadAlerts,
   onMore,
 }: {
   pathname: string;
   moreActive: boolean;
+  unreadAlerts: number;
   onMore: () => void;
 }) {
   const primaryActive = MOBILE_TABS.some((tab) => tab.match(pathname));
@@ -393,14 +426,28 @@ function MobileTabBar({
         {MOBILE_TABS.map((tab) => {
           const Icon = tab.icon;
           const active = !moreActive && tab.match(pathname);
+          const showBadge =
+            tab.href === APP_ROUTES.supplierPortalNotifications && unreadAlerts > 0;
           return (
             <Link
               key={tab.href}
               href={tab.href}
               className={cn(spTabItem, active && spTabItemActive)}
               aria-current={active ? "page" : undefined}
+              aria-label={
+                showBadge
+                  ? `Alerts (${unreadAlerts > 9 ? "9+" : unreadAlerts} unread)`
+                  : undefined
+              }
             >
-              <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} aria-hidden />
+              <span className="relative">
+                <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} aria-hidden />
+                {showBadge ? (
+                  <span className="absolute -right-2 -top-1 inline-flex h-3.5 min-w-3.5 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-0.5 font-mono text-[8px] font-bold leading-none text-white">
+                    {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                  </span>
+                ) : null}
+              </span>
               <span className="capitalize">{tab.label}</span>
             </Link>
           );
@@ -431,6 +478,7 @@ export function SupplierPortalShell({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [caps, setCaps] = useState<SupplierPortalCapabilities | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
   const pageTitle = titleForPath(pathname);
 
   useEffect(() => {
@@ -441,13 +489,38 @@ export function SupplierPortalShell({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
+    if (!getSupplierPortalAccessToken()) return;
+    let cancelled = false;
+    const refresh = () => {
+      void fetchSupplierPortalUnreadCount()
+        .then((count) => {
+          if (!cancelled) setUnreadAlerts(count);
+        })
+        .catch(() => {
+          if (!cancelled) setUnreadAlerts(0);
+        });
+    };
+    refresh();
+    const id = window.setInterval(refresh, 30_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [pathname]);
+
+  useEffect(() => {
     setMoreOpen(false);
   }, [pathname]);
 
   return (
     <div className={cn(spShellBg, "flex flex-col lg:flex-row")}>
       <aside className="hidden w-[15.75rem] shrink-0 border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#faf8f4_92%,transparent)] lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
-        <SidebarNav caps={caps} pathname={pathname} />
+        <SidebarNav caps={caps} pathname={pathname} unreadAlerts={unreadAlerts} />
       </aside>
 
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col lg:min-h-screen">
@@ -482,6 +555,7 @@ export function SupplierPortalShell({ children }: { children: React.ReactNode })
         <MobileTabBar
           pathname={pathname}
           moreActive={moreOpen}
+          unreadAlerts={unreadAlerts}
           onMore={() => setMoreOpen(true)}
         />
       </div>
@@ -491,6 +565,7 @@ export function SupplierPortalShell({ children }: { children: React.ReactNode })
         onClose={() => setMoreOpen(false)}
         caps={caps}
         pathname={pathname}
+        unreadAlerts={unreadAlerts}
       />
 
       <SupplierPortalSokoMindGuide />

@@ -1256,6 +1256,13 @@ export async function fetchSupplierPortalNotifications(): Promise<SupplierPortal
   );
 }
 
+export async function fetchSupplierPortalUnreadCount(): Promise<number> {
+  const res = await supplierPortalFetch<{ count: number }>(
+    `${API_ROUTES.supplierPortalNotifications}/unread-count`,
+  );
+  return typeof res.count === "number" && Number.isFinite(res.count) ? res.count : 0;
+}
+
 export async function markSupplierPortalNotificationRead(id: string): Promise<void> {
   await supplierPortalFetch(`${API_ROUTES.supplierPortalNotifications}/${id}/read`, {
     method: "POST",

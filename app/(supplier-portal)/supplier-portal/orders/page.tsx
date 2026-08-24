@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, Search, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,12 +37,17 @@ type LineDraft = {
 
 type PageMode = "take" | "inbox";
 
-export default function SupplierPortalOrdersPage() {
+function SupplierPortalOrdersPageInner() {
   const router = useRouter();
-  const [mode, setMode] = useState<PageMode>("take");
+  const searchParams = useSearchParams();
+  const deepPoId = searchParams.get("po")?.trim() || null;
+  const forceInbox = searchParams.get("inbox") === "1" || Boolean(deepPoId);
+  const bootstrappedRef = useRef(false);
+
+  const [mode, setMode] = useState<PageMode>(forceInbox ? "inbox" : "take");
   const [orders, setOrders] = useState<SupplierPortalOrderRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(deepPoId);
   const [detail, setDetail] = useState<SupplierPortalOrderDetail | null>(null);
   const [lineDrafts, setLineDrafts] = useState<LineDraft[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -57,8 +62,10 @@ export default function SupplierPortalOrdersPage() {
     try {
       const rows = await fetchSupplierPortalOrders();
       setOrders(rows);
+      return rows;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load orders");
+      return [] as SupplierPortalOrderRow[];
     } finally {
       setLoading(false);
     }
@@ -71,7 +78,27 @@ export default function SupplierPortalOrdersPage() {
     }
   }, [router]);
 
+  // Inbox-first when deep-linked, forced, or when the inbox already has rows.
   useEffect(() => {
+    if (!getSupplierPortalAccessToken()) return;
+    if (bootstrappedRef.current) return;
+    bootstrappedRef.current = true;
+    void (async () => {
+      const rows = await loadOrders();
+      if (forceInbox || rows.length > 0) {
+        setMode("inbox");
+      }
+      if (deepPoId) {
+        setSelectedId(deepPoId);
+      }
+    })();
+  }, [deepPoId, forceInbox, loadOrders]);
+
+  useEffect(() => {
+    if (mode === "inbox" && !bootstrappedRef.current) {
+      // Bootstrap effect owns the first load.
+      return;
+    }
     if (mode === "inbox") void loadOrders();
   }, [mode, loadOrders]);
 
@@ -111,7 +138,7 @@ export default function SupplierPortalOrdersPage() {
     });
   }, [orders, shopFilterId, orderSearch]);
 
-  const openOrder = async (purchaseOrderId: string) => {
+  const openOrder = useCallback(async (purchaseOrderId: string) => {
     setSelectedId(purchaseOrderId);
     setDetailLoading(true);
     try {
@@ -131,7 +158,13 @@ export default function SupplierPortalOrdersPage() {
     } finally {
       setDetailLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (mode === "inbox" && deepPoId) {
+      void openOrder(deepPoId);
+    }
+  }, [mode, deepPoId, openOrder]);
 
   const onRespond = async () => {
     if (!selectedId) return;
@@ -333,7 +366,7 @@ export default function SupplierPortalOrdersPage() {
                         </span>
                         <span className="font-mono text-[10px] text-muted-foreground">
                           {order.lineCount} lines
-                          {!order.supplierResponseAt ? " · awaiting" : ""}
+                          {!order.supplierResponseAt ? " · awaiting you" : ""}
                         </span>
                       </button>
                     ))
@@ -383,6 +416,23 @@ export default function SupplierPortalOrdersPage() {
         )}
       </div>
     </SupplierPortalShell>
+  );
+}
+
+export default function SupplierPortalOrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <SupplierPortalShell>
+          <div className={cn(spPage, "py-16 text-center text-sm text-muted-foreground")}>
+            <Loader2 className="mr-2 inline size-4 animate-spin" />
+            Loading orders…
+          </div>
+        </SupplierPortalShell>
+      }
+    >
+      <SupplierPortalOrdersPageInner />
+    </Suspense>
   );
 }
 

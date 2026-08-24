@@ -573,9 +573,17 @@ export function TenantOrderWorkspace({
       });
     }
     try {
-      await postPathAPurchaseOrderSendToSupplier(po.id, { toast: false });
-    } catch {
-      await postPathAPurchaseOrderSend(po.id);
+      if (activeSupplier?.marketplaceSupplierId?.trim()) {
+        await postPathAPurchaseOrderSendToSupplier(po.id, { toast: false });
+      } else {
+        await postPathAPurchaseOrderSend(po.id);
+      }
+    } catch (error) {
+      // Do not fall back to plain /send when the supplier is portal-linked —
+      // that would hide the PO from their inbox (no sentToSupplierAt).
+      throw error instanceof Error
+        ? error
+        : new Error("Could not send order to supplier");
     }
 
     setCart({});
@@ -648,6 +656,10 @@ export function TenantOrderWorkspace({
       if (!poNumber) return;
       if (alsoWhatsApp) {
         await openWhatsAppOrder({ savedPoNumber: poNumber });
+      } else if (activeSupplier?.marketplaceSupplierId?.trim()) {
+        toast.success(
+          `Order ${poNumber} sent to ${activeSupplier.name}. They’ll see it in their portal.`,
+        );
       } else {
         toast.success(`Order ${poNumber} placed — confirm when goods arrive`);
       }
