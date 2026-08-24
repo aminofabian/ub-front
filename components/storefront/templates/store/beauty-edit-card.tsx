@@ -117,12 +117,13 @@ export function BeautyEditHeroPanel({
   cta: string;
 }) {
   const href = shopItemPathFromCard(item) || APP_ROUTES.shop;
+  const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
 
   return (
-    <Link href={href} className={styles.heroPanel}>
-      {item.imageUrl ? (
+    <Link href={href} className={cn(styles.heroPanel, "relative")}>
+      {imageUrl ? (
         <Image
-          src={item.imageUrl}
+          src={imageUrl}
           alt={item.name}
           fill
           sizes="(min-width: 900px) 33vw, 100vw"
@@ -138,7 +139,10 @@ export function BeautyEditHeroPanel({
         <span className={styles.heroPanelTitle}>{headline}</span>
         <span className={styles.heroPanelCta}>{cta}</span>
       </span>
-      <span className={styles.srOnly}>{item.name} · {priceLabel(item, currency)}</span>
+      <span className={styles.srOnly}>
+        {item.name} · {priceLabel(item, currency)}
+      </span>
+      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
     </Link>
   );
 }

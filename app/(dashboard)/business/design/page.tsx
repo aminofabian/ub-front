@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Brush, LayoutTemplate } from "lucide-react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { ArrowLeft, Brush, LayoutTemplate, Store } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -13,7 +14,8 @@ import {
 import { StorefrontDesignEditor } from "@/components/business/storefront-design-editor";
 import { Button } from "@/components/ui/button";
 import { fetchBusiness, type BusinessRecord } from "@/lib/api";
-import { APP_ROUTES } from "@/lib/config";
+import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
+import { resolveStorefrontDesignReturnTo } from "@/lib/storefront-staff-edit";
 
 /** Studio layout needs more width than the standard dashboard column. */
 const STUDIO_WRAPPER = "mx-auto w-full max-w-[1400px] space-y-8 pb-10";
@@ -61,7 +63,9 @@ export default function BusinessDesignPage() {
   if (!business && !loadFailed) {
     return (
       <div className={STUDIO_WRAPPER}>
-        <DesignPageHeader />
+        <Suspense fallback={<DesignPageHeaderFallback />}>
+          <DesignPageHeader businessSlug={null} />
+        </Suspense>
         <div className="space-y-6" aria-busy="true" aria-label="Loading shop design">
           <div className="h-40 animate-pulse rounded-2xl bg-muted" />
           <div className="h-72 animate-pulse rounded-2xl bg-muted" />
@@ -83,7 +87,9 @@ export default function BusinessDesignPage() {
   return (
     <div className={STUDIO_WRAPPER}>
       <div className="space-y-8">
-        <DesignPageHeader />
+        <Suspense fallback={<DesignPageHeaderFallback />}>
+          <DesignPageHeader businessSlug={business?.slug ?? null} />
+        </Suspense>
         <StorefrontDesignEditor
           business={business}
           onSaved={(next) => setBusiness(next)}
@@ -93,7 +99,7 @@ export default function BusinessDesignPage() {
   );
 }
 
-function DesignPageHeader() {
+function DesignPageHeaderFallback() {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <DashboardPageHero
@@ -103,6 +109,49 @@ function DesignPageHeader() {
         description="This is your shop window. Change anything on the left and watch it happen in the preview — your identity stays put when you switch themes."
       />
       <div className="flex flex-wrap gap-2 sm:pt-1">
+        <Button asChild variant="outline" size="sm" className="gap-1.5">
+          <Link href={APP_ROUTES.businessThemes}>
+            <LayoutTemplate className="size-3.5" aria-hidden />
+            Themes
+          </Link>
+        </Button>
+        <Button asChild variant="ghost" size="sm" className="gap-1.5">
+          <Link href={APP_ROUTES.businessSettings}>
+            <ArrowLeft className="size-3.5" aria-hidden />
+            Settings
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function DesignPageHeader({ businessSlug }: { businessSlug: string | null }) {
+  const searchParams = useSearchParams();
+  const shopBase = businessSlug ? slugDerivedShopUrl(businessSlug) || null : null;
+  const shopReturnUrl = useMemo(
+    () =>
+      resolveStorefrontDesignReturnTo(searchParams.get("returnTo"), shopBase),
+    [searchParams, shopBase],
+  );
+
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <DashboardPageHero
+        compact
+        icon={Brush}
+        title="Design your shop"
+        description="This is your shop window. Change anything on the left and watch it happen in the preview — your identity stays put when you switch themes."
+      />
+      <div className="flex flex-wrap gap-2 sm:pt-1">
+        {shopReturnUrl ? (
+          <Button asChild size="sm" className="gap-1.5">
+            <a href={shopReturnUrl}>
+              <Store className="size-3.5" aria-hidden />
+              Back to shop
+            </a>
+          </Button>
+        ) : null}
         <Button asChild variant="outline" size="sm" className="gap-1.5">
           <Link href={APP_ROUTES.businessThemes}>
             <LayoutTemplate className="size-3.5" aria-hidden />

@@ -81,13 +81,14 @@ export function ButcherBoardVignette({
 }) {
   const href = shopItemPathFromCard(item) || APP_ROUTES.shop;
   const meta = item.variantName?.trim() || "";
+  const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
 
   return (
     <article className={styles.vignette}>
-      <Link href={href} className={styles.vignetteVisual}>
-        {item.imageUrl ? (
+      <Link href={href} className={cn(styles.vignetteVisual, "relative")}>
+        {imageUrl ? (
           <Image
-            src={item.imageUrl}
+            src={imageUrl}
             alt={item.name}
             fill
             sizes="180px"
@@ -97,6 +98,7 @@ export function ButcherBoardVignette({
         ) : (
           <span className={styles.heroPlaceholder} aria-hidden />
         )}
+        <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
       </Link>
       <div className={styles.vignetteBody}>
         <Link href={href} className={styles.vignetteName}>
@@ -169,13 +171,14 @@ export function ButcherBoardHero({
 }) {
   const href = shopItemPathFromCard(item) || APP_ROUTES.shop;
   const meta = item.variantName?.trim() || "";
+  const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
 
   return (
     <article className={cn(styles.hero, styles.heroGlow)}>
-      <Link href={href} className={styles.heroClip}>
-        {item.imageUrl ? (
+      <Link href={href} className={cn(styles.heroClip, "relative")}>
+        {imageUrl ? (
           <Image
-            src={item.imageUrl}
+            src={imageUrl}
             alt={item.name}
             fill
             sizes="(min-width: 900px) 60vw, 100vw"
@@ -187,6 +190,7 @@ export function ButcherBoardHero({
           <span className={styles.heroPlaceholder} aria-hidden />
         )}
         <span className={styles.heroShade} aria-hidden />
+        <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
       </Link>
       <div className={styles.heroCopy}>
         <h1 className={styles.heroHeadline}>{headline}</h1>

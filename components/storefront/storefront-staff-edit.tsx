@@ -8,6 +8,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -34,12 +35,19 @@ import {
   type StorefrontAnnouncementSectionSettings,
   type StorefrontDesign,
   type StorefrontHeroSectionSettings,
+  type StorefrontPromoSectionSettings,
   type StorefrontSectionConfig,
   type StorefrontSectionId,
 } from "@/lib/storefront-design";
+import {
+  storefrontStaffEditReturnAbsoluteUrl,
+  storefrontStaffEditReturnPath,
+  storefrontWantsEditFromSearch,
+} from "@/lib/storefront-staff-edit";
 import { cn } from "@/lib/utils";
 
 export type { StorefrontQuickEditField };
+export { storefrontWantsEditFromSearch } from "@/lib/storefront-staff-edit";
 
 type StaffEditContextValue = {
   ready: boolean;
@@ -59,6 +67,16 @@ const StaffEditContext = createContext<StaffEditContextValue | null>(null);
 function isOwnerOrAdminRole(roleKey: string | null | undefined): boolean {
   const key = (roleKey ?? "").trim().toLowerCase();
   return key === "owner" || key === "admin";
+}
+
+function storefrontWantsEditFromWindow(): boolean {
+  if (typeof window === "undefined") return false;
+  return storefrontWantsEditFromSearch(window.location.search);
+}
+
+function staffEditReturnPath(): string {
+  if (typeof window === "undefined") return "/?edit=1";
+  return storefrontStaffEditReturnPath(window.location.href);
 }
 
 function upsertSection(
@@ -138,6 +156,8 @@ export function StorefrontStaffEditProvider({
   const [quickField, setQuickField] = useState<StorefrontQuickEditField | null>(
     null,
   );
+  const [editDeepLink, setEditDeepLink] = useState(false);
+  const autoEditAppliedRef = useRef(false);
 
   useEffect(() => {
     setDesign(initialDesign ?? null);
@@ -146,6 +166,8 @@ export function StorefrontStaffEditProvider({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      const wantsEdit = storefrontWantsEditFromWindow();
+      if (!cancelled) setEditDeepLink(wantsEdit);
       try {
         if (!hasAccessSession() && !getSessionTokens()) {
           await restoreClientSessionFromCookie().catch(() => false);
@@ -198,6 +220,15 @@ export function StorefrontStaffEditProvider({
     },
     [ensureDesignLoaded],
   );
+
+  // `?edit=1` → turn edit mode on once staff capability is known.
+  useEffect(() => {
+    if (!ready || !canEdit || !editDeepLink || autoEditAppliedRef.current) {
+      return;
+    }
+    autoEditAppliedRef.current = true;
+    setEditModeSafe(true);
+  }, [ready, canEdit, editDeepLink, setEditModeSafe]);
 
   const setImageOverride = useCallback((itemId: string, imageUrl: string) => {
     const id = itemId.trim();
@@ -257,6 +288,21 @@ export function StorefrontStaffEditProvider({
           enabled: true,
           settings: { text },
         });
+      } else if (field === "promo") {
+        const existing = base?.sections?.find((s) => s.id === "promo");
+        const prev = (existing?.settings ??
+          storefrontSectionDefaultSettings(
+            "promo",
+          )) as StorefrontPromoSectionSettings;
+        next = upsertSection(base, "promo", {
+          enabled: true,
+          settings: {
+            ...prev,
+            title: (values.title ?? "").trim(),
+            subtitle: (values.subtitle ?? "").trim(),
+            coupon: (values.coupon ?? "").trim(),
+          },
+        });
       } else if (field === "hero") {
         const headline = (values.headline ?? "").trim();
         const subheadline = (values.subheadline ?? "").trim();
@@ -291,15 +337,22 @@ export function StorefrontStaffEditProvider({
 
   const dialogDefaults = useMemo(() => {
     const announcement = design?.sections?.find((s) => s.id === "announcement");
+    const promo = design?.sections?.find((s) => s.id === "promo");
     const hero = design?.sections?.find((s) => s.id === "hero");
     const annSettings = announcement?.settings as
       | StorefrontAnnouncementSectionSettings
+      | undefined;
+    const promoSettings = promo?.settings as
+      | StorefrontPromoSectionSettings
       | undefined;
     const heroSettings = hero?.settings as
       | StorefrontHeroSectionSettings
       | undefined;
     return {
       announcement: annSettings?.text ?? "",
+      promoTitle: promoSettings?.title ?? "",
+      promoSubtitle: promoSettings?.subtitle ?? "",
+      promoCoupon: promoSettings?.coupon ?? "",
       headline: heroSettings?.headline ?? "",
       subheadline: heroSettings?.subheadline ?? "",
       tagline: design?.business?.tagline?.trim() ?? "",
@@ -336,7 +389,7 @@ export function StorefrontStaffEditProvider({
   return (
     <StaffEditContext.Provider value={value}>
       {children}
-      <StorefrontStaffEditBar />
+      <StorefrontStaffEditBar editDeepLink={editDeepLink} />
       <StorefrontQuickEditDialog
         field={quickField}
         open={quickField != null}
@@ -351,9 +404,41 @@ export function StorefrontStaffEditProvider({
   );
 }
 
-function StorefrontStaffEditBar() {
+function StorefrontStaffEditBar({ editDeepLink }: { editDeepLink: boolean }) {
   const ctx = useStorefrontStaffEditOptional();
-  if (!ctx?.ready || !ctx.canEdit) return null;
+  if (!ctx?.ready) return null;
+
+  function designStudioHref(): string {
+    const absolute =
+      typeof window !== "undefined"
+        ? storefrontStaffEditReturnAbsoluteUrl(window.location.href)
+        : null;
+    if (!absolute) return APP_ROUTES.businessDesign;
+    return `${APP_ROUTES.businessDesign}?returnTo=${encodeURIComponent(absolute)}`;
+  }
+
+  // Deep link without owner/admin session → invite staff sign-in.
+  if (!ctx.canEdit) {
+    if (!editDeepLink) return null;
+    const next = staffEditReturnPath();
+    const href = `${APP_ROUTES.staffLogin}?next=${encodeURIComponent(next)}`;
+    return (
+      <div
+        className="sticky top-0 z-[70] border-b border-amber-500/40 bg-amber-50 text-amber-950 shadow-sm"
+        role="region"
+        aria-label="Staff sign-in to edit"
+      >
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+          <p className="text-[12px] font-medium">
+            Sign in as owner or admin to edit this shop.
+          </p>
+          <Button asChild size="sm" className="rounded-md">
+            <Link href={href}>Staff sign in</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const { editMode, setEditMode, openQuickEdit } = ctx;
 
@@ -413,6 +498,15 @@ function StorefrontStaffEditBar() {
               size="xs"
               variant="outline"
               className="rounded-md border-amber-600/30 bg-white/80"
+              onClick={() => openQuickEdit("promo")}
+            >
+              Offer
+            </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              className="rounded-md border-amber-600/30 bg-white/80"
               onClick={() => openQuickEdit("hero")}
             >
               Headline
@@ -427,7 +521,7 @@ function StorefrontStaffEditBar() {
               Tagline
             </Button>
             <Link
-              href={APP_ROUTES.businessDesign}
+              href={designStudioHref()}
               className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-amber-950 underline-offset-2 hover:underline"
             >
               <Sparkles className="size-3" aria-hidden />

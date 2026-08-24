@@ -27,6 +27,8 @@ describe("isShopNextPath", () => {
     expect(isShopNextPath(APP_ROUTES.shopAccount)).toBe(true);
     expect(isShopNextPath("/shop/cart")).toBe(true);
     expect(isShopNextPath("/shop/account?x=1")).toBe(true);
+    expect(isShopNextPath("/?edit=1")).toBe(true);
+    expect(isShopNextPath("/shop?edit=1")).toBe(true);
   });
 
   it("rejects external, malformed, and non-storefront targets", () => {

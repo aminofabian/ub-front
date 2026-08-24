@@ -1,8 +1,10 @@
+"use client";
+
 import { ArrowRight, MessageCircle, Ticket } from "lucide-react";
-import Link from "next/link";
 
 import { PromoCountdown } from "@/components/storefront/sections/promo-countdown";
 import { whatsappHref } from "@/components/storefront/sections/shared";
+import { StorefrontQuickEditTarget } from "@/components/storefront/storefront-staff-edit";
 import type {
   StorefrontDesignButtons,
   StorefrontPromoSectionSettings,
@@ -44,57 +46,59 @@ export function PromoSection({
   );
 
   return (
-    <div
-      className="relative overflow-hidden rounded-[length:var(--sf-card-radius,1rem)] px-4 py-5 text-white shadow-[0_10px_30px_-12px_rgba(0,0,0,0.4)] sm:px-6 sm:py-7"
-      style={{
-        background: `linear-gradient(135deg, ${primary ?? "#0f172a"} 0%, ${accent ?? primary ?? "#334155"} 100%)`,
-      }}
-    >
+    <StorefrontQuickEditTarget field="promo" label="offer banner">
       <div
-        className="pointer-events-none absolute -right-10 -top-16 size-52 rounded-full bg-white/10 blur-2xl"
-        aria-hidden
-      />
-      <div className="relative flex flex-wrap items-center justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="font-heading text-xl font-bold leading-tight tracking-[-0.02em] sm:text-2xl">
-            {title}
-          </h2>
-          {subtitle ? (
-            <p className="mt-1 max-w-md text-[13px] leading-snug text-white/80 sm:text-sm">
-              {subtitle}
-            </p>
-          ) : null}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {settings.endsAt.trim() ? (
-              <PromoCountdown endsAt={settings.endsAt.trim()} />
+        className="relative overflow-hidden rounded-[length:var(--sf-card-radius,1rem)] px-4 py-5 text-white shadow-[0_10px_30px_-12px_rgba(0,0,0,0.4)] sm:px-6 sm:py-7"
+        style={{
+          background: `linear-gradient(135deg, ${primary ?? "#0f172a"} 0%, ${accent ?? primary ?? "#334155"} 100%)`,
+        }}
+      >
+        <div
+          className="pointer-events-none absolute -right-10 -top-16 size-52 rounded-full bg-white/10 blur-2xl"
+          aria-hidden
+        />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-heading text-xl font-bold leading-tight tracking-[-0.02em] sm:text-2xl">
+              {title}
+            </h2>
+            {subtitle ? (
+              <p className="mt-1 max-w-md text-[13px] leading-snug text-white/80 sm:text-sm">
+                {subtitle}
+              </p>
             ) : null}
-            {coupon ? (
-              <span className="inline-flex items-center gap-1.5 rounded-[length:var(--sf-button-radius,0.5rem)] border border-dashed border-white/50 bg-white/10 px-2.5 py-1 font-mono text-[12px] font-semibold tracking-wide">
-                <Ticket className="size-3.5" aria-hidden />
-                {coupon}
-              </span>
-            ) : null}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {settings.endsAt.trim() ? (
+                <PromoCountdown endsAt={settings.endsAt.trim()} />
+              ) : null}
+              {coupon ? (
+                <span className="inline-flex items-center gap-1.5 rounded-[length:var(--sf-button-radius,0.5rem)] border border-dashed border-white/50 bg-white/10 px-2.5 py-1 font-mono text-[12px] font-semibold tracking-wide">
+                  <Ticket className="size-3.5" aria-hidden />
+                  {coupon}
+                </span>
+              ) : null}
+            </div>
           </div>
-        </div>
 
-        {waHref ? (
-          <Link
-            href={waHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              "inline-flex h-10 shrink-0 items-center gap-2 rounded-[length:var(--sf-button-radius,0.5rem)] px-4 text-sm font-semibold transition-[filter,transform,background-color,border-color] duration-200 active:scale-[0.98]",
-              buttons === "outline"
-                ? "border-2 border-white bg-transparent text-white hover:bg-white/10"
-                : "bg-white text-slate-900 shadow-sm hover:brightness-95",
-            )}
-          >
-            <MessageCircle className="size-4" aria-hidden />
-            {ctaLabel}
-            <ArrowRight className="size-4" aria-hidden />
-          </Link>
-        ) : null}
+          {waHref ? (
+            <a
+              href={waHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "inline-flex h-10 shrink-0 items-center gap-2 rounded-[length:var(--sf-button-radius,0.5rem)] px-4 text-sm font-semibold transition-[filter,transform] active:scale-[0.98]",
+                buttons === "outline"
+                  ? "border-2 border-white/70 bg-transparent text-white hover:bg-white/10"
+                  : "bg-white text-slate-900 shadow-sm hover:brightness-105",
+              )}
+            >
+              <MessageCircle className="size-4" aria-hidden />
+              {ctaLabel}
+              <ArrowRight className="size-3.5 opacity-70" aria-hidden />
+            </a>
+          ) : null}
+        </div>
       </div>
-    </div>
+    </StorefrontQuickEditTarget>
   );
 }

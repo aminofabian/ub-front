@@ -17,11 +17,15 @@ import { Textarea } from "@/components/ui/textarea";
 
 export type StorefrontQuickEditField =
   | "announcement"
+  | "promo"
   | "hero"
   | "tagline";
 
 type Defaults = {
   announcement: string;
+  promoTitle: string;
+  promoSubtitle: string;
+  promoCoupon: string;
   headline: string;
   subheadline: string;
   tagline: string;
@@ -34,6 +38,10 @@ const FIELD_META: Record<
   announcement: {
     title: "Announcement",
     description: "Slim notice at the top of the shop — deliveries, hours, new stock.",
+  },
+  promo: {
+    title: "Offer banner",
+    description: "Flash sale title, subtitle, and optional coupon code.",
   },
   hero: {
     title: "Hero headline",
@@ -66,6 +74,9 @@ export function StorefrontQuickEditDialog({
   const [text, setText] = useState("");
   const [headline, setHeadline] = useState("");
   const [subheadline, setSubheadline] = useState("");
+  const [promoTitle, setPromoTitle] = useState("");
+  const [promoSubtitle, setPromoSubtitle] = useState("");
+  const [promoCoupon, setPromoCoupon] = useState("");
 
   useEffect(() => {
     if (!open || !field) return;
@@ -78,6 +89,9 @@ export function StorefrontQuickEditDialog({
     );
     setHeadline(defaults.headline);
     setSubheadline(defaults.subheadline);
+    setPromoTitle(defaults.promoTitle);
+    setPromoSubtitle(defaults.promoSubtitle);
+    setPromoCoupon(defaults.promoCoupon);
   }, [open, field, defaults]);
 
   if (!field) return null;
@@ -89,6 +103,12 @@ export function StorefrontQuickEditDialog({
       await onSave(activeField, { text });
     } else if (activeField === "hero") {
       await onSave(activeField, { headline, subheadline });
+    } else if (activeField === "promo") {
+      await onSave(activeField, {
+        title: promoTitle,
+        subtitle: promoSubtitle,
+        coupon: promoCoupon,
+      });
     } else {
       await onSave(activeField, { tagline: text });
     }
@@ -123,6 +143,40 @@ export function StorefrontQuickEditDialog({
                 maxLength={120}
                 onChange={(e) => setSubheadline(e.target.value)}
                 placeholder="Right to your door."
+              />
+            </div>
+          </div>
+        ) : activeField === "promo" ? (
+          <div className="flex flex-col gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="sf-edit-promo-title">Title</Label>
+              <Input
+                id="sf-edit-promo-title"
+                value={promoTitle}
+                maxLength={120}
+                onChange={(e) => setPromoTitle(e.target.value)}
+                placeholder="20% OFF this week"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sf-edit-promo-subtitle">Subtitle</Label>
+              <Input
+                id="sf-edit-promo-subtitle"
+                value={promoSubtitle}
+                maxLength={200}
+                onChange={(e) => setPromoSubtitle(e.target.value)}
+                placeholder="On selected essentials"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sf-edit-promo-coupon">Coupon (optional)</Label>
+              <Input
+                id="sf-edit-promo-coupon"
+                value={promoCoupon}
+                maxLength={40}
+                onChange={(e) => setPromoCoupon(e.target.value)}
+                placeholder="WELCOME10"
               />
             </div>
           </div>

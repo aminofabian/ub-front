@@ -5,6 +5,7 @@ import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import { CustomerTabPortalLoader } from "@/components/credits/customer-tab-portal-loader";
 import ShopAddToCart from "@/components/storefront/shop-add-to-cart";
+import { ShopItemHeroMedia } from "@/components/storefront/shop-item-hero-media";
 import { ShopItemLivePrice } from "@/components/storefront/shop-item-live-price";
 import { ShopItemNotifyButton } from "@/components/storefront/shop-item-notify-button";
 import {
@@ -152,22 +153,12 @@ export default async function ShopItemPage({ params }: PageProps) {
         <div className="rounded-xl border border-border/60 bg-background p-3 shadow-sm sm:p-5">
           <div className="grid gap-8 lg:grid-cols-[1.05fr_1fr]">
             <section>
-              <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted">
-                {hero ? (
-                  <Image
-                    src={hero.url}
-                    alt={hero.altText?.trim() || item.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 1024px) 100vw, 640px"
-                    priority
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-6xl font-medium text-muted-foreground/40">
-                    {item.name.slice(0, 1).toUpperCase()}
-                  </div>
-                )}
-              </div>
+              <ShopItemHeroMedia
+                itemId={item.id}
+                itemName={item.name}
+                imageUrl={hero?.url ?? null}
+                imageAlt={hero?.altText}
+              />
 
               {item.images.length > 1 && (
                 <div className="mt-4 grid grid-cols-5 gap-2">
