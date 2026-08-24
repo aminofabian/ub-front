@@ -471,6 +471,8 @@ type TabletMoreSheetProps = {
   itemIsActive: (pathname: string, href: string) => boolean;
   /** Cashier / stock manager / grocery: flat link list instead of launcher grid. */
   compactNav?: boolean;
+  /** Live unread counts keyed by nav href (e.g. the support thread). */
+  badgeByHref?: Readonly<Record<string, number>>;
 };
 
 const TILE_HUES = [0, 42, 84, 126, 168, 210, 252, 294] as const;
@@ -659,6 +661,7 @@ export function TabletMoreSheet({
   onLogout,
   itemIsActive,
   compactNav = false,
+  badgeByHref,
 }: TabletMoreSheetProps) {
   const accent = primaryColor?.trim() || "#28a745";
   const greeting = greetingForHour(new Date().getHours());
@@ -915,6 +918,11 @@ export function TabletMoreSheet({
                               <span className="min-w-0 flex-1 truncate text-sm">
                                 {item.label}
                               </span>
+                              {badgeByHref?.[item.href] ? (
+                                <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+                                  {badgeByHref[item.href] > 9 ? "9+" : badgeByHref[item.href]}
+                                </span>
+                              ) : null}
                               <ChevronRight
                                 className={cn(
                                   "size-4 shrink-0 opacity-30 transition-transform group-hover:translate-x-0.5 group-hover:opacity-60",
@@ -964,8 +972,13 @@ export function TabletMoreSheet({
                               {hit.section.title}
                             </span>
                           </div>
-                          <span className="text-sm font-semibold leading-snug">
-                            {hit.label}
+                          <span className="flex items-center justify-between gap-2 text-sm font-semibold leading-snug">
+                            <span className="truncate">{hit.label}</span>
+                            {badgeByHref?.[hit.href] ? (
+                              <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+                                {badgeByHref[hit.href] > 9 ? "9+" : badgeByHref[hit.href]}
+                              </span>
+                            ) : null}
                           </span>
                         </Link>
                       </li>
@@ -1065,11 +1078,16 @@ export function TabletMoreSheet({
                             </div>
                             <span
                               className={cn(
-                                "relative mt-2 text-sm font-semibold leading-snug",
+                                "relative mt-2 flex items-center justify-between gap-2 text-sm font-semibold leading-snug",
                                 active && "text-primary",
                               )}
                             >
-                              {item.label}
+                              <span className="truncate">{item.label}</span>
+                              {badgeByHref?.[item.href] ? (
+                                <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+                                  {badgeByHref[item.href] > 9 ? "9+" : badgeByHref[item.href]}
+                                </span>
+                              ) : null}
                             </span>
                           </Link>
                         </li>

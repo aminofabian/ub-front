@@ -41,6 +41,7 @@ import {
 
 import { useOptionalTenant, useFeatureFlags } from "@/components/providers/tenant-provider";
 import { NotificationBell } from "@/components/notification-bell";
+import { useSupportUnread } from "@/hooks/use-support-unread";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
@@ -1032,6 +1033,11 @@ export function AppShell({ children }: AppShellProps) {
 
   const userInitial = userDisplayName.charAt(0).toUpperCase();
 
+  // Live unread badge for the support thread (org → Inbox nav row + More sheet).
+  const supportUnread = useSupportUnread();
+  const navBadgeByHref: Readonly<Record<string, number>> =
+    supportUnread > 0 ? { [APP_ROUTES.support]: supportUnread } : {};
+
   const headerPosLinks = useMemo((): HeaderPosLink[] => {
     const links: HeaderPosLink[] = [];
     if (canQuickSale) {
@@ -1333,6 +1339,7 @@ export function AppShell({ children }: AppShellProps) {
           primaryColor={business?.branding?.primaryColor}
           sections={visibleSections}
           flat={isStockManager || isCashier || isButcherCashier || isGroceryClerk}
+          badgeByHref={navBadgeByHref}
         />
       </div>
 
@@ -1543,6 +1550,7 @@ export function AppShell({ children }: AppShellProps) {
             onLogout={onLogout}
             itemIsActive={itemIsActive}
             compactNav={isStockManager || isCashier || isButcherCashier || isGroceryClerk}
+            badgeByHref={navBadgeByHref}
           />
         </div>
       </div>

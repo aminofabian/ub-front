@@ -296,6 +296,7 @@ type SubNavLinkProps = {
   icon: LucideIcon;
   active: boolean;
   compact?: boolean;
+  badge?: number;
 };
 
 function SubNavLink({
@@ -304,6 +305,7 @@ function SubNavLink({
   icon: Icon,
   active,
   compact = false,
+  badge = 0,
 }: SubNavLinkProps) {
   return (
     <Link
@@ -344,7 +346,16 @@ function SubNavLink({
           aria-hidden
         />
       </span>
-      {!compact ? <span className="truncate">{label}</span> : null}
+      {!compact ? (
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="truncate">{label}</span>
+          {badge > 0 ? (
+            <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+              {badge > 9 ? "9+" : badge}
+            </span>
+          ) : null}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -353,6 +364,7 @@ type SubNavPanelProps = {
   section: DesktopNavSection;
   pathname: string;
   compact: boolean;
+  badgeByHref?: Readonly<Record<string, number>>;
   onCollapse: () => void;
   onExpand: () => void;
 };
@@ -361,6 +373,7 @@ function SubNavPanel({
   section,
   pathname,
   compact,
+  badgeByHref,
   onCollapse,
   onExpand,
 }: SubNavPanelProps) {
@@ -501,6 +514,7 @@ function SubNavPanel({
                   label={item.label}
                   icon={iconForItem(item, section.icon)}
                   active={itemIsActive(pathname, item.href)}
+                  badge={badgeByHref?.[item.href] ?? 0}
                 />
               ))}
             </div>
@@ -521,6 +535,8 @@ type DesktopNavRailProps = {
   sections: readonly DesktopNavSection[];
   /** Restricted roles: one icon per allowed page (no section grouping). */
   flat?: boolean;
+  /** Live unread counts keyed by nav href (e.g. the support thread). */
+  badgeByHref?: Readonly<Record<string, number>>;
 };
 
 const NAV_PANEL_COLLAPSED_KEY = "ub.navPanel.collapsed";
@@ -534,6 +550,7 @@ export function DesktopNavRail({
   primaryColor,
   sections,
   flat = false,
+  badgeByHref,
 }: DesktopNavRailProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -665,6 +682,7 @@ export function DesktopNavRail({
           section={panelSection}
           pathname={pathname}
           compact={collapsed}
+          badgeByHref={badgeByHref}
           onCollapse={() => setPanelCollapsed(true)}
           onExpand={() => setPanelCollapsed(false)}
         />

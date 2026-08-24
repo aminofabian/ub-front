@@ -85,6 +85,9 @@ const CLOUD_ONLY_PATHS = [
   // `"use client"` pages into server wrappers to add it, which is more
   // invasive than just keeping them out of the static build.
   "app/(dashboard)/customers/[id]",
+  // Restock-digest review page — same client-only dynamic-route pattern as
+  // customers/[id]; the parent list page stays in the export.
+  "app/(dashboard)/inventory/restock-digest/[runId]",
   // Supplier portal shop detail — multi-tenant cloud only.
   "app/(supplier-portal)/supplier-portal/shops/[localSupplierId]",
   // Payment-gateway settings (KopoKopo STK config + simulator). The nav entry

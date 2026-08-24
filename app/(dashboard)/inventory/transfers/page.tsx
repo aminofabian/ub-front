@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRightLeft,
   BarChart3,
   ClipboardList,
   Layers,
+  Loader2,
   Package,
   PackageX,
   Plus,
+  Search,
   Truck,
   Warehouse,
   X,
@@ -29,15 +31,188 @@ import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
+  fetchItemsPage,
   postCompleteStockTransfer,
   postStockTransfer,
   type BranchRecord,
+  type ItemSummaryRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 
-type LineDraft = { itemId: string; qty: string };
+type LineDraft = { itemId: string; qty: string; label?: string };
+
+type TransferItemPickerProps = {
+  value: string;
+  label?: string;
+  disabled?: boolean;
+  className?: string;
+  onChange: (itemId: string, label?: string) => void;
+};
+
+/**
+ * Product lookup for transfer lines — search by name, SKU or barcode via the
+ * catalog search endpoint. Selecting a result resolves the item UUID + display
+ * name; typing a raw UUID by hand still works (label stays empty).
+ */
+function TransferItemPicker({
+  value,
+  label,
+  disabled = false,
+  className,
+  onChange,
+}: TransferItemPickerProps) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ItemSummaryRecord[]>([]);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const selected = Boolean(value.trim()) && Boolean(label);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (selected || !open) return;
+    const controller = new AbortController();
+    const q = query.trim();
+    if (q.length === 0) {
+      setResults([]);
+      setSearched(false);
+      setBusy(false);
+      return;
+    }
+    setBusy(true);
+    const t = window.setTimeout(() => {
+      fetchItemsPage(q, {
+        size: 8,
+        sort: [{ property: "name", direction: "asc" }],
+        signal: controller.signal,
+      })
+        .then((page) => {
+          if (controller.signal.aborted) return;
+          setResults(page.content);
+          setSearched(true);
+        })
+        .catch(() => {
+          if (controller.signal.aborted) return;
+          setResults([]);
+          setSearched(true);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setBusy(false);
+        });
+    }, 300);
+    return () => {
+      window.clearTimeout(t);
+      controller.abort();
+    };
+  }, [query, open, selected]);
+
+  if (selected) {
+    return (
+      <div className={cn("flex items-center gap-1.5", className)}>
+        <span className="min-w-0 flex-1 truncate rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
+          {label}
+        </span>
+        <button
+          type="button"
+          disabled={disabled}
+          aria-label="Change item"
+          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 text-muted-foreground hover:text-foreground disabled:opacity-50"
+          onClick={() => {
+            setQuery("");
+            setResults([]);
+            setSearched(false);
+            onChange("", undefined);
+          }}
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={rootRef} className={cn("relative", className)}>
+      <div className="relative">
+        <input
+          value={query}
+          disabled={disabled}
+          onChange={(e) => {
+            const next = e.target.value;
+            setQuery(next);
+            onChange(next.trim(), undefined);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder="Search by name, SKU or barcode"
+          aria-label="Item — search by name, SKU or barcode"
+          className={cn(
+            dashboardInputClass(),
+            "h-8 min-w-[10rem] w-full py-1 pl-7 pr-2 font-mono text-xs",
+          )}
+        />
+        <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
+      </div>
+      {open ? (
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-border/70 bg-background shadow-lg">
+          {busy ? (
+            <div className="flex items-center gap-2 px-3 py-2.5 text-xs text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" />
+              Searching…
+            </div>
+          ) : results.length === 0 ? (
+            <p className="px-3 py-2.5 text-xs text-muted-foreground">
+              {searched ? "No matching products." : "Type to search products."}
+            </p>
+          ) : (
+            results.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-none"
+                onClick={() => {
+                  onChange(item.id, item.name);
+                  setOpen(false);
+                  setResults([]);
+                  setSearched(false);
+                }}
+              >
+                <span className="text-xs font-medium text-foreground">
+                  {item.name}
+                  {item.variantName ? ` · ${item.variantName}` : ""}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {item.sku ? `SKU ${item.sku}` : "No SKU"}
+                  {item.barcode ? ` · ${item.barcode}` : ""}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export default function InventoryTransfersPage() {
   const { me, setBranchId: setHeaderBranchId } = useDashboard();
@@ -291,21 +466,17 @@ export default function InventoryTransfersPage() {
 
           <div className="space-y-1.5">
             <p className="text-[11px] font-medium text-muted-foreground">
-              Lines · item ID + qty
+              Lines · product + qty
             </p>
             {lines.map((line, idx) => (
               <div key={idx} className="flex flex-wrap items-center gap-1.5">
-                <input
-                  placeholder="Item ID"
-                  aria-label={`Line ${idx + 1} item ID`}
-                  className={cn(
-                    dashboardInputClass(),
-                    "h-8 min-w-[10rem] flex-1 py-1 font-mono text-xs",
-                  )}
+                <TransferItemPicker
+                  className="min-w-[10rem] flex-1"
                   value={line.itemId}
-                  onChange={(e) => {
+                  label={line.label}
+                  onChange={(itemId, label) => {
                     const next = [...lines];
-                    next[idx] = { ...line, itemId: e.target.value };
+                    next[idx] = { ...line, itemId, label };
                     setLines(next);
                   }}
                 />

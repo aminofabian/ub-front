@@ -39,6 +39,7 @@ import {
   resolveSaSupportConversation,
   sendSaSupportMessage,
 } from "@/lib/super-admin-api";
+import { playSupportMessageSound, unlockSupportAudio } from "@/lib/support-sound";
 import { cn } from "@/lib/utils";
 
 type Filter = "OPEN" | "RESOLVED" | "ALL";
@@ -155,6 +156,11 @@ export function SaSupportInbox() {
 
   // ── Realtime (super-admin client) ───────────────────────────────────────
   React.useEffect(() => {
+    // Unlock WebAudio on the first interaction so reply chimes are audible.
+    const unlock = () => unlockSupportAudio();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+
     const client = getSuperAdminRealtimeClient();
     const unregister = client.registerListener("sa-support", {
       channels: ["support"],
@@ -177,6 +183,11 @@ export function SaSupportInbox() {
         };
 
         const isActive = convId === activeId;
+        // Soft chime for incoming tenant messages while the tab is in the
+        // background — the agent may be working in another window.
+        if (incoming.senderType === "TENANT" && typeof document !== "undefined" && document.hidden) {
+          playSupportMessageSound();
+        }
         if (isActive) {
           setMessages((prev) => {
             if (prev.some((m) => m.id === incoming.id)) return prev;
@@ -270,6 +281,8 @@ export function SaSupportInbox() {
         clearTimeout(timer);
       }
       typingStopRef.current = {};
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
     };
   }, [activeId]);
 

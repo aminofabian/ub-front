@@ -26,7 +26,9 @@ import {
   resolveSupportConversation,
   sendSupportMessage,
 } from "@/lib/support-api";
+import { isSupportSoundEnabled, setSupportSoundEnabled } from "@/lib/support-sound";
 import { cn } from "@/lib/utils";
+import { Volume2, VolumeX } from "lucide-react";
 
 const QUICK_PROMPTS = [
   "How do I add a new cashier to my till?",
@@ -69,6 +71,11 @@ export function SupportChat() {
   const [theirTyping, setTheirTyping] = React.useState(false);
   const [showJump, setShowJump] = React.useState(false);
   const [jumpCount, setJumpCount] = React.useState(0);
+  const [soundOn, setSoundOn] = React.useState(true);
+
+  React.useEffect(() => {
+    setSoundOn(isSupportSoundEnabled());
+  }, []);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const stickToBottomRef = React.useRef(true);
@@ -365,6 +372,21 @@ export function SupportChat() {
           </p>
         </div>
         <LiveStatusPill state={connectionState} />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground hover:text-foreground"
+          aria-label={soundOn ? "Mute message sounds" : "Unmute message sounds"}
+          title={soundOn ? "Message sounds on" : "Message sounds off"}
+          onClick={() => {
+            const next = !soundOn;
+            setSoundOn(next);
+            setSupportSoundEnabled(next);
+          }}
+        >
+          {soundOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+        </Button>
       </header>
 
       <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />

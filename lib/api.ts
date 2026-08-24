@@ -2159,6 +2159,92 @@ export async function postLegacySellingPriceJsonImport(
   return postIntegrationsJsonImport("legacy-selling-prices", file, opts.dryRun);
 }
 
+/**
+ * Download a pre-mapped CSV import template (items, suppliers, or opening
+ * stock). Backend: {@code GET /api/v1/integrations/imports/templates/{kind}}.
+ */
+export async function fetchCsvImportTemplate(
+  kind: "items" | "suppliers" | "opening-stock",
+): Promise<Blob> {
+  return requestBinary(`/api/v1/integrations/imports/templates/${kind}`);
+}
+
+/** Multipart CSV item import (template: {@code /templates/items}). Same response shape as the JSON imports. */
+export async function postCsvItemsImport(
+  file: File,
+  opts: { dryRun: boolean },
+): Promise<JsonImportResponse> {
+  return postIntegrationsJsonImport("items", file, opts.dryRun);
+}
+
+/** Multipart CSV supplier import (template: {@code /templates/suppliers}). */
+export async function postCsvSuppliersImport(
+  file: File,
+  opts: { dryRun: boolean },
+): Promise<JsonImportResponse> {
+  return postIntegrationsJsonImport("suppliers", file, opts.dryRun);
+}
+
+/** Multipart CSV opening-stock import (template: {@code /templates/opening-stock}). */
+export async function postCsvOpeningStockImport(
+  file: File,
+  opts: { dryRun: boolean },
+): Promise<JsonImportResponse> {
+  return postIntegrationsJsonImport("opening-stock", file, opts.dryRun);
+}
+
+export type CsvImportJobStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | string;
+
+export type CsvImportJobRecord = {
+  id: string;
+  kind: string;
+  dryRun: boolean;
+  status: CsvImportJobStatus;
+  rowsTotal: number | null;
+  rowsProcessed: number;
+  rowsCommitted: number | null;
+  errors: CsvImportLineErrorRecord[];
+  statusMessage: string | null;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+/**
+ * Enqueue an async CSV import job (processed by the background worker).
+ * Returns the job id to poll with {@link fetchCsvImportJob}.
+ */
+export async function enqueueCsvImportJob(
+  kind: "items" | "suppliers" | "opening-stock",
+  file: File,
+  dryRun: boolean,
+): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("dryRun", String(dryRun));
+  const created = await requestMultipartJson<{ jobId?: string }>(
+    `/api/v1/integrations/imports/jobs/${kind}`,
+    form,
+  );
+  if (!created?.jobId) {
+    throw new Error("Import job did not return an id.");
+  }
+  return created.jobId;
+}
+
+/** Poll an async CSV import job until {@code completed} / {@code failed}. */
+export async function fetchCsvImportJob(
+  jobId: string,
+): Promise<CsvImportJobRecord> {
+  return request<CsvImportJobRecord>(
+    `/api/v1/integrations/imports/jobs/${encodeURIComponent(jobId.trim())}`,
+  );
+}
+
 async function requestBinary(path: string): Promise<Blob> {
   const soft = isPosSoftAuthActive();
   const execute = async () => {
