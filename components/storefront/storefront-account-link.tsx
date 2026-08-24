@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { MouseEvent, ReactNode } from "react";
 
 import styles from "@/components/storefront/storefront-account-link.module.css";
-import { useStorefrontSignIn } from "@/components/storefront/storefront-sign-in-sheet";
+import { useStorefrontSignIn, buildStorefrontSignInHref } from "@/components/storefront/storefront-sign-in-sheet";
 import {
   useClientHasSession,
   useClientSessionReady,
@@ -14,10 +14,12 @@ import { APP_ROUTES } from "@/lib/config";
 import { isShopNextPath } from "@/lib/post-auth-destination";
 import { useSessionRestoreFailed } from "@/lib/session-restore-status";
 
-const nextParam = `next=${encodeURIComponent(APP_ROUTES.shopAccount)}`;
-
-export const STOREFRONT_LOGIN_HREF = `${APP_ROUTES.login}?${nextParam}`;
-export const STOREFRONT_SIGNUP_HREF = `${APP_ROUTES.signup}?${nextParam}`;
+export const STOREFRONT_LOGIN_HREF = buildStorefrontSignInHref({
+  next: APP_ROUTES.shopAccount,
+});
+export const STOREFRONT_SIGNUP_HREF = buildStorefrontSignInHref({
+  next: APP_ROUTES.shopAccount,
+});
 
 /**
  * Account entry point for storefront theme headers: signed-in shoppers go to
@@ -53,7 +55,6 @@ export function useStorefrontAccountLink(): {
   const signedIn = clientSignedIn || (hasPresence && !restoreFailed);
 
   const next = isShopNextPath(pathname) ? pathname : APP_ROUTES.shopAccount;
-  const nextQuery = encodeURIComponent(next);
 
   const onActivate = (event: MouseEvent<HTMLAnchorElement>) => {
     // Signed-in shoppers go straight to the account page — no sheet. The
@@ -68,9 +69,11 @@ export function useStorefrontAccountLink(): {
 
   return {
     signedIn,
-    href: signedIn ? APP_ROUTES.shopAccount : `${APP_ROUTES.login}?next=${nextQuery}`,
+    href: signedIn
+      ? APP_ROUTES.shopAccount
+      : buildStorefrontSignInHref({ path: next, next }),
     label: signedIn ? "Account" : "Sign in",
-    signUpHref: `${APP_ROUTES.signup}?next=${nextQuery}`,
+    signUpHref: buildStorefrontSignInHref({ path: next, next }),
     onActivate,
   };
 }

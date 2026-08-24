@@ -1,7 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
@@ -25,12 +23,23 @@ import {
 } from "@/components/ui/dialog";
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import {
+  completeShopperPhoneSession,
   fetchMe,
   fetchShopperAccountOverview,
   loginWithPassword,
+  loginWithPin,
+  registerAccount,
+  sendShopperPhoneCode,
+  verifyShopperPhoneCode,
 } from "@/lib/api";
 import { hasAccessSession, hasSessionPresenceCookie } from "@/lib/auth";
+import { looksLikeStaffPin } from "@/lib/auth-secret";
 import { APP_ROUTES } from "@/lib/config";
+import {
+  formatKenyanPhoneDisplay,
+  toKenyanLocal07,
+} from "@/lib/kenyan-phone";
+import { setPageSealUnlock } from "@/lib/page-seal";
 import {
   applyShopperTabHint,
   isShopNextPath,
@@ -41,41 +50,23 @@ import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { isCustomerTabPath } from "@/lib/buyer-role";
 import { cn } from "@/lib/utils";
 
-/**
- * Lazily-loaded OTP body. The sheet shell stays in the main bundle (it is just
- * a dialog + context); the phone flow — the heavy part — loads on first open
- * (D2, principle 6).
- */
-const ShopperPhoneLoginLazy = dynamic(
-  () =>
-    import("@/components/storefront/shop-phone-login").then(
-      (m) => m.ShopperPhoneLogin,
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        className="flex min-h-48 animate-pulse items-center justify-center text-sm text-muted-foreground"
-        aria-hidden
-      >
-        Loading…
-      </div>
-    ),
-  },
-);
-
 /** Where the shopper asked to sign in from. Apex is added in Phase 4. */
 export type StorefrontSignInReason = "header" | "landing" | "cart" | "apex";
 
 /** Which surface mounted the provider: storefront chrome vs landing branch. */
 export type StorefrontSignInSurface = "storefront" | "landing";
 
+export type StorefrontSignInDoor = "staff" | "shopper";
+
 type StorefrontSignInEntry = {
   reason: StorefrontSignInReason;
   /** Allowlisted post-auth destination (current path or `/shop/account`). */
   next?: string | null;
-  /** Phase 5: prefill the phone step from a receipt-token-verified order. */
+  /** Prefill identity when known (e.g. receipt-verified phone). */
   initialPhone?: string | null;
+  initialEmail?: string | null;
+  /** Staff till/office vs shopper account — defaults to shopper. */
+  door?: StorefrontSignInDoor | null;
 };
 
 type StorefrontSignInContextValue = {
@@ -100,9 +91,32 @@ const NOOP_SIGN_IN: StorefrontSignInContextValue = {
 };
 
 /**
+ * Shop-host URL that opens the sign-in sheet (no `/login` page). Used by apex
+ * forwards and progressive-enhancement fallbacks.
+ */
+export function buildStorefrontSignInHref(opts?: {
+  path?: string;
+  email?: string | null;
+  phone?: string | null;
+  door?: StorefrontSignInDoor | null;
+  next?: string | null;
+}): string {
+  const path = (opts?.path?.trim() || APP_ROUTES.shop).split("?")[0] || APP_ROUTES.shop;
+  const params = new URLSearchParams({ signin: "1" });
+  const email = opts?.email?.trim();
+  const phone = opts?.phone?.replace(/\D/g, "");
+  if (email?.includes("@")) params.set("email", email.toLowerCase());
+  if (phone && phone.length >= 9) params.set("phone", phone);
+  if (opts?.door === "staff") params.set("door", "staff");
+  const next = opts?.next?.trim();
+  if (next && isShopNextPath(next)) params.set("next", next);
+  return `${path}?${params.toString()}`;
+}
+
+/**
  * Progressive-enhancement hook for account affordances (D2). When the provider
  * is mounted and hydrated, `ready` is true and callers may intercept the click
- * and `open()` the sheet; otherwise the plain `<a href>` navigation stays.
+ * and `open()` the sheet; otherwise the plain `<a href>` fallback wins.
  */
 export function useStorefrontSignIn(): StorefrontSignInContextValue {
   return useContext(StorefrontSignInContext) ?? NOOP_SIGN_IN;
@@ -122,8 +136,8 @@ export function StorefrontSignInProvider({
 }) {
   const [hydrated, setHydrated] = useState(false);
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"phone" | "email">("phone");
   const [entry, setEntry] = useState<StorefrontSignInEntry | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     setHydrated(true);
@@ -143,13 +157,45 @@ export function StorefrontSignInProvider({
 
   const openSheet = useCallback((nextEntry: StorefrontSignInEntry) => {
     setEntry(nextEntry);
-    setMode("phone");
     setOpen(true);
   }, []);
 
   const closeSheet = useCallback(() => {
     setOpen(false);
   }, []);
+
+  // Apex / shared links: /shop?signin=1&email=… opens the sheet in place.
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("signin") !== "1") return;
+    const email = url.searchParams.get("email");
+    const phone = url.searchParams.get("phone");
+    const door =
+      url.searchParams.get("door")?.trim().toLowerCase() === "staff"
+        ? ("staff" as const)
+        : ("shopper" as const);
+    const nextParam = url.searchParams.get("next");
+    openSheet({
+      reason: "apex",
+      initialEmail: email,
+      initialPhone: phone,
+      door,
+      next:
+        nextParam && isShopNextPath(nextParam)
+          ? nextParam
+          : door === "staff"
+            ? APP_ROUTES.business
+            : APP_ROUTES.shopAccount,
+    });
+    url.searchParams.delete("signin");
+    url.searchParams.delete("email");
+    url.searchParams.delete("phone");
+    url.searchParams.delete("door");
+    url.searchParams.delete("next");
+    const cleaned = `${url.pathname}${url.search}${url.hash}`;
+    router.replace(cleaned);
+  }, [hydrated, openSheet, router]);
 
   const value = useMemo<StorefrontSignInContextValue>(
     () => ({ ready: hydrated, open: openSheet, close: closeSheet, hasPresence }),
@@ -163,8 +209,6 @@ export function StorefrontSignInProvider({
         surface={surface}
         storeName={storeName}
         open={open}
-        mode={mode}
-        onModeChange={setMode}
         entry={entry}
         onOpenChange={setOpen}
       />
@@ -173,20 +217,30 @@ export function StorefrontSignInProvider({
   );
 }
 
+type IdentityKind = "unknown" | "email" | "phone";
+
+function detectIdentityKind(raw: string): IdentityKind {
+  const t = raw.trim();
+  if (!t) return "unknown";
+  if (t.includes("@")) return "email";
+  const digits = t.replace(/\D/g, "");
+  if (digits.length >= 9 && /^[\d\s+\-()]+$/.test(t)) return "phone";
+  if (digits.length >= 9 && digits.length / Math.max(t.replace(/\s/g, "").length, 1) >= 0.7) {
+    return "phone";
+  }
+  return "unknown";
+}
+
 function StorefrontSignInSheet({
   surface,
   storeName,
   open,
-  mode,
-  onModeChange,
   entry,
   onOpenChange,
 }: {
   surface: StorefrontSignInSurface;
   storeName?: string;
   open: boolean;
-  mode: "phone" | "email";
-  onModeChange: (mode: "phone" | "email") => void;
   entry: StorefrontSignInEntry | null;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -202,13 +256,17 @@ function StorefrontSignInSheet({
     "";
 
   const rawNext = entry?.next?.trim() || "";
-  const safeNext = isShopNextPath(rawNext) ? rawNext : APP_ROUTES.shopAccount;
-  const signupHref = `${APP_ROUTES.signup}?next=${encodeURIComponent(safeNext)}`;
+  const door = entry?.door === "staff" ? "staff" : "shopper";
+  const safeNext =
+    rawNext && (door === "staff" || isShopNextPath(rawNext))
+      ? rawNext
+      : door === "staff"
+        ? APP_ROUTES.business
+        : APP_ROUTES.shopAccount;
 
   /**
-   * Landing surfaces have no catalog page to return to, so sign-in lands on the
-   * account page — and credit-tab shoppers on their `/07XXXXXXXX` tab (the same
-   * enrichment the password login page applies, §9).
+   * Landing / apex may navigate after auth. On the live storefront chrome we
+   * stay put unless this was a staff door (office hub) or an explicit next.
    */
   const finishSignedIn = useCallback(async () => {
     onOpenChange(false);
@@ -219,8 +277,16 @@ function StorefrontSignInSheet({
       // Best-effort: the cart merge can retry on the next cart fetch.
     }
 
+    if (door === "staff") {
+      router.push(safeNext || APP_ROUTES.business);
+      return;
+    }
+
     // Surface A: the shopper never left the page — no navigation (D3).
-    if (surface !== "landing") {
+    if (surface !== "landing" && entry?.reason !== "apex") {
+      if (rawNext && isShopNextPath(rawNext) && rawNext !== pathname) {
+        router.push(rawNext);
+      }
       return;
     }
 
@@ -248,7 +314,17 @@ function StorefrontSignInSheet({
     if (destination && destination !== pathname) {
       router.push(destination);
     }
-  }, [surface, rawNext, cart, pathname, router, onOpenChange]);
+  }, [
+    surface,
+    rawNext,
+    safeNext,
+    door,
+    cart,
+    pathname,
+    router,
+    onOpenChange,
+    entry?.reason,
+  ]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -268,66 +344,233 @@ function StorefrontSignInSheet({
               {displayName ? `Sign in to ${displayName}` : "Sign in"}
             </DialogTitle>
             <DialogDescription className="text-[14px] leading-relaxed">
-              Your Kenyan mobile is your account — verify it and enter your PIN.
+              Email or phone, then your PIN or password. That&apos;s it.
             </DialogDescription>
           </DialogHeader>
         </div>
 
         <div className="overflow-y-auto px-5 py-5 sm:px-6">
-          {mode === "phone" ? (
-            <ShopperPhoneLoginLazy
-              variant="plain"
+          {open ? (
+            <UnifiedSignInForm
+              key={`${entry?.initialPhone ?? ""}:${entry?.initialEmail ?? ""}:${door}:${open}`}
               initialPhone={entry?.initialPhone ?? ""}
+              initialEmail={entry?.initialEmail ?? ""}
+              door={door}
               onSignedIn={() => void finishSignedIn()}
-              footer={
-                <button
-                  type="button"
-                  className="mt-4 text-[13px] font-medium text-muted-foreground underline-offset-2 hover:underline"
-                  onClick={() => onModeChange("email")}
-                >
-                  Use email instead
-                </button>
-              }
             />
-          ) : (
-            <EmailSignInForm
-              signupHref={signupHref}
-              onSignedIn={() => void finishSignedIn()}
-              onBackToPhone={() => onModeChange("phone")}
-            />
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function EmailSignInForm({
-  signupHref,
+/**
+ * One form for both doors. Email signs in with PIN/password immediately.
+ * Phone keeps the secret, texts a code only after Continue, then finishes.
+ * Create-account stays in this sheet — no `/signup` redirect.
+ */
+export function UnifiedSignInForm({
+  initialPhone,
+  initialEmail,
+  door = "shopper",
   onSignedIn,
-  onBackToPhone,
 }: {
-  signupHref: string;
+  initialPhone?: string;
+  initialEmail?: string;
+  door?: StorefrontSignInDoor;
   onSignedIn: () => void;
-  onBackToPhone: () => void;
 }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const tenant = useOptionalTenant();
+  const passwordMinLength = tenant?.authConfig?.passwordPolicy?.minLength ?? 8;
+  const [identity, setIdentity] = useState(() => {
+    const email = (initialEmail ?? "").trim();
+    if (email.includes("@")) return email;
+    const phone =
+      toKenyanLocal07(initialPhone ?? "") ||
+      (initialPhone ?? "").replace(/\D/g, "");
+    return phone ? formatKenyanPhoneDisplay(phone) || phone : "";
+  });
+  const [secret, setSecret] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
+  const [code, setCode] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [phoneToken, setPhoneToken] = useState("");
+  const [helloName, setHelloName] = useState<string | null>(null);
+  const [maskedPhone, setMaskedPhone] = useState("");
+  const [phase, setPhase] = useState<
+    "credentials" | "code" | "new-pin" | "signup"
+  >("credentials");
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const kind = detectIdentityKind(identity);
+  const localPhone = toKenyanLocal07(identity) || identity.replace(/\D/g, "");
+
+  const finishPhoneSession = async (opts: {
+    token: string;
+    pin: string;
+    confirm?: string;
+    needsConfirm: boolean;
+    name?: string | null;
+  }) => {
+    if (!/^\d{4}$/.test(opts.pin)) {
+      setErrorMessage("Enter a 4-digit PIN.");
+      return;
+    }
+    if (opts.needsConfirm && opts.pin !== opts.confirm) {
+      setErrorMessage("The two PINs do not match.");
+      return;
+    }
+    const session = await completeShopperPhoneSession({
+      phone: localPhone,
+      phoneVerificationToken: opts.token,
+      pin: opts.pin,
+      confirmPin: opts.needsConfirm ? opts.confirm : undefined,
+      name: opts.name?.trim() || undefined,
+    });
+    if (session.unlockToken && session.tabPhone) {
+      setPageSealUnlock("customer-tab", session.tabPhone, session.unlockToken);
+    }
+    onSignedIn();
+  };
+
+  const onCredentialsSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
-    if (!email.trim() || !password) {
-      setErrorMessage("Enter your email and password.");
+    const detected = detectIdentityKind(identity);
+
+    if (detected === "email") {
+      const email = identity.trim().toLowerCase();
+      if (!secret) {
+        setErrorMessage("Enter your PIN or password.");
+        return;
+      }
+      setBusy(true);
+      try {
+        if (looksLikeStaffPin(secret)) {
+          await loginWithPin(email, secret.trim());
+        } else {
+          await loginWithPassword(email, secret);
+        }
+        onSignedIn();
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error ? error.message : "Could not sign in.",
+        );
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    if (detected === "phone") {
+      if (door === "staff") {
+        setErrorMessage("Staff sign-in uses email and PIN or password.");
+        return;
+      }
+      if (!localPhone || localPhone.length < 9) {
+        setErrorMessage("Enter a Kenyan mobile like 0714 282 874.");
+        return;
+      }
+      if (!/^\d{4}$/.test(secret.trim())) {
+        setErrorMessage("Phone accounts use a 4-digit PIN.");
+        return;
+      }
+      setBusy(true);
+      try {
+        const sent = await sendShopperPhoneCode(localPhone);
+        setMaskedPhone(sent.maskedHint || formatKenyanPhoneDisplay(localPhone));
+        setCode("");
+        setPhase("code");
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error ? error.message : "Could not send a code.",
+        );
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    setErrorMessage("Enter an email or a Kenyan mobile number.");
+  };
+
+  const onSignupSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErrorMessage("");
+    const email = identity.trim().toLowerCase();
+    if (!email.includes("@")) {
+      setErrorMessage("Create an account with an email address.");
+      return;
+    }
+    if (!displayName.trim()) {
+      setErrorMessage("Enter your name.");
+      return;
+    }
+    if (secret.length < passwordMinLength) {
+      setErrorMessage(`Password must be at least ${passwordMinLength} characters.`);
       return;
     }
     setBusy(true);
     try {
-      await loginWithPassword(email.trim(), password);
+      await registerAccount(displayName.trim(), email, secret);
+      await loginWithPassword(email, secret);
       onSignedIn();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not create account.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onCodeSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErrorMessage("");
+    if (!/^\d{4}$/.test(code.trim())) {
+      setErrorMessage("Enter the 4-digit code we texted you.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const verified = await verifyShopperPhoneCode(localPhone, code.trim());
+      setPhoneToken(verified.phoneVerificationToken);
+      setHelloName(verified.customerName?.trim() || null);
+      if (verified.hasPin) {
+        await finishPhoneSession({
+          token: verified.phoneVerificationToken,
+          pin: secret.trim(),
+          needsConfirm: false,
+          name: verified.customerName,
+        });
+      } else {
+        setConfirmPin("");
+        setPhase("new-pin");
+      }
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not verify that code.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onNewPinSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErrorMessage("");
+    setBusy(true);
+    try {
+      await finishPhoneSession({
+        token: phoneToken,
+        pin: secret.trim(),
+        confirm: confirmPin.trim(),
+        needsConfirm: true,
+        name: helloName,
+      });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Could not sign in.",
@@ -337,40 +580,206 @@ function EmailSignInForm({
     }
   };
 
+  const fieldClass =
+    "h-11 w-full rounded-xl border border-border bg-background px-3 text-[16px] outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
+  const labelClass = "text-[13px] font-medium text-foreground";
+  const ctaClass =
+    "inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-primary-foreground disabled:opacity-50";
+
+  if (phase === "code") {
+    return (
+      <form className="space-y-4" onSubmit={(e) => void onCodeSubmit(e)}>
+        <p className="text-[14px] text-muted-foreground">
+          We texted a code to {maskedPhone || formatKenyanPhoneDisplay(localPhone)}.
+          Enter it to finish signing in.
+        </p>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className={labelClass}>Code from SMS</span>
+          <input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={4}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            className={cn(fieldClass, "text-center text-[1.35rem] font-semibold tracking-[0.35em]")}
+            autoFocus
+            required
+          />
+        </label>
+        {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
+        <button type="submit" disabled={busy} className={ctaClass}>
+          {busy ? "Checking…" : "Sign in"}
+        </button>
+        <button
+          type="button"
+          className="w-full text-center text-[13px] font-medium text-muted-foreground underline-offset-2 hover:underline"
+          onClick={() => {
+            setPhase("credentials");
+            setCode("");
+            setErrorMessage("");
+          }}
+        >
+          ← Change number or email
+        </button>
+      </form>
+    );
+  }
+
+  if (phase === "new-pin") {
+    return (
+      <form className="space-y-4" onSubmit={(e) => void onNewPinSubmit(e)}>
+        <p className="text-[14px] text-muted-foreground">
+          {helloName ? `Hi ${helloName} — ` : ""}
+          Confirm the 4-digit PIN you chose so we can save it for next time.
+        </p>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className={labelClass}>Confirm PIN</span>
+          <input
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            maxLength={4}
+            value={confirmPin}
+            onChange={(e) =>
+              setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+            }
+            className={cn(fieldClass, "text-center tracking-[0.35em]")}
+            autoFocus
+            required
+          />
+        </label>
+        {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
+        <button type="submit" disabled={busy} className={ctaClass}>
+          {busy ? "Saving…" : "Save PIN & sign in"}
+        </button>
+      </form>
+    );
+  }
+
+  if (phase === "signup") {
+    return (
+      <form className="space-y-4" onSubmit={(e) => void onSignupSubmit(e)}>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className={labelClass}>Name</span>
+          <input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className={fieldClass}
+            placeholder="Your name"
+            autoFocus
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className={labelClass}>Email</span>
+          <input
+            type="email"
+            autoComplete="email"
+            value={identity}
+            onChange={(e) => setIdentity(e.target.value)}
+            className={fieldClass}
+            placeholder="you@email.com"
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className={labelClass}>Password</span>
+          <div className="relative">
+            <input
+              type={showSecret ? "text" : "password"}
+              autoComplete="new-password"
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              className={cn(fieldClass, "pr-10")}
+              placeholder={`At least ${passwordMinLength} characters`}
+              required
+            />
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowSecret((v) => !v)}
+              aria-label={showSecret ? "Hide password" : "Show password"}
+            >
+              {showSecret ? (
+                <EyeOff className="size-4" aria-hidden />
+              ) : (
+                <Eye className="size-4" aria-hidden />
+              )}
+            </button>
+          </div>
+        </label>
+        {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
+        <button type="submit" disabled={busy} className={ctaClass}>
+          {busy ? "Creating…" : "Create account"}
+        </button>
+        <button
+          type="button"
+          className="w-full text-center text-[13px] font-medium text-muted-foreground underline-offset-2 hover:underline"
+          onClick={() => {
+            setPhase("credentials");
+            setErrorMessage("");
+          }}
+        >
+          ← Back to sign in
+        </button>
+      </form>
+    );
+  }
+
+  const identityLabel =
+    kind === "email" ? "Email" : kind === "phone" ? "Phone" : "Email or phone";
+  const secretLabel =
+    kind === "phone" ? "PIN" : kind === "email" ? "PIN or password" : "PIN or password";
+
   return (
-    <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+    <form className="space-y-4" onSubmit={(e) => void onCredentialsSubmit(e)}>
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="text-[13px] font-medium text-foreground">Email</span>
+        <span className={labelClass}>{identityLabel}</span>
         <input
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="h-11 w-full rounded-xl border border-border bg-background px-3 text-[16px] outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
-          placeholder="you@example.com"
+          type={kind === "phone" ? "tel" : kind === "email" ? "email" : "text"}
+          inputMode={kind === "phone" ? "tel" : "email"}
+          autoComplete="username"
+          value={identity}
+          onChange={(e) => setIdentity(e.target.value)}
+          className={fieldClass}
+          placeholder="you@email.com or 0714 282 874"
+          autoFocus
           required
         />
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="text-[13px] font-medium text-foreground">Password</span>
+        <span className={labelClass}>{secretLabel}</span>
         <div className="relative">
           <input
-            type={showPassword ? "text" : "password"}
+            type={showSecret ? "text" : "password"}
             autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="h-11 w-full rounded-xl border border-border bg-background px-3 pr-10 text-[16px] outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
-            placeholder="Your account password"
+            inputMode={kind === "phone" || looksLikeStaffPin(secret) ? "numeric" : "text"}
+            value={secret}
+            onChange={(e) =>
+              setSecret(
+                kind === "phone"
+                  ? e.target.value.replace(/\D/g, "").slice(0, 4)
+                  : e.target.value,
+              )
+            }
+            maxLength={kind === "phone" ? 4 : undefined}
+            className={cn(
+              fieldClass,
+              "pr-10",
+              (kind === "phone" || looksLikeStaffPin(secret)) &&
+                "text-center text-xl font-semibold tracking-[0.35em]",
+            )}
+            placeholder={kind === "phone" ? "••••" : "Your PIN or password"}
             required
           />
           <button
             type="button"
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground"
-            onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            onClick={() => setShowSecret((v) => !v)}
+            aria-label={showSecret ? "Hide secret" : "Show secret"}
           >
-            {showPassword ? (
+            {showSecret ? (
               <EyeOff className="size-4" aria-hidden />
             ) : (
               <Eye className="size-4" aria-hidden />
@@ -379,37 +788,49 @@ function EmailSignInForm({
         </div>
       </label>
 
-      {errorMessage ? (
-        <p
-          className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive"
-          role="alert"
+      <p className="text-[12px] leading-relaxed text-muted-foreground">
+        {kind === "phone"
+          ? "We'll text a one-time code after you continue — only to confirm it's your phone."
+          : kind === "email"
+            ? "We'll open your account with this email and secret."
+            : "Use the email or phone on your account."}
+      </p>
+
+      {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
+
+      <button type="submit" disabled={busy} className={ctaClass}>
+        {busy
+          ? kind === "phone"
+            ? "Sending code…"
+            : "Signing in…"
+          : "Sign in"}
+      </button>
+
+      {door === "shopper" ? (
+        <button
+          type="button"
+          className="block w-full text-center text-[13px] font-medium text-muted-foreground underline-offset-2 hover:underline"
+          onClick={() => {
+            setPhase("signup");
+            setErrorMessage("");
+            if (!identity.includes("@")) setIdentity("");
+            setSecret("");
+          }}
         >
-          {errorMessage}
-        </p>
+          New here? Create an account
+        </button>
       ) : null}
-
-      <button
-        type="submit"
-        disabled={busy}
-        className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-primary-foreground disabled:opacity-50"
-      >
-        {busy ? "Signing in…" : "Sign in"}
-      </button>
-
-      <Link
-        href={signupHref}
-        className="block text-center text-[13px] font-medium text-muted-foreground underline-offset-2 hover:underline"
-      >
-        New here? Create an account
-      </Link>
-
-      <button
-        type="button"
-        onClick={onBackToPhone}
-        className="w-full text-center text-[13px] font-medium text-muted-foreground underline-offset-2 hover:underline"
-      >
-        ← Use phone number instead
-      </button>
     </form>
+  );
+}
+
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <p
+      className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive"
+      role="alert"
+    >
+      {message}
+    </p>
   );
 }

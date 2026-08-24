@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
-import { useStorefrontSignIn } from "@/components/storefront/storefront-sign-in-sheet";
+import {
+  buildStorefrontSignInHref,
+  useStorefrontSignIn,
+} from "@/components/storefront/storefront-sign-in-sheet";
 import { APP_ROUTES } from "@/lib/config";
 import type { LandingContent } from "@/lib/storefront-templates";
 import { normalizeWhatsApp } from "@/lib/whatsapp-order";
@@ -92,18 +95,21 @@ export function LandingShell({
 /**
  * Where a signed-out shopper lands after signing in from a landing template:
  * the account page — a coming-soon shop has no catalog page to return to (§7).
+ * Opens the in-page sheet via `?signin=1` (no `/login` page).
  */
-const LANDING_ACCOUNT_LOGIN_HREF = `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`;
+const LANDING_ACCOUNT_LOGIN_HREF = buildStorefrontSignInHref({
+  next: APP_ROUTES.shopAccount,
+});
 
-/** Demoted owner/staff door shared by every landing template (D5). */
-export const LANDING_STAFF_LOGIN_HREF = `${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`;
+/** Demoted owner/staff door — opens the sign-in sheet on the shop host. */
+export const LANDING_STAFF_LOGIN_HREF = buildStorefrontSignInHref({
+  door: "staff",
+  next: APP_ROUTES.business,
+});
 
 /**
- * Shopper door for landing templates (D4). Plain navigation to `/login` when
- * the sheet is unavailable (no JS, not hydrated, provider not mounted); the
- * Phase 2 sheet intercepts the click when it is ready. The template owns all
- * styling via `className`/`style` (Phase 0 contract); a glyph can replace the
- * label via `children`.
+ * Shopper door for landing templates (D4). Falls back to `?signin=1` when
+ * the sheet is unavailable; the Phase 2 sheet intercepts the click when ready.
  */
 export function LandingAccountAction({
   className,

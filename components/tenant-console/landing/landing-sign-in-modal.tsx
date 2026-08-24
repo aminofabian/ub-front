@@ -22,9 +22,10 @@ import {
 import {
   apexShopSearchQuery,
   buildApexForwardUrl,
-  withApexIdentityParams,
 } from "@/lib/apex-forward";
 import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
+import { loginSupplierPortal } from "@/lib/marketplace-api";
+import { buildStorefrontSignInHref } from "@/components/storefront/storefront-sign-in-sheet";
 import { cn } from "@/lib/utils";
 
 import { landingRootStyle } from "./landing-styles";
@@ -49,7 +50,12 @@ type Step =
   | { status: "miss"; hint: string }
   | { status: "shop-search" }
   | { status: "shop-loading" }
-  | { status: "shop-results"; query: string; rows: PublicSignInDestination[] };
+  | { status: "shop-results"; query: string; rows: PublicSignInDestination[] }
+  | {
+      status: "supplier-auth";
+      identity: IdentityPayload;
+      name: string;
+    };
 
 type IdentityPayload = {
   kind: "email" | "phone";
@@ -57,8 +63,6 @@ type IdentityPayload = {
   phone?: string;
 };
 
-const SHOPPER_FORWARD_PATH = `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`;
-const STAFF_FORWARD_PATH = `${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`;
 const RESEND_SECONDS = 60;
 
 function detectIdentityKind(raw: string): IdentityKind {
@@ -85,14 +89,24 @@ function doorStamp(door: PublicSignInDestination["door"]): string {
 }
 
 function doorHint(door: PublicSignInDestination["door"]): string {
-  if (door === "STAFF") return "PIN or password on the till";
-  if (door === "SUPPLIER") return "Supplier portal password";
-  return "Phone code or email on the shop";
+  if (door === "STAFF") return "PIN or password — opens in the shop";
+  if (door === "SUPPLIER") return "Password in this sheet";
+  return "PIN or password — opens in the shop";
 }
 
-function forwardPathFor(door: PublicSignInDestination["door"]): string {
-  if (door === "STAFF") return STAFF_FORWARD_PATH;
-  return SHOPPER_FORWARD_PATH;
+function resolveIdentity(
+  payload: IdentityPayload | undefined,
+  kind: IdentityKind,
+  raw: string,
+): IdentityPayload | undefined {
+  if (payload) return payload;
+  if (kind === "email") {
+    return { kind: "email", email: raw.trim().toLowerCase() };
+  }
+  if (kind === "phone") {
+    return { kind: "phone", phone: raw.replace(/\D/g, "") };
+  }
+  return undefined;
 }
 
 export function LandingSignInModal({
@@ -107,6 +121,9 @@ export function LandingSignInModal({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [forwardingKey, setForwardingKey] = useState<string | null>(null);
   const [shopQuery, setShopQuery] = useState("");
+  const [supplierPassword, setSupplierPassword] = useState("");
+  const [supplierBusy, setSupplierBusy] = useState(false);
+  const [supplierError, setSupplierError] = useState("");
 
   const kind = detectIdentityKind(identity);
 
@@ -119,6 +136,9 @@ export function LandingSignInModal({
     setSelectedKey(null);
     setForwardingKey(null);
     setShopQuery("");
+    setSupplierPassword("");
+    setSupplierBusy(false);
+    setSupplierError("");
   }, [open]);
 
   useEffect(() => {
@@ -143,56 +163,45 @@ export function LandingSignInModal({
 
   const go = (row: PublicSignInDestination, payload?: IdentityPayload) => {
     if (forwardingKey) return;
+    const idPayload = resolveIdentity(payload, kind, identity);
+
+    if (row.door === "SUPPLIER") {
+      setForwardingKey(null);
+      setSupplierPassword("");
+      setSupplierError("");
+      setStep({
+        status: "supplier-auth",
+        identity: idPayload ?? { kind: "email", email: "" },
+        name: row.name,
+      });
+      return;
+    }
+
+    if (!row.slug) {
+      setStep({ status: "miss", hint: "That pass has no shop address." });
+      return;
+    }
+
     const key = destinationKey(row);
     setForwardingKey(key);
 
     window.setTimeout(() => {
-      if (row.door === "SUPPLIER") {
-        const params = new URLSearchParams();
-        const email =
-          payload?.email ??
-          (kind === "email" ? identity.trim().toLowerCase() : "");
-        const phone =
-          payload?.phone ??
-          (kind === "phone" ? identity.replace(/\D/g, "") : "");
-        if (email.includes("@")) params.set("email", email);
-        else if (phone.length >= 9) params.set("phone", phone);
-        const qs = params.toString();
-        window.location.assign(
-          `${APP_ROUTES.supplierPortalLogin}${qs ? `?${qs}` : ""}`,
-        );
-        return;
-      }
-      if (!row.slug) {
-        setForwardingKey(null);
-        setStep({ status: "miss", hint: "That pass has no shop address." });
-        return;
-      }
-      const path = forwardPathFor(row.door);
-      let url = buildApexForwardUrl(
+      const path = buildStorefrontSignInHref({
+        path: APP_ROUTES.shop,
+        email: idPayload?.email,
+        phone: idPayload?.phone,
+        door: row.door === "STAFF" ? "staff" : "shopper",
+        next: row.door === "STAFF" ? APP_ROUTES.business : APP_ROUTES.shopAccount,
+      });
+      const url = buildApexForwardUrl(
         {
-          slug: row.slug,
+          slug: row.slug!,
           name: row.name,
           logoUrl: row.logoUrl,
           primaryHost: row.primaryHost,
         },
         path,
       );
-      const idPayload =
-        payload ??
-        (step.status === "passes"
-          ? step.identity
-          : kind === "email"
-            ? { kind: "email" as const, email: identity.trim().toLowerCase() }
-            : kind === "phone"
-              ? { kind: "phone" as const, phone: identity.replace(/\D/g, "") }
-              : undefined);
-      if (idPayload) {
-        url = withApexIdentityParams(url, {
-          email: idPayload.email,
-          phone: idPayload.phone,
-        });
-      }
       if (url) {
         window.location.assign(url);
       } else {
@@ -200,6 +209,30 @@ export function LandingSignInModal({
         setStep({ status: "miss", hint: "Could not open that shop." });
       }
     }, 720);
+  };
+
+  const onSupplierSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (step.status !== "supplier-auth") return;
+    const identifier =
+      step.identity.email?.trim() ||
+      step.identity.phone?.trim() ||
+      identity.trim();
+    if (!identifier || !supplierPassword) {
+      setSupplierError("Enter your email or phone and password.");
+      return;
+    }
+    setSupplierBusy(true);
+    setSupplierError("");
+    try {
+      await loginSupplierPortal(identifier, supplierPassword);
+      window.location.assign(APP_ROUTES.supplierPortalOverview);
+    } catch (error) {
+      setSupplierError(
+        error instanceof Error ? error.message : "Could not sign in.",
+      );
+      setSupplierBusy(false);
+    }
   };
 
   const onIdentitySubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -327,7 +360,58 @@ export function LandingSignInModal({
               </DialogDescription>
             </DialogHeader>
 
-            {forwardingKey && selected ? (
+            {step.status === "supplier-auth" ? (
+              <form className="mt-6 space-y-4" onSubmit={(e) => void onSupplierSubmit(e)}>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
+                  Supplier · {step.name}
+                </p>
+                <label className="block">
+                  <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
+                    Email or phone
+                  </span>
+                  <input
+                    value={
+                      step.identity.email ||
+                      step.identity.phone ||
+                      identity
+                    }
+                    readOnly
+                    className="landing-find-shop-input w-full border border-[var(--kiosk-border-strong)] bg-white px-3.5 py-3 text-[15px] text-[var(--kiosk-text)] outline-none"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
+                    Password
+                  </span>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={supplierPassword}
+                    onChange={(e) => setSupplierPassword(e.target.value)}
+                    autoFocus
+                    className="landing-find-shop-input w-full border border-[var(--kiosk-border-strong)] bg-white px-3.5 py-3 text-[15px] text-[var(--kiosk-text)] outline-none focus:border-[var(--kiosk-gold)]"
+                    required
+                  />
+                </label>
+                {supplierError ? (
+                  <p className="text-[13px] text-[var(--kiosk-danger)]">{supplierError}</p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={supplierBusy}
+                  className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center disabled:opacity-50"
+                >
+                  {supplierBusy ? "Signing in…" : "Sign in"}
+                </button>
+                <button
+                  type="button"
+                  className="block w-full text-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
+                  onClick={() => setStep({ status: "idle" })}
+                >
+                  ← Different pass
+                </button>
+              </form>
+            ) : forwardingKey && selected ? (
               <ForwardingPass row={selected} onBack={() => setForwardingKey(null)} />
             ) : step.status === "phone-code" || step.status === "phone-verifying" ? (
               <CodeForm

@@ -6,7 +6,10 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, LogOut } from "lucide-react";
 
 import { ShopAccountHub, SHOP_FLOOR_HREF, fmtMoney } from "@/components/storefront/shop-account-hub";
-import { ShopperPhoneLogin } from "@/components/storefront/shop-phone-login";
+import {
+  buildStorefrontSignInHref,
+  UnifiedSignInForm,
+} from "@/components/storefront/storefront-sign-in-sheet";
 import styles from "@/components/storefront/shop-account.module.css";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
 import { fetchBusiness, fetchMe, logoutRemote, type MeResponse } from "@/lib/api";
@@ -17,7 +20,9 @@ type LoadState = "loading" | "guest" | "ready" | "error";
 
 export default function ShopAccountPage() {
   const router = useRouter();
-  const { ready, hasSession } = useAuthenticatedSession({ loginPath: APP_ROUTES.login });
+  const { ready, hasSession } = useAuthenticatedSession({
+    loginPath: buildStorefrontSignInHref({ next: APP_ROUTES.shopAccount }),
+  });
   const [me, setMe] = useState<MeResponse | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [peekCurrency, setPeekCurrency] = useState<string | undefined>();
@@ -61,7 +66,7 @@ export default function ShopAccountPage() {
     router.refresh();
   };
 
-  const loginHref = `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}&mode=email`;
+  const loginHref = buildStorefrontSignInHref({ next: APP_ROUTES.shopAccount });
   const currency = peekCurrency ?? "KES";
 
   if (!ready || state === "loading") {
@@ -82,16 +87,14 @@ export default function ShopAccountPage() {
       <div className={styles.page}>
         <article className={styles.passbook}>
           <div className={styles.passHead}>
-            <h1 className={styles.hello}>Your number is your account</h1>
+            <h1 className={styles.hello}>Sign in to your account</h1>
             <p className={styles.lead}>
-              If you already buy on tab here, you&apos;re already a customer. Verify the phone,
-              enter or set a PIN, and you&apos;re in.
+              Email or phone, then your PIN or password — no separate login page.
             </p>
           </div>
           <div className={styles.passTop}>
             <div className={styles.stamp}>
-              <ShopperPhoneLogin
-                variant="passbook"
+              <UnifiedSignInForm
                 onSignedIn={() => {
                   void loadMe();
                   router.refresh();
@@ -125,9 +128,6 @@ export default function ShopAccountPage() {
           <div className={styles.actions}>
             <Link href={SHOP_FLOOR_HREF} className={styles.quiet}>
               Continue shopping
-            </Link>
-            <Link href={loginHref} className={styles.quiet}>
-              Use email instead
             </Link>
           </div>
         </article>
