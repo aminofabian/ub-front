@@ -12,9 +12,7 @@ import {
 
 import { APP_ROUTES } from "@/lib/config";
 import {
-  articleHref,
   audienceHref,
-  categoryHref,
   listArticles,
   listCategories,
   type HelpAudience,
@@ -50,7 +48,12 @@ export function HelpArticleNav({
   const q = query.trim().toLowerCase();
 
   const filteredCategories = useMemo(() => {
-    if (!q) return categories;
+    if (!q) {
+      return categories.map((cat) => ({
+        ...cat,
+        articles: listArticles(audience, cat.slug),
+      }));
+    }
     return categories
       .map((cat) => ({
         ...cat,
@@ -139,8 +142,7 @@ export function HelpArticleNav({
 
       <div className="space-y-2">
         {filteredCategories.map((cat) => {
-          const articles =
-            cat.articles ?? listArticles(audience, cat.slug);
+          const articles = cat.articles;
           const Icon = HELP_CATEGORY_ICONS[cat.icon];
           const isActiveCategory = !q && activeCategorySlug === cat.slug;
           return (
