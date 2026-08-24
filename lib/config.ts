@@ -6,6 +6,9 @@ export const APP_ROUTES = {
   helpShoppers: "/help/shoppers",
   /** Merchant guide: adding single products, groups, variants, and packages. */
   helpAddProducts: "/help/merchants/inventory/how-to-add-products",
+  /** Merchant guide: suppliers, supplies, and purchase orders. */
+  helpSuppliersSuppliesOrders:
+    "/help/merchants/suppliers-supplies/manage-suppliers-supplies-orders",
   /** Storefront customer password sign-in. */
   login: "/login",
   /** Shop staff / till / office sign-in (PIN + password). */

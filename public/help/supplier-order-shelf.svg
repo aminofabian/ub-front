@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Page backdrop -->
+  <rect width="960" height="640" fill="#eef1ef"/>
+  <text x="20" y="30" font-size="11" font-weight="600" fill="#15231f">Order · place a purchase order</text>
+
+  <!-- Workspace card -->
+  <rect x="16" y="44" width="928" height="580" fill="#f3f6f5" stroke="rgba(21,35,31,0.12)"/>
+
+  <!-- Header -->
+  <rect x="16" y="44" width="928" height="60" fill="rgba(255,255,255,0.92)"/>
+  <text x="34" y="66" font-size="9" font-weight="700" letter-spacing="1.6" fill="rgba(21,35,31,0.45)">ORDERING FROM</text>
+  <text x="34" y="88" font-size="16" font-weight="700" fill="#15231f">Sunrise Fresh Produce Ltd</text>
+  <rect x="800" y="58" width="124" height="30" fill="none" stroke="rgba(21,35,31,0.14)"/>
+  <text x="862" y="77" font-size="11.5" font-weight="600" fill="#0f766e" text-anchor="middle">Confirm →</text>
+  <line x1="16" y1="104" x2="944" y2="104" stroke="rgba(21,35,31,0.1)"/>
+
+  <!-- Supplier list -->
+  <rect x="16" y="104" width="176" height="520" fill="rgba(255,255,255,0.5)"/>
+  <rect x="24" y="112" width="160" height="30" fill="#0f766e" opacity="0.12"/>
+  <text x="32" y="131" font-size="11.5" font-weight="600" fill="#0f766e">Sunrise Fresh Produce</text>
+  <text x="32" y="160" font-size="11.5" fill="rgba(21,35,31,0.55)">Zambezi Millers Ltd</text>
+  <text x="32" y="185" font-size="11.5" fill="rgba(21,35,31,0.55)">Coastline Fisheries</text>
+  <text x="32" y="210" font-size="11.5" fill="rgba(21,35,31,0.55)">Nyayo Bakery Supplies</text>
+
+  <!-- Center: search + shelf -->
+  <rect x="192" y="104" width="544" height="520" fill="#f3f6f5"/>
+  <rect x="192" y="104" width="544" height="40" fill="rgba(255,255,255,0.6)"/>
+  <rect x="204" y="112" width="14" height="14" rx="7" fill="none" stroke="rgba(21,35,31,0.4)" stroke-width="1.4"/>
+  <text x="226" y="124" font-size="12.5" fill="rgba(21,35,31,0.5)">Search products…</text>
+
+  <!-- Family chips -->
+  <rect x="204" y="150" width="44" height="22" fill="#15231f"/>
+  <text x="226" y="164" font-size="10.5" font-weight="600" fill="#ffffff" text-anchor="middle">All</text>
+  <rect x="252" y="150" width="92" height="22" fill="rgba(255,255,255,0.7)" stroke="rgba(21,35,31,0.08)"/>
+  <text x="298" y="164" font-size="10.5" fill="rgba(21,35,31,0.5)" text-anchor="middle">Tomatoes</text>
+  <rect x="348" y="150" width="86" height="22" fill="rgba(255,255,255,0.7)" stroke="rgba(21,35,31,0.08)"/>
+  <text x="391" y="164" font-size="10.5" fill="rgba(21,35,31,0.5)" text-anchor="middle">Cabbages</text>
+
+  <!-- Product tiles -->
+  <g>
+    <!-- tile 1: tomatoes, qty 4 -->
+    <rect x="204" y="184" width="128" height="150" fill="#ffffff" stroke="#0f766e" stroke-width="2"/>
+    <rect x="204" y="184" width="128" height="76" fill="#fafbfa"/>
+    <circle cx="268" cy="222" r="20" fill="#fde7e1"/>
+    <circle cx="262" cy="216" r="6" fill="#ef6a4b"/>
+    <circle cx="274" cy="220" r="5" fill="#f28a6d"/>
+    <rect x="212" y="192" width="20" height="18" fill="#0f766e"/>
+    <text x="222" y="205" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+    <rect x="292" y="192" width="34" height="16" fill="rgba(180,83,9,0.85)"/>
+    <text x="309" y="204" font-size="8.5" font-weight="600" fill="#ffffff" text-anchor="middle">12</text>
+    <text x="212" y="284" font-size="11" font-weight="500" fill="#15231f">Fresh Tomatoes</text>
+    <text x="212" y="299" font-size="10.5" font-weight="600" fill="#15231f">KES 120</text>
+    <rect x="212" y="306" width="72" height="20" fill="#f3f6f5" stroke="rgba(21,35,31,0.1)"/>
+    <rect x="212" y="306" width="20" height="20" fill="#ffffff"/>
+    <text x="222" y="320" font-size="13" fill="rgba(21,35,31,0.55)" text-anchor="middle">−</text>
+    <text x="256" y="320" font-size="10.5" font-weight="600" fill="#15231f" text-anchor="middle">4</text>
+    <rect x="264" y="306" width="20" height="20" fill="#ffffff"/>
+    <text x="274" y="320" font-size="13" fill="rgba(21,35,31,0.55)" text-anchor="middle">+</text>
+
+    <!-- tile 2 -->
+    <rect x="340" y="184" width="128" height="150" fill="#ffffff" stroke="rgba(21,35,31,0.08)"/>
+    <rect x="340" y="184" width="128" height="76" fill="#fafbfa"/>
+    <circle cx="404" cy="222" r="20" fill="#e8f5e9"/>
+    <path d="M390 232 q14 -26 28 0 q-14 6 -28 0" fill="#43a047"/>
+    <text x="348" y="284" font-size="11" font-weight="500" fill="#15231f">Sukuma Wiki Bunch</text>
+    <text x="348" y="299" font-size="10.5" font-weight="600" fill="#15231f">KES 40</text>
+    <rect x="348" y="306" width="72" height="20" fill="#f3f6f5" stroke="rgba(21,35,31,0.1)"/>
+    <rect x="348" y="306" width="20" height="20" fill="#ffffff"/>
+    <text x="358" y="320" font-size="13" fill="rgba(21,35,31,0.55)" text-anchor="middle">−</text>
+    <text x="392" y="320" font-size="10.5" font-weight="600" fill="#15231f" text-anchor="middle">0</text>
+    <rect x="400" y="306" width="20" height="20" fill="#ffffff"/>
+    <text x="410" y="320" font-size="13" fill="rgba(21,35,31,0.55)" text-anchor="middle">+</text>
+
+    <!-- tile 3: onions qty 2 -->
+    <rect x="476" y="184" width="128" height="150" fill="#ffffff" stroke="#0f766e" stroke-width="2"/>
+    <rect x="476" y="184" width="128" height="76" fill="#fafbfa"/>
+    <circle cx="540" cy="224" r="18" fill="#ffe0b2"/>
+    <path d="M530 218 q10 -10 20 0 q-10 12 -20 0" stroke="#e65100" stroke-width="1.5" fill="none"/>
+    <rect x="484" y="192" width="20" height="18" fill="#0f766e"/>
+    <text x="494" y="205" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+    <text x="484" y="284" font-size="11" font-weight="500" fill="#15231f">Red Onions 1 kg</text>
+    <text x="484" y="299" font-size="10.5" font-weight="600" fill="#15231f">KES 90</text>
+    <rect x="484" y="306" width="72" height="20" fill="#f3f6f5" stroke="rgba(21,35,31,0.1)"/>
+    <rect x="484" y="306" width="20" height="20" fill="#ffffff"/>
+    <text x="494" y="320" font-size="13" fill="rgba(21,35,31,0.55)" text-anchor="middle">−</text>
+    <text x="528" y="320" font-size="10.5" font-weight="600" fill="#15231f" text-anchor="middle">2</text>
+    <rect x="536" y="306" width="20" height="20" fill="#ffffff"/>
+    <text x="546" y="320" font-size="13" fill="rgba(21,35,31,0.55)" text-anchor="middle">+</text>
+
+    <!-- tile 4 -->
+    <rect x="612" y="184" width="116" height="150" fill="#ffffff" stroke="rgba(21,35,31,0.08)"/>
+    <rect x="612" y="184" width="116" height="76" fill="#fafbfa"/>
+    <rect x="636" y="200" width="68" height="42" rx="4" fill="#ffcc80"/>
+    <text x="670" y="234" font-size="12" fill="#a8540e" text-anchor="middle">🥚</text>
+    <text x="620" y="284" font-size="11" font-weight="500" fill="#15231f">Eggs Tray (30)</text>
+    <text x="620" y="299" font-size="10.5" font-weight="600" fill="#15231f">KES 450</text>
+    <rect x="620" y="306" width="72" height="20" fill="#f3f6f5" stroke="rgba(21,35,31,0.1)"/>
+    <rect x="620" y="306" width="20" height="20" fill="#ffffff"/>
+    <text x="630" y="320" font-size="13" fill="rgba(21,35,31,0.55)" text-anchor="middle">−</text>
+    <text x="664" y="320" font-size="10.5" font-weight="600" fill="#15231f" text-anchor="middle">0</text>
+    <rect x="672" y="306" width="20" height="20" fill="#ffffff"/>
+    <text x="682" y="320" font-size="13" fill="rgba(21,35,31,0.55)" text-anchor="middle">+</text>
+  </g>
+
+  <!-- Right slip -->
+  <rect x="736" y="104" width="208" height="520" fill="#ffffff"/>
+  <rect x="736" y="104" width="208" height="44" fill="#ffffff"/>
+  <text x="750" y="128" font-size="14" font-weight="700" fill="#15231f">This order</text>
+  <text x="920" y="128" font-size="11.5" font-weight="600" fill="rgba(21,35,31,0.45)" text-anchor="end">6</text>
+  <line x1="736" y1="148" x2="944" y2="148" stroke="rgba(21,35,31,0.08)"/>
+
+  <!-- slip lines -->
+  <rect x="748" y="158" width="36" height="36" fill="#fafbfa" stroke="rgba(21,35,31,0.08)"/>
+  <circle cx="766" cy="176" r="11" fill="#fde7e1"/>
+  <circle cx="763" cy="173" r="3.5" fill="#ef6a4b"/>
+  <text x="792" y="176" font-size="11.5" font-weight="600" fill="#15231f">Fresh Tomatoes</text>
+  <text x="930" y="176" font-size="11.5" font-weight="600" fill="#15231f" text-anchor="end">480</text>
+  <rect x="792" y="180" width="52" height="16" fill="#f3f6f5"/>
+  <text x="804" y="192" font-size="10" fill="rgba(21,35,31,0.55)" text-anchor="middle">−</text>
+  <text x="826" y="192" font-size="9" font-weight="600" fill="#15231f" text-anchor="middle">4</text>
+  <text x="842" y="192" font-size="10" fill="rgba(21,35,31,0.55)" text-anchor="middle">+</text>
+
+  <rect x="748" y="204" width="36" height="36" fill="#fafbfa" stroke="rgba(21,35,31,0.08)"/>
+  <circle cx="766" cy="222" r="11" fill="#ffe0b2"/>
+  <path d="M761 218 q5 -6 10 0 q-5 7 -10 0" stroke="#e65100" stroke-width="1" fill="none"/>
+  <text x="792" y="222" font-size="11.5" font-weight="600" fill="#15231f">Red Onions 1 kg</text>
+  <text x="930" y="222" font-size="11.5" font-weight="600" fill="#15231f" text-anchor="end">180</text>
+  <rect x="792" y="226" width="52" height="16" fill="#f3f6f5"/>
+  <text x="804" y="238" font-size="10" fill="rgba(21,35,31,0.55)" text-anchor="middle">−</text>
+  <text x="826" y="238" font-size="9" font-weight="600" fill="#15231f" text-anchor="middle">2</text>
+  <text x="842" y="238" font-size="10" fill="rgba(21,35,31,0.55)" text-anchor="middle">+</text>
+
+  <!-- slip footer -->
+  <line x1="736" y1="256" x2="944" y2="256" stroke="rgba(21,35,31,0.09)"/>
+  <text x="750" y="284" font-size="10.5" fill="rgba(21,35,31,0.5)">2 lines</text>
+  <text x="750" y="300" font-size="10" fill="rgba(21,35,31,0.45)">Round to 10</text>
+  <rect x="750" y="288" width="26" height="14" fill="#0f766e"/>
+  <circle cx="770" cy="295" r="5" fill="#ffffff"/>
+  <text x="924" y="290" font-size="22" font-weight="700" fill="#15231f" text-anchor="end">KES 660</text>
+  <text x="924" y="304" font-size="9.5" fill="rgba(21,35,31,0.42)" text-anchor="end">up from KES 654.40</text>
+
+  <rect x="748" y="318" width="184" height="40" fill="#0f766e"/>
+  <circle cx="764" cy="338" r="9" fill="#ffffff" opacity="0.9"/>
+  <path d="M759 336 q2 4 5 4 l5 -1 l2 1 l1 -1 q0 -1 -1 -2 l-6 -3 q-1 -2 -3 -1 l-3 3" stroke="#0f766e" stroke-width="1" fill="none"/>
+  <text x="786" y="342" font-size="12" font-weight="700" fill="#ffffff">Save &amp; WhatsApp</text>
+
+  <text x="756" y="376" font-size="10.5" font-weight="500" fill="rgba(21,35,31,0.6)">Save only</text>
+  <text x="830" y="376" font-size="10.5" fill="rgba(21,35,31,0.25)">·</text>
+  <text x="840" y="376" font-size="10.5" font-weight="500" fill="rgba(21,35,31,0.6)">WhatsApp</text>
+  <text x="902" y="376" font-size="10.5" fill="rgba(21,35,31,0.25)">·</text>
+  <text x="912" y="376" font-size="10.5" font-weight="500" fill="rgba(21,35,31,0.6)">Ticket</text>
+
+  <text x="750" y="404" font-size="9.5" fill="rgba(21,35,31,0.45)">Import ticket</text>
+  <text x="924" y="404" font-size="9.5" font-family="ui-monospace, Menlo, monospace" fill="rgba(21,35,31,0.45)" text-anchor="end">WA 0712 345 678</text>
+  <line x1="736" y1="418" x2="944" y2="418" stroke="rgba(21,35,31,0.07)"/>
+  <text x="750" y="440" font-size="10" fill="rgba(21,35,31,0.5)">Saving creates a purchase order (PO).</text>
+  <text x="750" y="455" font-size="10" fill="rgba(21,35,31,0.5)">Confirm the delivery when goods arrive</text>
+  <text x="750" y="470" font-size="10" fill="rgba(21,35,31,0.5)">to post the supply and raise stock.</text>
+</svg>

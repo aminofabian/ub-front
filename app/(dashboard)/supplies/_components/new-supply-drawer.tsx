@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
+  BookOpen,
   Loader2,
   PackagePlus,
   Plus,
@@ -27,6 +29,7 @@ import {
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { isBranchLockedRole } from "@/lib/branch-access";
@@ -1725,6 +1728,15 @@ export function NewSupplyDrawer({
                 <span className="ml-1 font-semibold text-primary">· Ready</span>
               ) : null}
             </p>
+            <Link
+              href={APP_ROUTES.helpSuppliersSuppliesOrders}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground/80 underline-offset-2 hover:text-primary hover:underline"
+            >
+              <BookOpen className="size-3" aria-hidden />
+              Receiving tips &amp; guide
+            </Link>
           </div>
           <div className="grid grid-cols-[auto_1fr] gap-2 sm:flex sm:shrink-0 sm:items-center sm:gap-1.5">
             <Button

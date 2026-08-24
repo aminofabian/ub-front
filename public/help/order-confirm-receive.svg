@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Page backdrop -->
+  <rect width="960" height="640" fill="#eef1ef"/>
+  <text x="20" y="30" font-size="11" font-weight="600" fill="#1c1915">Confirm · receive an order as a supply</text>
+
+  <!-- Workspace -->
+  <rect x="16" y="44" width="928" height="580" fill="rgba(255,255,255,0.92)" stroke="rgba(28,25,21,0.12)"/>
+
+  <!-- Left: open orders -->
+  <rect x="16" y="44" width="200" height="580" fill="#ffffff"/>
+  <rect x="16" y="44" width="200" height="32" fill="#0f766e"/>
+  <text x="28" y="64" font-size="9.5" font-weight="700" letter-spacing="1.4" fill="#ffffff">OPEN ORDERS</text>
+  <text x="202" y="64" font-size="9.5" font-weight="600" fill="#ffffff" text-anchor="end" opacity="0.85">2</text>
+
+  <rect x="24" y="84" width="184" height="64" fill="rgba(15,118,110,0.12)" stroke="#0f766e"/>
+  <text x="32" y="102" font-size="9.5" font-family="ui-monospace, Menlo, monospace" fill="rgba(28,25,21,0.55)">PO-2026-0141 · sent</text>
+  <text x="32" y="120" font-size="11.5" font-weight="700" fill="#1c1915">Sunrise Fresh Produce</text>
+  <text x="32" y="138" font-size="9.5" font-family="ui-monospace, Menlo, monospace" fill="rgba(28,25,21,0.55)">6 lines · ordered 26</text>
+
+  <rect x="24" y="156" width="184" height="64" fill="#ffffff" stroke="transparent"/>
+  <text x="32" y="174" font-size="9.5" font-family="ui-monospace, Menlo, monospace" fill="rgba(28,25,21,0.55)">PO-2026-0138 · draft</text>
+  <text x="32" y="192" font-size="11.5" font-weight="600" fill="#1c1915">Nyayo Bakery Supplies</text>
+  <text x="32" y="210" font-size="9.5" font-family="ui-monospace, Menlo, monospace" fill="rgba(28,25,21,0.55)">3 lines · ordered 40</text>
+
+  <!-- Main -->
+  <rect x="216" y="44" width="728" height="580" fill="rgba(241,236,227,0.55)"/>
+  <rect x="216" y="44" width="728" height="46" fill="#ffffff" stroke="rgba(28,25,21,0.12)"/>
+  <text x="228" y="62" font-size="8.5" font-weight="700" letter-spacing="1.6" fill="rgba(28,25,21,0.5)">CONFIRM → SUPPLY</text>
+  <text x="228" y="80" font-size="13.5" font-weight="700" fill="#1c1915">PO-2026-0141 · Sunrise Fresh Produce Ltd</text>
+  <text x="920" y="74" font-size="9.5" font-weight="700" letter-spacing="1" fill="#0f766e" text-anchor="end">NEW ORDER →</text>
+
+  <!-- Line 1 -->
+  <rect x="216" y="90" width="728" height="62" fill="#ffffff"/>
+  <rect x="230" y="110" width="18" height="18" fill="#0f766e"/>
+  <path d="M235 118 l3 3 l5 -6" stroke="#ffffff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="258" y="98" width="44" height="44" fill="#fafbfa" stroke="rgba(28,25,21,0.1)"/>
+  <circle cx="280" cy="120" r="12" fill="#fde7e1"/>
+  <circle cx="276" cy="116" r="4" fill="#ef6a4b"/>
+  <text x="312" y="116" font-size="12.5" font-weight="700" fill="#1c1915">Fresh Tomatoes</text>
+  <text x="312" y="132" font-size="9.5" font-family="ui-monospace, Menlo, monospace" fill="rgba(28,25,21,0.55)">Ordered 12 · received 0 · KES 120 ea</text>
+  <text x="756" y="128" font-size="11.5" font-weight="700" fill="#1c1915" text-anchor="end">KES 1,440</text>
+  <rect x="780" y="104" width="96" height="26" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+  <rect x="780" y="104" width="28" height="26" fill="#ffffff"/>
+  <path d="M788 117 h8" stroke="rgba(28,25,21,0.55)" stroke-width="1.4"/>
+  <rect x="812" y="104" width="40" height="26" fill="#ffffff"/>
+  <text x="832" y="121" font-size="11.5" font-weight="600" fill="#1c1915" text-anchor="middle">12</text>
+  <rect x="848" y="104" width="28" height="26" fill="#ffffff"/>
+  <path d="M856 113 v8 M852 117 h8" stroke="rgba(28,25,21,0.55)" stroke-width="1.4"/>
+
+  <!-- Line 2 -->
+  <rect x="216" y="152" width="728" height="62" fill="#ffffff"/>
+  <rect x="230" y="172" width="18" height="18" fill="#0f766e"/>
+  <path d="M235 180 l3 3 l5 -6" stroke="#ffffff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="258" y="160" width="44" height="44" fill="#fafbfa" stroke="rgba(28,25,21,0.1)"/>
+  <circle cx="280" cy="182" r="12" fill="#ffe0b2"/>
+  <path d="M275 178 q5 -6 10 0 q-5 7 -10 0" stroke="#e65100" stroke-width="1" fill="none"/>
+  <text x="312" y="178" font-size="12.5" font-weight="700" fill="#1c1915">Red Onions 1 kg</text>
+  <text x="312" y="194" font-size="9.5" font-family="ui-monospace, Menlo, monospace" fill="rgba(28,25,21,0.55)">Ordered 6 · received 0 · KES 90 ea</text>
+  <text x="756" y="190" font-size="11.5" font-weight="700" fill="#1c1915" text-anchor="end">KES 540</text>
+  <rect x="780" y="166" width="96" height="26" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+  <rect x="780" y="166" width="28" height="26" fill="#ffffff"/>
+  <path d="M788 179 h8" stroke="rgba(28,25,21,0.55)" stroke-width="1.4"/>
+  <rect x="812" y="166" width="40" height="26" fill="#ffffff"/>
+  <text x="832" y="183" font-size="11.5" font-weight="600" fill="#1c1915" text-anchor="middle">6</text>
+  <rect x="848" y="166" width="28" height="26" fill="#ffffff"/>
+  <path d="M856 175 v8 M852 179 h8" stroke="rgba(28,25,21,0.55)" stroke-width="1.4"/>
+
+  <!-- Line 3 -->
+  <rect x="216" y="214" width="728" height="62" fill="#ffffff"/>
+  <rect x="230" y="234" width="18" height="18" fill="#0f766e"/>
+  <path d="M235 242 l3 3 l5 -6" stroke="#ffffff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="258" y="222" width="44" height="44" fill="#fafbfa" stroke="rgba(28,25,21,0.1)"/>
+  <rect x="268" y="230" width="24" height="24" rx="3" fill="#ffcc80"/>
+  <text x="280" y="247" font-size="10" fill="#a8540e" text-anchor="middle">🥚</text>
+  <text x="312" y="240" font-size="12.5" font-weight="700" fill="#1c1915">Eggs Tray (30)</text>
+  <text x="312" y="256" font-size="9.5" font-family="ui-monospace, Menlo, monospace" fill="rgba(28,25,21,0.55)">Ordered 4 · received 0 · KES 450 ea</text>
+  <text x="756" y="252" font-size="11.5" font-weight="700" fill="#1c1915" text-anchor="end">KES 1,800</text>
+  <rect x="780" y="228" width="96" height="26" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+  <rect x="780" y="228" width="28" height="26" fill="#ffffff"/>
+  <path d="M788 241 h8" stroke="rgba(28,25,21,0.55)" stroke-width="1.4"/>
+  <rect x="812" y="228" width="40" height="26" fill="#ffffff"/>
+  <text x="832" y="245" font-size="11.5" font-weight="600" fill="#1c1915" text-anchor="middle">4</text>
+  <rect x="848" y="228" width="28" height="26" fill="#ffffff"/>
+  <path d="M856 237 v8 M852 241 h8" stroke="rgba(28,25,21,0.55)" stroke-width="1.4"/>
+
+  <!-- Footer -->
+  <rect x="216" y="276" width="728" height="348" fill="rgba(241,236,227,0.55)"/>
+  <line x1="216" y1="276" x2="944" y2="276" stroke="#1c1915" stroke-width="2"/>
+  <text x="230" y="306" font-size="8.5" font-weight="700" letter-spacing="1.6" fill="rgba(28,25,21,0.5)">SELECTED TOTAL</text>
+  <text x="230" y="322" font-size="9.5" font-family="ui-monospace, Menlo, monospace" fill="rgba(28,25,21,0.55)">22 units</text>
+  <text x="920" y="322" font-size="19" font-weight="700" fill="#1c1915" text-anchor="end">KES 3,780</text>
+
+  <rect x="230" y="340" width="96" height="30" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+  <text x="278" y="359" font-size="10.5" font-weight="600" fill="#1c1915" text-anchor="middle">Select all</text>
+  <rect x="330" y="340" width="72" height="30" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+  <text x="366" y="359" font-size="10.5" font-weight="600" fill="#1c1915" text-anchor="middle">Clear</text>
+
+  <rect x="230" y="382" width="348" height="36" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+  <path d="M246 399 h10 l2 2 l8 -8" stroke="#0f766e" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="266" y="404" font-size="10.5" font-weight="600" fill="#1c1915">Download PDF</text>
+  <rect x="590" y="382" width="348" height="36" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+  <rect x="604" y="392" width="14" height="14" fill="none" stroke="#1c1915" stroke-width="1.4"/>
+  <text x="624" y="404" font-size="10.5" font-weight="600" fill="#1c1915">Copy list</text>
+
+  <rect x="230" y="428" width="708" height="38" fill="#128c4a"/>
+  <path d="M246 447 h9 q2 0 2 2 l1 4 q0 2 2 3 l5 1 q2 0 1 -2 l-6 -4 q0 -1 -3 -1 l-4 2 q-3 1 -5 0 q-3 -1 -2 -3 l-1 -2 q0 -1 1 -1" fill="#ffffff"/>
+  <text x="266" y="451" font-size="12" font-weight="700" fill="#ffffff">Send order on WhatsApp</text>
+
+  <rect x="230" y="476" width="708" height="38" fill="#0f766e"/>
+  <path d="M246 493 l3 4 l6 -8" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="266" y="499" font-size="12" font-weight="700" fill="#ffffff">Confirm selected → supply</text>
+
+  <text x="584" y="530" font-size="9.5" fill="rgba(28,25,21,0.5)" text-anchor="middle">Confirm posts a goods receipt and supplier bill — stock rises automatically.</text>
+</svg>

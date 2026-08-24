@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  BookOpen,
   CreditCard,
   PackagePlus,
   RefreshCw,
@@ -52,6 +53,12 @@ export function SuppliesPageHeader({
       icon: CreditCard,
     },
     { href: APP_ROUTES.suppliers, label: "Suppliers", icon: Truck },
+    {
+      href: APP_ROUTES.helpSuppliersSuppliesOrders,
+      label: "Guide",
+      icon: BookOpen,
+      external: true,
+    },
   ];
 
   return (
@@ -87,6 +94,9 @@ export function SuppliesPageHeader({
                   <Link
                     key={link.href}
                     href={link.href}
+                    {...("external" in link && link.external
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
                     className={cn(
                       "inline-flex h-7 items-center gap-1 border border-border bg-card px-2",
                       "text-[11px] font-medium text-muted-foreground",

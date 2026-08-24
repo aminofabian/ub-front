@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  BookOpen,
   ChevronDown,
   ChevronUp,
   ClipboardList,
@@ -995,6 +996,16 @@ export function TenantOrderWorkspace({
             Confirm
           </Link>
         )}
+        <Link
+          href={APP_ROUTES.helpSuppliersSuppliesOrders}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex shrink-0 items-center gap-1.5 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-4 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)] hover:text-[var(--order-ink,#15231f)]"
+          title="Suppliers, supplies & purchase orders — step-by-step guide"
+        >
+          <BookOpen className="size-3.5" aria-hidden />
+          Guide
+        </Link>
       </div>
 
       <div className="relative z-[1] flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">

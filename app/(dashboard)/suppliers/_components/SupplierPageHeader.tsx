@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import {
+  BookOpen,
   CircleDollarSign,
   LayoutGrid,
   Package,
   PackagePlus,
   Plus,
+  type LucideIcon,
 } from "lucide-react";
 
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
@@ -16,7 +18,12 @@ import { cn } from "@/lib/utils";
 
 import { supBtnPrimary } from "./supplier-ui-tokens";
 
-const RELATED_LINKS = [
+const RELATED_LINKS: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  external?: boolean;
+}[] = [
   {
     href: APP_ROUTES.purchasingAddSupplies,
     label: "Supplies",
@@ -37,7 +44,13 @@ const RELATED_LINKS = [
     label: "Intelligence",
     icon: CircleDollarSign,
   },
-] as const;
+  {
+    href: APP_ROUTES.helpSuppliersSuppliesOrders,
+    label: "Guide",
+    icon: BookOpen,
+    external: true,
+  },
+];
 
 export function SupplierPageHeader({
   canWrite,
@@ -91,10 +104,11 @@ export function SupplierPageHeader({
             Related
           </span>
           <ul className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5">
-            {RELATED_LINKS.map(({ href, label, icon: Icon }) => (
+            {RELATED_LINKS.map(({ href, label, icon: Icon, external }) => (
               <li key={href}>
                 <Link
                   href={href}
+                  {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   className={cn(
                     "inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground",
                     "transition-colors hover:text-foreground",

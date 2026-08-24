@@ -990,6 +990,229 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
   {
     audience: "merchants",
     categorySlug: "suppliers-supplies",
+    slug: "manage-suppliers-supplies-orders",
+    title: "Suppliers, supplies & purchase orders",
+    description:
+      "Add vendors, link products, order stock, confirm deliveries, and keep payables straight — with screenshots of every screen.",
+    updatedAt: "2026-08-24",
+    tags: [
+      "suppliers",
+      "vendors",
+      "supplies",
+      "purchase order",
+      "PO",
+      "receiving",
+      "stock",
+      "payables",
+      "WhatsApp",
+      "marketplace",
+    ],
+    relatedSlugs: [
+      "add-a-supplier",
+      "record-a-supply",
+      "why-record-supplies",
+      "understand-stock-levels",
+    ],
+    body: [
+      {
+        type: "paragraph",
+        text: "Three words carry your purchasing: Suppliers (who you buy from), Supplies (the delivery bills that raise stock), and Orders (the purchase orders you send before goods arrive). They link together — order first, confirm the delivery, and the supply appears with stock already raised. This guide walks the full loop with screenshots.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "One rule to remember: an order is only a promise. Stock moves only when the delivery is confirmed — either from the order, or directly from a New supply receipt.",
+      },
+      {
+        type: "heading",
+        text: "Step 1 — Add a supplier",
+      },
+      {
+        type: "paragraph",
+        text: "Create each vendor once, before their first delivery, so every receipt, cost, and unpaid balance stays under the right name.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Suppliers in the dashboard and tap New supplier.",
+          "Enter the legal / display name, contact phone and email — the phone doubles as the WhatsApp number for orders.",
+          "Add a VAT / tax ID if you have one; Kiosk uses it to match existing vendors so you never create duplicates.",
+          "Set credit terms (e.g. 30 days) and a credit limit when they sell to you on account.",
+          "Save. If they trade on the marketplace, you can also import the vendor plus their catalogue in one step.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/add-supplier-drawer.svg",
+        alt: "New supplier drawer with marketplace import banner, supplier name Sunrise Fresh Produce Ltd, contact phone 0712 345 678, email, VAT tax ID, credit terms 30 days, and credit limit",
+        caption:
+          "The New supplier drawer — identity, contacts, and credit terms in one place.",
+      },
+      {
+        type: "heading",
+        text: "Step 2 — Link products to the supplier",
+      },
+      {
+        type: "list",
+        items: [
+          "Linked products form the supplier’s shelf: the exact list you see when ordering and when receiving.",
+          "From the supplier profile, add each product they supply (with their SKU and your last cost).",
+          "Or link while creating a product — the New product drawer has a Supplier field.",
+          "Links carry cost and stock hints, so a New supply and an Order open pre-filled with sensible prices.",
+        ],
+      },
+      {
+        type: "heading",
+        text: "Step 3 — Order stock (purchase orders)",
+      },
+      {
+        type: "paragraph",
+        text: "Order is a till-style screen built around the supplier’s shelf: pick the vendor, tap the products you need, set quantities, and send.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Order from the dashboard sidebar.",
+          "Pick the supplier — their linked products load as tiles with cost and low-stock badges.",
+          "Tap products to add them; use +/− to set quantities. Search and family chips keep big catalogues fast.",
+          "Review the slip on the right, then choose: Save & WhatsApp sends the order to their number, Save only stores the PO, and Ticket copies a shareable order link.",
+          "Saving creates a purchase order (PO) with its own number — the supplier sees it on the portal when they are connected, or in the WhatsApp message you send.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/supplier-order-shelf.svg",
+        alt: "Order screen with supplier Sunrise Fresh Produce selected, product tiles for tomatoes onions and eggs with quantity steppers, and the This order slip showing two lines totaling KES 660 with a Save and WhatsApp button",
+        caption:
+          "Build the order from the supplier’s shelf, then Save & WhatsApp it.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "Round to 10 nudges the total to the nearest 10 shillings (great for cash suppliers). You can toggle it under the slip total before saving.",
+      },
+      {
+        type: "heading",
+        text: "Step 4 — Confirm the delivery",
+      },
+      {
+        type: "paragraph",
+        text: "When the goods arrive, Confirm on the order screen turns the PO into a supply: it posts a goods receipt, creates a supplier bill, and raises stock for every line you received.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open the order and tap Confirm (or visit Order → Confirm).",
+          "Select the open order — its lines list what was ordered and what is still outstanding.",
+          "Check the boxes and adjust the quantities to what actually arrived (short deliveries happen).",
+          "Tap Confirm selected → supply. Stock rises automatically and the bill lands in Supplies.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/order-confirm-receive.svg",
+        alt: "Confirm to supply panel with open orders list, PO-2026-0141 from Sunrise Fresh Produce, three checked lines with received quantities, selected total KES 3,780, and Confirm selected to supply button",
+        caption:
+          "Confirm what arrived — partial deliveries are fine; stock rises for exactly what you received.",
+      },
+      {
+        type: "heading",
+        text: "Step 5 — Record a walk-in supply",
+      },
+      {
+        type: "paragraph",
+        text: "No order was placed? Record the delivery directly. New supply accepts linked products or ad-hoc lines, so you can receive even items you never linked.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Supplies and tap New supply.",
+          "Pick the supplier, the receiving branch, and the delivery date.",
+          "Add lines: product (search the catalogue), quantity received, and unit cost from the invoice.",
+          "Add extras like freight or tax if they belong on the bill, then Post.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/new-supply-drawer.svg",
+        alt: "New supply drawer with a four-step workflow rail, supplier Sunrise Fresh Produce, three lines with quantity and unit cost, a payable summary of KES 12,480, and a Post button",
+        caption:
+          "New supply — the workflow rail shows where you are; Post raises stock and opens the bill.",
+      },
+      {
+        type: "callout",
+        tone: "warning",
+        text: "Never add the same delivery twice — posting a supply already raises stock. If you make a mistake, edit or delete the bill instead of manually chopping quantities.",
+      },
+      {
+        type: "heading",
+        text: "Step 6 — Manage supplies and pay",
+      },
+      {
+        type: "paragraph",
+        text: "Supplies is your vendor ledger: every receipt with its total, what you have paid, and what is still open. The strip on top summarises the whole picture.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Filter with the chips — Today, 7 days, 30 days, All, Unpaid — or jump straight to Pay open for anything outstanding.",
+          "Pay settles one bill; Pay all clears every open invoice for that supplier in one go.",
+          "Use Deposit to prepay a supplier wallet; the credit applies automatically when they next bring supplies.",
+          "Open AP aging to see balances by age across every vendor, and pay from there when month-end comes.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/supplies-list-pay.svg",
+        alt: "Supplies page with deposit banner, summary strip showing total 4, invoiced 46,900, paid 34,420, unpaid 12,480, a receipts table with Pay and Pay all buttons, and unpaid badges",
+        caption:
+          "The Supplies ledger — amber rows are unpaid; Pay and Pay all settle them.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "A paid supply keeps its history. Delete is only offered on unpaid bills, because deleting a supply reverses the stock it raised — keep history honest and edit instead.",
+      },
+      {
+        type: "faq",
+        items: [
+          {
+            question: "What is the difference between an order and a supply?",
+            answer:
+              "An order is the purchase order you send before goods arrive — a promise, not stock. A supply is the delivery you actually receive. Stock rises only on the supply (from Confirm or New supply), never on the order itself.",
+          },
+          {
+            question: "Can I skip ordering and just record a supply?",
+            answer:
+              "Yes. Walk-in deliveries go straight through Supplies → New supply. Ordering first is useful when you want the PO, WhatsApp hand-off, or portal flow, but it is never required.",
+          },
+          {
+            question: "Why is my supplier’s shelf empty when I order?",
+            answer:
+              "The shelf shows linked products only. Open the supplier profile, add the products they supply, and they will appear for ordering and receiving.",
+          },
+          {
+            question: "What happens when I confirm an order?",
+            answer:
+              "Kiosk posts a goods receipt, creates a supplier bill from the lines you received, and raises stock for those products — the delivery becomes a supply with one tap.",
+          },
+          {
+            question: "How do deposits work?",
+            answer:
+              "Deposit prepays a supplier wallet from Supplies. When they bring the next delivery, the credit applies to the bill automatically — you only top up the difference.",
+          },
+          {
+            question: "Can I delete a supply?",
+            answer:
+              "Only when nothing has been paid on it, because deleting reverses the stock it raised. Paid bills stay in history; edit them instead of deleting.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    audience: "merchants",
+    categorySlug: "suppliers-supplies",
     slug: "why-record-supplies",
     title: "Why you should record every supply",
     description:
@@ -1066,7 +1289,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       "Save vendor details once so every delivery, cost, and payable stays attached to the right person.",
     updatedAt: "2026-07-21",
     tags: ["suppliers", "vendors", "purchasing"],
-    relatedSlugs: ["record-a-supply", "why-record-supplies"],
+    relatedSlugs: ["record-a-supply", "why-record-supplies", "manage-suppliers-supplies-orders"],
     body: [
       {
         type: "paragraph",
@@ -1108,7 +1331,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
     updatedAt: "2026-07-21",
     tags: ["supplies", "receiving", "stock", "purchasing"],
     popular: true,
-    relatedSlugs: ["why-record-supplies", "add-a-supplier", "understand-stock-levels"],
+    relatedSlugs: ["why-record-supplies", "add-a-supplier", "understand-stock-levels", "manage-suppliers-supplies-orders"],
     body: [
       {
         type: "paragraph",
