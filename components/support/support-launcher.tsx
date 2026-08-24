@@ -67,8 +67,8 @@ export function SupportLauncher() {
         aria-label={open ? "Close support chat" : "Open support chat"}
         title={open ? "Close support" : "Chat with Kiosk Support"}
         className={cn(
-          "group fixed right-4 z-40 flex size-14 items-center justify-center rounded-full text-primary-foreground shadow-lg shadow-primary/30 outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:bottom-6 2xl:right-6",
+          "group fixed left-4 z-40 flex size-14 items-center justify-center rounded-full text-primary-foreground shadow-lg shadow-primary/30 outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:bottom-6 2xl:left-6",
           open ? "bg-muted-foreground" : "bg-primary",
         )}
       >
