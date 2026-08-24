@@ -7,6 +7,8 @@ import { APP_ROUTES } from "@/lib/config";
 import { getRealtimeClient } from "@/lib/realtime";
 import { fetchSupportUnreadCount } from "@/lib/support-api";
 
+let supportListenerSeq = 0;
+
 /**
  * Live unread count for the tenant's support thread.
  *
@@ -18,6 +20,7 @@ export function useSupportUnread(): number {
   const pathname = usePathname();
   const [unread, setUnread] = useState(0);
   const baselinedRef = useRef(false);
+  const listenerIdRef = useRef(`support-unread-${supportListenerSeq++}`);
 
   const syncFromServer = useCallback(() => {
     fetchSupportUnreadCount()
@@ -39,7 +42,7 @@ export function useSupportUnread(): number {
       return;
     }
     const client = getRealtimeClient();
-    const unregister = client.registerListener("support-unread-badge", {
+    const unregister = client.registerListener(listenerIdRef.current, {
       channels: ["support"],
       onSupportMessage: (frame) => {
         const data = frame.data as Record<string, unknown>;

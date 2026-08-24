@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
 import { APP_ROUTES } from "@/lib/config";
+import { useSupportUnread } from "@/hooks/use-support-unread";
 import {
   playSupportMessageSound,
   unlockSupportAudio,
@@ -14,17 +15,30 @@ import {
 /**
  * Mounted inside the dashboard shell. Keeps the {@code support} channel open
  * on the shared realtime client and surfaces incoming platform replies as
- * toasts + a document-title badge (and a soft chime) while the user is
- * elsewhere in the app.
+ * toasts + a soft chime while the user is elsewhere in the app. The unread
+ * count is also mirrored into the document title — visible in the browser tab
+ * and the desktop SKU's taskbar.
  */
 export function SupportUnreadWatcher() {
   const pathname = usePathname();
+  const unread = useSupportUnread();
   const lastToastRef = useRef<string | null>(null);
   const baseTitleRef = useRef("");
 
   useEffect(() => {
     baseTitleRef.current = document.title;
   }, []);
+
+  // Live unread count in the title: "(2) Shop Admin — Kiosk" while unread.
+  useEffect(() => {
+    if (!baseTitleRef.current) baseTitleRef.current = document.title;
+    if (pathname === APP_ROUTES.support || unread <= 0) {
+      document.title = baseTitleRef.current;
+    } else {
+      const badge = unread > 9 ? "9+" : String(unread);
+      document.title = `(${badge}) ${baseTitleRef.current}`;
+    }
+  }, [unread, pathname]);
 
   useEffect(() => {
     // Browsers need a user gesture before WebAudio can start; unlock on the
@@ -57,20 +71,10 @@ export function SupportUnreadWatcher() {
         const preview = body.length > 120 ? `${body.slice(0, 120)}…` : body;
 
         playSupportMessageSound();
-
-        if (typeof document !== "undefined" && document.hidden) {
-          document.title = `💬 ${senderName}`;
-          const onVisible = () => {
-            document.title = baseTitleRef.current;
-            document.removeEventListener("visibilitychange", onVisible);
-          };
-          document.addEventListener("visibilitychange", onVisible);
-        } else {
-          toast("New message from Kiosk Support", {
-            description: preview,
-            duration: 6000,
-          });
-        }
+        toast("New message from Kiosk Support", {
+          description: preview,
+          duration: 6000,
+        });
       },
     });
 

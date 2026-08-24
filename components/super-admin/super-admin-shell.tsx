@@ -24,7 +24,9 @@ import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { SuperAdminDrawer } from "@/components/super-admin/super-admin-drawer";
 import { Button } from "@/components/ui/button";
+import { useSaSupportUnread } from "@/hooks/use-sa-support-unread";
 import { APP_ROUTES } from "@/lib/config";
+import { getSuperAdminRealtimeClient } from "@/lib/realtime";
 import { logoutSuperAdmin, fetchSuperAdminMe, type SuperAdminMe } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
@@ -101,11 +103,13 @@ function NavItem({
   label,
   icon: Icon,
   match = "exact",
+  badge = 0,
 }: {
   href: string;
   label: string;
   icon?: React.ComponentType<{ className?: string }>;
   match?: "exact" | "prefix";
+  badge?: number;
 }) {
   const pathname = usePathname();
   const active =
@@ -135,7 +139,12 @@ function NavItem({
           aria-hidden
         />
       )}
-      {label}
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {badge > 0 ? (
+        <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+          {badge > 9 ? "9+" : badge}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -156,6 +165,24 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
   const [mobileNav, setMobileNav] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [openPlatform, setOpenPlatform] = React.useState(() => isPlatformPath(pathname));
+
+  // Live unread badge for the support inbox; the console keeps one shared
+  // realtime socket open so the count updates everywhere, not just on the page.
+  const saSupportUnread = useSaSupportUnread();
+
+  React.useEffect(() => {
+    const client = getSuperAdminRealtimeClient();
+    const unregister = client.registerListener("sa-console", {
+      channels: ["support"],
+    });
+    client.connect().catch(() => {
+      // The inbox page has its own REST polling fallback.
+    });
+    return () => {
+      unregister();
+      client.disconnect();
+    };
+  }, []);
 
   React.useEffect(() => {
     if (isPlatformPath(pathname)) setOpenPlatform(true);
@@ -201,7 +228,12 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
         <NavItem href={APP_ROUTES.superAdminAdoptions} label="Adoptions" icon={Sparkles} />
         <NavItem href={APP_ROUTES.superAdminCampaigns} label="Campaigns" icon={Mail} match="prefix" />
         <NavItem href={APP_ROUTES.superAdminMessages} label="Messages" icon={Inbox} />
-        <NavItem href={APP_ROUTES.superAdminSupport} label="Support" icon={Headset} />
+        <NavItem
+          href={APP_ROUTES.superAdminSupport}
+          label="Support"
+          icon={Headset}
+          badge={saSupportUnread}
+        />
 
         <Collapsible.Root open={openPlatform} onOpenChange={setOpenPlatform} className="mt-2">
           <Collapsible.Trigger
