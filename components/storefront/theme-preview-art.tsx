@@ -35,6 +35,8 @@ function ArtForId({ id }: { id: string }) {
       return <BoutiqueArt />;
     case "beauty-edit":
       return <BeautyEditArt />;
+    case "scent-story":
+      return <ScentStoryArt />;
     case "spirits-cellar":
       return <SpiritsArt />;
     case "oxide":
@@ -240,6 +242,38 @@ function BeautyEditArt() {
       <div className="grid grid-cols-4 gap-0 border-t border-[#E8E4DF] bg-[#FAFBFB] p-1">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="aspect-[3/4] bg-[#E8E4DF]/60" />
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+function ScentStoryArt() {
+  return (
+    <Frame paper="#FCF8F0" ink="#1A1714">
+      <div className="bg-[#C5A04E] px-3 py-1.5 text-center text-[8px] italic tracking-wide text-white">
+        New arrivals · Shop Now
+      </div>
+      <div className="flex items-center justify-between border-b border-[#E8E0D4] px-3 py-2">
+        <span className="flex gap-1">
+          <span className="h-2.5 w-3 border-t border-[#1A1714]" />
+          <span className="size-2.5 rounded-full border border-[#1A1714]" />
+        </span>
+        <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-[#C5A04E]">
+          Scent
+        </span>
+        <span className="size-3 border border-[#1A1714]/70" />
+      </div>
+      <div className="relative flex flex-1 flex-col items-center justify-end bg-gradient-to-b from-[#4A3F32] via-[#2A241C] to-[#1A1714] px-3 pb-3 pt-6">
+        <div className="mb-2 h-1.5 w-24 rounded bg-white/50" />
+        <div className="mb-3 h-2.5 w-36 rounded bg-white/80" />
+        <div className="bg-white px-4 py-1.5 text-[7px] font-semibold uppercase tracking-widest text-[#C5A04E]">
+          Shop Now
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-1.5 bg-[#FCF8F0] p-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="aspect-[4/5] border border-[#E8E0D4] bg-[#F4EFE6]" />
         ))}
       </div>
     </Frame>

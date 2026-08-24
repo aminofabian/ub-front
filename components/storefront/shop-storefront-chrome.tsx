@@ -43,6 +43,9 @@ import {
   useChemLabMode,
 } from "@/components/storefront/templates/store/chem-lab-mode";
 import chemLabStyles from "@/components/storefront/templates/store/chem-lab.module.css";
+import { ScentStoryHeader } from "@/components/storefront/templates/store/scent-story-header";
+import { scentStoryFontVariables } from "@/components/storefront/templates/store/scent-story-fonts";
+import scentStoryStyles from "@/components/storefront/templates/store/scent-story.module.css";
 import { SpiritsCellarHeader } from "@/components/storefront/templates/store/spirits-cellar-header";
 import { spiritsCellarFontVariables } from "@/components/storefront/templates/store/spirits-cellar-fonts";
 import spiritsCellarStyles from "@/components/storefront/templates/store/spirits-cellar.module.css";
@@ -169,7 +172,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "chem-lab" | "spirits-cellar";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar";
   storeThemeId?: string | null;
   /** D8: `ub.session` presence hint from `StorefrontShell` (label-only). */
   hasPresence: boolean;
@@ -198,9 +201,10 @@ export function ShopStorefrontChrome({
   const isCarbonDesk = chromeVariant === "carbon-desk";
   const isBoutiqueShelf = chromeVariant === "boutique-shelf";
   const isBeautyEdit = chromeVariant === "beauty-edit";
+  const isScentStory = chromeVariant === "scent-story";
   const isChemLab = chromeVariant === "chem-lab";
   const isSpiritsCellar = chromeVariant === "spirits-cellar";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isChemLab || isSpiritsCellar;
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const restoreAttemptedRef = useRef(false);
@@ -275,6 +279,11 @@ export function ShopStorefrontChrome({
                 ? ({
                     ["--be-ink" as string]: primaryHex || "#0E0E0E",
                     ["--be-gold" as string]: accentHex || "#B5853A",
+                  } as CSSProperties)
+              : isScentStory
+                ? ({
+                    ["--ss-ink" as string]: primaryHex || "#1A1714",
+                    ["--ss-gold" as string]: accentHex || "#C5A04E",
                   } as CSSProperties)
               : isChemLab
                 ? ({
@@ -361,6 +370,13 @@ export function ShopStorefrontChrome({
               beautyEditFontVariables,
               "[--storefront-paper:#FFFFFF]",
             ),
+          isScentStory &&
+            cn(
+              scentStoryStyles.root,
+              scentStoryStyles.body,
+              scentStoryFontVariables,
+              "[--storefront-paper:#FCF8F0]",
+            ),
           isChemLab &&
             cn(
               chemLabStyles.root,
@@ -413,6 +429,15 @@ export function ShopStorefrontChrome({
             storeName={headerTitle}
             logoUrl={logoUrl}
             whatsapp={whatsappNumber}
+          />
+        </Suspense>
+      ) : null}
+      {isScentStory && !compactChrome ? (
+        <Suspense fallback={null}>
+          <ScentStoryHeader
+            slug={slug}
+            storeName={headerTitle}
+            logoUrl={logoUrl}
           />
         </Suspense>
       ) : null}

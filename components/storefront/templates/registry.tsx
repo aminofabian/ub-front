@@ -15,6 +15,7 @@ import { ChemLabStoreHome } from "@/components/storefront/templates/store/chem-l
 import { MartStoreHome } from "@/components/storefront/templates/store/mart-home";
 import { MilkRunStoreHome } from "@/components/storefront/templates/store/milk-run-home";
 import { OxideStoreHome } from "@/components/storefront/templates/store/oxide-home";
+import { ScentStoryStoreHome } from "@/components/storefront/templates/store/scent-story-home";
 import { SpiritsCellarStoreHome } from "@/components/storefront/templates/store/spirits-cellar-home";
 import { TintLabStoreHome } from "@/components/storefront/templates/store/tint-lab-home";
 import type {
@@ -36,6 +37,7 @@ const STORE_HOMES: Record<
   "butcher-board": ButcherBoardStoreHome,
   "boutique-shelf": BoutiqueShelfStoreHome,
   "beauty-edit": BeautyEditStoreHome,
+  "scent-story": ScentStoryStoreHome,
   "spirits-cellar": SpiritsCellarStoreHome,
   oxide: OxideStoreHome,
   "tint-lab": TintLabStoreHome,
@@ -68,6 +70,7 @@ export type StoreChromeVariant =
   | "carbon-desk"
   | "boutique-shelf"
   | "beauty-edit"
+  | "scent-story"
   | "chem-lab"
   | "spirits-cellar";
 
@@ -101,6 +104,8 @@ export function resolveStoreChromeVariant(
       return "boutique-shelf";
     case "beauty-edit":
       return "beauty-edit";
+    case "scent-story":
+      return "scent-story";
     case "chem-lab":
       return "chem-lab";
     case "spirits-cellar":

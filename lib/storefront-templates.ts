@@ -12,6 +12,7 @@ export type StoreThemeId =
   | "boutique-shelf"
   | "spirits-cellar"
   | "beauty-edit"
+  | "scent-story"
   | "oxide"
   | "tint-lab"
   | "milk-run"
@@ -56,6 +57,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "boutique-shelf",
   "spirits-cellar",
   "beauty-edit",
+  "scent-story",
   "oxide",
   "tint-lab",
   "milk-run",
@@ -118,6 +120,15 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
     previewFrom: "#0E0E0E",
     previewTo: "#FAFBFB",
     accent: "#B5853A",
+  },
+  {
+    id: "scent-story",
+    kind: "store",
+    name: "Scent story",
+    blurb: "A luxury fragrance house — cream silk, gold bar, full-bleed scent hero.",
+    previewFrom: "#FCF8F0",
+    previewTo: "#C5A04E",
+    accent: "#C5A04E",
   },
   {
     id: "oxide",

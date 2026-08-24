@@ -208,6 +208,26 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
       ],
     },
   ],
+  "scent-story": [
+    {
+      key: "silk",
+      label: "Salon silk",
+      hint: "The cream paper behind bottles and copy",
+      type: "select",
+      var: "--ss-cream",
+      default: "silk",
+      values: {
+        silk: "#fcf8f0",
+        ivory: "#f7f1e6",
+        parchment: "#f3eadc",
+      },
+      options: [
+        { value: "silk", label: "Silk", swatch: "#fcf8f0" },
+        { value: "ivory", label: "Ivory", swatch: "#f7f1e6" },
+        { value: "parchment", label: "Parchment", swatch: "#f3eadc" },
+      ],
+    },
+  ],
   "butcher-board": [
     {
       key: "frame",
