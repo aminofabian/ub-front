@@ -29,11 +29,18 @@ import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import {
+  STOREFRONT_DAY_KEYS,
+  isValidHoursTime,
   parseStorefrontDesignJson,
   serializeStorefrontDesign,
   storefrontSectionDefaultSettings,
+  type StorefrontAboutSectionSettings,
   type StorefrontAnnouncementSectionSettings,
+  type StorefrontContactSectionSettings,
   type StorefrontDesign,
+  type StorefrontDesignDayHours,
+  type StorefrontDesignDayKey,
+  type StorefrontDesignHours,
   type StorefrontHeroSectionSettings,
   type StorefrontPromoSectionSettings,
   type StorefrontSectionConfig,
@@ -48,6 +55,80 @@ import { cn } from "@/lib/utils";
 
 export type { StorefrontQuickEditField };
 export { storefrontWantsEditFromSearch } from "@/lib/storefront-staff-edit";
+
+function buildSimpleHours(values: Record<string, string>): StorefrontDesignHours {
+  const weekdayOpen = isValidHoursTime(values.weekdayOpen)
+    ? values.weekdayOpen!
+    : "08:00";
+  const weekdayClose = isValidHoursTime(values.weekdayClose)
+    ? values.weekdayClose!
+    : "19:00";
+  const saturdayClosed = values.saturdayClosed === "1";
+  const sundayClosed = values.sundayClosed !== "0";
+  const saturdayOpen = isValidHoursTime(values.saturdayOpen)
+    ? values.saturdayOpen!
+    : weekdayOpen;
+  const saturdayClose = isValidHoursTime(values.saturdayClose)
+    ? values.saturdayClose!
+    : weekdayClose;
+  const sundayOpen = isValidHoursTime(values.sundayOpen)
+    ? values.sundayOpen!
+    : weekdayOpen;
+  const sundayClose = isValidHoursTime(values.sundayClose)
+    ? values.sundayClose!
+    : weekdayClose;
+
+  const days = {} as Record<StorefrontDesignDayKey, StorefrontDesignDayHours>;
+  for (const key of STOREFRONT_DAY_KEYS) {
+    if (key === "sat") {
+      days[key] = saturdayClosed
+        ? { open: false, openTime: saturdayOpen, closeTime: saturdayClose }
+        : { open: true, openTime: saturdayOpen, closeTime: saturdayClose };
+    } else if (key === "sun") {
+      days[key] = sundayClosed
+        ? { open: false, openTime: sundayOpen, closeTime: sundayClose }
+        : { open: true, openTime: sundayOpen, closeTime: sundayClose };
+    } else {
+      days[key] = {
+        open: true,
+        openTime: weekdayOpen,
+        closeTime: weekdayClose,
+      };
+    }
+  }
+  const note = (values.note ?? "").trim();
+  return note ? { days, note } : { days };
+}
+
+function hoursFormDefaults(
+  hours: StorefrontDesignHours | null | undefined,
+): Pick<
+  import("@/components/storefront/storefront-quick-edit-dialog").StorefrontQuickEditDefaults,
+  | "weekdayOpen"
+  | "weekdayClose"
+  | "saturdayOpen"
+  | "saturdayClose"
+  | "saturdayClosed"
+  | "sundayOpen"
+  | "sundayClose"
+  | "sundayClosed"
+  | "hoursNote"
+> {
+  const mon = hours?.days?.mon;
+  const sat = hours?.days?.sat;
+  const sun = hours?.days?.sun;
+  return {
+    weekdayOpen: mon?.openTime || "08:00",
+    weekdayClose: mon?.closeTime || "19:00",
+    saturdayOpen: sat?.openTime || mon?.openTime || "08:00",
+    saturdayClose: sat?.closeTime || mon?.closeTime || "19:00",
+    saturdayClosed: sat ? !sat.open : false,
+    sundayOpen: sun?.openTime || mon?.openTime || "08:00",
+    sundayClose: sun?.closeTime || mon?.closeTime || "19:00",
+    sundayClosed: sun ? !sun.open : true,
+    hoursNote: hours?.note?.trim() || "",
+  };
+}
 
 type StaffEditContextValue = {
   ready: boolean;
@@ -319,6 +400,70 @@ export function StorefrontStaffEditProvider({
             subheadline,
           },
         });
+      } else if (field === "about") {
+        const heading = (values.heading ?? "").trim();
+        const text = (values.text ?? "").trim();
+        const existing = base?.sections?.find((s) => s.id === "about");
+        const prev = (existing?.settings ??
+          storefrontSectionDefaultSettings(
+            "about",
+          )) as StorefrontAboutSectionSettings;
+        next = upsertSection(base, "about", {
+          enabled: true,
+          settings: { ...prev, heading, text },
+        });
+        next = {
+          ...next,
+          business: {
+            ...(next.business ?? {}),
+            description: text || null,
+          },
+        };
+      } else if (field === "contact") {
+        next = upsertSection(base, "contact", {
+          enabled: true,
+          settings: {
+            ...((base?.sections?.find((s) => s.id === "contact")?.settings ??
+              storefrontSectionDefaultSettings(
+                "contact",
+              )) as StorefrontContactSectionSettings),
+          },
+        });
+        next = {
+          ...next,
+          business: {
+            ...(next.business ?? {}),
+            contact: {
+              ...(next.business?.contact ?? {}),
+              phone: (values.phone ?? "").trim() || null,
+              whatsapp: (values.whatsapp ?? "").trim() || null,
+              email: (values.email ?? "").trim() || null,
+            },
+            location: {
+              ...(next.business?.location ?? {}),
+              address: (values.address ?? "").trim() || null,
+              town: (values.town ?? "").trim() || null,
+            },
+          },
+        };
+      } else if (field === "hours") {
+        next = upsertSection(base, "contact", {
+          enabled: true,
+          settings: {
+            ...((base?.sections?.find((s) => s.id === "contact")?.settings ??
+              storefrontSectionDefaultSettings(
+                "contact",
+              )) as StorefrontContactSectionSettings),
+            showHours: true,
+          },
+        });
+        next = {
+          ...next,
+          business: {
+            ...(next.business ?? {}),
+            hours: buildSimpleHours(values),
+          },
+        };
       } else {
         next = {
           ...(base ?? { version: 1 }),
@@ -339,6 +484,7 @@ export function StorefrontStaffEditProvider({
     const announcement = design?.sections?.find((s) => s.id === "announcement");
     const promo = design?.sections?.find((s) => s.id === "promo");
     const hero = design?.sections?.find((s) => s.id === "hero");
+    const about = design?.sections?.find((s) => s.id === "about");
     const annSettings = announcement?.settings as
       | StorefrontAnnouncementSectionSettings
       | undefined;
@@ -348,6 +494,9 @@ export function StorefrontStaffEditProvider({
     const heroSettings = hero?.settings as
       | StorefrontHeroSectionSettings
       | undefined;
+    const aboutSettings = about?.settings as
+      | StorefrontAboutSectionSettings
+      | undefined;
     return {
       announcement: annSettings?.text ?? "",
       promoTitle: promoSettings?.title ?? "",
@@ -356,6 +505,17 @@ export function StorefrontStaffEditProvider({
       headline: heroSettings?.headline ?? "",
       subheadline: heroSettings?.subheadline ?? "",
       tagline: design?.business?.tagline?.trim() ?? "",
+      aboutHeading: aboutSettings?.heading ?? "",
+      aboutText:
+        aboutSettings?.text?.trim() ||
+        design?.business?.description?.trim() ||
+        "",
+      phone: design?.business?.contact?.phone?.trim() ?? "",
+      whatsapp: design?.business?.contact?.whatsapp?.trim() ?? "",
+      email: design?.business?.contact?.email?.trim() ?? "",
+      address: design?.business?.location?.address?.trim() ?? "",
+      town: design?.business?.location?.town?.trim() ?? "",
+      ...hoursFormDefaults(design?.business?.hours),
     };
   }, [design]);
 
@@ -519,6 +679,33 @@ function StorefrontStaffEditBar({ editDeepLink }: { editDeepLink: boolean }) {
               onClick={() => openQuickEdit("tagline")}
             >
               Tagline
+            </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              className="rounded-md border-amber-600/30 bg-white/80"
+              onClick={() => openQuickEdit("about")}
+            >
+              About
+            </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              className="rounded-md border-amber-600/30 bg-white/80"
+              onClick={() => openQuickEdit("contact")}
+            >
+              Contact
+            </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              className="rounded-md border-amber-600/30 bg-white/80"
+              onClick={() => openQuickEdit("hours")}
+            >
+              Hours
             </Button>
             <Link
               href={designStudioHref()}

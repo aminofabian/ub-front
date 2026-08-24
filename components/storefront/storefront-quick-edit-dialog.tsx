@@ -19,9 +19,12 @@ export type StorefrontQuickEditField =
   | "announcement"
   | "promo"
   | "hero"
-  | "tagline";
+  | "tagline"
+  | "about"
+  | "contact"
+  | "hours";
 
-type Defaults = {
+export type StorefrontQuickEditDefaults = {
   announcement: string;
   promoTitle: string;
   promoSubtitle: string;
@@ -29,6 +32,22 @@ type Defaults = {
   headline: string;
   subheadline: string;
   tagline: string;
+  aboutHeading: string;
+  aboutText: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  address: string;
+  town: string;
+  weekdayOpen: string;
+  weekdayClose: string;
+  saturdayOpen: string;
+  saturdayClose: string;
+  saturdayClosed: boolean;
+  sundayOpen: string;
+  sundayClose: string;
+  sundayClosed: boolean;
+  hoursNote: string;
 };
 
 const FIELD_META: Record<
@@ -51,6 +70,18 @@ const FIELD_META: Record<
     title: "Tagline",
     description: "Short line under your shop name. Used as a fallback in the hero too.",
   },
+  about: {
+    title: "About the shop",
+    description: "Your story on the storefront — heading and a short paragraph.",
+  },
+  contact: {
+    title: "Contact & place",
+    description: "Phone, WhatsApp, email, and where shoppers find you.",
+  },
+  hours: {
+    title: "Opening hours",
+    description: "Weekday and weekend times shoppers see on the contact block.",
+  },
 };
 
 export function StorefrontQuickEditDialog({
@@ -64,7 +95,7 @@ export function StorefrontQuickEditDialog({
   field: StorefrontQuickEditField | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaults: Defaults;
+  defaults: StorefrontQuickEditDefaults;
   saving: boolean;
   onSave: (
     field: StorefrontQuickEditField,
@@ -77,6 +108,22 @@ export function StorefrontQuickEditDialog({
   const [promoTitle, setPromoTitle] = useState("");
   const [promoSubtitle, setPromoSubtitle] = useState("");
   const [promoCoupon, setPromoCoupon] = useState("");
+  const [aboutHeading, setAboutHeading] = useState("");
+  const [aboutText, setAboutText] = useState("");
+  const [phone, setPhone] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [town, setTown] = useState("");
+  const [weekdayOpen, setWeekdayOpen] = useState("08:00");
+  const [weekdayClose, setWeekdayClose] = useState("19:00");
+  const [saturdayOpen, setSaturdayOpen] = useState("08:00");
+  const [saturdayClose, setSaturdayClose] = useState("19:00");
+  const [saturdayClosed, setSaturdayClosed] = useState(false);
+  const [sundayOpen, setSundayOpen] = useState("08:00");
+  const [sundayClose, setSundayClose] = useState("19:00");
+  const [sundayClosed, setSundayClosed] = useState(true);
+  const [hoursNote, setHoursNote] = useState("");
 
   useEffect(() => {
     if (!open || !field) return;
@@ -92,6 +139,22 @@ export function StorefrontQuickEditDialog({
     setPromoTitle(defaults.promoTitle);
     setPromoSubtitle(defaults.promoSubtitle);
     setPromoCoupon(defaults.promoCoupon);
+    setAboutHeading(defaults.aboutHeading);
+    setAboutText(defaults.aboutText);
+    setPhone(defaults.phone);
+    setWhatsapp(defaults.whatsapp);
+    setEmail(defaults.email);
+    setAddress(defaults.address);
+    setTown(defaults.town);
+    setWeekdayOpen(defaults.weekdayOpen || "08:00");
+    setWeekdayClose(defaults.weekdayClose || "19:00");
+    setSaturdayOpen(defaults.saturdayOpen || "08:00");
+    setSaturdayClose(defaults.saturdayClose || "19:00");
+    setSaturdayClosed(defaults.saturdayClosed);
+    setSundayOpen(defaults.sundayOpen || "08:00");
+    setSundayClose(defaults.sundayClose || "19:00");
+    setSundayClosed(defaults.sundayClosed);
+    setHoursNote(defaults.hoursNote);
   }, [open, field, defaults]);
 
   if (!field) return null;
@@ -109,6 +172,22 @@ export function StorefrontQuickEditDialog({
         subtitle: promoSubtitle,
         coupon: promoCoupon,
       });
+    } else if (activeField === "about") {
+      await onSave(activeField, { heading: aboutHeading, text: aboutText });
+    } else if (activeField === "contact") {
+      await onSave(activeField, { phone, whatsapp, email, address, town });
+    } else if (activeField === "hours") {
+      await onSave(activeField, {
+        weekdayOpen,
+        weekdayClose,
+        saturdayOpen,
+        saturdayClose,
+        saturdayClosed: saturdayClosed ? "1" : "0",
+        sundayOpen,
+        sundayClose,
+        sundayClosed: sundayClosed ? "1" : "0",
+        note: hoursNote,
+      });
     } else {
       await onSave(activeField, { tagline: text });
     }
@@ -124,8 +203,7 @@ export function StorefrontQuickEditDialog({
 
         {activeField === "hero" ? (
           <div className="flex flex-col gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="sf-edit-headline">Headline</Label>
+            <Field label="Headline" htmlFor="sf-edit-headline">
               <Input
                 id="sf-edit-headline"
                 value={headline}
@@ -134,9 +212,8 @@ export function StorefrontQuickEditDialog({
                 placeholder="Quality essentials, delivered."
                 autoFocus
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sf-edit-subheadline">Subheadline</Label>
+            </Field>
+            <Field label="Subheadline" htmlFor="sf-edit-subheadline">
               <Input
                 id="sf-edit-subheadline"
                 value={subheadline}
@@ -144,12 +221,11 @@ export function StorefrontQuickEditDialog({
                 onChange={(e) => setSubheadline(e.target.value)}
                 placeholder="Right to your door."
               />
-            </div>
+            </Field>
           </div>
         ) : activeField === "promo" ? (
           <div className="flex flex-col gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="sf-edit-promo-title">Title</Label>
+            <Field label="Title" htmlFor="sf-edit-promo-title">
               <Input
                 id="sf-edit-promo-title"
                 value={promoTitle}
@@ -158,9 +234,8 @@ export function StorefrontQuickEditDialog({
                 placeholder="20% OFF this week"
                 autoFocus
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sf-edit-promo-subtitle">Subtitle</Label>
+            </Field>
+            <Field label="Subtitle" htmlFor="sf-edit-promo-subtitle">
               <Input
                 id="sf-edit-promo-subtitle"
                 value={promoSubtitle}
@@ -168,9 +243,8 @@ export function StorefrontQuickEditDialog({
                 onChange={(e) => setPromoSubtitle(e.target.value)}
                 placeholder="On selected essentials"
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sf-edit-promo-coupon">Coupon (optional)</Label>
+            </Field>
+            <Field label="Coupon (optional)" htmlFor="sf-edit-promo-coupon">
               <Input
                 id="sf-edit-promo-coupon"
                 value={promoCoupon}
@@ -178,11 +252,172 @@ export function StorefrontQuickEditDialog({
                 onChange={(e) => setPromoCoupon(e.target.value)}
                 placeholder="WELCOME10"
               />
+            </Field>
+          </div>
+        ) : activeField === "about" ? (
+          <div className="flex flex-col gap-3">
+            <Field label="Heading" htmlFor="sf-edit-about-heading">
+              <Input
+                id="sf-edit-about-heading"
+                value={aboutHeading}
+                maxLength={80}
+                onChange={(e) => setAboutHeading(e.target.value)}
+                placeholder="About our shop"
+                autoFocus
+              />
+            </Field>
+            <Field label="Story" htmlFor="sf-edit-about-text">
+              <Textarea
+                id="sf-edit-about-text"
+                value={aboutText}
+                maxLength={1200}
+                rows={5}
+                onChange={(e) => setAboutText(e.target.value)}
+                placeholder="A short story about who you are and what you sell."
+              />
+            </Field>
+          </div>
+        ) : activeField === "contact" ? (
+          <div className="flex flex-col gap-3">
+            <Field label="Phone" htmlFor="sf-edit-phone">
+              <Input
+                id="sf-edit-phone"
+                value={phone}
+                maxLength={32}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="07XX XXX XXX"
+                autoFocus
+              />
+            </Field>
+            <Field label="WhatsApp" htmlFor="sf-edit-whatsapp">
+              <Input
+                id="sf-edit-whatsapp"
+                value={whatsapp}
+                maxLength={32}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder="2547XXXXXXXX"
+              />
+            </Field>
+            <Field label="Email" htmlFor="sf-edit-email">
+              <Input
+                id="sf-edit-email"
+                type="email"
+                value={email}
+                maxLength={120}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="hello@shop.co.ke"
+              />
+            </Field>
+            <Field label="Street / area" htmlFor="sf-edit-address">
+              <Input
+                id="sf-edit-address"
+                value={address}
+                maxLength={160}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Moi Avenue"
+              />
+            </Field>
+            <Field label="Town" htmlFor="sf-edit-town">
+              <Input
+                id="sf-edit-town"
+                value={town}
+                maxLength={80}
+                onChange={(e) => setTown(e.target.value)}
+                placeholder="Nairobi"
+              />
+            </Field>
+          </div>
+        ) : activeField === "hours" ? (
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Weekdays open" htmlFor="sf-edit-wd-open">
+                <Input
+                  id="sf-edit-wd-open"
+                  type="time"
+                  value={weekdayOpen}
+                  onChange={(e) => setWeekdayOpen(e.target.value)}
+                  autoFocus
+                />
+              </Field>
+              <Field label="Weekdays close" htmlFor="sf-edit-wd-close">
+                <Input
+                  id="sf-edit-wd-close"
+                  type="time"
+                  value={weekdayClose}
+                  onChange={(e) => setWeekdayClose(e.target.value)}
+                />
+              </Field>
             </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={saturdayClosed}
+                onChange={(e) => setSaturdayClosed(e.target.checked)}
+                className="size-4 rounded border"
+              />
+              Saturday closed
+            </label>
+            {!saturdayClosed ? (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Saturday open" htmlFor="sf-edit-sat-open">
+                  <Input
+                    id="sf-edit-sat-open"
+                    type="time"
+                    value={saturdayOpen}
+                    onChange={(e) => setSaturdayOpen(e.target.value)}
+                  />
+                </Field>
+                <Field label="Saturday close" htmlFor="sf-edit-sat-close">
+                  <Input
+                    id="sf-edit-sat-close"
+                    type="time"
+                    value={saturdayClose}
+                    onChange={(e) => setSaturdayClose(e.target.value)}
+                  />
+                </Field>
+              </div>
+            ) : null}
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={sundayClosed}
+                onChange={(e) => setSundayClosed(e.target.checked)}
+                className="size-4 rounded border"
+              />
+              Sunday closed
+            </label>
+            {!sundayClosed ? (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Sunday open" htmlFor="sf-edit-sun-open">
+                  <Input
+                    id="sf-edit-sun-open"
+                    type="time"
+                    value={sundayOpen}
+                    onChange={(e) => setSundayOpen(e.target.value)}
+                  />
+                </Field>
+                <Field label="Sunday close" htmlFor="sf-edit-sun-close">
+                  <Input
+                    id="sf-edit-sun-close"
+                    type="time"
+                    value={sundayClose}
+                    onChange={(e) => setSundayClose(e.target.value)}
+                  />
+                </Field>
+              </div>
+            ) : null}
+            <Field label="Note (optional)" htmlFor="sf-edit-hours-note">
+              <Input
+                id="sf-edit-hours-note"
+                value={hoursNote}
+                maxLength={200}
+                onChange={(e) => setHoursNote(e.target.value)}
+                placeholder="Open on public holidays"
+              />
+            </Field>
           </div>
         ) : activeField === "announcement" ? (
-          <div className="space-y-1.5">
-            <Label htmlFor="sf-edit-announcement">Message</Label>
+          <Field label="Message" htmlFor="sf-edit-announcement">
             <Textarea
               id="sf-edit-announcement"
               value={text}
@@ -192,10 +427,9 @@ export function StorefrontQuickEditDialog({
               placeholder="Free delivery today · Open till 8pm"
               autoFocus
             />
-          </div>
+          </Field>
         ) : (
-          <div className="space-y-1.5">
-            <Label htmlFor="sf-edit-tagline">Tagline</Label>
+          <Field label="Tagline" htmlFor="sf-edit-tagline">
             <Input
               id="sf-edit-tagline"
               value={text}
@@ -204,7 +438,7 @@ export function StorefrontQuickEditDialog({
               placeholder="Everyday essentials on the shelf."
               autoFocus
             />
-          </div>
+          </Field>
         )}
 
         <DialogFooter className="gap-2 sm:justify-end">
@@ -226,5 +460,22 @@ export function StorefrontQuickEditDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+    </div>
   );
 }
