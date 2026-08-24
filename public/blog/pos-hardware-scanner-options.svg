@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Three ways to scan a barcode</text>
+
+  <!-- ============ LEFT: the three options ============ -->
+  <rect x="16" y="56" width="520" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="40" y="92" font-size="12.5" font-weight="700" fill="#1F2937">Pick by how your counter actually works</text>
+
+  <!-- Option 1: camera -->
+  <rect x="40" y="110" width="452" height="104" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <rect x="56" y="126" width="76" height="72" rx="10" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="66" y="136" width="56" height="52" rx="6" fill="#f9fafb"/>
+  <circle cx="94" cy="168" r="10" fill="#fef3c7"/>
+  <path d="M88 162 l14 14 M99 157 a7 7 0 1 1 -2 13" stroke="#b45309" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <text x="150" y="146" font-size="12" font-weight="700" fill="#15803d">Phone camera</text>
+  <text x="150" y="166" font-size="10.5" fill="#374151">Built into the till — point, scan, done.</text>
+  <text x="150" y="186" font-size="10.5" fill="#374151">Free, always with you, zero setup.</text>
+  <rect x="150" y="196" width="0" height="0" fill="none"/>
+  <rect x="336" y="130" width="140" height="26" rx="13" fill="#28a745"/>
+  <text x="406" y="148" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">START WITH THIS</text>
+
+  <!-- Option 2: USB -->
+  <rect x="40" y="226" width="452" height="104" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="56" y="242" width="76" height="72" rx="10" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="64" y="250" width="60" height="44" rx="8" fill="#1F2937"/>
+  <g stroke="#ffffff" stroke-width="2">
+    <line x1="74" y1="262" x2="74" y2="282"/><line x1="80" y1="262" x2="80" y2="282"/>
+    <line x1="84" y1="262" x2="84" y2="282"/><line x1="92" y1="262" x2="92" y2="282"/>
+    <line x1="96" y1="262" x2="96" y2="282"/><line x1="104" y1="262" x2="104" y2="282"/>
+    <line x1="110" y1="262" x2="110" y2="282"/><line x1="116" y1="262" x2="116" y2="282"/>
+  </g>
+  <path d="M80 296 h-6 m16 0 h-6 m2 6 l10 0 m-16 -2 l10 0" stroke="#6b7280" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <rect x="112" y="290" width="26" height="18" rx="3" fill="#1F2937"/>
+  <text x="150" y="262" font-size="12" font-weight="700" fill="#1F2937">USB scanner</text>
+  <text x="150" y="282" font-size="10.5" fill="#6b7280">Plug into a tablet or laptop — instant scan.</text>
+  <text x="150" y="302" font-size="10.5" fill="#6b7280">Best for one fixed counter that never moves.</text>
+  <rect x="336" y="246" width="140" height="26" rx="13" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="406" y="264" font-size="10.5" font-weight="700" fill="#4b5563" text-anchor="middle">FIRST UPGRADE</text>
+
+  <!-- Option 3: Bluetooth -->
+  <rect x="40" y="342" width="452" height="104" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="56" y="358" width="76" height="72" rx="10" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="64" y="366" width="60" height="44" rx="8" fill="#374151"/>
+  <g stroke="#ffffff" stroke-width="2">
+    <line x1="74" y1="378" x2="74" y2="398"/><line x1="80" y1="378" x2="80" y2="398"/>
+    <line x1="84" y1="378" x2="84" y2="398"/><line x1="92" y1="378" x2="92" y2="398"/>
+    <line x1="96" y1="378" x2="96" y2="398"/><line x1="104" y1="378" x2="104" y2="398"/>
+    <line x1="110" y1="378" x2="110" y2="398"/><line x1="116" y1="378" x2="116" y2="398"/>
+  </g>
+  <path d="M74 412 c6 -6 16 -6 22 0 c6 6 16 6 22 0" stroke="#6b7280" stroke-width="2.2" fill="none"/>
+  <path d="M74 420 c6 -6 16 -6 22 0 c6 6 16 6 22 0" stroke="#6b7280" stroke-width="2.2" fill="none"/>
+  <path d="M74 412 l-4 -4 m22 12 l4 -4" stroke="#6b7280" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <text x="150" y="378" font-size="12" font-weight="700" fill="#1F2937">Bluetooth scanner</text>
+  <text x="150" y="398" font-size="10.5" fill="#6b7280">Cable-free — scan from the shelf, not just the counter.</text>
+  <text x="150" y="418" font-size="10.5" fill="#6b7280">Great for restocking and moving around the shop.</text>
+  <rect x="336" y="362" width="140" height="26" rx="13" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="406" y="380" font-size="10.5" font-weight="700" fill="#4b5563" text-anchor="middle">MOBILE SHOP</text>
+
+  <text x="40" y="492" font-size="10.5" fill="#6b7280">Any of the three works with the same till — you can start with the camera</text>
+  <text x="40" y="508" font-size="10.5" fill="#6b7280">and add a scanner later without changing anything.</text>
+
+  <!-- ============ RIGHT: how to choose ============ -->
+  <rect x="564" y="56" width="380" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="588" y="92" font-size="13" font-weight="700" fill="#1F2937">One-minute decision guide</text>
+
+  <rect x="588" y="110" width="332" height="78" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="136" font-size="11.5" font-weight="700" fill="#1F2937">1 · Just starting?</text>
+  <text x="608" y="156" font-size="10.5" fill="#6b7280">Use the phone camera. It costs nothing,</text>
+  <text x="608" y="172" font-size="10.5" fill="#6b7280">and the till is already in your hand.</text>
+
+  <rect x="588" y="200" width="332" height="78" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="226" font-size="11.5" font-weight="700" fill="#1F2937">2 · One fixed counter?</text>
+  <text x="608" y="246" font-size="10.5" fill="#6b7280">A USB scanner on a stand — plug in,</text>
+  <text x="608" y="262" font-size="10.5" fill="#6b7280">scan, and the queue stops waiting on typing.</text>
+
+  <rect x="588" y="290" width="332" height="78" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="316" font-size="11.5" font-weight="700" fill="#1F2937">3 · Stock work &amp; movement?</text>
+  <text x="608" y="336" font-size="10.5" fill="#6b7280">Bluetooth — restock shelves and receive</text>
+  <text x="608" y="352" font-size="10.5" fill="#6b7280">supplies from anywhere in the shop.</text>
+
+  <rect x="588" y="392" width="332" height="120" rx="12" fill="#fefce8" stroke="#fde68a"/>
+  <text x="608" y="418" font-size="11.5" font-weight="700" fill="#A8842C">The honest rule</text>
+  <text x="608" y="438" font-size="10.5" fill="#374151">Hardware is an upgrade, not a prerequisite.</text>
+  <text x="608" y="456" font-size="10.5" fill="#374151">Set the software up first, take your first</text>
+  <text x="608" y="474" font-size="10.5" fill="#374151">sales with the camera — then buy the tool</text>
+  <text x="608" y="492" font-size="10.5" fill="#374151">your queue actually needs.</text>
+</svg>

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">The upgrade — same shop, different evening</text>
+
+  <!-- Center arrow -->
+  <rect x="478" y="120" width="4" height="300" fill="#A8842C"/>
+  <path d="M478 420 l-10 -16 m10 16 l10 -16" stroke="#A8842C" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ============ LEFT: before ============ -->
+  <rect x="16" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="440" height="48" rx="14" fill="#6b7280"/>
+  <rect x="16" y="82" width="440" height="22" fill="#6b7280"/>
+  <text x="40" y="87" font-size="14" font-weight="700" fill="#ffffff">Before · the outgrown till</text>
+  <rect x="356" y="66" width="76" height="24" rx="12" fill="#ffffff"/>
+  <text x="394" y="82" font-size="9.5" font-weight="800" fill="#6b7280" text-anchor="middle">WEEKDAYS</text>
+
+  <g font-size="11" fill="#374151">
+    <rect x="40" y="126" width="392" height="56" rx="10" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="60" y="148" font-size="11.5" font-weight="700" fill="#b91c1c">21:45 — still reconciling</text>
+    <text x="60" y="168" font-size="10.5" fill="#7f1d1d">Till total vs M-Pesa app vs cash — 40 minutes of matching</text>
+
+    <rect x="40" y="192" width="392" height="56" rx="10" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="60" y="214" font-size="11.5" font-weight="700" fill="#b91c1c">22:30 — spreadsheet shift</text>
+    <text x="60" y="234" font-size="10.5" fill="#7f1d1d">Sales copied into the "real" tracker; web list updated by hand</text>
+
+    <rect x="40" y="258" width="392" height="56" rx="10" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="60" y="280" font-size="11.5" font-weight="700" fill="#b91c1c">23:00 — stock "to fix tomorrow"</text>
+    <text x="60" y="300" font-size="10.5" fill="#7f1d1d">Another note in the notebook, another morning of counting</text>
+  </g>
+
+  <rect x="40" y="344" width="392" height="92" rx="12" fill="#f3f4f6" stroke="#e5e7eb"/>
+  <text x="60" y="368" font-size="11.5" font-weight="700" fill="#1F2937">The real cost</text>
+  <text x="60" y="388" font-size="10.5" fill="#6b7280">· 90+ minutes every night on bookkeeping</text>
+  <text x="60" y="406" font-size="10.5" fill="#6b7280">· Stock guesses instead of stock facts</text>
+  <text x="60" y="424" font-size="10.5" fill="#6b7280">· No storefront, no orders, no growth</text>
+
+  <!-- ============ RIGHT: after ============ -->
+  <rect x="504" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="504" y="56" width="440" height="48" rx="14" fill="#15803d"/>
+  <rect x="504" y="82" width="440" height="22" fill="#15803d"/>
+  <text x="528" y="87" font-size="14" font-weight="700" fill="#ffffff">After · the till that keeps up</text>
+  <rect x="836" y="66" width="88" height="24" rx="12" fill="#ffffff"/>
+  <text x="880" y="82" font-size="9.5" font-weight="800" fill="#15803d" text-anchor="middle">SAME SHOP</text>
+
+  <g font-size="11" fill="#374151">
+    <rect x="528" y="126" width="392" height="56" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="148" font-size="11.5" font-weight="700" fill="#15803d">18:02 — close the shift</text>
+    <text x="548" y="168" font-size="10.5" fill="#374151">Cash, M-Pesa, and web orders in one till record — it totals itself</text>
+
+    <rect x="528" y="192" width="392" height="56" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="214" font-size="11.5" font-weight="700" fill="#15803d">18:03 — stock is the truth</text>
+    <text x="548" y="234" font-size="10.5" fill="#374151">Every sale updated one shared count — shelf = web = reports</text>
+
+    <rect x="528" y="258" width="392" height="56" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="280" font-size="11.5" font-weight="700" fill="#15803d">18:10 — the evening is yours</text>
+    <text x="548" y="300" font-size="10.5" fill="#374151">Storefront live, orders landing, restock list printed from data</text>
+  </g>
+
+  <rect x="528" y="344" width="392" height="92" rx="12" fill="#15803d"/>
+  <text x="724" y="368" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">What changed</text>
+  <text x="724" y="388" font-size="10.5" fill="#d1fae5" text-anchor="middle">· The till does the counting — no night shift</text>
+  <text x="724" y="406" font-size="10.5" fill="#d1fae5" text-anchor="middle">· M-Pesa native: one tap, auto-credited</text>
+  <text x="724" y="424" font-size="10.5" fill="#d1fae5" text-anchor="middle">· A storefront that shares the same stock</text>
+
+  <rect x="528" y="456" width="392" height="56" rx="12" fill="#fefce8" stroke="#fde68a"/>
+  <text x="724" y="478" font-size="11.5" font-weight="700" fill="#A8842C" text-anchor="middle">The switch is an afternoon — not an IT project</text>
+  <text x="724" y="498" font-size="10" fill="#6b7280" text-anchor="middle">Your data habits travel: real prices, real stock, real sales</text>
+</svg>

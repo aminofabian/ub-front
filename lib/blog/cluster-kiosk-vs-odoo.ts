@@ -1,6 +1,10 @@
 import { spokePlaceholderBody } from "./article-helpers";
+import { ERP_VS_POS_ARTICLE } from "./cluster-erp-vs-pos";
 import { KIOSK_BEATS_ODOO_ARTICLE } from "./cluster-kiosk-beats-odoo";
 import { MPESA_INTEGRATION_ARTICLE } from "./cluster-mpesa-payments";
+import { ONE_INVENTORY_ARTICLE } from "./cluster-one-inventory";
+import { OUTGROWN_POS_ARTICLE } from "./cluster-outgrown-pos";
+import { POS_HARDWARE_ARTICLE } from "./cluster-pos-hardware";
 import { SETUP_POS_ARTICLE } from "./cluster-set-up-pos";
 import type { BlogArticle } from "./types";
 
@@ -182,43 +186,6 @@ function spoke(
 
 const SPOKE_ARTICLES: BlogArticle[] = [
   spoke({
-    slug: "5-signs-youve-outgrown-your-pos",
-    title: "5 Signs You've Outgrown Your POS",
-    description:
-      "Stock mismatches, slow checkouts, and spreadsheet workarounds — the clear signals it's time to upgrade your point of sale.",
-    category: "Guides",
-    publishedAt: "2026-07-22",
-    updatedAt: "2026-07-22",
-    tags: ["POS", "Growth", "Retail"],
-    relatedSlugs: [
-      KIOSK_VS_ODOO_PILLAR_SLUG,
-      "erp-vs-pos-do-you-need-the-full-suite",
-      "the-real-cost-of-free-software",
-      "why-kiosk-beats-odoo-for-kenyan-shops",
-    ],
-    teaser:
-      "When your till starts fighting you — wrong stock counts, slow payments, or endless spreadsheet fixes — you've probably outgrown the tool, not just the shop.",
-  }),
-  spoke({
-    slug: "erp-vs-pos-do-you-need-the-full-suite",
-    title: "ERP vs. POS: Do You Need the Full Suite?",
-    description:
-      "When a lean POS is enough — and when manufacturing, HR, and multi-warehouse ERP modules actually earn their keep.",
-    category: "Comparison",
-    publishedAt: "2026-07-20",
-    updatedAt: "2026-07-20",
-    tags: ["ERP", "POS", "Comparison"],
-    relatedSlugs: [
-      KIOSK_VS_ODOO_PILLAR_SLUG,
-      "5-signs-youve-outgrown-your-pos",
-      "the-real-cost-of-free-software",
-      TOP_10_SLUG,
-      "why-kiosk-beats-odoo-for-kenyan-shops",
-    ],
-    teaser:
-      "An ERP can run your whole company. A POS needs to run your counter. Knowing which problem you have today saves months of implementation.",
-  }),
-  spoke({
     slug: "the-real-cost-of-free-software",
     title: "The Real Cost of 'Free' Software",
     description:
@@ -255,41 +222,6 @@ const SPOKE_ARTICLES: BlogArticle[] = [
     teaser:
       "Growth isn't always a bigger ERP. Sometimes it's one shop, one till, and an online storefront that finally matches what's on the shelf.",
   }),
-  spoke({
-    slug: "what-hardware-do-you-actually-need",
-    title: "What Hardware Do You Actually Need?",
-    description:
-      "Phone, scanner, printer — a no-nonsense hardware checklist for a Kenyan retail counter, without the enterprise kit.",
-    category: "Hardware",
-    publishedAt: "2026-07-16",
-    updatedAt: "2026-07-16",
-    tags: ["Hardware", "POS", "Setup"],
-    relatedSlugs: [
-      KIOSK_VS_ODOO_PILLAR_SLUG,
-      "set-up-a-pos-in-30-minutes",
-      "why-m-pesa-integration-matters",
-    ],
-    teaser:
-      "You don't need a wall of terminals to sell. Most shops need a phone or tablet, a scanner, and a receipt printer — and software that works with them.",
-  }),
-  spoke({
-    slug: "online-physical-one-inventory",
-    title: "Online + Physical: One Inventory",
-    description:
-      "How a single stock count across your web shop and counter stops overselling and late-night spreadsheet reconciliations.",
-    category: "Inventory",
-    publishedAt: "2026-07-15",
-    updatedAt: "2026-07-15",
-    tags: ["Inventory", "Omnichannel", "Retail"],
-    relatedSlugs: [
-      KIOSK_VS_ODOO_PILLAR_SLUG,
-      "set-up-a-pos-in-30-minutes",
-      "from-stall-to-store-a-retailers-journey",
-      "why-kiosk-beats-odoo-for-kenyan-shops",
-    ],
-    teaser:
-      "Two channels, one stock number. When the till and the web shop share inventory, you stop selling what you don't have.",
-  }),
 ];
 
 export const KIOSK_VS_ODOO_ARTICLES: BlogArticle[] = [
@@ -297,5 +229,9 @@ export const KIOSK_VS_ODOO_ARTICLES: BlogArticle[] = [
   KIOSK_BEATS_ODOO_ARTICLE,
   SETUP_POS_ARTICLE,
   MPESA_INTEGRATION_ARTICLE,
+  POS_HARDWARE_ARTICLE,
+  ONE_INVENTORY_ARTICLE,
+  ERP_VS_POS_ARTICLE,
+  OUTGROWN_POS_ARTICLE,
   ...SPOKE_ARTICLES,
 ];

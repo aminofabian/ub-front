@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">One stock number, everywhere it matters</text>
+
+  <!-- ============ LEFT: the hub ============ -->
+  <rect x="16" y="56" width="520" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- center number -->
+  <circle cx="276" cy="296" r="64" fill="#f0fdf4" stroke="#28a745" stroke-width="3"/>
+  <text x="276" y="290" font-size="30" font-weight="800" fill="#15803d" text-anchor="middle">24</text>
+  <text x="276" y="314" font-size="10" font-weight="600" fill="#15803d" text-anchor="middle">UNITS</text>
+  <text x="276" y="332" font-size="8.5" fill="#15803d" text-anchor="middle">Sunbest Oil 1 L</text>
+
+  <!-- channels -->
+  <g font-size="11">
+    <!-- till -->
+    <rect x="60" y="120" width="176" height="64" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="148" y="146" font-size="11.5" font-weight="700" fill="#1F2937" text-anchor="middle">🏪 Counter sale</text>
+    <text x="148" y="166" font-size="10" fill="#6b7280" text-anchor="middle">-1 · auto</text>
+    <path d="M236 152 C 256 152, 256 280, 240 292" stroke="#28a745" stroke-width="2.4" fill="none" stroke-dasharray="6 4" marker-end="url(#dg)"/>
+
+    <!-- storefront -->
+    <rect x="60" y="380" width="176" height="64" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="148" y="406" font-size="11.5" font-weight="700" fill="#1F2937" text-anchor="middle">🌐 Web order</text>
+    <text x="148" y="426" font-size="10" fill="#6b7280" text-anchor="middle">-1 · auto</text>
+    <path d="M236 412 C 256 412, 256 312, 240 300" stroke="#28a745" stroke-width="2.4" fill="none" stroke-dasharray="6 4"/>
+
+    <!-- supply -->
+    <rect x="392" y="120" width="120" height="64" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="452" y="146" font-size="11.5" font-weight="700" fill="#1F2937" text-anchor="middle">📦 Supply</text>
+    <text x="452" y="166" font-size="10" fill="#6b7280" text-anchor="middle">+24 · on receive</text>
+    <path d="M392 152 C 372 152, 372 280, 332 292" stroke="#28a745" stroke-width="2.4" fill="none" stroke-dasharray="6 4"/>
+
+    <!-- stock take -->
+    <rect x="392" y="380" width="120" height="64" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="452" y="406" font-size="11.5" font-weight="700" fill="#1F2937" text-anchor="middle">🔎 Stock take</text>
+    <text x="452" y="426" font-size="10" fill="#6b7280" text-anchor="middle">corrects the truth</text>
+    <path d="M392 412 C 372 412, 372 312, 332 300" stroke="#28a745" stroke-width="2.4" fill="none" stroke-dasharray="6 4"/>
+  </g>
+  <defs>
+    <marker id="dg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0 0 L6 3 L0 6 Z" fill="#28a745"/>
+    </marker>
+  </defs>
+
+  <text x="276" y="500" font-size="10.5" fill="#6b7280" text-anchor="middle">Every channel reads and writes the same number —</text>
+  <text x="276" y="516" font-size="10.5" fill="#6b7280" text-anchor="middle">nothing reconciles at midnight because nothing drifts.</text>
+
+  <!-- ============ RIGHT: what it stops ============ -->
+  <rect x="564" y="56" width="380" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="588" y="92" font-size="13" font-weight="700" fill="#1F2937">What one count stops</text>
+
+  <rect x="588" y="110" width="332" height="64" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="134" font-size="11.5" font-weight="700" fill="#1F2937">🚫 Overselling</text>
+  <text x="608" y="152" font-size="10.5" fill="#6b7280">A web order can't take the last unit the till just sold —</text>
+  <text x="608" y="168" font-size="10.5" fill="#6b7280">the storefront sees the same reduced count instantly.</text>
+
+  <rect x="588" y="186" width="332" height="64" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="210" font-size="11.5" font-weight="700" fill="#1F2937">👻 Ghost stock</text>
+  <text x="608" y="228" font-size="10.5" fill="#6b7280">'Shows 10 on the website, but the shelf has 2' —</text>
+  <text x="608" y="244" font-size="10.5" fill="#6b7280">a two-spreadsheet problem that one number can't have.</text>
+
+  <rect x="588" y="262" width="332" height="64" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="286" font-size="11.5" font-weight="700" fill="#1F2937">🌙 Midnight reconciliation</text>
+  <text x="608" y="304" font-size="10.5" fill="#6b7280">No matching till totals against web orders against a</text>
+  <text x="608" y="320" font-size="10.5" fill="#6b7280">notebook at closing time. The shift balances itself.</text>
+
+  <rect x="588" y="338" width="332" height="64" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="362" font-size="11.5" font-weight="700" fill="#1F2937">🏷️ Price drift</text>
+  <text x="608" y="380" font-size="10.5" fill="#6b7280">Change the price once — the till and the storefront</text>
+  <text x="608" y="396" font-size="10.5" fill="#6b7280">both show the new number. No two-price confusion.</text>
+
+  <rect x="588" y="424" width="332" height="88" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="608" y="450" font-size="11.5" font-weight="700" fill="#15803d">The one-line summary</text>
+  <text x="608" y="470" font-size="10.5" fill="#374151">Two channels, one stock number. When the till and</text>
+  <text x="608" y="486" font-size="10.5" fill="#374151">the web shop share inventory, you stop selling what</text>
+  <text x="608" y="502" font-size="10.5" fill="#374151">you don't have — and stop counting what you sold.</text>
+</svg>

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Five red flags your till is holding you back</text>
+
+  <!-- ============ LEFT: 5 sign cards ============ -->
+  <rect x="16" y="56" width="560" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <g font-size="11">
+    <!-- 1 -->
+    <rect x="40" y="84" width="250" height="92" rx="10" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="60" y="110" font-size="12" font-weight="700" fill="#b91c1c">1 · Stock never matches</text>
+    <text x="60" y="130" font-size="10.5" fill="#7f1d1d">Till says 12, shelf says 5, notebook says</text>
+    <text x="60" y="146" font-size="10.5" fill="#7f1d1d">"ask tomorrow". Counting is a weekly ritual.</text>
+    <text x="60" y="166" font-size="10" fill="#6b7280">→ Sales and stock live in different worlds</text>
+
+    <!-- 2 -->
+    <rect x="302" y="84" width="250" height="92" rx="10" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="322" y="110" font-size="12" font-weight="700" fill="#b91c1c">2 · Checkout is the bottleneck</text>
+    <text x="322" y="130" font-size="10.5" fill="#7f1d1d">The queue waits while the cashier types</text>
+    <text x="322" y="146" font-size="10.5" fill="#7f1d1d">names into a phone — scanning feels slow,</text>
+    <text x="322" y="166" font-size="10" fill="#6b7280">→ The till adds work instead of removing it</text>
+
+    <!-- 3 -->
+    <rect x="40" y="188" width="250" height="92" rx="10" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="60" y="214" font-size="12" font-weight="700" fill="#b91c1c">3 · Spreadsheet next to the till</text>
+    <text x="60" y="234" font-size="10.5" fill="#7f1d1d">Every night, sales get typed into a second</text>
+    <text x="60" y="250" font-size="10.5" fill="#7f1d1d">system "to be safe". Two lists, one truth?</text>
+    <text x="60" y="270" font-size="10" fill="#6b7280">→ The till isn't trusted with the numbers</text>
+
+    <!-- 4 -->
+    <rect x="302" y="188" width="250" height="92" rx="10" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="322" y="214" font-size="12" font-weight="700" fill="#b91c1c">4 · M-Pesa takes two apps</text>
+    <text x="322" y="234" font-size="10.5" fill="#7f1d1d">Ring the sale here, switch to the M-Pesa</text>
+    <text x="322" y="250" font-size="10.5" fill="#7f1d1d">app there, copy-paste amounts, hope it</text>
+    <text x="322" y="270" font-size="10" fill="#6b7280">→ Payments are bolted on, not built in</text>
+
+    <!-- 5 -->
+    <rect x="40" y="292" width="250" height="92" rx="10" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="60" y="318" font-size="12" font-weight="700" fill="#b91c1c">5 · The online shop is a WhatsApp album</text>
+    <text x="60" y="338" font-size="10.5" fill="#7f1d1d">Photos in a group chat, orders in replies,</text>
+    <text x="60" y="354" font-size="10.5" fill="#7f1d1d">prices in the caption. Nothing tracks.</text>
+    <text x="60" y="374" font-size="10" fill="#6b7280">→ No storefront, no orders, no stock link</text>
+
+    <!-- summary -->
+    <rect x="302" y="292" width="250" height="92" rx="10" fill="#1F2937"/>
+    <text x="427" y="318" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">Same root cause</text>
+    <text x="427" y="340" font-size="10.5" fill="#d1d5db" text-anchor="middle">Every sign is the same sentence:</text>
+    <text x="427" y="358" font-size="10.5" fill="#d1d5db" text-anchor="middle">the tool can't keep up with the</text>
+    <text x="427" y="374" font-size="10.5" fill="#d1d5db" text-anchor="middle">shop — not the other way round.</text>
+  </g>
+
+  <text x="40" y="424" font-size="10.5" fill="#6b7280">One or two of these is a bad week. Three or more, and the tool is the</text>
+  <text x="40" y="440" font-size="10.5" fill="#6b7280">problem — not your team, and not your shop.</text>
+  <rect x="40" y="462" width="512" height="48" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="296" y="483" font-size="11" font-weight="700" fill="#A8842C" text-anchor="middle">Good news: these are fixable in an afternoon, not a quarter</text>
+  <text x="296" y="501" font-size="10" fill="#6b7280" text-anchor="middle">The till upgrade is a switch, not a project — see the next screen.</text>
+
+  <!-- ============ RIGHT: what it feels like ============ -->
+  <rect x="604" y="56" width="340" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="628" y="92" font-size="13" font-weight="700" fill="#1F2937">What it feels like at close</text>
+
+  <rect x="628" y="110" width="292" height="110" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="648" y="138" font-size="11.5" font-weight="700" fill="#1F2937">21:45 — still reconciling</text>
+  <g font-size="10.5" fill="#6b7280">
+    <text x="648" y="162">· Till total: KES 41,200</text>
+    <text x="648" y="180">· M-Pesa app: KES 29,800 · cash: 11,400</text>
+    <text x="648" y="198">· Difference: KES 0 … after 40 minutes of hunting</text>
+  </g>
+
+  <rect x="628" y="240" width="292" height="110" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="648" y="268" font-size="11.5" font-weight="700" fill="#1F2937">22:30 — the spreadsheet</text>
+  <g font-size="10.5" fill="#6b7280">
+    <text x="648" y="292">· Copy sales into the "real" tracker</text>
+    <text x="648" y="310">· Update the web list so it matches (it won't)</text>
+    <text x="648" y="328">· Note the stock "to fix tomorrow"</text>
+  </g>
+
+  <rect x="628" y="370" width="292" height="142" rx="12" fill="#fef2f2" stroke="#fecaca"/>
+  <text x="648" y="396" font-size="11.5" font-weight="700" fill="#b91c1c">The pattern</text>
+  <text x="648" y="418" font-size="10.5" fill="#7f1d1d">The till was bought to remove work — and the</text>
+  <text x="648" y="436" font-size="10.5" fill="#7f1d1d">shop now does MORE work because of it.</text>
+  <text x="648" y="462" font-size="10.5" fill="#7f1d1d">That's the real cost of an outgrown POS:</text>
+  <text x="648" y="480" font-size="10.5" fill="#7f1d1d">not the licence — the nightly hours.</text>
+  <text x="648" y="502" font-size="10" fill="#6b7280">Fixed by software that does the counting for you.</text>
+</svg>
