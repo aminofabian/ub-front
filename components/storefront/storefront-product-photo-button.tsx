@@ -1,7 +1,7 @@
 "use client";
 
 import { Camera, Loader2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { toast } from "sonner";
 
 import {
@@ -11,9 +11,17 @@ import { uploadItemImageFile } from "@/lib/api";
 import { trackStorefrontEditEvent } from "@/lib/storefront-staff-edit";
 import { cn } from "@/lib/utils";
 
+function stopNav(e: MouseEvent | PointerEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  // Next.js <Link> / parent anchors can still win without this.
+  e.nativeEvent.stopImmediatePropagation();
+}
+
 /**
  * Grocery-style camera chip for storefront product tiles.
- * In edit mode the whole parent image area is clickable (absolute inset overlay).
+ * Must sit outside any <Link> (use StorefrontProductImageShell).
+ * In edit mode the whole parent image area is clickable.
  */
 export function StorefrontProductPhotoButton({
   itemId,
@@ -66,11 +74,11 @@ export function StorefrontProductPhotoButton({
     }
   }
 
-  function openPicker(e: React.SyntheticEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+  function openPicker(e: MouseEvent | PointerEvent) {
+    stopNav(e);
     if (uploading) return;
-    inputRef.current?.click();
+    // Defer so we are outside the current click stack (avoids link navigation).
+    window.setTimeout(() => inputRef.current?.click(), 0);
   }
 
   return (
@@ -79,7 +87,8 @@ export function StorefrontProductPhotoButton({
         type="button"
         disabled={uploading}
         onClick={openPicker}
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={stopNav}
+        onMouseDown={stopNav}
         className="absolute inset-0 z-[2] cursor-pointer bg-transparent"
         aria-label={`Update photo for ${itemName}`}
         title="Update photo"
@@ -88,7 +97,8 @@ export function StorefrontProductPhotoButton({
         type="button"
         disabled={uploading}
         onClick={openPicker}
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={stopNav}
+        onMouseDown={stopNav}
         className={cn(
           "absolute bottom-1.5 right-1.5 z-[3] flex size-8 items-center justify-center rounded-md border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px] transition-colors hover:bg-black/70 disabled:opacity-70",
           className,
@@ -108,6 +118,7 @@ export function StorefrontProductPhotoButton({
         accept="image/*"
         capture="environment"
         className="hidden"
+        onClick={(e) => e.stopPropagation()}
         onChange={(e) => {
           void handleFile(e.target.files?.[0]);
         }}

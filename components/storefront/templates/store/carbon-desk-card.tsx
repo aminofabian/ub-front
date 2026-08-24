@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/carbon-desk.module.css";
 import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
-import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -77,7 +77,13 @@ function FormVisual({
 }) {
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
   return (
-    <Link href={href} className={cn(styles.formPhoto, "relative")}>
+    <StorefrontProductImageShell
+      href={href}
+      className={cn(styles.formPhoto, "relative")}
+      itemId={item.id}
+      itemName={item.name}
+      ariaLabel={item.name}
+    >
       {imageUrl ? (
         <Image
           src={imageUrl}
@@ -91,8 +97,7 @@ function FormVisual({
       ) : (
         <span className={styles.photoPlaceholder} aria-hidden />
       )}
-      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-    </Link>
+    </StorefrontProductImageShell>
   );
 }
 

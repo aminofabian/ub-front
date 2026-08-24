@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/butcher-board.module.css";
 import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
-import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -86,7 +86,13 @@ export function ButcherBoardVignette({
 
   return (
     <article className={styles.vignette}>
-      <Link href={href} className={cn(styles.vignetteVisual, "relative")}>
+      <StorefrontProductImageShell
+        href={href}
+        className={cn(styles.vignetteVisual, "relative")}
+        itemId={item.id}
+        itemName={item.name}
+        ariaLabel={item.name}
+      >
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -99,8 +105,7 @@ export function ButcherBoardVignette({
         ) : (
           <span className={styles.heroPlaceholder} aria-hidden />
         )}
-        <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-      </Link>
+      </StorefrontProductImageShell>
       <div className={styles.vignetteBody}>
         <Link href={href} className={styles.vignetteName}>
           {item.name}
@@ -130,7 +135,13 @@ export function ButcherBoardCard({
 
   return (
     <article className={styles.card}>
-      <Link href={href} className={cn(styles.cardVisual, "relative")}>
+      <StorefrontProductImageShell
+        href={href}
+        className={cn(styles.cardVisual, "relative")}
+        itemId={item.id}
+        itemName={item.name}
+        ariaLabel={item.name}
+      >
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -143,8 +154,7 @@ export function ButcherBoardCard({
         ) : (
           <span className={styles.heroPlaceholder} aria-hidden />
         )}
-        <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-      </Link>
+      </StorefrontProductImageShell>
       <div className={styles.cardInfo}>
         <Link href={href} className={cn(styles.cardName)}>
           {item.name}
@@ -176,7 +186,13 @@ export function ButcherBoardHero({
 
   return (
     <article className={cn(styles.hero, styles.heroGlow)}>
-      <Link href={href} className={cn(styles.heroClip, "relative")}>
+      <StorefrontProductImageShell
+        href={href}
+        className={cn(styles.heroClip, "relative")}
+        itemId={item.id}
+        itemName={item.name}
+        ariaLabel={item.name}
+      >
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -191,8 +207,7 @@ export function ButcherBoardHero({
           <span className={styles.heroPlaceholder} aria-hidden />
         )}
         <span className={styles.heroShade} aria-hidden />
-        <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-      </Link>
+      </StorefrontProductImageShell>
       <div className={styles.heroCopy}>
         <StorefrontNativeHeroHeadline
           value={headline}

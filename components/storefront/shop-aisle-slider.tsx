@@ -15,7 +15,10 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { StorefrontCategoryPhotoButton } from "@/components/storefront/storefront-category-photo-button";
-import { useStorefrontDisplayCategoryIcon } from "@/components/storefront/storefront-staff-edit";
+import {
+  useStorefrontDisplayCategoryIcon,
+  useStorefrontStaffEditOptional,
+} from "@/components/storefront/storefront-staff-edit";
 import type { PublicCategory } from "@/lib/public-storefront";
 import { shopListPath, storefrontCategoryPathSlug } from "@/lib/shop-url";
 import { categoryIconImageUrl, cn } from "@/lib/utils";
@@ -56,18 +59,19 @@ function AisleCard({
   tintFallback: string;
   categoryId: string;
 }) {
+  const staff = useStorefrontStaffEditOptional();
+  const editing = Boolean(staff?.editMode && staff.canEditCategoryPhotos);
   const color = tint ?? tintFallback;
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "group relative h-[5.75rem] w-[5.75rem] shrink-0 snap-start overflow-hidden rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] transition-[border-color,box-shadow,transform] duration-200",
-        "hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:shadow-[0_4px_14px_-6px_rgba(20,24,22,0.2)] sm:h-[6.25rem] sm:w-[6.25rem]",
-      )}
-      style={{
-        background: `linear-gradient(145deg, color-mix(in srgb, ${color} 24%, white) 0%, color-mix(in srgb, ${color} 62%, white) 100%)`,
-      }}
-    >
+  const className = cn(
+    "group relative h-[5.75rem] w-[5.75rem] shrink-0 snap-start overflow-hidden rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] transition-[border-color,box-shadow,transform] duration-200",
+    "hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:shadow-[0_4px_14px_-6px_rgba(20,24,22,0.2)] sm:h-[6.25rem] sm:w-[6.25rem]",
+  );
+  const style = {
+    background: `linear-gradient(145deg, color-mix(in srgb, ${color} 24%, white) 0%, color-mix(in srgb, ${color} 62%, white) 100%)`,
+  };
+
+  const content = (
+    <>
       {customIconSrc ? (
         <Image
           src={customIconSrc}
@@ -102,12 +106,25 @@ function AisleCard({
           </span>
         ) : null}
       </span>
+    </>
+  );
 
-      <StorefrontCategoryPhotoButton
-        categoryId={categoryId}
-        categoryName={label}
-        className="bottom-auto top-1.5 right-1.5 z-20"
-      />
+  if (editing) {
+    return (
+      <div className={className} style={style}>
+        {content}
+        <StorefrontCategoryPhotoButton
+          categoryId={categoryId}
+          categoryName={label}
+          className="bottom-auto top-1.5 right-1.5 z-20"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <Link href={href} className={className} style={style}>
+      {content}
     </Link>
   );
 }

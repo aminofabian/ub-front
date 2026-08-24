@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import styles from "@/components/storefront/templates/store/tint-lab.module.css";
-import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES, apiUrl } from "@/lib/config";
@@ -69,7 +69,13 @@ function TintCardVisual({
 }) {
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
   return (
-    <Link href={href} className={cn(styles.cardVisual, "relative")}>
+    <StorefrontProductImageShell
+      href={href}
+      className={cn(styles.cardVisual, "relative")}
+      itemId={item.id}
+      itemName={item.name}
+      ariaLabel={item.name}
+    >
       <span
         className={styles.cardBlob}
         style={{
@@ -88,8 +94,7 @@ function TintCardVisual({
       ) : (
         <span className={styles.cardPlaceholder} aria-hidden />
       )}
-      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-    </Link>
+    </StorefrontProductImageShell>
   );
 }
 

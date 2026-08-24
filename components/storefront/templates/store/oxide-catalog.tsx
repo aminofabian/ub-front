@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import styles from "@/components/storefront/templates/store/oxide.module.css";
-import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES, apiUrl } from "@/lib/config";
@@ -64,7 +64,13 @@ function OxideItemVisual({
 }) {
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
   return (
-    <Link href={href} className={cn(styles.itemVisual, "relative")}>
+    <StorefrontProductImageShell
+      href={href}
+      className={cn(styles.itemVisual, "relative")}
+      itemId={item.id}
+      itemName={item.name}
+      ariaLabel={item.name}
+    >
       {imageUrl ? (
         <Image
           src={imageUrl}
@@ -77,8 +83,7 @@ function OxideItemVisual({
       ) : (
         <span className={styles.itemPlaceholder} aria-hidden />
       )}
-      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-    </Link>
+    </StorefrontProductImageShell>
   );
 }
 

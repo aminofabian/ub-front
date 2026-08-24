@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/beauty-edit.module.css";
 import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
-import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -78,7 +78,13 @@ export function BeautyEditCard({
 
   return (
     <article className={cn(styles.card, compact && styles.cardCompact)}>
-      <Link href={href} className={cn(styles.cardVisual, "relative")}>
+      <StorefrontProductImageShell
+        href={href}
+        className={cn(styles.cardVisual, "relative")}
+        itemId={item.id}
+        itemName={item.name}
+        ariaLabel={item.name}
+      >
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -94,8 +100,7 @@ export function BeautyEditCard({
         <span className={styles.cardHover}>
           <BeautyEditAddButton item={item} />
         </span>
-        <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-      </Link>
+      </StorefrontProductImageShell>
       <div className={styles.cardInfo}>
         <Link href={href} className={styles.cardName}>
           {item.name}
@@ -123,7 +128,13 @@ export function BeautyEditHeroPanel({
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
 
   return (
-    <Link href={href} className={cn(styles.heroPanel, "relative")}>
+    <StorefrontProductImageShell
+      href={href}
+      className={cn(styles.heroPanel, "relative")}
+      itemId={item.id}
+      itemName={item.name}
+      ariaLabel={`${item.name} · ${priceLabel(item, currency)}`}
+    >
       {imageUrl ? (
         <Image
           src={imageUrl}
@@ -153,7 +164,6 @@ export function BeautyEditHeroPanel({
       <span className={styles.srOnly}>
         {item.name} · {priceLabel(item, currency)}
       </span>
-      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-    </Link>
+    </StorefrontProductImageShell>
   );
 }

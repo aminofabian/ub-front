@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/boutique-shelf.module.css";
 import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
-import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -79,13 +79,16 @@ function BoxVisual({
 }) {
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
   return (
-    <Link
+    <StorefrontProductImageShell
       href={href}
       className={cn(
         styles.boxVisual,
         variant === "slot" && styles.boxVisualSlot,
         "relative",
       )}
+      itemId={item.id}
+      itemName={item.name}
+      ariaLabel={item.name}
     >
       <span className={styles.tissueCorner} aria-hidden />
       {imageUrl ? (
@@ -101,8 +104,7 @@ function BoxVisual({
       ) : (
         <span className={styles.visualPlaceholder} aria-hidden />
       )}
-      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-    </Link>
+    </StorefrontProductImageShell>
   );
 }
 

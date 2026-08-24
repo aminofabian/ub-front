@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/milk-run.module.css";
-import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -99,7 +99,13 @@ export function MilkRunCard({
     <article className={styles.card}>
       <div className={styles.flap} style={{ background: flap }} />
       <div className={styles.cardBody}>
-        <Link href={href} className={cn(styles.cardVisual, "relative")}>
+        <StorefrontProductImageShell
+          href={href}
+          className={cn(styles.cardVisual, "relative")}
+          itemId={item.id}
+          itemName={item.name}
+          ariaLabel={item.name}
+        >
           {imageUrl ? (
             <Image
               src={imageUrl}
@@ -111,8 +117,7 @@ export function MilkRunCard({
           ) : (
             <span className={styles.cardPlaceholder} aria-hidden />
           )}
-          <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-        </Link>
+        </StorefrontProductImageShell>
         <div className={styles.cardInfo}>
           <div className={styles.cardTagRow}>
             {tag ? <span className={styles.cardTag}>{tag}</span> : null}

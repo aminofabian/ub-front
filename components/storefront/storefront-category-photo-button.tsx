@@ -71,8 +71,11 @@ export function StorefrontCategoryPhotoButton({
   function openPicker(e: React.SyntheticEvent) {
     e.preventDefault();
     e.stopPropagation();
+    if ("nativeEvent" in e) {
+      e.nativeEvent.stopImmediatePropagation();
+    }
     if (uploading) return;
-    inputRef.current?.click();
+    window.setTimeout(() => inputRef.current?.click(), 0);
   }
 
   return (
@@ -81,7 +84,14 @@ export function StorefrontCategoryPhotoButton({
         type="button"
         disabled={uploading}
         onClick={openPicker}
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
         className="absolute inset-0 z-[2] cursor-pointer bg-transparent"
         aria-label={`Update photo for ${categoryName}`}
         title="Update category photo"
@@ -90,7 +100,14 @@ export function StorefrontCategoryPhotoButton({
         type="button"
         disabled={uploading}
         onClick={openPicker}
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
         className={cn(
           "absolute bottom-1.5 right-1.5 z-[3] flex size-8 items-center justify-center rounded-md border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px] transition-colors hover:bg-black/70 disabled:opacity-70",
           className,
@@ -110,6 +127,7 @@ export function StorefrontCategoryPhotoButton({
         accept="image/*"
         capture="environment"
         className="hidden"
+        onClick={(e) => e.stopPropagation()}
         onChange={(e) => {
           void handleFile(e.target.files?.[0]);
         }}

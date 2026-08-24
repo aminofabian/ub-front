@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-button";
-import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import {
   useStorefrontDisplayImage,
 } from "@/components/storefront/storefront-staff-edit";
@@ -86,7 +86,13 @@ function ProductCardImage({
 }) {
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
   return (
-    <Link href={shopItemPathFromCard(item)} className={IMAGE_WELL} aria-label={ariaTitle}>
+    <StorefrontProductImageShell
+      href={shopItemPathFromCard(item)}
+      className={IMAGE_WELL}
+      ariaLabel={ariaTitle}
+      itemId={item.id}
+      itemName={item.name}
+    >
       {imageUrl ? (
         <Image
           src={imageUrl}
@@ -101,8 +107,7 @@ function ProductCardImage({
       )}
 
       {showCartBadge ? <InCartQtyBadge itemId={item.id} /> : null}
-      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-    </Link>
+    </StorefrontProductImageShell>
   );
 }
 

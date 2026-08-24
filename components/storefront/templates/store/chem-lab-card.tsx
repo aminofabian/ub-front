@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
 import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
-import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -84,13 +84,16 @@ function BottleVisual({
 }) {
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
   return (
-    <Link
+    <StorefrontProductImageShell
       href={href}
       className={cn(
         styles.bottleVisual,
         variant === "vial" && styles.bottleVial,
         "relative",
       )}
+      itemId={item.id}
+      itemName={item.name}
+      ariaLabel={item.name}
     >
       <span className={styles.glassSheen} aria-hidden />
       <span className={styles.bottleLabel} aria-hidden />
@@ -107,8 +110,7 @@ function BottleVisual({
       ) : (
         <span className={styles.visualPlaceholder} aria-hidden />
       )}
-      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
-    </Link>
+    </StorefrontProductImageShell>
   );
 }
 
