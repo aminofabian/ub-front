@@ -1,7 +1,21 @@
 import type { RestockSuggestionRecord } from "@/lib/api";
 
-import type { DepartmentGroup } from "../_components/department-column";
 import { deptKey, deptName, UNCATEGORISED_KEY } from "./digest-format";
+
+export type SupplierGroup = {
+  supplierId: string;
+  supplierName: string;
+  lines: RestockSuggestionRecord[];
+};
+
+export type DepartmentGroup = {
+  id: string;
+  name: string;
+  lines: RestockSuggestionRecord[];
+  supplierGroups: SupplierGroup[];
+  padLines: RestockSuggestionRecord[];
+  handled: RestockSuggestionRecord[];
+};
 
 export function buildDepartments(
   suggestions: RestockSuggestionRecord[],
