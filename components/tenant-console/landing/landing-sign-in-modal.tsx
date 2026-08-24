@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   fetchSignInDestinationsByEmail,
+  fetchSignInDestinationsByPhoneHint,
   searchPublicShops,
   type PublicSignInDestination,
 } from "@/lib/api";
@@ -24,7 +25,6 @@ import {
   buildApexForwardUrl,
 } from "@/lib/apex-forward";
 import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
-import { loginSupplierPortal } from "@/lib/marketplace-api";
 import { buildStorefrontSignInHref } from "@/components/storefront/storefront-sign-in-sheet";
 import { cn } from "@/lib/utils";
 
@@ -50,12 +50,7 @@ type Step =
   | { status: "miss"; hint: string; phone?: string }
   | { status: "shop-search" }
   | { status: "shop-loading" }
-  | { status: "shop-results"; query: string; rows: PublicSignInDestination[] }
-  | {
-      status: "supplier-auth";
-      identity: IdentityPayload;
-      name: string;
-    };
+  | { status: "shop-results"; query: string; rows: PublicSignInDestination[] };
 
 type IdentityPayload = {
   kind: "email" | "phone";
@@ -91,7 +86,7 @@ function doorStamp(door: PublicSignInDestination["door"]): string {
 
 function doorHint(row: PublicSignInDestination): string {
   if (row.hint) return row.hint;
-  if (row.door === "SUPPLIER") return "PIN or password in this sheet";
+  if (row.door === "SUPPLIER") return "PIN or password — opens the portal";
   if (row.door === "SUPPLIER_CLAIM") return "Verify your phone by SMS to open it";
   return "PIN or password — opens in the shop";
 }
@@ -116,6 +111,41 @@ function groupPasses(rows: PublicSignInDestination[]) {
     label,
     rows: rows.filter((row) => row.door === door),
   })).filter((group) => group.rows.length > 0);
+}
+
+function mergeDestinations(
+  ...lists: PublicSignInDestination[][]
+): PublicSignInDestination[] {
+  const seen = new Set<string>();
+  const out: PublicSignInDestination[] = [];
+  for (const list of lists) {
+    for (const row of list) {
+      const key = destinationKey(row);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out;
+}
+
+function supplierPortalHref(
+  row: PublicSignInDestination,
+  identity: IdentityPayload | undefined,
+): string {
+  if (row.door === "SUPPLIER_CLAIM") {
+    const phone = identity?.kind === "phone" ? identity.phone : undefined;
+    return phone
+      ? `${APP_ROUTES.supplierPortalClaim}?phone=${encodeURIComponent(phone)}`
+      : APP_ROUTES.supplierPortalClaim;
+  }
+  const params = new URLSearchParams();
+  if (identity?.email) params.set("email", identity.email);
+  if (identity?.phone) params.set("phone", identity.phone);
+  const query = params.toString();
+  return query
+    ? `${APP_ROUTES.supplierPortalLogin}?${query}`
+    : APP_ROUTES.supplierPortalLogin;
 }
 
 function resolveIdentity(
@@ -144,9 +174,16 @@ export function LandingSignInModal({
   const [step, setStep] = useState<Step>({ status: "idle" });
   const [forwarding, setForwarding] = useState<PublicSignInDestination | null>(null);
   const [shopQuery, setShopQuery] = useState("");
-  const [supplierPassword, setSupplierPassword] = useState("");
-  const [supplierBusy, setSupplierBusy] = useState(false);
-  const [supplierError, setSupplierError] = useState("");
+  const [heldSupplierRows, setHeldSupplierRows] = useState<PublicSignInDestination[]>([]);
+  const forwardTimer = useRef<number | null>(null);
+
+  const cancelForward = () => {
+    if (forwardTimer.current != null) {
+      window.clearTimeout(forwardTimer.current);
+      forwardTimer.current = null;
+    }
+    setForwarding(null);
+  };
 
   const kind = detectIdentityKind(identity);
 
@@ -158,9 +195,8 @@ export function LandingSignInModal({
     setStep({ status: "idle" });
     setForwarding(null);
     setShopQuery("");
-    setSupplierPassword("");
-    setSupplierBusy(false);
-    setSupplierError("");
+    setHeldSupplierRows([]);
+    cancelForward();
   }, [open]);
 
   useEffect(() => {
@@ -175,29 +211,10 @@ export function LandingSignInModal({
     if (forwarding) return;
     const idPayload = resolveIdentity(payload, kind, identity);
 
-    if (row.door === "SUPPLIER") {
-      setSupplierPassword("");
-      setSupplierError("");
-      setStep({
-        status: "supplier-auth",
-        identity: idPayload ?? { kind: "email", email: "" },
-        name: row.name,
-      });
-      return;
-    }
-
-    // A supplier the platform knows but who has no portal login yet: the claim
-    // flow verifies the stall phone by SMS, so hand it a verified one when we
-    // have it and let the claim page ask otherwise.
-    if (row.door === "SUPPLIER_CLAIM") {
+    if (row.door === "SUPPLIER" || row.door === "SUPPLIER_CLAIM") {
       setForwarding(row);
       window.setTimeout(() => {
-        const phone = idPayload?.kind === "phone" ? idPayload.phone : undefined;
-        window.location.assign(
-          phone
-            ? `${APP_ROUTES.supplierPortalClaim}?phone=${encodeURIComponent(phone)}`
-            : APP_ROUTES.supplierPortalClaim,
-        );
+        window.location.assign(supplierPortalHref(row, idPayload));
       }, 720);
       return;
     }
@@ -235,28 +252,32 @@ export function LandingSignInModal({
     }, 720);
   };
 
-  const onSupplierSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (step.status !== "supplier-auth") return;
-    const identifier =
-      step.identity.email?.trim() ||
-      step.identity.phone?.trim() ||
-      identity.trim();
-    if (!identifier || !supplierPassword) {
-      setSupplierError("Enter your email or phone and password.");
+  const presentPasses = (
+    rows: PublicSignInDestination[],
+    payload: IdentityPayload,
+  ) => {
+    if (rows.length === 1) {
+      go(rows[0], payload);
       return;
     }
-    setSupplierBusy(true);
-    setSupplierError("");
-    try {
-      await loginSupplierPortal(identifier, supplierPassword);
-      window.location.assign(APP_ROUTES.supplierPortalOverview);
-    } catch (error) {
-      setSupplierError(
-        error instanceof Error ? error.message : "Could not sign in.",
-      );
-      setSupplierBusy(false);
+    setStep({ status: "passes", rows, identity: payload });
+  };
+
+  const startShopOtp = async (digits: string) => {
+    setForwarding(null);
+    setStep({ status: "phone-sending" });
+    const result = await sendShopperIdentifyCode(digits);
+    if (!result) {
+      setStep({
+        status: "miss",
+        hint: "Could not send a code. Check the number and try again.",
+        phone: digits,
+      });
+      return;
     }
+    setCode("");
+    setCountdown(RESEND_SECONDS);
+    setStep({ status: "phone-code", phone: digits });
   };
 
   const onIdentitySubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -269,31 +290,23 @@ export function LandingSignInModal({
       if (rows.length === 0) {
         setStep({
           status: "miss",
-          hint: "No pass on that email. Suppliers usually sign in with the stall phone — try the number instead.",
+          hint: "No pass on that email. Suppliers often use the stall phone — try the number instead.",
         });
         return;
       }
-      setStep({
-        status: "passes",
-        rows,
-        identity: { kind: "email", email },
-      });
+      presentPasses(rows, { kind: "email", email });
       return;
     }
     if (detected === "phone") {
       const digits = identity.replace(/\D/g, "");
-      setStep({ status: "phone-sending" });
-      const result = await sendShopperIdentifyCode(digits);
-      if (!result) {
-        setStep({
-          status: "miss",
-          hint: "Could not send a code. Check the number and try again.",
-        });
+      setStep({ status: "looking" });
+      const supplierRows = await fetchSignInDestinationsByPhoneHint(digits);
+      if (supplierRows.length > 0) {
+        setHeldSupplierRows(supplierRows);
+        presentPasses(supplierRows, { kind: "phone", phone: digits });
         return;
       }
-      setCode("");
-      setCountdown(RESEND_SECONDS);
-      setStep({ status: "phone-code", phone: digits });
+      await startShopOtp(digits);
       return;
     }
     setStep({
@@ -314,9 +327,9 @@ export function LandingSignInModal({
       setStep({ status: "phone-code", phone: step.phone });
       return;
     }
-    const rows = await fetchSignInDestinationsByPhone(
-      step.phone,
-      verified.phoneVerificationToken,
+    const rows = mergeDestinations(
+      heldSupplierRows,
+      await fetchSignInDestinationsByPhone(step.phone, verified.phoneVerificationToken),
     );
     if (rows.length === 0) {
       setStep({
@@ -326,11 +339,7 @@ export function LandingSignInModal({
       });
       return;
     }
-    setStep({
-      status: "passes",
-      rows,
-      identity: { kind: "phone", phone: step.phone },
-    });
+    presentPasses(rows, { kind: "phone", phone: step.phone });
   };
 
   const onShopSearch = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -380,64 +389,24 @@ export function LandingSignInModal({
                 Your pass
               </DialogTitle>
               <DialogDescription className="text-[14px] leading-relaxed text-[var(--kiosk-text-muted)]">
-                Email or phone — we stamp every shop and portal tied to you, then
-                open the right door for PIN or password.
+                Email or phone — we stamp every shop, till, and supply portal
+                tied to you, then open the right door.
               </DialogDescription>
             </DialogHeader>
 
-            {step.status === "supplier-auth" ? (
-              <form className="mt-6 space-y-4" onSubmit={(e) => void onSupplierSubmit(e)}>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
-                  Supplier · {step.name}
-                </p>
-                <label className="block">
-                  <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
-                    Email or phone
-                  </span>
-                  <input
-                    value={
-                      step.identity.email ||
-                      step.identity.phone ||
-                      identity
-                    }
-                    readOnly
-                    className="landing-find-shop-input w-full border border-[var(--kiosk-border-strong)] bg-white px-3.5 py-3 text-[15px] text-[var(--kiosk-text)] outline-none"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
-                    PIN or password
-                  </span>
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    value={supplierPassword}
-                    onChange={(e) => setSupplierPassword(e.target.value)}
-                    autoFocus
-                    className="landing-find-shop-input w-full border border-[var(--kiosk-border-strong)] bg-white px-3.5 py-3 text-[15px] text-[var(--kiosk-text)] outline-none focus:border-[var(--kiosk-gold)]"
-                    required
-                  />
-                </label>
-                {supplierError ? (
-                  <p className="text-[13px] text-[var(--kiosk-danger)]">{supplierError}</p>
-                ) : null}
-                <button
-                  type="submit"
-                  disabled={supplierBusy}
-                  className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center disabled:opacity-50"
-                >
-                  {supplierBusy ? "Signing in…" : "Sign in"}
-                </button>
-                <button
-                  type="button"
-                  className="block w-full text-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
-                  onClick={() => setStep({ status: "idle" })}
-                >
-                  ← Different pass
-                </button>
-              </form>
-            ) : forwarding ? (
-              <ForwardingPass row={forwarding} onBack={() => setForwarding(null)} />
+            {forwarding ? (
+              <ForwardingPass
+                row={forwarding}
+                onBack={() => setForwarding(null)}
+                onAlsoShops={
+                  (forwarding.door === "SUPPLIER" || forwarding.door === "SUPPLIER_CLAIM") &&
+                  detectIdentityKind(identity) === "phone"
+                    ? () => {
+                        void startShopOtp(identity.replace(/\D/g, ""));
+                      }
+                    : undefined
+                }
+              />
             ) : step.status === "phone-code" || step.status === "phone-verifying" ? (
               <CodeForm
                 phone={step.phone}
@@ -472,6 +441,18 @@ export function LandingSignInModal({
                 }
                 backLabel={
                   step.status === "shop-results" ? "← Different name" : "← Different identity"
+                }
+                onProbeShops={
+                  step.status === "passes" &&
+                  step.identity.kind === "phone" &&
+                  step.rows.every(
+                    (row) =>
+                      row.door === "SUPPLIER" || row.door === "SUPPLIER_CLAIM",
+                  )
+                    ? () => {
+                        void startShopOtp(step.identity.phone ?? "");
+                      }
+                    : undefined
                 }
               />
             ) : step.status === "shop-search" || step.status === "shop-loading" ? (
@@ -558,7 +539,7 @@ export function LandingSignInModal({
                       {kind === "email"
                         ? "→ Pass · email"
                         : kind === "phone"
-                          ? "→ Pass · SMS code"
+                          ? "→ Pass · phone"
                           : "Waiting…"}
                     </span>
                   </span>
@@ -590,10 +571,10 @@ export function LandingSignInModal({
 
                 <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)]">
                   {kind === "phone"
-                    ? "We'll text a code, then stamp your shops."
+                    ? "Supply portal first if we know the number — shops and tills get an SMS code."
                     : kind === "email"
-                      ? "We'll list every till, shop, and portal on this email."
-                      : "One field. We route you — no shopper / merchant toggle."}
+                      ? "We'll list every till, shop, and supply portal on this email."
+                      : "One field. We route you — shop, till, or supply. No toggle."}
                 </p>
 
                 <button
@@ -607,9 +588,7 @@ export function LandingSignInModal({
                 >
                   {step.status === "looking" || step.status === "phone-sending"
                     ? "Stamping…"
-                    : kind === "phone"
-                      ? "Send code"
-                      : "Find my passes"}
+                    : "Find my passes"}
                 </button>
 
                 <button
@@ -634,9 +613,11 @@ export type ApexSignInMode = "shopper" | "staff";
 function ForwardingPass({
   row,
   onBack,
+  onAlsoShops,
 }: {
   row: PublicSignInDestination;
   onBack: () => void;
+  onAlsoShops?: () => void;
 }) {
   return (
     <div className="landing-pass-stamp mt-6 border border-dashed border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-4 py-5">
@@ -659,6 +640,15 @@ function ForwardingPass({
       >
         Wrong pass? Go back
       </button>
+      {onAlsoShops ? (
+        <button
+          type="button"
+          className="mt-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
+          onClick={onAlsoShops}
+        >
+          I also shop or run a till — send a code
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -668,11 +658,13 @@ function PassPicker({
   onPick,
   onBack,
   backLabel,
+  onProbeShops,
 }: {
   rows: PublicSignInDestination[];
   onPick: (row: PublicSignInDestination) => void;
   onBack: () => void;
   backLabel: string;
+  onProbeShops?: () => void;
 }) {
   const groups = groupPasses(rows);
   const multi = rows.length > 1;
@@ -729,6 +721,16 @@ function PassPicker({
           </div>
         ))}
       </div>
+
+      {onProbeShops ? (
+        <button
+          type="button"
+          className="block w-full text-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
+          onClick={onProbeShops}
+        >
+          Also check shops & tills on this number
+        </button>
+      ) : null}
 
       <button
         type="button"

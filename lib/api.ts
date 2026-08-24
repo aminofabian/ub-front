@@ -612,6 +612,30 @@ export async function fetchSignInDestinationsByEmail(
     const response = await fetch(url, {
       method: "GET",
       headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!response.ok) return [];
+    return parseSignInDestinations(await response.json());
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Phone peek without SMS: supplier portal doors only. Shopper/staff shops
+ * still go through {@link fetchSignInDestinationsByPhone} after a code.
+ */
+export async function fetchSignInDestinationsByPhoneHint(
+  phone: string,
+): Promise<PublicSignInDestination[]> {
+  const p = phone.trim();
+  if (p.replace(/\D/g, "").length < 9) return [];
+  const url = `${apiUrl(PUBLIC_SIGN_IN_DESTINATIONS_PATH)}?phone=${encodeURIComponent(p)}`;
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
     });
     if (!response.ok) return [];
     return parseSignInDestinations(await response.json());
