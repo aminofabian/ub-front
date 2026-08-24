@@ -189,6 +189,10 @@ export function LandingSignInModal({
 
   useEffect(() => {
     if (!open) return;
+    if (forwardTimer.current != null) {
+      window.clearTimeout(forwardTimer.current);
+      forwardTimer.current = null;
+    }
     setIdentity("");
     setCode("");
     setCountdown(0);
@@ -196,7 +200,6 @@ export function LandingSignInModal({
     setForwarding(null);
     setShopQuery("");
     setHeldSupplierRows([]);
-    cancelForward();
   }, [open]);
 
   useEffect(() => {
@@ -213,7 +216,7 @@ export function LandingSignInModal({
 
     if (row.door === "SUPPLIER" || row.door === "SUPPLIER_CLAIM") {
       setForwarding(row);
-      window.setTimeout(() => {
+      forwardTimer.current = window.setTimeout(() => {
         window.location.assign(supplierPortalHref(row, idPayload));
       }, 720);
       return;
@@ -226,7 +229,7 @@ export function LandingSignInModal({
 
     setForwarding(row);
 
-    window.setTimeout(() => {
+    forwardTimer.current = window.setTimeout(() => {
       const path = buildStorefrontSignInHref({
         path: APP_ROUTES.shop,
         email: idPayload?.email,
@@ -397,11 +400,12 @@ export function LandingSignInModal({
             {forwarding ? (
               <ForwardingPass
                 row={forwarding}
-                onBack={() => setForwarding(null)}
+                onBack={cancelForward}
                 onAlsoShops={
                   (forwarding.door === "SUPPLIER" || forwarding.door === "SUPPLIER_CLAIM") &&
                   detectIdentityKind(identity) === "phone"
                     ? () => {
+                        cancelForward();
                         void startShopOtp(identity.replace(/\D/g, ""));
                       }
                     : undefined
