@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { BlogArticleBody } from "@/components/blog/blog-article-body";
 import { BlogRelated } from "@/components/blog/blog-related";
+import { BlogShareLinks } from "@/components/blog/blog-share-links";
 import {
   BlogSeriesMobileNav,
   BlogSeriesSidebar,
@@ -93,6 +94,8 @@ export function BlogArticlePageView({ slug }: { slug: string }) {
                 · {article.author}
                 {article.listedOnly ? " · Coming soon" : ""}
               </p>
+
+              <BlogShareLinks url={url} title={article.title} className="mt-6" />
 
               <div className="mt-10">
                 <BlogArticleBody body={article.body} faqs={article.faqs} />

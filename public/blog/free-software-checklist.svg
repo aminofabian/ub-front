@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Before you trust 'free' — a five-line checklist</text>
+
+  <!-- ============ LEFT: the checklist ============ -->
+  <rect x="16" y="56" width="520" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="40" y="92" font-size="12.5" font-weight="700" fill="#1F2937">Ask these about the 'free' tier</text>
+
+  <g font-size="11">
+    <rect x="40" y="110" width="452" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="66" cy="139" r="12" fill="#f0fdf4"/>
+    <path d="M59 139 l5 5 l9 -10" stroke="#28a745" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="133" font-size="11.5" font-weight="700" fill="#1F2937">Is M-Pesa native or bolted on?</text>
+    <text x="88" y="151" font-size="10.5" fill="#6b7280">A free tier that charges for payments isn't free for a Kenyan shop</text>
+
+    <rect x="40" y="178" width="452" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="66" cy="207" r="12" fill="#f0fdf4"/>
+    <path d="M59 207 l5 5 l9 -10" stroke="#28a745" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="201" font-size="11.5" font-weight="700" fill="#1F2937">Does the storefront come with it?</text>
+    <text x="88" y="219" font-size="10.5" fill="#6b7280">Or is your 'online shop' a separate paid product?</text>
+
+    <rect x="40" y="246" width="452" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="66" cy="275" r="12" fill="#f0fdf4"/>
+    <path d="M59 275 l5 5 l9 -10" stroke="#28a745" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="269" font-size="11.5" font-weight="700" fill="#1F2937">What's the ceiling?</text>
+    <text x="88" y="287" font-size="10.5" fill="#6b7280">Products, cashiers, branches — where does 'free' stop and the bill start?</text>
+
+    <rect x="40" y="314" width="452" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="66" cy="343" r="12" fill="#f0fdf4"/>
+    <path d="M59 343 l5 5 l9 -10" stroke="#28a745" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="337" font-size="11.5" font-weight="700" fill="#1F2937">Who answers when it breaks?</text>
+    <text x="88" y="355" font-size="10.5" fill="#6b7280">Community forums and foreign time zones are not support</text>
+
+    <rect x="40" y="382" width="452" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="66" cy="411" r="12" fill="#f0fdf4"/>
+    <path d="M59 411 l5 5 l9 -10" stroke="#28a745" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="405" font-size="11.5" font-weight="700" fill="#1F2937">How long to my first sale?</text>
+    <text x="88" y="423" font-size="10.5" fill="#6b7280">Weeks of setup is a cost — every week without a till is a week unrecorded</text>
+  </g>
+
+  <text x="40" y="480" font-size="10.5" fill="#6b7280">Five honest answers, five minutes — cheaper than any surprise invoice.</text>
+  <text x="40" y="496" font-size="10.5" fill="#6b7280">If the answers are vague, the bill is coming.</text>
+
+  <!-- ============ RIGHT: free done right ============ -->
+  <rect x="564" y="56" width="380" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="588" y="92" font-size="13" font-weight="700" fill="#1F2937">What a fair free tier looks like</text>
+
+  <rect x="588" y="110" width="332" height="88" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="608" y="136" font-size="11.5" font-weight="700" fill="#15803d">Kiosk.ke — free to start</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="608" y="158">· 300 products &amp; one cashier</text>
+    <text x="608" y="176">· M-Pesa and storefront included</text>
+    <text x="608" y="194">· No per-payment module fees</text>
+  </g>
+
+  <rect x="588" y="218" width="332" height="88" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="244" font-size="11.5" font-weight="700" fill="#1F2937">The honest comparison</text>
+  <g font-size="10.5" fill="#6b7280">
+    <text x="608" y="266">· 'Free' tools are free to start globally —</text>
+    <text x="608" y="284">· but M-Pesa, eTIMS, and local support</text>
+    <text x="608" y="302" fill="#374151">are usually where the bill hides.</text>
+  </g>
+
+  <rect x="588" y="326" width="332" height="88" rx="12" fill="#fefce8" stroke="#fde68a"/>
+  <text x="608" y="352" font-size="11.5" font-weight="700" fill="#A8842C">The upgrade path matters too</text>
+  <text x="608" y="372" font-size="10.5" fill="#374151">Free tiers exist to get you in — the question is</text>
+  <text x="608" y="390" font-size="10.5" fill="#374151">whether the paid step is a fair price for real</text>
+  <text x="608" y="408" font-size="10.5" fill="#374151">value, or a toll for things that should be basic.</text>
+
+  <rect x="588" y="434" width="332" height="78" rx="12" fill="#1F2937"/>
+  <text x="724" y="458" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">Free should mean 'try it without risk'</text>
+  <text x="724" y="478" font-size="10.5" fill="#d1d5db" text-anchor="middle">— not 'start paying with your time and</text>
+  <text x="724" y="496" font-size="10.5" fill="#d1d5db" text-anchor="middle">your team's patience'.</text>
+</svg>

@@ -1,11 +1,12 @@
-import { spokePlaceholderBody } from "./article-helpers";
 import { ERP_VS_POS_ARTICLE } from "./cluster-erp-vs-pos";
 import { KIOSK_BEATS_ODOO_ARTICLE } from "./cluster-kiosk-beats-odoo";
 import { MPESA_INTEGRATION_ARTICLE } from "./cluster-mpesa-payments";
 import { ONE_INVENTORY_ARTICLE } from "./cluster-one-inventory";
 import { OUTGROWN_POS_ARTICLE } from "./cluster-outgrown-pos";
 import { POS_HARDWARE_ARTICLE } from "./cluster-pos-hardware";
+import { REAL_COST_ARTICLE } from "./cluster-real-cost";
 import { SETUP_POS_ARTICLE } from "./cluster-set-up-pos";
+import { STALL_TO_STORE_ARTICLE } from "./cluster-stall-to-store";
 import type { BlogArticle } from "./types";
 
 export const KIOSK_VS_ODOO_PILLAR_SLUG =
@@ -16,8 +17,6 @@ export const PILLAR_SLUG = KIOSK_VS_ODOO_PILLAR_SLUG;
 
 const PILLAR_TITLE =
   "Choosing the Right POS for Your Business: Kiosk.ke vs. Odoo";
-
-const TOP_10_SLUG = "top-10-pos-systems-kenya-2026";
 
 const PILLAR_ARTICLE: BlogArticle = {
   slug: KIOSK_VS_ODOO_PILLAR_SLUG,
@@ -170,60 +169,6 @@ const PILLAR_ARTICLE: BlogArticle = {
   ],
 };
 
-function spoke(
-  article: Omit<BlogArticle, "author" | "listedOnly" | "body"> & {
-    teaser: string;
-  },
-): BlogArticle {
-  const { teaser, ...rest } = article;
-  return {
-    ...rest,
-    author: "Kiosk",
-    listedOnly: true,
-    body: spokePlaceholderBody(teaser, PILLAR_TITLE),
-  };
-}
-
-const SPOKE_ARTICLES: BlogArticle[] = [
-  spoke({
-    slug: "the-real-cost-of-free-software",
-    title: "The Real Cost of 'Free' Software",
-    description:
-      "Hidden fees, add-on modules, and implementation hours — what 'free' POS and ERP tools often cost in practice.",
-    category: "Guides",
-    publishedAt: "2026-07-18",
-    updatedAt: "2026-07-18",
-    tags: ["Pricing", "POS", "ERP"],
-    relatedSlugs: [
-      KIOSK_VS_ODOO_PILLAR_SLUG,
-      "erp-vs-pos-do-you-need-the-full-suite",
-      "5-signs-youve-outgrown-your-pos",
-      TOP_10_SLUG,
-      "why-kiosk-beats-odoo-for-kenyan-shops",
-    ],
-    teaser:
-      "Free rarely means free once you add payment modules, training, and the time your team spends fighting the tool every day.",
-  }),
-  spoke({
-    slug: "from-stall-to-store-a-retailers-journey",
-    title: "From Stall to Store: A Retailer's Journey",
-    description:
-      "How a small retailer moves from cash-only stall sales to a synced till and online shop without losing the plot.",
-    category: "Stories",
-    publishedAt: "2026-07-17",
-    updatedAt: "2026-07-17",
-    tags: ["Stories", "Retail", "Growth"],
-    relatedSlugs: [
-      KIOSK_VS_ODOO_PILLAR_SLUG,
-      "how-to-grow-a-mini-mart-in-kenya",
-      "set-up-a-pos-in-30-minutes",
-      "online-physical-one-inventory",
-    ],
-    teaser:
-      "Growth isn't always a bigger ERP. Sometimes it's one shop, one till, and an online storefront that finally matches what's on the shelf.",
-  }),
-];
-
 export const KIOSK_VS_ODOO_ARTICLES: BlogArticle[] = [
   PILLAR_ARTICLE,
   KIOSK_BEATS_ODOO_ARTICLE,
@@ -233,5 +178,6 @@ export const KIOSK_VS_ODOO_ARTICLES: BlogArticle[] = [
   ONE_INVENTORY_ARTICLE,
   ERP_VS_POS_ARTICLE,
   OUTGROWN_POS_ARTICLE,
-  ...SPOKE_ARTICLES,
+  REAL_COST_ARTICLE,
+  STALL_TO_STORE_ARTICLE,
 ];

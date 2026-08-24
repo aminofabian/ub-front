@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">The 'free software' iceberg</text>
+
+  <!-- Sky -->
+  <rect x="16" y="56" width="928" height="150" fill="#e0f2fe"/>
+
+  <!-- Water -->
+  <rect x="16" y="206" width="928" height="330" fill="#bae6fd"/>
+
+  <!-- Iceberg above water -->
+  <path d="M480 120 L560 206 L400 206 Z" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="480" y="178" font-size="13" font-weight="800" fill="#0c4a6e" text-anchor="middle">THE STICKER PRICE</text>
+  <text x="480" y="198" font-size="10.5" font-weight="700" fill="#0c4a6e" text-anchor="middle">KES 0 / month</text>
+
+  <!-- Iceberg below water -->
+  <path d="M400 206 L560 206 L620 300 L610 380 L540 450 L420 460 L340 380 L330 300 Z" fill="#ffffff" stroke="#7dd3fc" stroke-width="2" opacity="0.95"/>
+
+  <!-- hidden cost labels -->
+  <g font-size="11">
+    <rect x="628" y="230" width="280" height="34" rx="8" fill="#ffffff" stroke="#0284c7"/>
+    <text x="648" y="245" font-weight="700" fill="#0c4a6e">Payment modules</text>
+    <text x="648" y="259" font-size="9.5" fill="#0369a1">monthly fee per gateway, per plugin</text>
+
+    <rect x="628" y="278" width="280" height="34" rx="8" fill="#ffffff" stroke="#0284c7"/>
+    <text x="648" y="293" font-weight="700" fill="#0c4a6e">Per-user &amp; per-branch fees</text>
+    <text x="648" y="307" font-size="9.5" fill="#0369a1">add a cashier, add a line item</text>
+
+    <rect x="628" y="326" width="280" height="34" rx="8" fill="#ffffff" stroke="#0284c7"/>
+    <text x="648" y="341" font-weight="700" fill="#0c4a6e">Implementation hours</text>
+    <text x="648" y="355" font-size="9.5" fill="#0369a1">weeks of setup, config, and training</text>
+
+    <rect x="628" y="374" width="280" height="34" rx="8" fill="#ffffff" stroke="#0284c7"/>
+    <text x="648" y="389" font-weight="700" fill="#0c4a6e">The time tax</text>
+    <text x="648" y="403" font-size="9.5" fill="#0369a1">daily hours fighting the tool</text>
+
+    <rect x="628" y="422" width="280" height="34" rx="8" fill="#ffffff" stroke="#0284c7"/>
+    <text x="648" y="437" font-weight="700" fill="#0c4a6e">'Free' tier ceilings</text>
+    <text x="648" y="451" font-size="9.5" fill="#0369a1">300 products is fine — 3,000 isn't</text>
+  </g>
+
+  <text x="480" y="500" font-size="11" font-weight="700" fill="#075985" text-anchor="middle">The visible price is the smallest part of the cost.</text>
+  <text x="480" y="520" font-size="10.5" fill="#0369a1" text-anchor="middle">Everything that actually serves your shop sits below the waterline.</text>
+  <text x="96" y="250" font-size="10" fill="#075985">what you pay</text>
+  <path d="M96 244 L96 230" stroke="#075985" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <text x="96" y="470" font-size="10" fill="#075985">what it costs</text>
+  <path d="M96 478 L96 492" stroke="#075985" stroke-width="1.5" stroke-dasharray="3 3"/>
+</svg>

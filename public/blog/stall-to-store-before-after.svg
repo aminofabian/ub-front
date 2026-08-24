@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">What changed — the before and after</text>
+
+  <!-- ============ LEFT: before ============ -->
+  <rect x="16" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="440" height="48" rx="14" fill="#6b7280"/>
+  <rect x="16" y="82" width="440" height="22" fill="#6b7280"/>
+  <text x="40" y="87" font-size="14" font-weight="700" fill="#ffffff">The stall era</text>
+
+  <g font-size="11" fill="#374151">
+    <rect x="40" y="126" width="392" height="52" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="60" y="148" font-size="11.5" font-weight="700" fill="#1F2937">💵 Cash only</text>
+    <text x="60" y="166" font-size="10.5" fill="#6b7280">M-Pesa meant a personal number and a manual log</text>
+
+    <rect x="40" y="188" width="392" height="52" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="60" y="210" font-size="11.5" font-weight="700" fill="#1F2937">📓 Notebook ledger</text>
+    <text x="60" y="228" font-size="10.5" fill="#6b7280">Sales remembered, stock guessed, numbers soft</text>
+
+    <rect x="40" y="250" width="392" height="52" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="60" y="272" font-size="11.5" font-weight="700" fill="#1F2937">🌙 Counting at close</text>
+    <text x="60" y="290" font-size="10.5" fill="#6b7280">Ninety minutes of matching till notes to the day</text>
+
+    <rect x="40" y="312" width="392" height="52" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="60" y="334" font-size="11.5" font-weight="700" fill="#1F2937">📱 WhatsApp album shop</text>
+    <text x="60" y="352" font-size="10.5" fill="#6b7280">Photos in a group, prices in captions, orders in replies</text>
+
+    <rect x="40" y="374" width="392" height="52" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="60" y="396" font-size="11.5" font-weight="700" fill="#1F2937">🤝 Suppliers trusted a guess</text>
+    <text x="60" y="414" font-size="10.5" fill="#6b7280">No records to prove what sold or what you owe</text>
+  </g>
+
+  <rect x="40" y="446" width="392" height="62" rx="12" fill="#f3f4f6" stroke="#e5e7eb"/>
+  <text x="236" y="470" font-size="11" font-weight="700" fill="#4b5563" text-anchor="middle">It worked — and it capped out at one stall</text>
+  <text x="236" y="490" font-size="10" fill="#6b7280" text-anchor="middle">Growth needed records, and records needed a system</text>
+
+  <!-- ============ RIGHT: after ============ -->
+  <rect x="504" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="504" y="56" width="440" height="48" rx="14" fill="#15803d"/>
+  <rect x="504" y="82" width="440" height="22" fill="#15803d"/>
+  <text x="528" y="87" font-size="14" font-weight="700" fill="#ffffff">The store era</text>
+
+  <g font-size="11" fill="#374151">
+    <rect x="528" y="126" width="392" height="52" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="148" font-size="11.5" font-weight="700" fill="#1F2937">📲 Native M-Pesa</text>
+    <text x="548" y="166" font-size="10.5" fill="#6b7280">One tap sends STK; the sale auto-credits</text>
+
+    <rect x="528" y="188" width="392" height="52" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="210" font-size="11.5" font-weight="700" fill="#1F2937">📦 One honest inventory</text>
+    <text x="548" y="228" font-size="10.5" fill="#6b7280">Every sale updates one count — shelf = reports</text>
+
+    <rect x="528" y="250" width="392" height="52" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="272" font-size="11.5" font-weight="700" fill="#1F2937">🌆 Close in minutes</text>
+    <text x="548" y="290" font-size="10.5" fill="#6b7280">Cash, M-Pesa, and web orders in one report</text>
+
+    <rect x="528" y="312" width="392" height="52" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="334" font-size="11.5" font-weight="700" fill="#1F2937">🌐 A real storefront</text>
+    <text x="548" y="352" font-size="10.5" fill="#6b7280">Orders land in the till record, not a group chat</text>
+
+    <rect x="528" y="374" width="392" height="52" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="396" font-size="11.5" font-weight="700" fill="#1F2937">📈 Numbers to grow on</text>
+    <text x="548" y="414" font-size="10.5" fill="#6b7280">Suppliers, lenders, and a second branch all want these</text>
+  </g>
+
+  <rect x="528" y="446" width="392" height="62" rx="12" fill="#15803d"/>
+  <text x="724" y="470" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Same shop, same stock — the tools finally fit the ambition</text>
+  <text x="724" y="490" font-size="10" fill="#d1fae5" text-anchor="middle">The stall didn't become a bigger ERP; it became a better shop</text>
+</svg>
