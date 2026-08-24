@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { LandingFooter } from "@/components/tenant-console/landing/landing-footer";
@@ -18,6 +18,26 @@ type HelpShellProps = {
 
 export function HelpShell({ children }: HelpShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [bannerHidden, setBannerHidden] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("kiosk.migrationBannerDismissed") === "1") {
+        setBannerHidden(true);
+      }
+    } catch {
+      /* storage unavailable — banner shows */
+    }
+  }, []);
+
+  const dismissBanner = () => {
+    setBannerHidden(true);
+    try {
+      window.localStorage.setItem("kiosk.migrationBannerDismissed", "1");
+    } catch {
+      /* storage unavailable — fine */
+    }
+  };
 
   return (
     <div
@@ -118,6 +138,34 @@ export function HelpShell({ children }: HelpShellProps) {
           </nav>
         ) : null}
       </header>
+
+      {!bannerHidden ? (
+        <div className="relative z-10 border-b border-[#14532d]/20 bg-[#15803d] text-white">
+          <div className="mx-auto flex max-w-[1100px] items-center gap-3 px-4 py-2 sm:px-10">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#bbf7d0]">
+              We moved
+            </span>
+            <p className="min-w-0 flex-1 truncate text-[13px] text-white/95">
+              kiosk.co.ke is now kiosk.ke — your shop has a new address.{" "}
+              <Link
+                href="/migration"
+                className="inline-flex items-center gap-1 font-semibold text-white underline decoration-[#bbf7d0]/60 underline-offset-2 transition hover:decoration-white"
+              >
+                See what changed
+                <ArrowRight className="size-3" aria-hidden />
+              </Link>
+            </p>
+            <button
+              type="button"
+              onClick={dismissBanner}
+              aria-label="Dismiss migration notice"
+              className="flex size-6 shrink-0 items-center justify-center rounded-full text-white/70 transition hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            >
+              <X className="size-3.5" aria-hidden />
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <main className="relative z-10">{children}</main>
 

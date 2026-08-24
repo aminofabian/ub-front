@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">The moving day, packed in three boxes</text>
+
+  <!-- ============ LEFT: what changes ============ -->
+  <rect x="16" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="440" height="48" rx="14" fill="#374151"/>
+  <rect x="16" y="82" width="440" height="22" fill="#374151"/>
+  <text x="40" y="87" font-size="14" font-weight="700" fill="#ffffff">What changes</text>
+
+  <!-- old URL -->
+  <rect x="40" y="126" width="392" height="44" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="60" y="154" font-size="12.5" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#6b7280">wanjiku.minimart.kiosk.co.ke</text>
+  <line x1="60" y1="146" x2="380" y2="146" stroke="#dc2626" stroke-width="2.5"/>
+
+  <!-- arrow -->
+  <text x="236" y="204" font-size="15" font-weight="800" fill="#A8842C" text-anchor="middle">↓</text>
+
+  <!-- new URL -->
+  <rect x="40" y="224" width="392" height="44" rx="10" fill="#f0fdf4" stroke="#28a745" stroke-width="1.8"/>
+  <circle cx="70" cy="246" r="9" fill="#28a745"/>
+  <path d="M64 246 l4 4 l8 -9" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="88" y="251" font-size="12.5" font-weight="700" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#15803d">wanjiku.minimart.kiosk.ke</text>
+
+  <!-- checklist -->
+  <text x="40" y="312" font-size="11.5" font-weight="700" fill="#1F2937">Update these, once</text>
+  <g font-size="10.5" fill="#374151">
+    <rect x="40" y="326" width="392" height="34" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="62" cy="343" r="8" fill="#f0fdf4"/>
+    <path d="M57 343 l3.5 3.5 l7 -8" stroke="#28a745" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="80" y="348">Bookmarks &amp; saved links → the new address</text>
+
+    <rect x="40" y="368" width="392" height="34" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="62" cy="385" r="8" fill="#f0fdf4"/>
+    <path d="M57 385 l3.5 3.5 l7 -8" stroke="#28a745" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="80" y="390">WhatsApp &amp; social links → the new store URL</text>
+
+    <rect x="40" y="410" width="392" height="34" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="62" cy="427" r="8" fill="#f0fdf4"/>
+    <path d="M57 427 l3.5 3.5 l7 -8" stroke="#28a745" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="80" y="432">Sign in once on kiosk.ke — then you're home</text>
+  </g>
+
+  <rect x="40" y="468" width="392" height="44" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="236" y="486" font-size="10.5" font-weight="700" fill="#A8842C" text-anchor="middle">Old kiosk.co.ke links redirect for a while</text>
+  <text x="236" y="502" font-size="10" fill="#6b7280" text-anchor="middle">— but the new address is the one to share</text>
+
+  <!-- ============ RIGHT: what stays ============ -->
+  <rect x="504" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="504" y="56" width="440" height="48" rx="14" fill="#15803d"/>
+  <rect x="504" y="82" width="440" height="22" fill="#15803d"/>
+  <text x="528" y="87" font-size="14" font-weight="700" fill="#ffffff">What stays — packed and travelling with you</text>
+
+  <g font-size="11" fill="#374151">
+    <rect x="528" y="126" width="184" height="70" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="152" font-size="11.5" font-weight="700" fill="#1F2937">📦 Products</text>
+    <text x="548" y="172" font-size="10" fill="#6b7280">Every item, variant, and package</text>
+
+    <rect x="728" y="126" width="192" height="70" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="748" y="152" font-size="11.5" font-weight="700" fill="#1F2937">📊 Stock &amp; reports</text>
+    <text x="748" y="172" font-size="10" fill="#6b7280">Counts, history, and sales records</text>
+
+    <rect x="528" y="208" width="184" height="70" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="234" font-size="11.5" font-weight="700" fill="#1F2937">💰 Prices</text>
+    <text x="548" y="254" font-size="10" fill="#6b7280">Buying &amp; selling, margins intact</text>
+
+    <rect x="728" y="208" width="192" height="70" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="748" y="234" font-size="11.5" font-weight="700" fill="#1F2937">📲 M-Pesa payments</text>
+    <text x="748" y="254" font-size="10" fill="#6b7280">History, settlements, STK flows</text>
+
+    <rect x="528" y="290" width="184" height="70" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="316" font-size="11.5" font-weight="700" fill="#1F2937">👥 Team &amp; roles</text>
+    <text x="548" y="336" font-size="10" fill="#6b7280">Staff, PINs, permissions, branches</text>
+
+    <rect x="728" y="290" width="192" height="70" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="748" y="316" font-size="11.5" font-weight="700" fill="#1F2937">🏪 Storefront design</text>
+    <text x="748" y="336" font-size="10" fill="#6b7280">Logo, colours, your shop's look</text>
+
+    <rect x="528" y="372" width="184" height="70" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="548" y="398" font-size="11.5" font-weight="700" fill="#1F2937">📦 Suppliers &amp; credit</text>
+    <text x="548" y="418" font-size="10" fill="#6b7280">Vendors, orders, what you owe</text>
+
+    <rect x="728" y="372" width="192" height="70" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="748" y="398" font-size="11.5" font-weight="700" fill="#1F2937">🔐 Your access</text>
+    <text x="748" y="418" font-size="10" fill="#6b7280">Accounts, permissions, sign-in</text>
+  </g>
+
+  <rect x="528" y="464" width="392" height="48" rx="10" fill="#15803d"/>
+  <text x="724" y="485" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">Nothing gets left on the old street</text>
+  <text x="724" y="503" font-size="10" fill="#d1fae5" text-anchor="middle">Your data isn't rebuilt — it moves.</text>
+</svg>

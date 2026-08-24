@@ -38,6 +38,7 @@ const FOOTER_COLS = [
       { label: "Blog", href: "/blog" },
       { label: "Top POS in Kenya", href: "/blog/top-10-pos-systems-kenya-2026" },
       { label: "Stories", href: "/#stories" },
+      { label: "We moved to kiosk.ke", href: "/migration" },
     ],
   },
   {

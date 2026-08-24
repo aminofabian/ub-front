@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- road -->
+  <rect x="0" y="430" width="960" height="70" fill="#e5e7eb"/>
+  <line x1="0" y1="465" x2="960" y2="465" stroke="#ffffff" stroke-width="4" stroke-dasharray="28 22"/>
+
+  <!-- ============ LEFT: old building ============ -->
+  <rect x="40" y="180" width="210" height="250" fill="#9ca3af"/>
+  <rect x="40" y="150" width="210" height="40" fill="#6b7280"/>
+  <text x="145" y="177" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">kiosk.co.ke</text>
+  <rect x="110" y="360" width="60" height="70" rx="4" fill="#4b5563"/>
+  <rect x="62" y="230" width="44" height="44" fill="#e5e7eb"/>
+  <rect x="184" y="230" width="44" height="44" fill="#e5e7eb"/>
+  <rect x="62" y="300" width="44" height="44" fill="#e5e7eb"/>
+  <rect x="184" y="300" width="44" height="44" fill="#e5e7eb"/>
+  <text x="145" y="420" font-size="10.5" fill="#374151" text-anchor="middle">built for the first thousand shops</text>
+
+  <!-- crack -->
+  <path d="M120 180 L140 220 L130 260 L150 300" stroke="#6b7280" stroke-width="2" fill="none"/>
+
+  <!-- ============ MIDDLE: moving truck ============ -->
+  <rect x="360" y="250" width="240" height="180" rx="10" fill="#A8842C"/>
+  <rect x="360" y="230" width="240" height="30" rx="6" fill="#8a6d23"/>
+  <text x="480" y="252" font-size="13" font-weight="800" fill="#ffffff" text-anchor="middle">MOVING TO kiosk.ke</text>
+  <rect x="600" y="290" width="90" height="140" rx="10" fill="#374151"/>
+  <rect x="610" y="310" width="50" height="40" rx="6" fill="#e5e7eb"/>
+  <circle cx="626" cy="440" r="24" fill="#1f2937"/>
+  <circle cx="626" cy="440" r="10" fill="#fbbf24"/>
+  <circle cx="662" cy="440" r="24" fill="#1f2937"/>
+  <circle cx="662" cy="440" r="10" fill="#fbbf24"/>
+  <!-- boxes on truck -->
+  <rect x="392" y="190" width="56" height="56" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="420" y="216" font-size="8.5" font-weight="700" fill="#15803d" text-anchor="middle">Products</text>
+  <rect x="456" y="190" width="56" height="56" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="484" y="216" font-size="8.5" font-weight="700" fill="#15803d" text-anchor="middle">Stock</text>
+  <rect x="520" y="190" width="56" height="56" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="548" y="216" font-size="8.5" font-weight="700" fill="#15803d" text-anchor="middle">M-Pesa</text>
+  <rect x="392" y="128" width="56" height="56" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="420" y="154" font-size="8.5" font-weight="700" fill="#15803d" text-anchor="middle">Prices</text>
+  <rect x="456" y="128" width="56" height="56" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="484" y="154" font-size="8.5" font-weight="700" fill="#15803d" text-anchor="middle">Reports</text>
+  <rect x="520" y="128" width="56" height="56" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="548" y="154" font-size="8.5" font-weight="700" fill="#15803d" text-anchor="middle">Team</text>
+
+  <!-- ============ RIGHT: new building ============ -->
+  <rect x="740" y="120" width="180" height="310" fill="#d1fae5"/>
+  <rect x="740" y="80" width="180" height="50" fill="#15803d"/>
+  <text x="830" y="111" font-size="15" font-weight="800" fill="#ffffff" text-anchor="middle">kiosk.ke</text>
+  <rect x="806" y="330" width="56" height="100" rx="4" fill="#065f46"/>
+  <rect x="762" y="170" width="40" height="56" fill="#ffffff"/>
+  <rect x="858" y="170" width="40" height="56" fill="#ffffff"/>
+  <rect x="762" y="250" width="40" height="56" fill="#ffffff"/>
+  <rect x="858" y="250" width="40" height="56" fill="#ffffff"/>
+  <text x="830" y="452" font-size="11" font-weight="700" fill="#15803d" text-anchor="middle">room to grow</text>
+  <text x="830" y="470" font-size="10" fill="#6b7280" text-anchor="middle">scale, speed, and the next features</text>
+
+  <!-- arrow -->
+  <path d="M270 300 C 320 300, 330 300, 380 300" stroke="#A8842C" stroke-width="4" fill="none" stroke-dasharray="10 8" marker-end="url(#mv)"/>
+  <defs>
+    <marker id="mv" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#A8842C"/>
+    </marker>
+  </defs>
+  <text x="325" y="288" font-size="11" font-weight="700" fill="#A8842C" text-anchor="middle">the move</text>
+
+  <text x="480" y="516" font-size="11" fill="#6b7280" text-anchor="middle">Everything that matters travels with you — nothing gets left on the old street.</text>
+</svg>
