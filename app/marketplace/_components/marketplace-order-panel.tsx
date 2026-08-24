@@ -294,6 +294,7 @@ export function MarketplaceOrderWorkspace({
   roundOrderTo10,
   layout = "default",
   embedded = false,
+  ownerMode = false,
 }: {
   detail: MarketplaceSupplierDetail;
   selectedProductSlug?: string | null;
@@ -304,6 +305,8 @@ export function MarketplaceOrderWorkspace({
   layout?: OrderLayout;
   /** Fill parent height without outer border (e.g. nested in marketplace). */
   embedded?: boolean;
+  /** Supplier portal preview — hide public “claim this stall” CTAs. */
+  ownerMode?: boolean;
 }) {
   const isShelf = layout === "shelf";
   const focusProduct = useMemo(() => {
@@ -971,12 +974,18 @@ export function MarketplaceOrderWorkspace({
                             WhatsApp
                           </a>
                         ) : null}
-                        <Link
-                          href={supplierPortalClaimPath(shelfPhone)}
-                          className="text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                        >
-                          This is your stall?
-                        </Link>
+                        {!ownerMode && shelfPhone ? (
+                          <Link
+                            href={supplierPortalClaimPath(shelfPhone)}
+                            className="text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                          >
+                            This is your stall?
+                          </Link>
+                        ) : ownerMode ? (
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            Your public shelf
+                          </span>
+                        ) : null}
                       </div>
                     ) : null}
                     <button
@@ -1141,7 +1150,7 @@ export function MarketplaceOrderWorkspace({
           <div className="hidden h-full min-h-0 w-[min(100%,20rem)] shrink-0 overflow-hidden lg:flex xl:w-[22rem]">
             <OrderManifestPanel
               supplierName={detail.name}
-              claimPhone={shelfPhone}
+              claimPhone={ownerMode ? null : shelfPhone}
               lines={cartLines}
               currency={cartCurrency}
               total={effectiveTotal}
@@ -1251,7 +1260,7 @@ export function MarketplaceOrderWorkspace({
               </div>
               <OrderManifestPanel
                 supplierName={detail.name}
-                claimPhone={shelfPhone}
+                claimPhone={ownerMode ? null : shelfPhone}
                 lines={cartLines}
                 currency={cartCurrency}
                 total={effectiveTotal}
