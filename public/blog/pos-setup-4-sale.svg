@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Step 4 · Ring up your first sale</text>
+
+  <!-- Step badge -->
+  <circle cx="42" cy="34" r="16" fill="#A8842C"/>
+  <text x="42" y="39" font-size="13" font-weight="800" fill="#ffffff" text-anchor="middle">4</text>
+
+  <!-- ============ LEFT: Till ============ -->
+  <rect x="16" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="440" height="48" rx="14" fill="#15803d"/>
+  <rect x="16" y="82" width="440" height="22" fill="#15803d"/>
+  <text x="40" y="87" font-size="14" font-weight="700" fill="#ffffff">Till · Cashier view</text>
+  <rect x="352" y="66" width="80" height="28" rx="6" fill="#ffffff"/>
+  <text x="392" y="85" font-size="11" font-weight="700" fill="#15803d" text-anchor="middle">NEW SALE</text>
+
+  <!-- Cart -->
+  <text x="40" y="132" font-size="11" font-weight="700" fill="#374151">Sunbest Cooking Oil 1 L</text>
+  <text x="40" y="149" font-size="11" fill="#6b7280">2 × KES 520.00</text>
+  <text x="432" y="149" font-size="12" font-weight="700" fill="#1F2937" text-anchor="end">1,040.00</text>
+  <line x1="40" y1="160" x2="432" y2="160" stroke="#e5e7eb"/>
+
+  <text x="40" y="186" font-size="11" font-weight="700" fill="#374151">Pishori Rice 2 kg</text>
+  <text x="40" y="203" font-size="11" fill="#6b7280">1 × KES 460.00</text>
+  <text x="432" y="203" font-size="12" font-weight="700" fill="#1F2937" text-anchor="end">460.00</text>
+  <line x1="40" y1="214" x2="432" y2="214" stroke="#e5e7eb"/>
+
+  <text x="40" y="240" font-size="13" font-weight="800" fill="#1F2937">Total</text>
+  <text x="432" y="240" font-size="16" font-weight="800" fill="#15803d" text-anchor="end">KES 1,500.00</text>
+
+  <!-- Payment buttons -->
+  <rect x="40" y="266" width="184" height="52" rx="10" fill="#f5f5f5" stroke="#e5e7eb"/>
+  <text x="132" y="290" font-size="12" font-weight="700" fill="#374151" text-anchor="middle">Cash</text>
+  <text x="132" y="306" font-size="9.5" fill="#6b7280" text-anchor="middle">Tendered amount</text>
+
+  <rect x="236" y="266" width="196" height="52" rx="10" fill="#28a745"/>
+  <circle cx="256" cy="292" r="9" fill="#f5f5f5" stroke="#a3a3a3" stroke-width="1"/>
+  <path d="M250 292 h12 M256 286 v12" stroke="#a3a3a3" stroke-width="1.1" fill="none"/>
+  <text x="276" y="290" font-size="12.5" font-weight="700" fill="#ffffff">M-PESA</text>
+  <text x="276" y="306" font-size="9.5" fill="#d1fae5">STK Push · 1 tap</text>
+
+  <!-- Phone mock -->
+  <rect x="120" y="336" width="130" height="88" rx="14" fill="#0a0a0a"/>
+  <rect x="126" y="342" width="118" height="76" rx="9" fill="#ffffff"/>
+  <text x="185" y="364" font-size="9.5" font-weight="700" fill="#1F2937" text-anchor="middle">M-PESA</text>
+  <text x="185" y="378" font-size="8.5" fill="#374151" text-anchor="middle">Confirm payment of</text>
+  <text x="185" y="392" font-size="12" font-weight="800" fill="#15803d" text-anchor="middle">KES 1,500.00</text>
+  <text x="185" y="406" font-size="7.5" fill="#9ca3af" text-anchor="middle">to WANJIKU MINI-MART</text>
+  <rect x="150" y="342" width="20" height="4" rx="2" fill="#0a0a0a"/>
+
+  <rect x="276" y="352" width="156" height="56" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <circle cx="296" cy="380" r="11" fill="#28a745"/>
+  <path d="M290 380 l4 4 l8 -9" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="316" y="374" font-size="10.5" font-weight="700" fill="#15803d">STK sent</text>
+  <text x="316" y="390" font-size="9" fill="#6b7280">Waiting for PIN…</text>
+
+  <!-- ============ RIGHT: Sale complete ============ -->
+  <rect x="504" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- Receipt card -->
+  <rect x="532" y="92" width="384" height="230" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="532" y="92" width="384" height="44" rx="12" fill="#f9fafb" stroke="#e5e7eb"/>
+  <circle cx="556" cy="114" r="10" fill="#28a745"/>
+  <path d="M550 114 l4 4 l8 -9" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="576" y="119" font-size="12.5" font-weight="700" fill="#1F2937">Sale complete</text>
+  <text x="828" y="119" font-size="10" fill="#6b7280">#S-1042</text>
+
+  <g font-size="11" fill="#374151">
+    <text x="556" y="166">Sunbest Cooking Oil 1 L × 2</text>
+    <text x="884" y="166" text-anchor="end">1,040.00</text>
+    <text x="556" y="188">Pishori Rice 2 kg × 1</text>
+    <text x="884" y="188" text-anchor="end">460.00</text>
+    <line x1="556" y1="202" x2="884" y2="202" stroke="#e5e7eb"/>
+    <text x="556" y="224" font-size="12.5" font-weight="800" fill="#1F2937">Total paid</text>
+    <text x="884" y="224" font-size="13" font-weight="800" fill="#15803d" text-anchor="end">KES 1,500.00</text>
+    <text x="556" y="246" fill="#15803d">Paid via M-Pesa ✓</text>
+    <text x="884" y="246" text-anchor="end" fill="#6b7280">14:02</text>
+    <text x="556" y="270" font-size="10" fill="#6b7280">Stock updated: Oil 24→22 · Rice 40→39</text>
+  </g>
+  <rect x="556" y="288" width="328" height="12" rx="6" fill="#f3f4f6"/>
+
+  <!-- eTIMS / storefront chips -->
+  <rect x="532" y="340" width="184" height="64" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="556" y="364" font-size="10" font-weight="700" fill="#15803d">eTIMS · synced</text>
+  <text x="556" y="382" font-size="9.5" fill="#374151">Invoice queued for KRA</text>
+  <text x="556" y="396" font-size="9.5" fill="#374151">reporting automatically</text>
+
+  <rect x="732" y="340" width="184" height="64" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="756" y="364" font-size="10" font-weight="700" fill="#15803d">Storefront · synced</text>
+  <text x="756" y="382" font-size="9.5" fill="#374151">Online stock shows the</text>
+  <text x="756" y="396" font-size="9.5" fill="#374151">same new numbers</text>
+
+  <!-- Timeline recap -->
+  <rect x="532" y="424" width="384" height="84" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="556" y="448" font-size="10.5" font-weight="700" fill="#A8842C">Your first 30 minutes, summed up</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="556" y="470">00–05 min · Account created &amp; verified</text>
+    <text x="556" y="488" font-size="10">05–12 min · Shop claimed, storefront live</text>
+    <text x="556" y="504" font-size="10">12–25 min · Products added with prices &amp; stock</text>
+  </g>
+</svg>

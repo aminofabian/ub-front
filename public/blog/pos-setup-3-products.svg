@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Step 3 · Add your products</text>
+
+  <!-- Step badge -->
+  <circle cx="42" cy="34" r="16" fill="#A8842C"/>
+  <text x="42" y="39" font-size="13" font-weight="800" fill="#ffffff" text-anchor="middle">3</text>
+
+  <!-- ============ LEFT: Catalog + search ============ -->
+  <rect x="16" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="440" height="44" rx="14" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="40" y="84" font-size="12.5" font-weight="700" fill="#1F2937">Products — Catalog</text>
+  <rect x="302" y="64" width="130" height="28" rx="6" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="367" y="82" font-size="10.5" fill="#6b7280" text-anchor="middle">Search / scan…</text>
+  <rect x="352" y="64" width="80" height="28" rx="6" fill="#28a745"/>
+  <text x="392" y="82" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">+ Add</text>
+
+  <!-- Global search result card -->
+  <rect x="40" y="120" width="392" height="150" rx="10" fill="#f0fdf4" stroke="#28a745" stroke-dasharray="5 4"/>
+  <text x="60" y="144" font-size="10" font-weight="700" letter-spacing="1.2" fill="#15803d">GLOBAL PRODUCT SEARCH</text>
+  <text x="60" y="166" font-size="11.5" fill="#374151">Type a name or scan a barcode — Kiosk.ke finds</text>
+  <text x="60" y="182" font-size="11.5" fill="#374151">the product in the global catalog and pre-fills</text>
+  <text x="60" y="198" font-size="11.5" fill="#374151">the details. You just confirm prices &amp; stock.</text>
+  <rect x="60" y="212" width="352" height="36" rx="8" fill="#ffffff" stroke="#28a745" stroke-width="1.6"/>
+  <text x="76" y="235" font-size="12" fill="#1F2937">Sunbest Cooking Oil 1 L</text>
+  <rect x="316" y="220" width="84" height="20" rx="10" fill="#28a745"/>
+  <text x="358" y="234" font-size="9.5" font-weight="700" fill="#ffffff" text-anchor="middle">Use this ✓</text>
+
+  <!-- List -->
+  <g>
+    <rect x="40" y="292" width="392" height="46" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+    <rect x="52" y="302" width="24" height="26" rx="4" fill="#f5f5f5"/>
+    <text x="64" y="320" font-size="8" fill="#a3a3a3" text-anchor="middle">🥫</text>
+    <text x="86" y="310" font-size="11.5" font-weight="600" fill="#1F2937">Sunbest Cooking Oil 1 L</text>
+    <text x="86" y="326" font-size="9.5" fill="#6b7280">KES 450 → 520 · 24 in stock</text>
+    <rect x="336" y="306" width="80" height="18" rx="9" fill="#f0fdf4"/>
+    <text x="376" y="319" font-size="9" font-weight="700" fill="#15803d" text-anchor="middle">ADDED ✓</text>
+
+    <rect x="40" y="346" width="392" height="46" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+    <rect x="52" y="356" width="24" height="26" rx="4" fill="#f5f5f5"/>
+    <text x="64" y="374" font-size="8" fill="#a3a3a3" text-anchor="middle">🍚</text>
+    <text x="86" y="364" font-size="11.5" font-weight="600" fill="#1F2937">Pishori Rice 2 kg (Mwea)</text>
+    <text x="86" y="380" font-size="9.5" fill="#6b7280">KES 380 → 460 · 40 in stock</text>
+    <rect x="336" y="360" width="80" height="18" rx="9" fill="#f0fdf4"/>
+    <text x="376" y="373" font-size="9" font-weight="700" fill="#15803d" text-anchor="middle">ADDED ✓</text>
+
+    <rect x="40" y="400" width="392" height="46" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+    <rect x="52" y="410" width="24" height="26" rx="4" fill="#f5f5f5"/>
+    <text x="64" y="428" font-size="8" fill="#a3a3a3" text-anchor="middle">🧼</text>
+    <text x="86" y="418" font-size="11.5" font-weight="600" fill="#1F2937">Omo Auto Detergent</text>
+    <text x="86" y="434" font-size="9.5" fill="#6b7280">KES 130 → 180 · 12 in stock</text>
+    <rect x="336" y="414" width="80" height="18" rx="9" fill="#f3f4f6"/>
+    <text x="376" y="427" font-size="9" font-weight="700" fill="#6b7280" text-anchor="middle">ADD</text>
+  </g>
+
+  <text x="40" y="476" font-size="10.5" fill="#6b7280">Tip: scanned barcodes fill SKU automatically.</text>
+  <text x="40" y="492" font-size="10.5" fill="#6b7280">Add your own products manually anytime.</text>
+  <rect x="40" y="508" width="392" height="12" rx="6" fill="#f3f4f6"/>
+
+  <!-- ============ RIGHT: Add product drawer ============ -->
+  <rect x="504" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="504" y="56" width="4" height="480" fill="#28a745"/>
+
+  <text x="528" y="88" font-size="10" font-weight="700" letter-spacing="1.4" fill="#15803d">CATALOG</text>
+  <text x="528" y="112" font-size="15" font-weight="600" fill="#1F2937">Add product</text>
+
+  <!-- Single / Group toggle -->
+  <rect x="528" y="130" width="200" height="28" fill="#1F2937"/>
+  <text x="628" y="149" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">Single product</text>
+  <rect x="728" y="130" width="200" height="28" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="828" y="149" font-size="11" font-weight="600" fill="#6b7280" text-anchor="middle">Group</text>
+
+  <text x="528" y="184" font-size="9" font-weight="700" letter-spacing="1" fill="#6b7280">PRODUCT NAME</text>
+  <rect x="528" y="192" width="400" height="32" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="540" y="213" font-size="12.5" fill="#1F2937">Sunbest Cooking Oil 1 L</text>
+
+  <text x="528" y="248" font-size="9" font-weight="700" letter-spacing="1" fill="#6b7280">DEPARTMENT</text>
+  <text x="764" y="248" font-size="9" font-weight="700" letter-spacing="1" fill="#6b7280">CATEGORY · OPTIONAL</text>
+  <rect x="528" y="256" width="220" height="32" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="540" y="277" font-size="12" fill="#1F2937">Grocery</text>
+  <path d="M724 270 l8 6 l8 -6" stroke="#6b7280" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <rect x="764" y="256" width="164" height="32" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="776" y="277" font-size="12" fill="#1F2937">Cooking oils</text>
+
+  <text x="528" y="312" font-size="11" font-weight="600" fill="#1F2937">Pricing</text>
+  <text x="528" y="332" font-size="9" font-weight="700" letter-spacing="1" fill="#6b7280">BUYING PRICE · KES</text>
+  <text x="764" y="332" font-size="9" font-weight="700" letter-spacing="1" fill="#6b7280">SELL PRICE · KES</text>
+  <rect x="528" y="340" width="220" height="32" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="540" y="361" font-size="12.5" fill="#1F2937">450.00</text>
+  <rect x="764" y="340" width="164" height="32" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="776" y="361" font-size="12.5" font-weight="600" fill="#15803d">520.00</text>
+  <text x="528" y="394" font-size="11" fill="#6b7280">Margin 13.5% · profit KES 70.00</text>
+
+  <line x1="528" y1="410" x2="928" y2="410" stroke="#f0f0f0"/>
+  <text x="528" y="436" font-size="11" font-weight="600" fill="#1F2937">Stock</text>
+  <text x="528" y="456" font-size="9" font-weight="700" letter-spacing="1" fill="#6b7280">BRANCH</text>
+  <text x="764" y="456" font-size="9" font-weight="700" letter-spacing="1" fill="#6b7280">OPENING QTY</text>
+  <rect x="528" y="464" width="220" height="32" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="540" y="485" font-size="12" fill="#1F2937">Main branch</text>
+  <rect x="764" y="464" width="164" height="32" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="776" y="485" font-size="12" fill="#1F2937">24</text>
+
+  <!-- Footer -->
+  <line x1="504" y1="514" x2="944" y2="514" stroke="#e5e7eb"/>
+  <rect x="528" y="524" width="80" height="28" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="568" y="543" font-size="11.5" fill="#1F2937" text-anchor="middle">Cancel</text>
+  <rect x="764" y="524" width="100" height="28" fill="#28a745"/>
+  <text x="814" y="543" font-size="11.5" font-weight="600" fill="#ffffff" text-anchor="middle">Create</text>
+</svg>

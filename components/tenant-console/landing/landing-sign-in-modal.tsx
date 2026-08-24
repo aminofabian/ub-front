@@ -693,11 +693,12 @@ function PassPicker({
                 {group.label}
               </p>
             ) : null}
-            {group.rows.map((row) => (
+            {group.rows.map((row, index) => (
               <button
                 key={destinationKey(row)}
                 type="button"
                 onClick={() => onPick(row)}
+                style={{ animationDelay: `${Math.min(index, 6) * 55}ms` }}
                 className="landing-pass-card group relative block w-full overflow-hidden border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-4 py-3.5 text-left transition-colors duration-150 hover:border-[var(--kiosk-gold)] hover:bg-[color-mix(in_srgb,var(--kiosk-gold-soft)_70%,#fff)] focus-visible:border-[var(--kiosk-gold)] focus-visible:outline-none"
               >
                 <span
