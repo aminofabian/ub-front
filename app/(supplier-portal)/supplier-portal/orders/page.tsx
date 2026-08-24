@@ -1,18 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  Suspense,
+  type CSSProperties,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2, Search, ShoppingBag } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Loader2,
+  Package,
+  Search,
+  ShoppingBag,
+  Truck,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
 import { SupplierPortalTakeOrderWorkspace } from "@/components/supplier-portal/supplier-portal-take-order-workspace";
 import {
-  mktPosHeader,
   spBtnGhost,
   spBtnPrimary,
-  spEyebrow,
   spPage,
   spSerifTitle,
 } from "@/components/supplier-portal/supplier-portal-ui";
@@ -36,6 +52,25 @@ type LineDraft = {
 };
 
 type PageMode = "take" | "inbox";
+
+const INK = "#1c1915";
+const TEAL = "#0f766e";
+const MANGO = "#b9691a";
+
+function fmtWhen(iso: string | null | undefined): string {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("en-KE", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date(iso));
+  } catch {
+    return "";
+  }
+}
 
 function SupplierPortalOrdersPageInner() {
   const router = useRouter();
@@ -78,7 +113,6 @@ function SupplierPortalOrdersPageInner() {
     }
   }, [router]);
 
-  // Inbox-first when deep-linked, forced, or when the inbox already has rows.
   useEffect(() => {
     if (!getSupplierPortalAccessToken()) return;
     if (bootstrappedRef.current) return;
@@ -95,10 +129,7 @@ function SupplierPortalOrdersPageInner() {
   }, [deepPoId, forceInbox, loadOrders]);
 
   useEffect(() => {
-    if (mode === "inbox" && !bootstrappedRef.current) {
-      // Bootstrap effect owns the first load.
-      return;
-    }
+    if (mode === "inbox" && !bootstrappedRef.current) return;
     if (mode === "inbox") void loadOrders();
   }, [mode, loadOrders]);
 
@@ -137,6 +168,11 @@ function SupplierPortalOrdersPageInner() {
       );
     });
   }, [orders, shopFilterId, orderSearch]);
+
+  const awaitingCount = useMemo(
+    () => filteredOrders.filter((o) => !o.supplierResponseAt).length,
+    [filteredOrders],
+  );
 
   const openOrder = useCallback(async (purchaseOrderId: string) => {
     setSelectedId(purchaseOrderId);
@@ -218,10 +254,7 @@ function SupplierPortalOrdersPageInner() {
         {mode === "take" ? (
           <div className="-mx-4 -my-4 sm:mx-0 sm:my-0">
             <header className="mb-2 hidden sm:block">
-              <p className={spEyebrow}>portal · sell → orders</p>
-              <h2 className={cn(spSerifTitle, "mt-0.5 text-2xl sm:text-3xl")}>
-                Take order
-              </h2>
+              <h2 className={cn(spSerifTitle, "text-2xl sm:text-3xl")}>Take order</h2>
             </header>
             <SupplierPortalTakeOrderWorkspace
               onOpenInbox={() => setMode("inbox")}
@@ -232,190 +265,597 @@ function SupplierPortalOrdersPageInner() {
             />
           </div>
         ) : (
-          <>
-            <header className="flex flex-wrap items-end justify-between gap-2">
-              <div className="min-w-0">
-                <p className={spEyebrow}>portal · sell → orders</p>
-                <h2 className={cn(spSerifTitle, "mt-0.5 text-2xl sm:text-3xl")}>
-                  Orders inbox
-                </h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className={spBtnGhost}
-                  onClick={() => setMode("take")}
-                >
-                  <ArrowLeft className="size-3.5" />
-                  Take order
-                </button>
-                <button
-                  type="button"
-                  className={spBtnPrimary}
-                  onClick={() => setMode("take")}
-                >
-                  <ShoppingBag className="size-3.5" />
-                  New order
-                </button>
-              </div>
-            </header>
-
-            <div
-              className={cn(
-                "flex min-h-[min(72dvh,40rem)] flex-col overflow-hidden border border-border bg-background lg:flex-row",
-              )}
-              style={{ ["--pos-primary" as string]: "#0f766e" }}
-            >
-              <aside className="flex max-h-[28%] w-full shrink-0 flex-col overflow-hidden border-b border-border lg:max-h-none lg:w-52 lg:border-b-0 lg:border-r xl:w-56">
-                <div className={mktPosHeader}>
-                  <span>Shops</span>
-                  <span className="font-mono tabular-nums opacity-80">
-                    {shopOptions.length}
-                  </span>
-                </div>
-                <div className="relative border-b border-border">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    className="h-9 w-full bg-transparent pl-8 pr-2 text-[13px] outline-none placeholder:text-muted-foreground/60"
-                    placeholder="Find shop"
-                    value={shopQuery}
-                    onChange={(e) => setShopQuery(e.target.value)}
-                  />
-                </div>
-                <nav className="min-h-0 flex-1 overflow-y-auto p-1">
-                  <button
-                    type="button"
-                    onClick={() => setShopFilterId(null)}
-                    className={cn(
-                      "mb-0.5 flex w-full items-center justify-between px-2.5 py-2 text-left text-[13px] font-medium",
-                      !shopFilterId
-                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)]"
-                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                    )}
-                  >
-                    <span>All shops</span>
-                    <span className="font-mono text-[10px] tabular-nums opacity-70">
-                      {orders.length}
-                    </span>
-                  </button>
-                  {filteredShops.map((shop) => (
-                    <button
-                      key={shop.id}
-                      type="button"
-                      onClick={() => setShopFilterId(shop.id)}
-                      className={cn(
-                        "mb-0.5 flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left text-[13px] font-medium",
-                        shopFilterId === shop.id
-                          ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)]"
-                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                      )}
-                    >
-                      <span className="min-w-0 truncate">{shop.name}</span>
-                      <span className="shrink-0 font-mono text-[10px] tabular-nums opacity-70">
-                        {shop.count}
-                      </span>
-                    </button>
-                  ))}
-                </nav>
-              </aside>
-
-              <aside className="flex max-h-[36%] w-full shrink-0 flex-col overflow-hidden border-b border-border lg:max-h-none lg:w-[17.5rem] lg:border-b-0 lg:border-r xl:w-[19rem]">
-                <div className={mktPosHeader}>
-                  <span>Orders</span>
-                  <span className="font-mono tabular-nums opacity-80">
-                    {filteredOrders.length}
-                  </span>
-                </div>
-                <div className="relative border-b border-border">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    className="h-9 w-full bg-transparent pl-8 pr-2 text-[13px] outline-none placeholder:text-muted-foreground/60"
-                    placeholder="Search PO or shop"
-                    value={orderSearch}
-                    onChange={(e) => setOrderSearch(e.target.value)}
-                  />
-                </div>
-                <div className="min-h-0 flex-1 overflow-y-auto p-1">
-                  {loading ? (
-                    <p className="px-2 py-8 text-center text-[12px] text-muted-foreground">
-                      <Loader2 className="mr-1 inline size-3.5 animate-spin" />
-                      Loading…
-                    </p>
-                  ) : filteredOrders.length === 0 ? (
-                    <p className="px-2 py-10 text-center text-[12px] text-muted-foreground">
-                      No orders in inbox.
-                    </p>
-                  ) : (
-                    filteredOrders.map((order) => (
-                      <button
-                        key={order.purchaseOrderId}
-                        type="button"
-                        onClick={() => void openOrder(order.purchaseOrderId)}
-                        className={cn(
-                          "mb-0.5 flex w-full flex-col items-start gap-0.5 border px-2 py-2 text-left",
-                          selectedId === order.purchaseOrderId
-                            ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
-                            : "border-transparent hover:bg-muted/40",
-                        )}
-                      >
-                        <span className="font-mono text-[10px] text-muted-foreground">
-                          {order.poNumber} · {order.status}
-                        </span>
-                        <span className="w-full truncate text-[12px] font-semibold">
-                          {order.businessName}
-                        </span>
-                        <span className="font-mono text-[10px] text-muted-foreground">
-                          {order.lineCount} lines
-                          {!order.supplierResponseAt ? " · awaiting you" : ""}
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </aside>
-
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                      Order detail
-                    </p>
-                    <h3 className="truncate text-[15px] font-semibold">
-                      {detail
-                        ? `${detail.poNumber} · ${detail.businessName}`
-                        : "Select an order"}
-                    </h3>
-                  </div>
-                </div>
-                <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
-                  {!selectedId ? (
-                    <p className="py-16 text-center text-[12px] text-muted-foreground">
-                      Pick an order to respond or ship.
-                    </p>
-                  ) : detailLoading ? (
-                    <p className="flex items-center justify-center gap-2 py-16 text-[12px] text-muted-foreground">
-                      <Loader2 className="size-4 animate-spin" />
-                      Loading order…
-                    </p>
-                  ) : detail ? (
-                    <OrderDetailPanel
-                      detail={detail}
-                      lineDrafts={lineDrafts}
-                      setLineDrafts={setLineDrafts}
-                      submitting={submitting}
-                      trackingNote={trackingNote}
-                      setTrackingNote={setTrackingNote}
-                      onRespond={() => void onRespond()}
-                      onShip={(status) => void onShip(status)}
-                    />
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </>
+          <InboxBoard
+            shopOptions={shopOptions}
+            filteredShops={filteredShops}
+            filteredOrders={filteredOrders}
+            ordersTotal={orders.length}
+            awaitingCount={awaitingCount}
+            shopFilterId={shopFilterId}
+            shopQuery={shopQuery}
+            orderSearch={orderSearch}
+            selectedId={selectedId}
+            loading={loading}
+            detail={detail}
+            detailLoading={detailLoading}
+            lineDrafts={lineDrafts}
+            submitting={submitting}
+            trackingNote={trackingNote}
+            onShopQuery={setShopQuery}
+            onOrderSearch={setOrderSearch}
+            onShopFilter={setShopFilterId}
+            onOpenOrder={(id) => void openOrder(id)}
+            onTake={() => setMode("take")}
+            setLineDrafts={setLineDrafts}
+            setTrackingNote={setTrackingNote}
+            onRespond={() => void onRespond()}
+            onShip={(status) => void onShip(status)}
+          />
         )}
       </div>
     </SupplierPortalShell>
+  );
+}
+
+function InboxBoard({
+  shopOptions,
+  filteredShops,
+  filteredOrders,
+  ordersTotal,
+  awaitingCount,
+  shopFilterId,
+  shopQuery,
+  orderSearch,
+  selectedId,
+  loading,
+  detail,
+  detailLoading,
+  lineDrafts,
+  submitting,
+  trackingNote,
+  onShopQuery,
+  onOrderSearch,
+  onShopFilter,
+  onOpenOrder,
+  onTake,
+  setLineDrafts,
+  setTrackingNote,
+  onRespond,
+  onShip,
+}: {
+  shopOptions: { id: string; name: string; count: number }[];
+  filteredShops: { id: string; name: string; count: number }[];
+  filteredOrders: SupplierPortalOrderRow[];
+  ordersTotal: number;
+  awaitingCount: number;
+  shopFilterId: string | null;
+  shopQuery: string;
+  orderSearch: string;
+  selectedId: string | null;
+  loading: boolean;
+  detail: SupplierPortalOrderDetail | null;
+  detailLoading: boolean;
+  lineDrafts: LineDraft[];
+  submitting: boolean;
+  trackingNote: string;
+  onShopQuery: (v: string) => void;
+  onOrderSearch: (v: string) => void;
+  onShopFilter: (id: string | null) => void;
+  onOpenOrder: (id: string) => void;
+  onTake: () => void;
+  setLineDrafts: Dispatch<SetStateAction<LineDraft[]>>;
+  setTrackingNote: (v: string) => void;
+  onRespond: () => void;
+  onShip: (status: "in_transit" | "delivered") => void;
+}) {
+  return (
+    <div
+      className="flex flex-col gap-3"
+      style={
+        {
+          ["--pos-primary" as string]: TEAL,
+          ["--inbox-ink" as string]: INK,
+          ["--inbox-mango" as string]: MANGO,
+        } as CSSProperties
+      }
+    >
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className={cn(spSerifTitle, "text-[1.85rem] leading-none sm:text-[2.35rem]")}>
+            Orders inbox
+          </h2>
+          <p className="mt-1.5 text-[13px] text-[color-mix(in_srgb,var(--inbox-ink)_55%,transparent)]">
+            {awaitingCount > 0
+              ? `${awaitingCount} waiting for your response`
+              : "Respond, then mark delivery"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" className={spBtnGhost} onClick={onTake}>
+            <ArrowLeft className="size-3.5" />
+            Take order
+          </button>
+          <button type="button" className={spBtnPrimary} onClick={onTake}>
+            <ShoppingBag className="size-3.5" />
+            New order
+          </button>
+        </div>
+      </header>
+
+      {/* Fixed viewport height so columns scroll instead of growing the page */}
+      <div
+        className={cn(
+          "flex min-h-0 flex-col overflow-hidden",
+          "h-[calc(100dvh-9.5rem)] min-h-[26rem]",
+          "sm:h-[calc(100dvh-10.5rem)]",
+          "lg:grid lg:h-[min(74dvh,46rem)] lg:grid-cols-[11.5rem_minmax(0,17.5rem)_minmax(0,1fr)]",
+          "xl:grid-cols-[12.5rem_minmax(0,19rem)_minmax(0,1fr)]",
+          "border border-[color-mix(in_srgb,var(--inbox-ink)_14%,transparent)]",
+          "bg-[linear-gradient(165deg,#faf7f1_0%,#f3eee6_48%,#ebe4d8_100%)]",
+        )}
+      >
+        {/* Shops */}
+        <aside className="flex max-h-[9.5rem] min-h-0 shrink-0 flex-col overflow-hidden border-b border-[color-mix(in_srgb,var(--inbox-ink)_12%,transparent)] lg:max-h-none lg:shrink lg:border-b-0 lg:border-r">
+          <RailHead label="Shops" count={shopOptions.length} />
+          <div className="relative border-b border-[color-mix(in_srgb,var(--inbox-ink)_10%,transparent)] bg-[color-mix(in_srgb,#fff_55%,transparent)]">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--inbox-ink)_40%,transparent)]" />
+            <input
+              className="h-9 w-full bg-transparent pl-8 pr-2 text-[13px] text-[var(--inbox-ink)] outline-none placeholder:text-[color-mix(in_srgb,var(--inbox-ink)_35%,transparent)]"
+              placeholder="Find shop"
+              value={shopQuery}
+              onChange={(e) => onShopQuery(e.target.value)}
+            />
+          </div>
+          <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5">
+            <ShopChip
+              label="All shops"
+              count={ordersTotal}
+              active={!shopFilterId}
+              onClick={() => onShopFilter(null)}
+            />
+            {filteredShops.map((shop) => (
+              <ShopChip
+                key={shop.id}
+                label={shop.name}
+                count={shop.count}
+                active={shopFilterId === shop.id}
+                onClick={() => onShopFilter(shop.id)}
+              />
+            ))}
+          </nav>
+        </aside>
+
+        {/* Orders list */}
+        <aside className="flex max-h-[13.5rem] min-h-0 shrink-0 flex-col overflow-hidden border-b border-[color-mix(in_srgb,var(--inbox-ink)_12%,transparent)] lg:max-h-none lg:shrink lg:border-b-0 lg:border-r">
+          <RailHead label="Orders" count={filteredOrders.length} accent={awaitingCount > 0} />
+          <div className="relative border-b border-[color-mix(in_srgb,var(--inbox-ink)_10%,transparent)] bg-[color-mix(in_srgb,#fff_55%,transparent)]">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--inbox-ink)_40%,transparent)]" />
+            <input
+              className="h-9 w-full bg-transparent pl-8 pr-2 text-[13px] text-[var(--inbox-ink)] outline-none placeholder:text-[color-mix(in_srgb,var(--inbox-ink)_35%,transparent)]"
+              placeholder="Search PO or shop"
+              value={orderSearch}
+              onChange={(e) => onOrderSearch(e.target.value)}
+            />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5">
+            {loading ? (
+              <p className="px-2 py-10 text-center text-[12px] text-[color-mix(in_srgb,var(--inbox-ink)_45%,transparent)]">
+                <Loader2 className="mr-1 inline size-3.5 animate-spin" />
+                Loading…
+              </p>
+            ) : filteredOrders.length === 0 ? (
+              <EmptyRail />
+            ) : (
+              filteredOrders.map((order, i) => {
+                const awaiting = !order.supplierResponseAt;
+                const selected = selectedId === order.purchaseOrderId;
+                return (
+                  <button
+                    key={order.purchaseOrderId}
+                    type="button"
+                    onClick={() => onOpenOrder(order.purchaseOrderId)}
+                    style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
+                    className={cn(
+                      "group relative mb-1.5 w-full overflow-hidden text-left",
+                      "border px-2.5 py-2.5 transition-[background,border-color,transform] duration-200",
+                      "animate-[sp-card-in_0.4s_cubic-bezier(0.22,1,0.36,1)_both]",
+                      selected
+                        ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,#fff)] shadow-[0_1px_0_0_color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
+                        : "border-transparent bg-[color-mix(in_srgb,#fff_70%,transparent)] hover:border-[color-mix(in_srgb,var(--inbox-ink)_14%,transparent)] hover:bg-white",
+                    )}
+                  >
+                    {awaiting ? (
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute -right-1 top-1 rotate-12 border border-[color-mix(in_srgb,var(--inbox-mango)_55%,transparent)] px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.14em] text-[var(--inbox-mango)] opacity-80"
+                      >
+                        Await
+                      </span>
+                    ) : null}
+                    <div className="flex items-baseline justify-between gap-2 pr-8">
+                      <span className="font-mono text-[11px] font-semibold tabular-nums text-[var(--inbox-ink)]">
+                        {order.poNumber}
+                      </span>
+                      <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--inbox-ink)_40%,transparent)]">
+                        {order.status}
+                      </span>
+                    </div>
+                    <p className="mt-1 truncate text-[13px] font-semibold leading-snug text-[var(--inbox-ink)]">
+                      {order.businessName}
+                    </p>
+                    <p className="mt-1 font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--inbox-ink)_48%,transparent)]">
+                      {order.lineCount} line{order.lineCount === 1 ? "" : "s"}
+                      {awaiting ? (
+                        <span className="text-[var(--inbox-mango)]"> · yours</span>
+                      ) : order.deliveryStatus ? (
+                        <span> · {order.deliveryStatus.replaceAll("_", " ")}</span>
+                      ) : null}
+                      {order.sentToSupplierAt ? (
+                        <span className="ml-1 opacity-70">
+                          · {fmtWhen(order.sentToSupplierAt)}
+                        </span>
+                      ) : null}
+                    </p>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </aside>
+
+        {/* Detail — scroll lives here */}
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[color-mix(in_srgb,#fff_82%,#f7f3eb)]">
+          <div className="relative shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--inbox-ink)_12%,transparent)] px-4 py-3">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary)]"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-6 -top-8 size-24 rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] blur-2xl"
+            />
+            {detail ? (
+              <div className="relative min-w-0">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--pos-primary)]">
+                  Packing slip
+                </p>
+                <h3 className="mt-0.5 truncate font-[family-name:var(--font-heading)] text-[1.35rem] font-semibold leading-tight tracking-tight text-[var(--inbox-ink)]">
+                  {detail.poNumber}
+                </h3>
+                <p className="mt-0.5 truncate text-[13px] text-[color-mix(in_srgb,var(--inbox-ink)_58%,transparent)]">
+                  {detail.businessName}
+                  {detail.sentToSupplierAt
+                    ? ` · received ${fmtWhen(detail.sentToSupplierAt)}`
+                    : ""}
+                </p>
+              </div>
+            ) : (
+              <div className="relative">
+                <h3 className="font-[family-name:var(--font-heading)] text-[1.2rem] font-semibold text-[var(--inbox-ink)]">
+                  Select an order
+                </h3>
+                <p className="mt-0.5 text-[12px] text-[color-mix(in_srgb,var(--inbox-ink)_48%,transparent)]">
+                  Pick a slip from the list to respond or ship.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            {!selectedId ? (
+              <DetailEmpty />
+            ) : detailLoading ? (
+              <p className="flex items-center justify-center gap-2 py-20 text-[12px] text-[color-mix(in_srgb,var(--inbox-ink)_45%,transparent)]">
+                <Loader2 className="size-4 animate-spin" />
+                Loading order…
+              </p>
+            ) : detail ? (
+              <OrderDetailBody
+                detail={detail}
+                lineDrafts={lineDrafts}
+                setLineDrafts={setLineDrafts}
+              />
+            ) : null}
+          </div>
+
+          {detail && !detailLoading ? (
+            <DetailActions
+              detail={detail}
+              submitting={submitting}
+              trackingNote={trackingNote}
+              setTrackingNote={setTrackingNote}
+              onRespond={onRespond}
+              onShip={onShip}
+            />
+          ) : null}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function RailHead({
+  label,
+  count,
+  accent,
+}: {
+  label: string;
+  count: number;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex h-9 shrink-0 items-center justify-between px-3",
+        "text-[10px] font-bold uppercase tracking-[0.16em] text-white",
+        accent
+          ? "bg-[linear-gradient(100deg,var(--pos-primary)_0%,#0d6a63_55%,#b9691a_160%)]"
+          : "bg-[var(--pos-primary)]",
+      )}
+    >
+      <span>{label}</span>
+      <span className="font-mono tabular-nums opacity-85">{count}</span>
+    </div>
+  );
+}
+
+function ShopChip({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "mb-0.5 flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left text-[12.5px] font-medium transition-colors",
+        active
+          ? "bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)] text-[var(--inbox-ink)]"
+          : "text-[color-mix(in_srgb,var(--inbox-ink)_58%,transparent)] hover:bg-[color-mix(in_srgb,#fff_70%,transparent)] hover:text-[var(--inbox-ink)]",
+      )}
+    >
+      <span className="min-w-0 truncate">{label}</span>
+      <span className="shrink-0 font-mono text-[10px] tabular-nums opacity-70">
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function EmptyRail() {
+  return (
+    <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
+      <Package
+        className="size-7 text-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)]"
+        strokeWidth={1.4}
+      />
+      <p className="text-[12px] font-medium text-[var(--inbox-ink)]">No orders here</p>
+      <p className="text-[11px] text-[color-mix(in_srgb,var(--inbox-ink)_48%,transparent)]">
+        When a shop sends a PO, it lands on this rail.
+      </p>
+    </div>
+  );
+}
+
+function DetailEmpty() {
+  return (
+    <div className="flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+      <span className="flex size-14 items-center justify-center border border-dashed border-[color-mix(in_srgb,var(--inbox-ink)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]">
+        <Package
+          className="size-6 text-[var(--pos-primary)] opacity-80"
+          strokeWidth={1.4}
+        />
+      </span>
+      <p className="max-w-[16rem] text-[13px] leading-snug text-[color-mix(in_srgb,var(--inbox-ink)_55%,transparent)]">
+        Choose a purchase order to accept lines or update delivery.
+      </p>
+    </div>
+  );
+}
+
+function OrderDetailBody({
+  detail,
+  lineDrafts,
+  setLineDrafts,
+}: {
+  detail: SupplierPortalOrderDetail;
+  lineDrafts: LineDraft[];
+  setLineDrafts: Dispatch<SetStateAction<LineDraft[]>>;
+}) {
+  const awaiting = !detail.supplierResponseAt;
+
+  return (
+    <div className="px-3 py-3 sm:px-4">
+      {detail.notes ? (
+        <p className="mb-3 border border-dashed border-[color-mix(in_srgb,var(--inbox-ink)_16%,transparent)] bg-[color-mix(in_srgb,var(--inbox-mango)_6%,transparent)] px-3 py-2 text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--inbox-ink)_72%,transparent)]">
+          {detail.notes}
+        </p>
+      ) : null}
+
+      <ul className="divide-y divide-dashed divide-[color-mix(in_srgb,var(--inbox-ink)_14%,transparent)] border border-[color-mix(in_srgb,var(--inbox-ink)_12%,transparent)] bg-white">
+        {lineDrafts.map((line, index) => {
+          const item = detail.lines[index];
+          const status = line.supplierLineStatus;
+          return (
+            <li
+              key={line.purchaseOrderLineId}
+              className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2 px-2.5 py-3 sm:gap-3 sm:px-3"
+            >
+              <span className="pt-0.5 font-mono text-[11px] font-bold tabular-nums text-[color-mix(in_srgb,var(--pos-primary)_85%,transparent)]">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <p className="text-[14px] font-semibold leading-snug text-[var(--inbox-ink)]">
+                    {item?.itemName}
+                  </p>
+                  {item?.unitEstimatedCost != null ? (
+                    <p className="font-mono text-[12px] font-semibold tabular-nums text-[var(--inbox-mango)]">
+                      {formatMoney(item.unitEstimatedCost, "KES")}
+                    </p>
+                  ) : null}
+                </div>
+                <p className="mt-0.5 font-mono text-[11px] text-[color-mix(in_srgb,var(--inbox-ink)_48%,transparent)]">
+                  Ordered {item?.qtyOrdered}
+                  {item?.itemSku ? ` · ${item.itemSku}` : ""}
+                </p>
+
+                {awaiting ? (
+                  <div className="mt-2.5 grid gap-2 sm:grid-cols-[minmax(0,8.5rem)_minmax(0,5.5rem)_minmax(0,1fr)]">
+                    <select
+                      className="h-9 border border-[color-mix(in_srgb,var(--inbox-ink)_16%,transparent)] bg-[color-mix(in_srgb,#faf7f1_90%,transparent)] px-2 text-[13px] text-[var(--inbox-ink)] outline-none focus:border-[var(--pos-primary)]"
+                      value={status}
+                      onChange={(e) =>
+                        setLineDrafts((rows) =>
+                          rows.map((row, i) =>
+                            i === index
+                              ? { ...row, supplierLineStatus: e.target.value }
+                              : row,
+                          ),
+                        )
+                      }
+                    >
+                      <option value="accepted">Accept</option>
+                      <option value="partially_accepted">Partial</option>
+                      <option value="rejected">Reject</option>
+                    </select>
+                    {status !== "rejected" ? (
+                      <Input
+                        placeholder="Qty"
+                        value={line.qtyAccepted}
+                        className="h-9 rounded-none border-[color-mix(in_srgb,var(--inbox-ink)_16%,transparent)] bg-[color-mix(in_srgb,#faf7f1_90%,transparent)] font-mono text-[13px]"
+                        onChange={(e) =>
+                          setLineDrafts((rows) =>
+                            rows.map((row, i) =>
+                              i === index
+                                ? { ...row, qtyAccepted: e.target.value }
+                                : row,
+                            ),
+                          )
+                        }
+                      />
+                    ) : (
+                      <span className="flex h-9 items-center font-mono text-[11px] text-[color-mix(in_srgb,var(--inbox-ink)_40%,transparent)]">
+                        —
+                      </span>
+                    )}
+                    <Input
+                      placeholder="Note"
+                      value={line.supplierNote}
+                      className="h-9 rounded-none border-[color-mix(in_srgb,var(--inbox-ink)_16%,transparent)] bg-[color-mix(in_srgb,#faf7f1_90%,transparent)] text-[13px] sm:col-span-1"
+                      onChange={(e) =>
+                        setLineDrafts((rows) =>
+                          rows.map((row, i) =>
+                            i === index
+                              ? { ...row, supplierNote: e.target.value }
+                              : row,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                ) : (
+                  <p
+                    className={cn(
+                      "mt-1.5 inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.06em]",
+                      status === "rejected"
+                        ? "text-[#b42318]"
+                        : "text-[var(--pos-primary)]",
+                    )}
+                  >
+                    <Check className="size-3" strokeWidth={2.5} />
+                    {status?.replaceAll("_", " ")}
+                    {line.qtyAccepted ? ` · qty ${line.qtyAccepted}` : ""}
+                  </p>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function DetailActions({
+  detail,
+  submitting,
+  trackingNote,
+  setTrackingNote,
+  onRespond,
+  onShip,
+}: {
+  detail: SupplierPortalOrderDetail;
+  submitting: boolean;
+  trackingNote: string;
+  setTrackingNote: (v: string) => void;
+  onRespond: () => void;
+  onShip: (status: "in_transit" | "delivered") => void;
+}) {
+  return (
+    <div className="shrink-0 space-y-2 border-t-2 border-[var(--inbox-ink)] bg-[color-mix(in_srgb,#f3eee6_88%,transparent)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
+      {!detail.supplierResponseAt ? (
+        <button
+          type="button"
+          className={cn(spBtnPrimary, "h-11 w-full text-[12px]")}
+          disabled={submitting}
+          onClick={onRespond}
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Submitting…
+            </>
+          ) : (
+            <>
+              <Check className="size-4" />
+              Submit response
+            </>
+          )}
+        </button>
+      ) : (
+        <>
+          <Input
+            placeholder="Tracking note (optional)"
+            value={trackingNote}
+            onChange={(e) => setTrackingNote(e.target.value)}
+            className="h-9 rounded-none border-[color-mix(in_srgb,var(--inbox-ink)_16%,transparent)] bg-white"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className={cn(spBtnGhost, "h-10")}
+              disabled={submitting}
+              onClick={() => onShip("in_transit")}
+            >
+              <Truck className="size-3.5" />
+              In transit
+            </button>
+            <button
+              type="button"
+              className={cn(spBtnPrimary, "h-10")}
+              disabled={submitting}
+              onClick={() => onShip("delivered")}
+            >
+              <Check className="size-3.5" />
+              Delivered
+            </button>
+          </div>
+          {detail.deliveryStatus ? (
+            <p className="text-center font-mono text-[10px] uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--inbox-ink)_48%,transparent)]">
+              Status · {detail.deliveryStatus.replaceAll("_", " ")}
+            </p>
+          ) : null}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -424,7 +864,12 @@ export default function SupplierPortalOrdersPage() {
     <Suspense
       fallback={
         <SupplierPortalShell>
-          <div className={cn(spPage, "py-16 text-center text-sm text-muted-foreground")}>
+          <div
+            className={cn(
+              spPage,
+              "py-16 text-center text-sm text-muted-foreground",
+            )}
+          >
             <Loader2 className="mr-2 inline size-4 animate-spin" />
             Loading orders…
           </div>
@@ -433,145 +878,5 @@ export default function SupplierPortalOrdersPage() {
     >
       <SupplierPortalOrdersPageInner />
     </Suspense>
-  );
-}
-
-function OrderDetailPanel({
-  detail,
-  lineDrafts,
-  setLineDrafts,
-  submitting,
-  trackingNote,
-  setTrackingNote,
-  onRespond,
-  onShip,
-}: {
-  detail: SupplierPortalOrderDetail;
-  lineDrafts: LineDraft[];
-  setLineDrafts: React.Dispatch<React.SetStateAction<LineDraft[]>>;
-  submitting: boolean;
-  trackingNote: string;
-  setTrackingNote: (v: string) => void;
-  onRespond: () => void;
-  onShip: (status: "in_transit" | "delivered") => void;
-}) {
-  return (
-    <div className="space-y-4">
-      {detail.notes ? (
-        <p className="text-sm text-muted-foreground">{detail.notes}</p>
-      ) : null}
-
-      <div className="space-y-2">
-        {lineDrafts.map((line, index) => {
-          const item = detail.lines[index];
-          return (
-            <div
-              key={line.purchaseOrderLineId}
-              className="border border-border bg-muted/20 p-3 text-sm"
-            >
-              <p className="font-medium">{item?.itemName}</p>
-              <p className="text-xs text-muted-foreground">
-                Ordered {item?.qtyOrdered}
-                {item?.unitEstimatedCost != null
-                  ? ` · ${formatMoney(item.unitEstimatedCost, "KES")}`
-                  : ""}
-              </p>
-              {!detail.supplierResponseAt ? (
-                <div className="mt-2 grid gap-2">
-                  <select
-                    className="h-9 border border-border bg-background px-2 text-sm"
-                    value={line.supplierLineStatus}
-                    onChange={(e) =>
-                      setLineDrafts((rows) =>
-                        rows.map((row, i) =>
-                          i === index
-                            ? { ...row, supplierLineStatus: e.target.value }
-                            : row,
-                        ),
-                      )
-                    }
-                  >
-                    <option value="accepted">Accept</option>
-                    <option value="partially_accepted">Partial</option>
-                    <option value="rejected">Reject</option>
-                  </select>
-                  {line.supplierLineStatus !== "rejected" ? (
-                    <Input
-                      placeholder="Qty accepted"
-                      value={line.qtyAccepted}
-                      onChange={(e) =>
-                        setLineDrafts((rows) =>
-                          rows.map((row, i) =>
-                            i === index ? { ...row, qtyAccepted: e.target.value } : row,
-                          ),
-                        )
-                      }
-                    />
-                  ) : null}
-                  <Input
-                    placeholder="Note (optional)"
-                    value={line.supplierNote}
-                    onChange={(e) =>
-                      setLineDrafts((rows) =>
-                        rows.map((row, i) =>
-                          i === index ? { ...row, supplierNote: e.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </div>
-              ) : (
-                <p className="mt-1 text-xs text-[var(--pos-primary,#0f766e)]">
-                  {line.supplierLineStatus}
-                  {line.qtyAccepted ? ` · qty ${line.qtyAccepted}` : ""}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {!detail.supplierResponseAt ? (
-        <button
-          type="button"
-          className={cn(spBtnPrimary, "w-full")}
-          disabled={submitting}
-          onClick={onRespond}
-        >
-          Submit response
-        </button>
-      ) : (
-        <div className="space-y-2 border-t border-border pt-4">
-          <Input
-            placeholder="Tracking note (optional)"
-            value={trackingNote}
-            onChange={(e) => setTrackingNote(e.target.value)}
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              className={spBtnGhost}
-              disabled={submitting}
-              onClick={() => onShip("in_transit")}
-            >
-              In transit
-            </button>
-            <button
-              type="button"
-              className={spBtnPrimary}
-              disabled={submitting}
-              onClick={() => onShip("delivered")}
-            >
-              Delivered
-            </button>
-          </div>
-          {detail.deliveryStatus ? (
-            <p className="text-xs text-muted-foreground">
-              Delivery status: {detail.deliveryStatus}
-            </p>
-          ) : null}
-        </div>
-      )}
-    </div>
   );
 }
