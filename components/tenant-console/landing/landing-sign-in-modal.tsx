@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Dialog,
@@ -47,7 +47,7 @@ type Step =
   | { status: "phone-code"; phone: string }
   | { status: "phone-verifying"; phone: string }
   | { status: "passes"; rows: PublicSignInDestination[]; identity: IdentityPayload }
-  | { status: "miss"; hint: string }
+  | { status: "miss"; hint: string; phone?: string }
   | { status: "shop-search" }
   | { status: "shop-loading" }
   | { status: "shop-results"; query: string; rows: PublicSignInDestination[] }
@@ -85,13 +85,37 @@ function destinationKey(row: PublicSignInDestination): string {
 function doorStamp(door: PublicSignInDestination["door"]): string {
   if (door === "STAFF") return "Till";
   if (door === "SUPPLIER") return "Supply";
+  if (door === "SUPPLIER_CLAIM") return "Claim";
   return "Shop";
 }
 
-function doorHint(door: PublicSignInDestination["door"]): string {
-  if (door === "STAFF") return "PIN or password — opens in the shop";
-  if (door === "SUPPLIER") return "Password in this sheet";
+function doorHint(row: PublicSignInDestination): string {
+  if (row.hint) return row.hint;
+  if (row.door === "SUPPLIER") return "PIN or password in this sheet";
+  if (row.door === "SUPPLIER_CLAIM") return "Verify your phone by SMS to open it";
   return "PIN or password — opens in the shop";
+}
+
+function doorAddress(row: PublicSignInDestination): string {
+  if (row.door === "SUPPLIER" || row.door === "SUPPLIER_CLAIM") {
+    return "supplier portal";
+  }
+  return row.primaryHost ?? (row.slug ? `${row.slug}.${PLATFORM_DOMAIN}` : "");
+}
+
+/** Doors in the order a person expects to see them, with a group heading. */
+const DOOR_GROUPS: { door: PublicSignInDestination["door"]; label: string }[] = [
+  { door: "STAFF", label: "Tills you run" },
+  { door: "SHOPPER", label: "Shops you buy from" },
+  { door: "SUPPLIER", label: "Supply portal" },
+  { door: "SUPPLIER_CLAIM", label: "Supply portal — not opened yet" },
+];
+
+function groupPasses(rows: PublicSignInDestination[]) {
+  return DOOR_GROUPS.map(({ door, label }) => ({
+    label,
+    rows: rows.filter((row) => row.door === door),
+  })).filter((group) => group.rows.length > 0);
 }
 
 function resolveIdentity(
@@ -118,8 +142,7 @@ export function LandingSignInModal({
   const [code, setCode] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [step, setStep] = useState<Step>({ status: "idle" });
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [forwardingKey, setForwardingKey] = useState<string | null>(null);
+  const [forwarding, setForwarding] = useState<PublicSignInDestination | null>(null);
   const [shopQuery, setShopQuery] = useState("");
   const [supplierPassword, setSupplierPassword] = useState("");
   const [supplierBusy, setSupplierBusy] = useState(false);
@@ -133,8 +156,7 @@ export function LandingSignInModal({
     setCode("");
     setCountdown(0);
     setStep({ status: "idle" });
-    setSelectedKey(null);
-    setForwardingKey(null);
+    setForwarding(null);
     setShopQuery("");
     setSupplierPassword("");
     setSupplierBusy(false);
@@ -149,24 +171,11 @@ export function LandingSignInModal({
     return () => window.clearInterval(timer);
   }, [step.status, countdown]);
 
-  const passRows = step.status === "passes" || step.status === "shop-results" ? step.rows : [];
-  const selected = useMemo(() => {
-    if (!selectedKey) return passRows[0] ?? null;
-    return passRows.find((row) => destinationKey(row) === selectedKey) ?? passRows[0] ?? null;
-  }, [passRows, selectedKey]);
-
-  useEffect(() => {
-    if (step.status === "passes" || step.status === "shop-results") {
-      setSelectedKey(destinationKey(step.rows[0]));
-    }
-  }, [step]);
-
   const go = (row: PublicSignInDestination, payload?: IdentityPayload) => {
-    if (forwardingKey) return;
+    if (forwarding) return;
     const idPayload = resolveIdentity(payload, kind, identity);
 
     if (row.door === "SUPPLIER") {
-      setForwardingKey(null);
       setSupplierPassword("");
       setSupplierError("");
       setStep({
@@ -177,13 +186,28 @@ export function LandingSignInModal({
       return;
     }
 
+    // A supplier the platform knows but who has no portal login yet: the claim
+    // flow verifies the stall phone by SMS, so hand it a verified one when we
+    // have it and let the claim page ask otherwise.
+    if (row.door === "SUPPLIER_CLAIM") {
+      setForwarding(row);
+      window.setTimeout(() => {
+        const phone = idPayload?.kind === "phone" ? idPayload.phone : undefined;
+        window.location.assign(
+          phone
+            ? `${APP_ROUTES.supplierPortalClaim}?phone=${encodeURIComponent(phone)}`
+            : APP_ROUTES.supplierPortalClaim,
+        );
+      }, 720);
+      return;
+    }
+
     if (!row.slug) {
       setStep({ status: "miss", hint: "That pass has no shop address." });
       return;
     }
 
-    const key = destinationKey(row);
-    setForwardingKey(key);
+    setForwarding(row);
 
     window.setTimeout(() => {
       const path = buildStorefrontSignInHref({
@@ -205,7 +229,7 @@ export function LandingSignInModal({
       if (url) {
         window.location.assign(url);
       } else {
-        setForwardingKey(null);
+        setForwarding(null);
         setStep({ status: "miss", hint: "Could not open that shop." });
       }
     }, 720);
@@ -245,7 +269,7 @@ export function LandingSignInModal({
       if (rows.length === 0) {
         setStep({
           status: "miss",
-          hint: "No pass for that email. Try another, or find the shop by name.",
+          hint: "No pass on that email. Suppliers usually sign in with the stall phone — try the number instead.",
         });
         return;
       }
@@ -297,7 +321,8 @@ export function LandingSignInModal({
     if (rows.length === 0) {
       setStep({
         status: "miss",
-        hint: "No shops on that number yet. Try your email, or find the shop by name.",
+        hint: "Nothing stamped on that number yet. Try your email, or open a supplier account below.",
+        phone: step.phone,
       });
       return;
     }
@@ -381,7 +406,7 @@ export function LandingSignInModal({
                 </label>
                 <label className="block">
                   <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
-                    Password
+                    PIN or password
                   </span>
                   <input
                     type="password"
@@ -411,8 +436,8 @@ export function LandingSignInModal({
                   ← Different pass
                 </button>
               </form>
-            ) : forwardingKey && selected ? (
-              <ForwardingPass row={selected} onBack={() => setForwardingKey(null)} />
+            ) : forwarding ? (
+              <ForwardingPass row={forwarding} onBack={() => setForwarding(null)} />
             ) : step.status === "phone-code" || step.status === "phone-verifying" ? (
               <CodeForm
                 phone={step.phone}
@@ -431,14 +456,11 @@ export function LandingSignInModal({
             ) : step.status === "passes" || step.status === "shop-results" ? (
               <PassPicker
                 rows={step.rows}
-                selectedKey={selectedKey}
-                onSelect={setSelectedKey}
-                onContinue={() => {
-                  if (!selected) return;
+                onPick={(row) => {
                   if (step.status === "passes") {
-                    go(selected, step.identity);
+                    go(row, step.identity);
                   } else {
-                    go(selected);
+                    go(row);
                   }
                 }}
                 onBack={() =>
@@ -499,6 +521,16 @@ export function LandingSignInModal({
                 >
                   Find by shop name →
                 </button>
+                <a
+                  href={
+                    step.phone
+                      ? `${APP_ROUTES.supplierPortalClaim}?phone=${encodeURIComponent(step.phone)}`
+                      : APP_ROUTES.supplierPortalClaim
+                  }
+                  className="mt-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
+                >
+                  I supply shops — open a portal →
+                </a>
                 <button
                   type="button"
                   className="mt-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
@@ -606,10 +638,6 @@ function ForwardingPass({
   row: PublicSignInDestination;
   onBack: () => void;
 }) {
-  const host =
-    row.door === "SUPPLIER"
-      ? "supplier portal"
-      : (row.primaryHost ?? (row.slug ? `${row.slug}.${PLATFORM_DOMAIN}` : ""));
   return (
     <div className="landing-pass-stamp mt-6 border border-dashed border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-4 py-5">
       <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
@@ -619,10 +647,10 @@ function ForwardingPass({
         {row.name}
       </p>
       <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--kiosk-text-muted)]">
-        {host}
+        {doorAddress(row)}
       </p>
       <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)]">
-        Opening {doorHint(row.door).toLowerCase()}…
+        Opening — {doorHint(row).toLowerCase()}…
       </p>
       <button
         type="button"
@@ -637,80 +665,70 @@ function ForwardingPass({
 
 function PassPicker({
   rows,
-  selectedKey,
-  onSelect,
-  onContinue,
+  onPick,
   onBack,
   backLabel,
 }: {
   rows: PublicSignInDestination[];
-  selectedKey: string | null;
-  onSelect: (key: string) => void;
-  onContinue: () => void;
+  onPick: (row: PublicSignInDestination) => void;
   onBack: () => void;
   backLabel: string;
 }) {
-  const active = rows.find((row) => destinationKey(row) === selectedKey) ?? rows[0];
+  const groups = groupPasses(rows);
   const multi = rows.length > 1;
 
   return (
     <div className="mt-6 space-y-4">
       <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
         {multi
-          ? `${rows.length} passes on this identity`
-          : "One pass stamped"}
+          ? `${rows.length} passes on this identity — tap one`
+          : "One pass stamped — tap to open"}
       </p>
 
-      {multi ? (
-        <label className="block">
-          <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
-            Choose a pass
-          </span>
-          <select
-            value={selectedKey ?? destinationKey(rows[0])}
-            onChange={(event) => onSelect(event.target.value)}
-            className="landing-find-shop-input landing-pass-select w-full appearance-none border border-[var(--kiosk-border-strong)] bg-white px-3.5 py-3 text-[15px] text-[var(--kiosk-text)] outline-none focus:border-[var(--kiosk-gold)]"
-          >
-            {rows.map((row) => (
-              <option key={destinationKey(row)} value={destinationKey(row)}>
-                {doorStamp(row.door)} · {row.name}
-              </option>
+      <div className="max-h-[42dvh] space-y-4 overflow-y-auto pr-0.5">
+        {groups.map((group) => (
+          <div key={group.label} className="space-y-2">
+            {groups.length > 1 ? (
+              <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--kiosk-text-faint)]">
+                {group.label}
+              </p>
+            ) : null}
+            {group.rows.map((row) => (
+              <button
+                key={destinationKey(row)}
+                type="button"
+                onClick={() => onPick(row)}
+                className="landing-pass-card group relative block w-full overflow-hidden border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-4 py-3.5 text-left transition-colors duration-150 hover:border-[var(--kiosk-gold)] hover:bg-[color-mix(in_srgb,var(--kiosk-gold-soft)_70%,#fff)] focus-visible:border-[var(--kiosk-gold)] focus-visible:outline-none"
+              >
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -right-2 -top-1 rotate-12 border border-[var(--kiosk-gold)] px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--kiosk-gold)] opacity-80"
+                >
+                  {doorStamp(row.door)}
+                </span>
+                <span className="block pr-16 font-heading text-lg font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
+                  {row.name}
+                </span>
+                <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--kiosk-text-muted)]">
+                  {doorAddress(row)}
+                </span>
+                <span className="mt-2 flex items-center justify-between gap-3">
+                  <span className="text-[12px] text-[var(--kiosk-text-muted)]">
+                    {doorHint(row)}
+                  </span>
+                  <span
+                    aria-hidden
+                    className="font-mono text-[12px] text-[var(--kiosk-gold)] transition-transform duration-150 group-hover:translate-x-0.5"
+                  >
+                    →
+                  </span>
+                </span>
+              </button>
             ))}
-          </select>
-        </label>
-      ) : null}
-
-      {active ? (
-        <div className="landing-pass-card relative overflow-hidden border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-4 py-4">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-2 -top-1 rotate-12 border border-[var(--kiosk-gold)] px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--kiosk-gold)] opacity-80"
-          >
-            {doorStamp(active.door)}
           </div>
-          <p className="pr-16 font-heading text-xl font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
-            {active.name}
-          </p>
-          <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--kiosk-text-muted)]">
-            {active.door === "SUPPLIER"
-              ? "supplier.kiosk portal"
-              : (active.primaryHost ??
-                (active.slug ? `${active.slug}.${PLATFORM_DOMAIN}` : ""))}
-          </p>
-          <p className="mt-3 text-[13px] text-[var(--kiosk-text-muted)]">
-            {doorHint(active.door)}
-          </p>
-        </div>
-      ) : null}
+        ))}
+      </div>
 
-      <button
-        type="button"
-        onClick={onContinue}
-        disabled={!active}
-        className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center disabled:opacity-50"
-      >
-        Open pass →
-      </button>
       <button
         type="button"
         className="block w-full text-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"

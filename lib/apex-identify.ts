@@ -1,4 +1,5 @@
 import {
+  parseSignInDestinations,
   type PublicSignInDestination,
 } from "@/lib/api";
 import { apiUrl } from "@/lib/config";
@@ -60,33 +61,6 @@ export async function verifyShopperIdentifyCode(
   }
 }
 
-function parseDestinations(payload: unknown): PublicSignInDestination[] {
-  if (!Array.isArray(payload)) return [];
-  const out: PublicSignInDestination[] = [];
-  for (const row of payload) {
-    if (!row || typeof row !== "object") continue;
-    const r = row as Record<string, unknown>;
-    const doorRaw = typeof r.door === "string" ? r.door.trim().toUpperCase() : "";
-    const door =
-      doorRaw === "STAFF" || doorRaw === "SHOPPER" || doorRaw === "SUPPLIER"
-        ? doorRaw
-        : null;
-    if (!door) continue;
-    const name = typeof r.name === "string" ? r.name.trim() : "";
-    if (!name) continue;
-    const slug = typeof r.slug === "string" ? r.slug.trim() : "";
-    if (door !== "SUPPLIER" && !slug) continue;
-    out.push({
-      slug: slug || undefined,
-      name,
-      logoUrl: typeof r.logoUrl === "string" ? r.logoUrl : null,
-      primaryHost: typeof r.primaryHost === "string" ? r.primaryHost : null,
-      door,
-    });
-  }
-  return out;
-}
-
 /**
  * Destinations for a platform-verified phone (shopper + staff + supplier).
  * Empty list is valid and privacy-preserving.
@@ -105,7 +79,7 @@ export async function fetchSignInDestinationsByPhone(
       body: JSON.stringify({ phone: p, phoneVerificationToken: t }),
     });
     if (!response.ok) return [];
-    return parseDestinations(await response.json());
+    return parseSignInDestinations(await response.json());
   } catch {
     return [];
   }

@@ -16,6 +16,13 @@ export type BlogBlock =
   | {
       type: "links";
       items: { label: string; href: string; blurb?: string }[];
+    }
+  | {
+      type: "image";
+      /** Public path, e.g. /blog/kiosk-vs-odoo-day-one.svg */
+      src: string;
+      alt: string;
+      caption?: string;
     };
 
 export type BlogArticle = {

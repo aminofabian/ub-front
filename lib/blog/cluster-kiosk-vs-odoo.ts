@@ -1,4 +1,5 @@
 import { spokePlaceholderBody } from "./article-helpers";
+import { KIOSK_BEATS_ODOO_ARTICLE } from "./cluster-kiosk-beats-odoo";
 import type { BlogArticle } from "./types";
 
 export const KIOSK_VS_ODOO_PILLAR_SLUG =
@@ -33,6 +34,7 @@ const PILLAR_ARTICLE: BlogArticle = {
     "from-stall-to-store-a-retailers-journey",
     "what-hardware-do-you-actually-need",
     "online-physical-one-inventory",
+    "why-kiosk-beats-odoo-for-kenyan-shops",
   ],
   body: [
     {
@@ -190,6 +192,7 @@ const SPOKE_ARTICLES: BlogArticle[] = [
       KIOSK_VS_ODOO_PILLAR_SLUG,
       "erp-vs-pos-do-you-need-the-full-suite",
       "the-real-cost-of-free-software",
+      "why-kiosk-beats-odoo-for-kenyan-shops",
     ],
     teaser:
       "When your till starts fighting you — wrong stock counts, slow payments, or endless spreadsheet fixes — you've probably outgrown the tool, not just the shop.",
@@ -208,6 +211,7 @@ const SPOKE_ARTICLES: BlogArticle[] = [
       "set-up-a-pos-in-30-minutes",
       "what-hardware-do-you-actually-need",
       TOP_10_SLUG,
+      "why-kiosk-beats-odoo-for-kenyan-shops",
     ],
     teaser:
       "In Kenya, mobile money isn't optional — it's how customers pay. A POS without native M-Pesa support adds friction every time the till rings.",
@@ -226,6 +230,7 @@ const SPOKE_ARTICLES: BlogArticle[] = [
       "5-signs-youve-outgrown-your-pos",
       "the-real-cost-of-free-software",
       TOP_10_SLUG,
+      "why-kiosk-beats-odoo-for-kenyan-shops",
     ],
     teaser:
       "An ERP can run your whole company. A POS needs to run your counter. Knowing which problem you have today saves months of implementation.",
@@ -243,6 +248,7 @@ const SPOKE_ARTICLES: BlogArticle[] = [
       KIOSK_VS_ODOO_PILLAR_SLUG,
       "what-hardware-do-you-actually-need",
       "online-physical-one-inventory",
+      "why-kiosk-beats-odoo-for-kenyan-shops",
     ],
     teaser:
       "You shouldn't need a consultant to start selling. Here's what a plug-and-play till setup looks like when the software is built for local shops.",
@@ -261,6 +267,7 @@ const SPOKE_ARTICLES: BlogArticle[] = [
       "erp-vs-pos-do-you-need-the-full-suite",
       "5-signs-youve-outgrown-your-pos",
       TOP_10_SLUG,
+      "why-kiosk-beats-odoo-for-kenyan-shops",
     ],
     teaser:
       "Free rarely means free once you add payment modules, training, and the time your team spends fighting the tool every day.",
@@ -313,6 +320,7 @@ const SPOKE_ARTICLES: BlogArticle[] = [
       KIOSK_VS_ODOO_PILLAR_SLUG,
       "set-up-a-pos-in-30-minutes",
       "from-stall-to-store-a-retailers-journey",
+      "why-kiosk-beats-odoo-for-kenyan-shops",
     ],
     teaser:
       "Two channels, one stock number. When the till and the web shop share inventory, you stop selling what you don't have.",
@@ -321,5 +329,6 @@ const SPOKE_ARTICLES: BlogArticle[] = [
 
 export const KIOSK_VS_ODOO_ARTICLES: BlogArticle[] = [
   PILLAR_ARTICLE,
+  KIOSK_BEATS_ODOO_ARTICLE,
   ...SPOKE_ARTICLES,
 ];

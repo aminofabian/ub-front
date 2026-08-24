@@ -544,40 +544,55 @@ export type PublicShopSearchResult = {
   primaryHost?: string | null;
 };
 
-/** Apex sign-in destination with inferred door (staff till / shopper / supplier). */
+/**
+ * Apex sign-in destination with inferred door. `SUPPLIER_CLAIM` is a supplier
+ * the platform knows (a shop stocks from them, or an invite minted a passport)
+ * who has never opened a portal account — the pass sends them to claim it.
+ */
+export type SignInDoor = "STAFF" | "SHOPPER" | "SUPPLIER" | "SUPPLIER_CLAIM";
+
 export type PublicSignInDestination = {
   /** Present for shop hosts; omitted for platform supplier portal. */
   slug?: string;
   name: string;
   logoUrl?: string | null;
   primaryHost?: string | null;
-  door: "STAFF" | "SHOPPER" | "SUPPLIER";
+  door: SignInDoor;
+  /** Backend copy for what opening this pass asks for, when it knows. */
+  hint?: string | null;
 };
 
 const PUBLIC_SIGN_IN_DESTINATIONS_PATH = "/api/v1/public/host/sign-in-destinations";
 
-function parseSignInDestinations(payload: unknown): PublicSignInDestination[] {
+const SIGN_IN_DOORS: readonly SignInDoor[] = [
+  "STAFF",
+  "SHOPPER",
+  "SUPPLIER",
+  "SUPPLIER_CLAIM",
+];
+
+/** Shared by the email lookup and the phone lookup in `apex-identify`. */
+export function parseSignInDestinations(payload: unknown): PublicSignInDestination[] {
   if (!Array.isArray(payload)) return [];
   const out: PublicSignInDestination[] = [];
   for (const row of payload) {
     if (!row || typeof row !== "object") continue;
     const r = row as Record<string, unknown>;
     const doorRaw = typeof r.door === "string" ? r.door.trim().toUpperCase() : "";
-    const door =
-      doorRaw === "STAFF" || doorRaw === "SHOPPER" || doorRaw === "SUPPLIER"
-        ? doorRaw
-        : null;
+    const door = SIGN_IN_DOORS.find((value) => value === doorRaw);
     if (!door) continue;
     const name = typeof r.name === "string" ? r.name.trim() : "";
     if (!name) continue;
     const slug = typeof r.slug === "string" ? r.slug.trim() : "";
-    if (door !== "SUPPLIER" && !slug) continue;
+    const needsShop = door === "STAFF" || door === "SHOPPER";
+    if (needsShop && !slug) continue;
     out.push({
       slug: slug || undefined,
       name,
       logoUrl: typeof r.logoUrl === "string" ? r.logoUrl : null,
       primaryHost: typeof r.primaryHost === "string" ? r.primaryHost : null,
       door,
+      hint: typeof r.hint === "string" && r.hint.trim() ? r.hint.trim() : null,
     });
   }
   return out;

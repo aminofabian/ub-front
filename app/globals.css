@@ -1757,7 +1757,7 @@ button:hover .tenant-monogram-shell {
 
 .landing-page .landing-nav-brand {
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     overflow: hidden;
 }
 
@@ -1824,7 +1824,19 @@ button:hover .tenant-monogram-shell {
     background: var(--kiosk-gold);
 }
 
+.landing-page .landing-nav-center {
+    position: relative;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-width: 0;
+    align-self: stretch;
+}
+
 .landing-page .landing-nav-links {
+    position: relative;
+    z-index: 2;
     align-items: stretch;
     gap: 0;
     border: 1px solid var(--kiosk-border);
@@ -1833,15 +1845,23 @@ button:hover .tenant-monogram-shell {
 
 .landing-page .landing-nav-link {
     display: inline-flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.45rem;
     padding: 0.55rem 0.9rem;
     border-right: 1px solid var(--kiosk-border-soft);
     color: var(--kiosk-text-muted);
     text-decoration: none;
+    background: transparent;
+    border-top: none;
+    border-bottom: none;
+    border-left: none;
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
     transition:
         color 0.2s ease,
-        background-color 0.2s ease;
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 .landing-page .landing-nav-link:last-child {
@@ -1851,6 +1871,21 @@ button:hover .tenant-monogram-shell {
 .landing-page .landing-nav-link:hover {
     color: var(--kiosk-text);
     background: color-mix(in srgb, var(--kiosk-gold) 6%, transparent);
+}
+
+.landing-page .landing-nav-link.is-open {
+    color: var(--kiosk-text);
+    background: color-mix(in srgb, var(--kiosk-gold) 9%, transparent);
+    box-shadow: inset 0 -2px 0 var(--kiosk-gold);
+}
+
+.landing-page .landing-nav-link-chevron {
+    flex: 0 0 auto;
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-page .landing-nav-link.is-open .landing-nav-link-chevron {
+    transform: rotate(180deg);
 }
 
 .landing-page .landing-nav-link-code {
@@ -1865,6 +1900,220 @@ button:hover .tenant-monogram-shell {
     font-size: 13px;
     font-weight: 500;
     letter-spacing: -0.01em;
+}
+
+/* ── Landing nav — department drawers (mega menus) ── */
+.landing-page .landing-nav-panel {
+    position: absolute;
+    top: calc(100% + 0.7rem);
+    left: 50%;
+    z-index: 40;
+    width: min(40rem, calc(100vw - 2.5rem));
+    transform: translateX(-50%);
+}
+
+.landing-page .landing-nav-panel--plain {
+    right: 0;
+    left: auto;
+    width: min(22rem, calc(100vw - 2.5rem));
+    transform: none;
+}
+
+.landing-page .landing-nav-panel.is-closed {
+    display: none;
+}
+
+.landing-page .landing-nav-panel-card {
+    overflow: hidden;
+    border: 1px solid var(--kiosk-border);
+    border-radius: 0.9rem;
+    background: var(--kiosk-elevated);
+    box-shadow:
+        0 1px 2px rgba(20, 20, 18, 0.05),
+        0 24px 60px -24px rgba(20, 20, 18, 0.32);
+    animation: landing-nav-panel-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes landing-nav-panel-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+        filter: blur(3px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
+
+.landing-page .landing-nav-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.8rem 1.1rem;
+    border-bottom: 1px dashed var(--kiosk-border-strong);
+    background: color-mix(in srgb, var(--kiosk-panel) 65%, transparent);
+}
+
+.landing-page .landing-nav-panel-kicker {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-nav-panel-note {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--kiosk-text-muted);
+}
+
+.landing-page .landing-nav-panel-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    padding: 0.5rem;
+}
+
+.landing-page .landing-nav-panel-body--grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 0.35rem;
+}
+
+.landing-page .landing-nav-panel-col + .landing-nav-panel-col {
+    border-left: 1px dashed var(--kiosk-border);
+}
+
+.landing-page .landing-nav-panel-col-head {
+    padding: 0.45rem 0.65rem 0.3rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-muted);
+}
+
+.landing-page .landing-nav-panel-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.6rem 0.65rem;
+    border-radius: 0.55rem;
+    color: var(--kiosk-text);
+    text-decoration: none;
+    transition: background-color 0.16s ease;
+}
+
+.landing-page .landing-nav-panel-row:hover {
+    background: var(--kiosk-gold-soft);
+}
+
+.landing-page .landing-nav-panel-code {
+    flex: 0 0 auto;
+    padding-top: 1px;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-nav-panel-row-text {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.landing-page .landing-nav-panel-row-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-nav-panel-row-body {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--kiosk-text-muted);
+}
+
+.landing-page .landing-nav-panel-row-arrow {
+    margin-left: auto;
+    align-self: center;
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    color: var(--kiosk-gold);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+.landing-page .landing-nav-panel-row:hover .landing-nav-panel-row-arrow {
+    opacity: 1;
+    transform: none;
+}
+
+.landing-page .landing-nav-panel-row:focus-visible {
+    outline: 2px solid var(--kiosk-gold);
+    outline-offset: -2px;
+}
+
+.landing-page .landing-nav-panel-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.7rem 1.1rem;
+    border-top: 1px dashed var(--kiosk-border);
+    background: color-mix(in srgb, var(--kiosk-panel) 45%, transparent);
+}
+
+.landing-page .landing-nav-panel-foot-note {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-dim);
+}
+
+.landing-page .landing-nav-panel-foot-links {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.landing-page .landing-nav-panel-foot-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--kiosk-border);
+    border-radius: 0.45rem;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--kiosk-text-muted);
+    text-decoration: none;
+    transition:
+        border-color 0.16s ease,
+        color 0.16s ease,
+        background-color 0.16s ease;
+}
+
+.landing-page .landing-nav-panel-foot-link:hover {
+    border-color: var(--kiosk-gold-border);
+    background: var(--kiosk-gold-soft);
+    color: var(--kiosk-text);
 }
 
 .landing-page .landing-nav-ticket {
@@ -1892,6 +2141,17 @@ button:hover .tenant-monogram-shell {
 
 @media (min-width: 768px) {
     .landing-page .landing-nav-ticket--desktop {
+        display: inline-flex !important;
+    }
+}
+
+/* Download ticket joins the strip only on wide screens. */
+.landing-page .landing-nav-ticket--download {
+    display: none !important;
+}
+
+@media (min-width: 1024px) {
+    .landing-page .landing-nav-ticket--download {
         display: inline-flex !important;
     }
 }
@@ -2113,6 +2373,15 @@ button:hover .tenant-monogram-shell {
     padding: 0.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
 }
 
+/* Mobile-only controls — the markup carries md:hidden; enforce it here so the
+   capsule and drawer never appear beside the desktop strip. */
+@media (min-width: 768px) {
+    .landing-page .landing-nav-capsule,
+    .landing-page .landing-nav-drawer {
+        display: none;
+    }
+}
+
 .landing-page .landing-nav-drawer-link {
     display: flex;
     align-items: baseline;
@@ -2125,6 +2394,125 @@ button:hover .tenant-monogram-shell {
     color: var(--kiosk-text);
     text-decoration: none;
     min-height: 3.25rem;
+}
+
+/* Collapsible accordion groups inside the mobile drawer */
+.landing-page .landing-nav-drawer-group {
+    border-bottom: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+}
+
+.landing-page .landing-nav-drawer-toggle {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 3.25rem;
+    padding: 1.05rem 0.15rem;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 1.15rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--kiosk-text);
+    cursor: pointer;
+}
+
+.landing-page .landing-nav-drawer-chevron {
+    flex: 0 0 auto;
+    color: var(--kiosk-gold);
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-page .landing-nav-drawer-chevron.is-open {
+    transform: rotate(180deg);
+}
+
+.landing-page .landing-nav-drawer-sub {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-page .landing-nav-drawer-sub.is-open {
+    grid-template-rows: 1fr;
+}
+
+.landing-page .landing-nav-drawer-sub-inner {
+    overflow: hidden;
+    min-height: 0;
+}
+
+.landing-page .landing-nav-drawer-sublink {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.6rem 0.15rem 0.6rem 0.85rem;
+    color: var(--kiosk-text);
+    text-decoration: none;
+}
+
+.landing-page .landing-nav-drawer-code {
+    flex: 0 0 auto;
+    padding-top: 2px;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--kiosk-gold);
+}
+
+.landing-page .landing-nav-drawer-subtext {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.landing-page .landing-nav-drawer-sublabel {
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-nav-drawer-subbody {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--kiosk-text-dim);
+}
+
+.landing-page .landing-nav-drawer-sub.is-open .landing-nav-drawer-sublink {
+    animation: landing-drawer-sub-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+@keyframes landing-drawer-sub-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Anchor targets clear the sticky nav */
+.landing-page section[id] {
+    scroll-margin-top: 5.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-page .landing-nav-panel-card,
+    .landing-page .landing-nav-drawer-sub.is-open .landing-nav-drawer-sublink {
+        animation: none;
+    }
+
+    .landing-page .landing-nav-drawer-sub {
+        transition: none;
+    }
 }
 
 /* Rounded page shell gutters — page radius/margin live on the component classes */

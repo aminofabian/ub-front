@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Your shop, on the internet, today</text>
+
+  <!-- Center VS badge -->
+  <circle cx="480" cy="298" r="30" fill="#A8842C"/>
+  <text x="480" y="305" font-size="17" font-weight="800" fill="#ffffff" text-anchor="middle">VS</text>
+
+  <!-- ============ LEFT PANEL: Kiosk.ke — live storefront ============ -->
+  <rect x="16" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="440" height="48" rx="14" fill="#15803d"/>
+  <rect x="16" y="82" width="440" height="22" fill="#15803d"/>
+  <text x="40" y="87" font-size="14" font-weight="700" fill="#ffffff">yourshop.kiosk.ke — live</text>
+
+  <!-- Browser mock -->
+  <rect x="40" y="124" width="392" height="300" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="40" y="124" width="392" height="30" rx="10" fill="#f3f4f6" stroke="#e5e7eb"/>
+  <circle cx="60" cy="139" r="4.5" fill="#ef4444"/><circle cx="75" cy="139" r="4.5" fill="#f59e0b"/><circle cx="90" cy="139" r="4.5" fill="#22c55e"/>
+  <rect x="150" y="130" width="172" height="17" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <circle cx="164" cy="138.5" r="3.5" fill="#28a745"/>
+  <text x="244" y="142" font-size="9" fill="#6b7280" text-anchor="middle">yourshop.kiosk.ke</text>
+
+  <!-- Storefront header -->
+  <rect x="40" y="154" width="392" height="40" fill="#f0fdf4"/>
+  <text x="64" y="179" font-size="13" font-weight="700" fill="#15803d">Wanjiku's Mini-Mart</text>
+  <rect x="300" y="164" width="112" height="20" rx="10" fill="#28a745"/>
+  <text x="356" y="178" font-size="9.5" font-weight="700" fill="#ffffff" text-anchor="middle">OPEN · ORDER NOW</text>
+
+  <!-- Product cards -->
+  <rect x="56" y="208" width="112" height="96" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="62" y="214" width="100" height="44" rx="6" fill="#f5f5f5"/>
+  <text x="112" y="232" font-size="9" fill="#a3a3a3" text-anchor="middle">🥫</text>
+  <text x="112" y="262" font-size="8.5" fill="#374151" text-anchor="middle">Sunbest Oil 1L</text>
+  <text x="112" y="278" font-size="9.5" font-weight="800" fill="#15803d" text-anchor="middle">KES 520</text>
+  <text x="112" y="296" font-size="7.5" fill="#28a745" text-anchor="middle">● In stock</text>
+
+  <rect x="180" y="208" width="112" height="96" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="186" y="214" width="100" height="44" rx="6" fill="#f5f5f5"/>
+  <text x="236" y="232" font-size="9" fill="#a3a3a3" text-anchor="middle">🍚</text>
+  <text x="236" y="262" font-size="8.5" fill="#374151" text-anchor="middle">Pishori Rice 2kg</text>
+  <text x="236" y="278" font-size="9.5" font-weight="800" fill="#15803d" text-anchor="middle">KES 460</text>
+  <text x="236" y="296" font-size="7.5" fill="#28a745" text-anchor="middle">● In stock</text>
+
+  <rect x="304" y="208" width="112" height="96" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="310" y="214" width="100" height="44" rx="6" fill="#f5f5f5"/>
+  <text x="360" y="232" font-size="9" fill="#a3a3a3" text-anchor="middle">🧼</text>
+  <text x="360" y="262" font-size="8.5" fill="#374151" text-anchor="middle">Omo Detergent</text>
+  <text x="360" y="278" font-size="9.5" font-weight="800" fill="#15803d" text-anchor="middle">KES 180</text>
+  <text x="360" y="296" font-size="7.5" fill="#28a745" text-anchor="middle">● In stock</text>
+
+  <rect x="56" y="316" width="360" height="40" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="236" y="341" font-size="10.5" fill="#6b7280" text-anchor="middle">Stock pulled from the same count as the till 📦</text>
+
+  <!-- Left footer -->
+  <text x="236" y="452" font-size="12.5" font-weight="700" fill="#15803d" text-anchor="middle">Storefront live the same day you sign up</text>
+  <text x="236" y="470" font-size="11" fill="#6b7280" text-anchor="middle">Share the link on WhatsApp and start taking orders</text>
+  <text x="236" y="486" font-size="11" fill="#6b7280" text-anchor="middle">with zero web design, hosting, or SSL to manage</text>
+  <text x="236" y="512" font-size="10.5" fill="#9ca3af" text-anchor="middle">← works beautifully from a phone, too</text>
+
+  <!-- ============ RIGHT PANEL: Odoo — eCommerce still in setup ============ -->
+  <rect x="504" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="504" y="56" width="440" height="48" rx="14" fill="#374151"/>
+  <rect x="504" y="82" width="440" height="22" fill="#374151"/>
+  <text x="528" y="87" font-size="14" font-weight="700" fill="#ffffff">Odoo eCommerce — still in setup</text>
+
+  <!-- Setup checklist card -->
+  <rect x="528" y="124" width="392" height="300" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <rect x="528" y="124" width="392" height="34" rx="10" fill="#f3f4f6" stroke="#e5e7eb"/>
+  <text x="724" y="146" font-size="11" fill="#6b7280" text-anchor="middle">Website · eCommerce · Configuration</text>
+
+  <g font-size="11" fill="#4b5563">
+    <rect x="548" y="176" width="352" height="30" rx="7" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="570" cy="191" r="9" fill="#dc2626"/>
+    <path d="M565 186 l10 10 M575 186 l-10 10" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+    <text x="590" y="196" font-size="10.5" font-weight="600" fill="#1F2937">Pick a domain (shops.odoo.example?)</text>
+
+    <rect x="548" y="214" width="352" height="30" rx="7" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="570" cy="229" r="9" fill="#dc2626"/>
+    <path d="M565 224 l10 10 M575 224 l-10 10" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+    <text x="590" y="234" font-size="10.5" font-weight="600" fill="#1F2937">Choose a website theme &amp; build pages</text>
+
+    <rect x="548" y="252" width="352" height="30" rx="7" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="570" cy="267" r="9" fill="#dc2626"/>
+    <path d="M565 262 l10 10 M575 262 l-10 10" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+    <text x="590" y="272" font-size="10.5" font-weight="600" fill="#1F2937">Connect payment &amp; delivery providers</text>
+
+    <rect x="548" y="290" width="352" height="30" rx="7" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="570" cy="305" r="9" fill="#dc2626"/>
+    <path d="M565 300 l10 10 M575 300 l-10 10" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+    <text x="590" y="310" font-size="10.5" font-weight="600" fill="#1F2937">Set SEO, currencies, taxes, email templates</text>
+
+    <rect x="548" y="328" width="352" height="30" rx="7" fill="#ffffff" stroke="#e5e7eb"/>
+    <circle cx="570" cy="343" r="9" fill="#f59e0b"/>
+    <text x="570" y="348" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+    <text x="590" y="348" font-size="10.5" font-weight="600" fill="#1F2937">Upload products &amp; photography…</text>
+
+    <rect x="548" y="366" width="352" height="26" rx="6" fill="#f3f4f6" stroke="#e5e7eb"/>
+    <text x="724" y="383" font-size="10.5" fill="#9ca3af" text-anchor="middle">…and keep the theme maintained as Odoo updates</text>
+  </g>
+
+  <!-- Right footer -->
+  <text x="724" y="452" font-size="12.5" font-weight="700" fill="#b91c1c" text-anchor="middle">A full project before a single order</text>
+  <text x="724" y="470" font-size="11" fill="#6b7280" text-anchor="middle">Powerful — but it's a build, not a bolt-on</text>
+  <text x="724" y="486" font-size="11" fill="#6b7280" text-anchor="middle">Your shop stays offline while you configure</text>
+  <text x="724" y="512" font-size="10.5" fill="#9ca3af" text-anchor="middle">Meanwhile, the stall across the road already sells online</text>
+</svg>

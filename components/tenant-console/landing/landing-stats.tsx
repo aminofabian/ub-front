@@ -105,6 +105,7 @@ export function LandingStats() {
 
   return (
     <section
+      id="platform"
       className="section-reveal landing-pillars relative overflow-hidden px-4 py-16 sm:px-10 sm:py-24"
       style={landingDarkSectionStyle()}
     >

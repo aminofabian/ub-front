@@ -62,6 +62,7 @@ export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
       "from-stall-to-store-a-retailers-journey",
       "what-hardware-do-you-actually-need",
       "online-physical-one-inventory",
+      "why-kiosk-beats-odoo-for-kenyan-shops",
     ],
   },
 ];

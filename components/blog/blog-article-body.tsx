@@ -134,6 +134,27 @@ export function BlogArticleBody({ body, faqs }: BlogArticleBodyProps) {
                 </table>
               </div>
             );
+          case "image":
+            return (
+              <figure
+                key={key}
+                className="overflow-hidden rounded-2xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)]"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- blog illustrations are static public assets */}
+                <img
+                  src={block.src}
+                  alt={block.alt}
+                  className="h-auto w-full"
+                  loading="lazy"
+                  decoding="async"
+                />
+                {block.caption ? (
+                  <figcaption className="border-t border-[var(--kiosk-border-soft)] px-4 py-3 text-[13px] leading-relaxed text-[var(--kiosk-text-dim)]">
+                    {block.caption}
+                  </figcaption>
+                ) : null}
+              </figure>
+            );
           case "links":
             return (
               <ul key={key} className="space-y-0 border-t border-[var(--kiosk-border-soft)]">
