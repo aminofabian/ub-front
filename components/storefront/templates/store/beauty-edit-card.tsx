@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/beauty-edit.module.css";
+import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
 import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -110,11 +111,13 @@ export function BeautyEditHeroPanel({
   currency,
   headline,
   cta,
+  editableHeadline = false,
 }: {
   item: PublicCatalogItemCard;
   currency: string;
   headline: string;
   cta: string;
+  editableHeadline?: boolean;
 }) {
   const href = shopItemPathFromCard(item) || APP_ROUTES.shop;
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
@@ -136,7 +139,15 @@ export function BeautyEditHeroPanel({
       )}
       <span className={styles.heroShade} aria-hidden />
       <span className={styles.heroPanelCopy}>
-        <span className={styles.heroPanelTitle}>{headline}</span>
+        {editableHeadline ? (
+          <StorefrontNativeHeroHeadline
+            as="span"
+            value={headline}
+            className={styles.heroPanelTitle}
+          />
+        ) : (
+          <span className={styles.heroPanelTitle}>{headline}</span>
+        )}
         <span className={styles.heroPanelCta}>{cta}</span>
       </span>
       <span className={styles.srOnly}>

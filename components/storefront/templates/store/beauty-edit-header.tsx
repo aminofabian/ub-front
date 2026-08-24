@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
+import { StorefrontEditableLogoMark } from "@/components/storefront/storefront-editable-logo";
 import styles from "@/components/storefront/templates/store/beauty-edit.module.css";
 import { filterShopperTypes } from "@/components/storefront/shop-type-filters";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -151,19 +151,14 @@ export function BeautyEditHeader({
         </button>
 
         <Link href={APP_ROUTES.shop} className={styles.logo}>
-          {logoUrl ? (
-            <Image
-              src={logoUrl}
-              alt={storeName}
-              width={189}
-              height={36}
-              className={styles.logoImg}
-              unoptimized
-              priority
-            />
-          ) : (
-            <span className={styles.logoText}>{storeName}</span>
-          )}
+          <StorefrontEditableLogoMark
+            logoUrl={logoUrl}
+            alt={storeName}
+            width={189}
+            height={36}
+            className={styles.logoImg}
+            fallback={<span className={styles.logoText}>{storeName}</span>}
+          />
         </Link>
 
         <div className={styles.headerActions}>
