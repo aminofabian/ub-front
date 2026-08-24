@@ -22,6 +22,11 @@ import {
   slug,
 } from "../_lib/digest-format";
 import type { SupplierRailItem } from "../_lib/group-suppliers";
+import {
+  RestockProductTitle,
+  restockProductCombinedName,
+  restockProductSkuHint,
+} from "./restock-product-title";
 
 export type PdfOpts = {
   key: string;
@@ -359,6 +364,8 @@ function LineRow({
     Number.isFinite(parsedQty) && s.unitCost != null ? parsedQty * Number(s.unitCost) : null;
   const busy = busyAction === `dismiss:${s.id}` || busyAction === `snooze:${s.id}`;
   const dept = s.itemTypeName?.trim();
+  const label = restockProductCombinedName(s);
+  const skuHint = restockProductSkuHint(s);
 
   return (
     <div
@@ -368,15 +375,14 @@ function LineRow({
       )}
     >
       <div className="min-w-0">
-        <p
-          className={cn(
-            "text-[14px] font-medium leading-snug text-foreground",
-            !pending && "line-through",
-          )}
-        >
-          {s.itemName}
-        </p>
+        <RestockProductTitle
+          itemName={s.itemName}
+          variantName={s.variantName}
+          itemSku={s.itemSku}
+          struck={!pending}
+        />
         <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+          {skuHint ? `${skuHint} · ` : ""}
           {showDept && dept ? `${dept} · ` : ""}
           {s.evidence || `${formatQty(s.onHand)} on hand · par ${formatQty(s.par)}`}
         </p>
@@ -398,7 +404,7 @@ function LineRow({
                 busy={busy}
                 busyAction={busyAction}
                 id={s.id}
-                name={s.itemName}
+                name={label}
                 onDismiss={onDismiss}
                 onSnooze={onSnooze}
               />
@@ -428,7 +434,7 @@ function LineRow({
             value={qtyValue}
             disabled={busyAction !== null}
             onChange={(e) => setQty((prev) => ({ ...prev, [s.id]: e.target.value }))}
-            aria-label={`Quantity for ${s.itemName}`}
+            aria-label={`Quantity for ${label}`}
           />
         ) : (
           <p className="h-9 text-right text-[15px] font-semibold tabular-nums leading-9 text-foreground">
@@ -449,7 +455,7 @@ function LineRow({
             busy={busy}
             busyAction={busyAction}
             id={s.id}
-            name={s.itemName}
+            name={label}
             onDismiss={onDismiss}
             onSnooze={onSnooze}
           />

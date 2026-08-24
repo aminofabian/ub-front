@@ -19,6 +19,12 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import {
+  RestockProductTitle,
+  restockProductCombinedName,
+  restockProductSkuHint,
+} from "../../_components/restock-product-title";
+
 function formatQty(v: number | string | null | undefined): string {
   if (v == null || v === "") return "—";
   const n = typeof v === "number" ? v : Number(v);
@@ -168,6 +174,8 @@ export default function RestockPrepPage() {
   function renderItem(item: RestockPrepItemRecord) {
     const isNoted = noted.has(item.itemId);
     const lowConfidence = item.confidence === "low";
+    const label = restockProductCombinedName(item);
+    const skuHint = restockProductSkuHint(item);
     return (
       <li
         key={item.itemId}
@@ -182,7 +190,7 @@ export default function RestockPrepPage() {
           type="button"
           onClick={() => toggleNoted(item.itemId)}
           aria-pressed={isNoted}
-          aria-label={isNoted ? `Mark ${item.itemName} as to pack again` : `Mark ${item.itemName} as packed`}
+          aria-label={isNoted ? `Mark ${label} as to pack again` : `Mark ${label} as packed`}
           className={cn(
             "mt-1 flex size-5 shrink-0 items-center justify-center rounded-md border",
             isNoted
@@ -195,21 +203,20 @@ export default function RestockPrepPage() {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-1.5">
-            <p
-              className={cn(
-                "min-w-0 flex-1 break-words text-sm font-medium leading-snug text-foreground",
-                isNoted && "text-muted-foreground line-through",
-                lowConfidence && !isNoted && "opacity-80",
-              )}
-            >
-              {item.itemName}
-            </p>
+            <RestockProductTitle
+              className={cn("min-w-0 flex-1 break-words", lowConfidence && !isNoted && "opacity-80")}
+              itemName={item.itemName}
+              variantName={item.variantName}
+              itemSku={item.itemSku}
+              size="sm"
+              struck={isNoted}
+            />
             <p className="shrink-0 text-lg font-bold tabular-nums leading-tight text-foreground">
               {formatQty(item.suggestedQty)}
             </p>
           </div>
           <p className="mt-0.5 text-[10px] text-muted-foreground">
-            {item.itemSku ? `${item.itemSku} · ` : ""}
+            {skuHint ? `${skuHint} · ` : ""}
             {item.evidence}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1">

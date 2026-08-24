@@ -11186,6 +11186,7 @@ export type RestockSuggestionRecord = {
   runId: string;
   itemId: string;
   itemName: string;
+  variantName: string | null;
   itemSku: string | null;
   itemTypeId: string | null;
   itemTypeName: string | null;
@@ -11293,6 +11294,7 @@ export async function fetchRestockRunGroupPdf(
 export type RestockPrepItemRecord = {
   itemId: string;
   itemName: string;
+  variantName: string | null;
   itemSku: string | null;
   itemTypeId: string | null;
   itemTypeName: string | null;
