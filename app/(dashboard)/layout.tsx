@@ -13,6 +13,7 @@ import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { NewMerchantGuideDrawer } from "@/components/onboarding/new-merchant-guide-drawer";
 import { RealtimeProvider } from "@/components/realtime-provider";
+import { SupportLauncher } from "@/components/support/support-launcher";
 import { SupportUnreadWatcher } from "@/components/support/support-unread-watcher";
 
 type DashboardLayoutProps = {
@@ -32,6 +33,7 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
             </OnboardingQuestionnaireProvider>
           </Suspense>
           <SupportUnreadWatcher />
+          <SupportLauncher />
           <NewMerchantGuideDrawer />
           <DashboardToaster />
         </RealtimeProvider>

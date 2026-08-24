@@ -5458,3 +5458,34 @@ html:has([data-store-theme-id="chem-lab"][data-cl-mode="light"]) {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Import progress bar — moving highlight on the fill while a job runs. */
+.import-fill-shimmer {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.28),
+    transparent
+  );
+  animation: import-shimmer 1.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes import-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .import-fill-shimmer {
+    animation: none;
+    opacity: 0.35;
+  }
+}

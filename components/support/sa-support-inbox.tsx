@@ -22,6 +22,7 @@ import {
   TypingBubble,
   chatDayLabel,
   listTime,
+  mergeByTimestamp,
 } from "@/components/support/support-chat-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -287,9 +288,8 @@ export function SaSupportInbox() {
     };
   }, [activeId]);
 
-  // REST fallback polling while the socket is down.
+  // Fast background sync keeps the inbox live even when the socket is down.
   React.useEffect(() => {
-    if (connectionState === "connected") return;
     const timer = window.setInterval(() => {
       void loadList(true);
       if (activeId) {
@@ -300,9 +300,25 @@ export function SaSupportInbox() {
           })
           .catch(() => {});
       }
-    }, 20_000);
-    return () => window.clearInterval(timer);
-  }, [connectionState, activeId, loadList]);
+    }, 5000);
+    const onVisible = () => {
+      if (document.hidden) return;
+      void loadList(true);
+      if (activeId) {
+        fetchSaSupportConversation(activeId)
+          .then((fetched) => {
+            setDetail(fetched.conversation);
+            setMessages((prev) => mergeByTimestamp(prev, (fetched.messages ?? []).map(toLocalMessage)));
+          })
+          .catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [activeId, loadList]);
 
   // ── Derived (declared early so effects can read them) ───────────────────
   const theirTyping = typingByConv[activeId ?? ""] === true;
@@ -693,15 +709,4 @@ function byLatest(a: SaSupportConversation, b: SaSupportConversation): number {
   const at = (c: SaSupportConversation) =>
     new Date(c.lastMessageAt ?? c.updatedAt ?? c.createdAt).getTime() || 0;
   return at(b) - at(a);
-}
-
-/** Merge server-fresh messages into local state, preserving optimistic rows. */
-function mergeByTimestamp(local: ChatMessageShape[], server: ChatMessageShape[]): ChatMessageShape[] {
-  const serverIds = new Set(server.map((m) => m.id));
-  const localsKept = local.filter((m) => m.pending === true || m.failed === true || !serverIds.has(m.id));
-  const merged = [...localsKept, ...server].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-  );
-  const seen = new Set<string>();
-  return merged.filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)));
 }

@@ -1,14 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
   AlertCircle,
+  Boxes,
   Building2,
+  Check,
   CheckCircle2,
   CircleDollarSign,
   Download,
   FileJson,
   FileSpreadsheet,
+  FileUp,
+  Info,
+  ListChecks,
   Loader2,
   Package,
   Tag,
@@ -79,6 +85,19 @@ const CSV_JOB_POLL_MS = 1500;
 /** Give up the live progress UI after ~3 minutes; the job keeps running server-side. */
 const CSV_JOB_MAX_POLLS = 120;
 
+/** Icons for the CSV kind tabs and template rows. */
+const CSV_KIND_ICONS: Record<CsvTemplateKind, LucideIcon> = {
+  items: Package,
+  suppliers: Truck,
+  "opening-stock": Boxes,
+};
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function ImportResultCard({
   result,
   successMessage,
@@ -145,6 +164,198 @@ function kindIcon(kind: ImportKind): LucideIcon {
     case "selling_prices":
       return Tag;
   }
+}
+
+/** Section header used by the main-column panels. */
+function SectionHead({
+  icon: Icon,
+  title,
+  desc,
+  accent = false,
+}: {
+  icon: LucideIcon;
+  title: string;
+  desc: ReactNode;
+  accent?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 border-b border-border/50 pb-4">
+      <span
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-lg border",
+          accent
+            ? "border-primary/20 bg-primary/10 text-primary"
+            : "border-border/50 bg-muted/60 text-foreground",
+        )}
+      >
+        <Icon className="size-4" aria-hidden />
+      </span>
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+        <p className={cn(dashboardHintClass(), "mt-0.5 max-w-prose")}>{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Styled file picker — a drop zone that becomes a ready chip once a file is chosen. */
+function FileDropzone({
+  file,
+  accept,
+  hint,
+  disabled,
+  onSelect,
+  icon: Icon,
+}: {
+  file: File | null;
+  accept: string;
+  hint: string;
+  disabled?: boolean;
+  onSelect: (file: File | null) => void;
+  icon: LucideIcon;
+}) {
+  return (
+    <label
+      className={cn(
+        "group relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-7 text-center transition-colors duration-150",
+        "border-border/80 bg-muted/20 hover:border-primary/40 hover:bg-muted/30",
+        "focus-within:border-primary/50 focus-within:bg-muted/30 focus-within:ring-2 focus-within:ring-ring/40 focus-within:ring-offset-2 focus-within:ring-offset-background",
+        "has-disabled:cursor-not-allowed has-disabled:opacity-60",
+      )}
+    >
+      <input
+        type="file"
+        accept={accept}
+        disabled={disabled}
+        className="sr-only"
+        onChange={(e) => onSelect(e.target.files?.[0] ?? null)}
+      />
+      {file ? (
+        <>
+          <span className="flex size-10 items-center justify-center rounded-full border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="size-5" aria-hidden />
+          </span>
+          <span className="max-w-full truncate text-sm font-semibold text-foreground">
+            {file.name}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {formatBytes(file.size)} · tap to replace
+          </span>
+        </>
+      ) : (
+        <>
+          <span className="flex size-10 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary transition-transform duration-150 group-hover:scale-105">
+            <Icon className="size-5" aria-hidden />
+          </span>
+          <span className="text-sm font-semibold text-foreground">
+            Drop your file here or browse
+          </span>
+          <span className="text-xs text-muted-foreground">{hint}</span>
+        </>
+      )}
+    </label>
+  );
+}
+
+/**
+ * Live import feedback: a three-stage pipeline (upload → process → done) and a
+ * percentage progress bar driven by the background job's row counters.
+ */
+function ImportProgress({
+  busy,
+  progress,
+}: {
+  busy: "dry" | "commit";
+  progress: { rowsTotal: number | null; rowsProcessed: number } | null;
+}) {
+  const total = progress?.rowsTotal ?? null;
+  const done = Math.max(0, progress?.rowsProcessed ?? 0);
+  const pct =
+    total != null && total > 0 ? Math.min(100, Math.round((done / total) * 100)) : null;
+  const validating = busy === "dry";
+  const stages = [
+    { label: "Upload", state: "done" as const },
+    { label: validating ? "Validating" : "Processing", state: "active" as const },
+    { label: "Done", state: "todo" as const },
+  ];
+
+  return (
+    <div
+      role="progressbar"
+      aria-label={validating ? "CSV validation progress" : "CSV import progress"}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={pct ?? undefined}
+      aria-valuetext={pct != null ? `${pct}% complete` : "queued"}
+      className="rounded-xl border border-primary/15 bg-primary/4 p-4 sm:p-5"
+    >
+      {/* Pipeline stepper */}
+      <div className="flex items-center">
+        {stages.map((stage, i) => (
+          <Fragment key={stage.label}>
+            {i > 0 ? (
+              <div
+                className={cn(
+                  "mx-2 h-px flex-1 sm:mx-3",
+                  stages[i - 1].state === "todo" ? "bg-border" : "bg-primary/40",
+                )}
+                aria-hidden
+              />
+            ) : null}
+            <div className="flex flex-col items-center gap-1.5">
+              <span
+                className={cn(
+                  "flex size-6 items-center justify-center rounded-full text-[11px] font-bold",
+                  stage.state === "done" && "bg-primary text-white",
+                  stage.state === "active" && "border-2 border-primary bg-background text-primary",
+                  stage.state === "todo" && "border border-border bg-muted text-muted-foreground",
+                )}
+              >
+                {stage.state === "done" ? (
+                  <Check className="size-3.5" aria-hidden />
+                ) : stage.state === "active" ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  i + 1
+                )}
+              </span>
+              <span
+                className={cn(
+                  "text-[11px] font-medium tracking-tight",
+                  stage.state === "todo" ? "text-muted-foreground" : "text-foreground",
+                )}
+              >
+                {stage.label}
+              </span>
+            </div>
+          </Fragment>
+        ))}
+      </div>
+
+      {/* Percentage readout + bar */}
+      <div className="mt-4 flex items-baseline justify-between gap-3">
+        <span className="text-xs text-muted-foreground">
+          {pct != null
+            ? `${done.toLocaleString()} of ${total?.toLocaleString()} rows`
+            : "Queued — processing shortly…"}
+        </span>
+        <span className="text-lg font-bold tabular-nums tracking-tight text-primary">
+          {pct != null ? `${pct}%` : "—"}
+        </span>
+      </div>
+      <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn(
+            "import-fill relative h-full overflow-hidden rounded-full bg-primary",
+            pct != null ? "transition-[width] duration-300 ease-out" : "w-full",
+          )}
+          style={pct != null ? { width: `${pct}%` } : undefined}
+        >
+          <span className="import-fill-shimmer" aria-hidden />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function BusinessImportPage() {
@@ -335,7 +546,7 @@ export default function BusinessImportPage() {
             <code className="rounded bg-muted px-1 py-0.5 text-xs">
               {Permission.IntegrationsImportsManage}
             </code>{" "}
-            to upload legacy JSON. Ask an administrator to grant this permission on your role.
+            to upload data. Ask an administrator to grant this permission on your role.
           </>
         }
         backHref={APP_ROUTES.business}
@@ -359,14 +570,15 @@ export default function BusinessImportPage() {
       : csvKind === "suppliers"
         ? "No blocking issues reported. Suppliers should appear under Suppliers; refresh that page if it was already open."
         : "No blocking issues reported. Opening stock is applied to the listed branch(es).";
+  const csvKindLabel = CSV_TEMPLATES.find((t) => t.kind === csvKind)?.label ?? csvKind;
 
   return (
-    <div className={cn(DASHBOARD_MAX, "max-w-2xl")}>
+    <div className={DASHBOARD_MAX}>
       <DashboardPageHero
-        icon={FileJson}
+        icon={FileSpreadsheet}
         eyebrow="Integrations"
-        title="Import legacy data (JSON)"
-        description="Upload catalog, supplier, or price exports. Products support an array or products / items; suppliers use suppliers / vendors; buying prices use buying_prices / costs; selling prices use selling_prices / sell_prices. Pre-mapped CSV templates for items, suppliers, and opening stock are available below."
+        title="Data import"
+        description="Upload items, suppliers, and opening stock from pre-mapped CSV templates — validate first, then import with live progress. Legacy JSON exports (products, suppliers, buying and selling prices) are supported below."
       >
         <DashboardQuickLinks
           links={[
@@ -398,327 +610,410 @@ export default function BusinessImportPage() {
         />
       </DashboardPageHero>
 
-      <section className={DASHBOARD_SECTION_SURFACE}>
-        <div className="flex items-center gap-2.5 border-b border-border/50 pb-4">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
-            <FileSpreadsheet className="size-4" aria-hidden />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">
-              CSV templates
-            </h2>
-            <p className={cn(dashboardHintClass(), "mt-0.5 max-w-prose")}>
-              Ready-to-fill templates mapped to the CSV import endpoints — download, complete, and upload.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          {CSV_TEMPLATES.map((t) => (
-            <Button
-              key={t.kind}
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              disabled={templateBusy != null}
-              onClick={() => void onDownloadTemplate(t.kind)}
-            >
-              {templateBusy === t.kind ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              ) : (
-                <Download className="size-3.5" aria-hidden />
-              )}
-              {t.label}
-            </Button>
-          ))}
-        </div>
-        {templateError ? (
-          <p className="mt-3 text-xs text-destructive">{templateError}</p>
-        ) : null}
-      </section>
-
-      <section className={DASHBOARD_SECTION_SURFACE}>
-        <div className="flex items-center gap-2.5 border-b border-border/50 pb-4">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
-            <FileSpreadsheet className="size-4" aria-hidden />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">
-              CSV import
-            </h2>
-            <p className={cn(dashboardHintClass(), "mt-0.5 max-w-prose")}>
-              Upload a CSV filled from the templates above — validate first, then import.
-            </p>
-          </div>
-        </div>
-
-        <div className={cn("mt-5 flex flex-wrap gap-2 rounded-xl border border-border/50 bg-muted/25 p-1.5")}>
-          {CSV_TEMPLATES.map((t) => (
-            <Button
-              key={t.kind}
-              type="button"
-              variant={csvKind === t.kind ? "default" : "ghost"}
-              size="sm"
-              className={cn(
-                "flex-1 sm:flex-initial",
-                csvKind !== t.kind && "text-muted-foreground hover:text-foreground",
-              )}
-              disabled={csvBusy != null}
-              onClick={() => {
-                setCsvKind(t.kind);
-                setCsvResult(null);
-              }}
-            >
-              {t.label}
-            </Button>
-          ))}
-        </div>
-
-        <div className="mt-6 space-y-5 border-t border-border/50 pt-6">
-          <label className="flex flex-col gap-2">
-            <span className="text-sm font-semibold text-foreground">CSV file</span>
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              className={cn(
-                "max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-[box-shadow,border-color] duration-150",
-                "file:mr-3 file:rounded-md file:border file:border-input file:bg-muted file:px-3 file:py-2 file:text-xs file:font-medium file:text-foreground",
-                "file:transition-colors file:hover:bg-muted/80 hover:border-foreground/15",
-                "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                csvBusy != null && "opacity-60",
-              )}
-              disabled={csvBusy != null}
-              onChange={(e) => {
-                setCsvFile(e.target.files?.[0] ?? null);
-                setCsvResult(null);
-              }}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        {/* Main column — the two import flows */}
+        <div className="min-w-0 space-y-6">
+          {/* CSV import — the primary task */}
+          <section className={cn(DASHBOARD_SECTION_SURFACE, "relative overflow-hidden")}>
+            <SectionHead
+              accent
+              icon={FileSpreadsheet}
+              title="Import from CSV"
+              desc="Upload a file completed from one of the templates. Validate first to catch row errors, then import — jobs run in the background with live progress."
             />
-          </label>
 
-          <p className={dashboardHintClass()}>
-            Columns:{" "}
-            {CSV_COLUMNS[csvKind].map((col, i) => (
-              <span key={col}>
-                {i > 0 ? " · " : null}
-                <code className="rounded bg-muted px-1">{col}</code>
-              </span>
-            ))}
-          </p>
+            <div className={cn("mt-5 flex flex-wrap gap-2 rounded-xl border border-border/50 bg-muted/25 p-1.5")}>
+              {CSV_TEMPLATES.map((t) => {
+                const Icon = CSV_KIND_ICONS[t.kind];
+                return (
+                  <Button
+                    key={t.kind}
+                    type="button"
+                    variant={csvKind === t.kind ? "default" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "flex-1 gap-1.5 sm:flex-initial",
+                      csvKind !== t.kind && "text-muted-foreground hover:text-foreground",
+                    )}
+                    disabled={csvBusy != null}
+                    onClick={() => {
+                      setCsvKind(t.kind);
+                      setCsvResult(null);
+                    }}
+                  >
+                    <Icon className="size-3.5" aria-hidden />
+                    {t.label}
+                  </Button>
+                );
+              })}
+            </div>
 
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button
-              type="button"
-              variant="secondary"
-              className="min-h-10 shadow-sm transition-shadow hover:shadow-md"
-              disabled={!csvFile || csvBusy != null}
-              onClick={() => void runCsv(true)}
-            >
-              {csvBusy === "dry" ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-                  Validating…
-                </>
-              ) : (
-                "Validate only"
-              )}
-            </Button>
-            <Button
-              type="button"
-              className="min-h-10 shadow-sm transition-shadow hover:shadow-md"
-              disabled={!csvFile || csvBusy != null}
-              onClick={() => void runCsv(false)}
-            >
-              {csvBusy === "commit" ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-                  Importing…
-                </>
-              ) : (
-                "Import"
-              )}
-            </Button>
-          </div>
-        </div>
+            <div className="mt-5 space-y-5">
+              <FileDropzone
+                file={csvFile}
+                accept=".csv,text/csv"
+                hint=".csv — columns must match the template order"
+                disabled={csvBusy != null}
+                onSelect={(f) => {
+                  setCsvFile(f);
+                  setCsvResult(null);
+                }}
+                icon={FileUp}
+              />
 
-        {csvBusy != null && !csvResult ? (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="size-3.5 animate-spin" aria-hidden />
-            {csvProgress?.rowsTotal != null && csvProgress.rowsTotal > 0
-              ? `Processing ${Math.min(csvProgress.rowsProcessed, csvProgress.rowsTotal)} of ${csvProgress.rowsTotal} rows…`
-              : "Queued — processing shortly…"}
-          </div>
-        ) : null}
-        {csvResult ? (
-          <ImportResultCard
-            result={csvResult}
-            successMessage={csvSuccessMessage}
-            failureMessage={csvFailure}
-          />
-        ) : null}
-      </section>
+              <div>
+                <p className={cn(dashboardHintClass(), "mb-1.5")}>
+                  Columns expected for{" "}
+                  <span className="font-semibold text-foreground">{csvKindLabel}</span>:
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {CSV_COLUMNS[csvKind].map((col) => (
+                    <code
+                      key={col}
+                      className="rounded-md border border-border/60 bg-muted/50 px-1.5 py-0.5 font-mono text-[11px] text-foreground"
+                    >
+                      {col}
+                    </code>
+                  ))}
+                </div>
+              </div>
 
-      <section className={DASHBOARD_SECTION_SURFACE}>
-        <div className="flex items-center gap-2.5 border-b border-border/50 pb-4">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
-            <KindIcon className="size-4" aria-hidden />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">Import type</h2>
-            <p className={cn(dashboardHintClass(), "mt-0.5 max-w-prose")}>
-              Choose what this JSON file represents, then upload and validate or import.
-            </p>
-          </div>
-        </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="lg"
+                  className="shadow-sm transition-shadow hover:shadow-md"
+                  disabled={!csvFile || csvBusy != null}
+                  onClick={() => void runCsv(true)}
+                >
+                  {csvBusy === "dry" ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                      Validating…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="size-4" aria-hidden />
+                      Validate only
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  className="shadow-sm transition-shadow hover:shadow-md"
+                  disabled={!csvFile || csvBusy != null}
+                  onClick={() => void runCsv(false)}
+                >
+                  {csvBusy === "commit" ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                      Importing…
+                    </>
+                  ) : (
+                    <>
+                      <FileUp className="size-4" aria-hidden />
+                      Import
+                    </>
+                  )}
+                </Button>
+                {csvFile && csvBusy == null ? (
+                  <span className="text-xs text-muted-foreground">
+                    Ready: <span className="font-medium text-foreground">{csvFile.name}</span>
+                  </span>
+                ) : null}
+              </div>
+            </div>
 
-        <div className={cn("mt-5 flex flex-wrap gap-2 rounded-xl border border-border/50 bg-muted/25 p-1.5")}>
-          {(
-            [
-              ["products", "Products"] as const,
-              ["suppliers", "Suppliers"] as const,
-              ["buying_prices", "Buying prices"] as const,
-              ["selling_prices", "Selling prices"] as const,
-            ] as const
-          ).map(([key, label]) => (
-            <Button
-              key={key}
-              type="button"
-              variant={importKind === key ? "default" : "ghost"}
-              size="sm"
-              className={cn(
-                "flex-1 sm:flex-initial",
-                importKind !== key && "text-muted-foreground hover:text-foreground",
-              )}
-              onClick={() => {
-                setImportKind(key);
-                setResult(null);
-              }}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
+            {csvBusy != null && !csvResult ? (
+              <div className="mt-5">
+                <ImportProgress busy={csvBusy} progress={csvProgress} />
+              </div>
+            ) : null}
+            {csvResult ? (
+              <div className="mt-5">
+                <ImportResultCard
+                  result={csvResult}
+                  successMessage={csvSuccessMessage}
+                  failureMessage={csvFailure}
+                />
+              </div>
+            ) : null}
+          </section>
 
-        <div className="mt-6 space-y-5 border-t border-border/50 pt-6">
-          <label className="flex flex-col gap-2">
-            <span className="text-sm font-semibold text-foreground">JSON file</span>
-            <input
-              type="file"
-              accept=".json,application/json"
-              className={cn(
-                "max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-[box-shadow,border-color] duration-150",
-                "file:mr-3 file:rounded-md file:border file:border-input file:bg-muted file:px-3 file:py-2 file:text-xs file:font-medium file:text-foreground",
-                "file:transition-colors file:hover:bg-muted/80 hover:border-foreground/15",
-                "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                busy != null && "opacity-60",
-              )}
-              disabled={busy != null}
-              onChange={(e) => {
-                setFile(e.target.files?.[0] ?? null);
-                setResult(null);
-              }}
+          {/* Legacy JSON imports */}
+          <section className={DASHBOARD_SECTION_SURFACE}>
+            <SectionHead
+              icon={KindIcon}
+              title="Legacy JSON import"
+              desc="For exports from the old system: products, suppliers, buying prices, or selling prices. CSV is recommended for new imports."
             />
-          </label>
 
-          {importKind === "products" ? (
-            <label className="flex flex-col gap-2">
-              <span className="text-sm font-semibold text-foreground">Branch for opening stock</span>
-              <select
-                className={dashboardSelectClass(busy != null || branchesLoading)}
-                disabled={busy != null || branchesLoading}
-                value={branchForStock || branchId || ""}
-                onChange={(e) => setBranchForStock(e.target.value)}
-              >
-                <option value="">Use workspace default branch</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-              <span className={dashboardHintClass()}>
-                Required when any row has <code className="rounded bg-muted px-1">current_stock</code> &gt; 0. Unit cost
-                for opening balance defaults to 1% of sell price (minimum 0.01).
-              </span>
-            </label>
-          ) : importKind === "suppliers" ? (
-            <p className={dashboardHintClass()}>
-              Each row needs a display name: <code className="rounded bg-muted px-1">name</code>,{" "}
-              <code className="rounded bg-muted px-1">company_name</code>, nested{" "}
-              <code className="rounded bg-muted px-1">supplier.name</code>, or fallback <code className="rounded bg-muted px-1">code</code>. Optional{" "}
-              <code className="rounded bg-muted px-1">id</code> from the export (UUID) is stored to map buying prices. Supported
-              wrappers: top-level array or <code className="rounded bg-muted px-1">suppliers</code> /{" "}
-              <code className="rounded bg-muted px-1">vendors</code> / <code className="rounded bg-muted px-1">data</code> /{" "}
-              <code className="rounded bg-muted px-1">results</code> arrays. Duplicate <em>legacy ids</em> are dropped (first
-              wins); duplicate <em>display names</em> get a short suffix so each row can be imported and mapped.
-            </p>
-          ) : importKind === "buying_prices" ? (
-            <p className={dashboardHintClass()}>
-              Each row matches the legacy export: <code className="rounded bg-muted px-1">item_id</code> or{" "}
-              <code className="rounded bg-muted px-1">product_id</code> (UUID — same values as your product export’s id; Palmart matches by item id, stored legacy id, SKU{" "}
-              <code className="rounded bg-muted px-1">IMP-{"<uuid>"}</code> when the product had no code, or optional{" "}
-              <code className="rounded bg-muted px-1">product_code</code> / <code className="rounded bg-muted px-1">barcode</code>),{" "}
-              <code className="rounded bg-muted px-1">supplier_id</code> (UUID or supplier code; if the UUID is not in Palmart,
-              cost is attached to SYS-UNASSIGNED and the note records the original id), optional{" "}
-              <code className="rounded bg-muted px-1">price</code> (number, stored as unit cost; alias{" "}
-              <code className="rounded bg-muted px-1">unit_cost</code>),{" "}
-              <code className="rounded bg-muted px-1">effective_from</code> (unix timestamp), optional{" "}
-              <code className="rounded bg-muted px-1">notes</code>. Export-only fields are not applied:{" "}
-              <code className="rounded bg-muted px-1">id</code>, <code className="rounded bg-muted px-1">set_by</code>,{" "}
-              <code className="rounded bg-muted px-1">created_at</code> — the signed-in user is stored as setter and{" "}
-              <code className="rounded bg-muted px-1">created_at</code> is the server import time. CamelCase keys are OK.
-            </p>
-          ) : (
-            <p className={dashboardHintClass()}>
-              Each row: <code className="rounded bg-muted px-1">item_id</code>,{" "}
-              <code className="rounded bg-muted px-1">price</code>,{" "}
-              <code className="rounded bg-muted px-1">effective_from</code> (unix). Optional{" "}
-              <code className="rounded bg-muted px-1">branch_id</code> for branch-specific list prices; omit for business-wide
-              sell price. Ignored export fields: <code className="rounded bg-muted px-1">id</code>,{" "}
-              <code className="rounded bg-muted px-1">supplier_id</code>, <code className="rounded bg-muted px-1">set_by</code>
-              , <code className="rounded bg-muted px-1">created_at</code>.
-            </p>
-          )}
+            <div className={cn("mt-5 flex flex-wrap gap-2 rounded-xl border border-border/50 bg-muted/25 p-1.5")}>
+              {(
+                [
+                  ["products", "Products"] as const,
+                  ["suppliers", "Suppliers"] as const,
+                  ["buying_prices", "Buying prices"] as const,
+                  ["selling_prices", "Selling prices"] as const,
+                ] as const
+              ).map(([key, label]) => (
+                <Button
+                  key={key}
+                  type="button"
+                  variant={importKind === key ? "default" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "flex-1 sm:flex-initial",
+                    importKind !== key && "text-muted-foreground hover:text-foreground",
+                  )}
+                  onClick={() => {
+                    setImportKind(key);
+                    setResult(null);
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
 
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button
-              type="button"
-              variant="secondary"
-              className="min-h-10 shadow-sm transition-shadow hover:shadow-md"
-              disabled={!file || busy != null}
-              onClick={() => void run(true)}
-            >
-              {busy === "dry" ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-                  Validating…
-                </>
+            <div className="mt-5 space-y-5">
+              <FileDropzone
+                file={file}
+                accept=".json,application/json"
+                hint=".json — array or wrapped under products / suppliers / prices keys"
+                disabled={busy != null}
+                onSelect={(f) => {
+                  setFile(f);
+                  setResult(null);
+                }}
+                icon={FileJson}
+              />
+
+              {importKind === "products" ? (
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-foreground">Branch for opening stock</span>
+                  <select
+                    className={dashboardSelectClass(busy != null || branchesLoading)}
+                    disabled={busy != null || branchesLoading}
+                    value={branchForStock || branchId || ""}
+                    onChange={(e) => setBranchForStock(e.target.value)}
+                  >
+                    <option value="">Use workspace default branch</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className={dashboardHintClass()}>
+                    Required when any row has <code className="rounded bg-muted px-1">current_stock</code> &gt; 0. Unit cost
+                    for opening balance defaults to 1% of sell price (minimum 0.01).
+                  </span>
+                </label>
+              ) : importKind === "suppliers" ? (
+                <p className={dashboardHintClass()}>
+                  Each row needs a display name: <code className="rounded bg-muted px-1">name</code>,{" "}
+                  <code className="rounded bg-muted px-1">company_name</code>, nested{" "}
+                  <code className="rounded bg-muted px-1">supplier.name</code>, or fallback <code className="rounded bg-muted px-1">code</code>. Optional{" "}
+                  <code className="rounded bg-muted px-1">id</code> from the export (UUID) is stored to map buying prices. Supported
+                  wrappers: top-level array or <code className="rounded bg-muted px-1">suppliers</code> /{" "}
+                  <code className="rounded bg-muted px-1">vendors</code> / <code className="rounded bg-muted px-1">data</code> /{" "}
+                  <code className="rounded bg-muted px-1">results</code> arrays. Duplicate <em>legacy ids</em> are dropped (first
+                  wins); duplicate <em>display names</em> get a short suffix so each row can be imported and mapped.
+                </p>
+              ) : importKind === "buying_prices" ? (
+                <p className={dashboardHintClass()}>
+                  Each row matches the legacy export: <code className="rounded bg-muted px-1">item_id</code> or{" "}
+                  <code className="rounded bg-muted px-1">product_id</code> (UUID — same values as your product export’s id; Palmart matches by item id, stored legacy id, SKU{" "}
+                  <code className="rounded bg-muted px-1">IMP-{"<uuid>"}</code> when the product had no code, or optional{" "}
+                  <code className="rounded bg-muted px-1">product_code</code> / <code className="rounded bg-muted px-1">barcode</code>),{" "}
+                  <code className="rounded bg-muted px-1">supplier_id</code> (UUID or supplier code; if the UUID is not in Palmart,
+                  cost is attached to SYS-UNASSIGNED and the note records the original id), optional{" "}
+                  <code className="rounded bg-muted px-1">price</code> (number, stored as unit cost; alias{" "}
+                  <code className="rounded bg-muted px-1">unit_cost</code>),{" "}
+                  <code className="rounded bg-muted px-1">effective_from</code> (unix timestamp), optional{" "}
+                  <code className="rounded bg-muted px-1">notes</code>. Export-only fields are not applied:{" "}
+                  <code className="rounded bg-muted px-1">id</code>, <code className="rounded bg-muted px-1">set_by</code>,{" "}
+                  <code className="rounded bg-muted px-1">created_at</code> — the signed-in user is stored as setter and{" "}
+                  <code className="rounded bg-muted px-1">created_at</code> is the server import time. CamelCase keys are OK.
+                </p>
               ) : (
-                "Validate only"
+                <p className={dashboardHintClass()}>
+                  Each row: <code className="rounded bg-muted px-1">item_id</code>,{" "}
+                  <code className="rounded bg-muted px-1">price</code>,{" "}
+                  <code className="rounded bg-muted px-1">effective_from</code> (unix). Optional{" "}
+                  <code className="rounded bg-muted px-1">branch_id</code> for branch-specific list prices; omit for business-wide
+                  sell price. Ignored export fields: <code className="rounded bg-muted px-1">id</code>,{" "}
+                  <code className="rounded bg-muted px-1">supplier_id</code>, <code className="rounded bg-muted px-1">set_by</code>
+                  , <code className="rounded bg-muted px-1">created_at</code>.
+                </p>
               )}
-            </Button>
-            <Button
-              type="button"
-              className="min-h-10 shadow-sm transition-shadow hover:shadow-md"
-              disabled={!file || busy != null}
-              onClick={() => void run(false)}
-            >
-              {busy === "commit" ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-                  Importing…
-                </>
-              ) : (
-                "Import"
-              )}
-            </Button>
-          </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="lg"
+                  className="shadow-sm transition-shadow hover:shadow-md"
+                  disabled={!file || busy != null}
+                  onClick={() => void run(true)}
+                >
+                  {busy === "dry" ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                      Validating…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="size-4" aria-hidden />
+                      Validate only
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  className="shadow-sm transition-shadow hover:shadow-md"
+                  disabled={!file || busy != null}
+                  onClick={() => void run(false)}
+                >
+                  {busy === "commit" ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                      Importing…
+                    </>
+                  ) : (
+                    <>
+                      <FileUp className="size-4" aria-hidden />
+                      Import
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {result ? (
+              <div className="mt-5">
+                <ImportResultCard result={result} successMessage={jsonSuccessMessage} />
+              </div>
+            ) : null}
+          </section>
         </div>
-      </section>
 
-      {result ? (
-        <ImportResultCard result={result} successMessage={jsonSuccessMessage} />
-      ) : null}
+        {/* Rail — templates, how-to, and background notes */}
+        <aside className="min-w-0 space-y-6">
+          <section className={DASHBOARD_SECTION_SURFACE}>
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
+                <FileSpreadsheet className="size-4" aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                  Start with a template
+                </h2>
+                <p className={cn(dashboardHintClass(), "mt-0.5")}>
+                  Pre-mapped to the columns we import.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {CSV_TEMPLATES.map((t) => {
+                const Icon = CSV_KIND_ICONS[t.kind];
+                const busy = templateBusy === t.kind;
+                return (
+                  <div
+                    key={t.kind}
+                    className="flex items-center gap-3 rounded-xl border border-border/60 bg-background p-3 shadow-sm transition-colors hover:border-border"
+                  >
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-muted/50 text-muted-foreground">
+                      <Icon className="size-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold leading-tight text-foreground">{t.label}</p>
+                      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                        {CSV_COLUMNS[t.kind].length} columns · {t.hint}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      disabled={templateBusy != null}
+                      aria-label={`Download ${t.label} template`}
+                      onClick={() => void onDownloadTemplate(t.kind)}
+                    >
+                      {busy ? (
+                        <Loader2 className="animate-spin" aria-hidden />
+                      ) : (
+                        <Download aria-hidden />
+                      )}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            {templateError ? (
+              <p className="mt-3 flex items-start gap-1.5 text-xs text-destructive">
+                <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                {templateError}
+              </p>
+            ) : null}
+          </section>
+
+          <section className={DASHBOARD_SECTION_SURFACE}>
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
+                <ListChecks className="size-4" aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold tracking-tight text-foreground">How it works</h2>
+                <p className={cn(dashboardHintClass(), "mt-0.5")}>
+                  CSV in, catalog out.
+                </p>
+              </div>
+            </div>
+
+            <ol className="mt-4 space-y-3.5">
+              {[
+                ["Download a template", "Items, suppliers, or opening stock — the columns are pre-filled."],
+                ["Fill it in", "Work in Excel or Google Sheets, then save as a .csv file."],
+                ["Upload & validate", "A dry run checks every row and reports line-level errors."],
+                ["Import & track", "Rows are committed in the background — watch the progress bar."],
+              ].map(([title, desc], i) => (
+                <li key={title} className="flex gap-3">
+                  <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted text-[11px] font-bold text-foreground">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold leading-tight text-foreground">{title}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="rounded-2xl border border-primary/15 bg-primary/4 p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Info className="size-4" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold tracking-tight text-foreground">
+                  Large imports run in the background
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Files with hundreds or thousands of rows are processed as a job on our side. You can
+                  leave this page while it runs — progress updates here every few seconds.
+                </p>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }

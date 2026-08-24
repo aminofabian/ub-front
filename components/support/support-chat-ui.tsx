@@ -465,6 +465,25 @@ export function ChatEmptyState({
   );
 }
 
+/**
+ * Merge server-fresh messages into local state without disturbing optimistic
+ * (pending/failed) rows — used by silent background sync.
+ */
+export function mergeByTimestamp(
+  local: ChatMessageShape[],
+  server: ChatMessageShape[],
+): ChatMessageShape[] {
+  const serverIds = new Set(server.map((m) => m.id));
+  const localsKept = local.filter(
+    (m) => m.pending === true || m.failed === true || !serverIds.has(m.id),
+  );
+  const merged = [...localsKept, ...server].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+  const seen = new Set<string>();
+  return merged.filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)));
+}
+
 export function CloseIcon() {
   return <X className="size-4" />;
 }

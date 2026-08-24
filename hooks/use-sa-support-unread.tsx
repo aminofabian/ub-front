@@ -62,6 +62,12 @@ export function useSaSupportUnread(): number {
     return unregister;
   }, [pathname, syncFromServer]);
 
+  // Keep the badge honest even when the socket is down.
+  useEffect(() => {
+    const timer = window.setInterval(syncFromServer, 15_000);
+    return () => window.clearInterval(timer);
+  }, [syncFromServer]);
+
   // Reconcile when the window regains focus (long-lived console sessions).
   useEffect(() => {
     const onFocus = () => syncFromServer();

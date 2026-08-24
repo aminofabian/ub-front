@@ -36,6 +36,12 @@ export function useSupportUnread(): number {
     syncFromServer();
   }, [syncFromServer]);
 
+  // Keep the badge honest even when the socket is down.
+  useEffect(() => {
+    const timer = window.setInterval(syncFromServer, 15_000);
+    return () => window.clearInterval(timer);
+  }, [syncFromServer]);
+
   useEffect(() => {
     if (pathname === APP_ROUTES.support) {
       setUnread(0);

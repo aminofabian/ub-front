@@ -14,6 +14,7 @@ import {
   ResolvedBanner,
   TypingBubble,
   chatDayLabel,
+  mergeByTimestamp,
 } from "@/components/support/support-chat-ui";
 import { Button } from "@/components/ui/button";
 import { getRealtimeClient, type RealtimeConnectionState, type RealtimeFrame } from "@/lib/realtime";
@@ -95,7 +96,12 @@ export function SupportChat() {
       for (const message of detail.messages ?? []) {
         seenIdsRef.current.add(message.id);
       }
-      setMessages((detail.messages ?? []).map(toLocalMessage));
+      if (silent) {
+        // Background sync: merge so optimistic rows and scroll position survive.
+        setMessages((prev) => mergeByTimestamp(prev, (detail.messages ?? []).map(toLocalMessage)));
+      } else {
+        setMessages((detail.messages ?? []).map(toLocalMessage));
+      }
       setLoadError("");
       if (detail.conversation) {
         // Opened the thread: mark our side read (server marks receipt ticks).
@@ -260,18 +266,19 @@ export function SupportChat() {
 
   React.useEffect(() => () => stopTyping(), [stopTyping]);
 
-  // REST fallback while the socket is down: refetch the thread, and refresh
-  // on tab focus so returning to the page always catches up.
+  // Always-on background sync: 5s keeps the thread fresh even if the socket is
+  // down (or a frame was dropped), and tab focus catches up instantly.
   React.useEffect(() => {
-    if (connectionState === "connected") return;
-    const timer = window.setInterval(() => void loadThread(true), 20_000);
-    const onFocus = () => void loadThread(true);
-    window.addEventListener("focus", onFocus);
+    const timer = window.setInterval(() => void loadThread(true), 5000);
+    const onVisible = () => {
+      if (!document.hidden) void loadThread(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.clearInterval(timer);
-      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [connectionState, loadThread]);
+  }, [loadThread]);
 
   // ── Send ────────────────────────────────────────────────────────────────
   const send = React.useCallback(
@@ -368,7 +375,7 @@ export function SupportChat() {
               ? "typing…"
               : connectionState === "connected"
                 ? "Platform team · usually replies within minutes"
-                : "We'll reply as soon as we're connected"}
+                : "Live sync paused — new messages appear automatically"}
           </p>
         </div>
         <LiveStatusPill state={connectionState} />
