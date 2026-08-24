@@ -88,6 +88,8 @@ function toShelfDetail(
       unitPrice: p.unitPrice,
       currency: p.currency,
       available: p.available,
+      // Group packs under category so the shelf fills a multi-column grid.
+      parentItemName: p.categoryName?.trim() || null,
     })),
   };
 }

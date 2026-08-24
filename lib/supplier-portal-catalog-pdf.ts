@@ -49,6 +49,7 @@ function toDetail(input: SupplierPortalCatalogPdfInput): MarketplaceSupplierDeta
     unitPrice: p.unitPrice ?? null,
     currency: p.currency ?? "KES",
     available: p.available !== false,
+    parentItemName: p.categoryName?.trim() || null,
   }));
 
   return {

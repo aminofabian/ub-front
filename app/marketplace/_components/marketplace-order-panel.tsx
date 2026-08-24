@@ -532,9 +532,14 @@ export function MarketplaceOrderWorkspace({
     0,
   );
   const showFamilyHeadings = !parentFilterId && shelfSections.length > 1;
-  const familyLetters = showFamilyHeadings
-    ? catalogFamilyLetters(shelfSections)
-    : [];
+  /** One product per family → section stack looks like a single column; flatten to a dense grid. */
+  const flattenSingletonFamilies =
+    showFamilyHeadings &&
+    shelfSections.every((family) => family.items.length === 1);
+  const familyLetters =
+    showFamilyHeadings && !flattenSingletonFamilies
+      ? catalogFamilyLetters(shelfSections)
+      : [];
 
   const jumpToFamilyLetter = (letter: string) => {
     const family = firstFamilyForLetter(shelfSections, letter);
@@ -1092,6 +1097,26 @@ export function MarketplaceOrderWorkspace({
                     : parentFilterId
                       ? "No packs in this family."
                       : "No products match your search."}
+                </div>
+              ) : flattenSingletonFamilies ? (
+                <div className="mt-1.5 grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                  {shelfSections.map((family) => {
+                    const product = family.items[0]!;
+                    return (
+                      <ShelfProductTile
+                        key={product.id}
+                        product={product}
+                        displayName={product.name}
+                        supplierSlug={detail.slug}
+                        qty={cart[product.id] ?? 0}
+                        focused={focusProduct?.id === product.id}
+                        onAdd={() =>
+                          setQty(product.id, (cart[product.id] ?? 0) + 1, true)
+                        }
+                        onSetQty={(qty) => setQty(product.id, qty)}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="mt-1.5 space-y-3">
