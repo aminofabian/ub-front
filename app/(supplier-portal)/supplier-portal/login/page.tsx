@@ -24,7 +24,9 @@ export default function SupplierPortalLoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const phone = params.get("phone")?.trim();
+    const email = params.get("email")?.trim();
     if (phone) setIdentifier(phone);
+    else if (email) setIdentifier(email);
   }, []);
 
   const onSubmit = async (e: React.FormEvent) => {

@@ -9,6 +9,8 @@ export const APP_ROUTES = {
   /** Merchant guide: suppliers, supplies, and purchase orders. */
   helpSupplierFlow:
     "/help/merchants/suppliers-supplies/complete-supplier-flow",
+  /** Merchant guide: user roles and how to add users. */
+  helpUserRoles: "/help/merchants/staff-branches/user-roles-add-users",
   /** Storefront customer password sign-in. */
   login: "/login",
   /** Shop staff / till / office sign-in (PIN + password). */

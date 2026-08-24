@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  BookOpen,
   Building2,
   Eye,
   EyeOff,
@@ -1021,6 +1022,12 @@ export default function UsersPage() {
                   label: "Branding",
                   desc: "Logo & colors",
                   icon: Palette,
+                },
+                {
+                  href: APP_ROUTES.helpUserRoles,
+                  label: "Guide",
+                  desc: "Roles & invites",
+                  icon: BookOpen,
                 },
               ]}
             />

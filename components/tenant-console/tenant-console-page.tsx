@@ -9,7 +9,6 @@ import { LandingFaq } from "./landing/landing-faq";
 import { LandingFeatures } from "./landing/landing-features";
 import {
   LandingSignInModal,
-  type ApexSignInMode,
 } from "./landing/landing-sign-in-modal";
 import { LandingFooter } from "./landing/landing-footer";
 import { LandingGuides } from "./landing/landing-guides";
@@ -27,7 +26,6 @@ import { LandingTestimonials } from "./landing/landing-testimonials";
 export function TenantConsolePage() {
   const [signupOpen, setSignupOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
-  const [signInMode, setSignInMode] = useState<ApexSignInMode>("shopper");
   const [talkOpen, setTalkOpen] = useState(false);
 
   const host =
@@ -37,8 +35,7 @@ export function TenantConsolePage() {
     setSignupOpen(true);
   };
 
-  const openSignIn = (mode: ApexSignInMode = "shopper") => {
-    setSignInMode(mode);
+  const openSignIn = () => {
     setSignInOpen(true);
   };
 
@@ -54,8 +51,8 @@ export function TenantConsolePage() {
       <div className="landing-page-canvas" aria-hidden />
       <LandingNav
         onCreateShop={openSignup}
-        onFindShop={() => openSignIn("staff")}
-        onSignIn={() => openSignIn("shopper")}
+        onFindShop={openSignIn}
+        onSignIn={openSignIn}
       />
 
       <main>
@@ -83,7 +80,6 @@ export function TenantConsolePage() {
         open={signInOpen}
         onOpenChange={setSignInOpen}
         onCreateShop={openSignup}
-        initialMode={signInMode}
       />
       <TalkToUsModal
         open={talkOpen}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Dialog,
@@ -10,161 +10,246 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  fetchSignInDestinationsByEmail,
   searchPublicShops,
-  type PublicShopSearchResult,
+  type PublicSignInDestination,
 } from "@/lib/api";
 import {
-  fetchShopperShops,
+  fetchSignInDestinationsByPhone,
   sendShopperIdentifyCode,
   verifyShopperIdentifyCode,
 } from "@/lib/apex-identify";
 import {
   apexShopSearchQuery,
   buildApexForwardUrl,
+  withApexIdentityParams,
 } from "@/lib/apex-forward";
 import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
-import { businessNameToSlug } from "@/lib/shop-lookup";
 import { cn } from "@/lib/utils";
 
 import { landingRootStyle } from "./landing-styles";
-
-/** Who the apex sheet is acting for — shopper or shop owner (Phase 4, §8). */
-export type ApexSignInMode = "shopper" | "staff";
 
 type LandingSignInModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreateShop: () => void;
-  /** Which door opened the sheet: "Sign in" → shopper; "Find shop" → staff. */
-  initialMode?: ApexSignInMode;
+  /** @deprecated Mode is inferred from identity; kept for call-site compat. */
+  initialMode?: "shopper" | "staff";
 };
+
+type IdentityKind = "unknown" | "email" | "phone";
 
 type Step =
   | { status: "idle" }
-  | { status: "loading" }
-  | { status: "results"; query: string; rows: PublicShopSearchResult[] }
-  | { status: "miss"; query: string }
-  | { status: "phone-idle" }
+  | { status: "looking" }
   | { status: "phone-sending" }
   | { status: "phone-code"; phone: string }
   | { status: "phone-verifying"; phone: string }
-  | { status: "phone-results"; rows: PublicShopSearchResult[] }
-  | { status: "phone-empty" };
+  | { status: "passes"; rows: PublicSignInDestination[]; identity: IdentityPayload }
+  | { status: "miss"; hint: string }
+  | { status: "shop-search" }
+  | { status: "shop-loading" }
+  | { status: "shop-results"; query: string; rows: PublicSignInDestination[] };
 
-/** Shopper door on the shop host: phone-first sign-in back to the account. */
+type IdentityPayload = {
+  kind: "email" | "phone";
+  email?: string;
+  phone?: string;
+};
+
 const SHOPPER_FORWARD_PATH = `${APP_ROUTES.login}?next=${encodeURIComponent(APP_ROUTES.shopAccount)}`;
-/** Staff door on the shop host (D5 shape: office mode, back to the business hub). */
 const STAFF_FORWARD_PATH = `${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(APP_ROUTES.business)}`;
-
 const RESEND_SECONDS = 60;
+
+function detectIdentityKind(raw: string): IdentityKind {
+  const t = raw.trim();
+  if (!t) return "unknown";
+  if (t.includes("@")) return "email";
+  const digits = t.replace(/\D/g, "");
+  if (digits.length >= 9 && /^[\d\s+\-()]+$/.test(t)) return "phone";
+  // Mostly digits with a bit of punctuation still counts as phone intent.
+  if (digits.length >= 9 && digits.length / t.replace(/\s/g, "").length >= 0.7) {
+    return "phone";
+  }
+  return "unknown";
+}
+
+function destinationKey(row: PublicSignInDestination): string {
+  return `${row.door}:${row.slug ?? "portal"}`;
+}
+
+function doorStamp(door: PublicSignInDestination["door"]): string {
+  if (door === "STAFF") return "Till";
+  if (door === "SUPPLIER") return "Supply";
+  return "Shop";
+}
+
+function doorHint(door: PublicSignInDestination["door"]): string {
+  if (door === "STAFF") return "PIN or password on the till";
+  if (door === "SUPPLIER") return "Supplier portal password";
+  return "Phone code or email on the shop";
+}
+
+function forwardPathFor(door: PublicSignInDestination["door"]): string {
+  if (door === "STAFF") return STAFF_FORWARD_PATH;
+  return SHOPPER_FORWARD_PATH;
+}
 
 export function LandingSignInModal({
   open,
   onOpenChange,
   onCreateShop,
-  initialMode = "shopper",
 }: LandingSignInModalProps) {
-  const [mode, setMode] = useState<ApexSignInMode>(initialMode);
-  const [entryKind, setEntryKind] = useState<"name" | "phone">("name");
-  const [query, setQuery] = useState("");
-  const [phone, setPhone] = useState("");
+  const [identity, setIdentity] = useState("");
   const [code, setCode] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [step, setStep] = useState<Step>({ status: "idle" });
-  const [forwardingSlug, setForwardingSlug] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [forwardingKey, setForwardingKey] = useState<string | null>(null);
+  const [shopQuery, setShopQuery] = useState("");
+
+  const kind = detectIdentityKind(identity);
 
   useEffect(() => {
-    if (open) {
-      setMode(initialMode);
-      setEntryKind("name");
-      setQuery("");
-      setPhone("");
-      setCode("");
-      setCountdown(0);
-      setStep({ status: "idle" });
-      setForwardingSlug(null);
-    }
-  }, [open, initialMode]);
+    if (!open) return;
+    setIdentity("");
+    setCode("");
+    setCountdown(0);
+    setStep({ status: "idle" });
+    setSelectedKey(null);
+    setForwardingKey(null);
+    setShopQuery("");
+  }, [open]);
 
-  // Resend countdown for the OTP step.
   useEffect(() => {
-    if (step.status !== "phone-code" || countdown <= 0) {
-      return;
-    }
+    if (step.status !== "phone-code" || countdown <= 0) return;
     const timer = window.setInterval(() => {
       setCountdown((value) => (value > 1 ? value - 1 : 0));
     }, 1000);
     return () => window.clearInterval(timer);
   }, [step.status, countdown]);
 
-  const previewSlug = businessNameToSlug(query);
-  const previewHost = previewSlug
-    ? `${previewSlug}.${PLATFORM_DOMAIN}`
-    : `yourshop.${PLATFORM_DOMAIN}`;
+  const passRows = step.status === "passes" || step.status === "shop-results" ? step.rows : [];
+  const selected = useMemo(() => {
+    if (!selectedKey) return passRows[0] ?? null;
+    return passRows.find((row) => destinationKey(row) === selectedKey) ?? passRows[0] ?? null;
+  }, [passRows, selectedKey]);
 
-  const forwardPath = mode === "staff" ? STAFF_FORWARD_PATH : SHOPPER_FORWARD_PATH;
-
-  const go = (row: PublicShopSearchResult) => {
-    if (forwardingSlug) {
-      return;
+  useEffect(() => {
+    if (step.status === "passes" || step.status === "shop-results") {
+      setSelectedKey(destinationKey(step.rows[0]));
     }
-    setForwardingSlug(row.slug);
-    // Give the shopper a beat to register the destination ("wrong shop?" back).
+  }, [step]);
+
+  const go = (row: PublicSignInDestination, payload?: IdentityPayload) => {
+    if (forwardingKey) return;
+    const key = destinationKey(row);
+    setForwardingKey(key);
+
     window.setTimeout(() => {
-      const url = buildApexForwardUrl(row, forwardPath);
+      if (row.door === "SUPPLIER") {
+        const params = new URLSearchParams();
+        const email =
+          payload?.email ??
+          (kind === "email" ? identity.trim().toLowerCase() : "");
+        const phone =
+          payload?.phone ??
+          (kind === "phone" ? identity.replace(/\D/g, "") : "");
+        if (email.includes("@")) params.set("email", email);
+        else if (phone.length >= 9) params.set("phone", phone);
+        const qs = params.toString();
+        window.location.assign(
+          `${APP_ROUTES.supplierPortalLogin}${qs ? `?${qs}` : ""}`,
+        );
+        return;
+      }
+      if (!row.slug) {
+        setForwardingKey(null);
+        setStep({ status: "miss", hint: "That pass has no shop address." });
+        return;
+      }
+      const path = forwardPathFor(row.door);
+      let url = buildApexForwardUrl(
+        {
+          slug: row.slug,
+          name: row.name,
+          logoUrl: row.logoUrl,
+          primaryHost: row.primaryHost,
+        },
+        path,
+      );
+      const idPayload =
+        payload ??
+        (step.status === "passes"
+          ? step.identity
+          : kind === "email"
+            ? { kind: "email" as const, email: identity.trim().toLowerCase() }
+            : kind === "phone"
+              ? { kind: "phone" as const, phone: identity.replace(/\D/g, "") }
+              : undefined);
+      if (idPayload) {
+        url = withApexIdentityParams(url, {
+          email: idPayload.email,
+          phone: idPayload.phone,
+        });
+      }
       if (url) {
         window.location.assign(url);
       } else {
-        setForwardingSlug(null);
-        setStep({ status: "miss", query: row.name });
+        setForwardingKey(null);
+        setStep({ status: "miss", hint: "Could not open that shop." });
       }
-    }, 900);
+    }, 720);
   };
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onIdentitySubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const q = apexShopSearchQuery(query);
-    if (q.length < 2) {
-      setStep({ status: "miss", query: "" });
+    const detected = detectIdentityKind(identity);
+    if (detected === "email") {
+      const email = identity.trim().toLowerCase();
+      setStep({ status: "looking" });
+      const rows = await fetchSignInDestinationsByEmail(email);
+      if (rows.length === 0) {
+        setStep({
+          status: "miss",
+          hint: "No pass for that email. Try another, or find the shop by name.",
+        });
+        return;
+      }
+      setStep({
+        status: "passes",
+        rows,
+        identity: { kind: "email", email },
+      });
       return;
     }
-    setStep({ status: "loading" });
-    const rows = await searchPublicShops(q);
-    setStep(
-      rows.length === 0
-        ? { status: "miss", query: q }
-        : { status: "results", query: q, rows },
-    );
-  };
-
-  const onPhoneSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length < 9) {
-      setStep({ status: "phone-idle" });
-      setPhone("");
+    if (detected === "phone") {
+      const digits = identity.replace(/\D/g, "");
+      setStep({ status: "phone-sending" });
+      const result = await sendShopperIdentifyCode(digits);
+      if (!result) {
+        setStep({
+          status: "miss",
+          hint: "Could not send a code. Check the number and try again.",
+        });
+        return;
+      }
+      setCode("");
+      setCountdown(RESEND_SECONDS);
+      setStep({ status: "phone-code", phone: digits });
       return;
     }
-    setStep({ status: "phone-sending" });
-    const result = await sendShopperIdentifyCode(digits);
-    if (!result) {
-      setStep({ status: "phone-idle" });
-      return;
-    }
-    setCode("");
-    setCountdown(RESEND_SECONDS);
-    setStep({ status: "phone-code", phone: digits });
+    setStep({
+      status: "miss",
+      hint: "Enter an email or a phone number (e.g. 0714 282 874).",
+    });
   };
 
   const onCodeSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (step.status !== "phone-code") {
-      return;
-    }
+    if (step.status !== "phone-code") return;
     const digits = code.replace(/\D/g, "");
-    if (digits.length < 4) {
-      return;
-    }
+    if (digits.length < 4) return;
     setStep({ status: "phone-verifying", phone: step.phone });
     const verified = await verifyShopperIdentifyCode(step.phone, digits);
     if (!verified?.phoneVerificationToken) {
@@ -172,23 +257,42 @@ export function LandingSignInModal({
       setStep({ status: "phone-code", phone: step.phone });
       return;
     }
-    const rows = await fetchShopperShops(step.phone, verified.phoneVerificationToken);
-    setStep(
-      rows.length === 0 ? { status: "phone-empty" } : { status: "phone-results", rows },
+    const rows = await fetchSignInDestinationsByPhone(
+      step.phone,
+      verified.phoneVerificationToken,
     );
+    if (rows.length === 0) {
+      setStep({
+        status: "miss",
+        hint: "No shops on that number yet. Try your email, or find the shop by name.",
+      });
+      return;
+    }
+    setStep({
+      status: "passes",
+      rows,
+      identity: { kind: "phone", phone: step.phone },
+    });
   };
 
-  const switchMode = (next: ApexSignInMode) => {
-    setMode(next);
-    setEntryKind("name");
-    setStep({ status: "idle" });
-    setForwardingSlug(null);
-  };
-
-  const switchEntryKind = (next: "name" | "phone") => {
-    setEntryKind(next);
-    setForwardingSlug(null);
-    setStep(next === "phone" ? { status: "phone-idle" } : { status: "idle" });
+  const onShopSearch = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const q = apexShopSearchQuery(shopQuery);
+    if (q.length < 2) {
+      setStep({ status: "miss", hint: "Type at least two letters of the shop name." });
+      return;
+    }
+    setStep({ status: "shop-loading" });
+    const found = await searchPublicShops(q);
+    const rows: PublicSignInDestination[] = found.flatMap((row) => [
+      { ...row, door: "STAFF" as const },
+      { ...row, door: "SHOPPER" as const },
+    ]);
+    if (rows.length === 0) {
+      setStep({ status: "miss", hint: `No shop found for “${q}”.` });
+      return;
+    }
+    setStep({ status: "shop-results", query: q, rows });
   };
 
   const startCreate = () => {
@@ -196,12 +300,8 @@ export function LandingSignInModal({
     onCreateShop();
   };
 
-  const heading = mode === "staff" ? "Where do you sell?" : "Which shop do you shop at?";
-  const eyebrow = mode === "staff" ? "Ticket · Find till" : "Ticket · Sign in";
-  const description =
-    mode === "staff"
-      ? "Enter your business name. We'll look up your shop and open the till on your subdomain."
-      : "Tell us your shop's name or your phone number and we'll take you there to sign in — one tap, no password here.";
+  const kindLabel =
+    kind === "email" ? "Email" : kind === "phone" ? "Phone" : "Email or phone";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -218,89 +318,20 @@ export function LandingSignInModal({
 
           <div className="px-5 pb-6 pt-4 sm:px-7">
             <DialogHeader className="space-y-2 text-left">
-              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--kiosk-gold)]">
-                {eyebrow}
-              </p>
               <DialogTitle className="font-heading text-[1.65rem] font-semibold tracking-[-0.03em] text-[var(--kiosk-text)]">
-                {heading}
+                Your pass
               </DialogTitle>
               <DialogDescription className="text-[14px] leading-relaxed text-[var(--kiosk-text-muted)]">
-                {description}
+                Email or phone — we stamp every shop and portal tied to you, then
+                open the right door for PIN or password.
               </DialogDescription>
             </DialogHeader>
 
-            <div
-              className="mt-4 grid grid-cols-2 gap-1 border border-[var(--kiosk-border-soft)] bg-[var(--kiosk-bg)] p-1"
-              role="tablist"
-              aria-label="Sign in as"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === "shopper"}
-                onClick={() => switchMode("shopper")}
-                className={cn(
-                  "px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em]",
-                  mode === "shopper"
-                    ? "bg-[var(--kiosk-gold)] text-[var(--kiosk-bg)]"
-                    : "text-[var(--kiosk-text-muted)] hover:text-[var(--kiosk-text)]",
-                )}
-              >
-                I&apos;m a shopper
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === "staff"}
-                onClick={() => switchMode("staff")}
-                className={cn(
-                  "px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em]",
-                  mode === "staff"
-                    ? "bg-[var(--kiosk-gold)] text-[var(--kiosk-bg)]"
-                    : "text-[var(--kiosk-text-muted)] hover:text-[var(--kiosk-text)]",
-                )}
-              >
-                I run a shop
-              </button>
-            </div>
-
-            {forwardingSlug ? (
-              <div className="mt-6 border border-dashed border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-4 py-5">
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
-                  {mode === "staff" ? "Match found" : "Taking you to"}
-                </p>
-                <p className="mt-2 font-heading text-2xl font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
-                  {step.status === "results" || step.status === "phone-results"
-                    ? step.rows.find((row) => row.slug === forwardingSlug)?.name
-                    : ""}
-                </p>
-                <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--kiosk-text-muted)]">
-                  {step.status === "results" || step.status === "phone-results"
-                    ? step.rows.find((row) => row.slug === forwardingSlug)?.primaryHost ??
-                      previewHost
-                    : previewHost}
-                </p>
-                <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)]">
-                  Opening {mode === "staff" ? "till" : "sign in"}…
-                </p>
-                <button
-                  type="button"
-                  className="mt-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
-                  onClick={() => setForwardingSlug(null)}
-                >
-                  Wrong shop? Go back
-                </button>
-              </div>
-            ) : step.status === "phone-idle" || step.status === "phone-sending" ? (
-              <PhoneForm
-                phone={phone}
-                busy={step.status === "phone-sending"}
-                onChange={setPhone}
-                onSubmit={onPhoneSubmit}
-              />
+            {forwardingKey && selected ? (
+              <ForwardingPass row={selected} onBack={() => setForwardingKey(null)} />
             ) : step.status === "phone-code" || step.status === "phone-verifying" ? (
               <CodeForm
-                phone={step.status === "phone-code" ? step.phone : ""}
+                phone={step.phone}
                 code={code}
                 busy={step.status === "phone-verifying"}
                 countdown={countdown}
@@ -308,154 +339,171 @@ export function LandingSignInModal({
                 onSubmit={onCodeSubmit}
                 onResend={() =>
                   void sendShopperIdentifyCode(step.phone).then((result) => {
-                    if (result) {
-                      setCountdown(RESEND_SECONDS);
-                    }
+                    if (result) setCountdown(RESEND_SECONDS);
                   })
                 }
-                onBack={() => setStep({ status: "phone-idle" })}
-              />
-            ) : step.status === "phone-results" ? (
-              <ResultsList
-                rows={step.rows}
-                onPick={go}
-                onBack={() => setStep({ status: "phone-idle" })}
-                backLabel="← Different number"
-              />
-            ) : step.status === "phone-empty" ? (
-              <div className="mt-6 border border-dashed border-[color-mix(in_srgb,var(--kiosk-danger)_35%,var(--kiosk-border))] bg-[var(--kiosk-danger-bg)] px-3.5 py-3">
-                <p className="text-[13px] text-[var(--kiosk-text)]">
-                  We couldn&apos;t find any shops for that number. If you&apos;ve
-                  shopped somewhere before, try its name instead.
-                </p>
-                <button
-                  type="button"
-                  className="mt-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
-                  onClick={() => switchEntryKind("name")}
-                >
-                  ← Search by shop name
-                </button>
-              </div>
-            ) : step.status === "loading" ? (
-              <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)]">
-                Looking up…
-              </p>
-            ) : step.status === "results" && step.rows.length === 1 ? (
-              <MatchCard
-                row={step.rows[0]}
-                mode={mode}
-                onContinue={() => go(step.rows[0])}
-                onEdit={() => setStep({ status: "idle" })}
-              />
-            ) : step.status === "results" ? (
-              <ResultsList
-                rows={step.rows}
-                query={step.query}
-                onPick={go}
                 onBack={() => setStep({ status: "idle" })}
               />
-            ) : step.status === "miss" ? (
-              <div className="mt-6 border border-dashed border-[color-mix(in_srgb,var(--kiosk-danger)_35%,var(--kiosk-border))] bg-[var(--kiosk-danger-bg)] px-3.5 py-3">
-                <p className="text-[13px] text-[var(--kiosk-text)]">
-                  No shop found{step.query ? ` for “${step.query}”` : " — try a shop name"}.{" "}
-                  {mode === "staff"
-                    ? "If this is your shop, claim it and open the till."
-                    : "If you can't remember the name, check your SMS receipts — your shop's name is on every one."}
-                </p>
+            ) : step.status === "passes" || step.status === "shop-results" ? (
+              <PassPicker
+                rows={step.rows}
+                selectedKey={selectedKey}
+                onSelect={setSelectedKey}
+                onContinue={() => {
+                  if (!selected) return;
+                  if (step.status === "passes") {
+                    go(selected, step.identity);
+                  } else {
+                    go(selected);
+                  }
+                }}
+                onBack={() =>
+                  setStep(
+                    step.status === "shop-results"
+                      ? { status: "shop-search" }
+                      : { status: "idle" },
+                  )
+                }
+                backLabel={
+                  step.status === "shop-results" ? "← Different name" : "← Different identity"
+                }
+              />
+            ) : step.status === "shop-search" || step.status === "shop-loading" ? (
+              <form className="mt-6 space-y-4" onSubmit={(e) => void onShopSearch(e)}>
+                <label className="block">
+                  <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
+                    Shop name
+                  </span>
+                  <input
+                    value={shopQuery}
+                    onChange={(event) => setShopQuery(event.target.value)}
+                    autoFocus
+                    autoComplete="organization"
+                    placeholder="e.g. Mama Njeri Minimart"
+                    className="landing-find-shop-input w-full border border-[var(--kiosk-border-strong)] bg-white px-3.5 py-3 text-[15px] text-[var(--kiosk-text)] outline-none placeholder:text-[var(--kiosk-text-faint)] focus:border-[var(--kiosk-gold)]"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={step.status === "shop-loading" || shopQuery.trim().length < 2}
+                  className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center disabled:opacity-50"
+                >
+                  {step.status === "shop-loading" ? "Looking up…" : "Find shop"}
+                </button>
                 <button
                   type="button"
-                  className="mt-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
-                  onClick={startCreate}
+                  className="block w-full text-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
+                  onClick={() => setStep({ status: "idle" })}
                 >
-                  Start free instead →
+                  ← Back to email or phone
+                </button>
+              </form>
+            ) : step.status === "miss" ? (
+              <div className="mt-6 border border-dashed border-[color-mix(in_srgb,var(--kiosk-danger)_35%,var(--kiosk-border))] bg-[var(--kiosk-danger-bg)] px-3.5 py-3">
+                <p className="text-[13px] text-[var(--kiosk-text)]">{step.hint}</p>
+                <button
+                  type="button"
+                  className="mt-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
+                  onClick={() => setStep({ status: "idle" })}
+                >
+                  ← Try again
                 </button>
                 <button
                   type="button"
                   className="mt-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
-                  onClick={() => setStep({ status: "idle" })}
+                  onClick={() => setStep({ status: "shop-search" })}
                 >
-                  ← Try another name
+                  Find by shop name →
+                </button>
+                <button
+                  type="button"
+                  className="mt-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
+                  onClick={startCreate}
+                >
+                  Start free instead →
                 </button>
               </div>
             ) : (
-              <div className="mt-6">
-                {mode === "shopper" ? (
-                  <div
-                    className="mb-4 grid grid-cols-2 gap-1 border border-[var(--kiosk-border-soft)] bg-[var(--kiosk-bg)] p-1"
-                    role="tablist"
-                    aria-label="Find your shop by"
-                  >
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={entryKind === "name"}
-                      onClick={() => switchEntryKind("name")}
+              <form className="mt-6 space-y-4" onSubmit={(e) => void onIdentitySubmit(e)}>
+                <label className="block">
+                  <span className="mb-1.5 flex items-center justify-between gap-2">
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
+                      {kindLabel}
+                    </span>
+                    <span
                       className={cn(
-                        "px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em]",
-                        entryKind === "name"
-                          ? "bg-[var(--kiosk-gold)] text-[var(--kiosk-bg)]"
-                          : "text-[var(--kiosk-text-muted)] hover:text-[var(--kiosk-text)]",
+                        "landing-pass-kind font-mono text-[9px] font-semibold uppercase tracking-[0.16em]",
+                        kind === "unknown"
+                          ? "text-[var(--kiosk-text-faint)]"
+                          : "text-[var(--kiosk-gold)]",
+                      )}
+                      aria-live="polite"
+                    >
+                      {kind === "email"
+                        ? "→ Pass · email"
+                        : kind === "phone"
+                          ? "→ Pass · SMS code"
+                          : "Waiting…"}
+                    </span>
+                  </span>
+                  <div className="relative">
+                    <input
+                      value={identity}
+                      onChange={(event) => {
+                        setIdentity(event.target.value);
+                      }}
+                      autoFocus
+                      autoComplete="username"
+                      inputMode={kind === "phone" ? "tel" : "email"}
+                      placeholder="you@shop.co or 0714 282 874"
+                      className="landing-find-shop-input w-full border border-[var(--kiosk-border-strong)] bg-white px-3.5 py-3.5 pr-16 text-[15px] text-[var(--kiosk-text)] outline-none placeholder:text-[var(--kiosk-text-faint)] focus:border-[var(--kiosk-gold)]"
+                    />
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors duration-200",
+                        kind === "email" || kind === "phone"
+                          ? "text-[var(--kiosk-gold)]"
+                          : "text-[var(--kiosk-text-faint)]",
                       )}
                     >
-                      Shop name
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={entryKind === "phone"}
-                      onClick={() => switchEntryKind("phone")}
-                      className={cn(
-                        "px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em]",
-                        entryKind === "phone"
-                          ? "bg-[var(--kiosk-gold)] text-[var(--kiosk-bg)]"
-                          : "text-[var(--kiosk-text-muted)] hover:text-[var(--kiosk-text)]",
-                      )}
-                    >
-                      Phone number
-                    </button>
+                      {kind === "email" ? "@" : kind === "phone" ? "#" : "·"}
+                    </span>
                   </div>
-                ) : null}
+                </label>
 
-                {entryKind === "phone" && mode === "shopper" ? (
-                  <PhoneForm
-                    phone={phone}
-                    busy={false}
-                    onChange={setPhone}
-                    onSubmit={onPhoneSubmit}
-                  />
-                ) : (
-                  <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
-                    <label className="block">
-                      <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
-                        {mode === "staff" ? "Business name" : "Shop name"}
-                      </span>
-                      <input
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        autoFocus
-                        autoComplete="organization"
-                        placeholder={
-                          mode === "staff" ? "e.g. Mama Njeri Shop" : "e.g. Mama Njeri Minimart"
-                        }
-                        className="landing-find-shop-input w-full border border-[var(--kiosk-border-strong)] bg-white px-3.5 py-3 text-[15px] text-[var(--kiosk-text)] outline-none placeholder:text-[var(--kiosk-text-faint)] focus:border-[var(--kiosk-gold)]"
-                      />
-                    </label>
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)]">
+                  {kind === "phone"
+                    ? "We'll text a code, then stamp your shops."
+                    : kind === "email"
+                      ? "We'll list every till, shop, and portal on this email."
+                      : "One field. We route you — no shopper / merchant toggle."}
+                </p>
 
-                    <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)]">
-                      Looking for{" "}
-                      <span className="text-[var(--kiosk-gold)]">{previewHost}</span>
-                    </p>
+                <button
+                  type="submit"
+                  disabled={
+                    step.status === "looking" ||
+                    step.status === "phone-sending" ||
+                    identity.trim().length < 3
+                  }
+                  className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center disabled:opacity-50"
+                >
+                  {step.status === "looking" || step.status === "phone-sending"
+                    ? "Stamping…"
+                    : kind === "phone"
+                      ? "Send code"
+                      : "Find my passes"}
+                </button>
 
-                    <button
-                      type="submit"
-                      disabled={query.trim().length < 2}
-                      className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center disabled:opacity-50"
-                    >
-                      {mode === "staff" ? "Find shop" : "Continue"}
-                    </button>
-                  </form>
-                )}
-              </div>
+                <button
+                  type="button"
+                  className="block w-full text-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
+                  onClick={() => setStep({ status: "shop-search" })}
+                >
+                  Find by shop name instead
+                </button>
+              </form>
             )}
           </div>
         </div>
@@ -464,45 +512,129 @@ export function LandingSignInModal({
   );
 }
 
-function PhoneForm({
-  phone,
-  busy,
-  onChange,
-  onSubmit,
+/** @deprecated Prefer inferred doors; kept for existing imports. */
+export type ApexSignInMode = "shopper" | "staff";
+
+function ForwardingPass({
+  row,
+  onBack,
 }: {
-  phone: string;
-  busy: boolean;
-  onChange: (value: string) => void;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  row: PublicSignInDestination;
+  onBack: () => void;
 }) {
+  const host =
+    row.door === "SUPPLIER"
+      ? "supplier portal"
+      : (row.primaryHost ?? (row.slug ? `${row.slug}.${PLATFORM_DOMAIN}` : ""));
   return (
-    <form className="mt-6 space-y-4" onSubmit={(e) => void onSubmit(e)}>
-      <label className="block">
-        <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
-          Phone number
-        </span>
-        <input
-          value={phone}
-          onChange={(event) => onChange(event.target.value.replace(/[^\d+\s-]/g, ""))}
-          autoFocus
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="e.g. 0714 282 874"
-          className="landing-find-shop-input w-full border border-[var(--kiosk-border-strong)] bg-white px-3.5 py-3 text-[15px] text-[var(--kiosk-text)] outline-none placeholder:text-[var(--kiosk-text-faint)] focus:border-[var(--kiosk-gold)]"
-        />
-      </label>
-      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)]">
-        We&apos;ll text you a code to verify it&apos;s you.
+    <div className="landing-pass-stamp mt-6 border border-dashed border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-4 py-5">
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
+        Pass stamped · {doorStamp(row.door)}
+      </p>
+      <p className="mt-2 font-heading text-2xl font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
+        {row.name}
+      </p>
+      <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--kiosk-text-muted)]">
+        {host}
+      </p>
+      <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)]">
+        Opening {doorHint(row.door).toLowerCase()}…
       </p>
       <button
-        type="submit"
-        disabled={busy || phone.replace(/\D/g, "").length < 9}
+        type="button"
+        className="mt-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
+        onClick={onBack}
+      >
+        Wrong pass? Go back
+      </button>
+    </div>
+  );
+}
+
+function PassPicker({
+  rows,
+  selectedKey,
+  onSelect,
+  onContinue,
+  onBack,
+  backLabel,
+}: {
+  rows: PublicSignInDestination[];
+  selectedKey: string | null;
+  onSelect: (key: string) => void;
+  onContinue: () => void;
+  onBack: () => void;
+  backLabel: string;
+}) {
+  const active = rows.find((row) => destinationKey(row) === selectedKey) ?? rows[0];
+  const multi = rows.length > 1;
+
+  return (
+    <div className="mt-6 space-y-4">
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
+        {multi
+          ? `${rows.length} passes on this identity`
+          : "One pass stamped"}
+      </p>
+
+      {multi ? (
+        <label className="block">
+          <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
+            Choose a pass
+          </span>
+          <select
+            value={selectedKey ?? destinationKey(rows[0])}
+            onChange={(event) => onSelect(event.target.value)}
+            className="landing-find-shop-input landing-pass-select w-full appearance-none border border-[var(--kiosk-border-strong)] bg-white px-3.5 py-3 text-[15px] text-[var(--kiosk-text)] outline-none focus:border-[var(--kiosk-gold)]"
+          >
+            {rows.map((row) => (
+              <option key={destinationKey(row)} value={destinationKey(row)}>
+                {doorStamp(row.door)} · {row.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+
+      {active ? (
+        <div className="landing-pass-card relative overflow-hidden border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-4 py-4">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-2 -top-1 rotate-12 border border-[var(--kiosk-gold)] px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--kiosk-gold)] opacity-80"
+          >
+            {doorStamp(active.door)}
+          </div>
+          <p className="pr-16 font-heading text-xl font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
+            {active.name}
+          </p>
+          <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--kiosk-text-muted)]">
+            {active.door === "SUPPLIER"
+              ? "supplier.kiosk portal"
+              : (active.primaryHost ??
+                (active.slug ? `${active.slug}.${PLATFORM_DOMAIN}` : ""))}
+          </p>
+          <p className="mt-3 text-[13px] text-[var(--kiosk-text-muted)]">
+            {doorHint(active.door)}
+          </p>
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={onContinue}
+        disabled={!active}
         className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center disabled:opacity-50"
       >
-        {busy ? "Sending…" : "Send my code"}
+        Open pass →
       </button>
-    </form>
+      <button
+        type="button"
+        className="block w-full text-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
+        onClick={onBack}
+      >
+        {backLabel}
+      </button>
+    </div>
   );
 }
 
@@ -530,7 +662,7 @@ function CodeForm({
     <form className="mt-6 space-y-4" onSubmit={(e) => void onSubmit(e)}>
       <label className="block">
         <span className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
-          Enter the code we texted {masked}
+          Code we texted {masked}
         </span>
         <input
           value={code}
@@ -548,7 +680,7 @@ function CodeForm({
         disabled={busy || code.replace(/\D/g, "").length < 4}
         className="landing-nav-ticket landing-nav-ticket--primary w-full justify-center disabled:opacity-50"
       >
-        {busy ? "Checking…" : "Verify"}
+        {busy ? "Checking…" : "Verify & stamp passes"}
       </button>
       {countdown > 0 ? (
         <p className="text-center font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--kiosk-text-faint)]">
@@ -571,100 +703,5 @@ function CodeForm({
         ← Wrong number
       </button>
     </form>
-  );
-}
-
-function ResultsList({
-  rows,
-  query,
-  onPick,
-  onBack,
-  backLabel = "← Not your shop",
-}: {
-  rows: PublicShopSearchResult[];
-  query?: string;
-  onPick: (row: PublicShopSearchResult) => void;
-  onBack: () => void;
-  backLabel?: string;
-}) {
-  return (
-    <div className="mt-6">
-      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--kiosk-text-faint)]">
-        {query ? `${rows.length} shops match “${query}”` : `${rows.length} shop${rows.length === 1 ? "" : "s"} found`}
-      </p>
-      <ul className="mt-2 divide-y divide-[var(--kiosk-border-soft)] border-y border-[var(--kiosk-border-soft)]">
-        {rows.map((row) => (
-          <li key={row.slug}>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 px-2 py-3 text-left hover:bg-[var(--kiosk-gold-soft)]"
-              onClick={() => onPick(row)}
-            >
-              <span className="min-w-0">
-                <span className="block truncate font-heading text-[15px] font-semibold tracking-[-0.01em] text-[var(--kiosk-text)]">
-                  {row.name}
-                </span>
-                <span className="block truncate font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--kiosk-text-muted)]">
-                  {row.primaryHost ?? `${row.slug}.${PLATFORM_DOMAIN}`}
-                </span>
-              </span>
-              <span className="shrink-0 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-gold)]">
-                Continue →
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        className="mt-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
-        onClick={onBack}
-      >
-        {backLabel}
-      </button>
-    </div>
-  );
-}
-
-function MatchCard({
-  row,
-  mode,
-  onContinue,
-  onEdit,
-}: {
-  row: PublicShopSearchResult;
-  mode: ApexSignInMode;
-  onContinue: () => void;
-  onEdit: () => void;
-}) {
-  const host = row.primaryHost ?? `${row.slug}.${PLATFORM_DOMAIN}`;
-  return (
-    <div className="mt-6">
-      <div className="border border-dashed border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-4 py-5">
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
-          Match found
-        </p>
-        <p className="mt-2 font-heading text-2xl font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
-          {row.name}
-        </p>
-        <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--kiosk-text-muted)]">
-          {host}
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={onContinue}
-        className="landing-nav-ticket landing-nav-ticket--primary mt-4 w-full justify-center"
-      >
-        {mode === "staff" ? "Open till" : "Sign in"}
-      </button>
-      <button
-        type="button"
-        className="mt-3 block w-full text-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-text-muted)] underline-offset-2 hover:text-[var(--kiosk-text)] hover:underline"
-        onClick={onEdit}
-      >
-        Wrong shop? Go back
-      </button>
-    </div>
   );
 }

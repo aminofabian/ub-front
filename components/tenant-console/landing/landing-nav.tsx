@@ -18,8 +18,9 @@ const NAV_LINKS = [
 
 type LandingNavProps = {
   onCreateShop: () => void;
+  /** Opens the identity pass sheet (same as Sign in). */
   onFindShop: () => void;
-  /** Opens the apex one-door sheet on the shopper step (Phase 4). */
+  /** Opens the apex identity pass sheet. */
   onSignIn: () => void;
 };
 
@@ -120,13 +121,6 @@ export function LandingNav({ onCreateShop, onFindShop, onSignIn }: LandingNavPro
               onClick={onSignIn}
             >
               Sign in
-            </button>
-            <button
-              type="button"
-              className="landing-nav-ticket landing-nav-ticket--ghost landing-nav-ticket--desktop"
-              onClick={onFindShop}
-            >
-              Find shop
             </button>
             <Link
               href="/download"

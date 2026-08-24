@@ -1967,6 +1967,53 @@ button:hover .tenant-monogram-shell {
     border-radius: 0;
 }
 
+.landing-page .landing-pass-select {
+    background-image: linear-gradient(45deg, transparent 50%, var(--kiosk-gold) 50%),
+        linear-gradient(135deg, var(--kiosk-gold) 50%, transparent 50%);
+    background-position:
+        calc(100% - 18px) calc(50% - 3px),
+        calc(100% - 12px) calc(50% - 3px);
+    background-size: 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 2.25rem;
+}
+
+.landing-page .landing-pass-stamp {
+    animation: landing-pass-stamp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-page .landing-pass-card {
+    animation: landing-pass-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-page .landing-pass-kind {
+    transition: color 0.2s ease;
+}
+
+@keyframes landing-pass-stamp {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.96);
+        filter: blur(4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
+
+@keyframes landing-pass-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
 .landing-page .talk-ticket-input {
     border-radius: 0;
     transition:

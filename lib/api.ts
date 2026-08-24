@@ -544,6 +544,67 @@ export type PublicShopSearchResult = {
   primaryHost?: string | null;
 };
 
+/** Apex sign-in destination with inferred door (staff till / shopper / supplier). */
+export type PublicSignInDestination = {
+  /** Present for shop hosts; omitted for platform supplier portal. */
+  slug?: string;
+  name: string;
+  logoUrl?: string | null;
+  primaryHost?: string | null;
+  door: "STAFF" | "SHOPPER" | "SUPPLIER";
+};
+
+const PUBLIC_SIGN_IN_DESTINATIONS_PATH = "/api/v1/public/host/sign-in-destinations";
+
+function parseSignInDestinations(payload: unknown): PublicSignInDestination[] {
+  if (!Array.isArray(payload)) return [];
+  const out: PublicSignInDestination[] = [];
+  for (const row of payload) {
+    if (!row || typeof row !== "object") continue;
+    const r = row as Record<string, unknown>;
+    const doorRaw = typeof r.door === "string" ? r.door.trim().toUpperCase() : "";
+    const door =
+      doorRaw === "STAFF" || doorRaw === "SHOPPER" || doorRaw === "SUPPLIER"
+        ? doorRaw
+        : null;
+    if (!door) continue;
+    const name = typeof r.name === "string" ? r.name.trim() : "";
+    if (!name) continue;
+    const slug = typeof r.slug === "string" ? r.slug.trim() : "";
+    if (door !== "SUPPLIER" && !slug) continue;
+    out.push({
+      slug: slug || undefined,
+      name,
+      logoUrl: typeof r.logoUrl === "string" ? r.logoUrl : null,
+      primaryHost: typeof r.primaryHost === "string" ? r.primaryHost : null,
+      door,
+    });
+  }
+  return out;
+}
+
+/**
+ * Lists every shop/portal tied to an email for the apex sign-in sheet.
+ * Empty when unknown — does not throw.
+ */
+export async function fetchSignInDestinationsByEmail(
+  email: string,
+): Promise<PublicSignInDestination[]> {
+  const e = email.trim().toLowerCase();
+  if (!e || !e.includes("@")) return [];
+  const url = `${apiUrl(PUBLIC_SIGN_IN_DESTINATIONS_PATH)}?email=${encodeURIComponent(e)}`;
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) return [];
+    return parseSignInDestinations(await response.json());
+  } catch {
+    return [];
+  }
+}
+
 const PUBLIC_SHOPS_SEARCH_PATH = "/api/v1/public/shops/search";
 
 /**

@@ -1740,13 +1740,203 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
   {
     audience: "merchants",
     categorySlug: "staff-branches",
+    slug: "user-roles-add-users",
+    title: "User roles & how to add users",
+    description:
+      "Invite staff, pick the right role, assign branches and departments, and manage PINs and access — with screenshots of every screen.",
+    updatedAt: "2026-08-24",
+    tags: [
+      "users",
+      "staff",
+      "roles",
+      "permissions",
+      "invite",
+      "PIN",
+      "cashier",
+      "deactivate",
+      "branches",
+      "team",
+    ],
+    relatedSlugs: [
+      "add-staff-and-roles",
+      "invite-your-first-staff",
+      "staff-pin-login",
+      "work-with-multiple-branches",
+    ],
+    body: [
+      {
+        type: "paragraph",
+        text: "Users are the people who can sign in to your workspace — at the dashboard, the till, or the grocery counter. A role decides what each person can see and do, and the branch narrows where they work. This guide walks through adding users, choosing roles, and managing access safely.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "Golden rule: give the smallest role that still gets the job done. A cashier should be able to sell — not to change prices, delete products, or open payment settings.",
+      },
+      {
+        type: "heading",
+        text: "What is a role?",
+      },
+      {
+        type: "list",
+        items: [
+          "A role is a bundle of permissions — one choice in the invite drawer decides what the person can see across the whole workspace.",
+          "Owner sees and controls everything: users, roles, payment settings, billing, and branches.",
+          "Managers run the day-to-day shop: catalog, stock, suppliers, supplies, and reports.",
+          "Cashiers sell at the till. Branch-locked roles (cashier, stock manager, grocery clerk) can only work in their assigned branch.",
+          "Stock managers handle stock levels, supplies, and stock takes — with optional toggles in Business → Operations.",
+          "Grocery clerks get a kiosk-friendly counter and only the departments you assign to them.",
+        ],
+      },
+      {
+        type: "callout",
+        tone: "warning",
+        text: "Never share the owner account. Every staff member gets their own login so sales are attributable and you can revoke access when someone leaves.",
+      },
+      {
+        type: "heading",
+        text: "Step 1 — Invite a user",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Users in the dashboard and tap Invite user.",
+          "Enter the full name and a unique work email.",
+          "Pick the Role — owner, manager, cashier, stock manager, grocery clerk, and more.",
+          "Pick the Branch, or leave it blank for someone who works everywhere (owners and managers usually).",
+          "Choose the sign-in method: Email invite sends them a secure link to set their own password, or PIN creates a 4–6 digit till code for cashier-style access.",
+          "Tap Create user. Email-invited people show as Invited until they finish setup; PIN users are active right away.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/invite-user-drawer.svg",
+        alt: "Invite user drawer with full name Jane Doe, email, Cashier role, Main branch, and the sign-in method dropdown open showing Email invite and PIN options",
+        caption:
+          "The invite drawer: name, role, branch, and how they sign in — all in one step.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "Email invites need a branch only when the role is branch-locked. A PIN user must have a branch selected — PIN login is tied to a till in one location.",
+      },
+      {
+        type: "heading",
+        text: "Step 2 — Manage the directory",
+      },
+      {
+        type: "paragraph",
+        text: "The Users page is a live directory. Every row shows the person, their role, departments, branch, status, and the actions you can take — all without opening a separate page.",
+      },
+      {
+        type: "list",
+        items: [
+          "Filter by status (active, invited, suspended, locked), role, or branch to find anyone fast.",
+          "Edit a name, change a role, or move someone to another branch with the pencil icons on the row.",
+          "Grocery clerks show a Departments column — assign the sections they are allowed to see.",
+          "Actions cover credentials and access: set a password, set or view a PIN, sign the person out of every device, or deactivate them.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/users-directory.svg",
+        alt: "Users directory table with filters for status role and branch, rows for cashier stock manager grocery clerk owner and an invited user, status badges, and row actions",
+        caption:
+          "The directory — one row per person, with role, branch, status, and access actions.",
+      },
+      {
+        type: "heading",
+        text: "Deactivate vs sign out — what is the difference?",
+      },
+      {
+        type: "list",
+        items: [
+          "Sign out of all devices revokes every live session but keeps their password and PIN working — they can sign straight back in. Use it when a phone or till was left unattended.",
+          "Deactivate is the strong move: the person loses access on every device until someone re-invites them. Use it when someone leaves or their access is being reviewed.",
+        ],
+      },
+      {
+        type: "heading",
+        text: "PIN login for the till",
+      },
+      {
+        type: "steps",
+        items: [
+          "Make sure the user has a branch assigned (PIN login is branch-scoped).",
+          "Set a 4–6 digit PIN — either when inviting, or later from the row actions (the # icon).",
+          "Cashiers unlock a shared till with their PIN instead of typing a long password.",
+          "Forgot a PIN? An admin can view it from the row (👁 icon) or set a new one.",
+        ],
+      },
+      {
+        type: "heading",
+        text: "Departments for grocery clerks",
+      },
+      {
+        type: "paragraph",
+        text: "Grocery clerks only see the departments you assign. Until an admin assigns at least one department, the clerk’s counter shows no items — assign departments right after creating the account, or when changing their role.",
+      },
+      {
+        type: "heading",
+        text: "Security checklist",
+      },
+      {
+        type: "list",
+        items: [
+          "One login per person — never pass around shared credentials.",
+          "Assign the least privilege that works: cashiers sell, managers run, owners own.",
+          "Deactivate leavers the same day, and sign out devices that were left behind.",
+          "Keep PINs private; don’t write them on the till.",
+          "Review the directory monthly — role drift creeps in as the shop grows.",
+        ],
+      },
+      {
+        type: "faq",
+        items: [
+          {
+            question: "Which role should a new cashier get?",
+            answer:
+              "Cashier — it is scoped to selling at the till in one branch. Promote to manager later if they also need catalog, stock, and supplier access.",
+          },
+          {
+            question: "Can I change someone's role later?",
+            answer:
+              "Yes. Tap the pencil next to their role in the directory, pick the new role, and save. The change applies on their next action — no re-invite needed.",
+          },
+          {
+            question: "A cashier forgot their PIN — what do I do?",
+            answer:
+              "From the row actions, the # icon lets you view their current PIN (it is stored viewable for recovery) or set a brand-new one.",
+          },
+          {
+            question: "What is the difference between deactivate and delete?",
+            answer:
+              "Deactivate blocks access until re-invited while keeping history attached to the person. Users are not deleted outright — history stays attributable to the right account.",
+          },
+          {
+            question: "My grocery clerk sees no products — why?",
+            answer:
+              "Grocery clerks only see assigned departments. Open their row, assign at least one department (e.g. Grocery, Produce), and save.",
+          },
+          {
+            question: "An invited user never got the email — can I resend?",
+            answer:
+              "Deactivate and re-invite, or set a password for them from the row actions and share the sign-in details securely. Confirm the email is spelled correctly first.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    audience: "merchants",
+    categorySlug: "staff-branches",
     slug: "add-staff-and-roles",
     title: "Add staff and roles",
     description:
       "Invite cashiers and supervisors with the right access for their job.",
     updatedAt: "2026-07-01",
     tags: ["staff", "roles", "users"],
-    relatedSlugs: ["staff-pin-login", "invite-your-first-staff"],
+    relatedSlugs: ["staff-pin-login", "invite-your-first-staff", "user-roles-add-users"],
     body: [
       {
         type: "paragraph",
@@ -1772,7 +1962,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       "Get a cashier onto the till quickly without sharing the owner password.",
     updatedAt: "2026-07-01",
     tags: ["invite", "staff", "onboarding"],
-    relatedSlugs: ["add-staff-and-roles", "staff-pin-login"],
+    relatedSlugs: ["add-staff-and-roles", "staff-pin-login", "user-roles-add-users"],
     body: [
       {
         type: "paragraph",

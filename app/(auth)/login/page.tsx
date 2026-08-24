@@ -66,11 +66,13 @@ function CustomerLoginPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
-  const [useEmail, setUseEmail] = useState(
-    () =>
-      searchParams.get("mode")?.trim() === "email" ||
-      Boolean(searchParams.get("email")?.trim()),
-  );
+  const initialPhone = searchParams.get("phone")?.trim() ?? "";
+  const [useEmail, setUseEmail] = useState(() => {
+    if (searchParams.get("email")?.trim()) return true;
+    if (searchParams.get("mode")?.trim() === "email") return true;
+    if (initialPhone) return false;
+    return false;
+  });
 
   const resolveAfterAuth = useCallback(
     async (opts?: { honorNext?: boolean }): Promise<string> => {
@@ -299,6 +301,7 @@ function CustomerLoginPageContent() {
       ) : (
         <div className="mt-6">
           <ShopperPhoneLogin
+            initialPhone={initialPhone}
             onSignedIn={() => {
               void onPhoneSignedIn();
             }}

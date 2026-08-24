@@ -95,6 +95,33 @@ export function buildApexForwardUrl(shop: ApexShopRecord, path: string): string 
 }
 
 /**
+ * Appends identity query params so the destination login can prefill email
+ * or phone before PIN/password.
+ */
+export function withApexIdentityParams(
+  url: string,
+  identity: { email?: string; phone?: string },
+): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    const email = identity.email?.trim().toLowerCase();
+    const phone = identity.phone?.replace(/\D/g, "");
+    if (email && email.includes("@")) {
+      parsed.searchParams.set("email", email);
+      if (!parsed.searchParams.has("mode")) {
+        parsed.searchParams.set("mode", "email");
+      }
+    } else if (phone && phone.length >= 9) {
+      parsed.searchParams.set("phone", phone);
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
  * Normalizes the apex sheet's search input before hitting
  * {@code /api/v1/public/shops/search}: pasted URLs become their hostname
  * (scheme/path stripped, the full host kept so custom domains still match
