@@ -8,6 +8,7 @@ import {
   Building2,
   ChevronDown,
   Gauge,
+  Headset,
   Inbox,
   LayoutDashboard,
   Mail,
@@ -53,6 +54,7 @@ function crumbsFor(pathname: string): Crumb[] {
     ];
   }
   if (pathname === APP_ROUTES.superAdminMessages) return [{ label: "Messages" }];
+  if (pathname === APP_ROUTES.superAdminSupport) return [{ label: "Support" }];
   if (pathname === APP_ROUTES.superAdminSettings) return [{ label: "Profile" }];
   if (pathname === APP_ROUTES.superAdminPlatformPayments) {
     return [{ label: "Platform" }, { label: "Payments" }];
@@ -199,6 +201,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
         <NavItem href={APP_ROUTES.superAdminAdoptions} label="Adoptions" icon={Sparkles} />
         <NavItem href={APP_ROUTES.superAdminCampaigns} label="Campaigns" icon={Mail} match="prefix" />
         <NavItem href={APP_ROUTES.superAdminMessages} label="Messages" icon={Inbox} />
+        <NavItem href={APP_ROUTES.superAdminSupport} label="Support" icon={Headset} />
 
         <Collapsible.Root open={openPlatform} onOpenChange={setOpenPlatform} className="mt-2">
           <Collapsible.Trigger

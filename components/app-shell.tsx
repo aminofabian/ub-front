@@ -167,6 +167,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Inbox",
       },
       {
+        href: APP_ROUTES.support,
+        label: "Support",
+        group: "Inbox",
+      },
+      {
         href: APP_ROUTES.businessLogs,
         label: "Activity log",
         group: "Monitoring",

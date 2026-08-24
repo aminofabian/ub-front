@@ -13,6 +13,7 @@ import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { NewMerchantGuideDrawer } from "@/components/onboarding/new-merchant-guide-drawer";
 import { RealtimeProvider } from "@/components/realtime-provider";
+import { SupportUnreadWatcher } from "@/components/support/support-unread-watcher";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -30,6 +31,7 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
               <AppShell>{children}</AppShell>
             </OnboardingQuestionnaireProvider>
           </Suspense>
+          <SupportUnreadWatcher />
           <NewMerchantGuideDrawer />
           <DashboardToaster />
         </RealtimeProvider>

@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   ArrowDown,
-  Check,
   CheckCircle2,
   ChevronLeft,
   Inbox,
@@ -125,10 +124,22 @@ export function SaSupportInbox() {
     try {
       const fetched = await fetchSaSupportConversation(id); // marks read server-side
       setDetail(fetched.conversation);
+      for (const message of fetched.messages ?? []) {
+        seenIdsRef.current.add(message.id);
+      }
       setMessages((fetched.messages ?? []).map(toLocalMessage));
+      const previousUnread =
+        conversations.find((c) => c.id === id)?.unreadCount ?? 0;
       setConversations((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, unreadCount: 0, ...(fetched.conversation ?? {}) } : c)),
+        prev.map((c) =>
+          c.id === id
+            ? { ...(fetched.conversation ?? c), unreadCount: 0 }
+            : c,
+        ),
       );
+      if (previousUnread > 0) {
+        setTotalUnread((n) => Math.max(0, n - previousUnread));
+      }
       // Receipts: our GET marked the tenant's messages as read.
       setMessages((prev) =>
         prev.map((m) =>
@@ -140,7 +151,7 @@ export function SaSupportInbox() {
     } finally {
       setDetailLoading(false);
     }
-  }, []);
+  }, [conversations]);
 
   // ── Realtime (super-admin client) ───────────────────────────────────────
   React.useEffect(() => {
@@ -255,6 +266,10 @@ export function SaSupportInbox() {
       window.clearTimeout(connectTimer);
       unregister();
       client.disconnect();
+      for (const timer of Object.values(typingStopRef.current)) {
+        clearTimeout(timer);
+      }
+      typingStopRef.current = {};
     };
   }, [activeId]);
 
@@ -275,13 +290,18 @@ export function SaSupportInbox() {
     return () => window.clearInterval(timer);
   }, [connectionState, activeId, loadList]);
 
+  // ── Derived (declared early so effects can read them) ───────────────────
+  const theirTyping = typingByConv[activeId ?? ""] === true;
+  const resolved = (detail?.status ?? activeConversation?.status) === "RESOLVED";
+  const activeTyping = typingByConv[activeId ?? ""];
+
   // ── Scroll ──────────────────────────────────────────────────────────────
   React.useEffect(() => {
     const el = scrollRef.current;
     if (el && stickToBottomRef.current) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [messages, typingByConv[activeId ?? ""]]);
+  }, [messages, activeTyping]);
 
   const onScroll = () => {
     const el = scrollRef.current;
@@ -324,7 +344,12 @@ export function SaSupportInbox() {
       try {
         const saved = await sendSaSupportMessage(activeId, body);
         seenIdsRef.current.add(saved.id);
-        setMessages((prev) => prev.map((m) => (m.id === tempId ? toLocalMessage(saved) : m)));
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === saved.id)) {
+            return prev.filter((m) => m.id !== tempId);
+          }
+          return prev.map((m) => (m.id === tempId ? toLocalMessage(saved) : m));
+        });
         setConversations((prev) =>
           prev
             .map((c) =>
@@ -373,9 +398,6 @@ export function SaSupportInbox() {
     return true;
   });
 
-  const theirTyping = typingByConv[activeId ?? ""] === true;
-  const resolved = (detail?.status ?? activeConversation?.status) === "RESOLVED";
-
   const listPane = (
     <div className="flex min-h-0 w-full flex-col md:w-80 md:shrink-0 md:border-r md:border-border/60">
       <div className="border-b border-border/60 p-3">
@@ -414,6 +436,14 @@ export function SaSupportInbox() {
             );
           })}
         </div>
+        {totalUnread > 0 ? (
+          <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-primary">
+            <span className="inline-flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+              {totalUnread > 9 ? "9+" : totalUnread}
+            </span>
+            unread across tenants
+          </p>
+        ) : null}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

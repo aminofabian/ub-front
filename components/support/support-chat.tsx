@@ -5,8 +5,6 @@ import { ArrowDown, LifeBuoy, MessageCircleQuestion, RotateCw } from "lucide-rea
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
-  Avatar,
-  ChatEmptyState,
   ChatMessageShape,
   Composer,
   DayDivider,
@@ -87,6 +85,9 @@ export function SupportChat() {
     try {
       const detail = await fetchSupportConversation();
       setConversation(detail.conversation);
+      for (const message of detail.messages ?? []) {
+        seenIdsRef.current.add(message.id);
+      }
       setMessages((detail.messages ?? []).map(toLocalMessage));
       setLoadError("");
       if (detail.conversation) {
@@ -252,6 +253,19 @@ export function SupportChat() {
 
   React.useEffect(() => () => stopTyping(), [stopTyping]);
 
+  // REST fallback while the socket is down: refetch the thread, and refresh
+  // on tab focus so returning to the page always catches up.
+  React.useEffect(() => {
+    if (connectionState === "connected") return;
+    const timer = window.setInterval(() => void loadThread(true), 20_000);
+    const onFocus = () => void loadThread(true);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [connectionState, loadThread]);
+
   // ── Send ────────────────────────────────────────────────────────────────
   const send = React.useCallback(
     async (text: string) => {
@@ -278,7 +292,13 @@ export function SupportChat() {
       try {
         const saved = await sendSupportMessage(body);
         seenIdsRef.current.add(saved.id);
-        setMessages((prev) => prev.map((m) => (m.id === tempId ? toLocalMessage(saved) : m)));
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === saved.id)) {
+            // The realtime echo landed before the HTTP response — drop the optimistic row.
+            return prev.filter((m) => m.id !== tempId);
+          }
+          return prev.map((m) => (m.id === tempId ? toLocalMessage(saved) : m));
+        });
         // First message creates the thread — refresh header state.
         if (!conversationId) {
           const detail = await fetchSupportConversation().catch(() => null);
