@@ -6,13 +6,10 @@ import Link from "next/link";
 import {
   ArrowLeft,
   CheckCircle2,
-  ClipboardList,
+  Download,
   Loader2,
-  Moon,
-  PackageSearch,
   RefreshCw,
   ShoppingCart,
-  X,
 } from "lucide-react";
 
 import {
@@ -23,108 +20,26 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   fetchRestockRun,
+  fetchRestockRunGroupPdf,
   postRestockRunAccept,
   postRestockSuggestionDismiss,
   postRestockSuggestionSnooze,
   type RestockCreatedPoRecord,
   type RestockRunRecord,
-  type RestockSuggestionRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
+import { DepartmentColumn } from "../_components/department-column";
+import {
+  downloadBlob,
+  formatDate,
+  formatMoney,
+  formatQty,
+} from "../_lib/digest-format";
+import { buildDepartments } from "../_lib/group-departments";
+
 type Feedback = { kind: "error" | "success"; text: string };
-
-function formatQty(v: number | string | null | undefined): string {
-  if (v == null || v === "") return "—";
-  const n = typeof v === "number" ? v : Number(v);
-  if (!Number.isFinite(n)) return String(v);
-  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
-}
-
-function formatMoney(value: number | string | null | undefined, currency = "KES"): string {
-  if (value == null || value === "") return "—";
-  const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n)) return String(value);
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(n);
-  } catch {
-    return `${currency} ${n.toLocaleString()}`;
-  }
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function StatusBadge({ status }: { status: RestockRunRecord["status"] }) {
-  const label =
-    status === "accepted"
-      ? "Accepted"
-      : status === "partially_accepted"
-        ? "Partly accepted"
-        : status === "expired"
-          ? "Expired"
-          : status === "notified"
-            ? "Notified"
-            : "Ready to review";
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-        status === "accepted"
-          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-          : status === "partially_accepted"
-            ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-            : "bg-primary/10 text-primary",
-      )}
-    >
-      {status === "accepted" || status === "partially_accepted" ? (
-        <CheckCircle2 className="size-3" aria-hidden />
-      ) : null}
-      {label}
-    </span>
-  );
-}
-
-function SuggestionBadge({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: "muted" | "primary" | "amber" | "emerald";
-}) {
-  return (
-    <span
-      className={cn(
-        "rounded-md px-1.5 py-0.5 text-[10px] font-medium",
-        tone === "primary" && "bg-primary/10 text-primary",
-        tone === "amber" && "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-        tone === "emerald" && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-        tone === "muted" && "bg-muted/70 text-muted-foreground",
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
-const REASON_LABELS: Record<string, string> = {
-  BELOW_MIN: "Below min",
-  WILL_STOCK_OUT: "Will stock out",
-  FAST_MOVER: "Fast mover",
-  STOCKOUT_RECOVERY: "Recovering stock-out",
-};
 
 export default function RestockDigestReviewPage() {
   const params = useParams<{ runId: string }>();
@@ -141,9 +56,11 @@ export default function RestockDigestReviewPage() {
   const [run, setRun] = useState<RestockRunRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [pdfBusy, setPdfBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [qty, setQty] = useState<Record<string, string>>({});
   const [createdPos, setCreatedPos] = useState<RestockCreatedPoRecord[]>([]);
+  const [deptFilter, setDeptFilter] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!runId.trim() || !canRead) return;
@@ -156,9 +73,7 @@ export default function RestockDigestReviewPage() {
       setQty((prev) => {
         const next = { ...prev };
         for (const s of data.suggestions) {
-          if (next[s.id] === undefined) {
-            next[s.id] = formatQty(s.suggestedQty);
-          }
+          if (next[s.id] === undefined) next[s.id] = formatQty(s.suggestedQty);
         }
         return next;
       });
@@ -177,40 +92,23 @@ export default function RestockDigestReviewPage() {
     void load();
   }, [load]);
 
+  const departments = useMemo(
+    () => buildDepartments(run?.suggestions ?? []),
+    [run],
+  );
+  const visibleDepartments = useMemo(
+    () => (deptFilter ? departments.filter((d) => d.id === deptFilter) : departments),
+    [departments, deptFilter],
+  );
   const pending = useMemo(
     () => (run?.suggestions ?? []).filter((s) => s.status === "pending"),
     [run],
   );
-  const poLines = pending.filter((s) => s.target === "po");
-  const padLines = pending.filter((s) => s.target === "pad");
   const runActive =
     run != null &&
     (run.status === "generated" ||
       run.status === "notified" ||
       run.status === "partially_accepted");
-
-  const supplierGroups = useMemo(() => {
-    const map = new Map<string, RestockSuggestionRecord[]>();
-    for (const s of poLines) {
-      const key = s.supplierId ?? "unassigned";
-      const list = map.get(key) ?? [];
-      list.push(s);
-      map.set(key, list);
-    }
-    return [...map.entries()].map(([supplierId, lines]) => ({
-      supplierId,
-      supplierName: lines[0]?.supplierName?.trim() || "Supplier",
-      lines,
-    }));
-  }, [poLines]);
-
-  const confidenceCounts = useMemo(() => {
-    const counts = { high: 0, medium: 0, low: 0 };
-    for (const s of run?.suggestions ?? []) {
-      if (s.confidence in counts) counts[s.confidence as keyof typeof counts] += 1;
-    }
-    return counts;
-  }, [run]);
 
   const overridesFor = useCallback(
     (ids: string[]): Record<string, number | string> | undefined => {
@@ -221,8 +119,7 @@ export default function RestockDigestReviewPage() {
         const input = raw === "" ? Number.NaN : Number(raw);
         const suggestion = run?.suggestions.find((s) => s.id === id);
         if (!suggestion || !Number.isFinite(input)) continue;
-        const suggested = Number(suggestion.suggestedQty);
-        if (input !== suggested) {
+        if (input !== Number(suggestion.suggestedQty)) {
           overrides[id] = input;
           changed = true;
         }
@@ -233,7 +130,12 @@ export default function RestockDigestReviewPage() {
   );
 
   const applyAccept = useCallback(
-    (resp: { run: RestockRunRecord; purchaseOrders: RestockCreatedPoRecord[]; padLinesCreated: number; skippedLines: { itemName: string; reason: string }[] }) => {
+    (resp: {
+      run: RestockRunRecord;
+      purchaseOrders: RestockCreatedPoRecord[];
+      padLinesCreated: number;
+      skippedLines: { itemName: string; reason: string }[];
+    }) => {
       setRun(resp.run);
       setCreatedPos(resp.purchaseOrders);
       const parts: string[] = [];
@@ -241,17 +143,21 @@ export default function RestockDigestReviewPage() {
         parts.push(`PO ${po.poNumber} drafted for ${po.supplierName || "supplier"}`);
       }
       if (resp.padLinesCreated > 0) {
-        parts.push(`${resp.padLinesCreated} line${resp.padLinesCreated === 1 ? "" : "s"} added to the order pad`);
+        parts.push(
+          `${resp.padLinesCreated} line${resp.padLinesCreated === 1 ? "" : "s"} added to the order pad`,
+        );
       }
       if (resp.skippedLines.length > 0) {
         const first = resp.skippedLines[0];
-        const more = resp.skippedLines.length > 1 ? ` (+${resp.skippedLines.length - 1} more)` : "";
+        const more =
+          resp.skippedLines.length > 1 ? ` (+${resp.skippedLines.length - 1} more)` : "";
         parts.push(`${first.itemName} skipped: ${first.reason}${more}`);
       }
-      if (parts.length === 0) {
-        parts.push("Nothing left to accept");
-      }
-      setFeedback({ kind: parts.some((p) => p.includes("skipped")) ? "error" : "success", text: parts.join(" · ") });
+      if (parts.length === 0) parts.push("Nothing left to accept");
+      setFeedback({
+        kind: parts.some((p) => p.includes("skipped")) ? "error" : "success",
+        text: parts.join(" · "),
+      });
     },
     [],
   );
@@ -261,12 +167,13 @@ export default function RestockDigestReviewPage() {
     setBusyAction(`accept:${mode}:${ids.join(",")}`);
     setFeedback(null);
     try {
-      const resp = await postRestockRunAccept(runId, {
-        lineIds: ids,
-        qtyOverrides: overridesFor(ids),
-        mode,
-      });
-      applyAccept(resp);
+      applyAccept(
+        await postRestockRunAccept(runId, {
+          lineIds: ids,
+          qtyOverrides: overridesFor(ids),
+          mode,
+        }),
+      );
     } catch (e) {
       setFeedback({ kind: "error", text: e instanceof Error ? e.message : "Accept failed" });
     } finally {
@@ -298,6 +205,34 @@ export default function RestockDigestReviewPage() {
     }
   }
 
+  async function downloadGroupPdf(opts: {
+    key: string;
+    filename: string;
+    departmentId?: string;
+    supplierId?: string;
+    pad?: boolean;
+  }) {
+    setPdfBusy(opts.key);
+    setFeedback(null);
+    try {
+      downloadBlob(
+        await fetchRestockRunGroupPdf(runId, {
+          departmentId: opts.departmentId,
+          supplierId: opts.supplierId,
+          pad: opts.pad,
+        }),
+        opts.filename,
+      );
+    } catch (e) {
+      setFeedback({
+        kind: "error",
+        text: e instanceof Error ? e.message : "Could not download PDF",
+      });
+    } finally {
+      setPdfBusy(null);
+    }
+  }
+
   if (!canRead) {
     return (
       <DashboardAccessDenied
@@ -308,38 +243,60 @@ export default function RestockDigestReviewPage() {
   }
 
   const currency = run?.currency ?? "KES";
+  const dateLabel = run ? formatDate(run.runDate) : "";
+  const pdfDate = run?.runDate ?? "list";
+  const aisleBoard = deptFilter == null && visibleDepartments.length > 1;
 
   return (
-    <div className="mx-auto w-full max-w-lg space-y-3 p-3 sm:p-4">
-      {/* Header */}
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/90 shadow-sm">
-        <div className="h-1 w-full bg-gradient-to-r from-primary/70 to-emerald-500/70" />
-        <div className="space-y-3 p-4">
-          <div className="flex items-start gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 shrink-0 rounded-xl px-2"
-              onClick={() => router.back()}
-              aria-label="Back"
-            >
-              <ArrowLeft className="size-4" aria-hidden />
-            </Button>
-            <div className="min-w-0 flex-1">
-              <h1 className="flex items-center gap-1.5 font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight text-foreground">
-                <ClipboardList className="size-4 shrink-0 text-primary" aria-hidden />
-                Tonight&apos;s list
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                {run ? `${run.branchName} · ${formatDate(run.runDate)}` : "Loading…"}
-              </p>
-            </div>
+    <div className="flex min-h-0 flex-col bg-[#e8eef5] dark:bg-background">
+      <header className="sticky top-0 z-20 border-b border-border bg-[#e8eef5] dark:bg-background">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 px-3 py-2.5 sm:px-4">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 shrink-0 rounded-none px-0"
+            onClick={() => router.back()}
+            aria-label="Back"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+          </Button>
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-semibold tracking-tight text-foreground">
+              Tonight&apos;s list
+            </h1>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {run ? `${run.branchName} · ${dateLabel}` : "Loading…"}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {run && run.lineCount > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-none px-2 text-[11px]"
+                disabled={busyAction !== null || pdfBusy === "all"}
+                onClick={() =>
+                  void downloadGroupPdf({
+                    key: "all",
+                    filename: `restock-${pdfDate}-all.pdf`,
+                  })
+                }
+              >
+                {pdfBusy === "all" ? (
+                  <Loader2 className="mr-1 size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Download className="mr-1 size-3.5" aria-hidden />
+                )}
+                All PDF
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 shrink-0 rounded-xl px-2.5 text-xs"
+              className="h-8 rounded-none px-2"
               disabled={loading}
               onClick={() => void load()}
               aria-label="Refresh"
@@ -347,324 +304,219 @@ export default function RestockDigestReviewPage() {
               <RefreshCw className={cn("size-3.5", loading && "animate-spin")} aria-hidden />
             </Button>
           </div>
+        </div>
 
-          {feedback ? <DashboardFeedback kind={feedback.kind} text={feedback.text} /> : null}
+        {run ? (
+          <div className="grid grid-cols-3 border-t border-border sm:grid-cols-4">
+            <StatCell label="Items" value={String(run.lineCount)} />
+            <StatCell label="Estimate" value={formatMoney(run.estTotal, currency)} />
+            <StatCell label="Departments" value={String(departments.length)} />
+            <div className="hidden items-center justify-between gap-2 border-l border-border px-3 py-1.5 sm:flex">
+              <StatusBadge status={run.status} />
+              {pending.length > 0 && runActive && (canWritePo || canWritePad) ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 rounded-none px-2.5 text-[11px]"
+                  disabled={busyAction !== null}
+                  onClick={() => void acceptLines(pending.map((l) => l.id), "all")}
+                >
+                  {busyAction?.startsWith("accept:all") ? (
+                    <Loader2 className="mr-1 size-3 animate-spin" aria-hidden />
+                  ) : (
+                    <CheckCircle2 className="mr-1 size-3" aria-hidden />
+                  )}
+                  Accept all
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
-          {createdPos.length > 0 ? (
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] px-3.5 py-2.5">
-              <p className="text-xs font-semibold text-emerald-950 dark:text-emerald-100">
-                Draft purchase orders created
-              </p>
-              <div className="mt-1.5 space-y-1">
-                {createdPos.map((po) => (
-                  <Link
-                    key={po.purchaseOrderId}
-                    href={`/order?sid=${encodeURIComponent(po.supplierId)}`}
-                    className="flex items-center gap-1 text-xs text-emerald-800 underline underline-offset-2 transition-colors hover:text-emerald-950 dark:text-emerald-200 dark:hover:text-emerald-100"
-                  >
-                    <ShoppingCart className="size-3 shrink-0" aria-hidden />
-                    <span className="truncate">
-                      {po.poNumber} · {po.supplierName} · {po.lineCount} line
-                      {po.lineCount === 1 ? "" : "s"} — open ordering
-                    </span>
-                  </Link>
+        {departments.length > 1 ? (
+          <nav
+            className="flex gap-0 overflow-x-auto border-t border-border"
+            aria-label="Departments"
+          >
+            <button
+              type="button"
+              className={cn(
+                "shrink-0 border-r border-border px-3 py-1.5 text-[11px] font-semibold",
+                deptFilter == null
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+              )}
+              onClick={() => setDeptFilter(null)}
+            >
+              All
+            </button>
+            {departments.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                className={cn(
+                  "shrink-0 border-r border-border px-3 py-1.5 text-[11px] font-medium",
+                  deptFilter === d.id
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                )}
+                onClick={() => setDeptFilter(d.id === deptFilter ? null : d.id)}
+              >
+                {d.name}
+                <span className="ml-1.5 tabular-nums opacity-70">{d.lines.length}</span>
+              </button>
+            ))}
+          </nav>
+        ) : null}
+      </header>
+
+      {feedback ? (
+        <div className="border-b border-border bg-background px-3 py-2 sm:px-4">
+          <DashboardFeedback kind={feedback.kind} text={feedback.text} />
+        </div>
+      ) : null}
+
+      {createdPos.length > 0 ? (
+        <div className="border-b border-border bg-emerald-500/[0.07] px-3 py-2 sm:px-4">
+          <p className="text-xs font-semibold text-emerald-950 dark:text-emerald-100">
+            Draft purchase orders created
+          </p>
+          <div className="mt-1 space-y-0.5">
+            {createdPos.map((po) => (
+              <Link
+                key={po.purchaseOrderId}
+                href={`/order?sid=${encodeURIComponent(po.supplierId)}`}
+                className="flex items-center gap-1 text-xs text-emerald-800 underline underline-offset-2 dark:text-emerald-200"
+              >
+                <ShoppingCart className="size-3 shrink-0" aria-hidden />
+                {po.poNumber} · {po.supplierName} · {po.lineCount} line
+                {po.lineCount === 1 ? "" : "s"}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {run?.status === "accepted" ? (
+        <p className="border-b border-border bg-emerald-500/[0.07] px-3 py-2 text-xs text-emerald-950 dark:text-emerald-100 sm:px-4">
+          This list is fully handled. Draft POs and order pad lines were created from the
+          accepted suggestions.
+        </p>
+      ) : null}
+      {run?.status === "expired" ? (
+        <p className="border-b border-border bg-amber-500/[0.07] px-3 py-2 text-xs text-amber-950 dark:text-amber-100 sm:px-4">
+          This list expired because a newer one was generated. Pending lines can no longer be
+          accepted.
+        </p>
+      ) : null}
+
+      {loading && !run ? (
+        <div className="flex h-[70vh] overflow-hidden">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="min-w-[18rem] flex-1 border-r border-border bg-card last:border-r-0"
+            >
+              <div className="h-14 animate-pulse bg-[#dce6f0] dark:bg-muted/40" />
+              <div className="space-y-px">
+                {Array.from({ length: 6 }).map((__, j) => (
+                  <div key={j} className="h-16 animate-pulse bg-muted/30" />
                 ))}
               </div>
             </div>
-          ) : null}
-
-          {loading && !run ? (
-            <div className="flex items-center justify-center gap-1.5 py-8 text-xs text-muted-foreground">
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              Loading…
-            </div>
-          ) : run ? (
-            <>
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={run.status} />
-                <span className="rounded-full bg-muted/70 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                  {run.lineCount} item{run.lineCount === 1 ? "" : "s"}
-                </span>
-                <span className="rounded-full bg-muted/70 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                  ~{formatMoney(run.estTotal, currency)}
-                </span>
-              </div>
-
-              {run.lineCount > 0 ? (
-                <p className="text-[10px] tabular-nums text-muted-foreground">
-                  Confidence: {confidenceCounts.high} high · {confidenceCounts.medium} medium ·{" "}
-                  {confidenceCounts.low} low
-                </p>
-              ) : null}
-
-              {run.lineCount === 0 ? (
-                <div className="rounded-xl border border-border/70 bg-muted/20 px-3.5 py-6 text-center">
-                  <CheckCircle2 className="mx-auto size-5 text-emerald-600" aria-hidden />
-                  <p className="mt-2 text-sm font-medium text-foreground">Nothing to order</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Everything is above its threshold for now.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {run.status === "accepted" ? (
-                    <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] px-3.5 py-2.5 text-xs text-emerald-950 dark:text-emerald-100">
-                      This list is fully handled. Draft POs and order pad lines were created
-                      from the accepted suggestions.
-                    </p>
-                  ) : null}
-                  {run.status === "expired" ? (
-                    <p className="rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-3.5 py-2.5 text-xs text-amber-950 dark:text-amber-100">
-                      This list expired because a newer one was generated. Its pending lines
-                      can no longer be accepted — review the newest list instead.
-                    </p>
-                  ) : null}
-
-                  {/* Supplier groups (target=po) */}
-                  {supplierGroups.map((group) => (
-                    <section key={group.supplierId} className="space-y-1.5">
-                      <div className="flex items-center justify-between gap-2 px-0.5">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-foreground">
-                            {group.supplierName}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {group.lines.length} line{group.lines.length === 1 ? "" : "s"} to order
-                          </p>
-                        </div>
-                        {canWritePo ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-8 shrink-0 rounded-xl px-3 text-xs"
-                            disabled={busyAction !== null || !runActive}
-                            onClick={() => void acceptLines(group.lines.map((l) => l.id), "po")}
-                          >
-                            {busyAction?.startsWith("accept:po") ? (
-                              <Loader2 className="mr-1.5 size-3.5 animate-spin" aria-hidden />
-                            ) : (
-                              <ShoppingCart className="mr-1.5 size-3.5" aria-hidden />
-                            )}
-                            Accept group
-                          </Button>
-                        ) : null}
-                      </div>
-                      <div className="space-y-1.5">
-                        {group.lines.map((s) => renderLine(s))}
-                      </div>
-                    </section>
-                  ))}
-
-                  {/* Pad section (target=pad) */}
-                  {padLines.length > 0 ? (
-                    <section className="space-y-1.5">
-                      <div className="flex items-center justify-between gap-2 px-0.5">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-foreground">
-                            Needs a supplier
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            No supplier link yet — lands on the order pad
-                          </p>
-                        </div>
-                        {canWritePad ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 shrink-0 rounded-xl px-3 text-xs"
-                            disabled={busyAction !== null || !runActive}
-                            onClick={() => void acceptLines(padLines.map((l) => l.id), "pad")}
-                          >
-                            {busyAction?.startsWith("accept:pad") ? (
-                              <Loader2 className="mr-1.5 size-3.5 animate-spin" aria-hidden />
-                            ) : (
-                              <PackageSearch className="mr-1.5 size-3.5" aria-hidden />
-                            )}
-                            Add to order pad
-                          </Button>
-                        ) : null}
-                      </div>
-                      <div className="space-y-1.5">{padLines.map((s) => renderLine(s))}</div>
-                    </section>
-                  ) : null}
-
-                  {/* Handled lines recap */}
-                  {run.suggestions.some((s) => s.status !== "pending") ? (
-                    <div className="space-y-1.5 border-t border-border/60 pt-3">
-                      <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Handled
-                      </p>
-                      {run.suggestions
-                        .filter((s) => s.status !== "pending")
-                        .map((s) => renderLine(s))}
-                    </div>
-                  ) : null}
-
-                  {/* Accept all */}
-                  {pending.length > 0 && runActive && (canWritePo || canWritePad) ? (
-                    <div className="flex justify-end pt-1">
-                      <Button
-                        type="button"
-                        className="h-9 rounded-xl"
-                        disabled={busyAction !== null}
-                        onClick={() => void acceptLines(pending.map((l) => l.id), "all")}
-                      >
-                        {busyAction?.startsWith("accept:all") ? (
-                          <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden />
-                        ) : (
-                          <CheckCircle2 className="mr-1.5 size-4" aria-hidden />
-                        )}
-                        Accept all ({pending.length})
-                      </Button>
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </>
-          ) : null}
+          ))}
         </div>
-      </div>
+      ) : run?.lineCount === 0 ? (
+        <div className="m-6 flex flex-col items-center justify-center gap-2 border border-dashed border-border bg-background px-4 py-16 text-center">
+          <CheckCircle2 className="size-5 text-emerald-600" aria-hidden />
+          <p className="text-sm font-medium text-foreground">Nothing to order</p>
+          <p className="text-xs text-muted-foreground">
+            Everything is above its threshold for now.
+          </p>
+        </div>
+      ) : run ? (
+        <div
+          className={cn(
+            aisleBoard
+              ? "flex snap-x snap-mandatory overflow-x-auto"
+              : "flex justify-center overflow-x-auto",
+          )}
+        >
+          {visibleDepartments.map((dept) => (
+            <DepartmentColumn
+              key={dept.id}
+              dept={dept}
+              currency={currency}
+              pdfDate={pdfDate}
+              qty={qty}
+              setQty={setQty}
+              busyAction={busyAction}
+              pdfBusy={pdfBusy}
+              runActive={runActive}
+              canWritePo={canWritePo}
+              canWritePad={canWritePad}
+              wide={!aisleBoard}
+              onAccept={(ids, mode) => void acceptLines(ids, mode)}
+              onDismiss={(id) => void dismiss(id)}
+              onSnooze={(id) => void snooze(id)}
+              onPdf={(opts) => void downloadGroupPdf(opts)}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {pending.length > 0 && runActive && (canWritePo || canWritePad) ? (
+        <div className="sticky bottom-0 z-20 flex items-center justify-between gap-2 border-t border-border bg-[#e8eef5] px-3 py-2 dark:bg-background sm:hidden">
+          <span className="text-[11px] tabular-nums text-muted-foreground">
+            {pending.length} pending
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 rounded-none"
+            disabled={busyAction !== null}
+            onClick={() => void acceptLines(pending.map((l) => l.id), "all")}
+          >
+            Accept all
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
+}
 
-  function renderLine(s: RestockSuggestionRecord) {
-    const busy = busyAction === `dismiss:${s.id}` || busyAction === `snooze:${s.id}`;
-    const pending = s.status === "pending";
-    const qtyValue = (qty[s.id] ?? formatQty(s.suggestedQty)).trim();
-    const parsedQty = qtyValue === "" ? Number.NaN : Number(qtyValue);
-    const edited = Number.isFinite(parsedQty) && parsedQty !== Number(s.suggestedQty);
-    const lineTotal = Number.isFinite(parsedQty) && s.unitCost != null
-      ? parsedQty * Number(s.unitCost)
-      : null;
-    const lowConfidence = s.confidence === "low";
-    const actionable = pending && runActive;
+function StatCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-l border-border px-3 py-1.5 first:border-l-0">
+      <p className="text-[10px] text-muted-foreground">{label}</p>
+      <p className="text-sm font-semibold tabular-nums leading-tight text-foreground">{value}</p>
+    </div>
+  );
+}
 
-    return (
-      <div
-        key={s.id}
-        className={cn(
-          "rounded-xl border px-3 py-2.5",
-          s.status === "accepted"
-            ? "border-emerald-500/30 bg-emerald-500/[0.06]"
-            : s.status === "snoozed" || s.status === "dismissed"
-              ? "border-border/60 bg-muted/20 opacity-75"
-              : "border-border/70 bg-background/80",
-        )}
-      >
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <p
-              className={cn(
-                "break-words text-sm font-medium leading-snug text-foreground",
-                s.status !== "pending" && "text-muted-foreground line-through",
-              )}
-            >
-              {s.itemName}
-            </p>
-            <p className="mt-0.5 text-[10px] text-muted-foreground">
-              {s.itemSku ? `${s.itemSku} · ` : ""}
-              {s.evidence}
-            </p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-1">
-              <SuggestionBadge
-                label={s.reasonCode.split("+").map((r) => REASON_LABELS[r] ?? r).join(" · ")}
-                tone="primary"
-              />
-              <SuggestionBadge
-                label={s.confidence === "high" ? "High" : s.confidence === "medium" ? "Medium" : "Low"}
-                tone={s.confidence === "high" ? "emerald" : s.confidence === "medium" ? "primary" : "muted"}
-              />
-              {s.status === "accepted" ? (
-                <SuggestionBadge
-                  label={s.purchaseOrderId ? "In draft PO" : "On order pad"}
-                  tone="emerald"
-                />
-              ) : null}
-              {s.status === "snoozed" && s.snoozeUntil ? (
-                <SuggestionBadge label={`Snoozed until ${formatDate(s.snoozeUntil)}`} tone="amber" />
-              ) : null}
-              {s.status === "dismissed" ? <SuggestionBadge label="Dismissed" tone="muted" /> : null}
-            </div>
-          </div>
-
-          <div className="shrink-0 text-right">
-            {actionable ? (
-              <div className="flex items-center justify-end gap-1">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="any"
-                  className={cn(
-                    "h-7 w-16 rounded-md border bg-background px-1.5 text-right text-sm font-semibold tabular-nums",
-                    edited
-                      ? "border-primary/50 text-primary"
-                      : "border-border/70 text-foreground",
-                    lowConfidence && "opacity-80",
-                  )}
-                  value={qtyValue}
-                  disabled={busyAction !== null}
-                  onChange={(e) => setQty((prev) => ({ ...prev, [s.id]: e.target.value }))}
-                  aria-label={`Quantity for ${s.itemName}`}
-                />
-              </div>
-            ) : (
-              <p className="text-sm font-semibold tabular-nums text-foreground">
-                ×{formatQty(s.acceptedQty ?? s.suggestedQty)}
-              </p>
-            )}
-            {s.unitCost != null ? (
-              <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
-                {formatMoney(s.unitCost, currency)}/unit
-              </p>
-            ) : null}
-            {lineTotal != null ? (
-              <p className="text-[11px] font-medium tabular-nums text-muted-foreground">
-                {formatMoney(lineTotal, currency)}
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        {actionable ? (
-          <div className="mt-2 flex items-center justify-end gap-1">
-            <span className="mr-auto text-[10px] tabular-nums text-muted-foreground">
-              on hand {formatQty(s.onHand)} · par {formatQty(s.par)}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 rounded-lg px-2 text-[11px] text-muted-foreground"
-              disabled={busyAction !== null}
-              onClick={() => void snooze(s.id)}
-            >
-              {busy && busyAction === `snooze:${s.id}` ? (
-                <Loader2 className="mr-1 size-3 animate-spin" aria-hidden />
-              ) : (
-                <Moon className="mr-1 size-3" aria-hidden />
-              )}
-              Snooze
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 rounded-lg px-2 text-[11px] text-muted-foreground hover:text-destructive"
-              disabled={busyAction !== null}
-              onClick={() => void dismiss(s.id)}
-            >
-              {busy && busyAction === `dismiss:${s.id}` ? (
-                <Loader2 className="mr-1 size-3 animate-spin" aria-hidden />
-              ) : (
-                <X className="mr-1 size-3" aria-hidden />
-              )}
-              Dismiss
-            </Button>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
+function StatusBadge({ status }: { status: RestockRunRecord["status"] }) {
+  const label =
+    status === "accepted"
+      ? "Accepted"
+      : status === "partially_accepted"
+        ? "Partly accepted"
+        : status === "expired"
+          ? "Expired"
+          : status === "notified"
+            ? "Notified"
+            : "Ready";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center border px-1.5 py-0.5 text-[10px] font-semibold",
+        status === "accepted"
+          ? "border-emerald-600/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+          : status === "partially_accepted"
+            ? "border-amber-600/30 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+            : "border-border bg-background text-muted-foreground",
+      )}
+    >
+      {label}
+    </span>
+  );
 }

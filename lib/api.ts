@@ -11187,6 +11187,8 @@ export type RestockSuggestionRecord = {
   itemId: string;
   itemName: string;
   itemSku: string | null;
+  itemTypeId: string | null;
+  itemTypeName: string | null;
   supplierId: string | null;
   supplierName: string | null;
   target: "po" | "pad";
@@ -11270,10 +11272,30 @@ export async function fetchRestockRun(
   );
 }
 
+export async function fetchRestockRunGroupPdf(
+  runId: string,
+  opts?: {
+    departmentId?: string | null;
+    supplierId?: string | null;
+    pad?: boolean;
+  },
+): Promise<Blob> {
+  const params = new URLSearchParams();
+  if (opts?.departmentId?.trim()) params.set("departmentId", opts.departmentId.trim());
+  if (opts?.supplierId?.trim()) params.set("supplierId", opts.supplierId.trim());
+  if (opts?.pad) params.set("pad", "true");
+  const suffix = params.toString();
+  return requestBinary(
+    `/api/v1/inventory/restock/runs/${encodeURIComponent(runId.trim())}/pdf${suffix ? `?${suffix}` : ""}`,
+  );
+}
+
 export type RestockPrepItemRecord = {
   itemId: string;
   itemName: string;
   itemSku: string | null;
+  itemTypeId: string | null;
+  itemTypeName: string | null;
   target: "po" | "pad";
   onHand: number | string;
   par: number | string;
