@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
+import { helpHostUrl } from "@/lib/help/help-url";
 import { cn } from "@/lib/utils";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import {
@@ -1139,7 +1140,7 @@ export function ProductCreateDrawer({
         <p className="px-0.5 pt-1 text-center text-[11px] text-muted-foreground/70">
           Not sure whether to use Single, Group, or packages?{" "}
           <Link
-            href={APP_ROUTES.helpAddProducts}
+            href={helpHostUrl(APP_ROUTES.helpAddProducts)}
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium text-primary underline-offset-2 hover:underline"

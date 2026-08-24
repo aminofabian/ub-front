@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import { ProductGuideDrawer } from "./ProductGuideDrawer";
 
 export type AttentionFilterId =
   | "missingBarcode"
@@ -163,16 +164,20 @@ export function ProductHeroHeader({
           <PackagePlus className="size-3" aria-hidden />
           New
         </Button>
-        <Link
-          href={APP_ROUTES.helpAddProducts}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex h-6 items-center gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground shadow-none transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          title="How to add products — step-by-step guide"
-        >
-          <BookOpen className="size-3" aria-hidden />
-          <span className="hidden sm:inline">Guide</span>
-        </Link>
+        <ProductGuideDrawer
+          trigger={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground shadow-none hover:text-foreground"
+              title="How to add products — summary + full guide"
+            >
+              <BookOpen className="size-3" aria-hidden />
+              <span className="hidden sm:inline">Guide</span>
+            </Button>
+          }
+        />
       </div>
     </header>
   );

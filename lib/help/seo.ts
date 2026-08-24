@@ -2,17 +2,16 @@ import type { Metadata } from "next";
 
 import type { HelpAudience } from "@/lib/help";
 import { audienceLabel } from "@/lib/help";
-import { APP_BASE_URL } from "@/lib/config";
 import { PLATFORM_SITE_NAME } from "@/lib/platform-seo";
-
-export function helpSiteUrl(): string {
-  return APP_BASE_URL.replace(/\/+$/, "") || "https://kiosk.ke";
-}
+import { helpHostUrl } from "./help-url";
 
 export function helpAbsoluteUrl(path: string): string {
-  const base = helpSiteUrl();
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  return `${base}${normalized}`;
+  return helpHostUrl(path);
+}
+
+/** Host site origin (no trailing slash), e.g. {@code https://kiosk.ke}. */
+export function helpSiteUrl(): string {
+  return helpHostUrl("/").replace(/\/$/, "");
 }
 
 export function helpHubMetadata(): Metadata {

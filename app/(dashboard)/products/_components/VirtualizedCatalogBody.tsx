@@ -9,13 +9,12 @@ import {
   useRef,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import Link from "next/link";
 import { BookOpen, Library, PackagePlus, Plus } from "lucide-react";
 
 import { itemListThumbnailUrl, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
-import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
+import { ProductGuideDrawer } from "./ProductGuideDrawer";
 import { formatAmount, formatStockLabel, toNumber } from "../_utils";
 import {
   CATALOG_FIX_NAME_LABEL,
@@ -392,27 +391,29 @@ export const VirtualizedCatalogBody = forwardRef<
                   ) : null}
                 </div>
 
-                <Link
-                  href={APP_ROUTES.helpAddProducts}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex w-full items-start gap-3 rounded-none border border-border bg-background px-3.5 py-3 text-left transition hover:border-primary/40 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center border border-border bg-muted/30 text-foreground/60">
-                    <BookOpen className="size-4" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1 space-y-0.5">
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="text-[13px] font-semibold tracking-tight text-foreground">
-                        Read the product guide
+                <ProductGuideDrawer
+                  trigger={
+                    <button
+                      type="button"
+                      className="group flex w-full items-start gap-3 rounded-none border border-border bg-background px-3.5 py-3 text-left transition hover:border-primary/40 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center border border-border bg-muted/30 text-foreground/60">
+                        <BookOpen className="size-4" aria-hidden />
                       </span>
-                      <BookOpen className="size-3.5 shrink-0 text-foreground/40 transition group-hover:translate-x-0.5 group-hover:text-foreground/70" aria-hidden />
-                    </span>
-                    <span className="block text-[11px] leading-snug text-foreground/50">
-                      Standalone vs groups, variants, and packages — with screenshots.
-                    </span>
-                  </span>
-                </Link>
+                      <span className="min-w-0 flex-1 space-y-0.5">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="text-[13px] font-semibold tracking-tight text-foreground">
+                            Read the product guide
+                          </span>
+                          <BookOpen className="size-3.5 shrink-0 text-foreground/40 transition group-hover:translate-x-0.5 group-hover:text-foreground/70" aria-hidden />
+                        </span>
+                        <span className="block text-[11px] leading-snug text-foreground/50">
+                          Standalone vs groups, variants, and packages — with screenshots.
+                        </span>
+                      </span>
+                    </button>
+                  }
+                />
 
                 {!canAddFromCatalog && !canCreateNew ? (
                   <p className="text-center text-xs text-foreground/45">
