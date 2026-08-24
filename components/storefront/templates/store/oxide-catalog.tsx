@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import styles from "@/components/storefront/templates/store/oxide.module.css";
+import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES, apiUrl } from "@/lib/config";
 import {
@@ -13,6 +15,7 @@ import {
   type PublicCatalogListPayload,
 } from "@/lib/public-storefront";
 import { shopItemPathFromCard } from "@/lib/shop-item-url";
+import { cn } from "@/lib/utils";
 
 function itemCode(item: PublicCatalogItemCard, index: number): string {
   const sku = item.sku?.trim();
@@ -49,6 +52,33 @@ function OxideAddButton({ item }: { item: PublicCatalogItemCard }) {
     >
       {busy ? "…" : "Add to cart"}
     </button>
+  );
+}
+
+function OxideItemVisual({
+  item,
+  href,
+}: {
+  item: PublicCatalogItemCard;
+  href: string;
+}) {
+  const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
+  return (
+    <Link href={href} className={cn(styles.itemVisual, "relative")}>
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt={item.name}
+          width={480}
+          height={480}
+          className="object-cover"
+          unoptimized
+        />
+      ) : (
+        <span className={styles.itemPlaceholder} aria-hidden />
+      )}
+      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
+    </Link>
   );
 }
 
@@ -118,20 +148,7 @@ export function OxideCatalog({
                 <span>{itemCode(item, index)}</span>
                 <span>SKU</span>
               </div>
-              <Link href={href} className={styles.itemVisual}>
-                {item.imageUrl ? (
-                  <Image
-                    src={item.imageUrl}
-                    alt={item.name}
-                    width={480}
-                    height={480}
-                    className="object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <span className={styles.itemPlaceholder} aria-hidden />
-                )}
-              </Link>
+              <OxideItemVisual item={item} href={href} />
               <Link href={href} className={styles.itemName}>
                 {item.name}
               </Link>

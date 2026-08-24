@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/boutique-shelf.module.css";
+import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -74,15 +76,20 @@ function BoxVisual({
   priority?: boolean;
   variant?: "default" | "slot";
 }) {
+  const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
   return (
     <Link
       href={href}
-      className={cn(styles.boxVisual, variant === "slot" && styles.boxVisualSlot)}
+      className={cn(
+        styles.boxVisual,
+        variant === "slot" && styles.boxVisualSlot,
+        "relative",
+      )}
     >
       <span className={styles.tissueCorner} aria-hidden />
-      {item.imageUrl ? (
+      {imageUrl ? (
         <Image
-          src={item.imageUrl}
+          src={imageUrl}
           alt={item.name}
           fill
           sizes={sizes}
@@ -93,6 +100,7 @@ function BoxVisual({
       ) : (
         <span className={styles.visualPlaceholder} aria-hidden />
       )}
+      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
     </Link>
   );
 }

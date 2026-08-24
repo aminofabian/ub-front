@@ -3,6 +3,7 @@ import { milkRunFontVariables } from "@/components/storefront/templates/store/mi
 import { MilkRunFloats } from "@/components/storefront/templates/store/milk-run-floats";
 import styles from "@/components/storefront/templates/store/milk-run.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
+import { StorefrontQuickEditTarget } from "@/components/storefront/storefront-staff-edit";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
   resolveStorefrontDesign,
@@ -147,6 +148,7 @@ export function MilkRunStoreHome(props: StoreHomeTemplateProps) {
   const leadCopy =
     announcement?.trim() ||
     landingContent?.subheadline?.trim() ||
+    design?.business?.tagline?.trim() ||
     "Everyday essentials on the shelf. Add what you need — we'll take it from there.";
 
   return (
@@ -180,34 +182,36 @@ export function MilkRunStoreHome(props: StoreHomeTemplateProps) {
             ctaAnchor="#menu"
           />
         ) : (
-          <section className={styles.hero}>
-            <div className={styles.heroEyebrow}>
-              {locality || "Neighborhood shop · open shelf"}
-            </div>
-            <h1>
-              {lead}
-              {nameAccent ? (
-                <>
-                  <br />
-                  <em>{nameAccent}</em>
-                </>
-              ) : null}
-            </h1>
-            <p className={styles.heroLead}>{leadCopy}</p>
-            <a className={styles.heroCta} href="#menu">
-              See what&apos;s in
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M5 12h14M13 6l6 6-6 6"
-                  stroke="currentColor"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </a>
-            <BowlScene />
-          </section>
+          <StorefrontQuickEditTarget field="tagline" label="tagline">
+            <section className={styles.hero}>
+              <div className={styles.heroEyebrow}>
+                {locality || "Neighborhood shop · open shelf"}
+              </div>
+              <h1>
+                {lead}
+                {nameAccent ? (
+                  <>
+                    <br />
+                    <em>{nameAccent}</em>
+                  </>
+                ) : null}
+              </h1>
+              <p className={styles.heroLead}>{leadCopy}</p>
+              <a className={styles.heroCta} href="#menu">
+                See what&apos;s in
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M5 12h14M13 6l6 6-6 6"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </a>
+              <BowlScene />
+            </section>
+          </StorefrontQuickEditTarget>
         )}
 
         {productsOn ? (

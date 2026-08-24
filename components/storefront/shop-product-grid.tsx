@@ -6,6 +6,10 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-button";
+import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import {
+  useStorefrontDisplayImage,
+} from "@/components/storefront/storefront-staff-edit";
 import { Button } from "@/components/ui/button";
 import {
   cartLineQuantity,
@@ -69,6 +73,37 @@ function productTitle(
   variantSubtitle: string | null,
 ): string {
   return joinProductNameParts(name, variantSubtitle);
+}
+
+function ProductCardImage({
+  item,
+  ariaTitle,
+  showCartBadge,
+}: {
+  item: PublicCatalogItemCard;
+  ariaTitle: string;
+  showCartBadge: boolean;
+}) {
+  const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
+  return (
+    <Link href={shopItemPathFromCard(item)} className={IMAGE_WELL} aria-label={ariaTitle}>
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          className="object-contain p-3 transition-transform duration-300 ease-out group-hover:scale-[1.04] sm:p-3.5"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+          unoptimized
+        />
+      ) : (
+        <ProductImagePlaceholder name={item.name} />
+      )}
+
+      {showCartBadge ? <InCartQtyBadge itemId={item.id} /> : null}
+      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
+    </Link>
+  );
 }
 
 export default function ShopProductGrid({
@@ -159,24 +194,11 @@ export default function ShopProductGrid({
             }
           >
             <article className={CARD_SHELL}>
-              <Link href={shopItemPathFromCard(item)} className={IMAGE_WELL} aria-label={ariaTitle}>
-                {item.imageUrl ? (
-                  <Image
-                    src={item.imageUrl}
-                    alt=""
-                    fill
-                    className="object-contain p-3 transition-transform duration-300 ease-out group-hover:scale-[1.04] sm:p-3.5"
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                    unoptimized
-                  />
-                ) : (
-                  <ProductImagePlaceholder name={item.name} />
-                )}
-
-                {slug && hasPrice ? (
-                  <InCartQtyBadge itemId={item.id} />
-                ) : null}
-              </Link>
+              <ProductCardImage
+                item={item}
+                ariaTitle={ariaTitle}
+                showCartBadge={Boolean(slug && hasPrice)}
+              />
 
               <div className="flex min-h-0 flex-1 flex-col gap-2 px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
                 <Link

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import styles from "@/components/storefront/templates/store/tint-lab.module.css";
+import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES, apiUrl } from "@/lib/config";
 import {
@@ -13,6 +15,7 @@ import {
   type PublicCatalogListPayload,
 } from "@/lib/public-storefront";
 import { shopItemPathFromCard } from "@/lib/shop-item-url";
+import { cn } from "@/lib/utils";
 
 const BLOB_COLORS = [
   "#F2C9BF",
@@ -52,6 +55,41 @@ function TintAddButton({ item }: { item: PublicCatalogItemCard }) {
     >
       {busy ? "…" : "Add"}
     </button>
+  );
+}
+
+function TintCardVisual({
+  item,
+  href,
+  index,
+}: {
+  item: PublicCatalogItemCard;
+  href: string;
+  index: number;
+}) {
+  const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
+  return (
+    <Link href={href} className={cn(styles.cardVisual, "relative")}>
+      <span
+        className={styles.cardBlob}
+        style={{
+          background: BLOB_COLORS[index % BLOB_COLORS.length],
+        }}
+        aria-hidden
+      />
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt={item.name}
+          width={240}
+          height={320}
+          unoptimized
+        />
+      ) : (
+        <span className={styles.cardPlaceholder} aria-hidden />
+      )}
+      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
+    </Link>
   );
 }
 
@@ -119,26 +157,7 @@ export function TintLabCatalog({
             "In stock · ready to ship";
           return (
             <article key={item.id} className={styles.card}>
-              <Link href={href} className={styles.cardVisual}>
-                <span
-                  className={styles.cardBlob}
-                  style={{
-                    background: BLOB_COLORS[index % BLOB_COLORS.length],
-                  }}
-                  aria-hidden
-                />
-                {item.imageUrl ? (
-                  <Image
-                    src={item.imageUrl}
-                    alt={item.name}
-                    width={240}
-                    height={320}
-                    unoptimized
-                  />
-                ) : (
-                  <span className={styles.cardPlaceholder} aria-hidden />
-                )}
-              </Link>
+              <TintCardVisual item={item} href={href} index={index} />
               <div className={styles.cardShade}>{shade}</div>
               <Link href={href} className={styles.cardName}>
                 <h3>{item.name}</h3>

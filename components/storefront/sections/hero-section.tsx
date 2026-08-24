@@ -12,6 +12,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { whatsappHref } from "@/components/storefront/sections/shared";
+import { StorefrontQuickEditTarget } from "@/components/storefront/storefront-staff-edit";
 import type {
   StorefrontDesign,
   StorefrontDesignButtons,
@@ -170,6 +171,7 @@ export function StorefrontHeroSection({
   }, [banners]);
 
   return (
+    <StorefrontQuickEditTarget field="hero" label="hero headline">
     <section
       className="overflow-hidden rounded-[4px] text-white shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-black/10"
       style={{ backgroundColor: heroBg }}
@@ -357,6 +359,7 @@ export function StorefrontHeroSection({
         </div>
       </div>
     </section>
+    </StorefrontQuickEditTarget>
   );
 }
 

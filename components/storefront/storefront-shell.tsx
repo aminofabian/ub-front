@@ -167,6 +167,7 @@ export async function StorefrontShell({
             tenant?.landingContent?.phone ??
             null
           }
+          initialDesign={designOverride ?? tenant?.design ?? null}
         >
           {children}
         </ShopStorefrontChrome>

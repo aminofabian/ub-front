@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/milk-run.module.css";
+import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -12,6 +14,7 @@ import {
   type PublicCatalogItemCard,
 } from "@/lib/public-storefront";
 import { shopItemPathFromCard } from "@/lib/shop-item-url";
+import { cn } from "@/lib/utils";
 
 const FLAP_COLORS = [
   "var(--milk-cobalt)",
@@ -83,6 +86,7 @@ export function MilkRunCard({
     [item.variantName?.trim(), item.unitType?.trim()].filter(Boolean).join(" · ") ||
     "In stock";
   const tag = featured ? "Featured" : item.sku?.trim() ? "Stocked" : null;
+  const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
 
   const waHref =
     whatsappDigits && item.price != null
@@ -95,10 +99,10 @@ export function MilkRunCard({
     <article className={styles.card}>
       <div className={styles.flap} style={{ background: flap }} />
       <div className={styles.cardBody}>
-        <Link href={href} className={styles.cardVisual}>
-          {item.imageUrl ? (
+        <Link href={href} className={cn(styles.cardVisual, "relative")}>
+          {imageUrl ? (
             <Image
-              src={item.imageUrl}
+              src={imageUrl}
               alt={item.name}
               width={480}
               height={480}
@@ -107,6 +111,7 @@ export function MilkRunCard({
           ) : (
             <span className={styles.cardPlaceholder} aria-hidden />
           )}
+          <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
         </Link>
         <div className={styles.cardInfo}>
           <div className={styles.cardTagRow}>

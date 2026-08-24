@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/spirits-cellar.module.css";
+import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -79,16 +81,21 @@ function NicheVisual({
   priority?: boolean;
   variant?: "default" | "slot";
 }) {
+  const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
   return (
     <Link
       href={href}
-      className={cn(styles.nicheVisual, variant === "slot" && styles.nicheSlotVisual)}
+      className={cn(
+        styles.nicheVisual,
+        variant === "slot" && styles.nicheSlotVisual,
+        "relative",
+      )}
     >
       <span className={styles.archTop} aria-hidden />
       <span className={styles.candleGlow} aria-hidden />
-      {item.imageUrl ? (
+      {imageUrl ? (
         <Image
-          src={item.imageUrl}
+          src={imageUrl}
           alt={item.name}
           fill
           sizes={sizes}
@@ -100,6 +107,7 @@ function NicheVisual({
         <span className={styles.visualPlaceholder} aria-hidden />
       )}
       <span className={styles.waxSeal} aria-hidden />
+      <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
     </Link>
   );
 }

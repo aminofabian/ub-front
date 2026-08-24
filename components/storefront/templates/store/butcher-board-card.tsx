@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/butcher-board.module.css";
+import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
+import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -121,13 +123,14 @@ export function ButcherBoardCard({
 }) {
   const href = shopItemPathFromCard(item) || APP_ROUTES.shop;
   const meta = item.variantName?.trim() || "";
+  const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
 
   return (
     <article className={styles.card}>
-      <Link href={href} className={styles.cardVisual}>
-        {item.imageUrl ? (
+      <Link href={href} className={cn(styles.cardVisual, "relative")}>
+        {imageUrl ? (
           <Image
-            src={item.imageUrl}
+            src={imageUrl}
             alt={item.name}
             fill
             sizes="(min-width: 900px) 30vw, 50vw"
@@ -137,6 +140,7 @@ export function ButcherBoardCard({
         ) : (
           <span className={styles.heroPlaceholder} aria-hidden />
         )}
+        <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
       </Link>
       <div className={styles.cardInfo}>
         <Link href={href} className={cn(styles.cardName)}>

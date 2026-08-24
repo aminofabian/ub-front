@@ -46,7 +46,9 @@ import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
 import { ShopUtilityBar } from "@/components/storefront/shop-utility-bar";
 import { ShopCartProvider, useShopCart, type WhatsAppCheckoutConfig } from "@/hooks/use-shop-cart";
 import { StorefrontSignInProvider } from "@/components/storefront/storefront-sign-in-sheet";
+import { StorefrontStaffEditProvider } from "@/components/storefront/storefront-staff-edit";
 import { WhatsAppCheckoutSheet } from "@/components/storefront/whatsapp-checkout-sheet";
+import { DashboardToaster } from "@/components/dashboard-sonner";
 import type {
   PublicCategory,
   PublicCheckoutPaymentOptions,
@@ -54,6 +56,7 @@ import type {
 } from "@/lib/public-storefront";
 import { fetchPublicCheckoutPaymentOptionsBrowser } from "@/lib/public-storefront-client";
 import { formatDisplayPrice } from "@/lib/public-storefront";
+import type { StorefrontDesign } from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 function RailFallback() {
@@ -148,6 +151,7 @@ export function ShopStorefrontChrome({
   storeThemeId,
   hasPresence,
   whatsappNumber,
+  initialDesign = null,
   children,
 }: {
   slug: string;
@@ -164,6 +168,8 @@ export function ShopStorefrontChrome({
   hasPresence: boolean;
   /** Tenant WhatsApp for Milk Run dual-path checkout. */
   whatsappNumber?: string | null;
+  /** Saved merchant design — seeds on-page edit mode. */
+  initialDesign?: StorefrontDesign | null;
   children: ReactNode;
 }) {
   const compactChrome = useCompactStorefrontChrome();
@@ -271,6 +277,7 @@ export function ShopStorefrontChrome({
         storeName={headerTitle}
         hasPresence={hasPresence}
       >
+      <StorefrontStaffEditProvider initialDesign={initialDesign}>
       <div
         data-store-theme-id={storeThemeId ?? undefined}
         className={cn(
@@ -447,7 +454,9 @@ export function ShopStorefrontChrome({
         />
       ) : null}
       {!isCustomChrome ? <FloatingCartButton accentHex={accentHex} /> : null}
+      <DashboardToaster />
       </div>
+      </StorefrontStaffEditProvider>
       </StorefrontSignInProvider>
     </ShopCartProvider>
   );
