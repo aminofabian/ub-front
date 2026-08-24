@@ -34,8 +34,9 @@ for (const article of BLOG_ARTICLES) {
     if (block.type === "links") {
       for (const item of block.items) {
         const href = item.href;
-        // Allow in-page anchors and external URLs; only verify /blog/* links.
-        if (href.startsWith("/#") || href.startsWith("http")) continue;
+        // Only /blog/* links must resolve to a registered article;
+        // other internal routes (e.g. /barcode) and anchors are fine.
+        if (!href.startsWith("/blog/")) continue;
         const slug = href.replace(/^\/blog\//, "");
         if (!slug || !slugs.has(slug)) {
           problems.push(

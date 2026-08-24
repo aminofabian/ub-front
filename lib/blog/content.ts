@@ -3,6 +3,10 @@ import {
   GROW_MINI_MART_PILLAR_SLUG,
 } from "./cluster-grow-mini-mart";
 import {
+  BARCODE_LOOKUP_ARTICLES,
+  BARCODE_LOOKUP_PILLAR_SLUG,
+} from "./cluster-barcode-lookup";
+import {
   KIOSK_VS_ODOO_ARTICLES,
   KIOSK_VS_ODOO_PILLAR_SLUG,
   PILLAR_SLUG,
@@ -14,6 +18,7 @@ import {
 import type { BlogArticle } from "./types";
 
 export {
+  BARCODE_LOOKUP_PILLAR_SLUG,
   GROW_MINI_MART_PILLAR_SLUG,
   KIOSK_VS_ODOO_PILLAR_SLUG,
   PILLAR_SLUG,
@@ -24,6 +29,7 @@ export const CLUSTER_PILLAR_SLUGS = [
   GROW_MINI_MART_PILLAR_SLUG,
   KIOSK_VS_ODOO_PILLAR_SLUG,
   TOP_10_POS_KENYA_PILLAR_SLUG,
+  BARCODE_LOOKUP_PILLAR_SLUG,
 ] as const;
 
 export function isClusterPillar(slug: string): boolean {
@@ -34,4 +40,5 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   ...GROW_MINI_MART_ARTICLES,
   ...TOP_10_POS_KENYA_ARTICLES,
   ...KIOSK_VS_ODOO_ARTICLES,
+  ...BARCODE_LOOKUP_ARTICLES,
 ];

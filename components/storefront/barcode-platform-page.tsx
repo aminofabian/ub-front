@@ -68,6 +68,40 @@ const FEATURES = [
   },
 ] as const;
 
+/** FAQ shown on the page — kept in sync with the FAQPage JSON-LD in app/barcode/page.tsx. */
+const FAQS = [
+  {
+    question: "How do I look up a barcode in Kenya?",
+    answer:
+      "Type the barcode digits into the search box, or scan them with your phone camera. Kiosk.ke matches the number against its product catalogue and shows the product name, typical price in KES, and stock availability. Free to use, no sign-up required.",
+  },
+  {
+    question: "What barcode formats can I search?",
+    answer:
+      "The search accepts EAN-13 (the most common on Kenyan shelves), UPC-A, EAN-8, and GTIN codes. If you don't have a barcode, just type a product name — the same box searches by name too.",
+  },
+  {
+    question: "Can I check a product's price with its barcode?",
+    answer:
+      "Yes. A lookup shows a typical selling price in Kenyan shillings and whether the product is in stock at Kiosk-powered stores, so you can compare prices before you pay.",
+  },
+  {
+    question: "Do products in Kenya have barcodes?",
+    answer:
+      "Most packaged goods sold in Kenya carry EAN-13 barcodes, with 616 as the GS1 country prefix for Kenya. Unpackaged or informally produced goods often don't — for those, search by product name instead.",
+  },
+  {
+    question: "What if my barcode doesn't show a result?",
+    answer:
+      "Try the product name search instead. If you run a shop on Kiosk POS, you can add the product to your own catalog so it resolves for you and your customers next time.",
+  },
+  {
+    question: "Is barcode lookup really free?",
+    answer:
+      "Yes — free to use, no sign-up, and no app install. Point your camera or type a number and search across all Kiosk-powered stores.",
+  },
+];
+
 /** Strips separators; returns the cleaned numeric string if it looks like a barcode. */
 function parseBarcode(raw: string): string | null {
   const clean = raw.replace(/[\s\-._]/g, "").trim();
@@ -295,6 +329,118 @@ export function BarcodePlatformPage() {
                 >
                   See how it works
                 </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Guide link (SEO + reader value) ── */}
+          <section className="landing-reveal mt-16 rounded-2xl border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] p-6 sm:p-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="max-w-xl">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--kiosk-gold)]">
+                  From the blog
+                </p>
+                <h2 className="mt-2 font-heading text-xl leading-[1.2] tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-2xl">
+                  Barcode Search in Kenya: the full guide
+                </h2>
+                <p className="mt-2 text-[14px] leading-relaxed text-[var(--kiosk-text-soft)]">
+                  What an EAN-13 is, why 616 is Kenya&apos;s country prefix,
+                  the formats on local shelves, and how lookup turns shopping
+                  into facts instead of guesses.
+                </p>
+              </div>
+              <Link
+                href="/blog/barcode-search-kenya-lookup-guide"
+                className={`${goldCtaClass} w-full shrink-0 justify-center sm:w-auto`}
+              >
+                Read the guide
+                <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden />
+              </Link>
+            </div>
+          </section>
+
+          {/* ── Formats — indexable content ── */}
+          <section className="landing-reveal mt-16 grid gap-6 lg:grid-cols-2">
+            <div className={cn(landingCardClass, "p-7")}>
+              <h2 className="font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)]">
+                Barcode formats you can search
+              </h2>
+              <p className="mt-3 text-[15px] leading-relaxed text-[var(--kiosk-text-muted)]">
+                Kenyan shelves are mostly EAN-13 — 13 digits that start with
+                <span className="font-semibold text-[var(--kiosk-text)]">
+                  {" "}616, Kenya&apos;s GS1 country prefix
+                </span>
+                {" "}— but the search handles more than that. One box, every
+                common retail code:
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {[
+                  "EAN-13 · 13 digits",
+                  "UPC-A · 12 digits",
+                  "EAN-8 · small packs",
+                  "GTIN-14 · wholesale cases",
+                ].map((chip) => (
+                  <span
+                    key={chip}
+                    className="rounded-full border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] px-3.5 py-1.5 text-[12.5px] font-medium text-[var(--kiosk-text)]"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-5 text-[13.5px] leading-relaxed text-[var(--kiosk-text-dim)]">
+                No barcode at all? The same box searches product names across
+                every Kiosk-powered store — type &quot;cooking oil&quot; and
+                you&apos;ll get real products, not guesses.
+              </p>
+            </div>
+
+            <div className={cn(landingCardClass, "p-7")}>
+              <h2 className="font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)]">
+                Who uses barcode lookup in Kenya?
+              </h2>
+              <ul className="mt-4 space-y-3">
+                {[
+                  "Shoppers checking a fair price before they pay.",
+                  "Shopkeepers building a product catalog without typing.",
+                  "Suppliers confirming the exact item in an order.",
+                  "Anyone reconciling stock, receipts, or purchase lists.",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex gap-3 text-[14.5px] leading-relaxed text-[var(--kiosk-text-soft)]"
+                  >
+                    <span
+                      aria-hidden
+                      className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--kiosk-gold)]"
+                    />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          {/* ── FAQ — matches FAQPage schema ── */}
+          <section className="landing-reveal mt-16">
+            <div className="rounded-2xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] p-7 sm:p-9">
+              <h2 className="font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)]">
+                Barcode lookup in Kenya — common questions
+              </h2>
+              <div className="mt-2 border-t border-[var(--kiosk-border-soft)]">
+                {FAQS.map((faq) => (
+                  <details
+                    key={faq.question}
+                    className="border-b border-[var(--kiosk-border-soft)]"
+                  >
+                    <summary className="cursor-pointer list-none py-4 text-[15px] font-semibold tracking-[-0.015em] text-[var(--kiosk-text)] [&::-webkit-details-marker]:hidden">
+                      {faq.question}
+                    </summary>
+                    <p className="pb-4 pr-4 text-[15px] leading-[1.65] text-[var(--kiosk-text-soft)]">
+                      {faq.answer}
+                    </p>
+                  </details>
+                ))}
               </div>
             </div>
           </section>

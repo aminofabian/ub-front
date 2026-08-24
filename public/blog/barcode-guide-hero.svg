@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">One scan, instant answers</text>
+
+  <!-- ============ LEFT: phone scanning a product ============ -->
+  <rect x="16" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- Shelf backdrop -->
+  <rect x="40" y="96" width="392" height="240" rx="12" fill="#f3f4f6" stroke="#e5e7eb"/>
+  <line x1="40" y1="200" x2="432" y2="200" stroke="#e5e7eb"/>
+  <line x1="40" y1="296" x2="432" y2="296" stroke="#e5e7eb"/>
+
+  <!-- Product box with barcode -->
+  <rect x="96" y="120" width="140" height="170" rx="8" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="166" y="156" font-size="10.5" font-weight="700" fill="#c2410c" text-anchor="middle">Sunbest</text>
+  <text x="166" y="172" font-size="9" fill="#9a3412" text-anchor="middle">Cooking Oil 1 L</text>
+  <rect x="112" y="196" width="108" height="54" rx="4" fill="#ffffff" stroke="#e5e7eb"/>
+  <g stroke="#1F2937" stroke-width="2">
+    <line x1="122" y1="206" x2="122" y2="240"/><line x1="128" y1="206" x2="128" y2="240"/>
+    <line x1="132" y1="206" x2="132" y2="240"/><line x1="140" y1="206" x2="140" y2="240"/>
+    <line x1="144" y1="206" x2="144" y2="240"/><line x1="152" y1="206" x2="152" y2="240"/>
+    <line x1="156" y1="206" x2="156" y2="240"/><line x1="164" y1="206" x2="164" y2="240"/>
+    <line x1="170" y1="206" x2="170" y2="240"/><line x1="176" y1="206" x2="176" y2="240"/>
+    <line x1="182" y1="206" x2="182" y2="240"/><line x1="190" y1="206" x2="190" y2="240"/>
+    <line x1="196" y1="206" x2="196" y2="240"/><line x1="204" y1="206" x2="204" y2="240"/>
+    <line x1="208" y1="206" x2="208" y2="240"/>
+  </g>
+  <text x="166" y="262" font-size="8" fill="#6b7280" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">6 1 6 8 9 0 1 2 3 4 5 6 7</text>
+
+  <!-- Small products -->
+  <rect x="256" y="132" width="64" height="56" rx="6" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="288" y="156" font-size="8" fill="#a3a3a3" text-anchor="middle">🍚</text>
+  <text x="288" y="176" font-size="7.5" fill="#6b7280" text-anchor="middle">Rice 2kg</text>
+  <rect x="332" y="132" width="64" height="56" rx="6" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="364" y="156" font-size="8" fill="#a3a3a3" text-anchor="middle">🧼</text>
+  <text x="364" y="176" font-size="7.5" fill="#6b7280" text-anchor="middle">Detergent</text>
+  <rect x="256" y="220" width="64" height="56" rx="6" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="288" y="244" font-size="8" fill="#a3a3a3" text-anchor="middle">🥛</text>
+  <text x="288" y="264" font-size="7.5" fill="#6b7280" text-anchor="middle">Milk</text>
+
+  <!-- Phone with camera scan beam -->
+  <rect x="180" y="264" width="150" height="260" rx="18" fill="#0a0a0a"/>
+  <rect x="188" y="272" width="134" height="244" rx="12" fill="#ffffff"/>
+  <rect x="188" y="272" width="134" height="26" rx="12" fill="#f3f4f6"/>
+  <text x="255" y="289" font-size="9" font-weight="700" fill="#1F2937" text-anchor="middle">Barcode scan</text>
+  <!-- viewfinder -->
+  <rect x="216" y="316" width="78" height="120" rx="8" fill="#f0fdf4" stroke="#28a745" stroke-width="2.5"/>
+  <g stroke="#1F2937" stroke-width="2.4">
+    <line x1="230" y1="330" x2="230" y2="360"/><line x1="236" y1="330" x2="236" y2="360"/>
+    <line x1="240" y1="330" x2="240" y2="360"/><line x1="248" y1="330" x2="248" y2="360"/>
+    <line x1="252" y1="330" x2="252" y2="360"/><line x1="260" y1="330" x2="260" y2="360"/>
+    <line x1="264" y1="330" x2="264" y2="360"/><line x1="272" y1="330" x2="272" y2="360"/>
+    <line x1="278" y1="330" x2="278" y2="360"/>
+  </g>
+  <rect x="200" y="366" width="110" height="2.5" fill="#28a745" opacity="0.85"/>
+  <text x="255" y="452" font-size="8.5" fill="#6b7280" text-anchor="middle">Align barcode in frame</text>
+  <rect x="204" y="464" width="102" height="16" rx="8" fill="#28a745"/>
+  <text x="255" y="475" font-size="7.5" font-weight="700" fill="#ffffff" text-anchor="middle">SCANNING…</text>
+
+  <!-- Scan beam from phone to box -->
+  <path d="M232 320 L166 252" stroke="#28a745" stroke-width="3" opacity="0.4" stroke-dasharray="6 5"/>
+
+  <!-- Left footer -->
+  <text x="236" y="496" font-size="11" fill="#6b7280" text-anchor="middle">Camera scans the product barcode —</text>
+  <text x="236" y="512" font-size="11" fill="#6b7280" text-anchor="middle">the result card pops out instantly.</text>
+
+  <!-- ============ RIGHT: result card ============ -->
+  <rect x="504" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- Floating result card -->
+  <rect x="548" y="120" width="352" height="230" rx="16" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="548" y="120" width="352" height="44" rx="16" fill="#f9fafb" stroke="#e5e7eb"/>
+  <circle cx="576" cy="142" r="10" fill="#28a745"/>
+  <path d="M570 142 l4 4 l8 -9" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="596" y="147" font-size="13" font-weight="700" fill="#1F2937">Product found</text>
+  <text x="868" y="147" font-size="10" fill="#6b7280" text-anchor="end">EAN-13</text>
+
+  <rect x="572" y="184" width="64" height="64" rx="10" fill="#fff7ed"/>
+  <text x="604" y="226" font-size="22" text-anchor="middle">🥫</text>
+  <text x="652" y="206" font-size="15" font-weight="700" fill="#1F2937">Sunbest Cooking Oil 1 L</text>
+  <text x="652" y="226" font-size="11" fill="#6b7280">Grocery · Cooking oils</text>
+
+  <line x1="572" y1="264" x2="876" y2="264" stroke="#f0f0f0"/>
+  <text x="572" y="294" font-size="11.5" font-weight="700" fill="#1F2937">Price</text>
+  <text x="876" y="294" font-size="18" font-weight="800" fill="#15803d" text-anchor="end">KES 520.00</text>
+  <text x="572" y="316" font-size="10.5" fill="#6b7280">Typical selling price across Kiosk stores</text>
+
+  <rect x="572" y="326" width="150" height="22" rx="11" fill="#f0fdf4"/>
+  <circle cx="586" cy="337" r="4" fill="#28a745"/>
+  <text x="598" y="341" font-size="9.5" font-weight="600" fill="#15803d">In stock · 3 stores</text>
+
+  <rect x="572" y="318" width="0" height="0" fill="none"/>
+
+  <!-- barcode copy row -->
+  <rect x="572" y="358" width="304" height="40" rx="8" fill="#f9fafb" stroke="#e5e7eb"/>
+  <g stroke="#1F2937" stroke-width="1.8">
+    <line x1="586" y1="372" x2="586" y2="388"/><line x1="590" y1="372" x2="590" y2="388"/>
+    <line x1="594" y1="372" x2="594" y2="388"/><line x1="600" y1="372" x2="600" y2="388"/>
+    <line x1="604" y1="372" x2="604" y2="388"/><line x1="610" y1="372" x2="610" y2="388"/>
+    <line x1="614" y1="372" x2="614" y2="388"/><line x1="622" y1="372" x2="622" y2="388"/>
+    <line x1="626" y1="372" x2="626" y2="388"/><line x1="634" y1="372" x2="634" y2="388"/>
+    <line x1="640" y1="372" x2="640" y2="388"/>
+  </g>
+  <text x="656" y="384" font-size="10.5" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#1F2937">6168901234567</text>
+  <rect x="786" y="366" width="82" height="24" rx="6" fill="#28a745"/>
+  <text x="827" y="383" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">Copy ⇱</text>
+
+  <!-- Search by name row -->
+  <rect x="548" y="372" width="352" height="0" fill="none"/>
+  <rect x="548" y="380" width="352" height="46" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="572" y="401" font-size="11" font-weight="700" fill="#15803d">No barcode handy?</text>
+  <text x="572" y="417" font-size="10.5" fill="#374151">Search by product name across all stores instead.</text>
+
+  <!-- Format chips -->
+  <g>
+    <rect x="548" y="452" width="104" height="34" rx="17" fill="#ffffff" stroke="#d1d5db"/>
+    <text x="600" y="473" font-size="10.5" font-weight="700" fill="#1F2937" text-anchor="middle">EAN-13</text>
+    <rect x="664" y="452" width="104" height="34" rx="17" fill="#ffffff" stroke="#d1d5db"/>
+    <text x="716" y="473" font-size="10.5" font-weight="700" fill="#1F2937" text-anchor="middle">UPC-A</text>
+    <rect x="780" y="452" width="120" height="34" rx="17" fill="#ffffff" stroke="#d1d5db"/>
+    <text x="840" y="473" font-size="10.5" font-weight="700" fill="#1F2937" text-anchor="middle">GTIN</text>
+    <text x="724" y="508" font-size="10.5" fill="#6b7280" text-anchor="middle">One search box handles them all — plus plain names.</text>
+  </g>
+</svg>

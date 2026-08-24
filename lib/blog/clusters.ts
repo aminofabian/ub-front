@@ -1,4 +1,5 @@
 import { GROW_MINI_MART_PILLAR_SLUG } from "./cluster-grow-mini-mart";
+import { BARCODE_LOOKUP_PILLAR_SLUG } from "./cluster-barcode-lookup";
 import { KIOSK_VS_ODOO_PILLAR_SLUG } from "./cluster-kiosk-vs-odoo";
 import {
   TOP_10_POS_KENYA_PILLAR_SLUG,
@@ -64,5 +65,15 @@ export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
       "online-physical-one-inventory",
       "why-kiosk-beats-odoo-for-kenyan-shops",
     ],
+  },
+  {
+    id: "barcode-lookup",
+    code: "04",
+    title: "Barcode Lookup in Kenya",
+    shortTitle: "Barcode Lookup",
+    description:
+      "Look up any product by barcode or name — EAN-13, UPC, GTIN — and check Kenyan store prices in seconds.",
+    pillarSlug: BARCODE_LOOKUP_PILLAR_SLUG,
+    spokeSlugs: [],
   },
 ];
