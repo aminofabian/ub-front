@@ -22,7 +22,8 @@ export type StorefrontQuickEditField =
   | "tagline"
   | "about"
   | "contact"
-  | "hours";
+  | "hours"
+  | "social";
 
 export type StorefrontQuickEditDefaults = {
   announcement: string;
@@ -48,6 +49,12 @@ export type StorefrontQuickEditDefaults = {
   sundayClose: string;
   sundayClosed: boolean;
   hoursNote: string;
+  socialHeading: string;
+  instagram: string;
+  facebook: string;
+  tiktok: string;
+  x: string;
+  youtube: string;
 };
 
 const FIELD_META: Record<
@@ -81,6 +88,10 @@ const FIELD_META: Record<
   hours: {
     title: "Opening hours",
     description: "Weekday and weekend times shoppers see on the contact block.",
+  },
+  social: {
+    title: "Social links",
+    description: "Handles or full URLs for Instagram, Facebook, TikTok, X, and YouTube.",
   },
 };
 
@@ -124,6 +135,12 @@ export function StorefrontQuickEditDialog({
   const [sundayClose, setSundayClose] = useState("19:00");
   const [sundayClosed, setSundayClosed] = useState(true);
   const [hoursNote, setHoursNote] = useState("");
+  const [socialHeading, setSocialHeading] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [facebook, setFacebook] = useState("");
+  const [tiktok, setTiktok] = useState("");
+  const [xHandle, setXHandle] = useState("");
+  const [youtube, setYoutube] = useState("");
 
   useEffect(() => {
     if (!open || !field) return;
@@ -155,6 +172,12 @@ export function StorefrontQuickEditDialog({
     setSundayClose(defaults.sundayClose || "19:00");
     setSundayClosed(defaults.sundayClosed);
     setHoursNote(defaults.hoursNote);
+    setSocialHeading(defaults.socialHeading);
+    setInstagram(defaults.instagram);
+    setFacebook(defaults.facebook);
+    setTiktok(defaults.tiktok);
+    setXHandle(defaults.x);
+    setYoutube(defaults.youtube);
   }, [open, field, defaults]);
 
   if (!field) return null;
@@ -187,6 +210,15 @@ export function StorefrontQuickEditDialog({
         sundayClose,
         sundayClosed: sundayClosed ? "1" : "0",
         note: hoursNote,
+      });
+    } else if (activeField === "social") {
+      await onSave(activeField, {
+        heading: socialHeading,
+        instagram,
+        facebook,
+        tiktok,
+        x: xHandle,
+        youtube,
       });
     } else {
       await onSave(activeField, { tagline: text });
@@ -417,6 +449,64 @@ export function StorefrontQuickEditDialog({
                 maxLength={200}
                 onChange={(e) => setHoursNote(e.target.value)}
                 placeholder="Open on public holidays"
+              />
+            </Field>
+          </div>
+        ) : activeField === "social" ? (
+          <div className="flex max-h-[min(55vh,28rem)] flex-col gap-3 overflow-y-auto">
+            <Field label="Heading" htmlFor="sf-edit-social-heading">
+              <Input
+                id="sf-edit-social-heading"
+                value={socialHeading}
+                maxLength={80}
+                onChange={(e) => setSocialHeading(e.target.value)}
+                placeholder="Follow us"
+                autoFocus
+              />
+            </Field>
+            <Field label="Instagram" htmlFor="sf-edit-instagram">
+              <Input
+                id="sf-edit-instagram"
+                value={instagram}
+                maxLength={160}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="@yourshop or full URL"
+              />
+            </Field>
+            <Field label="Facebook" htmlFor="sf-edit-facebook">
+              <Input
+                id="sf-edit-facebook"
+                value={facebook}
+                maxLength={160}
+                onChange={(e) => setFacebook(e.target.value)}
+                placeholder="page name or URL"
+              />
+            </Field>
+            <Field label="TikTok" htmlFor="sf-edit-tiktok">
+              <Input
+                id="sf-edit-tiktok"
+                value={tiktok}
+                maxLength={160}
+                onChange={(e) => setTiktok(e.target.value)}
+                placeholder="@yourshop"
+              />
+            </Field>
+            <Field label="X" htmlFor="sf-edit-x">
+              <Input
+                id="sf-edit-x"
+                value={xHandle}
+                maxLength={160}
+                onChange={(e) => setXHandle(e.target.value)}
+                placeholder="@yourshop"
+              />
+            </Field>
+            <Field label="YouTube" htmlFor="sf-edit-youtube">
+              <Input
+                id="sf-edit-youtube"
+                value={youtube}
+                maxLength={160}
+                onChange={(e) => setYoutube(e.target.value)}
+                placeholder="@yourshop or channel URL"
               />
             </Field>
           </div>

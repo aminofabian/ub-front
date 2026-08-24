@@ -60,7 +60,7 @@ import {
 import { ImageFocalPointPicker } from "@/components/business/image-focal-point-picker";
 import { StorefrontDesignAiCard } from "@/components/business/storefront-design-ai";
 import { CloudinaryTransformRow } from "@/components/business/cloudinary-transform-row";
-import { StorefrontMiniPreview, type MiniPreviewData } from "@/components/business/storefront-mini-preview";
+import { StorefrontMiniPreview, type MiniPreviewData, type MiniPreviewEditHandlers } from "@/components/business/storefront-mini-preview";
 import {
   DashboardFeedback,
   DASHBOARD_SECTION_SURFACE,
@@ -74,11 +74,13 @@ import {
   fetchBusiness,
   getCloudinarySignature,
   updateBusiness,
+  uploadMyBrandingLogo,
   uploadToCloudinary,
   type BusinessRecord,
   type StorefrontAiSuggestResponse,
 } from "@/lib/api";
 import { APP_ROUTES, PLATFORM_DOMAIN, slugDerivedShopUrl } from "@/lib/config";
+import { trackStorefrontEditEvent } from "@/lib/storefront-staff-edit";
 import {
   STOREFRONT_DESIGN_VERSION,
   STOREFRONT_DAY_KEYS,
@@ -417,6 +419,9 @@ export function StorefrontDesignEditor({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [heroBusy, setHeroBusy] = useState(false);
+  const [previewLogoUrl, setPreviewLogoUrl] = useState<string | null>(
+    business?.branding?.logoUrl?.trim() || null,
+  );
   const heroInputRef = useRef<HTMLInputElement>(null);
 
   const dirty = JSON.stringify(form) !== JSON.stringify(snapshot);
@@ -535,6 +540,10 @@ export function StorefrontDesignEditor({
       : null;
   const draftTooLarge = Boolean(draftJson && draftJson.length > 8000);
 
+  useEffect(() => {
+    setPreviewLogoUrl(business?.branding?.logoUrl?.trim() || null);
+  }, [business?.branding?.logoUrl]);
+
   const previewData = useMemo<MiniPreviewData>(() => {
     const hero = form.sections.find((s) => s.id === "hero");
     const heroSettings = hero?.settings as StorefrontHeroSectionSettings | undefined;
@@ -544,6 +553,7 @@ export function StorefrontDesignEditor({
     const products = form.sections.find((s) => s.id === "products");
     return {
       storeName: business?.branding?.displayName?.trim() || business?.name || "Your shop",
+      logoUrl: previewLogoUrl,
       primaryHex: business?.branding?.primaryColor ?? null,
       surface: form.surface || "#FAFAF8",
       radius: form.radius,
@@ -567,7 +577,88 @@ export function StorefrontDesignEditor({
       socialEnabled: form.sections.find((s) => s.id === "social")?.enabled === true,
       contactEnabled: form.sections.find((s) => s.id === "contact")?.enabled === true,
     };
-  }, [form, business]);
+  }, [form, business, previewLogoUrl]);
+
+  const previewEditHandlers = useMemo<MiniPreviewEditHandlers>(() => {
+    const heroSettings = () => {
+      const hero = form.sections.find((s) => s.id === "hero");
+      return (hero?.settings ??
+        storefrontSectionDefaultSettings("hero")) as StorefrontHeroSectionSettings;
+    };
+    const announcementSettings = () => {
+      const row = form.sections.find((s) => s.id === "announcement");
+      return (row?.settings ??
+        storefrontSectionDefaultSettings(
+          "announcement",
+        )) as StorefrontAnnouncementSectionSettings;
+    };
+    const promoSettings = () => {
+      const row = form.sections.find((s) => s.id === "promo");
+      return (row?.settings ??
+        storefrontSectionDefaultSettings("promo")) as StorefrontPromoSectionSettings;
+    };
+    return {
+      onHeadlineChange: (value) => {
+        patchSectionSettings("hero", { ...heroSettings(), headline: value });
+        patchSection("hero", { enabled: true });
+      },
+      onSubheadlineChange: (value) => {
+        patchSectionSettings("hero", { ...heroSettings(), subheadline: value });
+        patchSection("hero", { enabled: true });
+      },
+      onAnnouncementChange: (value) => {
+        patchSectionSettings("announcement", {
+          ...announcementSettings(),
+          text: value,
+        });
+        patchSection("announcement", { enabled: true });
+      },
+      onPromoTitleChange: (value) => {
+        patchSectionSettings("promo", { ...promoSettings(), title: value });
+        patchSection("promo", { enabled: true });
+      },
+      onFocusSection: (id) => {
+        if (id === "logo") {
+          scrollToStep("brand");
+          return;
+        }
+        if (id === "hero") {
+          scrollToStep("photos");
+          return;
+        }
+        if (id === "announcement" || id === "promo" || id === "about" || id === "social" || id === "contact" || id === "products") {
+          scrollToStep("sections");
+          return;
+        }
+        scrollToStep("business");
+      },
+      onLogoFile: async (file) => {
+        const bid = business?.id?.trim();
+        if (!bid) {
+          setError("Could not resolve business for logo upload.");
+          return;
+        }
+        try {
+          const next = await uploadMyBrandingLogo(file, bid);
+          const url = next.branding?.logoUrl?.trim() || null;
+          setPreviewLogoUrl(url);
+          onSaved?.(next);
+          trackStorefrontEditEvent("storefront_logo_uploaded", {
+            surface: "design_studio",
+          });
+          setFeedback("Logo updated.");
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Could not upload logo");
+        }
+      },
+    };
+  }, [
+    form.sections,
+    patchSection,
+    patchSectionSettings,
+    business?.id,
+    onSaved,
+  ]);
 
   const changes = useMemo(() => {
     const groups: Record<string, string> = {
@@ -867,7 +958,7 @@ export function StorefrontDesignEditor({
 
       {showMobilePreview ? (
         <div className="flex justify-center rounded-2xl border border-border/70 bg-card p-5 shadow-sm lg:hidden">
-          <StorefrontMiniPreview data={previewData} />
+          <StorefrontMiniPreview data={previewData} editHandlers={previewEditHandlers} />
         </div>
       ) : null}
 
@@ -1675,11 +1766,11 @@ export function StorefrontDesignEditor({
 
         <aside className="hidden lg:block">
           <div className="sticky top-24 flex flex-col items-center gap-3">
-            <StorefrontMiniPreview data={previewData} />
+            <StorefrontMiniPreview data={previewData} editHandlers={previewEditHandlers} />
             <div className="text-center">
               <p className="text-xs font-semibold text-foreground">Live preview</p>
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Your shop changes as you edit.
+                Click headlines to type · click the logo to upload.
               </p>
               {draftPreviewUrl ? (
                 <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5">

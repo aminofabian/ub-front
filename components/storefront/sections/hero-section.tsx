@@ -11,7 +11,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 
-import { TenantLogo } from "@/components/brand/tenant-logo";
+import { StorefrontEditableLogo } from "@/components/storefront/storefront-editable-logo";
+import { StorefrontInlineText } from "@/components/storefront/storefront-inline-text";
 import { whatsappHref } from "@/components/storefront/sections/shared";
 import {
   StorefrontQuickEditTarget,
@@ -210,15 +211,46 @@ export function StorefrontHeroSection({
         {/* Copy */}
         <div className="relative z-10 flex flex-col justify-center gap-1.5 px-4 py-3.5 md:gap-2 md:px-5 md:py-4 lg:gap-2.5 lg:px-6 lg:py-5">
           <h1 className="font-heading text-[1.15rem] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[1.35rem] lg:text-[1.65rem]">
-            <span className="block text-white">{headline}</span>
-            <span className="mt-0.5 block font-heading text-[0.95rem] font-medium italic tracking-[-0.01em] text-white/70 md:text-[1.05rem] lg:text-[1.15rem]">
-              {subhead}
-            </span>
+            <StorefrontInlineText
+              as="span"
+              className="block text-white"
+              value={headline}
+              placeholder="Add a headline"
+              onCommit={(next) => {
+                void staff?.commitInlineField("hero", { headline: next });
+              }}
+            >
+              <span className="block text-white">{headline}</span>
+            </StorefrontInlineText>
+            <StorefrontInlineText
+              as="span"
+              className="mt-0.5 block font-heading text-[0.95rem] font-medium italic tracking-[-0.01em] text-white/70 md:text-[1.05rem] lg:text-[1.15rem]"
+              value={subhead}
+              placeholder="Add a subheadline"
+              onCommit={(next) => {
+                void staff?.commitInlineField("hero", { subheadline: next });
+              }}
+            >
+              <span className="mt-0.5 block font-heading text-[0.95rem] font-medium italic tracking-[-0.01em] text-white/70 md:text-[1.05rem] lg:text-[1.15rem]">
+                {subhead}
+              </span>
+            </StorefrontInlineText>
           </h1>
 
-          <p className="max-w-md text-[11px] leading-snug text-white/55 line-clamp-2 md:text-[12px]">
-            {body}
-          </p>
+          <StorefrontInlineText
+            as="p"
+            multiline
+            className="max-w-md text-[11px] leading-snug text-white/55 md:text-[12px]"
+            value={body}
+            placeholder="Add a short intro"
+            onCommit={(next) => {
+              void staff?.commitInlineField("about", { text: next });
+            }}
+          >
+            <p className="max-w-md text-[11px] leading-snug text-white/55 line-clamp-2 md:text-[12px]">
+              {body}
+            </p>
+          </StorefrontInlineText>
 
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
             {showCta ? (
@@ -413,7 +445,7 @@ function ShopWindowIllustration({
         aria-hidden
       />
       <div className="relative z-10 flex flex-col items-center gap-2 px-4 py-6 text-center">
-        <TenantLogo
+        <StorefrontEditableLogo
           brand={title}
           logoUrl={logoUrl}
           primaryColor={primary}

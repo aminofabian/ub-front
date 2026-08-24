@@ -2,7 +2,11 @@
 
 import { Megaphone } from "lucide-react";
 
-import { StorefrontQuickEditTarget } from "@/components/storefront/storefront-staff-edit";
+import { StorefrontInlineText } from "@/components/storefront/storefront-inline-text";
+import {
+  StorefrontQuickEditTarget,
+  useStorefrontStaffEditOptional,
+} from "@/components/storefront/storefront-staff-edit";
 import type { StorefrontAnnouncementSectionSettings } from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
@@ -14,8 +18,10 @@ export function AnnouncementSection({
   settings: StorefrontAnnouncementSectionSettings;
   primaryHex: string | null;
 }) {
+  const staff = useStorefrontStaffEditOptional();
   const text = settings.text.trim();
-  if (!text) {
+  const editing = Boolean(staff?.editMode);
+  if (!text && !editing) {
     return null;
   }
   const primary =
@@ -40,7 +46,16 @@ export function AnnouncementSection({
           )}
         >
           <Megaphone className="size-3.5 shrink-0 opacity-70" aria-hidden />
-          <span>{text}</span>
+          <StorefrontInlineText
+            as="span"
+            value={text}
+            placeholder="Add an announcement"
+            onCommit={(next) => {
+              void staff?.commitInlineField("announcement", { text: next });
+            }}
+          >
+            <span>{text}</span>
+          </StorefrontInlineText>
         </p>
       </div>
     </StorefrontQuickEditTarget>

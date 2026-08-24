@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Grocery-style camera chip for storefront product tiles.
- * Only renders while staff edit mode is on (owner/admin).
+ * In edit mode the whole parent image area is clickable (absolute inset overlay).
  */
 export function StorefrontProductPhotoButton({
   itemId,
@@ -66,16 +66,28 @@ export function StorefrontProductPhotoButton({
     }
   }
 
+  function openPicker(e: React.SyntheticEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (uploading) return;
+    inputRef.current?.click();
+  }
+
   return (
     <>
       <button
         type="button"
         disabled={uploading}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          inputRef.current?.click();
-        }}
+        onClick={openPicker}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="absolute inset-0 z-[2] cursor-pointer bg-transparent"
+        aria-label={`Update photo for ${itemName}`}
+        title="Update photo"
+      />
+      <button
+        type="button"
+        disabled={uploading}
+        onClick={openPicker}
         onPointerDown={(e) => e.stopPropagation()}
         className={cn(
           "absolute bottom-1.5 right-1.5 z-[3] flex size-8 items-center justify-center rounded-md border border-white/50 bg-black/55 text-white shadow-sm backdrop-blur-[1px] transition-colors hover:bg-black/70 disabled:opacity-70",

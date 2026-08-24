@@ -5,11 +5,11 @@ import { LogIn, UserRound } from "lucide-react";
 import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-import { TenantLogo } from "@/components/brand/tenant-logo";
 import { GetTheAppDialog } from "@/components/storefront/get-the-app-dialog";
 import ShopSearchBar from "@/components/storefront/shop-search-bar";
 import { ShopCartTrigger } from "@/components/storefront/shop-cart-trigger";
 import { useStorefrontAccountLink } from "@/components/storefront/storefront-account-link";
+import { StorefrontEditableLogo } from "@/components/storefront/storefront-editable-logo";
 import { APP_ROUTES } from "@/lib/config";
 import { activeStorefrontCategorySlugFromPathname } from "@/lib/shop-url";
 
@@ -81,7 +81,7 @@ export function ShopHeaderBar({
       <div className="mx-auto max-w-7xl px-3 py-2 sm:px-6 sm:py-2.5">
         <div className="flex flex-col gap-2 lg:grid lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-5">
           <div className="flex items-center gap-2 lg:contents">
-            <TenantLogo
+            <StorefrontEditableLogo
               brand={headerTitle}
               logoUrl={logoUrl}
               primaryColor={primaryHex}
@@ -90,7 +90,7 @@ export function ShopHeaderBar({
               href={APP_ROUTES.shop}
               className="min-w-0 shrink lg:hidden"
             />
-            <TenantLogo
+            <StorefrontEditableLogo
               brand={headerTitle}
               logoUrl={logoUrl}
               primaryColor={primaryHex}

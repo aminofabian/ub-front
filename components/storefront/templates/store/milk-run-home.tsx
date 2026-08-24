@@ -5,9 +5,11 @@ import { milkRunFontVariables } from "@/components/storefront/templates/store/mi
 import { MilkRunFloats } from "@/components/storefront/templates/store/milk-run-floats";
 import styles from "@/components/storefront/templates/store/milk-run.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
+import { StorefrontInlineText } from "@/components/storefront/storefront-inline-text";
 import {
   StorefrontQuickEditTarget,
   useStorefrontLiveDesign,
+  useStorefrontStaffEditOptional,
 } from "@/components/storefront/storefront-staff-edit";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
@@ -133,6 +135,7 @@ export function MilkRunStoreHome(props: StoreHomeTemplateProps) {
     design: designProp,
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
+  const staff = useStorefrontStaffEditOptional();
 
   const accent = accentHex?.trim() || "#E8412C";
   const { lead, accent: nameAccent } = splitWordmark(heroTitle);
@@ -188,21 +191,44 @@ export function MilkRunStoreHome(props: StoreHomeTemplateProps) {
             ctaAnchor="#menu"
           />
         ) : (
-          <StorefrontQuickEditTarget field="tagline" label="tagline">
+          <StorefrontQuickEditTarget field="hero" label="hero headline">
             <section className={styles.hero}>
               <div className={styles.heroEyebrow}>
                 {locality || "Neighborhood shop · open shelf"}
               </div>
-              <h1>
-                {lead}
-                {nameAccent ? (
-                  <>
-                    <br />
-                    <em>{nameAccent}</em>
-                  </>
-                ) : null}
-              </h1>
-              <p className={styles.heroLead}>{leadCopy}</p>
+              <StorefrontInlineText
+                as="h1"
+                value={
+                  heroSettings?.headline.trim() ||
+                  [lead, nameAccent].filter(Boolean).join(" ")
+                }
+                placeholder="Add a headline"
+                onCommit={(next) => {
+                  void staff?.commitInlineField("hero", { headline: next });
+                }}
+              >
+                <h1>
+                  {lead}
+                  {nameAccent ? (
+                    <>
+                      <br />
+                      <em>{nameAccent}</em>
+                    </>
+                  ) : null}
+                </h1>
+              </StorefrontInlineText>
+              <StorefrontInlineText
+                as="p"
+                multiline
+                className={styles.heroLead}
+                value={leadCopy}
+                placeholder="Add a short intro"
+                onCommit={(next) => {
+                  void staff?.commitInlineField("tagline", { tagline: next });
+                }}
+              >
+                <p className={styles.heroLead}>{leadCopy}</p>
+              </StorefrontInlineText>
               <a className={styles.heroCta} href="#menu">
                 See what&apos;s in
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>

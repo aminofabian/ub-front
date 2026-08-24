@@ -680,7 +680,128 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
   {
     audience: "merchants",
     categorySlug: "inventory",
-    slug: "understand-stock-levels",
+    slug: "how-to-add-products",
+    title: "Add products: single, groups, and packages",
+    description:
+      "Add standalone items, group brands into variants, and sell trays and crates — with screenshots for every step.",
+    updatedAt: "2026-08-24",
+    tags: [
+      "products",
+      "catalog",
+      "standalone",
+      "single",
+      "groups",
+      "variants",
+      "packages",
+      "tray",
+      "crate",
+      "barcode",
+      "pricing",
+    ],
+    relatedSlugs: [
+      "add-your-first-products",
+      "understand-stock-levels",
+      "fix-missing-barcodes",
+      "run-a-stock-take",
+    ],
+    body: [
+      {
+        type: "paragraph",
+        text: "Your till and your online storefront share one catalog, so the way you add a product matters. This guide walks through every shape a product can take — a single item, a group with variants, and packages like trays or crates — with screenshots of the exact screens you will see.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "Three quick rules: one-off item → Single product. Same brand in several sizes/colours → Group with variants. Same item sold loose and in trays → Single product with packages enabled.",
+      },
+      {
+        type: "heading",
+        text: "Single product vs group — what is the difference?",
+      },
+      {
+        type: "list",
+        items: [
+          "Single (standalone) product: one name, one price, one barcode, its own stock. No siblings. Perfect for a one-off item you will never split into sizes.",
+          "Group: a brand or family (e.g. Coca-Cola) that is not sold itself. Under it you add Variants — the sellable SKUs (300 ml, 500 ml, 1 L) that each carry their own price, barcode, and stock.",
+          "Variants inherit the group's department and category, so you set classification once instead of repeating it.",
+          "Cashiers and online shoppers search the brand name and pick a size — one clean entry instead of three near-duplicate products.",
+        ],
+      },
+      {
+        type: "callout",
+        tone: "warning",
+        text: "Do not create “Coca-Cola 300ml”, “Coca-Cola 500ml”, and “Coca-Cola 1L” as three separate single products. That splits stock, breaks category inheritance, and makes the storefront hard to shop. Use one group with variants instead.",
+      },
+      {
+        type: "heading",
+        text: "Add a single product",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Products in the dashboard and tap New (top right).",
+          "Leave Single product selected at the top of the drawer.",
+          "Type the product name, pick Department, and optionally a Category.",
+          "Fill Buying price (what you pay) and Sell price (what customers pay). Kiosk shows your margin as you type.",
+          "Scan or type the Barcode — SKU fills automatically if you leave it blank.",
+          "Set Opening qty to add stock right away, then tap Create.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/add-product-drawer.svg",
+        alt: "Add product drawer with Single product selected, name Sunbest Cooking Oil 1 L, Grocery department, Cooking oils category, buying price 450, sell price 520, barcode, opening quantity 24, and Create button",
+        caption:
+          "The Add product drawer: name, department, prices, barcode, and opening stock — then Create.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "Three toggles under Stock do the heavy lifting: Track stock counts this product in inventory, Sellable makes it appear on the till and storefront, and Sell by weight makes it a variable-weight item with a scale PLU (useful for produce and meat).",
+      },
+      {
+        type: "heading",
+        text: "Add a group with variants",
+      },
+      {
+        type: "paragraph",
+        text: "When the same brand comes in multiple sizes, colours, or packs, create a Group first — then add one Variant per sellable SKU under it.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Products and tap New.",
+          "Switch the toggle from Single product to Group.",
+          "Enter the group name (the brand or family — e.g. Coca-Cola), choose Department and Category, then tap Create group.",
+          "Open the group from the catalog and choose Add variant.",
+          "For each size, enter the Variant name (300 ml, 500 ml), Sell price, Buy price, and Barcode. Use Add another variant to create several at once.",
+          "Tap Create variants — each variant becomes its own SKU with its own stock, still nested under the group.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/add-product-group-drawer.svg",
+        alt: "New product group drawer with Group selected, group name Coca-Cola, Soft drinks department and category, and a dashed placeholder showing variants appear after creation",
+        caption:
+          "Create the group first. The group itself is never sold — the variants under it are.",
+      },
+      {
+        type: "image",
+        src: "/help/add-variant-drawer.svg",
+        alt: "Add variants drawer for Coca-Cola with two rows: 300 ml at sell price 60 and 500 ml at sell price 80, each with buying price, barcode, and opening quantity",
+        caption:
+          "Add every size as a variant in one go — each gets its own price, barcode, and stock.",
+      },
+      {
+        type: "heading",
+        text: "Packages: trays, crates, and bundles",
+      },
+      {
+        type: "paragraph",
+        text: "Packages let you sell the same item in different units that share one stock pool — for example eggs sold loose (1 piece) or as a tray (30 pieces). Selling one tray deducts 30 pieces from the same inventory, so stock never double-counts.",
+      },
+      {
+        type: 
     title: "Understand stock levels",
     description:
       "How on-hand quantity updates after sales, supplies, and transfers.",

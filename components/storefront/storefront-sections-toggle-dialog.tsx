@@ -32,6 +32,7 @@ const EDITABLE_SECTION_IDS: readonly StorefrontSectionId[] = [
   "promo",
   "hero",
   "about",
+  "social",
   "contact",
 ];
 

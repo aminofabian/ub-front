@@ -34,6 +34,7 @@ import {
   fetchBusiness,
   fetchMe,
   updateBusiness,
+  uploadMyBrandingLogo,
 } from "@/lib/api";
 import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
@@ -58,6 +59,7 @@ import {
   type StorefrontPromoSectionSettings,
   type StorefrontSectionConfig,
   type StorefrontSectionId,
+  type StorefrontSocialSectionSettings,
 } from "@/lib/storefront-design";
 import {
   canStorefrontOnPageEdit,
@@ -172,12 +174,29 @@ type StaffEditContextValue = {
     categoryId: string,
     fallback: string | null,
   ) => string | null;
+  /** Optimistic logo URL after on-page branding upload (saves immediately). */
+  logoOverride: string | null;
+  displayLogoUrl: (fallback: string | null) => string | null;
+  uploadLogo: (file: File) => Promise<string>;
+  /** Stage a quick-edit field patch into the draft (shared by sheet + inline). */
+  commitInlineField: (
+    field: StorefrontQuickEditField,
+    values: Record<string, string>,
+  ) => Promise<void>;
   openQuickEdit: (field: StorefrontQuickEditField) => void;
   openHeroPhoto: () => void;
   openSectionsPanel: () => void;
   openCategoryPhotos: () => void;
   saving: boolean;
 };
+
+/** Multi-field blocks open the sheet; single-copy fields focus inline text. */
+const SHEET_QUICK_EDIT_FIELDS = new Set<StorefrontQuickEditField>([
+  "promo",
+  "contact",
+  "hours",
+  "social",
+]);
 
 const StaffEditContext = createContext<StaffEditContextValue | null>(null);
 
@@ -258,6 +277,16 @@ export function useStorefrontDisplayCategoryIcon(
   return ctx.displayCategoryIconUrl(categoryId, base);
 }
 
+/** Logo URL with optimistic staff override after on-page upload. */
+export function useStorefrontDisplayLogo(
+  fallback: string | null | undefined,
+): string | null {
+  const ctx = useStorefrontStaffEditOptional();
+  const base = fallback?.trim() || null;
+  if (!ctx) return base;
+  return ctx.displayLogoUrl(base);
+}
+
 /**
  * Prefer the staff working design while edit mode is on so draft text / sections
  * / hero photo update on the page without waiting for Publish + refresh.
@@ -279,6 +308,7 @@ const SECTION_TO_QUICK_FIELD: Partial<
   hero: "hero",
   about: "about",
   contact: "contact",
+  social: "social",
 };
 
 export function StorefrontStaffEditProvider({
@@ -306,6 +336,7 @@ export function StorefrontStaffEditProvider({
   const [categoryIconOverrides, setCategoryIconOverrides] = useState<
     Record<string, string>
   >({});
+  const [logoOverride, setLogoOverride] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [quickField, setQuickField] = useState<StorefrontQuickEditField | null>(
     null,
@@ -470,6 +501,37 @@ export function StorefrontStaffEditProvider({
     [categoryIconOverrides],
   );
 
+  const displayLogoUrl = useCallback(
+    (fallback: string | null) => {
+      return logoOverride?.trim() || fallback;
+    },
+    [logoOverride],
+  );
+
+  const uploadLogo = useCallback(
+    async (file: File) => {
+      let bid = businessId;
+      if (!bid) {
+        const business = await fetchBusiness();
+        bid = business.id?.trim() || null;
+        setBusinessId(bid);
+      }
+      if (!bid) {
+        throw new Error("Could not resolve business for logo upload.");
+      }
+      const updated = await uploadMyBrandingLogo(file, bid);
+      const url = updated.branding?.logoUrl?.trim();
+      if (!url) {
+        throw new Error("Upload finished but no logo URL was returned.");
+      }
+      setLogoOverride(url);
+      trackStorefrontEditEvent("storefront_logo_uploaded");
+      toast.success("Logo updated");
+      return url;
+    },
+    [businessId],
+  );
+
   const openQuickEdit = useCallback(
     (field: StorefrontQuickEditField) => {
       if (!canEdit) return;
@@ -598,7 +660,12 @@ export function StorefrontStaffEditProvider({
       let next: StorefrontDesign;
 
       if (field === "announcement") {
-        const text = (values.text ?? "").trim();
+        const text =
+          values.text !== undefined
+            ? values.text.trim()
+            : ((base?.sections?.find((s) => s.id === "announcement")
+                ?.settings as StorefrontAnnouncementSectionSettings | undefined)
+                ?.text ?? "");
         next = upsertSection(base, "announcement", {
           enabled: true,
           settings: { text },
@@ -613,14 +680,17 @@ export function StorefrontStaffEditProvider({
           enabled: true,
           settings: {
             ...prev,
-            title: (values.title ?? "").trim(),
-            subtitle: (values.subtitle ?? "").trim(),
-            coupon: (values.coupon ?? "").trim(),
+            title:
+              values.title !== undefined ? values.title.trim() : prev.title,
+            subtitle:
+              values.subtitle !== undefined
+                ? values.subtitle.trim()
+                : prev.subtitle,
+            coupon:
+              values.coupon !== undefined ? values.coupon.trim() : prev.coupon,
           },
         });
       } else if (field === "hero") {
-        const headline = (values.headline ?? "").trim();
-        const subheadline = (values.subheadline ?? "").trim();
         const existing = base?.sections?.find((s) => s.id === "hero");
         const prev = (existing?.settings ??
           storefrontSectionDefaultSettings(
@@ -630,18 +700,26 @@ export function StorefrontStaffEditProvider({
           enabled: true,
           settings: {
             ...prev,
-            headline,
-            subheadline,
+            headline:
+              values.headline !== undefined
+                ? values.headline.trim()
+                : prev.headline,
+            subheadline:
+              values.subheadline !== undefined
+                ? values.subheadline.trim()
+                : prev.subheadline,
           },
         });
       } else if (field === "about") {
-        const heading = (values.heading ?? "").trim();
-        const text = (values.text ?? "").trim();
         const existing = base?.sections?.find((s) => s.id === "about");
         const prev = (existing?.settings ??
           storefrontSectionDefaultSettings(
             "about",
           )) as StorefrontAboutSectionSettings;
+        const heading =
+          values.heading !== undefined ? values.heading.trim() : prev.heading;
+        const text =
+          values.text !== undefined ? values.text.trim() : prev.text;
         next = upsertSection(base, "about", {
           enabled: true,
           settings: { ...prev, heading, text },
@@ -698,13 +776,50 @@ export function StorefrontStaffEditProvider({
             hours: buildSimpleHours(values),
           },
         };
+      } else if (field === "social") {
+        const heading = (values.heading ?? "").trim();
+        const existing = base?.sections?.find((s) => s.id === "social");
+        const prev = (existing?.settings ??
+          storefrontSectionDefaultSettings(
+            "social",
+          )) as StorefrontSocialSectionSettings;
+        next = upsertSection(base, "social", {
+          enabled: true,
+          settings: {
+            ...prev,
+            heading: heading || prev.heading || "Follow us",
+          },
+        });
+        const social: NonNullable<
+          NonNullable<StorefrontDesign["business"]>["social"]
+        > = {};
+        const instagram = (values.instagram ?? "").trim().slice(0, 160);
+        const facebook = (values.facebook ?? "").trim().slice(0, 160);
+        const tiktok = (values.tiktok ?? "").trim().slice(0, 160);
+        const x = (values.x ?? "").trim().slice(0, 160);
+        const youtube = (values.youtube ?? "").trim().slice(0, 160);
+        if (instagram) social.instagram = instagram;
+        if (facebook) social.facebook = facebook;
+        if (tiktok) social.tiktok = tiktok;
+        if (x) social.x = x;
+        if (youtube) social.youtube = youtube;
+        next = {
+          ...next,
+          business: {
+            ...(next.business ?? {}),
+            social: Object.keys(social).length > 0 ? social : null,
+          },
+        };
       } else {
         next = {
           ...(base ?? { version: 1 }),
           version: 1,
           business: {
             ...(base?.business ?? {}),
-            tagline: (values.tagline ?? "").trim() || null,
+            tagline:
+              values.tagline !== undefined
+                ? values.tagline.trim() || null
+                : (base?.business?.tagline ?? null),
           },
         };
       }
@@ -712,6 +827,17 @@ export function StorefrontStaffEditProvider({
       applyDraft(next, { field });
     },
     [design, ensureDesignLoaded, applyDraft],
+  );
+
+  const commitInlineField = useCallback(
+    async (
+      field: StorefrontQuickEditField,
+      values: Record<string, string>,
+    ) => {
+      await handleQuickSave(field, values);
+      trackStorefrontEditEvent("storefront_inline_text_committed", { field });
+    },
+    [handleQuickSave],
   );
 
   const handleHeroPhotoSave = useCallback(
@@ -775,6 +901,7 @@ export function StorefrontStaffEditProvider({
     const promo = design?.sections?.find((s) => s.id === "promo");
     const hero = design?.sections?.find((s) => s.id === "hero");
     const about = design?.sections?.find((s) => s.id === "about");
+    const social = design?.sections?.find((s) => s.id === "social");
     const annSettings = announcement?.settings as
       | StorefrontAnnouncementSectionSettings
       | undefined;
@@ -786,6 +913,9 @@ export function StorefrontStaffEditProvider({
       | undefined;
     const aboutSettings = about?.settings as
       | StorefrontAboutSectionSettings
+      | undefined;
+    const socialSettings = social?.settings as
+      | StorefrontSocialSectionSettings
       | undefined;
     return {
       announcement: annSettings?.text ?? "",
@@ -806,6 +936,12 @@ export function StorefrontStaffEditProvider({
       address: design?.business?.location?.address?.trim() ?? "",
       town: design?.business?.location?.town?.trim() ?? "",
       ...hoursFormDefaults(design?.business?.hours),
+      socialHeading: socialSettings?.heading ?? "",
+      instagram: design?.business?.social?.instagram?.trim() ?? "",
+      facebook: design?.business?.social?.facebook?.trim() ?? "",
+      tiktok: design?.business?.social?.tiktok?.trim() ?? "",
+      x: design?.business?.social?.x?.trim() ?? "",
+      youtube: design?.business?.social?.youtube?.trim() ?? "",
     };
   }, [design]);
 
@@ -828,6 +964,10 @@ export function StorefrontStaffEditProvider({
       categoryIconOverrides,
       setCategoryIconOverride,
       displayCategoryIconUrl,
+      logoOverride,
+      displayLogoUrl,
+      uploadLogo,
+      commitInlineField,
       openQuickEdit,
       openHeroPhoto,
       openSectionsPanel,
@@ -852,6 +992,10 @@ export function StorefrontStaffEditProvider({
       categoryIconOverrides,
       setCategoryIconOverride,
       displayCategoryIconUrl,
+      logoOverride,
+      displayLogoUrl,
+      uploadLogo,
+      commitInlineField,
       openQuickEdit,
       openHeroPhoto,
       openSectionsPanel,
@@ -960,6 +1104,7 @@ function StorefrontStaffEditBar({ editDeepLink }: { editDeepLink: boolean }) {
     { label: "Headline", action: () => openQuickEdit("hero") },
     { label: "Tagline", action: () => openQuickEdit("tagline") },
     { label: "About", action: () => openQuickEdit("about") },
+    { label: "Social", action: () => openQuickEdit("social") },
     { label: "Contact", action: () => openQuickEdit("contact") },
     { label: "Hours", action: () => openQuickEdit("hours") },
   ];
@@ -1001,8 +1146,8 @@ function StorefrontStaffEditBar({ editDeepLink }: { editDeepLink: boolean }) {
           {editMode ? (
             <p className="text-[12px] font-medium text-amber-900/80">
               {dirty
-                ? "Draft on this page — Publish to go live"
-                : "Tap a field or product photo to edit"}
+                ? "Draft on this page — Publish to go live. Logo & photos save immediately."
+                : "Click headlines to type · click logo or photos to upload"}
             </p>
           ) : null}
         </div>
@@ -1112,7 +1257,7 @@ function StorefrontStaffEditBar({ editDeepLink }: { editDeepLink: boolean }) {
   );
 }
 
-/** Pencil affordance wrapping a visible storefront block. */
+/** Pencil + click-target wrapping a visible storefront block. */
 export function StorefrontQuickEditTarget({
   field,
   label,
@@ -1128,16 +1273,53 @@ export function StorefrontQuickEditTarget({
   if (!ctx?.editMode) {
     return <>{children}</>;
   }
+  const editor = ctx;
+
+  const opensSheet = SHEET_QUICK_EDIT_FIELDS.has(field);
+
+  function activate(e: React.MouseEvent | React.PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (opensSheet) {
+      editor.openQuickEdit(field);
+      return;
+    }
+    const root = e.currentTarget as HTMLElement;
+    const inline = root.querySelector<HTMLElement>(
+      "[data-storefront-inline-text]",
+    );
+    if (inline) {
+      inline.focus();
+      return;
+    }
+    editor.openQuickEdit(field);
+  }
 
   return (
-    <div className={cn("relative", className)}>
+    <div
+      className={cn(
+        "relative rounded-sm outline-none transition-[box-shadow]",
+        "ring-1 ring-amber-500/25 hover:ring-amber-500/45",
+        className,
+      )}
+      data-storefront-quick-edit={field}
+      onClick={activate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          activate(e as unknown as React.MouseEvent);
+        }
+      }}
+      role="group"
+      aria-label={`Editable ${label}`}
+    >
       {children}
       <button
         type="button"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          ctx.openQuickEdit(field);
+          editor.openQuickEdit(field);
         }}
         onPointerDown={(e) => e.stopPropagation()}
         className="absolute right-2 top-2 z-[5] inline-flex items-center gap-1 rounded-md border border-amber-600/40 bg-amber-50/95 px-2 py-1 text-[11px] font-semibold text-amber-950 shadow-sm backdrop-blur-sm transition hover:bg-amber-100"

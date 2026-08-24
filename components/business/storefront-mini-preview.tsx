@@ -1,16 +1,26 @@
 "use client";
 
 import Image from "next/image";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+import { Camera } from "lucide-react";
 
 import type {
   StorefrontDesignButtons,
   StorefrontDesignDensity,
   StorefrontDesignRadius,
+  StorefrontSectionId,
 } from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 export type MiniPreviewData = {
   storeName: string;
+  logoUrl?: string | null;
   primaryHex: string | null;
   surface: string;
   radius: StorefrontDesignRadius;
@@ -34,6 +44,15 @@ export type MiniPreviewData = {
   contactEnabled: boolean;
 };
 
+export type MiniPreviewEditHandlers = {
+  onHeadlineChange?: (value: string) => void;
+  onSubheadlineChange?: (value: string) => void;
+  onAnnouncementChange?: (value: string) => void;
+  onPromoTitleChange?: (value: string) => void;
+  onFocusSection?: (id: StorefrontSectionId | "logo") => void;
+  onLogoFile?: (file: File) => void | Promise<void>;
+};
+
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
 function isDarkHex(hex: string): boolean {
@@ -55,12 +74,97 @@ const DENSITY_GAP: Record<StorefrontDesignDensity, string> = {
   airy: "gap-[6px]",
 };
 
+function stripPlain(raw: string): string {
+  return raw
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\u00a0/g, " ")
+    .trim();
+}
+
+function PreviewInlineText({
+  value,
+  onCommit,
+  className,
+  style,
+  placeholder,
+}: {
+  value: string;
+  onCommit?: (next: string) => void;
+  className?: string;
+  style?: React.CSSProperties;
+  placeholder?: string;
+}) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const committed = useRef(value);
+
+  useEffect(() => {
+    committed.current = value;
+    if (ref.current && document.activeElement !== ref.current) {
+      ref.current.textContent = value || "";
+    }
+  }, [value]);
+
+  if (!onCommit) {
+    return (
+      <span className={className} style={style}>
+        {value}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      ref={ref}
+      role="textbox"
+      tabIndex={0}
+      contentEditable
+      suppressContentEditableWarning
+      className={cn(
+        "outline-none ring-1 ring-transparent hover:ring-amber-400/50 focus:ring-amber-400/70",
+        "rounded-[2px]",
+        className,
+      )}
+      style={style}
+      data-placeholder={placeholder}
+      onClick={(e) => e.stopPropagation()}
+      onBlur={() => {
+        const next = stripPlain(ref.current?.innerText ?? "");
+        if (next !== committed.current) {
+          committed.current = next;
+          onCommit(next);
+        }
+      }}
+      onKeyDown={(e: KeyboardEvent<HTMLSpanElement>) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          (e.target as HTMLElement).blur();
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          if (ref.current) ref.current.textContent = committed.current;
+          (e.target as HTMLElement).blur();
+        }
+      }}
+    >
+      {value}
+    </span>
+  );
+}
+
 /**
  * Live miniature of the shop front, driven by the editor form — every token,
- * photo and section choice renders here the moment it changes. The merchant
- * never edits blind: the preview is the shop, the controls are beside it.
+ * photo and section choice renders here the moment it changes. Optional
+ * editHandlers make headlines / announcement / promo clickable to type, and
+ * logo clickable to upload.
  */
-export function StorefrontMiniPreview({ data }: { data: MiniPreviewData }) {
+export function StorefrontMiniPreview({
+  data,
+  editHandlers,
+}: {
+  data: MiniPreviewData;
+  editHandlers?: MiniPreviewEditHandlers;
+}) {
   const surface = HEX_RE.test(data.surface) ? data.surface : "#FAFAF8";
   const dark = isDarkHex(surface);
   const ink = dark ? "#F8FAFC" : "#0F172A";
@@ -68,6 +172,22 @@ export function StorefrontMiniPreview({ data }: { data: MiniPreviewData }) {
   const primary =
     data.primaryHex && HEX_RE.test(data.primaryHex) ? data.primaryHex : "#15803D";
   const card = RADIUS_MAP[data.radius];
+  const editable = Boolean(editHandlers);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+
+  function sectionClick(id: StorefrontSectionId | "logo", node: ReactNode) {
+    if (!editHandlers?.onFocusSection) return node;
+    return (
+      <button
+        type="button"
+        className="block w-full cursor-pointer text-left outline-none ring-1 ring-transparent hover:ring-amber-400/40"
+        onClick={() => editHandlers.onFocusSection?.(id)}
+      >
+        {node}
+      </button>
+    );
+  }
 
   return (
     <div
@@ -79,28 +199,90 @@ export function StorefrontMiniPreview({ data }: { data: MiniPreviewData }) {
         style={{ backgroundColor: surface, color: ink }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-[9px] pb-[3px] pt-[9px]">
-          <span className="max-w-[70%] truncate text-[7px] font-bold leading-none">
-            {data.storeName || "Your shop"}
-          </span>
+        <div className="flex items-center justify-between gap-1 px-[9px] pb-[3px] pt-[9px]">
+          <div className="flex min-w-0 max-w-[70%] items-center gap-1">
+            {editHandlers?.onLogoFile ? (
+              <button
+                type="button"
+                disabled={logoBusy}
+                className="relative flex size-4 shrink-0 items-center justify-center overflow-hidden rounded-[2px] bg-black/10 ring-1 ring-amber-400/40"
+                title="Upload logo"
+                aria-label="Upload logo"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  editHandlers.onFocusSection?.("logo");
+                  logoInputRef.current?.click();
+                }}
+              >
+                {data.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={data.logoUrl}
+                    alt=""
+                    className="size-full object-contain"
+                  />
+                ) : (
+                  <Camera className="size-2.5 opacity-70" aria-hidden />
+                )}
+              </button>
+            ) : data.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={data.logoUrl}
+                alt=""
+                className="size-4 shrink-0 rounded-[2px] object-contain"
+              />
+            ) : null}
+            <span className="truncate text-[7px] font-bold leading-none">
+              {data.storeName || "Your shop"}
+            </span>
+          </div>
           <span
             className={cn(
               "inline-flex h-[11px] items-center px-[4px] text-[5px] font-semibold",
               card.pill,
             )}
-            style={{ backgroundColor: dark ? "rgba(127,127,127,0.25)" : "rgba(15,23,42,0.08)", color: muted }}
+            style={{
+              backgroundColor: dark
+                ? "rgba(127,127,127,0.25)"
+                : "rgba(15,23,42,0.08)",
+              color: muted,
+            }}
           >
             Cart
           </span>
+          {editHandlers?.onLogoFile ? (
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setLogoBusy(true);
+                void Promise.resolve(editHandlers.onLogoFile?.(file)).finally(
+                  () => setLogoBusy(false),
+                );
+              }}
+            />
+          ) : null}
         </div>
 
-        <div className={cn("flex min-h-0 flex-1 flex-col px-[8px]", DENSITY_GAP[data.density])}>
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col px-[8px]",
+            DENSITY_GAP[data.density],
+          )}
+        >
           {/* Hero */}
           {data.heroUrl || data.heroEnabled ? (
             <div
               className={cn(
                 "relative flex min-h-[88px] flex-1 basis-[40%] flex-col justify-end overflow-hidden",
                 card.card,
+                editable && "ring-1 ring-transparent hover:ring-amber-400/35",
               )}
               style={{
                 backgroundColor: primary,
@@ -108,6 +290,7 @@ export function StorefrontMiniPreview({ data }: { data: MiniPreviewData }) {
                   ? undefined
                   : `linear-gradient(135deg, ${primary}, color-mix(in srgb, ${primary} 62%, black))`,
               }}
+              onClick={() => editHandlers?.onFocusSection?.("hero")}
             >
               {data.heroUrl ? (
                 <Image
@@ -117,7 +300,9 @@ export function StorefrontMiniPreview({ data }: { data: MiniPreviewData }) {
                   sizes="236px"
                   unoptimized
                   className="object-cover"
-                  style={{ objectPosition: `${data.heroFocalX}% ${data.heroFocalY}%` }}
+                  style={{
+                    objectPosition: `${data.heroFocalX}% ${data.heroFocalY}%`,
+                  }}
                 />
               ) : null}
               <div
@@ -129,14 +314,18 @@ export function StorefrontMiniPreview({ data }: { data: MiniPreviewData }) {
                 aria-hidden
               />
               <div className="relative z-10 px-[8px] pb-[7px]">
-                <p className="truncate text-[8px] font-bold leading-tight text-white">
-                  {data.heroHeadline || data.storeName || "Your shop"}
-                </p>
-                {data.heroSubheadline ? (
-                  <p className="mt-[1px] truncate text-[5.5px] font-medium text-white/75">
-                    {data.heroSubheadline}
-                  </p>
-                ) : null}
+                <PreviewInlineText
+                  className="block truncate text-[8px] font-bold leading-tight text-white"
+                  value={data.heroHeadline || data.storeName || "Your shop"}
+                  placeholder="Headline"
+                  onCommit={editHandlers?.onHeadlineChange}
+                />
+                <PreviewInlineText
+                  className="mt-[1px] block truncate text-[5.5px] font-medium text-white/75"
+                  value={data.heroSubheadline}
+                  placeholder="Subheadline"
+                  onCommit={editHandlers?.onSubheadlineChange}
+                />
                 <span
                   className={cn(
                     "mt-[4px] inline-flex h-[13px] items-center px-[6px] text-[5.5px] font-bold leading-none",
@@ -144,7 +333,10 @@ export function StorefrontMiniPreview({ data }: { data: MiniPreviewData }) {
                   )}
                   style={
                     data.buttons === "outline"
-                      ? { border: "1px solid rgba(255,255,255,0.8)", color: "#fff" }
+                      ? {
+                          border: "1px solid rgba(255,255,255,0.8)",
+                          color: "#fff",
+                        }
                       : { backgroundColor: "#fff", color: "#0f172a" }
                   }
                 >
@@ -158,9 +350,17 @@ export function StorefrontMiniPreview({ data }: { data: MiniPreviewData }) {
                 "flex min-h-[70px] flex-1 basis-[34%] flex-col items-center justify-center gap-[3px] px-[10px]",
                 card.card,
               )}
-              style={{ backgroundColor: dark ? "rgba(127,127,127,0.22)" : "rgba(15,23,42,0.05)" }}
+              style={{
+                backgroundColor: dark
+                  ? "rgba(127,127,127,0.22)"
+                  : "rgba(15,23,42,0.05)",
+              }}
+              onClick={() => editHandlers?.onFocusSection?.("hero")}
             >
-              <span className="max-w-full truncate text-[8px] font-bold leading-tight" style={{ color: ink }}>
+              <span
+                className="max-w-full truncate text-[8px] font-bold leading-tight"
+                style={{ color: ink }}
+              >
                 {data.storeName || "Your shop"}
               </span>
               <span className="text-[5px] font-medium" style={{ color: muted }}>
@@ -170,28 +370,44 @@ export function StorefrontMiniPreview({ data }: { data: MiniPreviewData }) {
           )}
 
           {/* Notice bar */}
-          {data.announcementEnabled && data.announcement ? (
+          {(data.announcementEnabled && data.announcement) ||
+          editHandlers?.onAnnouncementChange ? (
             <div
-              className={cn("flex items-center justify-center px-[6px] py-[3px]", card.card)}
-              style={{ backgroundColor: `color-mix(in srgb, ${primary} 14%, transparent)` }}
+              className={cn(
+                "flex items-center justify-center px-[6px] py-[3px]",
+                card.card,
+              )}
+              style={{
+                backgroundColor: `color-mix(in srgb, ${primary} 14%, transparent)`,
+              }}
+              onClick={() => editHandlers?.onFocusSection?.("announcement")}
             >
-              <span className="truncate text-[5.5px] font-semibold" style={{ color: dark ? "#F1F5F9" : ink }}>
-                {data.announcement}
-              </span>
+              <PreviewInlineText
+                className="truncate text-[5.5px] font-semibold"
+                style={{ color: dark ? "#F1F5F9" : ink }}
+                value={data.announcement}
+                placeholder="Announcement"
+                onCommit={editHandlers?.onAnnouncementChange}
+              />
             </div>
           ) : null}
 
           {/* Offer banner */}
-          {data.promoEnabled && data.promoTitle ? (
+          {(data.promoEnabled && data.promoTitle) ||
+          editHandlers?.onPromoTitleChange ? (
             <div
               className={cn("px-[8px] py-[5px]", card.card)}
               style={{
                 background: `linear-gradient(135deg, ${primary}, color-mix(in srgb, ${primary} 70%, black))`,
               }}
+              onClick={() => editHandlers?.onFocusSection?.("promo")}
             >
-              <p className="truncate text-[6.5px] font-bold leading-tight text-white">
-                {data.promoTitle}
-              </p>
+              <PreviewInlineText
+                className="block truncate text-[6.5px] font-bold leading-tight text-white"
+                value={data.promoTitle}
+                placeholder="Offer title"
+                onCommit={editHandlers?.onPromoTitleChange}
+              />
               {data.promoSubtitle ? (
                 <p className="mt-[1px] truncate text-[5px] font-medium text-white/80">
                   {data.promoSubtitle}
@@ -207,74 +423,187 @@ export function StorefrontMiniPreview({ data }: { data: MiniPreviewData }) {
 
           {/* Shelves / products */}
           {data.productsEnabled ? (
-            <div className={cn("grid grid-cols-3 gap-[4px]", card.card)}>
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className={cn("flex flex-col gap-[2px] p-[4px]", card.card)}
-                  style={{ backgroundColor: dark ? "rgba(127,127,127,0.18)" : "#FFFFFF" }}
-                >
-                  <span
-                    className={cn("aspect-square w-full", card.card)}
-                    style={{ backgroundColor: dark ? "rgba(127,127,127,0.25)" : "rgba(15,23,42,0.08)" }}
-                  />
-                  <span className="h-[3px] w-[80%] rounded-full" style={{ backgroundColor: dark ? "rgba(148,163,184,0.5)" : "rgba(15,23,42,0.16)" }} />
-                  <span className="h-[3px] w-[55%] rounded-full" style={{ backgroundColor: dark ? "rgba(148,163,184,0.35)" : "rgba(15,23,42,0.12)" }} />
-                </div>
-              ))}
-            </div>
+            sectionClick(
+              "products",
+              <div className={cn("grid grid-cols-3 gap-[4px]", card.card)}>
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className={cn("flex flex-col gap-[2px] p-[4px]", card.card)}
+                    style={{
+                      backgroundColor: dark
+                        ? "rgba(127,127,127,0.18)"
+                        : "#FFFFFF",
+                    }}
+                  >
+                    <span
+                      className={cn("aspect-square w-full", card.card)}
+                      style={{
+                        backgroundColor: dark
+                          ? "rgba(127,127,127,0.25)"
+                          : "rgba(15,23,42,0.08)",
+                      }}
+                    />
+                    <span
+                      className="h-[3px] w-[80%] rounded-full"
+                      style={{
+                        backgroundColor: dark
+                          ? "rgba(148,163,184,0.5)"
+                          : "rgba(15,23,42,0.16)",
+                      }}
+                    />
+                    <span
+                      className="h-[3px] w-[55%] rounded-full"
+                      style={{
+                        backgroundColor: dark
+                          ? "rgba(148,163,184,0.35)"
+                          : "rgba(15,23,42,0.12)",
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>,
+            )
           ) : (
             <div
-              className={cn("flex flex-1 basis-[22%] items-center justify-center rounded-[7px] border border-dashed px-[6px]", card.card)}
-              style={{ borderColor: dark ? "rgba(148,163,184,0.4)" : "rgba(15,23,42,0.2)" }}
+              className={cn(
+                "flex flex-1 basis-[22%] items-center justify-center rounded-[7px] border border-dashed px-[6px]",
+                card.card,
+              )}
+              style={{
+                borderColor: dark
+                  ? "rgba(148,163,184,0.4)"
+                  : "rgba(15,23,42,0.2)",
+              }}
             >
-              <span className="text-center text-[5.5px] font-medium leading-tight" style={{ color: muted }}>
+              <span
+                className="text-center text-[5.5px] font-medium leading-tight"
+                style={{ color: muted }}
+              >
                 Shelves hidden — story &amp; contact only
               </span>
             </div>
           )}
 
-          {/* Post sections */}
-          {data.aboutEnabled ? (
-            <div className={cn("px-[7px] py-[5px]", card.card)} style={{ backgroundColor: dark ? "rgba(127,127,127,0.18)" : "#FFFFFF" }}>
-              <span className="block h-[3px] w-[45%] rounded-full" style={{ backgroundColor: dark ? "rgba(148,163,184,0.5)" : "rgba(15,23,42,0.18)" }} />
-              <span className="mt-[3px] block h-[3px] w-[85%] rounded-full" style={{ backgroundColor: dark ? "rgba(148,163,184,0.3)" : "rgba(15,23,42,0.1)" }} />
-              <span className="mt-[2px] block h-[3px] w-[70%] rounded-full" style={{ backgroundColor: dark ? "rgba(148,163,184,0.3)" : "rgba(15,23,42,0.1)" }} />
-            </div>
-          ) : null}
+          {data.aboutEnabled
+            ? sectionClick(
+                "about",
+                <div
+                  className={cn("px-[7px] py-[5px]", card.card)}
+                  style={{
+                    backgroundColor: dark
+                      ? "rgba(127,127,127,0.18)"
+                      : "#FFFFFF",
+                  }}
+                >
+                  <span
+                    className="block h-[3px] w-[45%] rounded-full"
+                    style={{
+                      backgroundColor: dark
+                        ? "rgba(148,163,184,0.5)"
+                        : "rgba(15,23,42,0.18)",
+                    }}
+                  />
+                  <span
+                    className="mt-[3px] block h-[3px] w-[85%] rounded-full"
+                    style={{
+                      backgroundColor: dark
+                        ? "rgba(148,163,184,0.3)"
+                        : "rgba(15,23,42,0.1)",
+                    }}
+                  />
+                  <span
+                    className="mt-[2px] block h-[3px] w-[70%] rounded-full"
+                    style={{
+                      backgroundColor: dark
+                        ? "rgba(148,163,184,0.3)"
+                        : "rgba(15,23,42,0.1)",
+                    }}
+                  />
+                </div>,
+              )
+            : null}
 
-          {data.socialEnabled ? (
-            <div className="flex items-center gap-[4px] px-[7px] py-[4px]">
-              <span className="truncate text-[5.5px] font-semibold" style={{ color: ink }}>
-                Follow us
-              </span>
-              <span className="ml-auto flex items-center gap-[3px]">
-                {[0, 1, 2].map((i) => (
-                  <span key={i} className={cn("size-[7px]", data.radius === "round" ? "rounded-full" : "rounded-[2px]")} style={{ backgroundColor: primary }} />
-                ))}
-              </span>
-            </div>
-          ) : null}
+          {data.socialEnabled
+            ? sectionClick(
+                "social",
+                <div className="flex items-center gap-[4px] px-[7px] py-[4px]">
+                  <span
+                    className="truncate text-[5.5px] font-semibold"
+                    style={{ color: ink }}
+                  >
+                    Follow us
+                  </span>
+                  <span className="ml-auto flex items-center gap-[3px]">
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          "size-[7px]",
+                          data.radius === "round"
+                            ? "rounded-full"
+                            : "rounded-[2px]",
+                        )}
+                        style={{ backgroundColor: primary }}
+                      />
+                    ))}
+                  </span>
+                </div>,
+              )
+            : null}
 
-          {data.contactEnabled ? (
-            <div className={cn("flex items-center gap-[5px] px-[7px] py-[5px]", card.card)} style={{ backgroundColor: dark ? "rgba(127,127,127,0.18)" : "#FFFFFF" }}>
-              <span className="size-[9px] shrink-0 rounded-full" style={{ backgroundColor: primary }} />
-              <span className="flex-1">
-                <span className="block h-[3px] w-[60%] rounded-full" style={{ backgroundColor: dark ? "rgba(148,163,184,0.45)" : "rgba(15,23,42,0.16)" }} />
-                <span className="mt-[2px] block h-[3px] w-[40%] rounded-full" style={{ backgroundColor: dark ? "rgba(148,163,184,0.3)" : "rgba(15,23,42,0.1)" }} />
-              </span>
-              <span
-                className={cn("inline-flex h-[11px] items-center px-[5px] text-[5px] font-bold leading-none", card.pill)}
-                style={
-                  data.buttons === "outline"
-                    ? { border: "1px solid currentColor", color: ink }
-                    : { backgroundColor: primary, color: "#FFFFFF" }
-                }
-              >
-                Message
-              </span>
-            </div>
-          ) : null}
+          {data.contactEnabled
+            ? sectionClick(
+                "contact",
+                <div
+                  className={cn(
+                    "flex items-center gap-[5px] px-[7px] py-[5px]",
+                    card.card,
+                  )}
+                  style={{
+                    backgroundColor: dark
+                      ? "rgba(127,127,127,0.18)"
+                      : "#FFFFFF",
+                  }}
+                >
+                  <span
+                    className="size-[9px] shrink-0 rounded-full"
+                    style={{ backgroundColor: primary }}
+                  />
+                  <span className="flex-1">
+                    <span
+                      className="block h-[3px] w-[60%] rounded-full"
+                      style={{
+                        backgroundColor: dark
+                          ? "rgba(148,163,184,0.45)"
+                          : "rgba(15,23,42,0.16)",
+                      }}
+                    />
+                    <span
+                      className="mt-[2px] block h-[3px] w-[40%] rounded-full"
+                      style={{
+                        backgroundColor: dark
+                          ? "rgba(148,163,184,0.3)"
+                          : "rgba(15,23,42,0.1)",
+                      }}
+                    />
+                  </span>
+                  <span
+                    className={cn(
+                      "inline-flex h-[11px] items-center px-[5px] text-[5px] font-bold leading-none",
+                      card.pill,
+                    )}
+                    style={
+                      data.buttons === "outline"
+                        ? { border: "1px solid currentColor", color: ink }
+                        : { backgroundColor: primary, color: "#FFFFFF" }
+                    }
+                  >
+                    Message
+                  </span>
+                </div>,
+              )
+            : null}
 
           <div className="flex-1" />
         </div>

@@ -6,7 +6,11 @@ import {
   sectionCardClass,
   sectionContainerClass,
 } from "@/components/storefront/sections/shared";
-import { StorefrontQuickEditTarget } from "@/components/storefront/storefront-staff-edit";
+import { StorefrontInlineText } from "@/components/storefront/storefront-inline-text";
+import {
+  StorefrontQuickEditTarget,
+  useStorefrontStaffEditOptional,
+} from "@/components/storefront/storefront-staff-edit";
 import type {
   StorefrontAboutSectionSettings,
   StorefrontDesignBusiness,
@@ -22,8 +26,10 @@ export function AboutSection({
   business: StorefrontDesignBusiness | null | undefined;
   storeName: string;
 }) {
+  const staff = useStorefrontStaffEditOptional();
+  const editing = Boolean(staff?.editMode);
   const text = settings.text.trim() || business?.description?.trim() || "";
-  if (!text) {
+  if (!text && !editing) {
     return null;
   }
   const heading = settings.heading.trim() || `About ${storeName}`;
@@ -51,12 +57,33 @@ export function AboutSection({
               </div>
             ) : null}
             <div className={imageUrl ? "" : "sm:col-span-2"}>
-              <h2 className="font-heading text-lg font-bold tracking-[-0.02em] text-foreground sm:text-xl">
-                {heading}
-              </h2>
-              <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                {text}
-              </p>
+              <StorefrontInlineText
+                as="h2"
+                className="font-heading text-lg font-bold tracking-[-0.02em] text-foreground sm:text-xl"
+                value={heading}
+                placeholder="About heading"
+                onCommit={(next) => {
+                  void staff?.commitInlineField("about", { heading: next });
+                }}
+              >
+                <h2 className="font-heading text-lg font-bold tracking-[-0.02em] text-foreground sm:text-xl">
+                  {heading}
+                </h2>
+              </StorefrontInlineText>
+              <StorefrontInlineText
+                as="p"
+                multiline
+                className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground"
+                value={text}
+                placeholder="Tell shoppers your story"
+                onCommit={(next) => {
+                  void staff?.commitInlineField("about", { text: next });
+                }}
+              >
+                <p className="mt-2 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                  {text}
+                </p>
+              </StorefrontInlineText>
             </div>
           </div>
         </div>
