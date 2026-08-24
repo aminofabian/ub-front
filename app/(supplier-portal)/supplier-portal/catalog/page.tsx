@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -18,17 +18,9 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
 import {
-  mktChip,
-  mktChipActive,
-  mktPosAccentBar,
-  mktPosHeader,
-  mktPosSearch,
-  mktPosTile,
   spBtnGhost,
   spBtnPrimary,
-  spEyebrow,
   spPage,
-  spPanel,
   spSerifTitle,
 } from "@/components/supplier-portal/supplier-portal-ui";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
@@ -57,6 +49,9 @@ const EMPTY_FORM = {
 };
 
 const ALL_CATEGORY = "all";
+const INK = "#1c1915";
+const TEAL = "#0f766e";
+const MANGO = "#b9691a";
 
 function hueFromId(id: string): number {
   let hash = 0;
@@ -144,7 +139,12 @@ export default function SupplierPortalCatalogPage() {
     [products],
   );
 
-  const onCreate = async (e: React.FormEvent) => {
+  const pdfProductCount =
+    filtered.length > 0 && (query || category !== ALL_CATEGORY)
+      ? filtered.length
+      : products.length;
+
+  const onCreate = async (e: FormEvent) => {
     e.preventDefault();
     const price = Number(form.unitPrice);
     if (!form.name.trim() || !Number.isFinite(price)) {
@@ -227,7 +227,8 @@ export default function SupplierPortalCatalogPage() {
         contactPhone: profile?.contactPhone,
         contactEmail: profile?.contactEmail,
         username: profile?.username,
-        products: filtered.length > 0 && (query || category !== ALL_CATEGORY) ? filtered : products,
+        products:
+          filtered.length > 0 && (query || category !== ALL_CATEGORY) ? filtered : products,
       });
       toast.success("Catalogue PDF downloaded");
     } catch (error) {
@@ -239,99 +240,102 @@ export default function SupplierPortalCatalogPage() {
 
   return (
     <SupplierPortalShell>
-      <div className={cn(spPage, "space-y-5")}>
-        <header className="relative overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.35]"
-            style={{
-              background:
-                "radial-gradient(80% 120% at 0% 0%, color-mix(in_srgb,#0f766e 22%, transparent), transparent 55%)," +
-                "radial-gradient(60% 80% at 100% 20%, color-mix(in_srgb,#c4a574 18%, transparent), transparent 50%)," +
-                "linear-gradient(135deg, transparent 40%, color-mix(in_srgb,var(--pos-ink,#1c1915) 4%, transparent) 40.5%, transparent 41%)",
-            }}
-          />
-          <div className="relative flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-5">
-            <div>
-              <p className={spEyebrow}>sell · catalogue</p>
-              <h2 className={cn(spSerifTitle, "mt-1")}>Catalogue</h2>
-              <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
-                Your wholesale shelf — photos from linked shops, prices shops see when they order.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className={spBtnGhost}
-                onClick={() => setComposerOpen((v) => !v)}
-              >
-                {composerOpen ? <X className="size-3.5" /> : <Plus className="size-3.5" />}
-                {composerOpen ? "Close" : "Add product"}
-              </button>
-              <button
-                type="button"
-                className={spBtnPrimary}
-                disabled={pdfBusy || loading || products.length === 0}
-                onClick={onDownloadPdf}
-              >
-                {pdfBusy ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Download className="size-3.5" />
-                )}
-                Download PDF
-              </button>
-            </div>
+      <div
+        className={cn(spPage, "space-y-4")}
+        style={
+          {
+            ["--pos-primary" as string]: TEAL,
+            ["--cat-ink" as string]: INK,
+            ["--cat-mango" as string]: MANGO,
+        } as CSSProperties
+      }
+      >
+        <header className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className={cn(spSerifTitle, "text-[1.85rem] leading-none sm:text-[2.35rem]")}>
+              Catalogue
+            </h2>
+            <p className="mt-1.5 max-w-xl text-[13px] text-[color-mix(in_srgb,var(--cat-ink)_55%,transparent)]">
+              Your wholesale shelf — prices shops see when they order.
+            </p>
           </div>
-          <div className="relative flex flex-wrap gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-4 py-3 sm:px-5">
-            <span className={mktChip}>{products.length} products</span>
-            <span className={mktChip}>{categories.length} categories</span>
-            <span className={mktChip}>{pricedCount} priced</span>
-            <span className={mktChip}>{withPhotos} with photos</span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={spBtnGhost}
+              onClick={() => setComposerOpen((v) => !v)}
+            >
+              {composerOpen ? <X className="size-3.5" /> : <Plus className="size-3.5" />}
+              {composerOpen ? "Close" : "Add product"}
+            </button>
+            <button
+              type="button"
+              className={spBtnPrimary}
+              disabled={pdfBusy || loading || products.length === 0}
+              onClick={onDownloadPdf}
+            >
+              {pdfBusy ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Download className="size-3.5" />
+              )}
+              Price list PDF
+            </button>
           </div>
         </header>
 
+        {/* Ledger strip */}
+        <div className="flex flex-wrap items-stretch gap-px overflow-hidden border border-[color-mix(in_srgb,var(--cat-ink)_14%,transparent)] bg-[color-mix(in_srgb,var(--cat-ink)_14%,transparent)]">
+          <LedgerStat label="Products" value={String(products.length)} />
+          <LedgerStat label="Categories" value={String(categories.length)} />
+          <LedgerStat label="Priced" value={String(pricedCount)} />
+          <LedgerStat label="With photos" value={String(withPhotos)} />
+        </div>
+
         {composerOpen ? (
-          <section className={spPanel}>
-            <div className={mktPosHeader}>
+          <section className="overflow-hidden border border-[color-mix(in_srgb,var(--cat-ink)_14%,transparent)] bg-[color-mix(in_srgb,#fff_82%,#f7f3eb)]">
+            <div className="flex h-9 items-center justify-between bg-[var(--pos-primary)] px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
               <span>New product</span>
-              <span>draft</span>
+              <span className="font-mono opacity-85">draft</span>
             </div>
-            <form className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3" onSubmit={onCreate}>
+            <form
+              className="grid gap-2.5 p-3 sm:grid-cols-2 lg:grid-cols-3 sm:p-4"
+              onSubmit={onCreate}
+            >
               <Input
                 placeholder="Product name *"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                className="rounded-none sm:col-span-2"
+                className="h-9 rounded-none border-[color-mix(in_srgb,var(--cat-ink)_16%,transparent)] bg-[color-mix(in_srgb,#faf7f1_90%,transparent)] sm:col-span-2"
               />
               <Input
                 placeholder="Unit price *"
                 value={form.unitPrice}
                 onChange={(e) => setForm((f) => ({ ...f, unitPrice: e.target.value }))}
-                className="rounded-none"
+                className="h-9 rounded-none border-[color-mix(in_srgb,var(--cat-ink)_16%,transparent)] bg-[color-mix(in_srgb,#faf7f1_90%,transparent)] font-mono"
               />
               <Input
                 placeholder="Barcode"
                 value={form.barcode}
                 onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))}
-                className="rounded-none"
+                className="h-9 rounded-none border-[color-mix(in_srgb,var(--cat-ink)_16%,transparent)] bg-[color-mix(in_srgb,#faf7f1_90%,transparent)] font-mono"
               />
               <Input
                 placeholder="SKU"
                 value={form.sku}
                 onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
-                className="rounded-none"
+                className="h-9 rounded-none border-[color-mix(in_srgb,var(--cat-ink)_16%,transparent)] bg-[color-mix(in_srgb,#faf7f1_90%,transparent)] font-mono"
               />
               <Input
                 placeholder="Category"
                 value={form.categoryName}
                 onChange={(e) => setForm((f) => ({ ...f, categoryName: e.target.value }))}
-                className="rounded-none"
+                className="h-9 rounded-none border-[color-mix(in_srgb,var(--cat-ink)_16%,transparent)] bg-[color-mix(in_srgb,#faf7f1_90%,transparent)]"
               />
               <button
                 type="submit"
                 disabled={creating}
-                className={cn(spBtnPrimary, "sm:col-span-2 lg:col-span-3")}
+                className={cn(spBtnPrimary, "h-10 sm:col-span-2 lg:col-span-3")}
               >
                 <Plus className="size-3.5" />
                 {creating ? "Adding…" : "Add to shelf"}
@@ -340,64 +344,67 @@ export default function SupplierPortalCatalogPage() {
           </section>
         ) : null}
 
-        <section className={spPanel}>
-          <div className={mktPosHeader}>
-            <span>1 · Shelf</span>
-            <span>{filtered.length}</span>
+        {/* Shelf board */}
+        <section
+          className={cn(
+            "overflow-hidden border border-[color-mix(in_srgb,var(--cat-ink)_14%,transparent)]",
+            "bg-[linear-gradient(165deg,#faf7f1_0%,#f3eee6_48%,#ebe4d8_100%)]",
+          )}
+        >
+          <div
+            className={cn(
+              "flex h-9 items-center justify-between px-3",
+              "bg-[linear-gradient(100deg,var(--pos-primary)_0%,#0d6a63_70%,#b9691a_160%)]",
+              "text-[10px] font-bold uppercase tracking-[0.16em] text-white",
+            )}
+          >
+            <span>Shelf</span>
+            <span className="font-mono tabular-nums opacity-85">{filtered.length}</span>
           </div>
-          <div className="flex flex-col gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 py-3">
+
+          <div className="flex flex-col gap-2.5 border-b border-[color-mix(in_srgb,var(--cat-ink)_10%,transparent)] bg-[color-mix(in_srgb,#fff_55%,transparent)] px-3 py-3">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--cat-ink)_40%,transparent)]" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search name, barcode, SKU…"
-                className={cn(mktPosSearch, "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)]")}
+                className="h-9 w-full border border-[color-mix(in_srgb,var(--cat-ink)_14%,transparent)] bg-[color-mix(in_srgb,#fff_88%,transparent)] pl-8 pr-2 text-[13px] text-[var(--cat-ink)] outline-none placeholder:text-[color-mix(in_srgb,var(--cat-ink)_35%,transparent)] focus:border-[var(--pos-primary)]"
               />
             </div>
             <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                className={cn(mktChip, category === ALL_CATEGORY && mktChipActive)}
+              <CategoryChip
+                label="All"
+                active={category === ALL_CATEGORY}
                 onClick={() => setCategory(ALL_CATEGORY)}
-              >
-                All
-              </button>
+              />
               {categories.map((c) => (
-                <button
+                <CategoryChip
                   key={c}
-                  type="button"
-                  className={cn(mktChip, category === c && mktChipActive)}
+                  label={c}
+                  active={category === c}
                   onClick={() => setCategory(c)}
-                >
-                  {c}
-                </button>
+                />
               ))}
               {products.some((p) => !p.categoryName?.trim()) ? (
-                <button
-                  type="button"
-                  className={cn(mktChip, category === "Uncategorised" && mktChipActive)}
+                <CategoryChip
+                  label="Uncategorised"
+                  active={category === "Uncategorised"}
                   onClick={() => setCategory("Uncategorised")}
-                >
-                  Uncategorised
-                </button>
+                />
               ) : null}
             </div>
           </div>
 
           {loading ? (
-            <div className="flex items-center gap-2 px-4 py-10 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 px-4 py-16 text-[13px] text-[color-mix(in_srgb,var(--cat-ink)_48%,transparent)]">
               <Loader2 className="size-4 animate-spin" />
               Loading shelf…
             </div>
           ) : filtered.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-              {products.length === 0
-                ? "No products yet. Add your first item, or sign out/in so linked shop products can import."
-                : "No products match this filter."}
-            </p>
+            <EmptyShelf hasAny={products.length > 0} />
           ) : (
-            <div className="grid grid-cols-2 gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-px bg-[color-mix(in_srgb,var(--cat-ink)_10%,transparent)] sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
               {filtered.map((product, index) => (
                 <CatalogTile
                   key={product.id}
@@ -411,40 +418,52 @@ export default function SupplierPortalCatalogPage() {
           )}
         </section>
 
-        <section className={cn(spPanel, "overflow-hidden")}>
-          <div className={mktPosHeader}>
-            <span>2 · Lookbook PDF</span>
-            <span>print-ready</span>
+        {/* Lookbook / PDF */}
+        <section className="overflow-hidden border border-[color-mix(in_srgb,var(--cat-ink)_14%,transparent)] bg-[color-mix(in_srgb,#fff_82%,#f7f3eb)]">
+          <div className="flex h-9 items-center justify-between bg-[var(--pos-primary)] px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+            <span>Price list</span>
+            <span className="font-mono opacity-85">print-ready</span>
           </div>
-          <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="relative border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] p-5 lg:border-b-0 lg:border-r">
-              <span className={mktPosAccentBar} />
-              <p className={cn(spEyebrow, "pl-2")}>share with buyers</p>
-              <h3 className="mt-1 pl-2 font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
-                Download a styled price list
+          <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="relative border-b border-[color-mix(in_srgb,var(--cat-ink)_12%,transparent)] p-5 lg:border-b-0 lg:border-r">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary)]"
+              />
+              <h3 className="pl-3 font-[family-name:var(--font-heading)] text-[1.45rem] font-semibold leading-tight tracking-tight text-[var(--cat-ink)]">
+                Download a wholesale price list
               </h3>
-              <p className="mt-2 max-w-md pl-2 text-sm text-muted-foreground">
-                Teal cover, category sections, pack sizes and wholesale prices — ready to email or
-                print for shopkeepers.
+              <p className="mt-2 max-w-md pl-3 text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--cat-ink)_55%,transparent)]">
+                Cover page, category chapters, mango prices — ready to email or print for
+                shopkeepers.
               </p>
-              <ul className="mt-4 space-y-1.5 pl-2 text-sm text-[var(--pos-ink,#1c1915)]">
+              <ul className="mt-4 space-y-2 pl-3 text-[13px] text-[var(--cat-ink)]">
                 <li className="flex gap-2">
-                  <span className="text-[var(--pos-primary,#0f766e)]">▸</span>
-                  Groups by category automatically
+                  <span
+                    aria-hidden
+                    className="mt-1.5 size-1.5 shrink-0 bg-[var(--pos-primary)]"
+                  />
+                  Groups by category with a trade-list cover
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-[var(--pos-primary,#0f766e)]">▸</span>
+                  <span
+                    aria-hidden
+                    className="mt-1.5 size-1.5 shrink-0 bg-[var(--pos-primary)]"
+                  />
                   Uses your current search / filter when set
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-[var(--pos-primary,#0f766e)]">▸</span>
+                  <span
+                    aria-hidden
+                    className="mt-1.5 size-1.5 shrink-0 bg-[var(--pos-primary)]"
+                  />
                   Includes contact details from your profile
                 </li>
               </ul>
-              <div className="mt-5 pl-2">
+              <div className="mt-5 pl-3">
                 <button
                   type="button"
-                  className={spBtnPrimary}
+                  className={cn(spBtnPrimary, "h-10")}
                   disabled={pdfBusy || products.length === 0}
                   onClick={onDownloadPdf}
                 >
@@ -453,24 +472,74 @@ export default function SupplierPortalCatalogPage() {
                   ) : (
                     <Download className="size-3.5" />
                   )}
-                  Download catalogue PDF
+                  Download price list PDF
                 </button>
               </div>
             </div>
 
             <LookbookPreview
               supplierName={profile?.name ?? "Your brand"}
-              productCount={
-                filtered.length > 0 && (query || category !== ALL_CATEGORY)
-                  ? filtered.length
-                  : products.length
-              }
+              productCount={pdfProductCount}
+              categoryCount={categories.length}
               sample={filtered.slice(0, 5)}
             />
           </div>
         </section>
       </div>
     </SupplierPortalShell>
+  );
+}
+
+function LedgerStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-[6.5rem] flex-1 flex-col gap-0.5 bg-[color-mix(in_srgb,#fff_78%,#f7f3eb)] px-3 py-2.5">
+      <span className="font-mono text-[1.15rem] font-bold tabular-nums leading-none text-[var(--pos-primary)]">
+        {value}
+      </span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--cat-ink)_48%,transparent)]">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function CategoryChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "border px-2.5 py-1 text-[11px] font-semibold transition-colors",
+        active
+          ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--cat-ink)]"
+          : "border-[color-mix(in_srgb,var(--cat-ink)_14%,transparent)] bg-[color-mix(in_srgb,#fff_70%,transparent)] text-[color-mix(in_srgb,var(--cat-ink)_58%,transparent)] hover:border-[color-mix(in_srgb,var(--cat-ink)_28%,transparent)] hover:text-[var(--cat-ink)]",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+function EmptyShelf({ hasAny }: { hasAny: boolean }) {
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+      <span className="flex size-14 items-center justify-center border border-dashed border-[color-mix(in_srgb,var(--cat-ink)_22%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]">
+        <Package className="size-6 text-[var(--pos-primary)] opacity-80" strokeWidth={1.4} />
+      </span>
+      <p className="max-w-[18rem] text-[13px] leading-snug text-[color-mix(in_srgb,var(--cat-ink)_55%,transparent)]">
+        {hasAny
+          ? "No products match this filter."
+          : "No products yet. Add your first item, or sign out/in so linked shop products can import."}
+      </p>
+    </div>
   );
 }
 
@@ -492,16 +561,16 @@ function CatalogTile({
 
   return (
     <article
-      className={cn(mktPosTile, "bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)]")}
+      className="group flex flex-col bg-[color-mix(in_srgb,#fff_92%,#f7f3eb)] transition-[background] duration-200 hover:bg-white"
       style={{ animationDelay: `${Math.min(index, 16) * 28}ms` }}
     >
       <div
-        className="relative aspect-square w-full overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]"
+        className="relative aspect-square w-full overflow-hidden border-b border-[color-mix(in_srgb,var(--cat-ink)_8%,transparent)]"
         style={
           showImage
             ? undefined
             : {
-                background: `linear-gradient(145deg, hsl(${hue} 22% 88%), hsl(${(hue + 32) % 360} 16% 76%))`,
+                background: `linear-gradient(145deg, hsl(${hue} 18% 90%), hsl(${(hue + 28) % 360} 14% 78%))`,
               }
         }
       >
@@ -511,49 +580,51 @@ function CatalogTile({
             alt={product.name}
             fill
             unoptimized
-            className="object-contain p-1 transition-transform duration-300 group-hover:scale-[1.05]"
+            className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-[1.04]"
             sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 160px"
             onError={() => setFailed(true)}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
-            <span className="inline-flex size-10 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card/80 text-[11px] font-bold tracking-wide text-[var(--pos-ink,#1c1915)]">
+            <span className="inline-flex size-10 items-center justify-center border border-[color-mix(in_srgb,var(--cat-ink)_14%,transparent)] bg-[color-mix(in_srgb,#fff_70%,transparent)] font-mono text-[11px] font-bold tracking-wide text-[var(--cat-ink)]">
               {productInitials(product.name)}
             </span>
-            <Package className="size-4 opacity-40" />
           </div>
         )}
+        <span className="absolute bottom-1.5 left-1.5 font-mono text-[9px] font-bold tabular-nums text-[color-mix(in_srgb,var(--pos-primary)_80%,transparent)]">
+          {String(index + 1).padStart(2, "0")}
+        </span>
         {product.pendingEditId ? (
-          <span className="absolute left-1.5 top-1.5 border border-amber-700/30 bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-800">
+          <span className="absolute left-1.5 top-1.5 border border-[color-mix(in_srgb,var(--cat-mango)_45%,transparent)] bg-[color-mix(in_srgb,var(--cat-mango)_10%,#fff)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-[var(--cat-mango)]">
             Pending
           </span>
         ) : null}
         {!product.available ? (
-          <span className="absolute right-1.5 top-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_20%,transparent)] bg-card/90 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="absolute right-1.5 top-1.5 border border-[color-mix(in_srgb,var(--cat-ink)_18%,transparent)] bg-[color-mix(in_srgb,#fff_90%,transparent)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--cat-ink)_55%,transparent)]">
             Off
           </span>
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5 px-2 pb-2 pt-1.5">
-        <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
+      <div className="flex flex-1 flex-col gap-1 px-2 pb-2 pt-1.5">
+        <p className="line-clamp-2 text-[12.5px] font-semibold leading-snug text-[var(--cat-ink)]">
           {product.name}
         </p>
-        <p className="font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+        <p className="font-mono text-[12px] font-bold tabular-nums text-[var(--cat-mango)]">
           {product.unitPrice != null
             ? formatMoney(product.unitPrice, product.currency ?? "KES")
             : "Ask"}
         </p>
-        <p className="truncate text-[9px] text-muted-foreground">
+        <p className="truncate font-mono text-[9px] text-[color-mix(in_srgb,var(--cat-ink)_45%,transparent)]">
           {product.categoryName || "Uncategorised"}
           {product.barcode || product.sku ? ` · ${product.barcode ?? product.sku}` : ""}
         </p>
         {product.pendingProposed?.unitPrice != null ? (
-          <p className="text-[9px] text-amber-700">
+          <p className="text-[9px] text-[var(--cat-mango)]">
             Proposed → {String(product.pendingProposed.unitPrice)}
           </p>
         ) : null}
-        <div className="mt-auto flex gap-1 pt-1">
+        <div className="mt-auto flex gap-1 pt-1.5">
           <button
             type="button"
             className={cn(spBtnGhost, "h-7 flex-1 px-1.5 text-[9px]")}
@@ -579,54 +650,96 @@ function CatalogTile({
 function LookbookPreview({
   supplierName,
   productCount,
+  categoryCount,
   sample,
 }: {
   supplierName: string;
   productCount: number;
+  categoryCount: number;
   sample: SupplierPortalProduct[];
 }) {
   return (
     <div className="relative flex items-center justify-center bg-[linear-gradient(160deg,#e8e2d6,#f4efe6_45%,#ddd5c6)] p-6 sm:p-8">
       <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-30"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(-12deg, transparent, transparent 10px, color-mix(in_srgb,var(--pos-ink,#1c1915) 4%, transparent) 10px, color-mix(in_srgb,var(--pos-ink,#1c1915) 4%, transparent) 11px)",
-        }}
-      />
-      <div className="relative w-full max-w-[280px] rotate-[-2.5deg] border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] bg-[#fbf8f2] shadow-[8px_10px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] transition duration-300 hover:rotate-0">
-        <div className="bg-[var(--pos-primary,#0f766e)] px-3 py-3 text-[var(--pos-primary-ink,#fff)]">
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] opacity-80">Kiosk</p>
-          <p className="mt-1 font-[family-name:var(--font-heading)] text-lg font-semibold leading-tight">
-            Wholesale catalogue
+        className={cn(
+          "relative w-full max-w-[270px] overflow-hidden",
+          "border border-[color-mix(in_srgb,var(--cat-ink)_16%,transparent)] bg-[#fbf8f2]",
+          "shadow-[0_12px_28px_-8px_color-mix(in_srgb,var(--cat-ink)_28%,transparent)]",
+          "transition-transform duration-300 hover:-translate-y-0.5",
+        )}
+      >
+        <div className="relative bg-[var(--pos-primary)] px-3.5 pb-4 pt-3 text-white">
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-1 bg-[var(--cat-mango)]"
+          />
+          <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[color-mix(in_srgb,#fff_75%,transparent)]">
+            Kiosk · supplier
           </p>
-          <p className="mt-1 truncate text-[10px] opacity-90">{supplierName}</p>
+          <p className="mt-2 font-[family-name:var(--font-heading)] text-[1.35rem] font-semibold leading-none tracking-tight">
+            Wholesale
+          </p>
+          <p className="mt-0.5 font-[family-name:var(--font-heading)] text-[1.35rem] font-semibold leading-none tracking-tight">
+            price list
+          </p>
+          <p className="mt-2 truncate text-[11px] text-[color-mix(in_srgb,#fff_85%,transparent)]">
+            {supplierName}
+          </p>
+          <span
+            aria-hidden
+            className="absolute right-3 top-3 rotate-6 border border-[color-mix(in_srgb,#fff_45%,transparent)] px-1.5 py-1 text-[8px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,#fff_90%,transparent)]"
+          >
+            Trade
+          </span>
         </div>
-        <div className="space-y-2 px-3 py-3">
-          <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-[var(--pos-primary,#0f766e)]">
+        <div className="flex gap-4 border-b border-[color-mix(in_srgb,var(--cat-ink)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)] px-3.5 py-2">
+          <div>
+            <p className="font-mono text-[13px] font-bold tabular-nums text-[var(--pos-primary)]">
+              {productCount}
+            </p>
+            <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--cat-ink)_48%,transparent)]">
+              products
+            </p>
+          </div>
+          <div>
+            <p className="font-mono text-[13px] font-bold tabular-nums text-[var(--pos-primary)]">
+              {categoryCount}
+            </p>
+            <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--cat-ink)_48%,transparent)]">
+              categories
+            </p>
+          </div>
+        </div>
+        <div className="space-y-2 px-3.5 py-3">
+          <div className="flex items-center justify-between text-[8px] font-bold uppercase tracking-[0.12em] text-[var(--pos-primary)]">
             <span>Product</span>
             <span>Price</span>
           </div>
-          {(sample.length > 0 ? sample : [{ id: "empty", name: "Your products appear here", unitPrice: null, currency: "KES" } as SupplierPortalProduct]).map(
-            (row) => (
-              <div
-                key={row.id}
-                className="flex items-baseline justify-between gap-2 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] pb-1.5 text-[11px]"
-              >
-                <span className="truncate font-medium text-[var(--pos-ink,#1c1915)]">
-                  {row.name}
-                </span>
-                <span className="shrink-0 font-mono tabular-nums text-[var(--pos-ink,#1c1915)]">
-                  {row.unitPrice != null
-                    ? formatMoney(row.unitPrice, row.currency ?? "KES")
-                    : "—"}
-                </span>
-              </div>
-            ),
-          )}
-          <p className="pt-1 text-center text-[9px] text-muted-foreground">
-            {productCount} products · kiosk.ke
+          {(sample.length > 0
+            ? sample
+            : [
+                {
+                  id: "empty",
+                  name: "Your products appear here",
+                  unitPrice: null,
+                  currency: "KES",
+                } as SupplierPortalProduct,
+              ]
+          ).map((row) => (
+            <div
+              key={row.id}
+              className="flex items-baseline justify-between gap-2 border-b border-dashed border-[color-mix(in_srgb,var(--cat-ink)_12%,transparent)] pb-1.5 text-[11px]"
+            >
+              <span className="truncate font-medium text-[var(--cat-ink)]">{row.name}</span>
+              <span className="shrink-0 font-mono tabular-nums text-[var(--cat-mango)]">
+                {row.unitPrice != null
+                  ? formatMoney(row.unitPrice, row.currency ?? "KES")
+                  : "—"}
+              </span>
+            </div>
+          ))}
+          <p className="pt-1 text-center font-mono text-[8px] uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--cat-ink)_42%,transparent)]">
+            kiosk.ke
           </p>
         </div>
       </div>
