@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
+import { StorefrontEditableLogoMark } from "@/components/storefront/storefront-editable-logo";
 import styles from "@/components/storefront/templates/store/butcher-board.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -69,18 +69,13 @@ export function ButcherBoardHeader({
     <header className={cn(styles.header, className)}>
       <div className={styles.headerInner}>
         <Link href={APP_ROUTES.shop} className={styles.wordmark}>
-          {logoUrl ? (
-            <Image
-              src={logoUrl}
-              alt=""
-              width={36}
-              height={36}
-              className={styles.wordmarkImg}
-              unoptimized
-            />
-          ) : (
-            <Star />
-          )}
+          <StorefrontEditableLogoMark
+            logoUrl={logoUrl}
+            width={36}
+            height={36}
+            className={styles.wordmarkImg}
+            fallback={<Star />}
+          />
           <span className={styles.wordmarkText}>{storeName}</span>
         </Link>
         <SearchForm />

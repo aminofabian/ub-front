@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/spirits-cellar.module.css";
+import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
 import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -187,7 +188,10 @@ export function SpiritsCellarHero({
       <div className={styles.vaultInner}>
         <div className={styles.vaultHead}>
           <span className={styles.vaultBadge}>Grand niche · row A</span>
-          <h1 className={styles.vaultHeadline}>{headline}</h1>
+          <StorefrontNativeHeroHeadline
+            value={headline}
+            className={styles.vaultHeadline}
+          />
         </div>
         <NicheVisual
           item={item}

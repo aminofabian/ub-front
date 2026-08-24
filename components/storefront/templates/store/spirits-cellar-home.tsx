@@ -13,6 +13,11 @@ import { SpiritsCellarMobileSearch } from "@/components/storefront/templates/sto
 import { SpiritsCellarKeys } from "@/components/storefront/templates/store/spirits-cellar-keys";
 import styles from "@/components/storefront/templates/store/spirits-cellar.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
+import {
+  resolveNativeHeroHeadline,
+  StorefrontNativeHeroEditFrame,
+  StorefrontNativeHeroHeadline,
+} from "@/components/storefront/storefront-native-hero-copy";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
   resolveStorefrontDesign,
@@ -57,13 +62,16 @@ export function SpiritsCellarStoreHome(props: StoreHomeTemplateProps) {
 
   const wax = primaryHex?.trim() || "#8B2635";
   const spirit = accentHex?.trim() || "#C4B5FD";
-  const headline =
-    announcement?.trim() || "Tonight's sealed essence.";
   const heroSection = storefrontSectionConfig(design, "hero");
   const heroOn = heroSection?.enabled === true;
   const heroSettings = heroSection?.settings as
     | StorefrontHeroSectionSettings
     | undefined;
+  const headline = resolveNativeHeroHeadline(
+    heroSettings,
+    announcement,
+    "Tonight's sealed essence.",
+  );
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const buttons = resolveStorefrontDesign(design).buttons;
@@ -131,34 +139,41 @@ export function SpiritsCellarStoreHome(props: StoreHomeTemplateProps) {
             ctaAnchor="#vault-catalog"
           />
         ) : lead ? (
-          <section className={styles.descent} aria-label="Grand niche">
-            <SpiritsCellarHero item={lead} currency={currency} headline={headline} />
-            {stack.length > 0 ? (
-              <div className={styles.slots}>
-                {stack.map((item) => (
-                  <SpiritsCellarSlot key={item.id} item={item} currency={currency} />
-                ))}
-              </div>
-            ) : null}
-          </section>
+          <StorefrontNativeHeroEditFrame>
+            <section className={styles.descent} aria-label="Grand niche">
+              <SpiritsCellarHero item={lead} currency={currency} headline={headline} />
+              {stack.length > 0 ? (
+                <div className={styles.slots}>
+                  {stack.map((item) => (
+                    <SpiritsCellarSlot key={item.id} item={item} currency={currency} />
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          </StorefrontNativeHeroEditFrame>
         ) : (
-          <section className={styles.descent} aria-label="Grand niche">
-            <article className={styles.vault}>
-              <div className={styles.vaultInner}>
-                <div className={styles.vaultHead}>
-                  <span className={styles.vaultBadge}>Grand niche · row A</span>
-                  <h1 className={styles.vaultHeadline}>{headline}</h1>
+          <StorefrontNativeHeroEditFrame>
+            <section className={styles.descent} aria-label="Grand niche">
+              <article className={styles.vault}>
+                <div className={styles.vaultInner}>
+                  <div className={styles.vaultHead}>
+                    <span className={styles.vaultBadge}>Grand niche · row A</span>
+                    <StorefrontNativeHeroHeadline
+                      value={headline}
+                      className={styles.vaultHeadline}
+                    />
+                  </div>
+                  <span className={styles.visualPlaceholder} aria-hidden />
+                  <div className={styles.vaultLedger}>
+                    <p className={styles.ledgerValPlain}>{heroTitle}</p>
+                    <p className={styles.itemMeta}>
+                      The vault is quiet — new essences arriving soon.
+                    </p>
+                  </div>
                 </div>
-                <span className={styles.visualPlaceholder} aria-hidden />
-                <div className={styles.vaultLedger}>
-                  <p className={styles.ledgerValPlain}>{heroTitle}</p>
-                  <p className={styles.itemMeta}>
-                    The vault is quiet — new essences arriving soon.
-                  </p>
-                </div>
-              </div>
-            </article>
-          </section>
+              </article>
+            </section>
+          </StorefrontNativeHeroEditFrame>
         )}
 
         {productsOn ? (

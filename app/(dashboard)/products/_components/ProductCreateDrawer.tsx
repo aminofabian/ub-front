@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   PackagePlus,
   X,
@@ -14,6 +15,7 @@ import {
   Globe2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import {
@@ -1133,6 +1135,18 @@ export function ProductCreateDrawer({
             onClose={() => setScannerOpen(false)}
           />
         ) : null}
+
+        <p className="px-0.5 pt-1 text-center text-[11px] text-muted-foreground/70">
+          Not sure whether to use Single, Group, or packages?{" "}
+          <Link
+            href={APP_ROUTES.helpAddProducts}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
+            Read the step-by-step guide
+          </Link>
+        </p>
       </form>
     </FormDrawer>
   );

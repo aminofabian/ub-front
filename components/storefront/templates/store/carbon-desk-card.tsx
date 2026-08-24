@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/carbon-desk.module.css";
+import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
 import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -181,7 +182,10 @@ export function CarbonDeskHero({
       <div className={styles.heroInner}>
         <div className={styles.heroHead}>
           <span className={styles.formLabel}>Duplicate · counter copy</span>
-          <h1 className={styles.heroHeadline}>{headline}</h1>
+          <StorefrontNativeHeroHeadline
+            value={headline}
+            className={styles.heroHeadline}
+          />
         </div>
         <FormVisual
           item={item}

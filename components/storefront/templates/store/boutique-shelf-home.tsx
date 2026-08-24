@@ -13,6 +13,11 @@ import { BoutiqueShelfMobileSearch } from "@/components/storefront/templates/sto
 import { BoutiqueShelfLabels } from "@/components/storefront/templates/store/boutique-shelf-labels";
 import styles from "@/components/storefront/templates/store/boutique-shelf.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
+import {
+  resolveNativeHeroHeadline,
+  StorefrontNativeHeroEditFrame,
+  StorefrontNativeHeroHeadline,
+} from "@/components/storefront/storefront-native-hero-copy";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
   resolveStorefrontDesign,
@@ -57,13 +62,16 @@ export function BoutiqueShelfStoreHome(props: StoreHomeTemplateProps) {
 
   const rose = primaryHex?.trim() || "#DB2777";
   const brass = accentHex?.trim() || "#C9A227";
-  const headline =
-    announcement?.trim() || "Curated for the counter.";
   const heroSection = storefrontSectionConfig(design, "hero");
   const heroOn = heroSection?.enabled === true;
   const heroSettings = heroSection?.settings as
     | StorefrontHeroSectionSettings
     | undefined;
+  const headline = resolveNativeHeroHeadline(
+    heroSettings,
+    announcement,
+    "Curated for the counter.",
+  );
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const buttons = resolveStorefrontDesign(design).buttons;
@@ -131,33 +139,40 @@ export function BoutiqueShelfStoreHome(props: StoreHomeTemplateProps) {
             ctaAnchor="#shelf"
           />
         ) : lead ? (
-          <section className={styles.display} aria-label="Alcove display">
-            <BoutiqueShelfHero item={lead} currency={currency} headline={headline} />
-            {stack.length > 0 ? (
-              <div className={styles.slots}>
-                {stack.map((item) => (
-                  <BoutiqueShelfSlot key={item.id} item={item} currency={currency} />
-                ))}
-              </div>
-            ) : null}
-          </section>
-        ) : (
-          <section className={styles.display} aria-label="Alcove display">
-            <article className={styles.alcove}>
-              <span className={styles.spotlight} aria-hidden />
-              <div className={styles.alcoveInner}>
-                <p className={styles.alcoveEyebrow}>Staff pick · alcove display</p>
-                <h1 className={styles.alcoveHeadline}>{headline}</h1>
-                <span className={styles.visualPlaceholder} aria-hidden />
-                <div className={styles.alcoveCopy}>
-                  <p className={styles.alcoveName}>{heroTitle}</p>
-                  <p className={styles.itemMeta}>
-                    The alcove is being restocked — check back soon.
-                  </p>
+          <StorefrontNativeHeroEditFrame>
+            <section className={styles.display} aria-label="Alcove display">
+              <BoutiqueShelfHero item={lead} currency={currency} headline={headline} />
+              {stack.length > 0 ? (
+                <div className={styles.slots}>
+                  {stack.map((item) => (
+                    <BoutiqueShelfSlot key={item.id} item={item} currency={currency} />
+                  ))}
                 </div>
-              </div>
-            </article>
-          </section>
+              ) : null}
+            </section>
+          </StorefrontNativeHeroEditFrame>
+        ) : (
+          <StorefrontNativeHeroEditFrame>
+            <section className={styles.display} aria-label="Alcove display">
+              <article className={styles.alcove}>
+                <span className={styles.spotlight} aria-hidden />
+                <div className={styles.alcoveInner}>
+                  <p className={styles.alcoveEyebrow}>Staff pick · alcove display</p>
+                  <StorefrontNativeHeroHeadline
+                    value={headline}
+                    className={styles.alcoveHeadline}
+                  />
+                  <span className={styles.visualPlaceholder} aria-hidden />
+                  <div className={styles.alcoveCopy}>
+                    <p className={styles.alcoveName}>{heroTitle}</p>
+                    <p className={styles.itemMeta}>
+                      The alcove is being restocked — check back soon.
+                    </p>
+                  </div>
+                </div>
+              </article>
+            </section>
+          </StorefrontNativeHeroEditFrame>
         )}
 
         {productsOn ? (

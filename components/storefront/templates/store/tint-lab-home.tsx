@@ -10,6 +10,7 @@ import { TintLabShadeStory } from "@/components/storefront/templates/store/tint-
 import { TintLabSignup } from "@/components/storefront/templates/store/tint-lab-signup";
 import styles from "@/components/storefront/templates/store/tint-lab.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
+import { resolveNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
   resolveStorefrontDesign,
@@ -74,6 +75,11 @@ export function TintLabStoreHome(props: StoreHomeTemplateProps) {
   const heroSettings = heroSection?.settings as
     | StorefrontHeroSectionSettings
     | undefined;
+  const headline = resolveNativeHeroHeadline(
+    heroSettings,
+    announcement,
+    "Color that knows your undertone.",
+  );
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const buttons = resolveStorefrontDesign(design).buttons;
@@ -126,6 +132,7 @@ export function TintLabStoreHome(props: StoreHomeTemplateProps) {
           featuredName={lead?.name}
           featuredSku={lead?.sku}
           accentHex={accentHex}
+          headline={headline}
         />
       )}
 

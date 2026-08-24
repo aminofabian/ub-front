@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
+import { StorefrontEditableLogoMark } from "@/components/storefront/storefront-editable-logo";
 import styles from "@/components/storefront/templates/store/carbon-desk.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -74,16 +74,12 @@ export function CarbonDeskHeader({
     <header className={cn(styles.header, className)}>
       <div className={styles.headerInner}>
         <Link href={APP_ROUTES.shop} className={styles.letterhead}>
-          {logoUrl ? (
-            <Image
-              src={logoUrl}
-              alt=""
-              width={32}
-              height={32}
-              className={styles.letterheadImg}
-              unoptimized
-            />
-          ) : null}
+          <StorefrontEditableLogoMark
+            logoUrl={logoUrl}
+            width={32}
+            height={32}
+            className={styles.letterheadImg}
+          />
           <span className={styles.letterheadName}>{storeName}</span>
           <span className={styles.letterheadSub}>Stationery counter · open daily</span>
         </Link>

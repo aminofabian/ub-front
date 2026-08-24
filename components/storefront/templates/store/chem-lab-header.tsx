@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
+import { StorefrontEditableLogoMark } from "@/components/storefront/storefront-editable-logo";
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -74,20 +74,17 @@ export function ChemLabHeader({
     <header className={cn(styles.header, className)}>
       <div className={styles.headerInner}>
         <Link href={APP_ROUTES.shop} className={styles.wordmark}>
-          {logoUrl ? (
-            <Image
-              src={logoUrl}
-              alt=""
-              width={32}
-              height={32}
-              className={styles.wordmarkImg}
-              unoptimized
-            />
-          ) : (
-            <span className={styles.flaskIcon} aria-hidden>
-              ⚗
-            </span>
-          )}
+          <StorefrontEditableLogoMark
+            logoUrl={logoUrl}
+            width={32}
+            height={32}
+            className={styles.wordmarkImg}
+            fallback={
+              <span className={styles.flaskIcon} aria-hidden>
+                ⚗
+              </span>
+            }
+          />
           <span className={styles.wordmarkText}>{storeName}</span>
           <span className={styles.wordmarkSub}>Reagent bench · open</span>
         </Link>

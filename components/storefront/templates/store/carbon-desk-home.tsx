@@ -15,6 +15,11 @@ import {
 import { CarbonDeskTabs } from "@/components/storefront/templates/store/carbon-desk-tabs";
 import styles from "@/components/storefront/templates/store/carbon-desk.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
+import {
+  resolveNativeHeroHeadline,
+  StorefrontNativeHeroEditFrame,
+  StorefrontNativeHeroHeadline,
+} from "@/components/storefront/storefront-native-hero-copy";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
   resolveStorefrontDesign,
@@ -59,13 +64,16 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
 
   const stamp = primaryHex?.trim() || "#B91C1C";
   const carbon = accentHex?.trim() || "#3D6B9E";
-  const headline =
-    announcement?.trim() || "Today's counter copy.";
   const heroSection = storefrontSectionConfig(design, "hero");
   const heroOn = heroSection?.enabled === true;
   const heroSettings = heroSection?.settings as
     | StorefrontHeroSectionSettings
     | undefined;
+  const headline = resolveNativeHeroHeadline(
+    heroSettings,
+    announcement,
+    "Today's counter copy.",
+  );
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const buttons = resolveStorefrontDesign(design).buttons;
@@ -134,40 +142,47 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
             ctaAnchor="#file"
           />
         ) : lead ? (
-          <section className={styles.counter} aria-label="Counter duplicate">
-            <CarbonDeskHero item={lead} currency={currency} headline={headline} />
-            {stack.length > 0 ? (
-              <div className={styles.stack}>
-                {stack.map((item, i) => (
-                  <CarbonDeskSlip
-                    key={item.id}
-                    item={item}
-                    currency={currency}
-                    tilt={tilts[i] ?? "none"}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </section>
+          <StorefrontNativeHeroEditFrame>
+            <section className={styles.counter} aria-label="Counter duplicate">
+              <CarbonDeskHero item={lead} currency={currency} headline={headline} />
+              {stack.length > 0 ? (
+                <div className={styles.stack}>
+                  {stack.map((item, i) => (
+                    <CarbonDeskSlip
+                      key={item.id}
+                      item={item}
+                      currency={currency}
+                      tilt={tilts[i] ?? "none"}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          </StorefrontNativeHeroEditFrame>
         ) : (
-          <section className={styles.counter} aria-label="Counter duplicate">
-            <article className={styles.hero}>
-              <span className={styles.heroCarbon} aria-hidden />
-              <div className={styles.heroInner}>
-                <div className={styles.heroHead}>
-                  <span className={styles.formLabel}>Duplicate · counter copy</span>
-                  <h1 className={styles.heroHeadline}>{headline}</h1>
+          <StorefrontNativeHeroEditFrame>
+            <section className={styles.counter} aria-label="Counter duplicate">
+              <article className={styles.hero}>
+                <span className={styles.heroCarbon} aria-hidden />
+                <div className={styles.heroInner}>
+                  <div className={styles.heroHead}>
+                    <span className={styles.formLabel}>Duplicate · counter copy</span>
+                    <StorefrontNativeHeroHeadline
+                      value={headline}
+                      className={styles.heroHeadline}
+                    />
+                  </div>
+                  <span className={styles.photoPlaceholder} aria-hidden />
+                  <div className={styles.heroFields}>
+                    <p className={styles.fieldValPlain}>{heroTitle}</p>
+                    <p className={styles.formMeta}>
+                      Drawer empty — new stock slips coming soon.
+                    </p>
+                  </div>
                 </div>
-                <span className={styles.photoPlaceholder} aria-hidden />
-                <div className={styles.heroFields}>
-                  <p className={styles.fieldValPlain}>{heroTitle}</p>
-                  <p className={styles.formMeta}>
-                    Drawer empty — new stock slips coming soon.
-                  </p>
-                </div>
-              </div>
-            </article>
-          </section>
+              </article>
+            </section>
+          </StorefrontNativeHeroEditFrame>
         )}
 
         {productsOn ? (

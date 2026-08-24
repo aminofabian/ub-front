@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  BookOpen,
   Building2,
   CircleDollarSign,
   Layers,
@@ -162,6 +163,16 @@ export function ProductHeroHeader({
           <PackagePlus className="size-3" aria-hidden />
           New
         </Button>
+        <Link
+          href={APP_ROUTES.helpAddProducts}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-6 items-center gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground shadow-none transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          title="How to add products — step-by-step guide"
+        >
+          <BookOpen className="size-3" aria-hidden />
+          <span className="hidden sm:inline">Guide</span>
+        </Link>
       </div>
     </header>
   );

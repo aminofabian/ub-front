@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
+import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
 import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -185,7 +186,10 @@ export function ChemLabHero({
       <div className={styles.flaskInner}>
         <div className={styles.flaskHead}>
           <span className={styles.flaskBadge}>Primary reagent · bench A1</span>
-          <h1 className={styles.flaskHeadline}>{headline}</h1>
+          <StorefrontNativeHeroHeadline
+            value={headline}
+            className={styles.flaskHeadline}
+          />
         </div>
         <BottleVisual
           item={item}

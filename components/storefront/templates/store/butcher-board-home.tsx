@@ -13,6 +13,11 @@ import { ButcherBoardMobileSearch } from "@/components/storefront/templates/stor
 import { ButcherBoardTickets } from "@/components/storefront/templates/store/butcher-board-tickets";
 import styles from "@/components/storefront/templates/store/butcher-board.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
+import {
+  resolveNativeHeroHeadline,
+  StorefrontNativeHeroEditFrame,
+  StorefrontNativeHeroHeadline,
+} from "@/components/storefront/storefront-native-hero-copy";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
   resolveStorefrontDesign,
@@ -59,13 +64,16 @@ export function ButcherBoardStoreHome(props: StoreHomeTemplateProps) {
 
   const gold = accentHex?.trim() || "#F5C518";
   const crimson = primaryHex?.trim() || "#E31C23";
-  const headline =
-    announcement?.trim() || "Cut to order.";
   const heroSection = storefrontSectionConfig(design, "hero");
   const heroOn = heroSection?.enabled === true;
   const heroSettings = heroSection?.settings as
     | StorefrontHeroSectionSettings
     | undefined;
+  const headline = resolveNativeHeroHeadline(
+    heroSettings,
+    announcement,
+    "Cut to order.",
+  );
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const buttons = resolveStorefrontDesign(design).buttons;
@@ -140,40 +148,47 @@ export function ButcherBoardStoreHome(props: StoreHomeTemplateProps) {
             ctaAnchor="#board"
           />
         ) : lead ? (
-          <section className={styles.billboard} aria-label="Featured on the board">
-            <ButcherBoardHero
-              item={lead}
-              currency={currency}
-              headline={headline}
-            />
-            {stack.length > 0 ? (
-              <div className={styles.stack}>
-                {stack.map((item) => (
-                  <ButcherBoardVignette
-                    key={item.id}
-                    item={item}
-                    currency={currency}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </section>
+          <StorefrontNativeHeroEditFrame>
+            <section className={styles.billboard} aria-label="Featured on the board">
+              <ButcherBoardHero
+                item={lead}
+                currency={currency}
+                headline={headline}
+              />
+              {stack.length > 0 ? (
+                <div className={styles.stack}>
+                  {stack.map((item) => (
+                    <ButcherBoardVignette
+                      key={item.id}
+                      item={item}
+                      currency={currency}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          </StorefrontNativeHeroEditFrame>
         ) : (
-          <section className={styles.billboard} aria-label="Featured on the board">
-            <div className={cn(styles.hero, styles.heroGlow)}>
-              <div className={styles.heroClip}>
-                <span className={styles.heroPlaceholder} aria-hidden />
-                <span className={styles.heroShade} aria-hidden />
+          <StorefrontNativeHeroEditFrame>
+            <section className={styles.billboard} aria-label="Featured on the board">
+              <div className={cn(styles.hero, styles.heroGlow)}>
+                <div className={styles.heroClip}>
+                  <span className={styles.heroPlaceholder} aria-hidden />
+                  <span className={styles.heroShade} aria-hidden />
+                </div>
+                <div className={styles.heroCopy}>
+                  <StorefrontNativeHeroHeadline
+                    value={headline}
+                    className={styles.heroHeadline}
+                  />
+                  <p className={styles.heroProduct}>{heroTitle}</p>
+                  <p className={styles.heroMeta}>
+                    Nothing on the board yet — check back soon.
+                  </p>
+                </div>
               </div>
-              <div className={styles.heroCopy}>
-                <h1 className={styles.heroHeadline}>{headline}</h1>
-                <p className={styles.heroProduct}>{heroTitle}</p>
-                <p className={styles.heroMeta}>
-                  Nothing on the board yet — check back soon.
-                </p>
-              </div>
-            </div>
-          </section>
+            </section>
+          </StorefrontNativeHeroEditFrame>
         )}
 
         {productsOn ? (

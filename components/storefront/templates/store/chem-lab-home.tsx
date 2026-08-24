@@ -1,6 +1,5 @@
 "use client";
 
-import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import { Suspense, type CSSProperties } from "react";
 
 import {
@@ -13,6 +12,12 @@ import { ChemLabMobileSearch } from "@/components/storefront/templates/store/che
 import { ChemLabDrawers } from "@/components/storefront/templates/store/chem-lab-drawers";
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
+import {
+  resolveNativeHeroHeadline,
+  StorefrontNativeHeroEditFrame,
+  StorefrontNativeHeroHeadline,
+} from "@/components/storefront/storefront-native-hero-copy";
+import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
   resolveStorefrontDesign,
@@ -57,13 +62,16 @@ export function ChemLabStoreHome(props: StoreHomeTemplateProps) {
 
   const neon = primaryHex?.trim() || "#84CC16";
   const amber = accentHex?.trim() || "#F59E0B";
-  const headline =
-    announcement?.trim() || "Today's primary reagent.";
   const heroSection = storefrontSectionConfig(design, "hero");
   const heroOn = heroSection?.enabled === true;
   const heroSettings = heroSection?.settings as
     | StorefrontHeroSectionSettings
     | undefined;
+  const headline = resolveNativeHeroHeadline(
+    heroSettings,
+    announcement,
+    "Today's primary reagent.",
+  );
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const buttons = resolveStorefrontDesign(design).buttons;
@@ -131,34 +139,41 @@ export function ChemLabStoreHome(props: StoreHomeTemplateProps) {
             ctaAnchor="#inventory"
           />
         ) : lead ? (
-          <section className={styles.bench} aria-label="Primary reagent">
-            <ChemLabHero item={lead} currency={currency} headline={headline} />
-            {stack.length > 0 ? (
-              <div className={styles.vials}>
-                {stack.map((item) => (
-                  <ChemLabVial key={item.id} item={item} currency={currency} />
-                ))}
-              </div>
-            ) : null}
-          </section>
+          <StorefrontNativeHeroEditFrame>
+            <section className={styles.bench} aria-label="Primary reagent">
+              <ChemLabHero item={lead} currency={currency} headline={headline} />
+              {stack.length > 0 ? (
+                <div className={styles.vials}>
+                  {stack.map((item) => (
+                    <ChemLabVial key={item.id} item={item} currency={currency} />
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          </StorefrontNativeHeroEditFrame>
         ) : (
-          <section className={styles.bench} aria-label="Primary reagent">
-            <article className={styles.flask}>
-              <div className={styles.flaskInner}>
-                <div className={styles.flaskHead}>
-                  <span className={styles.flaskBadge}>Primary reagent · bench A1</span>
-                  <h1 className={styles.flaskHeadline}>{headline}</h1>
+          <StorefrontNativeHeroEditFrame>
+            <section className={styles.bench} aria-label="Primary reagent">
+              <article className={styles.flask}>
+                <div className={styles.flaskInner}>
+                  <div className={styles.flaskHead}>
+                    <span className={styles.flaskBadge}>Primary reagent · bench A1</span>
+                    <StorefrontNativeHeroHeadline
+                      value={headline}
+                      className={styles.flaskHeadline}
+                    />
+                  </div>
+                  <span className={styles.visualPlaceholder} aria-hidden />
+                  <div className={styles.flaskSpec}>
+                    <p className={styles.specValPlain}>{heroTitle}</p>
+                    <p className={styles.itemMeta}>
+                      Bench empty — new compounds arriving soon.
+                    </p>
+                  </div>
                 </div>
-                <span className={styles.visualPlaceholder} aria-hidden />
-                <div className={styles.flaskSpec}>
-                  <p className={styles.specValPlain}>{heroTitle}</p>
-                  <p className={styles.itemMeta}>
-                    Bench empty — new compounds arriving soon.
-                  </p>
-                </div>
-              </div>
-            </article>
-          </section>
+              </article>
+            </section>
+          </StorefrontNativeHeroEditFrame>
         )}
 
         {productsOn ? (

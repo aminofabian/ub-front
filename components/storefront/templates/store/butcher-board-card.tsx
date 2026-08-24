@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/butcher-board.module.css";
+import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
 import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -193,7 +194,10 @@ export function ButcherBoardHero({
         <StorefrontProductPhotoButton itemId={item.id} itemName={item.name} />
       </Link>
       <div className={styles.heroCopy}>
-        <h1 className={styles.heroHeadline}>{headline}</h1>
+        <StorefrontNativeHeroHeadline
+          value={headline}
+          className={styles.heroHeadline}
+        />
         <p className={styles.heroProduct}>{item.name}</p>
         <p className={styles.heroMeta}>
           {priceLabel(item, currency)}

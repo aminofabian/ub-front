@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/boutique-shelf.module.css";
+import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
 import { StorefrontProductPhotoButton } from "@/components/storefront/storefront-product-photo-button";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -176,7 +177,10 @@ export function BoutiqueShelfHero({
       <span className={styles.spotlight} aria-hidden />
       <div className={styles.alcoveInner}>
         <p className={styles.alcoveEyebrow}>Staff pick · alcove display</p>
-        <h1 className={styles.alcoveHeadline}>{headline}</h1>
+        <StorefrontNativeHeroHeadline
+          value={headline}
+          className={styles.alcoveHeadline}
+        />
         <BoxVisual
           item={item}
           href={href}

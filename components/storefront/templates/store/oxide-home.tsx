@@ -9,6 +9,11 @@ import { oxideFontVariables } from "@/components/storefront/templates/store/oxid
 import { OxideSignup } from "@/components/storefront/templates/store/oxide-signup";
 import styles from "@/components/storefront/templates/store/oxide.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
+import {
+  StorefrontNativeHeroEditFrame,
+  StorefrontNativeHeroHeadline,
+  StorefrontNativeHeroLead,
+} from "@/components/storefront/storefront-native-hero-copy";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
   resolveStorefrontDesign,
@@ -100,7 +105,8 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
           ctaAnchor="#catalog"
         />
       ) : (
-        <section className={styles.hero}>
+        <StorefrontNativeHeroEditFrame>
+          <section className={styles.hero}>
         <div className={styles.heroGrid}>
           <div className={styles.heroLeft}>
             <div className={styles.eyebrow}>
@@ -109,27 +115,21 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
                 ? `Collection — ${areaLabel}`
                 : "Collection 04 — Weather line"}
             </div>
-            <h1 className={styles.headline}>
-              {heroTitle.trim() ? (
-                <>
-                  {heroTitle}
-                  <br />
-                  <span className={styles.strike}>Archive</span>
-                </>
-              ) : (
-                <>
-                  Garments
-                  <br />
-                  Built Like
-                  <br />
-                  <span className={styles.strike}>Tools</span>
-                </>
-              )}
-            </h1>
-            <p className={styles.heroSub}>
-              {announcement?.trim() ||
-                "Cut from the same logic as work equipment: reinforced seams, honest fabric weights, and hardware that answers to use, not trend. No fashion cycle. Just a spec sheet that holds up."}
-            </p>
+            <StorefrontNativeHeroHeadline
+              value={
+                heroSettings?.headline.trim() ||
+                heroTitle.trim() ||
+                "Garments Built Like Tools"
+              }
+              className={styles.headline}
+            />
+            <StorefrontNativeHeroLead
+              value={
+                announcement?.trim() ||
+                "Cut from the same logic as work equipment: reinforced seams, honest fabric weights, and hardware that answers to use, not trend. No fashion cycle. Just a spec sheet that holds up."
+              }
+              className={styles.heroSub}
+            />
             <div className={styles.heroCta}>
               <a className={styles.btnPrimary} href="#catalog">
                 Shop the archive <span className={styles.mono}>→</span>
@@ -209,6 +209,7 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
           </div>
         </div>
       </section>
+        </StorefrontNativeHeroEditFrame>
       )}
 
       {productsOn ? (

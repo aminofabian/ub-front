@@ -10,6 +10,11 @@ import { beautyEditFontVariables } from "@/components/storefront/templates/store
 import { BeautyEditNewsletter } from "@/components/storefront/templates/store/beauty-edit-newsletter";
 import styles from "@/components/storefront/templates/store/beauty-edit.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
+import {
+  resolveNativeHeroHeadline,
+  StorefrontNativeHeroEditFrame,
+  StorefrontNativeHeroHeadline,
+} from "@/components/storefront/storefront-native-hero-copy";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
   resolveStorefrontDesign,
@@ -62,6 +67,11 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
   const heroSettings = heroSection?.settings as
     | StorefrontHeroSectionSettings
     | undefined;
+  const headline = resolveNativeHeroHeadline(
+    heroSettings,
+    announcement,
+    HERO_COPY[0].headline,
+  );
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const buttons = resolveStorefrontDesign(design).buttons;
@@ -116,30 +126,45 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
           ctaAnchor="#catalog"
         />
       ) : (
-        <section className={styles.hero} aria-label="Featured collections">
-          {heroItems.length > 0 ? (
-            heroItems.map((item, i) => (
-              <BeautyEditHeroPanel
-                key={item.id}
-                item={item}
-                currency={currency}
-                headline={HERO_COPY[i]?.headline ?? item.name}
-                cta={HERO_COPY[i]?.cta ?? "Shop now"}
-              />
-            ))
-          ) : (
-            HERO_COPY.map((copy, i) => (
-              <div key={i} className={styles.heroPanel} aria-hidden={i > 0}>
-                <span className={styles.heroPanelFallback} />
-                <span className={styles.heroShade} />
-                <span className={styles.heroPanelCopy}>
-                  <span className={styles.heroPanelTitle}>{copy.headline}</span>
-                  <span className={styles.heroPanelCta}>{copy.cta}</span>
-                </span>
-              </div>
-            ))
-          )}
-        </section>
+        <StorefrontNativeHeroEditFrame>
+          <section className={styles.hero} aria-label="Featured collections">
+            {heroItems.length > 0 ? (
+              heroItems.map((item, i) => (
+                <BeautyEditHeroPanel
+                  key={item.id}
+                  item={item}
+                  currency={currency}
+                  headline={
+                    i === 0
+                      ? headline
+                      : (HERO_COPY[i]?.headline ?? item.name)
+                  }
+                  cta={HERO_COPY[i]?.cta ?? "Shop now"}
+                  editableHeadline={i === 0}
+                />
+              ))
+            ) : (
+              HERO_COPY.map((copy, i) => (
+                <div key={i} className={styles.heroPanel} aria-hidden={i > 0}>
+                  <span className={styles.heroPanelFallback} />
+                  <span className={styles.heroShade} />
+                  <span className={styles.heroPanelCopy}>
+                    {i === 0 ? (
+                      <StorefrontNativeHeroHeadline
+                        as="span"
+                        value={headline}
+                        className={styles.heroPanelTitle}
+                      />
+                    ) : (
+                      <span className={styles.heroPanelTitle}>{copy.headline}</span>
+                    )}
+                    <span className={styles.heroPanelCta}>{copy.cta}</span>
+                  </span>
+                </div>
+              ))
+            )}
+          </section>
+        </StorefrontNativeHeroEditFrame>
       )}
 
       {productsOn ? (

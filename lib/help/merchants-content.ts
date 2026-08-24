@@ -241,7 +241,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
     updatedAt: "2026-07-21",
     tags: ["products", "catalog", "groups", "variants", "barcode", "import"],
     popular: true,
-    relatedSlugs: ["scan-barcodes-at-the-till", "run-a-stock-take"],
+    relatedSlugs: ["scan-barcodes-at-the-till", "run-a-stock-take", "how-to-add-products"],
     body: [
       {
         type: "paragraph",
@@ -801,7 +801,83 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
         text: "Packages let you sell the same item in different units that share one stock pool — for example eggs sold loose (1 piece) or as a tray (30 pieces). Selling one tray deducts 30 pieces from the same inventory, so stock never double-counts.",
       },
       {
-        type: 
+        type: "steps",
+        items: [
+          "While creating a single product, tick Sell in different units and fill each package row (name, conversion, price).",
+          "Already created? Open the product from the catalog and choose Package sales.",
+          "Enter the Package name (e.g. Tray of 30), the Conversion (how many base units are in it, e.g. 30), and the Price per package.",
+          "Add a SKU or Barcode for the package if you want to scan it, then tap Add package — it becomes a variant SKU that shares the base product's stock.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/add-package-modal.svg",
+        alt: "Package sales dialog for Coca-Cola 500 ml with package name Tray of 30, conversion 30 pieces per unit, price per package 1,500 KES, and the hint that selling one tray deducts 30 pieces from stock",
+        caption:
+          "Package sales: one tray = 30 pieces, deducted from the same stock when you sell it.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "Packages and option variants solve different problems: a package (tray of 30) shares the parent's stock through a conversion, while an option variant (500 ml vs 300 ml) usually keeps its own stock. Pick the model that matches how you receive goods.",
+      },
+      {
+        type: "heading",
+        text: "Manage your products after they are created",
+      },
+      {
+        type: "list",
+        items: [
+          "Select any product in the catalog to open its detail panel — edit name, SKU, barcode, sell price, and stock inline without leaving the page.",
+          "Use Edit for photos, description, supplier link, and buying cost.",
+          "Add variant grows a family; Package sales adds tray or crate SKUs; Change department moves the product between departments.",
+          "Track down problems from the header: missing barcode, no price, zero stock, and low stock counters filter the list in one tap.",
+          "Big cleanup? Import hundreds of SKUs from Business → Import, or fix barcodes in bulk from Inventory → Missing barcodes.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/product-detail-manage.svg",
+        alt: "Product detail panel for Coca-Cola showing sell price 60, buy cost 48, margin 20 percent, on hand 32, quick edit rows, Variant and Package sales buttons, and three variant rows",
+        caption:
+          "The detail panel is your management hub: quick-edit prices and stock, add variants or packages, and review every SKU.",
+      },
+      {
+        type: "faq",
+        items: [
+          {
+            question: "I already added sizes as separate single products — can I fix it?",
+            answer:
+              "Yes. Open the product and use Add variant / Add sibling to grow a family under one parent, or merge duplicates during a cleanup pass. Starting as a group is cleaner when you know sizes are coming.",
+          },
+          {
+            question: "What is the difference between a package variant and an option variant?",
+            answer:
+              "A package variant (e.g. tray of 30) shares the base product's stock and deducts a conversion when sold. An option variant (e.g. 500 ml vs 300 ml) normally keeps its own stock. Packages suit one item sold in multiple units; option variants suit a brand with distinct SKUs.",
+          },
+          {
+            question: "Do groups appear on the cashier?",
+            answer:
+              "Cashiers sell variants — the SKUs with prices and barcodes. Searching the brand name surfaces those variants under the group, so checkout stays fast.",
+          },
+          {
+            question: "What if an item has no barcode?",
+            answer:
+              "You can still sell it by searching the product or variant name on the cashier. Add the barcode later from the product detail when packaging arrives.",
+          },
+          {
+            question: "How do I stop selling a product?",
+            answer:
+              "Turn off Sellable on the product, or remove it from the catalog. Stock stays visible in reports either way, which keeps history honest.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    audience: "merchants",
+    categorySlug: "inventory",
+    slug: "understand-stock-levels",
     title: "Understand stock levels",
     description:
       "How on-hand quantity updates after sales, supplies, and transfers.",
