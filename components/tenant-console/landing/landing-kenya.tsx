@@ -31,8 +31,11 @@ export function LandingKenya() {
         />
 
         <ul className="landing-kenya-grid">
-          {PLATFORM_AUDIENCES.map((item) => (
+          {PLATFORM_AUDIENCES.map((item, i) => (
             <li key={item.title} className="landing-kenya-item">
+              <span className="landing-kenya-code" aria-hidden>
+                {String(i + 1).padStart(2, "0")}
+              </span>
               <h3 className="landing-kenya-title">{item.title}</h3>
               <p className="landing-kenya-body">{item.body}</p>
             </li>

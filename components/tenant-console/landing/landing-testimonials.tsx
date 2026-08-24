@@ -43,11 +43,14 @@ export function LandingTestimonials() {
         />
 
         <div className="landing-stories">
-          {STORIES.map((story) => (
+          {STORIES.map((story, i) => (
             <article key={story.title} className="landing-story">
               <header className="landing-story-head">
                 <span className="landing-story-mark" aria-hidden>
                   Floor note
+                </span>
+                <span className="landing-story-code" aria-hidden>
+                  {String(i + 1).padStart(2, "0")}
                 </span>
               </header>
 

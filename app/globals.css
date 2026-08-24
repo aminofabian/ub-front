@@ -1140,6 +1140,10 @@
         animation: none;
         transform: none;
     }
+
+    .landing-page .landing-faq-item[open] .landing-faq-a {
+        animation: none;
+    }
 }
 
 /* ── Landing footer — thermal receipt on the counter ── */
@@ -3325,7 +3329,7 @@ body:has(.landing-page) {
 }
 
 .landing-page .convert-section {
-    padding: 3rem 0 3.75rem;
+    padding: 3rem 0 4rem;
 }
 
 .landing-page .convert-inner {
@@ -3396,16 +3400,14 @@ body:has(.landing-page) {
 
 .landing-page .convert-pillars {
     display: grid;
-    gap: 0;
+    gap: 0.85rem;
     margin: 0;
     padding: 0;
     list-style: none;
-    border-top: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
 }
 
 .landing-page .convert-pillar {
-    padding: 1.25rem 0;
-    border-bottom: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+    padding: 1.5rem 1.4rem;
 }
 
 .landing-page .convert-pillar-code {
@@ -3454,7 +3456,7 @@ body:has(.landing-page) {
     }
 
     .landing-page .convert-section {
-        padding: 4.5rem 0 5.5rem;
+        padding: 7rem 0;
     }
 
     .landing-page .convert-inner {
@@ -3471,17 +3473,11 @@ body:has(.landing-page) {
 
     .landing-page .convert-pillars {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0 2.5rem;
-        border-top: 0;
+        gap: 1rem;
     }
 
     .landing-page .convert-pillar {
-        padding: 1.5rem 0;
-    }
-
-    .landing-page .convert-pillar:nth-child(1),
-    .landing-page .convert-pillar:nth-child(2) {
-        border-top: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+        padding: 1.75rem 1.5rem;
     }
 
     .landing-page .convert-pillar-title {
@@ -3508,7 +3504,7 @@ body:has(.landing-page) {
     }
 
     .landing-page .convert-pillars {
-        gap: 0 3.25rem;
+        gap: 1.25rem;
     }
 }
 
@@ -3739,6 +3735,14 @@ body:has(.landing-page) {
     flex-direction: column;
     padding: 1.25rem 1.15rem 1.2rem;
     border-bottom: 1px dashed color-mix(in srgb, var(--kiosk-text) 12%, transparent);
+    transition:
+        background-color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.landing-page .landing-story:hover {
+    background: color-mix(in srgb, var(--kiosk-card-bg-hover) 70%, transparent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .landing-page .landing-story:last-child {
@@ -3833,9 +3837,30 @@ body:has(.landing-page) {
     border-top: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
 }
 
+.landing-page .landing-kenya-code {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--kiosk-gold);
+}
+
 .landing-page .landing-kenya-item {
-    padding: 1.35rem 0;
+    position: relative;
+    padding: 1.35rem 0.35rem;
     border-bottom: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+    transition:
+        background-color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.landing-page .landing-kenya-item:hover {
+    background: color-mix(in srgb, var(--kiosk-elevated) 92%, #f3efe6);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.7) inset,
+        0 10px 28px -18px rgba(20, 20, 18, 0.22);
 }
 
 .landing-page .landing-kenya-title {
@@ -3867,7 +3892,7 @@ body:has(.landing-page) {
     }
 
     .landing-page .landing-kenya-item {
-        padding: 1.5rem 0;
+        padding: 1.5rem 0.35rem;
     }
 
     .landing-page .landing-kenya-title {
@@ -3891,6 +3916,17 @@ body:has(.landing-page) {
 }
 
 /* ── FAQ ── */
+@keyframes faq-answer-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .landing-page .landing-faq {
     display: flex;
     flex-direction: column;
@@ -3914,6 +3950,11 @@ body:has(.landing-page) {
     letter-spacing: -0.015em;
     line-height: 1.35;
     color: var(--kiosk-text);
+    transition: color 0.2s ease;
+}
+
+.landing-page .landing-faq-q:hover {
+    color: var(--kiosk-gold);
 }
 
 .landing-page .landing-faq-q::-webkit-details-marker {
@@ -3936,6 +3977,10 @@ body:has(.landing-page) {
 
 .landing-page .landing-faq-item[open] .landing-faq-icon {
     transform: rotate(45deg);
+}
+
+.landing-page .landing-faq-item[open] .landing-faq-a {
+    animation: faq-answer-in 0.28s ease-out;
 }
 
 .landing-page .landing-faq-a {
@@ -3966,6 +4011,23 @@ body:has(.landing-page) {
     padding: 0;
     list-style: none;
     border-top: 1px solid color-mix(in srgb, var(--kiosk-text) 8%, transparent);
+}
+
+.landing-page .landing-guide-code {
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 0.25rem;
+    min-width: 2rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--kiosk-gold);
+    transition: color 0.2s ease;
+}
+
+.landing-page .landing-guide-row:hover .landing-guide-code {
+    color: var(--kiosk-gold-hover);
 }
 
 .landing-page .landing-guide-row {

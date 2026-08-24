@@ -2,22 +2,30 @@
 
 import { ArrowRight } from "lucide-react";
 
-import { goldCtaClass, ghostCtaClass } from "./landing-styles";
+import {
+  goldCtaClass,
+  ghostCtaClass,
+  landingBentoCardClass,
+} from "./landing-styles";
 
 const PILLARS = [
   {
+    code: "01",
     title: "Sell faster at the Kenyan counter",
     body: "Barcode POS, M-Pesa STK, cash, and split pay — checkout that keeps moving when the network drops.",
   },
   {
+    code: "02",
     title: "Know your stock in real time",
     body: "One count across every branch and your online shop. Low-stock alerts before you run out.",
   },
   {
+    code: "03",
     title: "Open an online storefront",
     body: "Your branded Kenyan shop live in minutes. Same prices, same inventory, M-Pesa at checkout.",
   },
   {
+    code: "04",
     title: "Run every branch from one place",
     body: "Staff roles, shifts, suppliers, and transfers — one POS dashboard for every location in Kenya.",
   },
@@ -33,6 +41,7 @@ export function LandingFeatures({ onCreateShop }: LandingFeaturesProps) {
     <section id="features" className="section-reveal convert-section">
       <div className="convert-inner">
         <header className="convert-head">
+          <p className="convert-kicker">The platform</p>
           <h2 className="convert-title">
             Everything a POS in Kenya needs.
             <span> Nothing you don’t.</span>
@@ -61,7 +70,13 @@ export function LandingFeatures({ onCreateShop }: LandingFeaturesProps) {
 
         <ol className="convert-pillars">
           {PILLARS.map((pillar) => (
-            <li key={pillar.title} className="convert-pillar">
+            <li
+              key={pillar.title}
+              className={`${landingBentoCardClass} convert-pillar`}
+            >
+              <span className="convert-pillar-code" aria-hidden>
+                {pillar.code}
+              </span>
               <h3 className="convert-pillar-title">{pillar.title}</h3>
               <p className="convert-pillar-body">{pillar.body}</p>
             </li>

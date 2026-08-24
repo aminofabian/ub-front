@@ -33,9 +33,12 @@ export function LandingGuides() {
         />
 
         <ul className="landing-guides">
-          {PLATFORM_GUIDES.map((guide) => (
+          {PLATFORM_GUIDES.map((guide, i) => (
             <li key={guide.href}>
               <Link href={guide.href} className="landing-guide-row">
+                <span className="landing-guide-code" aria-hidden>
+                  {String(i + 1).padStart(2, "0")}
+                </span>
                 <div className="min-w-0">
                   <h3 className="landing-guide-title">{guide.title}</h3>
                   <p className="landing-guide-blurb">{guide.blurb}</p>
