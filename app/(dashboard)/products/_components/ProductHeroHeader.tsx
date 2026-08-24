@@ -5,6 +5,7 @@ import {
   BookOpen,
   Building2,
   CircleDollarSign,
+  FileUp,
   Layers,
   LayoutGrid,
   PackagePlus,
@@ -154,6 +155,17 @@ export function ProductHeroHeader({
             <span className="hidden sm:inline">Library</span>
           </Button>
         ) : null}
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="h-6 gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground shadow-none hover:text-foreground"
+        >
+          <Link href={APP_ROUTES.businessImport} title="Bulk import products from a CSV">
+            <FileUp className="size-3" aria-hidden />
+            <span className="hidden sm:inline">Import</span>
+          </Link>
+        </Button>
         <Button
           type="button"
           size="sm"

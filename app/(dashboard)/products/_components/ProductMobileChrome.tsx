@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Library, ListFilter, PackagePlus, Search, X } from "lucide-react";
+import Link from "next/link";
+import { FileUp, Library, ListFilter, PackagePlus, Search, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { APP_ROUTES } from "@/lib/config";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import {
   catalogFilterNeedsCountClass,
@@ -202,6 +204,15 @@ export function ProductMobileChrome({
               <Library className="size-3.5" aria-hidden />
             </button>
           ) : null}
+
+          <Link
+            href={APP_ROUTES.businessImport}
+            className={toolBtn}
+            aria-label="Import products from CSV"
+            title="Import"
+          >
+            <FileUp className="size-3.5" aria-hidden />
+          </Link>
 
           <button
             type="button"

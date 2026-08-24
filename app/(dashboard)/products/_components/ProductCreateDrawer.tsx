@@ -13,6 +13,8 @@ import {
   Plus,
   Camera,
   Globe2,
+  FileSpreadsheet,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
@@ -29,6 +31,7 @@ import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import type { BranchRecord, GlobalProductRecord, ItemTypeRecord } from "@/lib/api";
+import { fetchCsvImportTemplate } from "@/lib/api";
 import {
   productFormHintClass,
   productFormInputClass,
@@ -306,6 +309,31 @@ export function ProductCreateDrawer({
   const [moreExpanded, setMoreExpanded] = useState(false);
   const [descGenError, setDescGenError] = useState("");
   const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(null);
+  const [templateBusy, setTemplateBusy] = useState(false);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+
+  const downloadTemplate = useCallback(async () => {
+    setTemplateBusy(true);
+    setTemplateError(null);
+    try {
+      const blob = await fetchCsvImportTemplate("items");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "items-import-template.csv";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setTemplateError(
+        "Could not download the template here — open Business settings → Data import and download it there.",
+      );
+    } finally {
+      setTemplateBusy(false);
+    }
+  }, []);
 
   /* ── Reset when drawer opens ── */
   useEffect(() => {
@@ -576,6 +604,49 @@ export function ProductCreateDrawer({
       }
     >
       <form id="create-parent-form" className="space-y-1.5" onSubmit={handleSubmit}>
+        <div className="flex flex-wrap items-center gap-2 border border-border bg-muted/15 px-2.5 py-1.5">
+          <FileSpreadsheet className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-foreground/80">
+              Adding many products? Import them from a CSV.
+            </p>
+            <p className="mt-0.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
+              sku · name · item_type_key · barcode · unit_type · is_stocked · is_sellable · selling_price · reorder_level
+            </p>
+            {templateError ? (
+              <p className="mt-0.5 text-[10px] text-destructive">{templateError}</p>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 rounded-none px-2 text-[11px] shadow-none"
+              disabled={templateBusy}
+              onClick={() => void downloadTemplate()}
+            >
+              {templateBusy ? (
+                <Loader2 className="size-3 animate-spin" aria-hidden />
+              ) : (
+                <Download className="size-3" aria-hidden />
+              )}
+              Template
+            </Button>
+            <Button
+              asChild
+              type="button"
+              size="sm"
+              className="h-7 gap-1 rounded-none px-2 text-[11px] shadow-none"
+            >
+              <Link href={APP_ROUTES.businessImport}>
+                <Upload className="size-3" aria-hidden />
+                Upload CSV
+              </Link>
+            </Button>
+          </div>
+        </div>
+
         {m.parentDraft.globalProductSourceId ? (
           <div className="flex flex-wrap items-center gap-2 rounded-none border border-border bg-muted/20 px-2.5 py-1.5 text-[11px] text-foreground">
             <Globe2 className="size-3 shrink-0 text-primary" aria-hidden />

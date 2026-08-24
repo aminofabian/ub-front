@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Copy, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { Copy, MessageSquarePlus, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,33 @@ type ThreadItem = SokoMindChatMessage & {
   /** Epoch ms the message was appended — used for the chat timestamp. */
   at?: number;
 };
+
+const THREAD_STORAGE_VERSION = 1;
+const MAX_STORED_MESSAGES = 60;
+
+/** Whitelist-restore a persisted thread — never trust raw localStorage contents. */
+function sanitizeThread(raw: unknown): ThreadItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ThreadItem[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const m = item as Record<string, unknown>;
+    if (m.role !== "user" && m.role !== "assistant") continue;
+    if (typeof m.content !== "string" || !m.content.trim()) continue;
+    const msg: ThreadItem = { role: m.role, content: m.content };
+    if (typeof m.requestId === "string") msg.requestId = m.requestId;
+    if (m.feedback === "up" || m.feedback === "down") msg.feedback = m.feedback;
+    if (typeof m.draftBody === "string") msg.draftBody = m.draftBody;
+    if (typeof m.usedLiveData === "boolean") msg.usedLiveData = m.usedLiveData;
+    if (Array.isArray(m.toolsUsed) && m.toolsUsed.every((t) => typeof t === "string")) {
+      msg.toolsUsed = m.toolsUsed as string[];
+    }
+    if (typeof m.skill === "string") msg.skill = m.skill;
+    if (typeof m.at === "number" && Number.isFinite(m.at)) msg.at = m.at;
+    out.push(msg);
+  }
+  return out.slice(-MAX_STORED_MESSAGES);
+}
 
 /** Floating launch button — lives above the tablet bottom nav until 2xl. */
 const FAB_POSITION =
@@ -65,7 +92,7 @@ function TypingDots() {
 export function SokoMindGuide() {
   const pathname = usePathname() || "/";
   const hidden = isSokoMindGuideHiddenRoute(pathname);
-  const { branchId, business } = useDashboard();
+  const { branchId, business, me } = useDashboard();
 
   const [status, setStatus] = useState<SokoMindStatus | null>(null);
   const [open, setOpen] = useState(false);
@@ -78,6 +105,57 @@ export function SokoMindGuide() {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const hydratedKeyRef = useRef<string | null>(null);
+
+  // One saved conversation per business + user — safe on shared shop devices.
+  const storageKey =
+    business?.id && me?.id
+      ? `kiosk.guide.thread.v${THREAD_STORAGE_VERSION}.${business.id}.${me.id}`
+      : null;
+  const [hydrated, setHydrated] = useState(false);
+
+  // Restore the persisted conversation once per storage scope.
+  useEffect(() => {
+    if (!storageKey) return;
+    let cancelled = false;
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { v?: unknown; thread?: unknown };
+        if (parsed && parsed.v === THREAD_STORAGE_VERSION && Array.isArray(parsed.thread)) {
+          const restored = sanitizeThread(parsed.thread);
+          if (!cancelled && restored.length > 0) {
+            setThread(restored);
+          }
+        }
+      }
+    } catch {
+      // Corrupt or unavailable storage — start fresh.
+    }
+    hydratedKeyRef.current = storageKey;
+    if (!cancelled) setHydrated(true);
+    return () => {
+      cancelled = true;
+    };
+  }, [storageKey]);
+
+  // Persist the conversation so it survives reloads (best-effort).
+  useEffect(() => {
+    if (!hydrated || !storageKey || storageKey !== hydratedKeyRef.current) return;
+    try {
+      const keep = thread.slice(-MAX_STORED_MESSAGES);
+      if (keep.length === 0) {
+        window.localStorage.removeItem(storageKey);
+      } else {
+        window.localStorage.setItem(
+          storageKey,
+          JSON.stringify({ v: THREAD_STORAGE_VERSION, thread: keep }),
+        );
+      }
+    } catch {
+      // Quota or private mode — persistence is best-effort.
+    }
+  }, [thread, hydrated, storageKey]);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -134,7 +212,6 @@ export function SokoMindGuide() {
   });
 
   useEffect(() => {
-    setThread([]);
     setSuggestions([]);
     setError("");
     setInput("");
@@ -215,6 +292,19 @@ export function SokoMindGuide() {
       ? new Date(epochMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       : "";
 
+  const clearThread = () => {
+    setThread([]);
+    setSuggestions([]);
+    setError("");
+    if (storageKey) {
+      try {
+        window.localStorage.removeItem(storageKey);
+      } catch {
+        // ignore — best-effort
+      }
+    }
+  };
+
   if (hidden || !status?.guideEnabled) {
     return null;
   }
@@ -289,6 +379,19 @@ export function SokoMindGuide() {
               Online · replies instantly
             </p>
           </div>
+          {thread.length > 0 ? (
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              className="size-8 shrink-0 text-white hover:bg-white/15 hover:text-white"
+              onClick={clearThread}
+              aria-label="Start a new chat"
+              title="Start a new chat"
+            >
+              <MessageSquarePlus className="size-4" />
+            </Button>
+          ) : null}
           <Button
             type="button"
             size="icon-sm"
@@ -479,7 +582,7 @@ export function SokoMindGuide() {
             </button>
           </div>
           <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
-            Live shop data · Guide never invents balances · ⌘J to toggle
+            Chat saved on this device · ⌘J to toggle
           </p>
         </form>
       </div>
