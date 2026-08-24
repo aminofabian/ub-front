@@ -1,5 +1,6 @@
 import { spokePlaceholderBody } from "./article-helpers";
 import { KIOSK_BEATS_ODOO_ARTICLE } from "./cluster-kiosk-beats-odoo";
+import { MPESA_INTEGRATION_ARTICLE } from "./cluster-mpesa-payments";
 import { SETUP_POS_ARTICLE } from "./cluster-set-up-pos";
 import type { BlogArticle } from "./types";
 
@@ -199,25 +200,6 @@ const SPOKE_ARTICLES: BlogArticle[] = [
       "When your till starts fighting you — wrong stock counts, slow payments, or endless spreadsheet fixes — you've probably outgrown the tool, not just the shop.",
   }),
   spoke({
-    slug: "why-m-pesa-integration-matters",
-    title: "Why M-Pesa Integration Matters",
-    description:
-      "Why native mobile money at the till beats bolted-on payment plugins for Kenyan retail shops.",
-    category: "Payments",
-    publishedAt: "2026-07-21",
-    updatedAt: "2026-07-21",
-    tags: ["M-Pesa", "Payments", "Kenya"],
-    relatedSlugs: [
-      KIOSK_VS_ODOO_PILLAR_SLUG,
-      "set-up-a-pos-in-30-minutes",
-      "what-hardware-do-you-actually-need",
-      TOP_10_SLUG,
-      "why-kiosk-beats-odoo-for-kenyan-shops",
-    ],
-    teaser:
-      "In Kenya, mobile money isn't optional — it's how customers pay. A POS without native M-Pesa support adds friction every time the till rings.",
-  }),
-  spoke({
     slug: "erp-vs-pos-do-you-need-the-full-suite",
     title: "ERP vs. POS: Do You Need the Full Suite?",
     description:
@@ -314,5 +296,6 @@ export const KIOSK_VS_ODOO_ARTICLES: BlogArticle[] = [
   PILLAR_ARTICLE,
   KIOSK_BEATS_ODOO_ARTICLE,
   SETUP_POS_ARTICLE,
+  MPESA_INTEGRATION_ARTICLE,
   ...SPOKE_ARTICLES,
 ];

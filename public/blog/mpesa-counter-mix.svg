@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">A busy counter, one balanced shift</text>
+
+  <!-- ============ LEFT: mixed payments ============ -->
+  <rect x="16" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="440" height="48" rx="14" fill="#15803d"/>
+  <rect x="16" y="82" width="440" height="22" fill="#15803d"/>
+  <text x="40" y="87" font-size="14" font-weight="700" fill="#ffffff">What a real shift looks like</text>
+
+  <!-- sales rows -->
+  <g font-size="11">
+    <rect x="40" y="126" width="392" height="52" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="60" y="148" font-size="11.5" font-weight="700" fill="#1F2937">Sale #1 — Bread, milk, eggs</text>
+    <text x="60" y="166" font-size="10.5" fill="#6b7280">KES 320 · M-Pesa STK</text>
+    <circle cx="400" cy="152" r="12" fill="#f0fdf4" stroke="#28a745"/>
+    <path d="M392 152 l5 5 l11 -12" stroke="#15803d" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="40" y="188" width="392" height="52" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="60" y="210" font-size="11.5" font-weight="700" fill="#1F2937">Sale #2 — Cooking oil, soap</text>
+    <text x="60" y="228" font-size="10.5" fill="#6b7280">KES 700 · Cash</text>
+    <circle cx="400" cy="214" r="12" fill="#f0fdf4" stroke="#28a745"/>
+    <path d="M392 214 l5 5 l11 -12" stroke="#15803d" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="40" y="250" width="392" height="52" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="60" y="272" font-size="11.5" font-weight="700" fill="#1F2937">Sale #3 — Rice 2kg, sugar</text>
+    <text x="60" y="290" font-size="10.5" fill="#6b7280">KES 760 · M-Pesa STK</text>
+    <circle cx="400" cy="276" r="12" fill="#f0fdf4" stroke="#28a745"/>
+    <path d="M392 276 l5 5 l11 -12" stroke="#15803d" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="40" y="312" width="392" height="52" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="60" y="334" font-size="11.5" font-weight="700" fill="#1F2937">Sale #4 — Split: cash + M-Pesa</text>
+    <text x="60" y="352" font-size="10.5" fill="#6b7280">KES 300 cash · KES 1,200 M-Pesa</text>
+    <circle cx="400" cy="338" r="12" fill="#f0fdf4" stroke="#28a745"/>
+    <path d="M392 338 l5 5 l11 -12" stroke="#15803d" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <rect x="40" y="384" width="392" height="56" rx="12" fill="#fefce8" stroke="#fde68a"/>
+  <text x="60" y="408" font-size="11.5" font-weight="700" fill="#A8842C">No notebook, no end-of-day matching</text>
+  <text x="60" y="426" font-size="10.5" fill="#374151">Every payment method lands in the same till record —</text>
+  <text x="60" y="440" font-size="10.5" fill="#374151">the shift totals itself.</text>
+
+  <!-- ============ RIGHT: the reconciliation truth ============ -->
+  <rect x="504" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="528" y="92" font-size="13" font-weight="700" fill="#1F2937">At close, three numbers that agree</text>
+
+  <!-- three cards -->
+  <rect x="528" y="110" width="122" height="96" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="589" y="136" font-size="9.5" font-weight="700" fill="#6b7280" text-anchor="middle">CASH DRAWER</text>
+  <text x="589" y="164" font-size="20" font-weight="800" fill="#1F2937" text-anchor="middle">KES 1,000</text>
+  <text x="589" y="186" font-size="8.5" fill="#6b7280" text-anchor="middle">cash sales</text>
+
+  <rect x="662" y="110" width="122" height="96" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="723" y="136" font-size="9.5" font-weight="700" fill="#6b7280" text-anchor="middle">M-PESA</text>
+  <text x="723" y="164" font-size="20" font-weight="800" fill="#15803d" text-anchor="middle">KES 2,680</text>
+  <text x="723" y="186" font-size="8.5" fill="#6b7280" text-anchor="middle">STK sales</text>
+
+  <rect x="796" y="110" width="122" height="96" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="857" y="136" font-size="9.5" font-weight="700" fill="#6b7280" text-anchor="middle">TILL TOTAL</text>
+  <text x="857" y="164" font-size="20" font-weight="800" fill="#1F2937" text-anchor="middle">3,680</text>
+  <text x="857" y="186" font-size="8.5" fill="#6b7280" text-anchor="middle">= cash + M-Pesa</text>
+
+  <!-- why it works -->
+  <rect x="528" y="228" width="392" height="120" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="548" y="254" font-size="11.5" font-weight="700" fill="#1F2937">Why native integration wins</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="548" y="278">· No plugin to install, no API keys to manage</text>
+    <text x="548" y="298">· No sandbox, no monthly payment-module fee</text>
+    <text x="548" y="318">· The till records the sale — the phone just moves money</text>
+    <text x="548" y="338">· Cash and M-Pesa reconcile in the same shift report</text>
+  </g>
+
+  <rect x="528" y="368" width="392" height="144" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="548" y="394" font-size="11.5" font-weight="700" fill="#15803d">The split-payment trick</text>
+  <text x="548" y="414" font-size="10.5" fill="#374151">Customer is short on cash but has M-Pesa?</text>
+  <text x="548" y="432" font-size="10.5" fill="#374151">Take part in cash, part by STK — one sale, two</text>
+  <text x="548" y="450" font-size="10.5" fill="#374151">methods, still one balanced line in the till.</text>
+  <text x="548" y="476" font-size="10" fill="#6b7280">It's built into the till, not a workaround.</text>
+  <text x="548" y="494" font-size="10" fill="#6b7280">Sales like that keep the counter moving.</text>
+</svg>

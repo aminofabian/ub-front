@@ -16,6 +16,8 @@ export const APP_ROUTES = {
   /** Merchant guide: opening the cashier / taking the first sale. */
   helpOpenCashier:
     "/help/merchants/getting-started/open-the-cashier-for-the-first-time",
+  /** Merchant guide: turning on the online store / first web orders. */
+  helpSetUpStorefront: "/help/merchants/storefront/set-up-your-online-store",
   /** Storefront customer password sign-in. */
   login: "/login",
   /** Shop staff / till / office sign-in (PIN + password). */

@@ -1,10 +1,11 @@
 "use client";
 
-import { PackageSearch } from "lucide-react";
+import { ArrowRight, PackageSearch, Store } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { StorefrontEmptyCatalogDrawer } from "@/components/storefront/storefront-empty-catalog-drawer";
 import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-button";
 import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import {
@@ -153,6 +154,21 @@ export default function ShopProductGrid({
           <Button asChild variant="outline" size="sm" className="mt-2 rounded-[3px]">
             <Link href={clearHref}>View all products</Link>
           </Button>
+        ) : null}
+        {!filtered ? (
+          <StorefrontEmptyCatalogDrawer
+            trigger={
+              <button
+                type="button"
+                className="group inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] px-3 py-2 text-xs font-semibold text-[var(--storefront-ink-muted,#5c6560)] transition hover:border-[var(--storefront-card-border-hover,#c8cdc8)] hover:text-[var(--storefront-ink,#141816)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                title="Run this shop? Learn how to stock it — summary + full guide"
+              >
+                <Store className="size-3.5" aria-hidden />
+                Run this shop? Learn how to stock it
+                <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" aria-hidden />
+              </button>
+            }
+          />
         ) : null}
       </div>
     );
