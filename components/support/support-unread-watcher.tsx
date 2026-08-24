@@ -71,7 +71,7 @@ export function SupportUnreadWatcher() {
         const preview = body.length > 120 ? `${body.slice(0, 120)}…` : body;
 
         playSupportMessageSound();
-        toast("New message from Kiosk Support", {
+        toast(`New message from ${senderName}`, {
           description: preview,
           duration: 6000,
         });

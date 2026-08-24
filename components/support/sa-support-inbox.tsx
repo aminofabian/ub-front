@@ -276,7 +276,8 @@ export function SaSupportInbox() {
     return () => {
       window.clearTimeout(connectTimer);
       unregister();
-      client.disconnect();
+      // The console shell owns the socket lifecycle — don't disconnect here,
+      // or the sidebar unread badge would lose its live updates.
       for (const timer of Object.values(typingStopRef.current)) {
         clearTimeout(timer);
       }
