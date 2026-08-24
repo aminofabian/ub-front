@@ -610,6 +610,10 @@ export function buildMarketplaceOrderText(
     catalogueUrl?: string;
     /** When set, the TOTAL line uses this value instead of the computed total. */
     totalOverride?: number;
+    /** Purchase order number or other short ref shown in the heading. */
+    orderRef?: string;
+    /** Shop sending the order, shown under the heading. */
+    fromName?: string;
   },
 ): string {
   const currency = lines.find((l) => l.currency)?.currency?.trim() || "KES";
@@ -637,9 +641,15 @@ export function buildMarketplaceOrderText(
     pricedCount > 0
       ? `*ORDER TOTAL: ${currencyLabel} ${waAmount(totalValue)}*`
       : "*ORDER TOTAL: Ask*";
+  const ref = opts.orderRef?.trim();
+  const heading = ref
+    ? `🛒 *ORDER ${ref} — ${opts.supplierName}*`
+    : `🛒 *NEW ORDER — ${opts.supplierName}*`;
+  const from = opts.fromName?.trim();
 
   const text = [
-    `🛒 *NEW ORDER — ${opts.supplierName}*`,
+    heading,
+    ...(from ? [`From: *${from}*`] : []),
     "",
     "*Items:*",
     ...itemLines,
@@ -667,6 +677,8 @@ export function buildWhatsAppOrderUrl(opts: {
   catalogueUrl?: string;
   /** When set, the TOTAL line uses this value instead of the computed total. */
   totalOverride?: number;
+  orderRef?: string;
+  fromName?: string;
 }): string | null {
   const phone = normalizeWhatsAppPhone(opts.phone);
   if (!phone) return null;
@@ -676,6 +688,8 @@ export function buildWhatsAppOrderUrl(opts: {
     filename: opts.filename,
     catalogueUrl: opts.catalogueUrl,
     totalOverride: opts.totalOverride,
+    orderRef: opts.orderRef,
+    fromName: opts.fromName,
   });
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;

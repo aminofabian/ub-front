@@ -4,20 +4,40 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Loader2, Minus, Package, Plus } from "lucide-react";
+import {
+  Check,
+  Copy,
+  FileDown,
+  Loader2,
+  MessageCircle,
+  Minus,
+  Package,
+  Plus,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  buildMarketplaceOrderPdf,
+  buildMarketplaceOrderText,
+  buildWhatsAppOrderUrl,
+  downloadBlob,
+  shareOrDownloadOrderPdf,
+  type MarketplaceOrderLine,
+} from "@/app/marketplace/_lib/marketplace-order-pdf";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchItemById,
   fetchPathAPurchaseOrder,
   fetchPathAPurchaseOrders,
+  fetchSupplierContacts,
   fetchSupplierItemLinks,
   fetchSuppliers,
   postPathAGoodsReceipt,
   postPathAGrnSupplierInvoice,
   type PathAPurchaseOrderDetailRecord,
   type PathAPurchaseOrderListRowRecord,
+  type SupplierContactRecord,
   type SupplierRecord,
 } from "@/lib/api";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
@@ -39,7 +59,30 @@ function todayIsoDate(): string {
 }
 
 type ReceiveQty = Record<string, number>;
-type ItemMeta = { name: string; thumbnailUrl: string | null };
+type ItemMeta = {
+  name: string;
+  thumbnailUrl: string | null;
+  sku?: string | null;
+  barcode?: string | null;
+};
+
+function slugForFilename(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+async function copyText(value: string, label: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
+  } catch {
+    toast.error(`Could not copy ${label.toLowerCase()}`);
+  }
+}
 
 export function OrderReceivePanel({
   embedded = false,
@@ -51,7 +94,7 @@ export function OrderReceivePanel({
   onConfirmed?: () => void;
 } = {}) {
   const router = useRouter();
-  const { branchId } = useDashboard();
+  const { branchId, business } = useDashboard();
   const [orders, setOrders] = useState<PathAPurchaseOrderListRowRecord[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,12 +103,16 @@ export function OrderReceivePanel({
     null,
   );
   const [itemMeta, setItemMeta] = useState<Record<string, ItemMeta>>({});
+  const [contacts, setContacts] = useState<SupplierContactRecord[]>([]);
   const [qtyByLine, setQtyByLine] = useState<ReceiveQty>({});
   const [selectedLines, setSelectedLines] = useState<Record<string, boolean>>(
     {},
   );
   const [confirming, setConfirming] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [sharing, setSharing] = useState<"whatsapp" | "pdf" | "copy" | null>(
+    null,
+  );
 
   const refreshOrders = useCallback(async () => {
     setLoading(true);
@@ -136,7 +183,31 @@ export function OrderReceivePanel({
             map[link.itemId] = {
               name: link.itemName,
               thumbnailUrl: link.thumbnailUrl?.trim() || null,
+              sku: link.sku,
+              barcode: link.barcode,
             };
+          }
+          const missing = po.lines
+            .map((line) => line.itemId)
+            .filter((id) => !map[id]);
+          if (missing.length > 0) {
+            const extras = await Promise.all(
+              missing.map((id) =>
+                fetchItemById(id, {
+                  branchId: po.branchId || branchId || undefined,
+                }).catch(() => null),
+              ),
+            );
+            if (cancelled) return;
+            for (const item of extras) {
+              if (!item) continue;
+              map[item.id] = {
+                name: item.name,
+                thumbnailUrl: item.thumbnailUrl?.trim() || null,
+                sku: item.sku,
+                barcode: item.barcode ?? null,
+              };
+            }
           }
           setItemMeta(map);
         } catch {
@@ -158,6 +229,24 @@ export function OrderReceivePanel({
       cancelled = true;
     };
   }, [selectedId, branchId]);
+
+  useEffect(() => {
+    if (!detail?.supplierId) {
+      setContacts([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchSupplierContacts(detail.supplierId)
+      .then((rows) => {
+        if (!cancelled) setContacts(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setContacts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detail?.supplierId]);
 
   const supplierName = useMemo(() => {
     if (!detail) return "—";
@@ -192,6 +281,138 @@ export function OrderReceivePanel({
     }
     return sum;
   }, [openLines, selectedLines, qtyByLine]);
+
+  const shopName = business?.name?.trim() || "Shop";
+
+  const supplierPhone = useMemo(() => {
+    return (
+      contacts.find((c) => c.primaryContact)?.phone?.trim() ||
+      contacts.find((c) => c.phone?.trim())?.phone?.trim() ||
+      suppliers.find((s) => s.id === detail?.supplierId)?.payoutPhone?.trim() ||
+      null
+    );
+  }, [contacts, suppliers, detail?.supplierId]);
+
+  const shareLines = useMemo((): MarketplaceOrderLine[] => {
+    if (!detail) return [];
+    return detail.lines.map((line) => {
+      const meta = itemMeta[line.itemId];
+      return {
+        name: meta?.name ?? line.itemId.slice(0, 8),
+        sku: meta?.sku,
+        barcode: meta?.barcode,
+        qty: toNum(line.qtyOrdered),
+        unitPrice: toNum(line.unitEstimatedCost) || null,
+        currency: ORDER_CURRENCY,
+      };
+    });
+  }, [detail, itemMeta]);
+
+  const orderFilename = useMemo(() => {
+    if (!detail) return "order.pdf";
+    const supplier = slugForFilename(supplierName) || "supplier";
+    return `order-${detail.poNumber}-${supplier}.pdf`;
+  }, [detail, supplierName]);
+
+  const shareBusy = sharing !== null;
+
+  const orderPdfInput = () => {
+    if (!detail) return null;
+    const receivedUnits = detail.lines.reduce(
+      (sum, line) => sum + toNum(line.qtyReceived),
+      0,
+    );
+    const receiveNote =
+      receivedUnits > 0 ? `Already received: ${receivedUnits} units.` : null;
+    const note = [detail.notes?.trim(), receiveNote].filter(Boolean).join("\n");
+    return {
+      supplierName,
+      supplierPhone,
+      location: shopName,
+      listedBy: `Purchase order ${detail.poNumber}`,
+      lines: shareLines,
+      note: note || undefined,
+    };
+  };
+
+  const sendOrderWhatsApp = async () => {
+    if (!detail || shareLines.length === 0) {
+      toast.error("Pick an order first");
+      return;
+    }
+    setSharing("whatsapp");
+    try {
+      const wa = buildWhatsAppOrderUrl({
+        phone: supplierPhone,
+        supplierName,
+        lines: shareLines,
+        filename: orderFilename,
+        orderRef: detail.poNumber,
+        fromName: shopName,
+      });
+      if (wa) {
+        window.open(wa, "_blank", "noopener,noreferrer");
+        toast.success("WhatsApp opened with this order.");
+        return;
+      }
+      const pdf = orderPdfInput();
+      if (!pdf) return;
+      const blob = buildMarketplaceOrderPdf(pdf);
+      const mode = await shareOrDownloadOrderPdf(blob, orderFilename, null);
+      toast.message(
+        mode === "shared"
+          ? "Order shared — pick WhatsApp to send it."
+          : "No WhatsApp number on this supplier — PDF downloaded. Attach it in WhatsApp.",
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not share order",
+      );
+    } finally {
+      setSharing(null);
+    }
+  };
+
+  const downloadOrderPdf = async () => {
+    if (!detail || shareLines.length === 0) {
+      toast.error("Pick an order first");
+      return;
+    }
+    setSharing("pdf");
+    try {
+      const pdf = orderPdfInput();
+      if (!pdf) return;
+      downloadBlob(buildMarketplaceOrderPdf(pdf), orderFilename);
+      toast.success("Order PDF downloaded.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not build order PDF",
+      );
+    } finally {
+      setSharing(null);
+    }
+  };
+
+  const copyOrderList = async () => {
+    if (!detail || shareLines.length === 0) {
+      toast.error("Pick an order first");
+      return;
+    }
+    setSharing("copy");
+    try {
+      await copyText(
+        buildMarketplaceOrderText(shareLines, {
+          supplierName,
+          filename: orderFilename,
+          orderRef: detail.poNumber,
+          fromName: shopName,
+        }),
+        "Order list",
+      );
+    } finally {
+      setSharing(null);
+    }
+  };
 
   const confirmSelected = async () => {
     if (!detail) return;
@@ -340,7 +561,7 @@ export function OrderReceivePanel({
           </div>
           <Link
             href={APP_ROUTES.order}
-            className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--pos-primary,#0f766e)] hover:underline"
+            className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--pos-primary,#0f766e)] hover:underline"
           >
             New order
           </Link>
@@ -502,6 +723,52 @@ export function OrderReceivePanel({
               Clear
             </button>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={shareBusy || shareLines.length === 0}
+              onClick={() => void downloadOrderPdf()}
+              className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-3 text-[11px] font-semibold transition hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] disabled:opacity-40"
+            >
+              {sharing === "pdf" ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <FileDown className="size-3.5" />
+              )}
+              Download PDF
+            </button>
+            <button
+              type="button"
+              disabled={shareBusy || shareLines.length === 0}
+              onClick={() => void copyOrderList()}
+              className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-3 text-[11px] font-semibold transition hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] disabled:opacity-40"
+            >
+              {sharing === "copy" ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Copy className="size-3.5" />
+              )}
+              Copy list
+            </button>
+          </div>
+          <button
+            type="button"
+            disabled={shareBusy || shareLines.length === 0}
+            onClick={() => void sendOrderWhatsApp()}
+            className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[#128c4a] px-4 text-sm font-semibold text-white transition hover:bg-[#0f7a3f] disabled:opacity-50"
+          >
+            {sharing === "whatsapp" ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Opening WhatsApp…
+              </>
+            ) : (
+              <>
+                <MessageCircle className="size-4" />
+                Send order on WhatsApp
+              </>
+            )}
+          </button>
           <button
             type="button"
             disabled={confirming || openLines.length === 0}
@@ -521,8 +788,8 @@ export function OrderReceivePanel({
             )}
           </button>
           <p className="text-center text-[10px] text-muted-foreground">
-            Posts a goods receipt and supplier bill — same record as Receive
-            supplies.
+            WhatsApp opens with the order list; download the PDF to attach.
+            Confirm posts a goods receipt and supplier bill.
           </p>
         </div>
       </div>
