@@ -49,6 +49,283 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
   {
     audience: "merchants",
     categorySlug: "getting-started",
+    slug: "get-the-most-from-kiosk",
+    title: "Get the most out of Kiosk",
+    description:
+      "The master guide: one catalog, one till, one storefront. Follow the daily rhythm, then jump into every deeper guide from here.",
+    updatedAt: "2026-08-24",
+    tags: [
+      "kiosk",
+      "POS",
+      "guide",
+      "getting started",
+      "best practices",
+      "workflow",
+      "checklist",
+      "hub",
+    ],
+    popular: true,
+    relatedSlugs: [
+      "how-to-add-products",
+      "complete-supplier-flow",
+      "user-roles-add-users",
+      "open-the-cashier-for-the-first-time",
+      "set-up-your-online-store",
+    ],
+    body: [
+      {
+        type: "paragraph",
+        text: "Kiosk is one system for the whole shop: the till, the catalog, suppliers, staff, and your online storefront all share one stock count. This is the anchor guide — read the daily rhythm below, then open the deeper guide for whatever you are doing next. Every section links to the full walkthrough.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "The one idea that makes everything else easy: everything lives in one catalog. Add a product once, and it is at the till, in stock reports, and on your storefront. Record a supply and stock rises everywhere. No spreadsheets to reconcile.",
+      },
+      {
+        type: "heading",
+        text: "Start here — the daily rhythm",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open the day: glance at low-stock counters, top up the till float, and unlock the cashier with your PIN.",
+          "Sell: scan or search products, take cash or send an M-Pesa STK prompt, split a payment when a customer is short.",
+          "Hand out the receipt — printed or digital — and move to the next customer.",
+          "Close the shift: reconcile the day, note anything odd, and deposit the cash float.",
+          "Weekly: record every delivery as a supply so stock stays honest, and pay suppliers from the ledger.",
+          "Monthly: review unpaid bills in AP aging, spot-check margins, and tidy the catalog (missing barcodes, no-price items).",
+        ],
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "If the network drops mid-rush, keep selling — cash sales continue offline and sync when you reconnect. M-Pesa can wait for the connection to return.",
+      },
+      {
+        type: "heading",
+        text: "Set up once, sell forever",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Create your Kiosk shop",
+            description: "Sign up, name your business, and claim your subdomain.",
+            href: "/help/merchants/getting-started/create-your-kiosk-shop",
+          },
+          {
+            label: "Claim your subdomain",
+            description: "Pick yourshop.kiosk.ke — the address customers will remember.",
+            href: "/help/merchants/getting-started/claim-your-subdomain",
+          },
+          {
+            label: "Add products the right way",
+            description: "Single, groups, variants, and packages — with screenshots.",
+            href: "/help/merchants/inventory/how-to-add-products",
+          },
+          {
+            label: "User roles & how to add users",
+            description: "Invite staff, pick roles, assign branches and PINs.",
+            href: "/help/merchants/staff-branches/user-roles-add-users",
+          },
+        ],
+      },
+      {
+        type: "heading",
+        text: "Sell at the till",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Open the cashier for the first time",
+            description: "Launch the till and take your first sale.",
+            href: "/help/merchants/getting-started/open-the-cashier-for-the-first-time",
+          },
+          {
+            label: "Scan barcodes at the till",
+            description: "USB, Bluetooth, or camera scanning for fast checkout.",
+            href: "/help/merchants/point-of-sale/scan-barcodes-at-the-till",
+          },
+          {
+            label: "Accept M-Pesa with STK Push",
+            description: "Send a payment prompt to the customer's phone.",
+            href: "/help/merchants/mpesa-payments/accept-mpesa-stk",
+          },
+          {
+            label: "Apply discounts & split payments",
+            description: "Reduce a line or cart, and take cash plus M-Pesa.",
+            href: "/help/merchants/point-of-sale/apply-discounts-and-split-payments",
+          },
+          {
+            label: "Print or share receipts",
+            description: "Paper or digital — get the receipt out fast.",
+            href: "/help/merchants/point-of-sale/print-or-share-receipts",
+          },
+          {
+            label: "Sell when the network drops",
+            description: "Offline cash sales that sync when you reconnect.",
+            href: "/help/merchants/point-of-sale/sell-when-offline",
+          },
+        ],
+      },
+      {
+        type: "heading",
+        text: "Stock & suppliers",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "The complete supplier flow",
+            description: "Connect, order, receive, pay — the full vendor loop.",
+            href: "/help/merchants/suppliers-supplies/complete-supplier-flow",
+          },
+          {
+            label: "Understand stock levels",
+            description: "How on-hand updates after sales, supplies, and transfers.",
+            href: "/help/merchants/inventory/understand-stock-levels",
+          },
+          {
+            label: "Run a stock take",
+            description: "Count shelves and reconcile so reports stay honest.",
+            href: "/help/merchants/inventory/run-a-stock-take",
+          },
+          {
+            label: "Transfer stock between branches",
+            description: "Move inventory between locations without double-counting.",
+            href: "/help/merchants/inventory/transfer-stock-between-branches",
+          },
+          {
+            label: "Fix missing barcodes",
+            description: "Attach codes before peak hours so the till stays fast.",
+            href: "/help/merchants/inventory/fix-missing-barcodes",
+          },
+        ],
+      },
+      {
+        type: "heading",
+        text: "Grow online",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Set up your online store",
+            description: "Turn on yourshop.kiosk.ke so customers can order.",
+            href: "/help/merchants/storefront/set-up-your-online-store",
+          },
+          {
+            label: "Brand your storefront",
+            description: "Logo, colors, and the title customers see in search.",
+            href: "/help/merchants/storefront/brand-your-storefront",
+          },
+          {
+            label: "Manage web orders",
+            description: "Fulfill online orders without juggling WhatsApp screenshots.",
+            href: "/help/merchants/storefront/manage-web-orders",
+          },
+        ],
+      },
+      {
+        type: "heading",
+        text: "Run the team",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Staff PIN login at the till",
+            description: "Unlock a shared device with a short PIN.",
+            href: "/help/merchants/staff-branches/staff-pin-login",
+          },
+          {
+            label: "Add staff and roles",
+            description: "Cashiers sell, managers run, owners own.",
+            href: "/help/merchants/staff-branches/add-staff-and-roles",
+          },
+          {
+            label: "Work with multiple branches",
+            description: "Track stock and sales per location.",
+            href: "/help/merchants/staff-branches/work-with-multiple-branches",
+          },
+        ],
+      },
+      {
+        type: "heading",
+        text: "Payments",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Configure payment settings",
+            description: "Connect M-Pesa credentials and review settlements.",
+            href: "/help/merchants/mpesa-payments/configure-payment-settings",
+          },
+          {
+            label: "Accept card payments with Paystack",
+            description: "Let customers pay by card on your storefront.",
+            href: "/help/merchants/mpesa-payments/accept-card-payments-paystack",
+          },
+          {
+            label: "Troubleshoot a failed STK payment",
+            description: "Why prompts fail and what to do next.",
+            href: "/help/merchants/mpesa-payments/troubleshoot-failed-stk",
+          },
+        ],
+      },
+      {
+        type: "heading",
+        text: "Habits that keep the shop honest",
+      },
+      {
+        type: "list",
+        items: [
+          "Record every supply — stock updates itself and cost stays attached to the vendor.",
+          "Group products by brand with variants instead of near-duplicate singles.",
+          "Set a reorder level on fast movers so the low-stock counters tell you what to buy.",
+          "Pay suppliers from the ledger weekly — unpaid bills stack up quietly.",
+          "Deactivate leavers the same day and never share the owner login.",
+          "Let the storefront sell for you: one catalog feeds the till and the website together.",
+        ],
+      },
+      {
+        type: "faq",
+        items: [
+          {
+            question: "Where do I start if I am brand new?",
+            answer:
+              "Follow the Set up section: create the shop, claim the subdomain, add a few products (single or group), then add the first user. Take a test sale on the cashier the same day.",
+          },
+          {
+            question: "How do I keep stock accurate without extra work?",
+            answer:
+              "Record deliveries as supplies instead of editing stock by hand. Sales and the storefront already update stock automatically — supplies are the missing piece.",
+          },
+          {
+            question: "What is the best way to organise products?",
+            answer:
+              "Use groups with variants for any brand that comes in sizes or colours, packages for trays and crates, and plain single products only for true one-offs.",
+          },
+          {
+            question: "Can I run the till without the internet?",
+            answer:
+              "Yes. Cash sales keep working offline and sync when you reconnect. Finish M-Pesa payments once the network is back.",
+          },
+          {
+            question: "How do I get customers ordering online?",
+            answer:
+              "Finish your branding, make sure products have prices and stock, then share yourshop.kiosk.ke on WhatsApp and social media. Orders land in Web orders.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    audience: "merchants",
+    categorySlug: "getting-started",
     slug: "create-your-kiosk-shop",
     title: "Create your Kiosk shop",
     description:
@@ -703,6 +980,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       "understand-stock-levels",
       "fix-missing-barcodes",
       "run-a-stock-take",
+      "get-the-most-from-kiosk",
     ],
     body: [
       {
@@ -1014,6 +1292,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       "record-a-supply",
       "why-record-supplies",
       "understand-stock-levels",
+      "get-the-most-from-kiosk",
     ],
     body: [
       {
@@ -1762,6 +2041,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       "invite-your-first-staff",
       "staff-pin-login",
       "work-with-multiple-branches",
+      "get-the-most-from-kiosk",
     ],
     body: [
       {

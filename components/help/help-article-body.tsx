@@ -1,3 +1,6 @@
+import Link from "next/link";
+
+import { ArrowRight } from "lucide-react";
 import type { HelpBlock } from "@/lib/help";
 import { cn } from "@/lib/utils";
 
@@ -106,6 +109,39 @@ export function HelpArticleBody({ body }: HelpArticleBodyProps) {
                     </div>
                   ))}
                 </dl>
+              </div>
+            );
+          case "links":
+            return (
+              <div key={key} className="space-y-3">
+                {block.title ? (
+                  <h2 className="font-heading text-2xl tracking-[-0.02em] text-[var(--kiosk-text)]">
+                    {block.title}
+                  </h2>
+                ) : null}
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {block.items.map((item) => (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className="group flex h-full flex-col rounded-xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] px-4 py-3.5 transition hover:border-[var(--kiosk-gold-border)] hover:bg-[var(--kiosk-gold-soft)]/40"
+                      >
+                        <span className="flex items-center gap-2 font-medium text-[var(--kiosk-text)]">
+                          {item.label}
+                          <ArrowRight
+                            className="size-3.5 shrink-0 text-[var(--kiosk-gold)] transition group-hover:translate-x-0.5"
+                            aria-hidden
+                          />
+                        </span>
+                        {item.description ? (
+                          <span className="mt-1 text-sm leading-relaxed text-[var(--kiosk-text-soft)]">
+                            {item.description}
+                          </span>
+                        ) : null}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
             );
           case "image":

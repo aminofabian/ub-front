@@ -1,5 +1,14 @@
 export type HelpAudience = "merchants" | "shoppers";
 
+export type HelpLinkItem = {
+  /** Link text (keep it short — it renders as a card title). */
+  label: string;
+  /** One-line description shown under the label. */
+  description?: string;
+  /** Full path, e.g. /help/merchants/inventory/how-to-add-products */
+  href: string;
+};
+
 export type HelpBlock =
   | { type: "paragraph"; text: string }
   | { type: "heading"; text: string }
@@ -13,6 +22,12 @@ export type HelpBlock =
       src: string;
       alt: string;
       caption?: string;
+    }
+  | {
+      type: "links";
+      /** Optional section heading rendered above the link cards. */
+      title?: string;
+      items: HelpLinkItem[];
     };
 
 export type HelpCategoryDef = {

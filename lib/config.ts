@@ -11,6 +11,8 @@ export const APP_ROUTES = {
     "/help/merchants/suppliers-supplies/complete-supplier-flow",
   /** Merchant guide: user roles and how to add users. */
   helpUserRoles: "/help/merchants/staff-branches/user-roles-add-users",
+  /** Merchant master guide: get the most out of Kiosk (links to all guides). */
+  helpKioskGuide: "/help/merchants/getting-started/get-the-most-from-kiosk",
   /** Storefront customer password sign-in. */
   login: "/login",
   /** Shop staff / till / office sign-in (PIN + password). */

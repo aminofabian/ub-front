@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BookOpenCheck } from "lucide-react";
 
 import { HelpArticleList } from "@/components/help/help-article-list";
 import { HelpBreadcrumbs } from "@/components/help/help-breadcrumbs";
@@ -20,6 +20,7 @@ import {
   type HelpAudience,
 } from "@/lib/help";
 import { helpAbsoluteUrl, helpSiteUrl } from "@/lib/help/seo";
+import { APP_ROUTES } from "@/lib/config";
 import {
   landingSectionClass,
   sectionLabelPillClass,
@@ -58,6 +59,34 @@ export function HelpHubPage({ initialQuery = "" }: { initialQuery?: string }) {
 
           <div className="mt-8 max-w-2xl">
             <HelpSearch articles={articles} initialQuery={initialQuery} />
+          </div>
+
+          <div className="mt-8">
+            <Link
+              href={APP_ROUTES.helpKioskGuide}
+              className="group relative block overflow-hidden rounded-2xl border border-[var(--kiosk-gold-border)] bg-gradient-to-br from-[var(--kiosk-gold-soft)] via-[var(--kiosk-elevated)] to-[var(--kiosk-elevated)] p-6 transition hover:border-[var(--kiosk-gold)] sm:p-8"
+            >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-[var(--kiosk-gold)]/15 blur-2xl transition group-hover:bg-[var(--kiosk-gold)]/25"
+              />
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-elevated)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
+                <BookOpenCheck className="size-3.5" aria-hidden />
+                Start here
+              </span>
+              <h2 className="mt-4 font-heading text-[clamp(1.4rem,3.5vw,2rem)] tracking-[-0.02em] text-[var(--kiosk-text)]">
+                Get the most out of Kiosk
+              </h2>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--kiosk-text-soft)]">
+                One catalog, one till, one storefront. Follow the daily rhythm,
+                then jump into the guide for whatever you&apos;re doing next — every
+                deeper guide is linked from here.
+              </p>
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--kiosk-gold)]">
+                Open the master guide
+                <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+              </span>
+            </Link>
           </div>
         </div>
       </section>
