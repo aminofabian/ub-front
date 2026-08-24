@@ -134,7 +134,7 @@ let saRefreshInFlight: Promise<string | null> | null = null;
  * Sliding session: while the portal keeps making requests (e.g. polling a
  * promote job), swap the token for a fresh one before it expires.
  */
-async function refreshSaTokenIfNeeded(token: string): Promise<string> {
+export async function refreshSaTokenIfNeeded(token: string): Promise<string> {
   const expiresAt = saTokenExpiresAtMs(token);
   if (expiresAt === null || expiresAt - Date.now() > SA_TOKEN_REFRESH_WINDOW_MS) {
     return token;
@@ -747,6 +747,8 @@ export type PlatformRequestLogRow = {
   success: boolean;
   durationMs: number;
   ip: string | null;
+  /** Set when the request came from a load-test run (Platform → Load test). */
+  loadTestRunId: string | null;
 };
 
 export type PlatformRequestLogCategorySummary = {
@@ -770,7 +772,7 @@ export type PlatformRequestLogSummary = {
   categories: PlatformRequestLogCategorySummary[];
 };
 
-/** Newest API/webhook requests first, optional category / outcome / window filters. */
+/** Newest API/webhook requests first, optional category / outcome / window / source filters. */
 export async function fetchPlatformRequestLogs(
   opts: {
     limit?: number;
@@ -778,6 +780,8 @@ export async function fetchPlatformRequestLogs(
     success?: boolean;
     sinceMinutes?: number;
     ip?: string;
+    /** "*" = load-test traffic only; a run id = one specific run. */
+    loadTestRunId?: string;
   } = {},
 ): Promise<PlatformRequestLogRow[]> {
   const params = new URLSearchParams({
@@ -794,6 +798,9 @@ export async function fetchPlatformRequestLogs(
   }
   if (opts.ip?.trim()) {
     params.set("ip", opts.ip.trim());
+  }
+  if (opts.loadTestRunId) {
+    params.set("loadTestRunId", opts.loadTestRunId);
   }
   return saRequest<PlatformRequestLogRow[]>(
     `${API_ROUTES.superAdminPlatformRequestLogs}?${params.toString()}`,
@@ -869,10 +876,37 @@ export type SuperAdminMe = {
   superAdminId: string;
   email: string;
   name: string;
+  /** Ops SMS alert recipient (tenant adoptions). Null until set in Profile. */
+  phone: string | null;
 };
 
 export async function fetchSuperAdminMe(): Promise<SuperAdminMe> {
-  return saRequest<SuperAdminMe>("/api/v1/super-admin/me", { method: "GET" });
+  return saRequest<SuperAdminMe>(API_ROUTES.superAdminMe, { method: "GET" });
+}
+
+/** Update profile fields; null leaves a field unchanged, blank phone clears it. */
+export async function updateSuperAdminProfile(payload: {
+  name?: string;
+  phone?: string;
+}): Promise<SuperAdminMe> {
+  return saRequest<SuperAdminMe>(API_ROUTES.superAdminMe, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export type SuperAdminTestSmsResult = {
+  channel: string;
+  outcome: string;
+  detail: string;
+  phoneMasked: string;
+};
+
+/** Send a test SMS to the signed-in super admin's alert phone (verifies platform SMS). */
+export async function sendSuperAdminTestSms(): Promise<SuperAdminTestSmsResult> {
+  return saRequest<SuperAdminTestSmsResult>(`${API_ROUTES.superAdminMe}/test-sms`, {
+    method: "POST",
+  });
 }
 
 export async function changeSuperAdminPassword(
@@ -2663,5 +2697,205 @@ export async function deleteSaProductSupplierLink(
   await saRequest(`${API_ROUTES.superAdminGlobalCatalog}/products/${productId}/suppliers/${templateId}`, {
     method: "DELETE",
   });
+}
+
+// ── Load test console (Platform → Load test) ─────────────────────────────────
+// Backend: zelisline.ub.platform.loadtest.LoadTestController. Records serialize
+// to plain JSON, so these types mirror the Java record fields verbatim.
+
+export type LoadTestStepResult = {
+  step: number;
+  concurrency: number;
+  requests: number;
+  rps: number;
+  p50Ms: number;
+  p95Ms: number;
+  p99Ms: number;
+  errors: number;
+  errorRatePct: number;
+  statusCodes: Record<string, number>;
+};
+
+export type LoadTestRunSummary = {
+  runId: string;
+  path: string;
+  startedAt: string;
+  durationSec: number;
+  maxConcurrency: number;
+  recommendedConcurrentUsers: number;
+  peakRps: number;
+  recommendedP95Ms: number;
+  targetP95Ms: number;
+  steps: LoadTestStepResult[];
+  notes: string[];
+};
+
+export type LoadTestLiveProgress = {
+  runId: string;
+  path: string;
+  step: number;
+  steps: number;
+  concurrency: number;
+  maxConcurrency: number;
+  elapsedSec: number;
+  remainingSec: number;
+  liveRps: number;
+  liveP95Ms: number;
+  errors: number;
+};
+
+export type LoadTestCapacity = {
+  ticketStore: string;
+  redisConfigured: boolean;
+  activeWsConnections: number;
+  wsMaxPerUser: number;
+  wsMaxPerBusiness: number;
+  tomcatMaxThreads: number;
+  tomcatActiveThreads: number;
+  tomcatQueued: number;
+  tomcatOpenConnections: number;
+  dbPoolMax: number;
+  dbPoolActive: number;
+  dbPoolIdle: number;
+  dbPoolAwaiting: number;
+  dbRoundTripMs: number;
+  jvmHeapUsedMb: number;
+  jvmHeapMaxMb: number;
+  processCpuLoad: number;
+  selfTestBaseUrl: string;
+  hint: string;
+};
+
+export type LoadTestStatus = {
+  running: boolean;
+  run: LoadTestLiveProgress | null;
+  capacity: LoadTestCapacity;
+  history: LoadTestRunSummary[];
+};
+
+export type RunLoadTestPayload = {
+  path: string;
+  maxConcurrency?: number;
+  steps?: number;
+  secondsPerStep?: number;
+  targetP95Ms?: number;
+};
+
+export async function fetchLoadTestStatus(): Promise<LoadTestStatus> {
+  return saRequest<LoadTestStatus>(`${API_ROUTES.superAdminLoadTest}/status`);
+}
+
+export async function runLoadTest(body: RunLoadTestPayload): Promise<{ runId: string }> {
+  return saRequest<{ runId: string }>(`${API_ROUTES.superAdminLoadTest}/run`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function cancelLoadTest(): Promise<{ cancelled: boolean }> {
+  return saRequest<{ cancelled: boolean }>(`${API_ROUTES.superAdminLoadTest}/cancel`, {
+    method: "POST",
+  });
+}
+
+// ── Support chat inbox (Super Admin → Support) ───────────────────────
+// Backend: zelisline.ub.support.api.SuperAdminSupportController.
+
+export type SaSupportConversation = {
+  id: string;
+  businessId: string;
+  businessName: string | null;
+  businessSlug: string | null;
+  status: "OPEN" | "RESOLVED" | string;
+  subject: string | null;
+  createdByName: string | null;
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  tenantLastReadAt: string | null;
+  adminLastReadAt: string | null;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SaSupportMessage = {
+  id: string;
+  conversationId: string;
+  senderType: "TENANT" | "SUPER_ADMIN";
+  senderUserId: string;
+  senderName: string | null;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type SaSupportConversationDetail = {
+  conversation: SaSupportConversation | null;
+  messages: SaSupportMessage[];
+};
+
+export async function fetchSaSupportConversations(opts?: {
+  status?: "OPEN" | "RESOLVED" | "ALL";
+}): Promise<{
+  conversations: SaSupportConversation[];
+  total: number;
+  unread: number;
+}> {
+  const params = new URLSearchParams();
+  if (opts?.status && opts.status !== "ALL") {
+    params.set("status", opts.status);
+  }
+  const suffix = params.toString();
+  return saRequest<{
+    conversations: SaSupportConversation[];
+    total: number;
+    unread: number;
+  }>(`${API_ROUTES.superAdminSupport}/conversations${suffix ? `?${suffix}` : ""}`);
+}
+
+export async function fetchSaSupportConversation(
+  id: string,
+): Promise<SaSupportConversationDetail> {
+  return saRequest<SaSupportConversationDetail>(
+    `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function sendSaSupportMessage(
+  conversationId: string,
+  body: string,
+): Promise<SaSupportMessage> {
+  return saRequest<SaSupportMessage>(
+    `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(conversationId)}/messages`,
+    { method: "POST", body: JSON.stringify({ body }) },
+  );
+}
+
+export async function markSaSupportConversationRead(id: string): Promise<void> {
+  await saRequest<unknown>(
+    `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(id)}/read`,
+    { method: "POST" },
+  );
+}
+
+export async function resolveSaSupportConversation(id: string): Promise<void> {
+  await saRequest<unknown>(
+    `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(id)}/resolve`,
+    { method: "POST" },
+  );
+}
+
+export async function reopenSaSupportConversation(id: string): Promise<void> {
+  await saRequest<unknown>(
+    `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(id)}/reopen`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchSaSupportUnreadCount(): Promise<number> {
+  const payload = await saRequest<{ count?: number }>(
+    `${API_ROUTES.superAdminSupport}/unread-count`,
+  );
+  return typeof payload?.count === "number" ? payload.count : 0;
 }
 

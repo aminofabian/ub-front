@@ -7,6 +7,7 @@ import {
   Bell,
   Building2,
   ChevronDown,
+  Gauge,
   Inbox,
   LayoutDashboard,
   Mail,
@@ -37,6 +38,7 @@ function crumbsFor(pathname: string): Crumb[] {
       { label: "Tenant" },
     ];
   }
+  if (pathname === APP_ROUTES.superAdminAdoptions) return [{ label: "Adoptions" }];
   if (pathname === APP_ROUTES.superAdminCampaignNew) {
     return [
       { label: "Campaigns", href: APP_ROUTES.superAdminCampaigns },
@@ -66,6 +68,9 @@ function crumbsFor(pathname: string): Crumb[] {
   }
   if (pathname === APP_ROUTES.superAdminPlatformLogs) {
     return [{ label: "Platform" }, { label: "Logs" }];
+  }
+  if (pathname === APP_ROUTES.superAdminPlatformLoadTest) {
+    return [{ label: "Platform" }, { label: "Load test" }];
   }
   if (pathname === APP_ROUTES.superAdminPlatformDesktopLicenses) {
     return [{ label: "Platform" }, { label: "Desktop licenses" }];
@@ -191,6 +196,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-3" aria-label="Super admin">
         <NavItem href={APP_ROUTES.superAdminDashboard} label="Overview" icon={LayoutDashboard} />
         <NavItem href={APP_ROUTES.superAdminBusinesses} label="Tenants" icon={Building2} match="prefix" />
+        <NavItem href={APP_ROUTES.superAdminAdoptions} label="Adoptions" icon={Sparkles} />
         <NavItem href={APP_ROUTES.superAdminCampaigns} label="Campaigns" icon={Mail} match="prefix" />
         <NavItem href={APP_ROUTES.superAdminMessages} label="Messages" icon={Inbox} />
 
@@ -231,6 +237,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               <NavItem href={APP_ROUTES.superAdminPlatformDomains} label="Domains" />
               <NavItem href={APP_ROUTES.superAdminPlatformDesktopLicenses} label="Desktop licenses" />
               <NavItem href={APP_ROUTES.superAdminPlatformLogs} label="Logs" />
+              <NavItem href={APP_ROUTES.superAdminPlatformLoadTest} label="Load test" icon={Gauge} />
             </div>
           </Collapsible.Content>
         </Collapsible.Root>

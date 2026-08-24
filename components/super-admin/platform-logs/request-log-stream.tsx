@@ -20,6 +20,8 @@ import {
 
 export type StreamOutcome = "all" | "success" | "failed";
 
+export type StreamSource = "all" | "loadtest";
+
 export function RequestLogStream({
   rows,
   loading,
@@ -28,6 +30,8 @@ export function RequestLogStream({
   onCategoryChange,
   outcome,
   onOutcomeChange,
+  source,
+  onSourceChange,
   ipDraft,
   onIpDraftChange,
   ip,
@@ -44,6 +48,8 @@ export function RequestLogStream({
   onCategoryChange: (category: "all" | PlatformRequestLogCategory) => void;
   outcome: StreamOutcome;
   onOutcomeChange: (outcome: StreamOutcome) => void;
+  source: StreamSource;
+  onSourceChange: (source: StreamSource) => void;
   ipDraft: string;
   onIpDraftChange: (value: string) => void;
   ip: string;
@@ -110,6 +116,20 @@ export function RequestLogStream({
             onClick={() => onOutcomeChange(opt.key)}
           />
         ))}
+        <span className="mx-1 hidden h-4 w-px bg-border/70 sm:block" aria-hidden />
+        {(
+          [
+            { key: "all", label: "Real traffic" },
+            { key: "loadtest", label: "Load tests" },
+          ] as const
+        ).map((opt) => (
+          <Chip
+            key={opt.key}
+            label={opt.label}
+            active={source === opt.key}
+            onClick={() => onSourceChange(opt.key)}
+          />
+        ))}
       </div>
 
       {error ? (
@@ -140,6 +160,7 @@ export function RequestLogStream({
                 <tr className="text-[0.7rem] uppercase tracking-[0.12em] text-muted-foreground">
                   <th scope="col" className="px-3 py-2.5 font-medium">Time</th>
                   <th scope="col" className="px-3 py-2.5 font-medium">Category</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Source</th>
                   <th scope="col" className="px-3 py-2.5 font-medium">Method</th>
                   <th scope="col" className="px-3 py-2.5 font-medium">Path</th>
                   <th scope="col" className="px-3 py-2.5 font-medium">Tenant</th>
@@ -182,6 +203,19 @@ export function RequestLogStream({
                       >
                         {CATEGORY_LABELS[row.category]}
                       </Badge>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2.5">
+                      {row.loadTestRunId ? (
+                        <Badge
+                          variant="outline"
+                          className="border-primary/30 bg-primary/10 text-primary"
+                          title={`Load test ${row.loadTestRunId}`}
+                        >
+                          load test
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/40">—</span>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs">{row.method}</td>
                     <td

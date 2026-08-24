@@ -3,6 +3,7 @@ import type {
   StorefrontDesignDensity,
   StorefrontDesignRadius,
 } from "@/lib/storefront-design";
+import type { StorefrontFontPairingId } from "@/lib/storefront-fonts";
 
 /**
  * Store personalities — "What should your store feel like?"
@@ -27,6 +28,8 @@ export type StorePersonalityPreset = {
   name: string;
   /** One-line feel description shown in the picker. */
   vibe: string;
+  /** Optional font pairing the mood suggests; undefined = keep the theme's. */
+  font?: StorefrontFontPairingId;
   tokens: {
     radius: StorefrontDesignRadius;
     buttons: StorefrontDesignButtons;
@@ -42,6 +45,7 @@ export const STORE_PERSONALITY_PRESETS: readonly StorePersonalityPreset[] = [
     emoji: "🌱",
     name: "Fresh & Friendly",
     vibe: "Green-tinted calm, rounded cards, pill buttons",
+    font: "playful",
     tokens: { radius: "soft", buttons: "pill", density: "airy", surface: "#F5FAF3" },
   },
   {
@@ -49,6 +53,7 @@ export const STORE_PERSONALITY_PRESETS: readonly StorePersonalityPreset[] = [
     emoji: "✨",
     name: "Modern & Premium",
     vibe: "Sharp edges, quiet off-white, tidy spacing",
+    font: "clean",
     tokens: { radius: "sharp", buttons: "solid", density: "cozy", surface: "#FAFAF8" },
   },
   {
@@ -56,6 +61,7 @@ export const STORE_PERSONALITY_PRESETS: readonly StorePersonalityPreset[] = [
     emoji: "⚡",
     name: "Bold & Energetic",
     vibe: "Punchy solids, compact spacing, high contrast",
+    font: "loud",
     tokens: { radius: "sharp", buttons: "solid", density: "compact", surface: "#FFFFFF" },
   },
   {
@@ -70,6 +76,7 @@ export const STORE_PERSONALITY_PRESETS: readonly StorePersonalityPreset[] = [
     emoji: "🏠",
     name: "Warm & Local",
     vibe: "Cream paper, outlined buttons, cosy spacing",
+    font: "heritage",
     tokens: { radius: "soft", buttons: "outline", density: "cozy", surface: "#FFF9F0" },
   },
   {
@@ -77,6 +84,7 @@ export const STORE_PERSONALITY_PRESETS: readonly StorePersonalityPreset[] = [
     emoji: "◆",
     name: "Luxury",
     vibe: "Dark editorial canvas, sharp edges, air",
+    font: "elegant",
     tokens: { radius: "sharp", buttons: "outline", density: "airy", surface: "#111111" },
   },
 ];

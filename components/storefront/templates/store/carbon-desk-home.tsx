@@ -1,6 +1,7 @@
 "use client";
 
 import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import { Suspense, type CSSProperties } from "react";
 
 import {
@@ -42,6 +43,7 @@ import { cn } from "@/lib/utils";
 export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
   const {
     slug,
+    themeId,
     currency,
     catalogItems,
     nextCursor,
@@ -61,6 +63,7 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
     design: designProp,
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
+  const optionVars = themeOptionVars(themeId, design?.theme ?? null);
 
   const stamp = primaryHex?.trim() || "#B91C1C";
   const carbon = accentHex?.trim() || "#3D6B9E";
@@ -103,6 +106,7 @@ export function CarbonDeskStoreHome(props: StoreHomeTemplateProps) {
         {
           ["--cd-stamp" as string]: stamp,
           ["--cd-carbon" as string]: carbon,
+          ...optionVars,
         } as CSSProperties
       }
     >

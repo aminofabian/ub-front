@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 
-import { Check, Copy, Waypoints } from "lucide-react";
+import Link from "next/link";
+
+import { Check, Copy, FlaskConical, Waypoints } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { APP_ROUTES } from "@/lib/config";
 import type { PlatformRequestLogRow } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +51,16 @@ export function RequestLogDrawerContent({ row }: { row: PlatformRequestLogRow })
     { label: "Branch id", value: row.branchId ? shortId(row.branchId) : "—", copyKey: "branch", copyValue: row.branchId ?? "", mono: true },
     { label: "IP address", value: row.ip ?? "—", copyKey: "ip", copyValue: row.ip ?? "", mono: true },
   ];
+
+  if (row.loadTestRunId) {
+    fields.splice(4, 0, {
+      label: "Load test run",
+      value: row.loadTestRunId,
+      copyKey: "loadTestRun",
+      copyValue: row.loadTestRunId,
+      mono: true,
+    });
+  }
 
   return (
     <div className="space-y-5">
@@ -106,6 +119,16 @@ export function RequestLogDrawerContent({ row }: { row: PlatformRequestLogRow })
           </div>
         ))}
       </dl>
+
+      {row.loadTestRunId ? (
+        <Link
+          href={`${APP_ROUTES.superAdminPlatformLoadTest}?run=${encodeURIComponent(row.loadTestRunId)}`}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+        >
+          <FlaskConical className="size-4" aria-hidden />
+          View run in Load test console
+        </Link>
+      ) : null}
 
       <div className="rounded-xl border border-border/70 bg-primary/4 p-3.5">
         <div className="flex items-center gap-2">

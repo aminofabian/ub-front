@@ -1,12 +1,28 @@
 .root {
-  --oxide-bone: #edeae2;
-  --oxide-ink: #101012;
-  --oxide-concrete: #8a8680;
+  --oxide-bone: var(--sf-surface, #edeae2);
+  --oxide-ink: var(--sf-ink, #101012);
+  --oxide-concrete: var(--sf-muted, #8a8680);
   --oxide-steel: #c9c5bc;
   --oxide-accent: #ff3d1f;
-  --oxide-body: #3a3936;
+  --oxide-body: var(--sf-muted, #3a3936);
+  --oxide-grid: color-mix(in srgb, var(--oxide-ink) 6%, transparent);
 
   background: var(--oxide-bone);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 23px,
+      var(--oxide-grid) 23px,
+      var(--oxide-grid) 24px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 23px,
+      var(--oxide-grid) 23px,
+      var(--oxide-grid) 24px
+    );
   color: var(--oxide-ink);
   -webkit-font-smoothing: antialiased;
 }

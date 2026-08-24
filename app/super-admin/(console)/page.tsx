@@ -33,6 +33,7 @@ function formatDate(iso: string) {
 
 const DIRECTORY = [
   { href: APP_ROUTES.superAdminBusinesses, label: "Tenants", hint: "Provision, impersonate, domains" },
+  { href: APP_ROUTES.superAdminAdoptions, label: "Adoptions", hint: "Kiosk Pay and custom-domain tenants" },
   { href: APP_ROUTES.superAdminCampaigns, label: "Campaigns", hint: "Email stuck signups and selected shops" },
   { href: APP_ROUTES.superAdminMessages, label: "Messages", hint: "Talk to Us inbox" },
   { href: APP_ROUTES.superAdminPlatformGlobalCatalog, label: "Global catalog", hint: "Shared packs, categories, suppliers" },

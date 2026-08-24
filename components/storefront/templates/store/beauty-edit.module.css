@@ -1,10 +1,10 @@
 .root {
-  --be-ink: #0e0e0e;
-  --be-paper: #ffffff;
+  --be-ink: var(--sf-ink, #0e0e0e);
+  --be-paper: var(--sf-surface, #ffffff);
   --be-gold: #b5853a;
-  --be-muted: #6b6560;
-  --be-border: #e8e4df;
-  --be-well: #fafbfb;
+  --be-muted: var(--sf-muted, #6b6560);
+  --be-border: var(--sf-line, #e8e4df);
+  --be-well: var(--sf-paper-elevated, #fafbfb);
   --be-max: 1280px;
 
   background: var(--be-paper);

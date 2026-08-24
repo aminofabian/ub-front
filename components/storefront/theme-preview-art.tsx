@@ -391,13 +391,20 @@ function MilkRunArt() {
 
 function ChemLabArt() {
   return (
-    <Frame paper="#0A1218" ink="#E2F0F8">
+    <Frame paper="#0A1218" ink="#E8F3FA">
       <div className="flex items-center justify-between border-b border-[#84CC16]/30 px-3 py-1.5">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#E2F0F8]">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#E8F3FA]">
           Chem <span className="text-[#84CC16]">Lab</span>
         </span>
-        <span className="border border-[#84CC16]/50 bg-[#84CC16]/15 px-2 py-0.5 font-mono text-[7px] text-[#84CC16]">
-          Beaker · 2
+        <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-0.5 rounded-sm border border-[#84CC16]/40 px-1 py-0.5 font-mono text-[6px] uppercase tracking-wider text-[#F59E0B]">
+            <span className="inline-block size-1.5 rounded-full bg-[#F2F5EE]" aria-hidden />
+            <span className="inline-block size-1.5 rounded-full bg-[#0A1218] ring-1 ring-white/30" aria-hidden />
+            Day/Night
+          </span>
+          <span className="border border-[#84CC16]/50 bg-[#84CC16]/15 px-2 py-0.5 font-mono text-[7px] text-[#84CC16]">
+            Beaker · 2
+          </span>
         </span>
       </div>
       <div className="grid flex-1 grid-cols-[1.35fr_1fr] gap-2 p-2">

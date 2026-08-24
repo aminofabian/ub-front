@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 import { InsightRail } from "./insight-rail";
 import { RequestLogDrawerContent } from "./request-log-drawer";
-import { RequestLogStream, type StreamOutcome } from "./request-log-stream";
+import { RequestLogStream, type StreamOutcome, type StreamSource } from "./request-log-stream";
 import { formatDuration, timeAgo } from "./platform-logs-shared";
 
 const WINDOWS = [
@@ -51,6 +51,7 @@ export function PlatformLogsPage() {
   const [summary, setSummary] = useState<PlatformRequestLogSummary | null>(null);
   const [category, setCategory] = useState<"all" | PlatformRequestLogCategory>("all");
   const [outcome, setOutcome] = useState<StreamOutcome>("all");
+  const [source, setSource] = useState<StreamSource>("all");
   const [windowMinutes, setWindowMinutes] = useState(60);
   const [ipDraft, setIpDraft] = useState("");
   const [ip, setIp] = useState("");
@@ -77,6 +78,7 @@ export function PlatformLogsPage() {
             success: outcome === "success" ? true : outcome === "failed" ? false : undefined,
             sinceMinutes: windowMinutes,
             ip: ip || undefined,
+            loadTestRunId: source === "loadtest" ? "*" : undefined,
           }),
           fetchPlatformRequestLogSummary(windowMinutes),
         ]);
@@ -90,7 +92,7 @@ export function PlatformLogsPage() {
         setLoading(false);
       }
     },
-    [category, outcome, windowMinutes, ip],
+    [category, outcome, source, windowMinutes, ip],
   );
 
   // Stream while the request-log tab is visible and the user hasn't paused.
@@ -234,6 +236,8 @@ export function PlatformLogsPage() {
             onCategoryChange={setCategory}
             outcome={outcome}
             onOutcomeChange={setOutcome}
+            source={source}
+            onSourceChange={setSource}
             ipDraft={ipDraft}
             onIpDraftChange={setIpDraft}
             ip={ip}

@@ -159,7 +159,7 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
     id: "chem-lab",
     kind: "store",
     name: "Chem lab",
-    blurb: "A pharmacy bench — dark glass, amber bottles, lime labels.",
+    blurb: "A pharmacy bench — dark glass, amber bottles, lime labels. Flip between the night and day shifts.",
     previewFrom: "#0A1218",
     previewTo: "#84CC16",
     accent: "#F59E0B",

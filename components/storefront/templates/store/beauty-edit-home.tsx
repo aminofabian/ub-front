@@ -1,6 +1,7 @@
 "use client";
 
 import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import { type CSSProperties } from "react";
 
 import { BeautyEditHeroPanel } from "@/components/storefront/templates/store/beauty-edit-card";
@@ -40,6 +41,7 @@ const HERO_COPY = [
 export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
   const {
     slug,
+    themeId,
     currency,
     catalogItems,
     nextCursor,
@@ -59,6 +61,7 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
     design: designProp,
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
+  const optionVars = themeOptionVars(themeId, design?.theme ?? null);
 
   const gold = accentHex?.trim() || "#b5853a";
   const ink = primaryHex?.trim() || "#0e0e0e";
@@ -99,6 +102,7 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
         {
           ["--be-gold" as string]: gold,
           ["--be-ink" as string]: ink,
+          ...optionVars,
         } as CSSProperties
       }
     >

@@ -640,18 +640,33 @@
     animation: shimmer 2s infinite;
 }
 
-/* Neighborhood mart — storefront browse tokens */
+/* Neighborhood mart — storefront browse tokens. The merchant's design-studio
+   surface + auto-contrast ink win via --sf-* when set; these are fallbacks. */
 .storefront-browse {
-    --storefront-paper: #f4f5f4;
-    --storefront-paper-elevated: #ffffff;
-    --storefront-rule: #e4e6e4;
-    --storefront-ink: #141816;
-    --storefront-ink-muted: #5c6560;
-    --storefront-ink-quiet: #8a928c;
-    --storefront-card-border: #e2e5e2;
-    --storefront-card-border-hover: #c8cdc8;
+    --storefront-paper: var(--sf-surface, #f4f5f4);
+    --storefront-paper-elevated: var(--sf-paper-elevated, #ffffff);
+    --storefront-rule: var(--sf-line, #e4e6e4);
+    --storefront-ink: var(--sf-ink, #141816);
+    --storefront-ink-muted: var(--sf-muted, #5c6560);
+    --storefront-ink-quiet: var(--sf-muted, #8a928c);
+    --storefront-card-border: var(--sf-line, #e2e5e2);
+    --storefront-card-border-hover: var(--sf-line-strong, #c8cdc8);
     background-color: var(--storefront-paper);
     color: var(--storefront-ink);
+}
+
+/* Merchant font pairing (design studio) — once a pairing is chosen it becomes
+   the shop's voice: body type everywhere, display type on headlines. The
+   theme's own instrument fonts (logo marks, mono labels) keep their job. */
+[data-store-theme-id][data-sf-font] {
+    font-family: var(--sf-font-body, inherit) !important;
+}
+
+[data-store-theme-id][data-sf-font] h1,
+[data-store-theme-id][data-sf-font] h2,
+[data-store-theme-id][data-sf-font] h3,
+[data-store-theme-id][data-sf-font] h4 {
+    font-family: var(--sf-font-display, inherit) !important;
 }
 
 .dark .storefront-browse {
@@ -2512,6 +2527,17 @@ button:hover .tenant-monogram-shell {
 html:has(.landing-page),
 body:has(.landing-page) {
     background: #12110f !important;
+}
+
+/* Chem lab theme — keep browser chrome (scrollbars, overscroll flash) in
+   sync with the active shift so the day palette never shows a dark edge. */
+html:has([data-store-theme-id="chem-lab"]) {
+    color-scheme: dark;
+}
+
+html:has([data-store-theme-id="chem-lab"][data-cl-mode="light"]) {
+    background-color: #f2f5ee;
+    color-scheme: light;
 }
 
 .landing-page {

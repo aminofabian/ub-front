@@ -115,7 +115,21 @@ import {
   type StorefrontSocialSectionSettings,
 } from "@/lib/storefront-design";
 import { storefrontPreviewUrl } from "@/lib/storefront-preview";
-import { normalizeStoreThemeId } from "@/lib/storefront-templates";
+import {
+  normalizeStoreThemeId,
+  storeThemeMeta,
+} from "@/lib/storefront-templates";
+import {
+  STOREFRONT_FONT_PAIRINGS,
+  type StorefrontFontPairingId,
+} from "@/lib/storefront-fonts";
+import {
+  serializeThemeOptions,
+  storefrontThemeOptionDefaults,
+  storefrontThemeOptionDefs,
+  type ThemeOptionDef,
+  type ThemeOptionValue,
+} from "@/lib/storefront-theme-options";
 import {
   STORE_PERSONALITY_PRESETS,
   type StorePersonalityPreset,
@@ -173,6 +187,144 @@ const HERO_OVERLAY_OPTIONS: {
   { value: "dark", label: "Dark" },
 ];
 
+function ThemeOptionControl({
+  def,
+  value,
+  onChange,
+}: {
+  def: ThemeOptionDef;
+  value: ThemeOptionValue;
+  onChange: (value: ThemeOptionValue) => void;
+}) {
+  switch (def.type) {
+    case "toggle":
+      return (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={value === true}
+          onClick={() => onChange(!value)}
+          className={cn(
+            "flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors",
+            value === true
+              ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+              : "border-border/70 bg-background hover:border-foreground/25",
+          )}
+        >
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-foreground">
+              {def.label}
+            </span>
+            {def.hint ? (
+              <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+                {def.hint}
+              </span>
+            ) : null}
+          </span>
+          <span
+            className={cn(
+              "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+              value === true ? "bg-primary" : "bg-muted",
+            )}
+            aria-hidden
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 size-4 rounded-full bg-background shadow transition-transform",
+                value === true ? "translate-x-[18px]" : "translate-x-0.5",
+              )}
+            />
+          </span>
+        </button>
+      );
+    case "select":
+      return (
+        <div className="space-y-2">
+          <span className="block text-sm font-medium text-foreground">
+            {def.label}
+          </span>
+          <div
+            className="grid grid-cols-2 gap-2"
+            role="radiogroup"
+            aria-label={def.label}
+          >
+            {def.options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={value === opt.value}
+                onClick={() => onChange(opt.value)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border px-2.5 py-2 text-sm font-medium transition-colors",
+                  value === opt.value
+                    ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary/30"
+                    : "border-border/70 bg-background text-muted-foreground hover:border-foreground/25",
+                )}
+              >
+                {opt.swatch ? (
+                  <span
+                    className="size-3.5 shrink-0 rounded-full border border-black/10"
+                    style={{ backgroundColor: opt.swatch }}
+                    aria-hidden
+                  />
+                ) : null}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {def.hint ? <p className={dashboardHintClass()}>{def.hint}</p> : null}
+        </div>
+      );
+    case "range":
+      return (
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-sm font-medium text-foreground">
+              {def.label}
+            </span>
+            <span className="font-mono text-xs text-muted-foreground">
+              {typeof value === "number" ? value : def.default}
+              {def.unit ?? ""}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={def.min}
+            max={def.max}
+            step={def.step}
+            value={typeof value === "number" ? value : def.default}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="w-full"
+          />
+          {def.hint ? <p className={dashboardHintClass()}>{def.hint}</p> : null}
+        </div>
+      );
+    case "color":
+      return (
+        <div className="space-y-2">
+          <span className="text-sm font-medium text-foreground">{def.label}</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={
+                typeof value === "string" && HEX_REGEX.test(value)
+                  ? value
+                  : def.default
+              }
+              onChange={(e) => onChange(e.target.value.toUpperCase())}
+              className="h-9 w-12 cursor-pointer rounded-lg border border-input bg-background shadow-sm"
+            />
+            <span className="font-mono text-xs uppercase text-muted-foreground">
+              {String(value)}
+            </span>
+          </div>
+          {def.hint ? <p className={dashboardHintClass()}>{def.hint}</p> : null}
+        </div>
+      );
+  }
+}
+
 const SOCIAL_FIELDS: {
   key: "instagram" | "facebook" | "tiktok" | "x" | "youtube";
   label: string;
@@ -209,6 +361,10 @@ type DesignForm = {
   density: StorefrontDesignDensity;
   /** Page background override; empty = use the theme's own background. */
   surface: string;
+  /** Font pairing id; "default" = the theme's own lettering. */
+  fontPairing: string;
+  /** Per-theme personality dials for the currently selected theme. */
+  themeOptions: Record<string, ThemeOptionValue>;
   heroUrl: string;
   heroFocalX: number;
   heroFocalY: number;
@@ -256,7 +412,10 @@ function businessFormFromDesign(design: StorefrontDesign | null | undefined): Bu
   };
 }
 
-function formFromDesign(design: StorefrontDesign | null | undefined): DesignForm {
+function formFromDesign(
+  design: StorefrontDesign | null | undefined,
+  themeId: string | null,
+): DesignForm {
   const sections: StorefrontSectionConfig[] = STOREFRONT_SECTION_IDS.map((id) => {
     const existing = design?.sections?.find((s) => s.id === id);
     return existing
@@ -268,6 +427,12 @@ function formFromDesign(design: StorefrontDesign | null | undefined): DesignForm
     buttons: design?.brandKit?.buttons ?? "solid",
     density: design?.brandKit?.density ?? "cozy",
     surface: design?.brandKit?.surface ?? "",
+    fontPairing: design?.fontPairing ?? "default",
+    themeOptions: {
+      ...storefrontThemeOptionDefaults(themeId),
+      ...(design?.theme?.[themeId as keyof NonNullable<StorefrontDesign["theme"]>] ??
+        {}),
+    },
     heroUrl: design?.photos?.hero?.url ?? "",
     heroFocalX: design?.photos?.hero?.focalX ?? 50,
     heroFocalY: design?.photos?.hero?.focalY ?? 50,
@@ -345,7 +510,10 @@ function buildBusinessFromForm(form: DesignForm): StorefrontDesignBusiness | nul
 }
 
 /** Keep the stored blob minimal: only what differs from the theme defaults. */
-function buildDesign(form: DesignForm): StorefrontDesign | null {
+function buildDesign(
+  form: DesignForm,
+  themeId: string | null,
+): StorefrontDesign | null {
   const design: StorefrontDesign = { version: STOREFRONT_DESIGN_VERSION };
 
   const brandKit: StorefrontDesign["brandKit"] = {};
@@ -364,6 +532,14 @@ function buildDesign(form: DesignForm): StorefrontDesign | null {
   }
   if (brandKit.radius || brandKit.surface) {
     design.brandKit = brandKit;
+  }
+
+  if (form.fontPairing !== "default") {
+    design.fontPairing = form.fontPairing as StorefrontFontPairingId;
+  }
+  const themeOptions = serializeThemeOptions(themeId, form.themeOptions);
+  if (themeOptions && themeId) {
+    design.theme = { [themeId]: themeOptions };
   }
 
   const heroUrl = form.heroUrl.trim();
@@ -395,7 +571,14 @@ function buildDesign(form: DesignForm): StorefrontDesign | null {
     design.business = business;
   }
 
-  if (!design.brandKit && !design.photos && !design.business && !design.sections) {
+  if (
+    !design.brandKit &&
+    !design.photos &&
+    !design.business &&
+    !design.sections &&
+    !design.fontPairing &&
+    !design.theme
+  ) {
     return null;
   }
   return design;
@@ -412,7 +595,11 @@ export function StorefrontDesignEditor({
     () => parseStorefrontDesignJson(business?.storefront?.designJson),
     [business?.storefront?.designJson],
   );
-  const snapshot = useMemo(() => formFromDesign(liveDesign), [liveDesign]);
+  const themeId = normalizeStoreThemeId(business?.storefront?.storeThemeId);
+  const snapshot = useMemo(
+    () => formFromDesign(liveDesign, themeId),
+    [liveDesign, themeId],
+  );
 
   const [form, setForm] = useState<DesignForm>(snapshot);
   const [saving, setSaving] = useState(false);
@@ -435,6 +622,10 @@ export function StorefrontDesignEditor({
 
   const setBusiness = useCallback((patch: Partial<BusinessForm>) => {
     setForm((f) => ({ ...f, business: { ...f.business, ...patch } }));
+  }, []);
+
+  const setThemeOption = useCallback((key: string, value: ThemeOptionValue) => {
+    setForm((f) => ({ ...f, themeOptions: { ...f.themeOptions, [key]: value } }));
   }, []);
 
   const setDay = useCallback(
@@ -528,11 +719,10 @@ export function StorefrontDesignEditor({
     ? slugDerivedShopUrl(business.slug) ||
       `https://${business.slug}.${PLATFORM_DOMAIN}`
     : "";
-  const themeId = normalizeStoreThemeId(business?.storefront?.storeThemeId);
   const liveUrl = shopBase ? storefrontPreviewUrl(shopBase, "store", themeId) : null;
   const draftJson = useMemo(
-    () => serializeStorefrontDesign(buildDesign(form)) ?? null,
-    [form],
+    () => serializeStorefrontDesign(buildDesign(form, themeId)) ?? null,
+    [form, themeId],
   );
   const draftPreviewUrl =
     shopBase && draftJson
@@ -668,6 +858,10 @@ export function StorefrontDesignEditor({
         density: form.density,
         surface: form.surface.trim().toLowerCase(),
       }),
+      font: JSON.stringify({
+        pairing: form.fontPairing,
+        options: form.themeOptions,
+      }),
       photos: JSON.stringify({
         url: form.heroUrl.trim(),
         focalX: form.heroFocalX,
@@ -684,6 +878,10 @@ export function StorefrontDesignEditor({
         density: snapshot.density,
         surface: snapshot.surface.trim().toLowerCase(),
       }),
+      font: JSON.stringify({
+        pairing: snapshot.fontPairing,
+        options: snapshot.themeOptions,
+      }),
       photos: JSON.stringify({
         url: snapshot.heroUrl.trim(),
         focalX: snapshot.heroFocalX,
@@ -696,13 +894,22 @@ export function StorefrontDesignEditor({
     return Object.keys(groups).filter((key) => groups[key] !== base[key]).length;
   }, [form, snapshot]);
 
+  const themeOptionDefaults = useMemo(
+    () => storefrontThemeOptionDefaults(themeId),
+    [themeId],
+  );
+
   const stepState = useMemo(
     () => ({
       brand:
         form.radius !== "sharp" ||
         form.buttons !== "solid" ||
         form.density !== "cozy" ||
-        form.surface.trim() !== "",
+        form.surface.trim() !== "" ||
+        form.fontPairing !== "default" ||
+        Object.keys(form.themeOptions).some(
+          (key) => form.themeOptions[key] !== themeOptionDefaults[key],
+        ),
       photos: form.heroUrl.trim() !== "",
       business:
         [
@@ -723,7 +930,7 @@ export function StorefrontDesignEditor({
         ].some((v) => v.trim() !== "") || form.business.hoursEnabled,
       sections: form.sections.some((s) => s.enabled),
     }),
-    [form],
+    [form, themeOptionDefaults],
   );
 
   useEffect(() => {
@@ -774,7 +981,7 @@ export function StorefrontDesignEditor({
     setError(null);
     setFeedback(null);
     try {
-      const designJson = serializeStorefrontDesign(buildDesign(form)) ?? "";
+      const designJson = serializeStorefrontDesign(buildDesign(form, themeId)) ?? "";
       await updateBusiness({ storefront: { designJson } });
       const next = await fetchBusiness();
       onSaved?.(next);
@@ -862,8 +1069,11 @@ export function StorefrontDesignEditor({
     set("buttons", preset.tokens.buttons);
     set("density", preset.tokens.density);
     set("surface", preset.tokens.surface);
+    if (preset.font) {
+      set("fontPairing", preset.font);
+    }
     setFeedback(
-      `Applied “${preset.name}” — fine-tune below, then save when you're happy.`,
+      `Applied "${preset.name}" — fine-tune below, then save when you're happy.`,
     );
   };
 
@@ -1057,7 +1267,8 @@ export function StorefrontDesignEditor({
                 form.buttons === preset.tokens.buttons &&
                 form.density === preset.tokens.density &&
                 form.surface.toLowerCase() ===
-                  preset.tokens.surface.toLowerCase();
+                  preset.tokens.surface.toLowerCase() &&
+                form.fontPairing === (preset.font ?? "default");
               return (
                 <button
                   key={preset.id}
@@ -1235,6 +1446,72 @@ export function StorefrontDesignEditor({
             </p>
           </div>
         </div>
+
+        <div className="mt-6 space-y-3">
+          <span className={dashboardLabelClass()}>Typography voice</span>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {STOREFRONT_FONT_PAIRINGS.map((pairing) => {
+              const active = form.fontPairing === pairing.id;
+              return (
+                <button
+                  key={pairing.id}
+                  type="button"
+                  onClick={() => set("fontPairing", pairing.id)}
+                  className={cn(
+                    "rounded-xl border p-3 text-left transition-colors",
+                    active
+                      ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                      : "border-border/70 bg-background hover:border-foreground/25",
+                  )}
+                >
+                  <span
+                    className="block text-xl leading-none text-foreground"
+                    style={
+                      pairing.display
+                        ? { fontFamily: pairing.display.style.fontFamily }
+                        : undefined
+                    }
+                  >
+                    Aa
+                  </span>
+                  <span className="mt-2 block text-sm font-medium text-foreground">
+                    {pairing.name}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+                    {pairing.vibe}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className={dashboardHintClass()}>
+            Headlines use the display font and the rest of the shop uses the
+            body font. Pick “Theme&apos;s own voice” to keep the theme&apos;s
+            lettering.
+          </p>
+        </div>
+
+        {storefrontThemeOptionDefs(themeId).length > 0 ? (
+          <div className="mt-6 space-y-3">
+            <span className={dashboardLabelClass()}>
+              Theme personality · {storeThemeMeta(themeId).name}
+            </span>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {storefrontThemeOptionDefs(themeId).map((def) => (
+                <ThemeOptionControl
+                  key={def.key}
+                  def={def}
+                  value={form.themeOptions[def.key] ?? def.default}
+                  onChange={(value) => setThemeOption(def.key, value)}
+                />
+              ))}
+            </div>
+            <p className={dashboardHintClass()}>
+              Extra dials this theme offers — saved per theme, so switching
+              looks keeps each one&apos;s personality.
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <div

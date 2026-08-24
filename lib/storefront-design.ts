@@ -12,6 +12,15 @@
  */
 
 import type { LandingContent } from "@/lib/storefront-templates";
+import type { StoreThemeId } from "@/lib/storefront-templates";
+import {
+  isStorefrontFontPairingId,
+  type StorefrontFontPairingId,
+} from "@/lib/storefront-fonts";
+import {
+  normalizeThemeBlob,
+  type ThemeOptionValue,
+} from "@/lib/storefront-theme-options";
 
 export const STOREFRONT_DESIGN_VERSION = 1;
 
@@ -442,6 +451,12 @@ export type StorefrontDesign = {
   business?: StorefrontDesignBusiness | null;
   /** Merchant sections in render order (see {@link StorefrontSectionConfig}). */
   sections?: StorefrontSectionConfig[] | null;
+  /** Typography voice — a font pairing that overrides the theme's lettering. */
+  fontPairing?: StorefrontFontPairingId | null;
+  /** Per-theme personality dials, keyed by theme id (see theme-options). */
+  theme?: Partial<
+    Record<StoreThemeId, Record<string, ThemeOptionValue>>
+  > | null;
 };
 
 export type ResolvedStorefrontDesign = {
@@ -450,6 +465,7 @@ export type ResolvedStorefrontDesign = {
   density: StorefrontDesignDensity;
   surfaceHex: string | null;
   heroPhoto: StorefrontDesignPhoto | null;
+  fontPairingId: StorefrontFontPairingId;
 };
 
 /** CSS radius values per radius mode (card / button / small control). */
@@ -726,7 +742,23 @@ export function parseStorefrontDesignJson(
     }
   }
 
-  if (!design.brandKit && !design.photos && !design.business && !design.sections) {
+  if (isStorefrontFontPairingId(o.fontPairing) && o.fontPairing !== "default") {
+    design.fontPairing = o.fontPairing;
+  }
+
+  const theme = normalizeThemeBlob(o.theme);
+  if (theme) {
+    design.theme = theme;
+  }
+
+  if (
+    !design.brandKit &&
+    !design.photos &&
+    !design.business &&
+    !design.sections &&
+    !design.fontPairing &&
+    !design.theme
+  ) {
     return null;
   }
   return design;
@@ -752,7 +784,20 @@ export function serializeStorefrontDesign(
   if (design.sections && design.sections.length > 0) {
     clean.sections = design.sections;
   }
-  if (!clean.brandKit && !clean.photos && !clean.business && !clean.sections) {
+  if (design.fontPairing && design.fontPairing !== "default") {
+    clean.fontPairing = design.fontPairing;
+  }
+  if (design.theme && Object.keys(design.theme).length > 0) {
+    clean.theme = design.theme;
+  }
+  if (
+    !clean.brandKit &&
+    !clean.photos &&
+    !clean.business &&
+    !clean.sections &&
+    !clean.fontPairing &&
+    !clean.theme
+  ) {
     return null;
   }
   return JSON.stringify(clean);
@@ -772,6 +817,7 @@ export function resolveStorefrontDesign(
     density: design?.brandKit?.density ?? "cozy",
     surfaceHex: design?.brandKit?.surface ?? null,
     heroPhoto: design?.photos?.hero ?? null,
+    fontPairingId: design?.fontPairing ?? "default",
   };
 }
 

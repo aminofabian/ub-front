@@ -1,6 +1,7 @@
 "use client";
 
 import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import { Suspense, type CSSProperties } from "react";
 
 import {
@@ -42,6 +43,7 @@ import { cn } from "@/lib/utils";
 export function ButcherBoardStoreHome(props: StoreHomeTemplateProps) {
   const {
     slug,
+    themeId,
     currency,
     catalogItems,
     nextCursor,
@@ -61,6 +63,7 @@ export function ButcherBoardStoreHome(props: StoreHomeTemplateProps) {
     design: designProp,
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
+  const optionVars = themeOptionVars(themeId, design?.theme ?? null);
 
   const gold = accentHex?.trim() || "#F5C518";
   const crimson = primaryHex?.trim() || "#E31C23";
@@ -103,6 +106,7 @@ export function ButcherBoardStoreHome(props: StoreHomeTemplateProps) {
           ["--bb-accent" as string]: gold,
           ["--bb-gold" as string]: gold,
           ["--bb-crimson" as string]: crimson,
+          ...optionVars,
         } as CSSProperties
       }
     >

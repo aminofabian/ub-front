@@ -1,12 +1,12 @@
 .root {
   --tint-canvas: #0e0d10;
-  --tint-paper: #f6f1ea;
-  --tint-ink: #17151a;
-  --tint-stone: #9c948a;
-  --tint-hairline: #e4dcd0;
+  --tint-paper: var(--sf-surface, #f6f1ea);
+  --tint-ink: var(--sf-ink, #17151a);
+  --tint-stone: var(--sf-muted, #9c948a);
+  --tint-hairline: var(--sf-line, #e4dcd0);
   --tint-accent: #e2432c;
   --tint-accent-soft: #f2c9bf;
-  --tint-body: #4c4740;
+  --tint-body: var(--sf-muted, #4c4740);
 
   background: var(--tint-paper);
   color: var(--tint-ink);

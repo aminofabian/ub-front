@@ -5,6 +5,10 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import { StorefrontEditableLogoMark } from "@/components/storefront/storefront-editable-logo";
+import {
+  ChemLabModeToggle,
+  useChemLabMode,
+} from "@/components/storefront/templates/store/chem-lab-mode";
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -69,6 +73,7 @@ export function ChemLabHeader({
   className?: string;
 }) {
   const { itemCount, openDrawer } = useShopCart();
+  const clMode = useChemLabMode();
 
   return (
     <header className={cn(styles.header, className)}>
@@ -86,10 +91,13 @@ export function ChemLabHeader({
             }
           />
           <span className={styles.wordmarkText}>{storeName}</span>
-          <span className={styles.wordmarkSub}>Reagent bench · open</span>
+          <span className={styles.wordmarkSub}>
+            {clMode === "dark" ? "Night shift · open" : "Day shift · open"}
+          </span>
         </Link>
         <SearchForm />
         <div className={styles.headerActions}>
+          <ChemLabModeToggle />
           <StorefrontAccountLink
             className={styles.accountLink}
             signUpClassName={styles.accountLink}

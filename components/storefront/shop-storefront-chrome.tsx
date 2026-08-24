@@ -9,6 +9,8 @@ import { hasAccessSession, hasSessionPresenceCookie } from "@/lib/auth";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 
 import { ShopAirtimeLauncher } from "@/components/storefront/shop-airtime-launcher";
+import { storefrontFontPairing } from "@/lib/storefront-fonts";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
 import { ShopCheckoutDrawer } from "@/components/storefront/shop-checkout-drawer";
 import { ShopLeadCaptureCard } from "@/components/storefront/shop-lead-capture-card";
@@ -36,6 +38,10 @@ import { boutiqueShelfFontVariables } from "@/components/storefront/templates/st
 import boutiqueShelfStyles from "@/components/storefront/templates/store/boutique-shelf.module.css";
 import { ChemLabHeader } from "@/components/storefront/templates/store/chem-lab-header";
 import { chemLabFontVariables } from "@/components/storefront/templates/store/chem-lab-fonts";
+import {
+  chemLabPaletteVars,
+  useChemLabMode,
+} from "@/components/storefront/templates/store/chem-lab-mode";
 import chemLabStyles from "@/components/storefront/templates/store/chem-lab.module.css";
 import { SpiritsCellarHeader } from "@/components/storefront/templates/store/spirits-cellar-header";
 import { spiritsCellarFontVariables } from "@/components/storefront/templates/store/spirits-cellar-fonts";
@@ -57,6 +63,7 @@ import type {
 import { fetchPublicCheckoutPaymentOptionsBrowser } from "@/lib/public-storefront-client";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import type { StorefrontDesign } from "@/lib/storefront-design";
+import { resolveStorefrontDesign } from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 function RailFallback() {
@@ -173,6 +180,17 @@ export function ShopStorefrontChrome({
   children: ReactNode;
 }) {
   const compactChrome = useCompactStorefrontChrome();
+  const clMode = useChemLabMode();
+  const resolvedDesign = resolveStorefrontDesign(initialDesign);
+  const pairing = storefrontFontPairing(resolvedDesign.fontPairingId);
+  const pairingStyle: CSSProperties | undefined =
+    pairing.id !== "default" && pairing.display && pairing.body
+      ? ({
+          ["--sf-font-display" as string]: pairing.display.style.fontFamily,
+          ["--sf-font-body" as string]: pairing.body.style.fontFamily,
+        } as CSSProperties)
+      : undefined;
+  const optionStyle = themeOptionVars(storeThemeId, initialDesign?.theme ?? null);
   const isOxide = chromeVariant === "oxide";
   const isTintLab = chromeVariant === "tint-lab";
   const isMilkRun = chromeVariant === "milk-run";
@@ -260,8 +278,11 @@ export function ShopStorefrontChrome({
                   } as CSSProperties)
               : isChemLab
                 ? ({
-                    ["--cl-neon" as string]: primaryHex || "#84CC16",
-                    ["--cl-amber" as string]: accentHex || "#F59E0B",
+                    ...chemLabPaletteVars(
+                      primaryHex || "#84CC16",
+                      accentHex || "#F59E0B",
+                      clMode,
+                    ),
                   } as CSSProperties)
                 : isSpiritsCellar
                   ? ({
@@ -283,6 +304,7 @@ export function ShopStorefrontChrome({
       >
       <div
         data-store-theme-id={storeThemeId ?? undefined}
+        data-sf-font={pairing.id !== "default" ? pairing.id : undefined}
         className={cn(
           "storefront-browse flex min-h-0 flex-1 flex-col",
           chromeVariant === "dark" &&
@@ -344,7 +366,7 @@ export function ShopStorefrontChrome({
               chemLabStyles.root,
               chemLabStyles.body,
               chemLabFontVariables,
-              "[--storefront-paper:#0A1218]",
+              "[--storefront-paper:var(--cl-bench)]",
             ),
           isSpiritsCellar &&
             cn(
@@ -353,8 +375,9 @@ export function ShopStorefrontChrome({
               spiritsCellarFontVariables,
               "[--storefront-paper:#14100E]",
             ),
+          pairing.variables,
         )}
-        style={shellStyle}
+        style={{ ...shellStyle, ...optionStyle, ...pairingStyle }}
       >
       {isOxide && !compactChrome ? (
         <OxideHeader storeName={headerTitle} />

@@ -1,6 +1,6 @@
 .root {
-  --milk-cream: #fffcf5;
-  --milk-ink: #2b1810;
+  --milk-cream: var(--sf-surface, #fffcf5);
+  --milk-ink: var(--sf-ink, #2b1810);
   --milk-cobalt: #2440e0;
   --milk-cherry: #e8412c;
   --milk-sunshine: #ffc53d;
@@ -37,7 +37,7 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(255, 252, 245, 0.92);
+  background: color-mix(in srgb, var(--milk-cream) 92%, transparent);
   backdrop-filter: blur(6px);
   border-bottom: 2px solid var(--milk-ink);
 }

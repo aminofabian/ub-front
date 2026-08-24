@@ -1,6 +1,7 @@
 "use client";
 
 import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -41,6 +42,7 @@ function RegistrationMark({
 export function OxideStoreHome(props: StoreHomeTemplateProps) {
   const {
     slug,
+    themeId,
     currency,
     catalogItems,
     nextCursor,
@@ -59,6 +61,7 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
     design: designProp,
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
+  const optionVars = themeOptionVars(themeId, design?.theme ?? null);
 
   const accent = accentHex?.trim() || "#FF3D1F";
   const heroSection = storefrontSectionConfig(design, "hero");
@@ -77,7 +80,7 @@ export function OxideStoreHome(props: StoreHomeTemplateProps) {
     <div
       className={cn(styles.root, styles.body, oxideFontVariables)}
       data-store-theme-id="oxide"
-      style={{ ["--oxide-accent" as string]: accent }}
+      style={{ ["--oxide-accent" as string]: accent, ...optionVars }}
     >
       {heroOn ? (
         <StorefrontHeroSection

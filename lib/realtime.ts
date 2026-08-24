@@ -30,6 +30,11 @@ import {
   resolveRealtimeWebSocketBaseUrl,
 } from "./config";
 import { normalizeNotificationData } from "./notification-display";
+import { getSuperAdminAccessToken } from "./super-admin-session";
+import { refreshSaTokenIfNeeded } from "./super-admin-api";
+
+/** Which auth world this client connects as. */
+export type RealtimeScope = "tenant" | "super-admin";
 
 /** Parse notification timestamps from REST (ISO string, epoch ms/s, etc.). */
 function coerceNotificationTimestamp(value: unknown): string | null {
@@ -76,6 +81,10 @@ export type RealtimeEventType =
   | "pos_draft.updated"
   | "pos_draft.cancelled"
   | "pos_draft.completed"
+  | "support.message"
+  | "support.read"
+  | "support.typing"
+  | "support.conversation"
   | "catch-up.overflow"
   | "error"
   | "ping";
@@ -137,6 +146,10 @@ export interface RealtimeClientOptions {
   onPosDraftUpdated?: FrameHandler;
   onPosDraftCancelled?: FrameHandler;
   onPosDraftCompleted?: FrameHandler;
+  onSupportMessage?: FrameHandler;
+  onSupportRead?: FrameHandler;
+  onSupportTyping?: FrameHandler;
+  onSupportConversation?: FrameHandler;
   onError?: ErrorHandler;
   onConnectionStateChange?: ConnectionStateHandler;
 }
@@ -177,6 +190,10 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "pos_draft.updated": "onPosDraftUpdated",
   "pos_draft.cancelled": "onPosDraftCancelled",
   "pos_draft.completed": "onPosDraftCompleted",
+  "support.message": "onSupportMessage",
+  "support.read": "onSupportRead",
+  "support.typing": "onSupportTyping",
+  "support.conversation": "onSupportConversation",
 };
 
 // ── WS URL Resolution ──
@@ -226,7 +243,11 @@ interface TicketResponse {
   wsUrl: string;
 }
 
-async function mintTicket(channels: string[]): Promise<TicketResponse> {
+async function mintTicket(channels: string[], scope: RealtimeScope = "tenant"): Promise<TicketResponse> {
+  if (scope === "super-admin") {
+    return mintSuperAdminTicket(channels);
+  }
+  /*
   /*
    * Ticket mint is a normal authenticated API call. If our access token has
    * just expired the first attempt will 401; rather than letting the WS layer
@@ -256,6 +277,40 @@ async function mintTicket(channels: string[]): Promise<TicketResponse> {
       throw new Error("Unauthorized");
     }
     // network failure: fall through with the original 401 below
+  }
+
+  if (!response.ok) {
+    const problem = await response.json().catch(() => ({}));
+    throw new Error(problem.title || `Ticket mint failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<TicketResponse>;
+}
+
+/** Super-admin console: same single-use ticket, minted against the SA endpoint. */
+async function mintSuperAdminTicket(channels: string[]): Promise<TicketResponse> {
+  const attempt = async (): Promise<Response> => {
+    const token = getSuperAdminAccessToken()?.trim();
+    return fetch(apiUrl("/api/v1/super-admin/realtime/tickets"), {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ channels }),
+    });
+  };
+
+  let response = await attempt();
+  if (response.status === 401) {
+    const token = getSuperAdminAccessToken();
+    if (token) {
+      const refreshed = await refreshSaTokenIfNeeded(token);
+      if (refreshed) {
+        response = await attempt();
+      }
+    }
   }
 
   if (!response.ok) {
@@ -316,6 +371,10 @@ export type RealtimeListenerOptions = Pick<
   | "onPosDraftUpdated"
   | "onPosDraftCancelled"
   | "onPosDraftCompleted"
+  | "onSupportMessage"
+  | "onSupportRead"
+  | "onSupportTyping"
+  | "onSupportConversation"
   | "onError"
   | "onConnectionStateChange"
 >;
@@ -345,6 +404,10 @@ const LISTENER_HANDLER_KEYS = [
   "onPosDraftUpdated",
   "onPosDraftCancelled",
   "onPosDraftCompleted",
+  "onSupportMessage",
+  "onSupportRead",
+  "onSupportTyping",
+  "onSupportConversation",
   "onError",
   "onConnectionStateChange",
 ] as const satisfies readonly (keyof RealtimeListenerOptions)[];
@@ -360,6 +423,7 @@ function channelsEqual(a: string[], b: string[]): boolean {
 // ── RealtimeClient ──
 
 export class RealtimeClient {
+  private scope: RealtimeScope;
   private ws: WebSocket | null = null;
   private ticket: TicketResponse | null = null;
   private channels: string[] = ["notifications"];
@@ -388,6 +452,10 @@ export class RealtimeClient {
   private wsGeneration = 0;
   /** Number of consecutive abnormal closures (1006). Fast-fallback to REST polling after a few. */
   private consecutiveAbnormalClosures = 0;
+
+  constructor(opts?: { scope?: RealtimeScope }) {
+    this.scope = opts?.scope ?? "tenant";
+  }
 
   /** Register a multiplexed listener and merge channels/handlers. */
   registerListener(id: string, listener: RealtimeListenerOptions): () => void {
@@ -425,10 +493,10 @@ export class RealtimeClient {
 
     try {
       const channelsForTicket = [...this.channels].sort();
-      this.ticket = await mintTicket(channelsForTicket);
+      this.ticket = await mintTicket(channelsForTicket, this.scope);
       // Child listeners often register while the ticket request is in flight.
       if (!channelsEqual(channelsForTicket, this.channels)) {
-        this.ticket = await mintTicket(this.channels);
+        this.ticket = await mintTicket(this.channels, this.scope);
       }
       this.ticketExpiresAt = this.ticket.expiresAt;
       this.scheduleTicketRefresh();
@@ -767,6 +835,21 @@ export class RealtimeClient {
    * attemptReconnect will retry with exponential backoff.
    */
   private async handleReauthAndReconnect(): Promise<void> {
+    if (this.scope === "super-admin") {
+      // Platform console: refresh the SA token (no tenant session flows apply),
+      // then retry. If the session is gone the inbox page's own 401 handling
+      // redirects to the SA login.
+      try {
+        const token = getSuperAdminAccessToken();
+        if (token) {
+          await refreshSaTokenIfNeeded(token);
+        }
+      } catch {
+        // keep the current token and retry — the request will 4401 again
+      }
+      this.attemptReconnect();
+      return;
+    }
     try {
       // Gap G: memory may be empty after reload; refresh/restore still work via
       // httpOnly cookies. Only hard-fail when refresh itself is rejected.
@@ -816,13 +899,24 @@ export class RealtimeClient {
 
   private async refreshTicket(): Promise<void> {
     try {
-      const newTicket = await mintTicket(this.channels);
+      const newTicket = await mintTicket(this.channels, this.scope);
       this.send({ op: "reauth", ticket: newTicket.ticket });
       this.ticketExpiresAt = newTicket.expiresAt;
       this.scheduleTicketRefresh();
     } catch {
       console.warn("[realtime] Ticket refresh failed, will reconnect on 4401");
     }
+  }
+
+  /**
+   * Broadcast typing presence for the support chat. Safe to call when the
+   * socket is closed — frames are dropped and presence recovers on reconnect.
+   */
+  sendTyping(conversationId: string, typing: boolean): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    this.send({ op: "typing", conversationId, typing });
   }
 
   // ── Heartbeat ──
@@ -840,6 +934,7 @@ export class RealtimeClient {
   // ── REST polling fallback ──
 
   private startRestPolling(): void {
+    if (this.scope !== "tenant") return; // platform surfaces poll their own inbox
     if (!this.channels.includes("notifications")) return;
     if (this.pollTimer) return;
     // Keep lastPollNotificationId / notificationsPollBaselined across WS↔REST
@@ -973,6 +1068,25 @@ export function getRealtimeClient(): RealtimeClient {
 export function disconnectRealtimeClient(): void {
   _instance?.disconnect();
   _instance = null;
+}
+
+/**
+ * Super-admin console client (platform scope). Kept separate from the tenant
+ * client — super-admin tickets mint against a different endpoint with the SA
+ * bearer token and connect with the {@code platform} business scope.
+ */
+let _saInstance: RealtimeClient | null = null;
+
+export function getSuperAdminRealtimeClient(): RealtimeClient {
+  if (!_saInstance) {
+    _saInstance = new RealtimeClient({ scope: "super-admin" });
+  }
+  return _saInstance;
+}
+
+export function disconnectSuperAdminRealtimeClient(): void {
+  _saInstance?.disconnect();
+  _saInstance = null;
 }
 
 // Register the disconnect function so signOutClientAndRedirectToLogin can tear down

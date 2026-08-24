@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, type CSSProperties } from "react";
+import { Suspense } from "react";
 
 import {
   ChemLabHero,
@@ -10,6 +10,10 @@ import { ChemLabCatalog } from "@/components/storefront/templates/store/chem-lab
 import { chemLabFontVariables } from "@/components/storefront/templates/store/chem-lab-fonts";
 import { ChemLabMobileSearch } from "@/components/storefront/templates/store/chem-lab-header";
 import { ChemLabDrawers } from "@/components/storefront/templates/store/chem-lab-drawers";
+import {
+  chemLabPaletteVars,
+  useChemLabMode,
+} from "@/components/storefront/templates/store/chem-lab-mode";
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
 import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
 import {
@@ -19,6 +23,7 @@ import {
 } from "@/components/storefront/storefront-native-hero-copy";
 import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import {
   resolveStorefrontDesign,
   storefrontSectionConfig,
@@ -40,6 +45,7 @@ import { cn } from "@/lib/utils";
 export function ChemLabStoreHome(props: StoreHomeTemplateProps) {
   const {
     slug,
+    themeId,
     currency,
     catalogItems,
     nextCursor,
@@ -59,6 +65,8 @@ export function ChemLabStoreHome(props: StoreHomeTemplateProps) {
     design: designProp,
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
+  const clMode = useChemLabMode();
+  const optionVars = themeOptionVars(themeId, design?.theme ?? null);
 
   const neon = primaryHex?.trim() || "#84CC16";
   const amber = accentHex?.trim() || "#F59E0B";
@@ -96,12 +104,7 @@ export function ChemLabStoreHome(props: StoreHomeTemplateProps) {
     <div
       className={cn(styles.root, styles.body, chemLabFontVariables)}
       data-store-theme-id="chem-lab"
-      style={
-        {
-          ["--cl-neon" as string]: neon,
-          ["--cl-amber" as string]: amber,
-        } as CSSProperties
-      }
+      style={{ ...chemLabPaletteVars(neon, amber, clMode), ...optionVars }}
     >
       <div className={styles.wrap}>
         <Suspense fallback={null}>

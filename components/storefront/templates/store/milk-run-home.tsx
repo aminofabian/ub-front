@@ -12,6 +12,7 @@ import {
   useStorefrontStaffEditOptional,
 } from "@/components/storefront/storefront-staff-edit";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import {
   resolveStorefrontDesign,
   storefrontSectionConfig,
@@ -117,6 +118,7 @@ function BowlScene() {
 export function MilkRunStoreHome(props: StoreHomeTemplateProps) {
   const {
     slug,
+    themeId,
     currency,
     catalogItems,
     nextCursor,
@@ -136,6 +138,7 @@ export function MilkRunStoreHome(props: StoreHomeTemplateProps) {
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
   const staff = useStorefrontStaffEditOptional();
+  const optionVars = themeOptionVars(themeId, design?.theme ?? null);
 
   const accent = accentHex?.trim() || "#E8412C";
   const { lead, accent: nameAccent } = splitWordmark(heroTitle);
@@ -164,7 +167,7 @@ export function MilkRunStoreHome(props: StoreHomeTemplateProps) {
     <div
       className={cn(styles.root, styles.body, milkRunFontVariables)}
       data-store-theme-id="milk-run"
-      style={{ ["--milk-accent" as string]: accent }}
+      style={{ ["--milk-accent" as string]: accent, ...optionVars }}
     >
       <div className={styles.wrap}>
         {heroOn ? (

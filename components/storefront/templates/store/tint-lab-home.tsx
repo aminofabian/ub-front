@@ -1,6 +1,7 @@
 "use client";
 
 import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import Link from "next/link";
 
 import { TintLabCatalog } from "@/components/storefront/templates/store/tint-lab-catalog";
@@ -51,6 +52,7 @@ const INGREDIENTS = [
 export function TintLabStoreHome(props: StoreHomeTemplateProps) {
   const {
     slug,
+    themeId,
     currency,
     catalogItems,
     nextCursor,
@@ -68,6 +70,7 @@ export function TintLabStoreHome(props: StoreHomeTemplateProps) {
     design: designProp,
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
+  const optionVars = themeOptionVars(themeId, design?.theme ?? null);
 
   const lead = featured[0] ?? catalogItems[0] ?? null;
   const heroSection = storefrontSectionConfig(design, "hero");
@@ -94,8 +97,11 @@ export function TintLabStoreHome(props: StoreHomeTemplateProps) {
       data-store-theme-id="tint-lab"
       style={
         accentHex
-          ? ({ ["--tint-accent" as string]: accentHex } as Record<string, string>)
-          : undefined
+          ? ({
+              ["--tint-accent" as string]: accentHex,
+              ...optionVars,
+            } as Record<string, string>)
+          : optionVars
       }
     >
       {heroOn ? (
