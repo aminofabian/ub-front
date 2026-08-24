@@ -1604,6 +1604,21 @@ export async function fetchSaBusinessUsers(
   );
 }
 
+/**
+ * Super-admin override of a tenant user's lifecycle status
+ * (active | invited | suspended | locked).
+ */
+export async function patchSaBusinessUserStatus(
+  businessId: string,
+  userId: string,
+  status: string,
+): Promise<SaBusinessUserRow> {
+  return saRequest<SaBusinessUserRow>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/users/${userId}/status`,
+    { method: "PATCH", body: JSON.stringify({ status }) },
+  );
+}
+
 export type SaEmailRecipientRow = {
   userId: string;
   email: string;

@@ -7,7 +7,7 @@ import { Check, Copy, ExternalLink, Globe, Mail, Plus, Users } from "lucide-reac
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
-import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
+import { showThemedConfirmToast, showThemedErrorToast, showThemedSuccessToast } from "@/components/super-admin/themed-confirm-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ import {
   fetchSaDomains,
   impersonateSaBusiness,
   patchSaBusiness,
+  patchSaBusinessUserStatus,
   setSaPrimaryDomain,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,13 @@ const SELECT_CLASS = cn(
   "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/35",
   "disabled:cursor-not-allowed disabled:opacity-50",
 );
+
+const USER_STATUSES = [
+  { value: "active", label: "Active" },
+  { value: "invited", label: "Invited" },
+  { value: "suspended", label: "Suspended" },
+  { value: "locked", label: "Locked" },
+] as const;
 
 function userStatusVariant(status: string): "success" | "warning" | "secondary" {
   const value = status.toLowerCase();
@@ -317,6 +325,41 @@ function BusinessDetailInner() {
     }
   }
 
+  const onChangeUserStatus = (userId: string, nextStatus: string) => {
+    const user = users.find((u) => u.id === userId);
+    if (!user || user.status === nextStatus || locked) return;
+    const current = user.status.toLowerCase();
+    const deactivating = current === "active" && nextStatus !== "active";
+    const apply = async () => {
+      setBusy(true);
+      setError("");
+      try {
+        await patchSaBusinessUserStatus(businessId, userId, nextStatus);
+        await loadUsers();
+        showThemedSuccessToast(`${user.name || user.email} is now ${nextStatus}.`);
+      } catch (err) {
+        showThemedErrorToast(
+          err instanceof Error ? err.message : "Status update failed.",
+        );
+      } finally {
+        setBusy(false);
+      }
+    };
+    if (deactivating) {
+      showThemedConfirmToast({
+        id: `sa-user-status-${userId}`,
+        title: `Set ${user.name || user.email} to ${nextStatus}?`,
+        description:
+          "Their sessions will be revoked and sign-in blocked until this is reverted.",
+        confirmLabel: `Set to ${nextStatus}`,
+        confirmVariant: "destructive",
+        onConfirm: () => void apply(),
+      });
+      return;
+    }
+    void apply();
+  };
+
   if (!businessId) {
     return <AuthAlert variant="error">Missing business id.</AuthAlert>;
   }
@@ -574,7 +617,8 @@ function BusinessDetailInner() {
         <div className="border-b border-border/60 px-4 py-4 sm:px-5">
           <h2 className="font-heading text-lg font-semibold tracking-tight">People</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Email someone directly. INVITED owners can receive a fresh verify link.
+            Change a person&apos;s status (e.g. invited → active), email them directly, or
+            open the shop as them. Moving someone out of Active revokes their sessions.
           </p>
         </div>
         {users.length === 0 ? (
@@ -601,6 +645,19 @@ function BusinessDetailInner() {
                       {u.branchName ? ` · ${u.branchName}` : ""}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
+                      <select
+                        aria-label={`Change status for ${u.name || u.email}`}
+                        className={cn(SELECT_CLASS, "h-8 w-auto py-0")}
+                        value={u.status}
+                        disabled={locked}
+                        onChange={(ev) => onChangeUserStatus(u.id, ev.target.value)}
+                      >
+                        {USER_STATUSES.map((s) => (
+                          <option key={s.value} value={s.value}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
                       <Button
                         type="button"
                         variant="outline"
@@ -654,6 +711,19 @@ function BusinessDetailInner() {
                           <Badge variant={userStatusVariant(u.status)}>{u.status}</Badge>
                         </td>
                         <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                          <select
+                            aria-label={`Change status for ${u.name || u.email}`}
+                            className={cn(SELECT_CLASS, "mr-1.5 inline-block h-8 w-auto py-0")}
+                            value={u.status}
+                            disabled={locked}
+                            onChange={(ev) => onChangeUserStatus(u.id, ev.target.value)}
+                          >
+                            {USER_STATUSES.map((s) => (
+                              <option key={s.value} value={s.value}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
                           <Button
                             type="button"
                             variant="outline"
