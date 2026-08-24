@@ -13,6 +13,9 @@ export const APP_ROUTES = {
   helpUserRoles: "/help/merchants/staff-branches/user-roles-add-users",
   /** Merchant master guide: get the most out of Kiosk (links to all guides). */
   helpKioskGuide: "/help/merchants/getting-started/get-the-most-from-kiosk",
+  /** Merchant guide: opening the cashier / taking the first sale. */
+  helpOpenCashier:
+    "/help/merchants/getting-started/open-the-cashier-for-the-first-time",
   /** Storefront customer password sign-in. */
   login: "/login",
   /** Shop staff / till / office sign-in (PIN + password). */

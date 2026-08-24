@@ -11,6 +11,7 @@ import {
 } from "react";
 import Image from "next/image";
 import {
+  ArrowRight,
   Camera,
   ChevronLeft,
   ClipboardCheck,
@@ -30,6 +31,7 @@ import {
 import { toast } from "sonner";
 
 import { useOptionalPosTillLock } from "@/components/auth/pos-till-lock";
+import { CashierFirstSaleDrawer } from "@/components/cashier/cashier-first-sale-drawer";
 import { CashierOrderConfirmDrawer } from "@/components/cashier/cashier-order-confirm-drawer";
 import { TenantOrderDrawer } from "@/components/order/tenant-order-drawer";
 import { Button } from "@/components/ui/button";
@@ -1931,15 +1933,31 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             ) : null}
           </div>
           {hits.length === 0 ? (
-            <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-center text-xs text-muted-foreground sm:py-8">
-              {search.trim()
-                ? "No items match your search."
-                : categoryFilterId
-                  ? "No items in this aisle."
-                  : typeFilterId
-                    ? "No items for this type."
-                    : "No items."}
-            </p>
+            <div className="space-y-2">
+              <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-center text-xs text-muted-foreground sm:py-8">
+                {search.trim()
+                  ? "No items match your search."
+                  : categoryFilterId
+                    ? "No items in this aisle."
+                    : typeFilterId
+                      ? "No items for this type."
+                      : "No items."}
+              </p>
+              {!search.trim() && !categoryFilterId && !typeFilterId ? (
+                <CashierFirstSaleDrawer
+                  trigger={
+                    <button
+                      type="button"
+                      className="group flex w-full items-center justify-center gap-2 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] bg-[color-mix(in_srgb,var(--card)_60%,transparent)] px-4 py-3 text-center text-xs font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)] transition hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] hover:text-[var(--pos-primary,#0f766e)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      title="How to take your first sale — summary + full guide"
+                    >
+                      How to take your first sale
+                      <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" aria-hidden />
+                    </button>
+                  }
+                />
+              ) : null}
+            </div>
           ) : (
             <div
               className={cn(
