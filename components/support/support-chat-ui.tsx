@@ -159,7 +159,7 @@ export function MessageBubble({
   const isPending = message.pending === true;
 
   return (
-    <div className={cn("group flex w-full items-end gap-2", mine ? "justify-end" : "justify-start")}>
+    <div className={cn("flex w-full items-end gap-2", mine ? "justify-end" : "justify-start")}>
       {!mine && showAvatar ? (
         <Avatar name={message.senderName} seed={message.senderUserId} className="mb-4 size-7" />
       ) : null}
@@ -182,9 +182,7 @@ export function MessageBubble({
             mine ? "text-primary-foreground/70" : "text-muted-foreground",
           )}
         >
-          <span className="opacity-0 transition-opacity group-hover:opacity-100">
-            {chatTime(message.createdAt)}
-          </span>
+          <span>{chatTime(message.createdAt)}</span>
           {mine ? (
             isFailed ? (
               <span className="text-destructive">Failed</span>

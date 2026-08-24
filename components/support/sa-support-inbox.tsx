@@ -572,9 +572,19 @@ export function SaSupportInbox() {
             {theirTyping ? "typing…" : resolved ? "Resolved" : "Open conversation"}
           </p>
         </div>
-        <LiveStatusPill state={connectionState} />
-        <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />
+        <div className="hidden sm:block">
+          <LiveStatusPill state={connectionState} />
+        </div>
+        <div className="hidden sm:block">
+          <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />
+        </div>
       </header>
+
+      {activeConversation ? (
+        <div className="sm:hidden">
+          <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />
+        </div>
+      ) : null}
 
       <div className="relative min-h-0 flex-1 bg-muted/20">
         <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto px-3 py-4 sm:px-5">
@@ -658,7 +668,7 @@ export function SaSupportInbox() {
   );
 
   return (
-    <div className="flex h-[calc(100dvh-9.5rem)] min-h-[540px] flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:flex-row">
+    <div className="flex h-[calc(100dvh-10.5rem)] min-h-[540px] flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:flex-row">
       <div className={cn("min-h-0 flex-1 md:flex", mobileView === "chat" && "hidden")}>{listPane}</div>
       <div className={cn("min-h-0 flex-1", mobileView === "list" && "hidden md:block")}>{chatPane}</div>
     </div>
