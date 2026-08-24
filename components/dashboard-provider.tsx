@@ -22,6 +22,7 @@ import {
 } from "@/lib/api";
 import { persistTenantHostAfterAuth } from "@/lib/auth";
 import { isBranchLockedRole } from "@/lib/branch-access";
+import { isGroceryOperationsBusiness } from "@/lib/business-store-type";
 import { confirmScopeChange } from "@/lib/scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canReceiveStock } from "@/lib/receive-stock-access";
@@ -314,10 +315,11 @@ export function DashboardProvider({
     effectiveMe?.permissions,
     Permission.SalesSell,
   );
-  const canAccessGrocery = hasPermission(
-    effectiveMe?.permissions,
-    Permission.GroceryInvoicesRead,
-  );
+  // Permission alone is not enough — owners/admins inherit grocery.invoices.read
+  // even when the shop never selected a grocery format. Clerks keep access by role.
+  const canAccessGrocery =
+    hasPermission(effectiveMe?.permissions, Permission.GroceryInvoicesRead) &&
+    (isGroceryClerk || isGroceryOperationsBusiness(effectiveBusiness));
 
   useEffect(() => {
     if (!effectiveMe) return;

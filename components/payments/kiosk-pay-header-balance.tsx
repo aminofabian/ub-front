@@ -131,10 +131,12 @@ export function KioskPayHeaderBalance({
     };
   }, [subscriptionId]);
 
+  // Only show when this merchant opted into Kiosk Pay (ACTIVE), or still has
+  // funds to withdraw. Platform-level enablement alone must not surface a
+  // KES 0.00 chip for tenants who never selected Kiosk Pay.
   const visible =
     account != null &&
-    (account.platformEnabled ||
-      account.status === "ACTIVE" ||
+    (account.status === "ACTIVE" ||
       Number(account.availableBalance) > 0 ||
       Number(account.pendingBalance) > 0);
 
