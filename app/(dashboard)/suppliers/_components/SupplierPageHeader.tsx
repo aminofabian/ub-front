@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
+import { SupplierGuideDrawer } from "./SupplierGuideDrawer";
 import { supBtnPrimary } from "./supplier-ui-tokens";
 
 const RELATED_LINKS: {
@@ -43,12 +44,6 @@ const RELATED_LINKS: {
     href: APP_ROUTES.purchasingIntelligence,
     label: "Intelligence",
     icon: CircleDollarSign,
-  },
-  {
-    href: APP_ROUTES.helpSupplierFlow,
-    label: "Guide",
-    icon: BookOpen,
-    external: true,
   },
 ];
 
@@ -104,11 +99,10 @@ export function SupplierPageHeader({
             Related
           </span>
           <ul className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5">
-            {RELATED_LINKS.map(({ href, label, icon: Icon, external }) => (
+            {RELATED_LINKS.map(({ href, label, icon: Icon }) => (
               <li key={href}>
                 <Link
                   href={href}
-                  {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   className={cn(
                     "inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground",
                     "transition-colors hover:text-foreground",
@@ -120,6 +114,24 @@ export function SupplierPageHeader({
                 </Link>
               </li>
             ))}
+            <li>
+              <SupplierGuideDrawer
+                trigger={
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground",
+                      "transition-colors hover:text-foreground",
+                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    )}
+                    title="The complete supplier flow — summary + full guide"
+                  >
+                    <BookOpen className="size-3 shrink-0 opacity-70" aria-hidden />
+                    Guide
+                  </button>
+                }
+              />
+            </li>
           </ul>
         </nav>
       </div>

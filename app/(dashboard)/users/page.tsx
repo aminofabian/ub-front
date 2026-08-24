@@ -39,6 +39,7 @@ import { StaffProfileDrawer } from "@/components/staff/staff-profile-drawer";
 import { Button } from "@/components/ui/button";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { APP_ROUTES } from "@/lib/config";
+import { helpHostUrl } from "@/lib/help/help-url";
 import { cn } from "@/lib/utils";
 import {
   assignUserRole,
@@ -1024,7 +1025,7 @@ export default function UsersPage() {
                   icon: Palette,
                 },
                 {
-                  href: APP_ROUTES.helpUserRoles,
+                  href: helpHostUrl(APP_ROUTES.helpUserRoles),
                   label: "Guide",
                   desc: "Roles & invites",
                   icon: BookOpen,

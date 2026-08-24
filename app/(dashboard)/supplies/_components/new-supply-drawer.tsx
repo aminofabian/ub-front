@@ -30,6 +30,7 @@ import {
   type SupplierRecord,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { helpHostUrl } from "@/lib/help/help-url";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { isBranchLockedRole } from "@/lib/branch-access";
@@ -1729,7 +1730,7 @@ export function NewSupplyDrawer({
               ) : null}
             </p>
             <Link
-              href={APP_ROUTES.helpSupplierFlow}
+              href={helpHostUrl(APP_ROUTES.helpSupplierFlow)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground/80 underline-offset-2 hover:text-primary hover:underline"

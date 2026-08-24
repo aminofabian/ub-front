@@ -53,6 +53,7 @@ import {
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
 
+import { SupplierGuideDrawer } from "@/app/(dashboard)/suppliers/_components/SupplierGuideDrawer";
 import { type OrderParentOption } from "./order-parent-floater";
 
 const ORDER_CURRENCY = "KES";
@@ -996,16 +997,18 @@ export function TenantOrderWorkspace({
             Confirm
           </Link>
         )}
-        <Link
-          href={APP_ROUTES.helpSupplierFlow}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center gap-1.5 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-4 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)] hover:text-[var(--order-ink,#15231f)]"
-          title="The complete supplier flow — step-by-step guide"
-        >
-          <BookOpen className="size-3.5" aria-hidden />
-          Guide
-        </Link>
+        <SupplierGuideDrawer
+          trigger={
+            <button
+              type="button"
+              className="inline-flex shrink-0 items-center gap-1.5 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-4 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)] hover:text-[var(--order-ink,#15231f)]"
+              title="The complete supplier flow — summary + full guide"
+            >
+              <BookOpen className="size-3.5" aria-hidden />
+              Guide
+            </button>
+          }
+        />
       </div>
 
       <div className="relative z-[1] flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">

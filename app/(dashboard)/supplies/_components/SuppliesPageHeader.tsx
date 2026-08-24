@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 import { useSessionBranch } from "@/hooks/use-session-scope";
 
+import { SupplierGuideDrawer } from "../../suppliers/_components/SupplierGuideDrawer";
 import { supBtnPrimary, supKicker } from "../../suppliers/_components/supplier-ui-tokens";
 
 export function SuppliesPageHeader({
@@ -53,12 +54,6 @@ export function SuppliesPageHeader({
       icon: CreditCard,
     },
     { href: APP_ROUTES.suppliers, label: "Suppliers", icon: Truck },
-    {
-      href: APP_ROUTES.helpSupplierFlow,
-      label: "Guide",
-      icon: BookOpen,
-      external: true,
-    },
   ];
 
   return (
@@ -109,6 +104,23 @@ export function SuppliesPageHeader({
                 );
               })
             : null}
+          <SupplierGuideDrawer
+            trigger={
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex h-7 items-center gap-1 border border-border bg-card px-2",
+                  "text-[11px] font-medium text-muted-foreground",
+                  "hover:border-primary/30 hover:bg-primary/[0.04] hover:text-foreground",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                )}
+                title="The complete supplier flow — summary + full guide"
+              >
+                <BookOpen className="size-3" aria-hidden />
+                Guide
+              </button>
+            }
+          />
           <Button
             type="button"
             variant="outline"
