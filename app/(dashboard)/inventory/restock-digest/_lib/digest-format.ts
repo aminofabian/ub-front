@@ -1,6 +1,6 @@
 import type { RestockSuggestionRecord } from "@/lib/api";
 
-export const UNCATEGORISED_KEY = "__none__";
+export const UNCATEGORISED_KEY = "uncategorised";
 
 export const REASON_LABELS: Record<string, string> = {
   BELOW_MIN: "Below min",
