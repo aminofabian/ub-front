@@ -6,14 +6,20 @@ import { usePathname } from "next/navigation";
 
 import { useOptionalRealtime } from "@/components/realtime-provider";
 import { SupportChat } from "@/components/support/support-chat";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useSupportUnread } from "@/hooks/use-support-unread";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 /**
- * Floating support launcher — the always-visible chat button in the corner of
- * the dashboard. Shows the live unread count (pulsing when there's something
- * new) and opens the support chat in a popover without leaving the page.
+ * Floating support launcher — always-visible chat button in the dashboard.
+ * Opens Kiosk Support as a left-edge drawer so the conversation feels like a
+ * real help-desk thread without leaving the page.
  */
 export function SupportLauncher() {
   const pathname = usePathname();
@@ -21,7 +27,7 @@ export function SupportLauncher() {
   const realtime = useOptionalRealtime();
   const [open, setOpen] = React.useState(false);
 
-  // Close the popover when navigating away (the page-level chat takes over).
+  // Close the drawer when navigating away (the page-level chat takes over).
   React.useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -32,28 +38,29 @@ export function SupportLauncher() {
   }
 
   const live = realtime?.connectionState === "connected";
-  const busy = realtime?.connectionState === "connecting" || realtime?.connectionState === "reconnecting";
+  const busy =
+    realtime?.connectionState === "connecting" ||
+    realtime?.connectionState === "reconnecting";
 
   return (
     <>
-      {/* Backdrop + popover */}
-      {open ? (
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-end bg-black/25 p-3 backdrop-blur-[1px] sm:items-center sm:justify-center"
-          onClick={() => setOpen(false)}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          side="left"
+          showCloseButton={false}
+          overlayClassName="bg-black/30 supports-[backdrop-filter]:bg-black/25 supports-[backdrop-filter]:backdrop-blur-[2px]"
+          className="gap-0 border-border/60 p-0 sm:w-[min(100%,24.5rem)]"
         >
-          <div
-            role="dialog"
-            aria-label="Support chat"
-            className="flex h-[min(560px,82dvh)] w-[min(400px,calc(100vw-2rem))] animate-in zoom-in-95 fade-in-0 duration-200 ease-out"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <SupportChat />
+          <DialogTitle className="sr-only">Kiosk Support</DialogTitle>
+          <DialogDescription className="sr-only">
+            Live chat with the Kiosk platform team.
+          </DialogDescription>
+          <div className="flex h-full min-h-0 flex-1 flex-col">
+            <SupportChat variant="drawer" onClose={() => setOpen(false)} />
           </div>
-        </div>
-      ) : null}
+        </DialogContent>
+      </Dialog>
 
-      {/* Launcher button */}
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -65,14 +72,18 @@ export function SupportLauncher() {
           open ? "bg-muted-foreground" : "bg-primary",
         )}
       >
-        {/* Unread pulse ring */}
         {unread > 0 && !open ? (
-          <span className="absolute inset-0 animate-ping rounded-full bg-primary opacity-30" aria-hidden />
+          <span
+            className="absolute inset-0 animate-ping rounded-full bg-primary opacity-30"
+            aria-hidden
+          />
         ) : null}
 
-        <Headset className={cn("size-6", open ? "rotate-90 transition-transform" : "")} aria-hidden />
+        <Headset
+          className={cn("size-6", open ? "rotate-90 transition-transform" : "")}
+          aria-hidden
+        />
 
-        {/* Live indicator dot */}
         <span
           className={cn(
             "absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-background",
@@ -82,7 +93,6 @@ export function SupportLauncher() {
           aria-hidden
         />
 
-        {/* Unread count */}
         {unread > 0 ? (
           <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-foreground px-1 text-[10px] font-bold leading-none text-background">
             {unread > 9 ? "9+" : unread}

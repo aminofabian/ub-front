@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDown, LifeBuoy, MessageCircleQuestion, RotateCw } from "lucide-react";
+import { ArrowDown, LifeBuoy, MessageCircleQuestion, RotateCw, Volume2, VolumeX, X } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -29,7 +29,6 @@ import {
 } from "@/lib/support-api";
 import { isSupportSoundEnabled, setSupportSoundEnabled } from "@/lib/support-sound";
 import { cn } from "@/lib/utils";
-import { Volume2, VolumeX } from "lucide-react";
 
 const QUICK_PROMPTS = [
   "How do I add a new cashier to my till?",
@@ -55,10 +54,18 @@ function toLocalMessage(message: SupportMessage): LocalMessage {
 const TYPING_EMIT_MS = 2500;
 const TYPING_STOP_MS = 3000;
 
-export function SupportChat() {
+export function SupportChat({
+  variant = "panel",
+  onClose,
+}: {
+  /** `drawer` fills a left-edge sheet; `panel` keeps the card shell used on /support. */
+  variant?: "panel" | "drawer";
+  onClose?: () => void;
+} = {}) {
   const { me } = useDashboard();
   const meId = me?.id ?? "";
   const meName = me?.name?.trim() || me?.email?.trim() || "You";
+  const isDrawer = variant === "drawer";
 
   const [conversation, setConversation] = React.useState<SupportConversation | null>(null);
   const [messages, setMessages] = React.useState<LocalMessage[]>([]);
@@ -359,17 +366,29 @@ export function SupportChat() {
 
   return (
     <section
-      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm"
+      className={cn(
+        "flex h-full min-h-0 flex-col overflow-hidden bg-card",
+        isDrawer
+          ? "rounded-none border-0 shadow-none"
+          : "rounded-2xl border border-border/70 shadow-sm",
+      )}
       aria-label="Support chat with Kiosk"
     >
       {/* Header */}
-      <header className="flex items-center gap-3 border-b border-border/60 bg-background/60 px-4 py-3 backdrop-blur">
-        <div className="relative">
+      <header
+        className={cn(
+          "flex shrink-0 items-center gap-3 border-b border-border/60 bg-background px-4 py-3.5",
+          isDrawer && "pt-[max(0.875rem,env(safe-area-inset-top))]",
+        )}
+      >
+        <div className="relative shrink-0">
           <PlatformAvatar className="size-10" />
           <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-background bg-emerald-500" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">Kiosk Support</p>
+          <p className="truncate text-[15px] font-semibold tracking-tight text-foreground">
+            Kiosk Support
+          </p>
           <p className="truncate text-xs text-muted-foreground">
             {theirTyping
               ? "typing…"
@@ -383,7 +402,7 @@ export function SupportChat() {
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="text-muted-foreground hover:text-foreground"
+          className="shrink-0 text-muted-foreground hover:text-foreground"
           aria-label={soundOn ? "Mute message sounds" : "Unmute message sounds"}
           title={soundOn ? "Message sounds on" : "Message sounds off"}
           onClick={() => {
@@ -394,13 +413,29 @@ export function SupportChat() {
         >
           {soundOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
         </Button>
+        {onClose ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label="Close support chat"
+            onClick={onClose}
+          >
+            <X className="size-4" />
+          </Button>
+        ) : null}
       </header>
 
       <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />
 
       {/* Messages */}
-      <div className="relative min-h-0 flex-1 bg-muted/20">
-        <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto px-3 py-4 sm:px-5">
+      <div className="relative min-h-0 flex-1 bg-muted/25">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="h-full overflow-y-auto overscroll-contain px-3 py-5 sm:px-5"
+        >
           {loading ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               Loading conversation…
@@ -414,42 +449,50 @@ export function SupportChat() {
               </Button>
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center px-6">
-              <div className="mb-4 flex size-14 items-center justify-center rounded-2xl border border-border/70 bg-card shadow-sm">
-                <LifeBuoy className="size-6 text-primary" aria-hidden />
+            <div className="flex h-full flex-col items-center justify-center px-5">
+              <div className="mb-5 flex size-16 items-center justify-center rounded-2xl border border-border/80 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                <LifeBuoy className="size-7 text-primary" aria-hidden />
               </div>
-              <p className="text-sm font-semibold text-foreground">Hi there 👋</p>
-              <p className="mt-1 max-w-sm text-center text-sm text-muted-foreground">
+              <p className="text-base font-semibold tracking-tight text-foreground">Hi there 👋</p>
+              <p className="mt-1.5 max-w-[18rem] text-center text-sm leading-relaxed text-muted-foreground">
                 This is your direct line to the Kiosk team. Ask us anything — setup, payments,
                 your online store, you name it.
               </p>
-              <div className="mt-5 flex w-full max-w-sm flex-col gap-2">
+              <div className="mt-6 flex w-full max-w-sm flex-col gap-2.5">
                 {QUICK_PROMPTS.map((prompt) => (
                   <button
                     key={prompt}
                     type="button"
                     onClick={() => void send(prompt)}
-                    className="group flex items-start gap-2 rounded-xl border border-border/70 bg-card px-3 py-2.5 text-left text-sm text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-foreground"
+                    className="group flex items-start gap-2.5 rounded-2xl border border-border/80 bg-card px-3.5 py-3 text-left text-sm leading-snug text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors hover:border-primary/35 hover:bg-primary/[0.03] hover:text-foreground"
                   >
-                    <MessageCircleQuestion className="mt-0.5 size-4 shrink-0 text-primary/70" aria-hidden />
+                    <MessageCircleQuestion
+                      className="mt-0.5 size-4 shrink-0 text-primary"
+                      aria-hidden
+                    />
                     {prompt}
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <>
+            <div className="flex flex-col gap-2.5">
               {messages.map((message, index) => {
                 const mine = message.senderType === "TENANT";
                 const prev = messages[index - 1];
-                const next = messages[index + 1];
-                const newDay = !prev || chatDayLabel(prev.createdAt) !== chatDayLabel(message.createdAt);
+                const newDay =
+                  !prev || chatDayLabel(prev.createdAt) !== chatDayLabel(message.createdAt);
                 const showAvatar =
                   !mine && (!prev || prev.senderUserId !== message.senderUserId || newDay);
                 return (
                   <React.Fragment key={message.id}>
                     {newDay ? <DayDivider iso={message.createdAt} /> : null}
-                    <div className={cn("flex flex-col", mine ? "items-end" : "items-start", "gap-1")}>
+                    <div
+                      className={cn(
+                        "flex flex-col gap-1",
+                        mine ? "items-end" : "items-start",
+                      )}
+                    >
                       <MessageBubble message={message} mine={mine} showAvatar={showAvatar} />
                       {message.failed ? (
                         <button
@@ -462,17 +505,16 @@ export function SupportChat() {
                         </button>
                       ) : null}
                     </div>
-                    {next ? null : null}
                   </React.Fragment>
                 );
               })}
               {theirTyping ? (
-                <div className="mt-2">
+                <div className="mt-1">
                   <TypingBubble label={otherTypingLabel} />
                 </div>
               ) : null}
               <div className="h-2" aria-hidden />
-            </>
+            </div>
           )}
         </div>
 
@@ -483,7 +525,9 @@ export function SupportChat() {
             className="absolute bottom-4 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-lg transition-transform hover:scale-105"
           >
             <ArrowDown className="size-3.5" />
-            {jumpCount > 1 ? `${Math.min(jumpCount, 99)} new message${jumpCount === 1 ? "" : "s"}` : "New messages"}
+            {jumpCount > 1
+              ? `${Math.min(jumpCount, 99)} new message${jumpCount === 1 ? "" : "s"}`
+              : "New messages"}
           </button>
         ) : null}
       </div>

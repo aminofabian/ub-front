@@ -162,13 +162,15 @@ export function MessageBubble({
     <div className={cn("flex w-full items-end gap-2", mine ? "justify-end" : "justify-start")}>
       {!mine && showAvatar ? (
         <Avatar name={message.senderName} seed={message.senderUserId} className="mb-4 size-7" />
+      ) : !mine ? (
+        <span className="mb-4 size-7 shrink-0" aria-hidden />
       ) : null}
       <div
         className={cn(
-          "relative max-w-[min(78%,26rem)] px-3.5 py-2 text-sm leading-relaxed shadow-sm",
+          "relative max-w-[min(82%,22rem)] px-3.5 py-2 text-sm leading-relaxed",
           mine
-            ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground"
-            : "rounded-2xl rounded-bl-md border border-border/70 bg-card text-foreground",
+            ? "rounded-[1.15rem] rounded-br-md bg-primary text-primary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
+            : "rounded-[1.15rem] rounded-bl-md border border-border/70 bg-card text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
           (isPending || isFailed) && "opacity-80",
         )}
       >
@@ -273,10 +275,10 @@ export function Composer({
   };
 
   return (
-    <div className="border-t border-border/60 bg-background p-3">
+    <div className="shrink-0 border-t border-border/60 bg-background px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
       <div
         className={cn(
-          "flex items-end gap-2 rounded-2xl border bg-muted/40 p-2 transition-colors focus-within:border-ring/60 focus-within:bg-background focus-within:ring-2 focus-within:ring-ring/20",
+          "flex items-end gap-1.5 rounded-[1.75rem] border border-border/80 bg-muted/30 py-1.5 pl-1.5 pr-1.5 transition-colors focus-within:border-ring/50 focus-within:bg-background focus-within:ring-2 focus-within:ring-ring/15",
           disabled && "opacity-60",
         )}
       >
@@ -285,7 +287,7 @@ export function Composer({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="mb-0.5 shrink-0 text-muted-foreground hover:text-foreground"
+            className="mb-0.5 size-9 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
             aria-label="Add emoji"
             onClick={() => setEmojiOpen((v) => !v)}
             disabled={disabled}
@@ -293,7 +295,7 @@ export function Composer({
             <Smile className="size-4" />
           </Button>
           {emojiOpen ? (
-            <div className="absolute bottom-11 left-0 z-20 w-60 rounded-2xl border border-border/70 bg-card p-2 shadow-lg">
+            <div className="absolute bottom-12 left-0 z-20 w-60 rounded-2xl border border-border/70 bg-card p-2 shadow-lg">
               <div className="grid grid-cols-5 gap-1">
                 {QUICK_EMOJIS.map((emoji) => (
                   <button
@@ -319,7 +321,7 @@ export function Composer({
           value={value}
           disabled={disabled}
           placeholder={disabled ? (disabledHint ?? "This conversation is closed") : "Type a message…"}
-          className="max-h-[140px] min-h-[2rem] flex-1 resize-none bg-transparent px-1 py-1 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
+          className="max-h-[120px] min-h-[2.25rem] flex-1 resize-none bg-transparent px-1 py-1.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -332,7 +334,7 @@ export function Composer({
         <Button
           type="button"
           size="icon"
-          className="mb-0.5 shrink-0 rounded-xl"
+          className="mb-0.5 size-9 shrink-0 rounded-full"
           onClick={submit}
           disabled={!canSend || sending}
           aria-label="Send message"
@@ -340,7 +342,7 @@ export function Composer({
           <Send className="size-4" />
         </Button>
       </div>
-      <p className="mt-1.5 px-1 text-center text-[10px] text-muted-foreground/70">
+      <p className="mt-2 px-1 text-center text-[10px] text-muted-foreground/70">
         Enter to send · Shift+Enter for a new line
       </p>
     </div>
