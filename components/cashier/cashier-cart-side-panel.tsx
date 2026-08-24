@@ -263,7 +263,7 @@ export function CashierCartSidePanel({
               ? "Pick a branch in the top nav to check out"
               : lines.length === 0 || grandTotal <= 0
                 ? "Add items to enable checkout"
-                : "− at 1 removes the line · Opens cash / M-Pesa / tab"}
+                : "Type qty or use −/+ · − at 1 removes · Opens cash / M-Pesa / tab"}
           </p>
         </div>
       </div>

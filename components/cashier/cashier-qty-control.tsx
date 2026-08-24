@@ -270,6 +270,7 @@ export function CashierQtyControl({
   );
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const qtyInputRef = useRef<HTMLInputElement>(null);
   const kgInputRef = useRef<HTMLInputElement>(null);
   const spendInputRef = useRef<HTMLInputElement>(null);
   const shelfRateRef = useRef(0);
@@ -280,10 +281,23 @@ export function CashierQtyControl({
   const priceNum = Number(unitPrice);
   const hasPrice = Number.isFinite(priceNum) && priceNum > 0;
   const btn = size === "sm" ? "size-9" : "size-10";
-  const labelMin = size === "sm" ? "min-w-[1.75rem]" : "min-w-[1.85rem]";
   const currencyLabel = currency.trim() || "KES";
   const shelfRate =
     shelfRateRef.current > 0 ? shelfRateRef.current : hasPrice ? priceNum : 0;
+
+  /** Committed display string for the inline qty field (not pretty fractions). */
+  const committedQtyText = allowFractions
+    ? qNum > 0
+      ? formatCartQtyValue(qNum)
+      : String(quantity).trim() || "1"
+    : String(Math.max(1, Math.floor(qNum + 1e-9) || 1));
+
+  const [qtyDraft, setQtyDraft] = useState(committedQtyText);
+  const [qtyEditing, setQtyEditing] = useState(false);
+
+  useEffect(() => {
+    if (!qtyEditing) setQtyDraft(committedQtyText);
+  }, [committedQtyText, qtyEditing]);
 
   const clearSyncTimer = () => {
     if (syncTimerRef.current != null) {
@@ -498,6 +512,42 @@ export function CashierQtyControl({
           : null;
 
   const wholeQty = Math.max(1, Math.floor(qNum + 1e-9));
+
+  const commitInlineQty = (raw: string) => {
+    const n = parseDraftNumber(raw);
+    if (n == null || !(n > 0)) {
+      setQtyDraft(committedQtyText);
+      return;
+    }
+    if (allowFractions) {
+      const next = formatCartQtyValue(n);
+      setQtyDraft(next);
+      if (next !== formatCartQtyValue(qNum)) onChange(next);
+      return;
+    }
+    const next = String(Math.max(1, Math.round(n)));
+    setQtyDraft(next);
+    if (next !== String(wholeQty)) onChange(next);
+  };
+
+  const onInlineQtyChange = (raw: string) => {
+    // Allow clearing / partial entry while typing large counts (e.g. 2500).
+    if (allowFractions) {
+      if (raw === "" || /^[0-9]*([.,][0-9]*)?$/.test(raw)) {
+        setQtyDraft(raw);
+        const n = parseDraftNumber(raw);
+        if (n != null && n > 0) onChange(formatCartQtyValue(n));
+      }
+      return;
+    }
+    if (raw === "" || /^[0-9]+$/.test(raw)) {
+      setQtyDraft(raw);
+      if (raw !== "") {
+        const n = Number(raw);
+        if (Number.isFinite(n) && n >= 1) onChange(String(Math.round(n)));
+      }
+    }
+  };
 
   const panel =
     allowFractions && open && coords && typeof document !== "undefined"
@@ -955,6 +1005,7 @@ export function CashierQtyControl({
           }
           onClick={() => {
             if (disabled) return;
+            setQtyEditing(false);
             if (!allowFractions) {
               if (wholeQty <= 1) {
                 onRemove();
@@ -972,37 +1023,47 @@ export function CashierQtyControl({
         >
           <Minus className="size-3.5" />
         </button>
-        {allowFractions ? (
-          <button
-            type="button"
-            disabled={disabled}
-            className={cn(
-              labelMin,
-              "px-0.5 text-center text-xs font-bold tabular-nums leading-none",
-              "text-foreground underline-offset-2 hover:underline disabled:no-underline",
-              open && "text-[var(--pos-primary)]",
-            )}
-            aria-expanded={open}
-            aria-controls={panelId}
-            aria-haspopup="dialog"
-            title="Open scale — updates the cart live"
-            onClick={() => {
-              if (open) closePanel();
-              else openPanel("weight");
-            }}
-          >
-            {formatCartQtyLabel(quantity)}
-          </button>
-        ) : (
-          <span
-            className={cn(
-              labelMin,
-              "px-0.5 text-center text-xs font-bold tabular-nums leading-none text-foreground",
-            )}
-          >
-            {String(wholeQty)}
-          </span>
-        )}
+        <input
+          ref={qtyInputRef}
+          type="text"
+          inputMode={allowFractions ? "decimal" : "numeric"}
+          disabled={disabled}
+          value={qtyDraft}
+          aria-label={`Quantity for ${itemLabel}`}
+          title="Type quantity — or use − / +"
+          className={cn(
+            "min-w-[2.75rem] max-w-[4.5rem] bg-transparent px-0.5 text-center text-xs font-bold tabular-nums leading-none outline-none",
+            "text-foreground selection:bg-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
+            "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)] focus-visible:ring-offset-1",
+            open && "text-[var(--pos-primary)]",
+            size === "sm" ? "h-9" : "h-10",
+          )}
+          style={{
+            width: `${Math.max(3, Math.min(6, (qtyDraft || "1").length + 1))}ch`,
+          }}
+          onFocus={(e) => {
+            setQtyEditing(true);
+            e.currentTarget.select();
+          }}
+          onChange={(e) => onInlineQtyChange(e.target.value)}
+          onBlur={() => {
+            setQtyEditing(false);
+            commitInlineQty(qtyDraft);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitInlineQty(qtyDraft);
+              setQtyEditing(false);
+              qtyInputRef.current?.blur();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              setQtyDraft(committedQtyText);
+              setQtyEditing(false);
+              qtyInputRef.current?.blur();
+            }
+          }}
+        />
         <button
           type="button"
           disabled={disabled}
@@ -1013,6 +1074,7 @@ export function CashierQtyControl({
           aria-label="Increase quantity"
           onClick={() => {
             if (disabled) return;
+            setQtyEditing(false);
             onChange(
               allowFractions
                 ? formatCartQtyValue(qNum + 1)
