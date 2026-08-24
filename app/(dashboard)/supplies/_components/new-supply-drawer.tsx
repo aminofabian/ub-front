@@ -1729,7 +1729,7 @@ export function NewSupplyDrawer({
               ) : null}
             </p>
             <Link
-              href={APP_ROUTES.helpSuppliersSuppliesOrders}
+              href={APP_ROUTES.helpSupplierFlow}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground/80 underline-offset-2 hover:text-primary hover:underline"

@@ -45,7 +45,7 @@ const RELATED_LINKS: {
     icon: CircleDollarSign,
   },
   {
-    href: APP_ROUTES.helpSuppliersSuppliesOrders,
+    href: APP_ROUTES.helpSupplierFlow,
     label: "Guide",
     icon: BookOpen,
     external: true,

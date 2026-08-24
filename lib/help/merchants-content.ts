@@ -990,6 +990,267 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
   {
     audience: "merchants",
     categorySlug: "suppliers-supplies",
+    slug: "complete-supplier-flow",
+    title: "The complete supplier flow — from first vendor to final payment",
+    description:
+      "Follow a vendor through every stage: create, link, order, receive, pay, and see their portal — with screenshots at each step.",
+    updatedAt: "2026-08-24",
+    tags: [
+      "suppliers",
+      "vendors",
+      "flow",
+      "workflow",
+      "purchase order",
+      "supplies",
+      "pay",
+      "KopoKopo",
+      "portal",
+      "payments",
+      "receiving",
+    ],
+    relatedSlugs: [
+      "manage-suppliers-supplies-orders",
+      "add-a-supplier",
+      "record-a-supply",
+      "why-record-supplies",
+      "understand-stock-levels",
+    ],
+    body: [
+      {
+        type: "paragraph",
+        text: "Every vendor relationship in Kiosk follows the same loop: connect the supplier, order what you need, receive the delivery, pay the bill — then repeat. This guide walks the whole loop in detail, with the exact screens at every stage, so you can run several suppliers side by side without losing stock, cost, or money.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "The loop at a glance: 1 Connect the supplier → 2 Order (PO) → 3 Receive (supply) → 4 Pay → Repeat. Stock moves only at stage 3 — orders are promises, supplies are the truth.",
+      },
+      {
+        type: "heading",
+        text: "Stage 1 — Create the supplier",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Suppliers and tap New supplier.",
+          "Enter the legal / display name — this is what appears on every receipt and report.",
+          "Add the contact phone and email. The phone becomes the WhatsApp number Kiosk uses when you send orders.",
+          "Add a VAT / tax ID if you have one — Kiosk matches it against existing vendors so you never create duplicates.",
+          "Set credit terms (e.g. 30 days) and a credit limit if they sell to you on account.",
+          "Save, then set a payout destination on the profile so paying later is one tap (see Stage 6).",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/add-supplier-drawer.svg",
+        alt: "New supplier drawer with marketplace import banner, name Sunrise Fresh Produce Ltd, contact phone and email, VAT tax ID, credit terms 30 days, credit limit, and Save supplier button",
+        caption:
+          "Stage 1: one record per vendor — identity, contacts, tax, and credit terms.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "Trading on the marketplace? The same drawer can import an existing vendor plus their product catalogue in one step — no typing, and they become claimable on the supplier portal.",
+      },
+      {
+        type: "heading",
+        text: "Stage 2 — Link the products they supply",
+      },
+      {
+        type: "list",
+        items: [
+          "Linked products form the supplier’s shelf — the exact list you see when ordering and when receiving.",
+          "Link from the supplier profile (add each product with their SKU and your last cost), or from a product’s detail while you create it.",
+          "Links carry cost and stock hints, so new orders and supplies open pre-filled with sensible prices.",
+          "A vendor with no links still works — you can add ad-hoc lines on a New supply or order from scratch — but linking makes everything faster.",
+        ],
+      },
+      {
+        type: "heading",
+        text: "Stage 3 — Order (the purchase order)",
+      },
+      {
+        type: "paragraph",
+        text: "Order is a till-style screen built around the supplier’s shelf. You build a purchase order (PO), then send it — by WhatsApp, by portal, or just by saving the number.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Order and pick the supplier — their linked products load as tiles with cost and low-stock badges.",
+          "Tap products to add them; use +/− to set quantities. Search and family chips keep big catalogues fast.",
+          "Review the slip on the right. Round to 10 nudges the total to the nearest 10 shillings for cash suppliers.",
+          "Choose how to send: Save & WhatsApp opens their number with the order list; Save only stores the PO; Ticket copies a shareable order link.",
+          "Saving creates a PO number. Marketplace-connected vendors also see the order in their portal inbox.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/supplier-order-shelf.svg",
+        alt: "Order screen with Sunrise Fresh Produce selected, product tiles with quantity steppers, and the This order slip with two lines totaling KES 660 and a Save and WhatsApp button",
+        caption:
+          "Stage 3: build the order on the shelf, then Save & WhatsApp it.",
+      },
+      {
+        type: "heading",
+        text: "Stage 4 — Receive the delivery",
+      },
+      {
+        type: "paragraph",
+        text: "When goods arrive, the delivery becomes a supply — the moment stock actually rises. Two paths: confirm the open order, or record a walk-in directly.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Ordered in advance? Open the order, tap Confirm, and pick the open PO.",
+          "Check the boxes and set the quantity that actually arrived — partial deliveries are fine, stock rises for exactly what you received.",
+          "Tap Confirm selected → supply. Kiosk posts a goods receipt, creates the supplier bill, and raises stock in one go.",
+          "No order? Walk-in deliveries go through Supplies → New supply: pick supplier, branch, and date, add lines with quantity and unit cost, then Post.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/order-confirm-receive.svg",
+        alt: "Confirm to supply panel with open orders list, PO-2026-0141 lines with received quantities, selected total KES 3,780, and Confirm selected to supply button",
+        caption:
+          "Stage 4a: confirming an order posts the goods receipt and raises stock.",
+      },
+      {
+        type: "image",
+        src: "/help/new-supply-drawer.svg",
+        alt: "New supply drawer with four-step workflow rail, supplier Sunrise Fresh Produce, three lines with quantity and unit cost, payable summary KES 12,480, and Post button",
+        caption:
+          "Stage 4b: no order placed? Record the walk-in delivery here.",
+      },
+      {
+        type: "callout",
+        tone: "warning",
+        text: "Never post the same delivery twice — stock is already raised. A mistake? Edit or delete the bill instead of manually chopping quantities. Deletion is only available on unpaid bills because it reverses stock.",
+      },
+      {
+        type: "heading",
+        text: "Stage 5 — Pay the supplier",
+      },
+      {
+        type: "paragraph",
+        text: "Supplies is your vendor ledger. Unpaid bills sit amber; Pay settles one, Pay all clears every open invoice for that vendor at once.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Open Supplies and filter to Unpaid (or use Pay open in the header).",
+          "Tap Pay on a bill. The drawer shows the invoice, the balance due, and any other open balances for the same supplier.",
+          "Pay the real way: if the supplier has a KopoKopo destination (M-Pesa, till, or paybill), Confirm payment sends the money and updates the ledger automatically.",
+          "Paid outside Kiosk (cash at the gate, bank transfer)? Record it — Confirm payment notifies the supplier by SMS, or Mark paid · no SMS updates the ledger silently.",
+          "Partial, credit, or reference? Open the advanced options to set the amount, method (cash / bank / M-Pesa), supplier credit applied, and notes.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/pay-supply-drawer.svg",
+        alt: "Pay supply drawer showing invoice INV-0264, balance due KES 8,700, open balances for the supplier with Clear all, a KopoKopo M-Pesa payout card, payment history, and Confirm payment button",
+        caption:
+          "Stage 5: the pay drawer — remittance details, KopoKopo Send Money, or a manual record.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "Deposit prepays a supplier wallet from Supplies. The credit applies automatically when they next bring a delivery — steady vendors stay topped up without chasing payments.",
+      },
+      {
+        type: "heading",
+        text: "Stage 6 — Manage the supplier profile",
+      },
+      {
+        type: "list",
+        items: [
+          "Open any supplier to manage everything from one profile: identity, contacts, credit terms, and status (active / inactive / blocked).",
+          "Set the KopoKopo payout destination — M-Pesa phone, till (Buy Goods), or paybill — so Send Money payments go straight to them.",
+          "Link and unlink products, review last costs, and watch on-hand stock against each link.",
+          "Purchase history keeps every invoice and its payment status under the vendor, so month-end is one scroll.",
+          "New supply opens the receiving drawer pre-selected to this vendor; Open till jumps to the cashier-style receive screen.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/supplier-profile-manage.svg",
+        alt: "Supplier profile for Sunrise Fresh Produce with active status, credit terms, KopoKopo payout destination, linked products table with costs and stock, and purchase history with paid and unpaid invoices",
+        caption:
+          "Stage 6: the profile is the control centre for one vendor.",
+      },
+      {
+        type: "heading",
+        text: "Stage 7 — The supplier portal (what your vendor sees)",
+      },
+      {
+        type: "paragraph",
+        text: "Marketplace-connected suppliers get their own portal. They claim it once with their phone, then orders, invoices, and payments live there — no more WhatsApp screenshot chasing.",
+      },
+      {
+        type: "steps",
+        items: [
+          "Connect a marketplace supplier from the New supplier drawer (or Marketplace).",
+          "Share the claim link — they enter their phone, receive a code, and set a password. No long setup.",
+          "When you save an order, it lands in their Orders inbox with the product list and PO number.",
+          "They manage their catalogue (prices and stock), see deliveries, and track invoices, payments, and statements in one dashboard.",
+        ],
+      },
+      {
+        type: "image",
+        src: "/help/supplier-portal-overview.svg",
+        alt: "Supplier portal dashboard with sidebar groups for overview, sell, get paid, and track, pulse stats for awaiting orders, in transit, shops, and outstanding, and attention items for pending orders and partial balances",
+        caption:
+          "Stage 7: the vendor’s portal — orders, catalogue, invoices, and payments in one place.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "Keep the loop healthy: check Unpaid weekly, watch AP aging before month-end, use deposits for steady vendors, and review linked costs whenever prices move.",
+      },
+      {
+        type: "faq",
+        items: [
+          {
+            question: "Where do I start with a brand-new vendor?",
+            answer:
+              "Create the supplier, link the products they supply, then place a first order (or record their first delivery directly). Paying follows the same loop every time after that.",
+          },
+          {
+            question: "Do I have to order before I can record a delivery?",
+            answer:
+              "No. Walk-in deliveries go straight through Supplies → New supply. Ordering first is useful for the PO, the WhatsApp hand-off, and the portal flow, but never required.",
+          },
+          {
+            question: "How do I actually pay suppliers?",
+            answer:
+              "Two ways: record a manual payment (cash, bank, or M-Pesa — with optional reference and notes), or enable KopoKopo Send Money with a payout destination on the supplier so Confirm payment pays them directly.",
+          },
+          {
+            question: "What does Pay all do?",
+            answer:
+              "It clears every open invoice for that supplier in one transaction instead of settling bills one by one. You still choose the payment method and reference once.",
+          },
+          {
+            question: "What does my supplier see in their portal?",
+            answer:
+              "Their dashboard shows orders awaiting them, deliveries, their catalogue, and their money side: invoices, payments, payouts, and statements — plus messages from your shop.",
+          },
+          {
+            question: "I paid cash at the gate but the bill still shows unpaid — why?",
+            answer:
+              "Paying outside Kiosk only closes the ledger once you record it. Open the bill and tap Confirm payment (or Mark paid · no SMS) so the balance reflects what you paid.",
+          },
+          {
+            question: "How do deposits work?",
+            answer:
+              "Deposit prepays a supplier wallet from Supplies. The credit applies automatically to their next bill, so you only top up the difference instead of paying invoices individually.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    audience: "merchants",
+    categorySlug: "suppliers-supplies",
     slug: "manage-suppliers-supplies-orders",
     title: "Suppliers, supplies & purchase orders",
     description:
@@ -1012,6 +1273,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       "record-a-supply",
       "why-record-supplies",
       "understand-stock-levels",
+      "complete-supplier-flow",
     ],
     body: [
       {

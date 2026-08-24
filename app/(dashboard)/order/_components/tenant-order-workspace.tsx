@@ -997,11 +997,11 @@ export function TenantOrderWorkspace({
           </Link>
         )}
         <Link
-          href={APP_ROUTES.helpSuppliersSuppliesOrders}
+          href={APP_ROUTES.helpSupplierFlow}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex shrink-0 items-center gap-1.5 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-4 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)] hover:text-[var(--order-ink,#15231f)]"
-          title="Suppliers, supplies & purchase orders — step-by-step guide"
+          title="The complete supplier flow — step-by-step guide"
         >
           <BookOpen className="size-3.5" aria-hidden />
           Guide

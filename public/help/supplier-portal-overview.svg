@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Page bg -->
+  <rect width="960" height="640" fill="#faf8f4"/>
+
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="212" height="640" fill="#ffffff" stroke="rgba(28,25,21,0.08)"/>
+  <circle cx="26" cy="28" r="10" fill="#0f766e"/>
+  <path d="M22 32 l3 4 l7 -8" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="42" y="26" font-size="14" font-weight="700" fill="#1c1915">Kiosk</text>
+  <text x="42" y="40" font-size="9" font-weight="600" letter-spacing="1" fill="#737373">SUPPLIER PORTAL</text>
+
+  <rect x="16" y="52" width="76" height="18" fill="#0f766e" opacity="0.12" stroke="#0f766e" stroke-width="0.6"/>
+  <text x="54" y="64" font-size="9" font-weight="600" fill="#0f766e" text-anchor="middle">Role · Owner</text>
+
+  <text x="16" y="92" font-size="9" font-weight="700" letter-spacing="1.2" fill="#a3a3a3">1 · OVERVIEW</text>
+  <rect x="14" y="98" width="184" height="26" fill="#0f766e" opacity="0.12"/>
+  <circle cx="26" cy="111" r="4" fill="#0f766e"/>
+  <text x="36" y="115" font-size="11.5" font-weight="700" fill="#0f766e">Dashboard</text>
+  <circle cx="26" cy="139" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="143" font-size="11.5" font-weight="500" fill="#4b5563">Shops</text>
+
+  <text x="16" y="172" font-size="9" font-weight="700" letter-spacing="1.2" fill="#a3a3a3">2 · SELL</text>
+  <circle cx="26" cy="191" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="195" font-size="11.5" font-weight="500" fill="#4b5563">Orders</text>
+  <circle cx="26" cy="219" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="223" font-size="11.5" font-weight="500" fill="#4b5563">Deliveries</text>
+  <circle cx="26" cy="247" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="251" font-size="11.5" font-weight="500" fill="#4b5563">Catalogue</text>
+
+  <text x="16" y="280" font-size="9" font-weight="700" letter-spacing="1.2" fill="#a3a3a3">3 · GET PAID</text>
+  <circle cx="26" cy="299" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="303" font-size="11.5" font-weight="500" fill="#4b5563">Payments</text>
+  <circle cx="26" cy="327" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="331" font-size="11.5" font-weight="500" fill="#4b5563">Invoices</text>
+  <circle cx="26" cy="355" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="359" font-size="11.5" font-weight="500" fill="#4b5563">Payout</text>
+  <circle cx="26" cy="383" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="387" font-size="11.5" font-weight="500" fill="#4b5563">Statements</text>
+
+  <text x="16" y="416" font-size="9" font-weight="700" letter-spacing="1.2" fill="#a3a3a3">4 · TRACK</text>
+  <circle cx="26" cy="435" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="439" font-size="11.5" font-weight="500" fill="#4b5563">Messages</text>
+  <circle cx="26" cy="463" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="467" font-size="11.5" font-weight="500" fill="#4b5563">Alerts</text>
+  <text x="170" y="467" font-size="9.5" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+  <rect x="160" y="457" width="20" height="16" fill="#dc2626"/>
+  <circle cx="26" cy="491" r="4" fill="none" stroke="#a3a3a3" stroke-width="1.4"/>
+  <text x="36" y="495" font-size="11.5" font-weight="500" fill="#4b5563">Settings</text>
+
+  <!-- Main -->
+  <text x="232" y="30" font-size="9" font-weight="700" letter-spacing="1.4" fill="#0f766e">SUNRISE FRESH PRODUCE LTD</text>
+  <text x="232" y="54" font-size="22" font-weight="700" fill="#1c1915">Good morning 👋</text>
+  <text x="232" y="74" font-size="11.5" fill="#737373">Fresh orders, deliveries, and payments for your shops.</text>
+
+  <!-- Pulse stats -->
+  <g>
+    <rect x="232" y="92" width="144" height="64" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+    <rect x="232" y="92" width="144" height="64" fill="#fee2e2" opacity="0.5"/>
+    <text x="244" y="114" font-size="9" font-weight="700" letter-spacing="1" fill="#b91c1c">AWAITING YOU</text>
+    <text x="244" y="142" font-size="22" font-weight="700" fill="#1c1915">3</text>
+    <rect x="380" y="92" width="144" height="64" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+    <text x="392" y="114" font-size="9" font-weight="700" letter-spacing="1" fill="#6b7280">IN TRANSIT</text>
+    <text x="392" y="142" font-size="22" font-weight="700" fill="#1c1915">2</text>
+    <rect x="528" y="92" width="144" height="64" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+    <text x="540" y="114" font-size="9" font-weight="700" letter-spacing="1" fill="#6b7280">SHOPS</text>
+    <text x="540" y="142" font-size="22" font-weight="700" fill="#1c1915">2</text>
+    <rect x="676" y="92" width="268" height="64" fill="#ffffff" stroke="rgba(28,25,21,0.14)"/>
+    <text x="688" y="114" font-size="9" font-weight="700" letter-spacing="1" fill="#6b7280">OUTSTANDING</text>
+    <text x="688" y="142" font-size="20" font-weight="700" font-family="ui-monospace, Menlo, monospace" fill="#1c1915">KES 12,480</text>
+    <text x="688" y="152" font-size="9" fill="#737373">Across 2 shops</text>
+  </g>
+
+  <!-- Attention -->
+  <rect x="232" y="172" width="470" height="120" fill="#ffffff" stroke="rgba(28,25,21,0.12)"/>
+  <text x="246" y="196" font-size="11" font-weight="700" fill="#1c1915">Needs your attention</text>
+  <rect x="246" y="208" width="440" height="34" fill="#faf8f4"/>
+  <rect x="246" y="208" width="4" height="34" fill="#dc2626"/>
+  <text x="258" y="224" font-size="12" font-weight="700" fill="#1c1915">Pending orders</text>
+  <text x="258" y="238" font-size="10" fill="#737373">2 waiting over 24h — respond to keep shops moving</text>
+  <text x="672" y="224" font-size="11" font-weight="700" fill="#dc2626" text-anchor="end">3</text>
+  <rect x="680" y="212" width="6" height="28" fill="#dc2626"/>
+  <rect x="246" y="246" width="440" height="34" fill="#faf8f4"/>
+  <rect x="246" y="246" width="4" height="34" fill="#f59e0b"/>
+  <text x="258" y="262" font-size="12" font-weight="700" fill="#1c1915">Partial balances</text>
+  <text x="258" y="276" font-size="10" fill="#737373">1 shop part-paid</text>
+  <text x="672" y="262" font-size="11" font-weight="700" fill="#b45309" text-anchor="end">KES 3,780</text>
+  <rect x="680" y="250" width="6" height="28" fill="#f59e0b"/>
+
+  <!-- Route tiles -->
+  <text x="232" y="312" font-size="11" font-weight="700" fill="#1c1915">Go to</text>
+  <g>
+    <rect x="232" y="322" width="144" height="76" fill="#ffffff" stroke="rgba(28,25,21,0.12)"/>
+    <rect x="232" y="322" width="144" height="76" fill="#0f766e" opacity="0.06"/>
+    <text x="244" y="352" font-size="12" font-weight="700" fill="#1c1915">Orders</text>
+    <text x="244" y="368" font-size="10" fill="#737373">3 pending</text>
+    <rect x="380" y="322" width="144" height="76" fill="#ffffff" stroke="rgba(28,25,21,0.12)"/>
+    <text x="392" y="352" font-size="12" font-weight="700" fill="#1c1915">Catalogue</text>
+    <text x="392" y="368" font-size="10" fill="#737373">Price list</text>
+    <rect x="528" y="322" width="144" height="76" fill="#ffffff" stroke="rgba(28,25,21,0.12)"/>
+    <text x="540" y="352" font-size="12" font-weight="700" fill="#1c1915">Shops</text>
+    <text x="540" y="368" font-size="10" fill="#737373">2 linked</text>
+    <rect x="676" y="322" width="268" height="76" fill="#ffffff" stroke="rgba(28,25,21,0.12)"/>
+    <text x="688" y="352" font-size="12" font-weight="700" fill="#1c1915">Invoices</text>
+    <text x="688" y="368" font-size="10" fill="#737373">Open balances</text>
+  </g>
+
+  <!-- Claim hint -->
+  <rect x="232" y="416" width="712" height="56" fill="#f0fdf9" stroke="#0f766e" stroke-dasharray="5 4"/>
+  <circle cx="252" cy="444" r="12" fill="#0f766e"/>
+  <path d="M247 444 l4 4 l7 -8" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="274" y="440" font-size="12" font-weight="700" fill="#0f3b2e">When you connect a marketplace supplier, they claim this portal with their phone.</text>
+  <text x="274" y="458" font-size="11" fill="#0f766e">Orders you send appear in their inbox; invoices and payments land here too.</text>
+</svg>

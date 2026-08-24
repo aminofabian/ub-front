@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop: Suppliers page -->
+  <rect width="960" height="640" fill="#f4f4f5"/>
+  <rect x="16" y="16" width="928" height="48" rx="6" fill="#ffffff" stroke="#e5e5e5"/>
+  <text x="28" y="46" font-size="12" font-weight="600" fill="#0a0a0a">Suppliers</text>
+  <text x="96" y="45" font-size="10.5" fill="#737373">Related · Supplies · Products · Categories · Intelligence · Guide</text>
+  <rect x="810" y="26" width="96" height="28" rx="4" fill="#28a745"/>
+  <text x="858" y="44" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">+ New supplier</text>
+
+  <!-- List -->
+  <rect x="16" y="72" width="300" height="552" rx="6" fill="#ffffff" stroke="#e5e5e5"/>
+  <rect x="28" y="86" width="276" height="40" fill="#f0fdf9" stroke="#28a745" stroke-width="0.8"/>
+  <text x="38" y="104" font-size="12" font-weight="600" fill="#0a0a0a">Sunrise Fresh Produce</text>
+  <text x="38" y="119" font-size="9.5" fill="#737373">distributor · 2 unpaid · 8,700</text>
+  <text x="38" y="144" font-size="12" font-weight="500" fill="#404040">Zambezi Millers Ltd</text>
+  <text x="38" y="166" font-size="12" font-weight="500" fill="#404040">Coastline Fisheries</text>
+  <text x="38" y="188" font-size="12" font-weight="500" fill="#404040">Nyayo Bakery Supplies</text>
+
+  <!-- Profile panel -->
+  <rect x="326" y="72" width="618" height="552" fill="#ffffff" stroke="#e5e5e5"/>
+  <rect x="326" y="72" width="4" height="552" fill="#28a745"/>
+
+  <!-- Hero -->
+  <circle cx="356" cy="106" r="22" fill="#dcfce7"/>
+  <text x="356" y="112" font-size="14" font-weight="700" fill="#15803d" text-anchor="middle">SF</text>
+  <text x="390" y="102" font-size="16" font-weight="700" fill="#0a0a0a">Sunrise Fresh Produce Ltd</text>
+  <rect x="390" y="110" width="52" height="18" fill="#dcfce7" stroke="#bbe7c3"/>
+  <text x="416" y="123" font-size="9" font-weight="600" fill="#15803d" text-anchor="middle">ACTIVE</text>
+  <text x="450" y="124" font-size="11" fill="#737373">distributor · Vendor code SF-01</text>
+
+  <!-- Actions -->
+  <rect x="760" y="90" width="92" height="28" fill="#ffffff" stroke="#e5e5e5"/>
+  <text x="806" y="108" font-size="11" font-weight="500" fill="#0a0a0a" text-anchor="middle">Open till</text>
+  <rect x="856" y="90" width="76" height="28" fill="#28a745"/>
+  <text x="894" y="108" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">New supply</text>
+
+  <!-- Identity -->
+  <text x="348" y="154" font-size="10.5" font-weight="700" fill="#0a0a0a">IDENTITY &amp; STATUS</text>
+  <line x1="348" y1="162" x2="928" y2="162" stroke="#f0f0f0"/>
+  <text x="348" y="184" font-size="10" font-weight="600" letter-spacing="0.6" fill="#737373">CONTACT PHONE</text>
+  <text x="348" y="200" font-size="12" fill="#0a0a0a">0712 345 678 · WA orders</text>
+  <text x="560" y="184" font-size="10" font-weight="600" letter-spacing="0.6" fill="#737373">CONTACT EMAIL</text>
+  <text x="560" y="200" font-size="12" fill="#0a0a0a">orders@sunrise.co.ke</text>
+
+  <!-- Commercial -->
+  <text x="348" y="236" font-size="10.5" font-weight="700" fill="#0a0a0a">COMMERCIAL &amp; PAYMENTS</text>
+  <line x1="348" y1="244" x2="928" y2="244" stroke="#f0f0f0"/>
+  <text x="348" y="266" font-size="10" font-weight="600" letter-spacing="0.6" fill="#737373">CREDIT TERMS</text>
+  <text x="348" y="282" font-size="12" fill="#0a0a0a">30 days</text>
+  <text x="460" y="266" font-size="10" font-weight="600" letter-spacing="0.6" fill="#737373">CREDIT LIMIT</text>
+  <text x="460" y="282" font-size="12" fill="#0a0a0a">KES 100,000.00</text>
+  <text x="590" y="266" font-size="10" font-weight="600" letter-spacing="0.6" fill="#737373">PREFERRED METHOD</text>
+  <text x="590" y="282" font-size="12" fill="#0a0a0a">M-Pesa</text>
+
+  <!-- Payout -->
+  <rect x="348" y="296" width="580" height="44" fill="#ecfdf5" stroke="#10b981" stroke-opacity="0.4"/>
+  <text x="360" y="314" font-size="9" font-weight="700" letter-spacing="1" fill="#047857">KOPOKOPO PAYOUT · SEND MONEY DESTINATION</text>
+  <text x="360" y="330" font-size="12" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#0a0a0a">M-Pesa phone · 2547 12 345 678</text>
+  <text x="880" y="328" font-size="10.5" font-weight="600" fill="#0f766e" text-anchor="end">Edit →</text>
+
+  <!-- Linked products -->
+  <text x="348" y="366" font-size="10.5" font-weight="700" fill="#0a0a0a">LINKED PRODUCTS · 12</text>
+  <text x="800" y="366" font-size="10.5" font-weight="600" fill="#28a745" text-anchor="end">+ Link product</text>
+  <rect x="348" y="374" width="580" height="24" fill="#f3f4f6"/>
+  <text x="356" y="390" font-size="9" font-weight="600" letter-spacing="0.6" fill="#6b7280">PRODUCT</text>
+  <text x="480" y="390" font-size="9" font-weight="600" letter-spacing="0.6" fill="#6b7280">SUPPLIER SKU</text>
+  <text x="604" y="390" font-size="9" font-weight="600" letter-spacing="0.6" fill="#6b7280" text-anchor="end">LAST COST</text>
+  <text x="700" y="390" font-size="9" font-weight="600" letter-spacing="0.6" fill="#6b7280" text-anchor="end">ON HAND</text>
+  <rect x="348" y="398" width="580" height="30" fill="#ffffff" stroke="#e5e5e5"/>
+  <text x="356" y="417" font-size="11.5" font-weight="600" fill="#0a0a0a">Fresh Tomatoes</text>
+  <text x="480" y="417" font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="#737373">TOM-1</text>
+  <text x="604" y="417" font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="#0a0a0a" text-anchor="end">120.00</text>
+  <text x="700" y="417" font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="#0a0a0a" text-anchor="end">36</text>
+  <rect x="348" y="428" width="580" height="30" fill="#fafbfd" stroke="#e5e5e5"/>
+  <text x="356" y="447" font-size="11.5" font-weight="600" fill="#0a0a0a">Red Onions 1 kg</text>
+  <text x="480" y="447" font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="#737373">ONI-R</text>
+  <text x="604" y="447" font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="#0a0a0a" text-anchor="end">90.00</text>
+  <text x="700" y="447" font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="#0a0a0a" text-anchor="end">18</text>
+  <rect x="348" y="458" width="580" height="30" fill="#ffffff" stroke="#e5e5e5"/>
+  <text x="356" y="477" font-size="11.5" font-weight="600" fill="#0a0a0a">Eggs Tray (30)</text>
+  <text x="480" y="477" font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="#737373">EGG-T30</text>
+  <text x="604" y="477" font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="#0a0a0a" text-anchor="end">450.00</text>
+  <text x="700" y="477" font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="#0a0a0a" text-anchor="end">24</text>
+
+  <!-- Purchase history -->
+  <text x="348" y="514" font-size="10.5" font-weight="700" fill="#0a0a0a">PURCHASE HISTORY · 2</text>
+  <rect x="348" y="522" width="580" height="30" fill="#ffffff" stroke="#e5e5e5"/>
+  <text x="356" y="541" font-size="11" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#0a0a0a">INV-0264</text>
+  <text x="448" y="541" font-size="10.5" fill="#737373">Aug 24 · 3 lines</text>
+  <text x="760" y="541" font-size="11" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#b45309" text-anchor="end">8,700 · unpaid</text>
+  <rect x="348" y="552" width="580" height="30" fill="#fafbfd" stroke="#e5e5e5"/>
+  <text x="356" y="571" font-size="11" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#0a0a0a">INV-0255</text>
+  <text x="448" y="571" font-size="10.5" fill="#737373">Aug 20 · 5 lines</text>
+  <text x="760" y="571" font-size="11" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#15803d" text-anchor="end">11,220 · paid</text>
+
+  <!-- Callout -->
+  <rect x="560" y="6" width="220" height="30" rx="6" fill="#ffffff" stroke="#28a745" stroke-width="1.5"/>
+  <path d="M670 36 l0 8 l10 -8 z" fill="#ffffff" stroke="#28a745" stroke-width="1.5"/>
+  <text x="670" y="25" font-size="11" font-weight="600" fill="#166534" text-anchor="middle">Manage the vendor here</text>
+</svg>

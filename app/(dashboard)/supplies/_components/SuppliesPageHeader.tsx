@@ -54,7 +54,7 @@ export function SuppliesPageHeader({
     },
     { href: APP_ROUTES.suppliers, label: "Suppliers", icon: Truck },
     {
-      href: APP_ROUTES.helpSuppliersSuppliesOrders,
+      href: APP_ROUTES.helpSupplierFlow,
       label: "Guide",
       icon: BookOpen,
       external: true,
