@@ -1,5 +1,6 @@
 import { spokePlaceholderBody } from "./article-helpers";
 import { KIOSK_BEATS_ODOO_ARTICLE } from "./cluster-kiosk-beats-odoo";
+import { SETUP_POS_ARTICLE } from "./cluster-set-up-pos";
 import type { BlogArticle } from "./types";
 
 export const KIOSK_VS_ODOO_PILLAR_SLUG =
@@ -236,24 +237,6 @@ const SPOKE_ARTICLES: BlogArticle[] = [
       "An ERP can run your whole company. A POS needs to run your counter. Knowing which problem you have today saves months of implementation.",
   }),
   spoke({
-    slug: "set-up-a-pos-in-30-minutes",
-    title: "Set Up a POS in 30 Minutes",
-    description:
-      "A practical walkthrough for getting a digital till and storefront live the same afternoon — without an IT project.",
-    category: "Getting started",
-    publishedAt: "2026-07-19",
-    updatedAt: "2026-07-19",
-    tags: ["Setup", "POS", "Getting started"],
-    relatedSlugs: [
-      KIOSK_VS_ODOO_PILLAR_SLUG,
-      "what-hardware-do-you-actually-need",
-      "online-physical-one-inventory",
-      "why-kiosk-beats-odoo-for-kenyan-shops",
-    ],
-    teaser:
-      "You shouldn't need a consultant to start selling. Here's what a plug-and-play till setup looks like when the software is built for local shops.",
-  }),
-  spoke({
     slug: "the-real-cost-of-free-software",
     title: "The Real Cost of 'Free' Software",
     description:
@@ -330,5 +313,6 @@ const SPOKE_ARTICLES: BlogArticle[] = [
 export const KIOSK_VS_ODOO_ARTICLES: BlogArticle[] = [
   PILLAR_ARTICLE,
   KIOSK_BEATS_ODOO_ARTICLE,
+  SETUP_POS_ARTICLE,
   ...SPOKE_ARTICLES,
 ];

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Step 5 · Stay compliant — eTIMS &amp; KRA</text>
+
+  <!-- Step badge -->
+  <circle cx="42" cy="34" r="16" fill="#A8842C"/>
+  <text x="42" y="39" font-size="13" font-weight="800" fill="#ffffff" text-anchor="middle">5</text>
+
+  <!-- ============ LEFT: Compliance dashboard ============ -->
+  <rect x="16" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="440" height="48" rx="14" fill="#1F2937"/>
+  <rect x="16" y="82" width="440" height="22" fill="#1F2937"/>
+  <text x="40" y="87" font-size="14" font-weight="700" fill="#ffffff">Tax &amp; compliance</text>
+
+  <!-- eTIMS status -->
+  <rect x="40" y="128" width="392" height="86" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <circle cx="68" cy="171" r="16" fill="#28a745"/>
+  <path d="M58 171 l7 7 l14 -16" stroke="#ffffff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="96" y="158" font-size="12.5" font-weight="700" fill="#15803d">eTIMS connected</text>
+  <text x="96" y="176" font-size="10.5" fill="#374151">Invoices stream to KRA reporting automatically</text>
+  <text x="96" y="192" font-size="10.5" fill="#374151">for every till and online sale.</text>
+  <rect x="352" y="148" width="60" height="22" rx="11" fill="#28a745"/>
+  <text x="382" y="163" font-size="9.5" font-weight="700" fill="#ffffff" text-anchor="middle">ACTIVE</text>
+
+  <!-- Stats -->
+  <rect x="40" y="232" width="122" height="72" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="101" y="262" font-size="20" font-weight="800" fill="#1F2937" text-anchor="middle">128</text>
+  <text x="101" y="282" font-size="9.5" fill="#6b7280" text-anchor="middle">invoices synced</text>
+  <text x="101" y="296" font-size="9" font-weight="700" fill="#15803d" text-anchor="middle">100% on time</text>
+
+  <rect x="175" y="232" width="122" height="72" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="236" y="262" font-size="20" font-weight="800" fill="#1F2937" text-anchor="middle">0</text>
+  <text x="236" y="282" font-size="9.5" fill="#6b7280" text-anchor="middle">unreported sales</text>
+  <text x="236" y="296" font-size="9" font-weight="700" fill="#15803d" text-anchor="middle">nothing to chase</text>
+
+  <rect x="310" y="232" width="122" height="72" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="371" y="262" font-size="20" font-weight="800" fill="#1F2937" text-anchor="middle">5</text>
+  <text x="371" y="282" font-size="9.5" fill="#6b7280" text-anchor="middle">days with till</text>
+  <text x="371" y="296" font-size="9" font-weight="700" fill="#15803d" text-anchor="middle">reporting since</text>
+
+  <!-- What it means -->
+  <rect x="40" y="326" width="392" height="120" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="60" y="352" font-size="11.5" font-weight="700" fill="#1F2937">Why this matters in Kenya</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="60" y="376">· eTIMS (electronic tax invoice management) is KRA's</text>
+    <text x="60" y="392">  mandatory electronic invoicing system for businesses.</text>
+    <text x="60" y="414">· Every receipt is generated in a compliant format.</text>
+    <text x="60" y="430">· No end-of-month scramble to recreate missing invoices.</text>
+  </g>
+
+  <!-- ============ RIGHT: Month-end recap ============ -->
+  <rect x="504" y="56" width="440" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="504" y="56" width="440" height="48" rx="14" fill="#15803d"/>
+  <rect x="504" y="82" width="440" height="22" fill="#15803d"/>
+  <text x="528" y="87" font-size="14" font-weight="700" fill="#ffffff">Where you'll be in a month</text>
+
+  <!-- Month recap cards -->
+  <rect x="528" y="128" width="184" height="110" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="620" y="156" font-size="10" font-weight="700" fill="#6b7280" text-anchor="middle">SALES RECORDED</text>
+  <text x="620" y="188" font-size="24" font-weight="800" fill="#15803d" text-anchor="middle">KES 412,500</text>
+  <text x="620" y="212" font-size="9.5" fill="#6b7280" text-anchor="middle">every sale on the record</text>
+
+  <rect x="728" y="128" width="192" height="110" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="824" y="156" font-size="10" font-weight="700" fill="#6b7280" text-anchor="middle">STOCK ACCURACY</text>
+  <text x="824" y="188" font-size="24" font-weight="800" fill="#15803d" text-anchor="middle">98.6%</text>
+  <text x="824" y="212" font-size="9.5" fill="#6b7280" text-anchor="middle">no more midnight counting</text>
+
+  <rect x="528" y="256" width="184" height="110" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="620" y="284" font-size="10" font-weight="700" fill="#6b7280" text-anchor="middle">M-PESA SALES</text>
+  <text x="620" y="316" font-size="24" font-weight="800" fill="#15803d" text-anchor="middle">71%</text>
+  <text x="620" y="340" font-size="9.5" fill="#6b7280" text-anchor="middle">paid by mobile money</text>
+
+  <rect x="728" y="256" width="192" height="110" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="824" y="284" font-size="10" font-weight="700" fill="#6b7280" text-anchor="middle">E-TIMS REPORTS</text>
+  <text x="824" y="316" font-size="24" font-weight="800" fill="#15803d" text-anchor="middle">100%</text>
+  <text x="824" y="340" font-size="9.5" fill="#6b7280" text-anchor="middle">ready for your accountant</text>
+
+  <!-- Grow next -->
+  <rect x="528" y="392" width="392" height="116" rx="12" fill="#fefce8" stroke="#fde68a"/>
+  <text x="552" y="418" font-size="11.5" font-weight="700" fill="#A8842C">Then keep going:</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="552" y="442">· Add a supplier &amp; raise purchase orders — stock auto-updates</text>
+    <text x="552" y="460">· Invite a second cashier with a role (no shared passwords)</text>
+    <text x="552" y="478">· Sell in trays &amp; crates with packages and variants</text>
+    <text x="552" y="496">· Watch reports: best sellers, margins, slow movers</text>
+  </g>
+</svg>
