@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Layers, Loader2, Trash2, X } from "lucide-react";
+import { Layers, Loader2, Power, Trash2, Warehouse, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -26,10 +26,14 @@ type Props = {
   onRowClick: (id: string) => void;
   isRowActive: (row: ItemSummaryRecord) => boolean;
   canCatalogWrite: boolean;
+  canInventoryWrite: boolean;
   bulkDeleteBusy: boolean;
   bulkChangeDepartmentBusy?: boolean;
+  bulkActivateBusy?: boolean;
   onBulkDelete: () => void | Promise<void>;
   onBulkChangeDepartment?: () => void;
+  onBulkActivate?: () => void;
+  onBulkAdjustStock?: () => void;
   onAddFromCatalog?: () => void;
   canAddFromCatalog?: boolean;
   onCreateNew?: () => void;
@@ -51,10 +55,14 @@ export function CatalogListColumn({
   onRowClick,
   isRowActive,
   canCatalogWrite,
+  canInventoryWrite,
   bulkDeleteBusy,
   bulkChangeDepartmentBusy = false,
+  bulkActivateBusy = false,
   onBulkDelete,
   onBulkChangeDepartment,
+  onBulkActivate,
+  onBulkAdjustStock,
   onAddFromCatalog,
   canAddFromCatalog = false,
   onCreateNew,
@@ -62,7 +70,7 @@ export function CatalogListColumn({
 }: Props) {
   const selectionCount = catalog.rowSelection.size;
   const hasSelection = selectionCount > 0;
-  const selectionBusy = bulkDeleteBusy || bulkChangeDepartmentBusy;
+  const selectionBusy = bulkDeleteBusy || bulkChangeDepartmentBusy || bulkActivateBusy;
   const listBodyRef = useRef<VirtualizedCatalogBodyHandle>(null);
   const pendingScrollIndexRef = useRef<number | null>(null);
   const [activeLetter, setActiveLetter] = useState<CatalogLetterKey | null>(
@@ -142,6 +150,38 @@ export function CatalogListColumn({
             {selectionCount} selected
           </span>
           <div className="flex items-center gap-1">
+            {canCatalogWrite && onBulkActivate ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1 border px-2 text-xs"
+                disabled={selectionBusy}
+                onClick={onBulkActivate}
+              >
+                {bulkActivateBusy ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Power className="size-3.5" aria-hidden />
+                )}
+                <span className="sm:hidden">Active</span>
+                <span className="hidden sm:inline">Mark active</span>
+              </Button>
+            ) : null}
+            {canInventoryWrite && onBulkAdjustStock ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1 border px-2 text-xs"
+                disabled={selectionBusy}
+                onClick={onBulkAdjustStock}
+              >
+                <Warehouse className="size-3.5" aria-hidden />
+                <span className="sm:hidden">Stock</span>
+                <span className="hidden sm:inline">Adjust stock</span>
+              </Button>
+            ) : null}
             {canCatalogWrite && onBulkChangeDepartment ? (
               <Button
                 type="button"

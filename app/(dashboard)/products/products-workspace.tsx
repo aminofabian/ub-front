@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, MousePointerClick } from "lucide-react";
 
@@ -29,6 +29,7 @@ import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
 import { VariantParentPickDrawer } from "./_components/VariantParentPickDrawer";
 import { AddPackageModal } from "./_components/AddPackageModal";
 import { ChangeItemTypeModal } from "./_components/ChangeItemTypeModal";
+import { BulkStockAdjustModal } from "./_components/BulkStockAdjustModal";
 import { resolveCatalogParentId } from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
 import { ProductEditDrawer } from "./_components/ProductEditDrawer";
@@ -102,6 +103,7 @@ export function ProductsWorkspace() {
   >("single");
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [variantParentPickBusy, setVariantParentPickBusy] = useState(false);
+  const [bulkStockOpen, setBulkStockOpen] = useState(false);
 
   const openBaseStock = useCallback(async () => {
     const pid = detail.detail?.variantOfItemId?.trim();
@@ -168,6 +170,15 @@ export function ProductsWorkspace() {
     dashboardItemTypeId,
     headerBranchId: branchId,
   });
+
+  /** Rows the bulk stock adjuster can touch: non-package items in the current selection. */
+  const bulkStockRows = useMemo(
+    () =>
+      catalog.listRows.filter(
+        (r) => catalog.rowSelection.has(r.id) && !r.packageVariant,
+      ),
+    [catalog.listRows, catalog.rowSelection],
+  );
 
   usePosEvents({
     onPriceChanged: (frame) => {
@@ -472,9 +483,17 @@ export function ProductsWorkspace() {
                 }}
                 isRowActive={isListRowActive}
                 canCatalogWrite={canCatalogWrite}
+                canInventoryWrite={canInventoryWrite}
                 bulkDeleteBusy={m.bulkDeleteBusy}
                 bulkChangeDepartmentBusy={m.changeItemTypeBusy}
+                bulkActivateBusy={m.bulkActivateBusy}
                 onBulkDelete={m.onBulkDeleteSelected}
+                onBulkActivate={
+                  canCatalogWrite ? m.onBulkActivateSelected : undefined
+                }
+                onBulkAdjustStock={
+                  canInventoryWrite ? () => setBulkStockOpen(true) : undefined
+                }
                 onBulkChangeDepartment={
                   canCatalogWrite
                     ? () => {
@@ -664,6 +683,16 @@ export function ProductsWorkspace() {
         banner={quickEditDrawerBanner}
         detail={detail}
         quick={quick}
+      />
+
+      <BulkStockAdjustModal
+        open={bulkStockOpen}
+        onOpenChange={setBulkStockOpen}
+        rows={bulkStockRows}
+        totalSelected={catalog.rowSelection.size}
+        branches={m.branches}
+        currencyCode={business?.currency?.trim() || ""}
+        apply={m.onBulkAdjustStock}
       />
 
       <ProductMobileDetailDrawer

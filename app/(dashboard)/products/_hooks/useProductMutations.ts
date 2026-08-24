@@ -9,6 +9,7 @@ import {
   deleteItem,
   deleteItemImage,
   fetchBranches,
+  fetchAllocationPreview,
   fetchItemById,
   fetchItemSupplierLinks,
   fetchSuggestedNextSku,
@@ -16,6 +17,7 @@ import {
   globalCatalogAdopt,
   patchItem,
   patchItemSupplierLink,
+  postBatchDecrease,
   postSellingPrice,
   postStockIncrease,
   uploadItemImageToCloudinary,
@@ -42,11 +44,16 @@ import {
   buildCreatePackageVariantBody,
   buildCreateVariantBody,
   bundlePatchFromVariantDraft,
+  effectiveOnHand,
   formatMutationError,
   resolveCatalogParentId,
 } from "../_utils";
 import { emptyVariantDraft } from "../_types";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
+import type {
+  BulkStockAdjustParams,
+  BulkStockAdjustSummary,
+} from "../_components/BulkStockAdjustModal";
 
 type Dependencies = {
   selectedId: string | null;
@@ -139,6 +146,7 @@ export function useProductMutations(d: Dependencies) {
   const [variantEditName, setVariantEditName] = useState("");
   const [parentDraft, setParentDraft] = useState<ParentDraft>(EMPTY_PARENT);
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false);
+  const [bulkActivateBusy, setBulkActivateBusy] = useState(false);
   const [nextAutoSkuHint, setNextAutoSkuHint] = useState<string | null>(null);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [quickSavingVariant, setQuickSavingVariant] = useState(false);
@@ -953,6 +961,143 @@ export function useProductMutations(d: Dependencies) {
   ]);
 
   // ══════════════════════════════════════════════════════════════════════════
+  // BULK ACTIVATE
+  // ══════════════════════════════════════════════════════════════════════════
+  const onBulkActivateSelected = useCallback(() => {
+    if (rowSelection.size === 0 || !canCatalogWrite) return;
+    const ids = [...rowSelection];
+    const byId = new Map(listRows.map((r) => [r.id, r]));
+    showThemedConfirmToast({
+      id: "products-bulk-activate",
+      title: `Mark ${ids.length} item(s) as active?`,
+      description:
+        "Inactive items stop appearing at the till and storefront. Activating restores them everywhere.",
+      confirmLabel: "Activate",
+      confirmVariant: "default",
+      onConfirm: async () => {
+        setBulkActivateBusy(true);
+        setMessage("");
+        const failed: string[] = [];
+        for (const id of ids) {
+          try {
+            await patchItem(id, { active: true });
+          } catch {
+            failed.push(byId.get(id)?.name ?? id);
+          }
+        }
+        await refreshFullCatalog();
+        if (rowSelection.has(selectedId ?? "")) selectProduct(null);
+        setRowSelection(new Set());
+        setBulkActivateBusy(false);
+        setMessage(
+          failed.length === 0
+            ? `Activated ${ids.length} item(s).`
+            : `Partial success. Failed: ${failed.join(", ")}`,
+        );
+      },
+    });
+  }, [
+    rowSelection,
+    canCatalogWrite,
+    listRows,
+    selectedId,
+    refreshFullCatalog,
+    selectProduct,
+    setRowSelection,
+    setMessage,
+  ]);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // BULK STOCK ADJUST
+  // ══════════════════════════════════════════════════════════════════════════
+  const onBulkAdjustStock = useCallback(
+    async (params: BulkStockAdjustParams): Promise<BulkStockAdjustSummary> => {
+      const { rows, branchId, mode, quantity, target, unitCost, onProgress } =
+        params;
+      const total = rows.length;
+      const failed: { name: string; reason: string }[] = [];
+      let done = 0;
+      let skipped = 0;
+      const note = "Bulk stock adjust from products";
+      for (const row of rows) {
+        try {
+          let delta: number;
+          if (mode === "add") {
+            delta = quantity;
+          } else if (mode === "remove") {
+            delta = -quantity;
+          } else {
+            const detail = await fetchItemById(row.id, { branchId });
+            const current = effectiveOnHand(detail) ?? 0;
+            delta = Math.round((target - current) * 10000) / 10000;
+          }
+          if (Math.abs(delta) < 0.0001) {
+            skipped++;
+            onProgress(++done, total, failed.length);
+            continue;
+          }
+          if (delta > 0) {
+            await postStockIncrease({
+              branchId,
+              itemId: row.id,
+              quantity: delta,
+              unitCost: mode === "add" ? unitCost : 0,
+              notes: note,
+            });
+          } else {
+            const allocations = await fetchAllocationPreview({
+              itemId: row.id,
+              branchId,
+              quantity: Math.abs(delta),
+            });
+            let allocated = 0;
+            for (const line of allocations) {
+              const q = Number(line.quantity);
+              if (!Number.isFinite(q) || q <= 0) continue;
+              allocated += q;
+              await postBatchDecrease({
+                batchId: line.batchId,
+                quantity: q,
+                reason: note,
+              });
+            }
+            if (allocated < Math.abs(delta) - 0.0001) {
+              failed.push({
+                name: row.name,
+                reason: `only ${allocated} of ${Math.abs(delta)} removable at this branch`,
+              });
+            }
+          }
+        } catch (e) {
+          failed.push({
+            name: row.name,
+            reason: formatMutationError(e, "adjustment failed"),
+          });
+        }
+        onProgress(++done, total, failed.length);
+      }
+      const ok = total - failed.length - skipped;
+      await refreshFullCatalog();
+      if (rowSelection.has(selectedId ?? "")) selectProduct(null);
+      setRowSelection(new Set());
+      setMessage(
+        failed.length === 0
+          ? `Adjusted stock on ${ok} item(s)${skipped > 0 ? ` (${skipped} unchanged)` : ""}.`
+          : `Partial success. Adjusted ${ok} item(s); ${failed.length} failed.`,
+      );
+      return { ok, skipped, failed };
+    },
+    [
+      refreshFullCatalog,
+      rowSelection,
+      selectedId,
+      selectProduct,
+      setRowSelection,
+      setMessage,
+    ],
+  );
+
+  // ══════════════════════════════════════════════════════════════════════════
   // ADD VARIANT
   // ══════════════════════════════════════════════════════════════════════════
   const onAddVariant = useCallback(
@@ -1547,6 +1692,7 @@ export function useProductMutations(d: Dependencies) {
     parentDraft,
     setParentDraft,
     bulkDeleteBusy,
+    bulkActivateBusy,
     nextAutoSkuHint,
     branches,
     quickSavingVariant,
@@ -1556,6 +1702,8 @@ export function useProductMutations(d: Dependencies) {
     onPatchItem,
     onDeleteItem,
     onBulkDeleteSelected,
+    onBulkActivateSelected,
+    onBulkAdjustStock,
     onAddVariant,
     onUploadCatalogImage,
     onRemoveGalleryImage,
