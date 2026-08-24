@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Opening day — the timeline that works</text>
+
+  <!-- ============ LEFT: timeline ============ -->
+  <rect x="16" y="56" width="500" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <g>
+    <!-- 06:00 -->
+    <circle cx="66" cy="130" r="16" fill="#A8842C"/>
+    <text x="66" y="135" font-size="10" font-weight="800" fill="#ffffff" text-anchor="middle">06</text>
+    <rect x="96" y="104" width="380" height="52" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="116" y="126" font-size="11.5" font-weight="700" fill="#1F2937">Set up the till</text>
+    <text x="116" y="144" font-size="10.5" fill="#6b7280">Open Kiosk on your phone, connect M-Pesa, test a scan.</text>
+
+    <!-- 07:00 -->
+    <circle cx="66" cy="216" r="16" fill="#A8842C"/>
+    <text x="66" y="221" font-size="10" font-weight="800" fill="#ffffff" text-anchor="middle">07</text>
+    <rect x="96" y="190" width="380" height="52" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="116" y="212" font-size="11.5" font-weight="700" fill="#1F2937">Add products &amp; prices</text>
+    <text x="116" y="230" font-size="10.5" fill="#6b7280">Scan barcodes, confirm prices, open stock counts.</text>
+
+    <!-- 08:00 -->
+    <circle cx="66" cy="302" r="16" fill="#28a745"/>
+    <path d="M56 302 l7 7 l14 -16" stroke="#ffffff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="96" y="276" width="380" height="52" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="116" y="298" font-size="11.5" font-weight="700" fill="#1F2937">Open the doors</text>
+    <text x="116" y="316" font-size="10.5" fill="#6b7280">First customers — the estate already knows you're here.</text>
+
+    <!-- 08:20 -->
+    <circle cx="66" cy="388" r="16" fill="#28a745"/>
+    <path d="M56 388 l7 7 l14 -16" stroke="#ffffff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="96" y="362" width="380" height="52" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="116" y="384" font-size="11.5" font-weight="700" fill="#1F2937">First sale — M-Pesa STK</text>
+    <text x="116" y="402" font-size="10.5" fill="#6b7280">One tap, PIN on the customer's phone, stock decrements.</text>
+
+    <!-- 18:00 -->
+    <circle cx="66" cy="474" r="16" fill="#28a745"/>
+    <path d="M56 474 l7 7 l14 -16" stroke="#ffffff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="96" y="448" width="380" height="52" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="116" y="470" font-size="11.5" font-weight="700" fill="#1F2937">Close &amp; check</text>
+    <text x="116" y="488" font-size="10.5" fill="#6b7280">Sales match stock, cash reconciles, tomorrow's restock list ready.</text>
+  </g>
+
+  <!-- ============ RIGHT: day-one lessons ============ -->
+  <rect x="544" y="56" width="400" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="568" y="92" font-size="13" font-weight="700" fill="#1F2937">Three things to nail on day one</text>
+
+  <rect x="568" y="110" width="352" height="76" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="588" y="136" font-size="11.5" font-weight="700" fill="#1F2937">1 · Ring every sale, no exceptions</text>
+  <text x="588" y="156" font-size="10.5" fill="#6b7280">The till is the truth of the business. Every un-rung</text>
+  <text x="588" y="172" font-size="10.5" fill="#6b7280">sale is a stock ghost you'll chase for weeks.</text>
+
+  <rect x="568" y="196" width="352" height="76" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="588" y="222" font-size="11.5" font-weight="700" fill="#1F2937">2 · Get M-Pesa right from the start</text>
+  <text x="588" y="242" font-size="10.5" fill="#6b7280">Most customers pay by phone. If it works on day one,</text>
+  <text x="588" y="258" font-size="10.5" fill="#6b7280">it works forever — and reconciles itself.</text>
+
+  <rect x="568" y="282" width="352" height="76" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="588" y="308" font-size="11.5" font-weight="700" fill="#1F2937">3 · Restock on evidence, not mood</text>
+  <text x="588" y="328" font-size="10.5" fill="#6b7280">Let the till's numbers pick tomorrow's order — not a</text>
+  <text x="588" y="344" font-size="10.5" fill="#6b7280">gut feeling at the end of a long day.</text>
+
+  <rect x="568" y="382" width="352" height="130" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="588" y="408" font-size="11.5" font-weight="700" fill="#15803d">What "ready" looks like at 5pm</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="588" y="432">✓ Every sale recorded, cash drawer reconciled</text>
+    <text x="588" y="452">✓ Stock counts match the shelves</text>
+    <text x="588" y="472">✓ eTIMS invoices generated per sale</text>
+    <text x="588" y="492">✓ Restock list printed from the till's numbers</text>
+    <text x="588" y="508">✓ You're tired, and the shop is ready for day two</text>
+  </g>
+</svg>

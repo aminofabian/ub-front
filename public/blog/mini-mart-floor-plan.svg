@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">The mini-mart floor plan — thinking like a shop</text>
+
+  <!-- ============ LEFT: floor plan ============ -->
+  <rect x="16" y="56" width="500" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- Shop walls -->
+  <rect x="56" y="96" width="420" height="400" rx="10" fill="#fdfcf9" stroke="#1F2937" stroke-width="4"/>
+  <rect x="56" y="96" width="420" height="400" rx="10" fill="none" stroke="#d1d5db" stroke-width="1.5"/>
+
+  <!-- Entrance (bottom wall opening) -->
+  <rect x="206" y="476" width="120" height="20" fill="#ffffff" stroke="#1F2937" stroke-width="3"/>
+  <text x="266" y="492" font-size="10" font-weight="700" fill="#1F2937" text-anchor="middle">ENTRANCE →</text>
+
+  <!-- Window display (front wall) -->
+  <rect x="180" y="96" width="140" height="26" fill="#e0f2fe" stroke="#1F2937" stroke-width="2.5"/>
+  <text x="250" y="113" font-size="9.5" font-weight="700" fill="#075985" text-anchor="middle">WINDOW DISPLAY · impulse buys</text>
+
+  <!-- Shelves -->
+  <g fill="#fef3c7" stroke="#b45309" stroke-width="2">
+    <rect x="76" y="146" width="150" height="34" rx="4"/>
+    <rect x="76" y="196" width="150" height="34" rx="4"/>
+    <rect x="76" y="246" width="150" height="34" rx="4"/>
+    <rect x="76" y="296" width="150" height="34" rx="4"/>
+    <rect x="76" y="346" width="150" height="34" rx="4"/>
+  </g>
+  <text x="151" y="322" font-size="9.5" font-weight="700" fill="#92400e" text-anchor="middle">STAPLES · flour, rice, sugar, oil</text>
+  <text x="151" y="180" font-size="8" fill="#92400e" text-anchor="middle">snacks</text>
+  <text x="151" y="230" font-size="8" fill="#92400e" text-anchor="middle">toiletries</text>
+  <text x="151" y="280" font-size="8" fill="#92400e" text-anchor="middle">canned goods</text>
+  <text x="151" y="330" font-size="8" fill="#92400e" text-anchor="middle">baby &amp; home</text>
+  <text x="151" y="380" font-size="8" fill="#92400e" text-anchor="middle">airtime &amp; data</text>
+
+  <!-- Chiller -->
+  <rect x="286" y="146" width="130" height="84" rx="8" fill="#e0f2fe" stroke="#0369a1" stroke-width="2.5"/>
+  <text x="351" y="176" font-size="9.5" font-weight="700" fill="#075985" text-anchor="middle">CHILLER 🧊</text>
+  <text x="351" y="196" font-size="8.5" fill="#075985" text-anchor="middle">milk · yogurt · juice</text>
+  <text x="351" y="212" font-size="8.5" fill="#075985" text-anchor="middle">sodas · water · eggs</text>
+
+  <!-- Center aisle shelves -->
+  <rect x="286" y="252" width="130" height="60" rx="6" fill="#fde68a" stroke="#b45309" stroke-width="2"/>
+  <text x="351" y="280" font-size="9" font-weight="700" fill="#92400e" text-anchor="middle">BREAD &amp; FRESH</text>
+  <text x="351" y="297" font-size="8.5" fill="#92400e" text-anchor="middle">daily bread · mandazi packs</text>
+
+  <!-- Counter with till (front right) -->
+  <rect x="330" y="380" width="120" height="90" rx="8" fill="#f0fdf4" stroke="#15803d" stroke-width="2.5"/>
+  <text x="390" y="410" font-size="10" font-weight="700" fill="#15803d" text-anchor="middle">COUNTER</text>
+  <rect x="350" y="424" width="80" height="30" rx="6" fill="#ffffff" stroke="#28a745" stroke-width="1.6"/>
+  <text x="390" y="444" font-size="8.5" font-weight="700" fill="#15803d" text-anchor="middle">Kiosk till 📱</text>
+  <text x="390" y="458" font-size="7.5" fill="#15803d" text-anchor="middle">M-Pesa · scanner</text>
+
+  <!-- Storage at back -->
+  <rect x="76" y="404" width="150" height="66" rx="6" fill="#f3f4f6" stroke="#6b7280" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="151" y="434" font-size="9" font-weight="700" fill="#4b5563" text-anchor="middle">STORAGE</text>
+  <text x="151" y="450" font-size="8" fill="#6b7280" text-anchor="middle">back stock · crates</text>
+
+  <!-- Customer flow arrow -->
+  <path d="M266 470 C 200 430, 180 380, 240 340" stroke="#A8842C" stroke-width="3" fill="none" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0 0 L6 3 L0 6 Z" fill="#A8842C"/>
+    </marker>
+  </defs>
+  <text x="300" y="332" font-size="9" font-weight="700" fill="#A8842C">shopping flow</text>
+
+  <!-- ============ RIGHT: why this layout works ============ -->
+  <rect x="544" y="56" width="400" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="568" y="92" font-size="13" font-weight="700" fill="#1F2937">Why this layout works</text>
+
+  <rect x="568" y="110" width="352" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="588" y="134" font-size="11.5" font-weight="700" fill="#1F2937">Front = impulse</text>
+  <text x="588" y="152" font-size="10.5" fill="#6b7280">Snacks and sodas near the door catch every walk-in.</text>
+
+  <rect x="568" y="178" width="352" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="588" y="202" font-size="11.5" font-weight="700" fill="#1F2937">Sides = staples</text>
+  <text x="588" y="220" font-size="10.5" fill="#6b7280">Flour, rice, sugar, and oil — the weekly basket — line the walls.</text>
+
+  <rect x="568" y="246" width="352" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="588" y="270" font-size="11.5" font-weight="700" fill="#1F2937">Back corner = chiller</text>
+  <text x="588" y="288" font-size="10.5" fill="#6b7280">Milk and drinks pull customers the full length of the shop.</text>
+
+  <rect x="568" y="314" width="352" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="588" y="338" font-size="11.5" font-weight="700" fill="#1F2937">Counter by the door</text>
+  <text x="588" y="356" font-size="10.5" fill="#6b7280">The till faces the entrance — you see who comes, who leaves, and who lingers.</text>
+
+  <rect x="568" y="382" width="352" height="58" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="588" y="406" font-size="11.5" font-weight="700" fill="#1F2937">Eye on the stock</text>
+  <text x="588" y="424" font-size="10.5" fill="#6b7280">Storage is visible from the counter, so restocking is a walk, not a hunt.</text>
+
+  <rect x="568" y="460" width="352" height="52" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="744" y="482" font-size="11" font-weight="700" fill="#A8842C" text-anchor="middle">Good flow = more sales per square metre</text>
+  <text x="744" y="500" font-size="10" fill="#6b7280" text-anchor="middle">Every item earns its shelf space.</text>
+</svg>

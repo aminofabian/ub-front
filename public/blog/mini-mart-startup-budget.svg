@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Startup budget for a single-branch mini-mart</text>
+
+  <!-- ============ LEFT: budget bars ============ -->
+  <rect x="16" y="56" width="520" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="40" y="92" font-size="12.5" font-weight="700" fill="#1F2937">Where the capital goes · example, mid-size estate shop</text>
+
+  <!-- Bars -->
+  <g font-size="11">
+    <text x="40" y="128" fill="#374151">Initial stock</text>
+    <rect x="40" y="136" width="280" height="22" rx="6" fill="#15803d"/>
+    <text x="332" y="151" font-weight="700" fill="#15803d">KSh 250,000</text>
+
+    <text x="40" y="186" fill="#374151">Rent deposit (3 months)</text>
+    <rect x="40" y="194" width="120" height="22" rx="6" fill="#28a745"/>
+    <text x="172" y="209" font-weight="700" fill="#15803d">KSh 90,000</text>
+
+    <text x="40" y="244" fill="#374151">Shelving, chiller &amp; fixtures</text>
+    <rect x="40" y="252" width="90" height="22" rx="6" fill="#A8842C"/>
+    <text x="142" y="267" font-weight="700" fill="#A8842C">KSh 60,000</text>
+
+    <text x="40" y="302" fill="#374151">Till setup (phone, scanner, printer)</text>
+    <rect x="40" y="310" width="64" height="22" rx="6" fill="#2563eb"/>
+    <text x="116" y="325" font-weight="700" fill="#2563eb">KSh 35,000</text>
+
+    <text x="40" y="360" fill="#374151">Licenses &amp; registration</text>
+    <rect x="40" y="368" width="34" height="22" rx="6" fill="#7c3aed"/>
+    <text x="86" y="383" font-weight="700" fill="#7c3aed">KSh 15,000</text>
+
+    <text x="40" y="418" fill="#374151">Cash float &amp; misc (bags, signage)</text>
+    <rect x="40" y="426" width="44" height="22" rx="6" fill="#6b7280"/>
+    <text x="96" y="441" font-weight="700" fill="#4b5563">KSh 20,000</text>
+  </g>
+
+  <!-- Total card -->
+  <rect x="40" y="472" width="452" height="44" rx="10" fill="#1F2937"/>
+  <text x="266" y="493" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Realistic range: KSh 350,000 – 500,000</text>
+  <text x="266" y="508" font-size="9.5" fill="#d1d5db" text-anchor="middle">can go leaner with a used chiller and fewer SKUs</text>
+
+  <!-- ============ RIGHT: levers ============ -->
+  <rect x="564" y="56" width="380" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="588" y="92" font-size="13" font-weight="700" fill="#1F2937">Three levers that shape the number</text>
+
+  <rect x="588" y="110" width="332" height="84" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="136" font-size="11.5" font-weight="700" fill="#1F2937">1 · Stock depth beats breadth</text>
+  <text x="608" y="156" font-size="10.5" fill="#6b7280">A deep basket on 20 best sellers outsells a thin</text>
+  <text x="608" y="172" font-size="10.5" fill="#6b7280">spread across 200 items. Restock what moves.</text>
+
+  <rect x="588" y="204" width="332" height="84" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="230" font-size="11.5" font-weight="700" fill="#1F2937">2 · Second-hand fixtures stretch cash</text>
+  <text x="608" y="250" font-size="10.5" fill="#6b7280">Used shelving and a working second-hand chiller</text>
+  <text x="608" y="266" font-size="10.5" fill="#6b7280">free up capital for the thing that actually sells: stock.</text>
+
+  <rect x="588" y="298" width="332" height="84" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="324" font-size="11.5" font-weight="700" fill="#1F2937">3 · A till doesn't have to be expensive</text>
+  <text x="608" y="344" font-size="10.5" fill="#6b7280">Kiosk runs on the phone you already own — M-Pesa,</text>
+  <text x="608" y="360" font-size="10.5" fill="#6b7280">barcode scanning, and eTIMS reports included.</text>
+
+  <rect x="588" y="408" width="332" height="104" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="608" y="434" font-size="11.5" font-weight="700" fill="#15803d">The rule of thumb</text>
+  <text x="608" y="454" font-size="10.5" fill="#374151">Never spend your last shilling on the shop — keep a</text>
+  <text x="608" y="470" font-size="10.5" fill="#374151">working-capital cushion for the first restock cycle.</text>
+  <text x="608" y="486" font-size="10.5" fill="#374151">Stock turns are what pay rent, not the fixtures.</text>
+  <text x="608" y="502" font-size="10" fill="#6b7280">Margins here: 15–30% — typical for the category.</text>
+</svg>

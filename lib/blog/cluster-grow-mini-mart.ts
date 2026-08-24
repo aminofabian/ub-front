@@ -1,3 +1,4 @@
+import { START_MINI_MART_ARTICLE, START_MINI_MART_SLUG } from "./cluster-start-mini-mart";
 import type { BlogArticle } from "./types";
 
 export const GROW_MINI_MART_PILLAR_SLUG =
@@ -30,6 +31,7 @@ export const GROW_MINI_MART_ARTICLES: BlogArticle[] = [
       "why-m-pesa-integration-matters",
       "set-up-a-pos-in-30-minutes",
       "choosing-the-right-pos-kiosk-vs-odoo",
+      START_MINI_MART_SLUG,
     ],
     body: [
       {
@@ -159,6 +161,7 @@ export const GROW_MINI_MART_ARTICLES: BlogArticle[] = [
       "set-up-a-pos-in-30-minutes",
       "online-physical-one-inventory",
       "top-10-pos-systems-kenya-2026",
+      START_MINI_MART_SLUG,
     ],
     body: [
       {
@@ -372,4 +375,5 @@ export const GROW_MINI_MART_ARTICLES: BlogArticle[] = [
       },
     ],
   },
+  START_MINI_MART_ARTICLE,
 ];

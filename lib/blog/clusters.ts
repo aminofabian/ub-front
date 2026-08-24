@@ -34,7 +34,10 @@ export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
     description:
       "From one shop to a real business — stock, systems, hires, and routines that scale.",
     pillarSlug: GROW_MINI_MART_PILLAR_SLUG,
-    spokeSlugs: ["building-systems-for-your-mini-mart"],
+    spokeSlugs: [
+      "how-to-start-a-mini-mart-in-kenya",
+      "building-systems-for-your-mini-mart",
+    ],
   },
   {
     id: "top-10-pos-kenya",

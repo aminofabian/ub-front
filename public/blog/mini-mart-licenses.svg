@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Licenses &amp; compliance — get these out of the way early</text>
+
+  <!-- ============ LEFT: checklist ============ -->
+  <rect x="16" y="56" width="520" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="40" y="92" font-size="12.5" font-weight="700" fill="#1F2937">The paperwork in the order it usually happens</text>
+
+  <g>
+    <!-- 1 -->
+    <rect x="40" y="110" width="452" height="58" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <circle cx="66" cy="139" r="12" fill="#28a745"/>
+    <path d="M59 139 l5 5 l9 -10" stroke="#ffffff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="133" font-size="11.5" font-weight="700" fill="#1F2937">Register your business name</text>
+    <text x="88" y="151" font-size="10.5" fill="#6b7280">eCitizen · sole proprietorship or LLC — takes days, not months</text>
+
+    <!-- 2 -->
+    <rect x="40" y="178" width="452" height="58" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <circle cx="66" cy="207" r="12" fill="#28a745"/>
+    <path d="M59 207 l5 5 l9 -10" stroke="#ffffff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="201" font-size="11.5" font-weight="700" fill="#1F2937">County single business permit</text>
+    <text x="88" y="219" font-size="10.5" fill="#6b7280">Your county's trade license — displayed near the entrance</text>
+
+    <!-- 3 -->
+    <rect x="40" y="246" width="452" height="58" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <circle cx="66" cy="275" r="12" fill="#28a745"/>
+    <path d="M59 275 l5 5 l9 -10" stroke="#ffffff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="269" font-size="11.5" font-weight="700" fill="#1F2937">KRA PIN &amp; tax registration</text>
+    <text x="88" y="287" font-size="10.5" fill="#6b7280">The PIN you already have — now attached to the business</text>
+
+    <!-- 4 -->
+    <rect x="40" y="314" width="452" height="58" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <circle cx="66" cy="343" r="12" fill="#28a745"/>
+    <path d="M59 343 l5 5 l9 -10" stroke="#ffffff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="337" font-size="11.5" font-weight="700" fill="#1F2937">eTIMS for invoicing</text>
+    <text x="88" y="355" font-size="10.5" fill="#6b7280">KRA's electronic invoicing — your POS keeps it current</text>
+
+    <!-- 5 -->
+    <rect x="40" y="382" width="452" height="58" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <circle cx="66" cy="411" r="12" fill="#28a745"/>
+    <path d="M59 411 l5 5 l9 -10" stroke="#ffffff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="88" y="405" font-size="11.5" font-weight="700" fill="#1F2937">M-Pesa till number (or Buy Goods)</text>
+    <text x="88" y="423" font-size="10.5" fill="#6b7280">How customers pay you — connect it to the till</text>
+  </g>
+
+  <text x="40" y="480" font-size="10.5" fill="#6b7280">Start the paperwork the day you sign the lease — it runs in parallel</text>
+  <text x="40" y="496" font-size="10.5" fill="#6b7280">with fitting the shop, so nothing waits on anything else.</text>
+
+  <!-- ============ RIGHT: why early ============ -->
+  <rect x="564" y="56" width="380" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="588" y="92" font-size="13" font-weight="700" fill="#1F2937">Why do it before opening day?</text>
+
+  <rect x="588" y="110" width="332" height="70" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="136" font-size="11.5" font-weight="700" fill="#1F2937">1 · Banks and suppliers ask</text>
+  <text x="608" y="156" font-size="10.5" fill="#6b7280">Credit from wholesalers and M-Pesa limits want a</text>
+  <text x="608" y="172" font-size="10.5" fill="#6b7280">registered, tax-clean business behind the counter.</text>
+
+  <rect x="588" y="190" width="332" height="70" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="216" font-size="11.5" font-weight="700" fill="#1F2937">2 · Fines beat savings</text>
+  <text x="608" y="236" font-size="10.5" fill="#6b7280">Trading without a permit or proper invoicing costs far</text>
+  <text x="608" y="252" font-size="10.5" fill="#6b7280">more than the paperwork — and it's avoidable.</text>
+
+  <rect x="588" y="270" width="332" height="70" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="296" font-size="11.5" font-weight="700" fill="#1F2937">3 · It unlocks growth</text>
+  <text x="608" y="316" font-size="10.5" fill="#6b7280">A second branch, a loan, a big supplier — all of them</text>
+  <text x="608" y="332" font-size="10.5" fill="#6b7280">open faster with your paperwork in order.</text>
+
+  <rect x="588" y="370" width="332" height="142" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="608" y="396" font-size="11.5" font-weight="700" fill="#A8842C">The eTIMS cheat sheet</text>
+  <text x="608" y="416" font-size="10.5" fill="#374151">· eTIMS invoices are generated per sale — your POS does</text>
+  <text x="608" y="432" font-size="10.5" fill="#374151">  this automatically for till and online sales.</text>
+  <text x="608" y="452" font-size="10.5" fill="#374151">· Month-end reporting becomes a download, not a</text>
+  <text x="608" y="468" font-size="10.5" fill="#374151">  reconstruction from a notebook.</text>
+  <text x="608" y="488" font-size="10.5" fill="#374151">· No scramble for missing receipts when your</text>
+  <text x="608" y="504" font-size="10.5" fill="#374151">  accountant or KRA asks for numbers.</text>
+</svg>
