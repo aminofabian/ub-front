@@ -76,7 +76,11 @@ function SupplierPortalOrdersPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deepPoId = searchParams.get("po")?.trim() || null;
-  const forceInbox = searchParams.get("inbox") === "1" || Boolean(deepPoId);
+  const deepBusinessId = searchParams.get("business")?.trim() || null;
+  const forceInbox =
+    searchParams.get("inbox") === "1" ||
+    Boolean(deepPoId) ||
+    Boolean(deepBusinessId);
   const bootstrappedRef = useRef(false);
 
   const [mode, setMode] = useState<PageMode>(forceInbox ? "inbox" : "take");
@@ -88,7 +92,7 @@ function SupplierPortalOrdersPageInner() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [trackingNote, setTrackingNote] = useState("");
-  const [shopFilterId, setShopFilterId] = useState<string | null>(null);
+  const [shopFilterId, setShopFilterId] = useState<string | null>(deepBusinessId);
   const [shopQuery, setShopQuery] = useState("");
   const [orderSearch, setOrderSearch] = useState("");
 
@@ -125,8 +129,11 @@ function SupplierPortalOrdersPageInner() {
       if (deepPoId) {
         setSelectedId(deepPoId);
       }
+      if (deepBusinessId) {
+        setShopFilterId(deepBusinessId);
+      }
     })();
-  }, [deepPoId, forceInbox, loadOrders]);
+  }, [deepPoId, deepBusinessId, forceInbox, loadOrders]);
 
   useEffect(() => {
     if (mode === "inbox" && !bootstrappedRef.current) return;
