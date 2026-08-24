@@ -1,22 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, ChevronRight } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Check,
+  ClipboardList,
+  Loader2,
+  Package,
+  ShoppingBag,
+  Wallet,
+} from "lucide-react";
 
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
 import { SupplierActivityTabs } from "@/components/supplier-portal/supplier-activity-tabs";
 import {
-  mktChip,
-  mktPosAccentBar,
-  mktPosHeader,
+  spBtnGhost,
   spBtnPrimary,
-  spEyebrow,
-  spMetric,
   spPage,
-  spPanel,
-  spRise,
   spSerifTitle,
 } from "@/components/supplier-portal/supplier-portal-ui";
 import { APP_ROUTES } from "@/lib/config";
@@ -30,6 +33,10 @@ import {
 import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
 import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
 import { cn } from "@/lib/utils";
+
+const INK = "#1c1915";
+const TEAL = "#0f766e";
+const MANGO = "#b9691a";
 
 function toNum(v: unknown): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -83,6 +90,7 @@ export default function SupplierPortalOverviewPage() {
   const [hub, setHub] = useState<SupplierPortalHubShops | null>(null);
   const [pendingOrders, setPendingOrders] = useState(0);
   const [staleOrders, setStaleOrders] = useState(0);
+  const [inTransit, setInTransit] = useState(0);
   const [todayCollections, setTodayCollections] = useState(0);
   const [shopsPaidToday, setShopsPaidToday] = useState(0);
   const [partialShopCount, setPartialShopCount] = useState(0);
@@ -114,6 +122,9 @@ export default function SupplierPortalOverviewPage() {
         }
         const pending = orders.filter((o) => !o.supplierResponseAt);
         setPendingOrders(pending.length);
+        setInTransit(
+          orders.filter((o) => o.deliveryStatus === "in_transit").length,
+        );
         const dayMs = 24 * 60 * 60 * 1000;
         setStaleOrders(
           pending.filter((o) => {
@@ -125,7 +136,9 @@ export default function SupplierPortalOverviewPage() {
           const payments = await fetchSupplierPortalPayments();
           const todayPays = payments.filter((p) => isToday(p.paidAt));
           setTodayCollections(todayPays.reduce((sum, p) => sum + toNum(p.amount), 0));
-          setShopsPaidToday(new Set(todayPays.map((p) => p.localSupplierId).filter(Boolean)).size);
+          setShopsPaidToday(
+            new Set(todayPays.map((p) => p.localSupplierId).filter(Boolean)).size,
+          );
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load dashboard");
@@ -139,94 +152,138 @@ export default function SupplierPortalOverviewPage() {
   const emptyShops = loaded && (!hub || hub.shopCount === 0);
   const partialPending = canViewMoney ? toNum(hub?.totals.pending) : 0;
   const hasAttention = pendingOrders > 0 || partialPending > 0;
+  const owed = toNum(hub?.totals.owed);
 
-  const shopsHint = useMemo(() => {
-    if (!hub) return "Connected storefronts";
-    return `${hub.shopCount} connected`;
-  }, [hub]);
+  const subtitle = useMemo(() => {
+    if (!loaded) return "Loading your route…";
+    if (hasAttention) {
+      if (pendingOrders > 0 && partialPending > 0) {
+        return `${pendingOrders} orders and open balances need you.`;
+      }
+      if (pendingOrders > 0) return `${pendingOrders} purchase orders awaiting your response.`;
+      return "Partial balances waiting to clear.";
+    }
+    return canViewMoney
+      ? "Balances and activity across shops you supply."
+      : "Orders and catalogue activity for your account.";
+  }, [loaded, hasAttention, pendingOrders, partialPending, canViewMoney]);
 
   return (
     <SupplierPortalShell>
-      <div className={cn(spPage, "space-y-5 sm:space-y-5")}>
-        {/* Mobile home — one clear composition */}
-        <section className={cn(spRise, "space-y-5 lg:hidden")}>
-          <div>
-            <p className="text-[13px] text-muted-foreground">
+      <div
+        className={cn(spPage, "space-y-4")}
+        style={
+          {
+            ["--pos-primary" as string]: TEAL,
+            ["--dash-ink" as string]: INK,
+            ["--dash-mango" as string]: MANGO,
+          } as CSSProperties
+        }
+      >
+        <header className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-mono text-[11px] tabular-nums text-[color-mix(in_srgb,var(--dash-ink)_48%,transparent)]">
               {now ? formatStamp(now) : "\u00a0"}
             </p>
-            <h1 className="mt-1 font-[family-name:var(--font-heading)] text-[2.15rem] leading-[1.05] font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
+            <h1
+              className={cn(
+                spSerifTitle,
+                "mt-1 text-[1.85rem] leading-none sm:text-[2.35rem]",
+              )}
+            >
               {now ? greetingFor(now) : "Welcome"}
             </h1>
-            <p className="mt-1.5 text-[15px] leading-snug text-muted-foreground">
-              {canViewMoney
-                ? "What you are owed across your shops."
-                : "Orders waiting for you today."}
+            <p className="mt-1.5 max-w-xl text-[13px] text-[color-mix(in_srgb,var(--dash-ink)_55%,transparent)]">
+              {subtitle}
             </p>
           </div>
-
-          {canViewMoney ? (
+          {pendingOrders > 0 ? (
             <Link
-              href={APP_ROUTES.supplierPortalPayments}
-              className={cn(
-                "block overflow-hidden",
-                "bg-[linear-gradient(160deg,var(--pos-primary,#0f766e)_0%,#0d6a63_48%,#0a524c_100%)]",
-                "px-5 py-5 text-white",
-                "active:brightness-95 transition-[filter]",
-              )}
+              href={`${APP_ROUTES.supplierPortalOrders}?inbox=1`}
+              className={cn(spBtnPrimary, "h-9")}
             >
-              <p className="text-[11px] font-medium tracking-[0.04em] text-white/70">
-                Outstanding
-              </p>
-              <p className="mt-2 font-[family-name:var(--font-heading)] text-[2.35rem] leading-none font-semibold tabular-nums tracking-tight">
-                {hub ? money(hub.totals.owed, currency) : "—"}
-              </p>
-              <p className="mt-2 text-[13px] text-white/70">
-                {hub
-                  ? `${hub.shopCount} shop${hub.shopCount === 1 ? "" : "s"} · tap for payments`
-                  : "Loading…"}
-              </p>
-              <div className="mt-5 flex gap-6 border-t border-white/15 pt-4">
-                <div>
-                  <p className="text-[11px] text-white/55">Today</p>
-                  <p className="mt-0.5 text-[15px] font-semibold tabular-nums">
-                    {hub ? money(todayCollections, currency) : "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-white/55">Paid all-time</p>
-                  <p className="mt-0.5 text-[15px] font-semibold tabular-nums">
-                    {hub ? money(hub.totals.paid, currency) : "—"}
-                  </p>
-                </div>
-              </div>
+              <Package className="size-3.5" />
+              Respond · {pendingOrders}
             </Link>
           ) : (
-            <Link
-              href={APP_ROUTES.supplierPortalOrders}
-              className={cn(
-                "flex items-center justify-between gap-3",
-                "bg-[linear-gradient(160deg,var(--pos-primary,#0f766e)_0%,#0d6a63_48%,#0a524c_100%)]",
-                "px-5 py-5 text-white active:brightness-95",
-              )}
-            >
-              <div>
-                <p className="text-[11px] font-medium text-white/70">Pending orders</p>
-                <p className="mt-1.5 font-[family-name:var(--font-heading)] text-[2.35rem] leading-none font-semibold tabular-nums">
-                  {pendingOrders}
-                </p>
-              </div>
-              <ChevronRight className="size-5 text-white/60" />
+            <Link href={APP_ROUTES.supplierPortalOrders} className={cn(spBtnGhost, "h-9")}>
+              Orders inbox
+              <ArrowRight className="size-3.5" />
             </Link>
           )}
+        </header>
 
-          {hasAttention ? (
-            <div className="space-y-1">
-              <p className="px-0.5 text-[13px] font-medium text-[var(--pos-ink,#1c1915)]">
-                Needs you
-              </p>
-              <div className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] border-y border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
+        {error ? (
+          <p className="border border-[#b42318]/25 bg-[#fef3f2] px-3 py-2 text-sm text-[#b42318]">
+            {error}
+          </p>
+        ) : null}
+
+        {/* Network pulse — same strip language as shops/invoices */}
+        <div className="flex flex-wrap items-stretch gap-px overflow-hidden border border-[color-mix(in_srgb,var(--dash-ink)_14%,transparent)] bg-[color-mix(in_srgb,var(--dash-ink)_14%,transparent)]">
+          <PulseStat
+            label="Awaiting you"
+            value={!loaded ? "…" : String(pendingOrders)}
+            hot={pendingOrders > 0}
+          />
+          <PulseStat
+            label="In transit"
+            value={!loaded ? "…" : String(inTransit)}
+          />
+          <PulseStat
+            label="Shops"
+            value={!loaded ? "…" : hub ? String(hub.shopCount) : "—"}
+          />
+          {canViewMoney ? (
+            <>
+              <PulseStat
+                label="Outstanding"
+                value={!loaded ? "…" : hub ? money(hub.totals.owed, currency) : "—"}
+                hot={owed > 0}
+              />
+              <PulseStat
+                label="Today in"
+                value={!loaded ? "…" : money(todayCollections, currency)}
+              />
+            </>
+          ) : (
+            <PulseStat label="Stale >24h" value={!loaded ? "…" : String(staleOrders)} hot={staleOrders > 0} />
+          )}
+        </div>
+
+        {/* Balanced two-column board */}
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          {/* Left — attention + money */}
+          <section
+            className={cn(
+              "overflow-hidden border border-[color-mix(in_srgb,var(--dash-ink)_14%,transparent)]",
+              "bg-[linear-gradient(165deg,#faf7f1_0%,#f3eee6_48%,#ebe4d8_100%)]",
+            )}
+          >
+            <div
+              className={cn(
+                "flex h-9 items-center justify-between px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white",
+                hasAttention
+                  ? "bg-[linear-gradient(100deg,var(--pos-primary)_0%,#0d6a63_55%,#b9691a_160%)]"
+                  : "bg-[var(--pos-primary)]",
+              )}
+            >
+              <span>Needs attention</span>
+              <span className="font-mono tabular-nums opacity-85">
+                {pendingOrders + (partialPending > 0 ? 1 : 0)}
+              </span>
+            </div>
+
+            {!loaded ? (
+              <div className="flex items-center justify-center gap-2 px-4 py-12 text-[13px] text-[color-mix(in_srgb,var(--dash-ink)_48%,transparent)]">
+                <Loader2 className="size-4 animate-spin" />
+                Loading…
+              </div>
+            ) : hasAttention ? (
+              <ul className="divide-y divide-[color-mix(in_srgb,var(--dash-ink)_10%,transparent)]">
                 {pendingOrders > 0 ? (
-                  <AttentionRow
+                  <AttentionItem
+                    href={`${APP_ROUTES.supplierPortalOrders}?inbox=1`}
                     label="Pending orders"
                     value={String(pendingOrders)}
                     hint={
@@ -234,201 +291,181 @@ export default function SupplierPortalOverviewPage() {
                         ? `${staleOrders} waiting over 24h`
                         : "Respond to keep shops moving"
                     }
-                    href={APP_ROUTES.supplierPortalOrders}
-                    accent
+                    stamp="Await"
                   />
                 ) : null}
                 {partialPending > 0 ? (
-                  <AttentionRow
+                  <AttentionItem
+                    href={APP_ROUTES.supplierPortalInvoices}
                     label="Partial balances"
                     value={money(partialPending, currency)}
                     hint={`${partialShopCount} shop${partialShopCount === 1 ? "" : "s"} part-paid`}
-                    href={APP_ROUTES.supplierPortalInvoices}
-                    accent
+                    stamp="Open"
                   />
                 ) : null}
-              </div>
-            </div>
-          ) : loaded ? (
-            <div className="flex items-center gap-2.5 py-1 text-[14px] text-muted-foreground">
-              <span className="flex size-6 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_14%,transparent)] text-[var(--pos-primary,#0f766e)]">
-                <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
-              </span>
-              You&apos;re caught up — nothing waiting.
-            </div>
-          ) : null}
-        </section>
-
-        {/* Desktop header */}
-        <header className="hidden flex-wrap items-end justify-between gap-3 lg:flex">
-          <div>
-            <p className={spEyebrow}>portal · overview → activity</p>
-            <h2 className={cn(spSerifTitle, "mt-1")}>Dashboard</h2>
-            <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
-              {canViewMoney
-                ? "Balances and activity across shops you supply."
-                : "Orders and catalogue activity for your supplier account."}
-            </p>
-          </div>
-          <p className="text-[11px] font-medium tracking-wide text-muted-foreground tabular-nums uppercase">
-            {now ? formatStamp(now) : "\u00a0"}
-          </p>
-        </header>
-
-        {error ? (
-          <p className="border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
-        ) : null}
-
-        {canViewMoney ? (
-          <section className={cn(spPanel, "hidden lg:block")}>
-            <div className={mktPosHeader}>
-              <span>1 · Money</span>
-              <span>{hub?.shopCount ?? 0}</span>
-            </div>
-            <div className="grid gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2 lg:grid-cols-3">
-              <MetricCard
-                label="Outstanding"
-                value={hub ? money(hub.totals.owed, currency) : "—"}
-                hint={hub ? `Across ${hub.shopCount} shop${hub.shopCount === 1 ? "" : "s"}` : "Loading…"}
-              />
-              <MetricCard
-                label="Today's collections"
-                value={hub ? money(todayCollections, currency) : "—"}
-                hint={
-                  shopsPaidToday > 0
-                    ? `${shopsPaidToday} shop${shopsPaidToday === 1 ? "" : "s"} paid so far`
-                    : "No payments yet today"
-                }
-              />
-              <MetricCard
-                label="Paid (all time)"
-                value={hub ? money(hub.totals.paid, currency) : "—"}
-                hint={shopsHint}
-                className="sm:col-span-2 lg:col-span-1"
-              />
-            </div>
-          </section>
-        ) : null}
-
-        <section className={cn(spPanel, "hidden lg:block")}>
-          <div className={mktPosHeader}>
-            <span>2 · Needs attention</span>
-            <span>{pendingOrders}</span>
-          </div>
-          <div className="grid gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2 lg:grid-cols-3">
-            <MetricCard
-              label="Pending orders"
-              value={String(pendingOrders)}
-              hint={
-                staleOrders > 0
-                  ? `${staleOrders} awaiting confirmation > 24h`
-                  : pendingOrders > 0
-                    ? "Respond to keep shops moving"
-                    : "You're caught up"
-              }
-              href={APP_ROUTES.supplierPortalOrders}
-            />
-            {canViewMoney ? (
-              <MetricCard
-                label="Partial balances"
-                value={hub ? money(hub.totals.pending, currency) : "—"}
-                hint={
-                  partialShopCount > 0
-                    ? `${partialShopCount} shop${partialShopCount === 1 ? "" : "s"} with part payment`
-                    : "No partial balances"
-                }
-                href={APP_ROUTES.supplierPortalInvoices}
-              />
+              </ul>
             ) : (
-              <MetricCard
-                label="Catalogue"
-                value="Manage"
-                hint="Products you supply"
-                href={APP_ROUTES.supplierPortalCatalog}
-              />
+              <div className="flex items-center gap-3 px-4 py-8 text-[13px] text-[color-mix(in_srgb,var(--dash-ink)_58%,transparent)]">
+                <span className="flex size-8 items-center justify-center border border-[color-mix(in_srgb,var(--pos-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] text-[var(--pos-primary)]">
+                  <Check className="size-4" strokeWidth={2.5} aria-hidden />
+                </span>
+                You&apos;re caught up — nothing waiting.
+              </div>
             )}
-            <MetricCard
-              label="Total shops"
-              value={hub ? String(hub.shopCount) : "—"}
-              hint={shopsHint}
-              href={APP_ROUTES.supplierPortalShops}
-            />
-          </div>
-        </section>
+
+            {canViewMoney ? (
+              <div className="border-t border-[color-mix(in_srgb,var(--dash-ink)_12%,transparent)] bg-[var(--pos-primary)] px-4 py-4 text-white">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">
+                      Outstanding
+                    </p>
+                    <p className="mt-1 font-[family-name:var(--font-heading)] text-[2rem] font-semibold leading-none tabular-nums tracking-tight">
+                      {hub ? money(hub.totals.owed, currency) : "—"}
+                    </p>
+                    <p className="mt-1.5 text-[12px] text-white/70">
+                      {hub
+                        ? `Across ${hub.shopCount} shop${hub.shopCount === 1 ? "" : "s"}`
+                        : "Loading…"}
+                    </p>
+                  </div>
+                  <Link
+                    href={APP_ROUTES.supplierPortalPayments}
+                    className="inline-flex h-8 items-center gap-1.5 border border-white/30 px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/10"
+                  >
+                    <Wallet className="size-3.5" />
+                    Payments
+                  </Link>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-3">
+                  <div>
+                    <p className="text-[10px] text-white/55">Today collected</p>
+                    <p className="mt-0.5 font-mono text-[14px] font-semibold tabular-nums">
+                      {money(todayCollections, currency)}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-white/45">
+                      {shopsPaidToday > 0
+                        ? `${shopsPaidToday} shop${shopsPaidToday === 1 ? "" : "s"} paid`
+                        : "No payments yet today"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-white/55">Paid all-time</p>
+                    <p className="mt-0.5 font-mono text-[14px] font-semibold tabular-nums">
+                      {hub ? money(hub.totals.paid, currency) : "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </section>
+
+          {/* Right — routes + shops */}
+          <section
+            className={cn(
+              "overflow-hidden border border-[color-mix(in_srgb,var(--dash-ink)_14%,transparent)]",
+              "bg-[color-mix(in_srgb,#fff_82%,#f7f3eb)]",
+            )}
+          >
+            <div className="flex h-9 items-center justify-between bg-[var(--pos-primary)] px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+              <span>Quick routes</span>
+              <span className="font-mono opacity-85">4</span>
+            </div>
+            <div className="grid grid-cols-2 gap-px bg-[color-mix(in_srgb,var(--dash-ink)_10%,transparent)]">
+              <RouteTile
+                href={`${APP_ROUTES.supplierPortalOrders}?inbox=1`}
+                icon={<Package className="size-4" strokeWidth={1.6} />}
+                label="Orders"
+                hint={pendingOrders > 0 ? `${pendingOrders} pending` : "Inbox"}
+                hot={pendingOrders > 0}
+              />
+              <RouteTile
+                href={APP_ROUTES.supplierPortalCatalog}
+                icon={<ShoppingBag className="size-4" strokeWidth={1.6} />}
+                label="Catalogue"
+                hint="Price list"
+              />
+              <RouteTile
+                href={APP_ROUTES.supplierPortalShops}
+                icon={<Building2 className="size-4" strokeWidth={1.6} />}
+                label="Shops"
+                hint={hub ? `${hub.shopCount} linked` : "Route board"}
+              />
+              <RouteTile
+                href={
+                  canViewMoney
+                    ? APP_ROUTES.supplierPortalInvoices
+                    : APP_ROUTES.supplierPortalDeliveries
+                }
+                icon={<ClipboardList className="size-4" strokeWidth={1.6} />}
+                label={canViewMoney ? "Invoices" : "Deliveries"}
+                hint={
+                  canViewMoney
+                    ? partialPending > 0
+                      ? "Open balances"
+                      : "Ledger"
+                    : "Ship status"
+                }
+              />
+            </div>
+
+            {hub && hub.shops.length > 0 ? (
+              <div className="border-t border-[color-mix(in_srgb,var(--dash-ink)_12%,transparent)]">
+                <div className="flex items-center justify-between px-3 py-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--dash-ink)_48%,transparent)]">
+                    Connected shops
+                  </p>
+                  <Link
+                    href={APP_ROUTES.supplierPortalShops}
+                    className="text-[11px] font-semibold text-[var(--pos-primary)]"
+                  >
+                    See all
+                  </Link>
+                </div>
+                <ul className="divide-y divide-[color-mix(in_srgb,var(--dash-ink)_8%,transparent)]">
+                  {hub.shops.slice(0, 4).map((shop, i) => (
+                    <li key={shop.localSupplierId}>
+                      <Link
+                        href={`${APP_ROUTES.supplierPortalShops}/${shop.localSupplierId}`}
+                        className="flex min-h-12 items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-white"
+                      >
+                        <span className="font-mono text-[10px] font-bold tabular-nums text-[var(--pos-primary)]">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-semibold text-[var(--dash-ink)]">
+                            {shop.shopName}
+                          </p>
+                          {canViewMoney ? (
+                            <p
+                              className={cn(
+                                "font-mono text-[11px] tabular-nums",
+                                toNum(shop.owed) > 0
+                                  ? "text-[var(--dash-mango)]"
+                                  : "text-[color-mix(in_srgb,var(--dash-ink)_45%,transparent)]",
+                              )}
+                            >
+                              Owed {money(shop.owed, currency)}
+                            </p>
+                          ) : null}
+                        </div>
+                        <ArrowRight className="size-3.5 shrink-0 text-[color-mix(in_srgb,var(--dash-ink)_30%,transparent)]" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </section>
+        </div>
 
         <SupplierActivityTabs />
 
-        {hub && hub.shops.length > 0 ? (
-          <div className="space-y-1 lg:hidden">
-            <div className="flex items-baseline justify-between gap-3 px-0.5">
-              <p className="text-[13px] font-medium text-[var(--pos-ink,#1c1915)]">Shops</p>
-              <Link
-                href={APP_ROUTES.supplierPortalShops}
-                className="text-[13px] text-[var(--pos-primary,#0f766e)]"
-              >
-                See all
-              </Link>
-            </div>
-            <div className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] border-y border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]">
-              {hub.shops.slice(0, 4).map((shop) => (
-                <Link
-                  key={shop.localSupplierId}
-                  href={`${APP_ROUTES.supplierPortalShops}/${shop.localSupplierId}`}
-                  className="flex min-h-14 items-center gap-3 py-3 active:opacity-70"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] font-medium text-[var(--pos-ink,#1c1915)]">
-                      {shop.shopName}
-                    </p>
-                    {canViewMoney ? (
-                      <p className="mt-0.5 text-[13px] text-muted-foreground tabular-nums">
-                        Outstanding {money(shop.owed, currency)}
-                      </p>
-                    ) : null}
-                  </div>
-                  <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {hub && hub.shops.length > 0 ? (
-          <section className={cn(spPanel, "hidden lg:block")}>
-            <div className={mktPosHeader}>
-              <span>3 · Shops</span>
-              <Link href={APP_ROUTES.supplierPortalShops} className="hover:underline">
-                View all →
-              </Link>
-            </div>
-            <div className="grid gap-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] sm:grid-cols-2">
-              {hub.shops.slice(0, 4).map((shop) => (
-                <Link
-                  key={shop.localSupplierId}
-                  href={`${APP_ROUTES.supplierPortalShops}/${shop.localSupplierId}`}
-                  className={cn(spMetric, "block bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)]")}
-                >
-                  <span className={mktPosAccentBar} />
-                  <p className="pl-2 font-medium text-[var(--pos-ink,#1c1915)]">{shop.shopName}</p>
-                  <p className="mt-1.5 pl-2 text-sm text-muted-foreground">
-                    Outstanding {money(shop.owed, currency)}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
         {emptyShops ? (
-          <div
-            className={cn(
-              spPanel,
-              "flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between",
-            )}
-          >
+          <div className="flex flex-col gap-4 border border-[color-mix(in_srgb,var(--dash-ink)_14%,transparent)] bg-[color-mix(in_srgb,#fff_82%,#f7f3eb)] px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-semibold text-[var(--pos-ink,#1c1915)]">No shops linked yet</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="font-semibold text-[var(--dash-ink)]">No shops linked yet</p>
+              <p className="mt-1 text-[13px] text-[color-mix(in_srgb,var(--dash-ink)_55%,transparent)]">
                 Your live account starts at zero until shops, orders, and payments come in.
               </p>
             </div>
@@ -442,86 +479,110 @@ export default function SupplierPortalOverviewPage() {
   );
 }
 
-function AttentionRow({
+function PulseStat({
   label,
   value,
-  hint,
-  href,
-  accent,
+  hot,
 }: {
   label: string;
   value: string;
-  hint: string;
+  hot?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-[6.5rem] flex-1 flex-col gap-0.5 px-3 py-2.5",
+        hot
+          ? "bg-[color-mix(in_srgb,var(--dash-mango)_12%,#fff)]"
+          : "bg-[color-mix(in_srgb,#fff_78%,#f7f3eb)]",
+      )}
+    >
+      <span
+        className={cn(
+          "font-mono text-[1.1rem] font-bold tabular-nums leading-none",
+          hot ? "text-[var(--dash-mango)]" : "text-[var(--pos-primary)]",
+        )}
+      >
+        {value}
+      </span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--dash-ink)_48%,transparent)]">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function AttentionItem({
+  href,
+  label,
+  value,
+  hint,
+  stamp,
+}: {
   href: string;
-  accent?: boolean;
+  label: string;
+  value: string;
+  hint: string;
+  stamp: string;
+}) {
+  return (
+    <li className="relative bg-[color-mix(in_srgb,#fff_72%,transparent)] transition-colors hover:bg-white">
+      <Link href={href} className="flex items-start gap-3 px-3 py-3.5 sm:px-4">
+        <div className="min-w-0 flex-1 pr-12">
+          <p className="text-[14px] font-semibold text-[var(--dash-ink)]">{label}</p>
+          <p className="mt-0.5 text-[12px] text-[color-mix(in_srgb,var(--dash-ink)_52%,transparent)]">
+            {hint}
+          </p>
+        </div>
+        <p className="shrink-0 font-mono text-[1.15rem] font-bold tabular-nums text-[var(--dash-mango)]">
+          {value}
+        </p>
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-3 top-3 rotate-6 border border-[color-mix(in_srgb,var(--dash-mango)_50%,transparent)] px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.12em] text-[var(--dash-mango)]"
+        >
+          {stamp}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+function RouteTile({
+  href,
+  icon,
+  label,
+  hint,
+  hot,
+}: {
+  href: string;
+  icon: ReactNode;
+  label: string;
+  hint: string;
+  hot?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="flex min-h-14 items-center gap-3 py-3.5 active:opacity-70"
+      className={cn(
+        "flex min-h-[5.25rem] flex-col justify-between gap-2 bg-[color-mix(in_srgb,#fff_88%,#f7f3eb)] px-3 py-3 transition-colors hover:bg-white",
+        hot && "bg-[color-mix(in_srgb,var(--dash-mango)_8%,#fff)]",
+      )}
     >
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="text-[15px] font-medium text-[var(--pos-ink,#1c1915)]">{label}</p>
-          <p
-            className={cn(
-              "text-[15px] font-semibold tabular-nums",
-              accent
-                ? "text-[var(--pos-primary,#0f766e)]"
-                : "text-[var(--pos-ink,#1c1915)]",
-            )}
-          >
-            {value}
-          </p>
-        </div>
-        <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{hint}</p>
-      </div>
-      <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
-    </Link>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  hint,
-  href,
-  className,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  href?: string;
-  className?: string;
-}) {
-  const body = (
-    <>
-      <span className={mktPosAccentBar} />
-      <div className="flex items-start justify-between gap-2 pl-2">
-        <p className={spEyebrow}>{label}</p>
-        {href ? <span className={cn(mktChip, "px-1.5 py-0.5")}>View →</span> : null}
-      </div>
-      <p className="mt-3 pl-2 text-[1.55rem] font-semibold tracking-tight text-[var(--pos-primary,#0f766e)] tabular-nums sm:text-[1.75rem]">
-        {value}
-      </p>
-      <p className="mt-1.5 pl-2 text-sm text-muted-foreground">{hint}</p>
-    </>
-  );
-
-  if (href) {
-    return (
-      <Link
-        href={href}
-        className={cn(spMetric, "block bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)]", className)}
+      <span
+        className={cn(
+          "text-[var(--pos-primary)]",
+          hot && "text-[var(--dash-mango)]",
+        )}
       >
-        {body}
-      </Link>
-    );
-  }
-
-  return (
-    <div className={cn(spMetric, "bg-[color-mix(in_srgb,var(--card)_96%,#f7f3eb)]", className)}>
-      {body}
-    </div>
+        {icon}
+      </span>
+      <div>
+        <p className="text-[13px] font-semibold text-[var(--dash-ink)]">{label}</p>
+        <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--dash-ink)_48%,transparent)]">
+          {hint}
+        </p>
+      </div>
+    </Link>
   );
 }
