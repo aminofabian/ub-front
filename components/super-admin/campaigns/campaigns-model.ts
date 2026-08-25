@@ -1,3 +1,5 @@
+import { PLATFORM_DOMAIN } from "@/lib/config";
+
 export type WorkspaceMode =
   | "overview"
   | "compose"
@@ -39,10 +41,8 @@ export type AudienceFilter = {
   group: FilterGroup;
   label: string;
   hint: string;
-  /** Maps onto the live email-recipient API when possible. */
-  segment?: string;
-  /** Modeled reach when the API cannot evaluate this filter yet. */
-  modeledReach: number;
+  /** Live email-recipient API segment. */
+  segment: string;
 };
 
 export type IntentId =
@@ -84,25 +84,6 @@ export type CampaignTemplate = {
   openRate: number;
 };
 
-export type SampleMerchant = {
-  id: string;
-  businessName: string;
-  owner: string;
-  email: string;
-  plan: string;
-  businessType: string;
-  productCount: number;
-  branchCount: number;
-  lastLogin: string;
-  setupProgress: number;
-  storefront: "live" | "unpublished" | "none";
-  mpesa: boolean;
-  customDomain: boolean;
-  emailsReceived: number;
-  opened: number;
-  clicked: number;
-};
-
 export const VARIABLES = [
   "name",
   "businessName",
@@ -131,34 +112,20 @@ export const TYPES: { id: CampaignType | "all"; label: string }[] = [
 ];
 
 export const FILTERS: AudienceFilter[] = [
-  { id: "age", group: "merchant", label: "Account age", hint: "Days since signup", modeledReach: 9200 },
-  { id: "signup", group: "merchant", label: "Signup date", hint: "Window of first day", modeledReach: 640 },
-  { id: "verified", group: "merchant", label: "Email verified", hint: "Owner confirmed inbox", modeledReach: 11040, segment: "unverified_owners" },
-  { id: "setup", group: "merchant", label: "Setup incomplete", hint: "Stuck after signup", modeledReach: 1248, segment: "stuck_signup" },
-  { id: "last-login", group: "merchant", label: "Last login", hint: "No login in N days", modeledReach: 391 },
-  { id: "last-active", group: "merchant", label: "Last active", hint: "Till or hub idle", modeledReach: 510 },
-  { id: "plan", group: "merchant", label: "Plan", hint: "Free / paid tier", modeledReach: 2100 },
-  { id: "type", group: "merchant", label: "Business type", hint: "Mini-mart, salon, …", modeledReach: 1800 },
-  { id: "branches", group: "merchant", label: "Branch count", hint: "More than one location", modeledReach: 420 },
-  { id: "location", group: "merchant", label: "Location", hint: "Country / city", modeledReach: 8800 },
-  { id: "staff", group: "merchant", label: "Staff count", hint: "Cashiers on the books", modeledReach: 960 },
-  { id: "has-storefront", group: "store", label: "Has storefront", hint: "Shop URL provisioned", modeledReach: 6400 },
-  { id: "published", group: "store", label: "Storefront published", hint: "Live to customers", modeledReach: 3180 },
-  { id: "unpublished", group: "store", label: "Storefront unpublished", hint: "Products, no live shop", modeledReach: 842 },
-  { id: "custom-domain", group: "store", label: "Has custom domain", hint: "Not only *.kiosk.ke", modeledReach: 210 },
-  { id: "mpesa", group: "store", label: "M-Pesa enabled", hint: "STK connected", modeledReach: 4020 },
-  { id: "online-orders", group: "store", label: "Has online orders", hint: "At least one web sale", modeledReach: 980 },
-  { id: "any-products", group: "catalog", label: "Any products", hint: "Catalog is not empty", modeledReach: 9100 },
-  { id: "no-products", group: "catalog", label: "No products", hint: "Empty catalog", modeledReach: 1680 },
-  { id: "gt-100", group: "catalog", label: "More than 100 products", hint: "Catalog density", modeledReach: 640 },
-  { id: "gt-500", group: "catalog", label: "500+ products", hint: "Upgrade-ready catalog", modeledReach: 128 },
-  { id: "lt-10", group: "catalog", label: "Fewer than 10 products", hint: "Early catalog", modeledReach: 2400 },
-  { id: "low-stock", group: "catalog", label: "Low stock items", hint: "At least one SKU low", modeledReach: 1100 },
-  { id: "no-stock", group: "catalog", label: "Out of stock items", hint: "Zero on hand", modeledReach: 740 },
-  { id: "with-images", group: "catalog", label: "Products with images", hint: "Media coverage", modeledReach: 5200 },
-  { id: "without-images", group: "catalog", label: "Products without images", hint: "Missing photos", modeledReach: 1900 },
-  { id: "category", group: "catalog", label: "Products in a category", hint: "Match catalog type", modeledReach: 1500 },
-  { id: "supplier", group: "catalog", label: "Supplied by a supplier", hint: "Named supplier", modeledReach: 880 },
+  {
+    id: "setup",
+    group: "merchant",
+    label: "Setup incomplete",
+    hint: "Stuck after signup",
+    segment: "stuck_signup",
+  },
+  {
+    id: "verified",
+    group: "merchant",
+    label: "Email unverified",
+    hint: "Owner has not confirmed inbox",
+    segment: "unverified_owners",
+  },
 ];
 
 export const INTENTS: {
@@ -180,21 +147,21 @@ export const INTENTS: {
     title: "Drive upgrades",
     body: "Encourage a move to a paid plan.",
     type: "promotional",
-    defaultFilters: ["gt-500", "plan"],
+    defaultFilters: ["setup"],
   },
   {
     id: "storefront",
     title: "Grow online stores",
     body: "Get merchants to publish their storefront.",
     type: "announcement",
-    defaultFilters: ["any-products", "unpublished"],
+    defaultFilters: ["setup"],
   },
   {
     id: "catalog",
     title: "Improve product catalogs",
     body: "Encourage merchants to add products.",
     type: "educational",
-    defaultFilters: ["no-products", "setup"],
+    defaultFilters: ["setup"],
   },
   {
     id: "feature",
@@ -208,7 +175,7 @@ export const INTENTS: {
     title: "Re-engage inactive merchants",
     body: "Bring idle shops back to the till.",
     type: "re-engagement",
-    defaultFilters: ["last-login"],
+    defaultFilters: ["setup"],
   },
   {
     id: "custom",
@@ -232,12 +199,30 @@ export const TEMPLATES: CampaignTemplate[] = [
   { id: "we-miss-you", family: "Re-engagement", name: "We haven't seen you in a while", type: "re-engagement", subject: "{{businessName}} is waiting on Kiosk", previewText: "Your catalog and till are still here.", body: "Hi {{name}},\n\nIt's been a while since anyone signed into {{businessName}}. Your products, branches, and storefront are still on Kiosk — pick up where you left off.\n", cta: "Open dashboard", openRate: 0.29 },
 ];
 
-export const SAMPLE_MERCHANTS: SampleMerchant[] = [
-  { id: "m1", businessName: "Palmart", owner: "Fabian Amino", email: "fabian@palmart.co.ke", plan: "Business", businessType: "Mini-mart", productCount: 483, branchCount: 2, lastLogin: "Today", setupProgress: 100, storefront: "live", mpesa: true, customDomain: true, emailsReceived: 8, opened: 7, clicked: 4 },
-  { id: "m2", businessName: "Jane Mini Mart", owner: "Jane Wanjiku", email: "jane@janemart.ke", plan: "Starter", businessType: "Mini-mart", productCount: 12, branchCount: 1, lastLogin: "Yesterday", setupProgress: 72, storefront: "unpublished", mpesa: true, customDomain: false, emailsReceived: 5, opened: 4, clicked: 1 },
-  { id: "m3", businessName: "Sunrise Bakery", owner: "Peter Otieno", email: "peter@sunrise.ke", plan: "Free", businessType: "Bakery", productCount: 0, branchCount: 1, lastLogin: "12 days ago", setupProgress: 28, storefront: "none", mpesa: false, customDomain: false, emailsReceived: 3, opened: 1, clicked: 0 },
-  { id: "m4", businessName: "Westlands Chemist", owner: "Amina Hassan", email: "amina@westchem.ke", plan: "Growth", businessType: "Pharmacy", productCount: 1200, branchCount: 3, lastLogin: "Today", setupProgress: 96, storefront: "live", mpesa: true, customDomain: true, emailsReceived: 11, opened: 9, clicked: 6 },
+export const AI_SUGGESTIONS = [
+  {
+    id: "setup",
+    title: "Merchants who have not finished setup",
+    why: "Live stuck_signup segment",
+    filters: ["setup"],
+  },
+  {
+    id: "verified",
+    title: "Owners who have not verified email",
+    why: "Live unverified_owners segment",
+    filters: ["verified"],
+  },
 ];
+
+export function estimateAudience(liveCount: number | null): {
+  merchants: number;
+  modeled: boolean;
+} {
+  return {
+    merchants: liveCount ?? 0,
+    modeled: liveCount == null,
+  };
+}
 
 export const AUTOMATIONS = [
   {
@@ -269,85 +254,28 @@ export const AUTOMATIONS = [
   },
 ];
 
-export const AI_SUGGESTIONS = [
-  { id: "s1", title: "Merchants who haven't completed their storefront", count: 1248, why: "High-priority onboarding audience", filters: ["setup", "unpublished"] },
-  { id: "s2", title: "Merchants with products but no online orders", count: 842, why: "Storefront or M-Pesa gap", filters: ["any-products", "online-orders"] },
-  { id: "s3", title: "Merchants who haven't logged in for 30 days", count: 391, why: "Re-engagement", filters: ["last-login"] },
-  { id: "s4", title: "Merchants with 500+ products", count: 128, why: "Potential upgrade audience", filters: ["gt-500"] },
-];
-
-const KIOSK_CONTEXT =
-  "Kiosk is one POS, inventory, and storefront: barcode till, M-Pesa STK, offline sales, branches, staff, suppliers, custom domains, and a published shop from the same catalog.";
-
-export function estimateAudience(filterIds: string[], liveCount: number | null): {
-  merchants: number;
-  validEmails: number;
-  engaged: number;
-  neverOpened: number;
-  modeled: boolean;
-} {
-  if (filterIds.length === 0) {
-    const merchants = liveCount ?? 12481;
-    return {
-      merchants,
-      validEmails: Math.round(merchants * 0.977),
-      engaged: Math.round(merchants * 0.595),
-      neverOpened: Math.round(merchants * 0.205),
-      modeled: liveCount == null,
-    };
-  }
-  const reaches = filterIds
-    .map((id) => FILTERS.find((f) => f.id === id)?.modeledReach ?? 4000)
-    .sort((a, b) => a - b);
-  let merchants = reaches[0] ?? 400;
-  for (let i = 1; i < reaches.length; i++) {
-    merchants = Math.max(48, Math.round(merchants * 0.62));
-  }
-  if (liveCount != null && filterIds.some((id) => FILTERS.find((f) => f.id === id)?.segment)) {
-    merchants = Math.min(merchants, liveCount);
-  }
-  return {
-    merchants,
-    validEmails: Math.max(0, Math.round(merchants * 0.977)),
-    engaged: Math.round(merchants * 0.77),
-    neverOpened: Math.round(merchants * 0.205),
-    modeled: true,
-  };
-}
-
 export function personalize(
   text: string,
-  merchant: SampleMerchant,
+  merchant: {
+    name: string;
+    email: string;
+    businessName: string;
+    slug?: string | null;
+    continueUrl?: string | null;
+  } | null,
 ): string {
+  const first = merchant?.name.trim().split(/\s+/)[0] ?? "";
+  const shop = merchant?.slug?.trim()
+    ? `${merchant.slug.trim()}.${PLATFORM_DOMAIN}`
+    : merchant?.businessName
+      ? `${merchant.businessName.toLowerCase().replace(/\s+/g, "")}.${PLATFORM_DOMAIN}`
+      : "";
   return text
-    .replaceAll("{{name}}", merchant.owner.split(" ")[0] ?? merchant.owner)
-    .replaceAll("{{businessName}}", merchant.businessName)
-    .replaceAll("{{shopUrl}}", `${merchant.businessName.toLowerCase().replace(/\s+/g, "")}.kiosk.ke`)
-    .replaceAll("{{businessType}}", merchant.businessType)
-    .replaceAll("{{plan}}", merchant.plan)
-    .replaceAll("{{productCount}}", String(merchant.productCount))
-    .replaceAll("{{branchCount}}", String(merchant.branchCount))
-    .replaceAll("{{lastLogin}}", merchant.lastLogin)
-    .replaceAll("{{setupProgress}}", `${merchant.setupProgress}%`)
-    .replaceAll("{{customDomain}}", merchant.customDomain ? "yes" : "not yet")
-    .replaceAll("{{email}}", merchant.email)
-    .replaceAll("{{continueUrl}}", "https://kiosk.ke/continue");
-}
-
-export function dynamicLine(merchant: SampleMerchant): string {
-  if (merchant.storefront === "live") {
-    return "Your online store is already live. Share it with your customers today.";
-  }
-  if (merchant.productCount >= 200) {
-    return `Your catalog is already substantial (${merchant.productCount} products). Put it online.`;
-  }
-  if (merchant.productCount >= 8) {
-    return "You've already added your first products. Finish by publishing the storefront.";
-  }
-  if (merchant.storefront === "unpublished") {
-    return "Your products are ready. Now put them online.";
-  }
-  return "Finish setting up your online store so the till and the shop share one catalog.";
+    .replaceAll("{{name}}", first)
+    .replaceAll("{{businessName}}", merchant?.businessName ?? "")
+    .replaceAll("{{shopUrl}}", shop)
+    .replaceAll("{{email}}", merchant?.email ?? "")
+    .replaceAll("{{continueUrl}}", merchant?.continueUrl ?? "");
 }
 
 export type GeneratedCampaign = {
@@ -356,6 +284,9 @@ export type GeneratedCampaign = {
   body: string;
   cta: string;
 };
+
+const KIOSK_CONTEXT =
+  "Kiosk is one POS, inventory, and storefront: barcode till, M-Pesa STK, offline sales, branches, staff, suppliers, custom domains, and a published shop from the same catalog.";
 
 export function generateCampaign(prompt: string, intent: IntentId): GeneratedCampaign {
   const p = prompt.toLowerCase();
@@ -457,58 +388,27 @@ export function rewriteBody(
 
 export function interpretAsk(query: string): {
   summary: string;
-  count: number;
   filters: string[];
   intent: IntentId;
 } {
   const q = query.toLowerCase();
-  if (/50 products|at least 50/.test(q) && /haven't published|unpublished|store/.test(q)) {
+  if (/unverif/.test(q)) {
     return {
-      summary:
-        "Merchants with at least 50 products who haven't published their storefront. Average catalog ~84 items.",
-      count: 742,
-      filters: ["gt-100", "unpublished"],
-      intent: "storefront",
+      summary: "Owners who have not verified their email.",
+      filters: ["verified"],
+      intent: "activate",
     };
   }
-  if (/signed up this month|this month/.test(q) && /haven't logged|no login/.test(q)) {
-    return {
-      summary: "Merchants who signed up this month and have not logged in since.",
-      count: 183,
-      filters: ["signup", "last-login"],
-      intent: "reengage",
-    };
-  }
-  if (/custom domain/.test(q)) {
-    return {
-      summary:
-        "Best fit: published storefront, 50+ products, at least one online order — ready for a custom domain.",
-      count: 318,
-      filters: ["published", "gt-100", "online-orders"],
-      intent: "feature",
-    };
-  }
-  if (/14 days|last 14/.test(q) && /products/.test(q) && /store/.test(q)) {
-    return {
-      summary:
-        "Signed up in the last 14 days, added products, storefront still unpublished.",
-      count: 406,
-      filters: ["signup", "any-products", "unpublished"],
-      intent: "storefront",
-    };
-  }
-  if (/setup/.test(q)) {
+  if (/setup|onboard|signed up/.test(q)) {
     return {
       summary: "Merchants who signed up but have not finished setup.",
-      count: 1248,
       filters: ["setup"],
       intent: "activate",
     };
   }
   return {
-    summary: "Broad merchant list. Add a product, storefront, or setup clue to tighten this.",
-    count: 12481,
-    filters: [],
+    summary: "Use a live audience: incomplete setup, or unverified owners.",
+    filters: ["setup"],
     intent: "custom",
   };
 }

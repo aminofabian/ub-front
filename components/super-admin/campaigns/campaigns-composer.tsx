@@ -3,6 +3,7 @@
 import { Check, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PLATFORM_DOMAIN } from "@/lib/config";
 import type { SaEmailPreview, SaEmailRecipientRow } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
@@ -10,11 +11,8 @@ import { CampaignChip } from "./campaigns-overview";
 import {
   FILTERS,
   INTENTS,
-  SAMPLE_MERCHANTS,
   VARIABLES,
   type IntentId,
-  type SampleMerchant,
-  dynamicLine,
   estimateAudience,
   personalize,
 } from "./campaigns-model";
@@ -56,8 +54,6 @@ export function CampaignsComposer({
   onScheduleAt,
   ab,
   onAb,
-  dynamicIfStorefront,
-  onDynamic,
 }: {
   pickingIntent: boolean;
   onPickIntent: (id: IntentId) => void;
@@ -92,8 +88,6 @@ export function CampaignsComposer({
   onScheduleAt: (v: string) => void;
   ab: { on: boolean; a: string; b: string };
   onAb: (v: { on: boolean; a: string; b: string }) => void;
-  dynamicIfStorefront: boolean;
-  onDynamic: (v: boolean) => void;
 }) {
   if (pickingIntent) {
     return (
@@ -122,10 +116,11 @@ export function CampaignsComposer({
     );
   }
 
-  const audience = estimateAudience(filters, liveAudience);
-  const merchant = SAMPLE_MERCHANTS.find((m) => m.id === merchantId) ?? SAMPLE_MERCHANTS[0];
+  const audience = estimateAudience(liveAudience);
+  const merchant =
+    recipients.find((r) => r.userId === merchantId) ?? recipients[0] ?? null;
   const rendered = personalize(body, merchant);
-  const extra = dynamicIfStorefront ? dynamicLine(merchant) : "";
+  const fromLabel = `Kiosk · hello@${PLATFORM_DOMAIN}`;
 
   return (
     <div className="mx-auto max-w-[860px] space-y-6 px-4 py-5 sm:px-6">
@@ -153,36 +148,34 @@ export function CampaignsComposer({
       <section>
         <h2 className="text-sm font-semibold">Who should receive this?</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Setup and unverified filters use the live recipient API. Catalog and storefront filters
-          show modeled reach until those events are queryable.
+          These filters use the live recipient API (incomplete setup, unverified owners).
         </p>
-        {(["merchant", "store", "catalog"] as const).map((g) => (
-          <div key={g} className="mt-3">
-            <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              {g === "merchant" ? "Merchant" : g === "store" ? "Store" : "Product / inventory"}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {FILTERS.filter((f) => f.group === g).map((f) => (
-                <CampaignChip
-                  key={f.id}
-                  active={filters.includes(f.id)}
-                  onClick={() => onToggleFilter(f.id)}
-                >
-                  {f.label}
-                </CampaignChip>
-              ))}
-            </div>
+        <div className="mt-3">
+          <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Merchant
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {FILTERS.map((f) => (
+              <CampaignChip
+                key={f.id}
+                active={filters.includes(f.id)}
+                onClick={() => onToggleFilter(f.id)}
+              >
+                {f.label}
+              </CampaignChip>
+            ))}
           </div>
-        ))}
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-2">
           <MiniStat
             label="Audience"
             value={audience.merchants.toLocaleString()}
-            hint={audience.modeled ? "Modeled + live mix" : "Live"}
+            hint={audience.modeled ? "Loading live count…" : "Live"}
           />
-          <MiniStat label="Valid emails" value={audience.validEmails.toLocaleString()} />
-          <MiniStat label="Previously engaged" value={audience.engaged.toLocaleString()} />
-          <MiniStat label="Never opened" value={audience.neverOpened.toLocaleString()} />
+          <MiniStat
+            label="Loaded rows"
+            value={recipients.length.toLocaleString()}
+          />
         </div>
         <Button type="button" variant="outline" size="sm" className="mt-3">
           Save audience
@@ -256,15 +249,6 @@ export function CampaignsComposer({
             <label className="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"
-                checked={dynamicIfStorefront}
-                onChange={(e) => onDynamic(e.target.checked)}
-                className="mt-0.5"
-              />
-              Show a different paragraph if the merchant already published a storefront.
-            </label>
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
                 checked={ab.on}
                 onChange={(e) => onAb({ ...ab, on: e.target.checked })}
                 className="mt-0.5"
@@ -321,12 +305,13 @@ export function CampaignsComposer({
             device={device}
             onDevice={onDevice}
             merchant={merchant}
-            merchantId={merchantId}
+            recipients={recipients}
+            merchantId={merchant?.userId ?? ""}
             onMerchant={onMerchant}
             previewText={previewText}
             subject={subject}
             rendered={rendered}
-            extra={extra}
+            extra=""
             cta={cta}
             preview={preview}
           />
@@ -342,7 +327,7 @@ export function CampaignsComposer({
           </div>
           <div>
             <dt className="text-muted-foreground">From</dt>
-            <dd className="font-medium">Kiosk · hello@kiosk.ke</dd>
+            <dd className="font-medium">{fromLabel}</dd>
           </div>
           <div className="sm:col-span-2">
             <dt className="text-muted-foreground">Subject</dt>
@@ -362,7 +347,7 @@ export function CampaignsComposer({
         </div>
         {sendMode === "smart" ? (
           <p className="mt-2 text-sm text-muted-foreground">
-            Recommended: tomorrow at 9:00 AM, based on previous engagement.
+            Sends immediately through the campaign API. Schedule a time if you need a later send.
           </p>
         ) : null}
         {sendMode === "schedule" ? (
@@ -375,12 +360,8 @@ export function CampaignsComposer({
         ) : null}
         <ul className="mt-4 space-y-1 text-sm text-muted-foreground">
           {[
-            "Subject added",
-            "Sender verified",
-            `${audience.validEmails.toLocaleString()} valid recipients`,
-            "Unsubscribe enabled",
-            "Personalization variables valid",
-            "Mobile preview checked",
+            subject.trim() ? "Subject added" : "Add a subject",
+            `${audience.merchants.toLocaleString()} live recipients`,
           ].map((item) => (
             <li key={item} className="flex items-center gap-2">
               <Check className="size-3.5 text-emerald-700" />
@@ -389,7 +370,7 @@ export function CampaignsComposer({
           ))}
         </ul>
         <Button type="button" className="mt-4" disabled={busy} onClick={onSend}>
-          Ready to send · {audience.validEmails.toLocaleString()} emails
+          Ready to send · {audience.merchants.toLocaleString()} emails
         </Button>
       </section>
     </div>
@@ -410,6 +391,7 @@ function PreviewBlock({
   device,
   onDevice,
   merchant,
+  recipients,
   merchantId,
   onMerchant,
   previewText,
@@ -421,7 +403,8 @@ function PreviewBlock({
 }: {
   device: "desktop" | "mobile";
   onDevice: (d: "desktop" | "mobile") => void;
-  merchant: SampleMerchant;
+  merchant: SaEmailRecipientRow | null;
+  recipients: SaEmailRecipientRow[];
   merchantId: string;
   onMerchant: (id: string) => void;
   previewText: string;
@@ -447,11 +430,15 @@ function PreviewBlock({
             onChange={(e) => onMerchant(e.target.value)}
             className="ml-1 rounded-md border border-border bg-white px-2 py-1 text-foreground"
           >
-            {SAMPLE_MERCHANTS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.owner.split(" ")[0]} — {m.businessName}
-              </option>
-            ))}
+            {recipients.length === 0 ? (
+              <option value="">No live recipients</option>
+            ) : (
+              recipients.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.name || m.email} — {m.businessName}
+                </option>
+              ))
+            )}
           </select>
         </label>
       </div>

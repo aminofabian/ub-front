@@ -11,7 +11,7 @@ import {
   showThemedSuccessToast,
 } from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
-import { APP_ROUTES } from "@/lib/config";
+import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
 import {
   createSaEmailCampaign,
   fetchSaEmailCampaign,
@@ -32,13 +32,12 @@ import { CampaignsComposer } from "./campaigns-composer";
 import { CampaignsLibraryNav } from "./campaigns-library-nav";
 import {
   FILTERS,
-  SAMPLE_MERCHANTS,
+  INTENTS,
   TEMPLATES,
   type CampaignNavId,
   type CampaignType,
   type GeneratedCampaign,
   type IntentId,
-  type SampleMerchant,
   type WorkspaceMode,
   generateCampaign,
   interpretAsk,
@@ -48,6 +47,12 @@ import {
 import { CampaignsOverview } from "./campaigns-overview";
 import { CampaignsPeople } from "./campaigns-people";
 import { CampaignsTemplates } from "./campaigns-templates";
+
+function defaultScheduleLocal(): string {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
 
 export function CampaignsCommandCentre({
   initialMode,
@@ -80,38 +85,31 @@ export function CampaignsCommandCentre({
     initialMode === "compose" ? "activate" : null,
   );
   const [pickingIntent, setPickingIntent] = useState(initialMode === "compose" && !campaignId);
-  const [campaignName, setCampaignName] = useState("Finish setting up your Kiosk store");
+  const [campaignName, setCampaignName] = useState("");
   const [copiedFrom, setCopiedFrom] = useState<string | null>(null);
-  const [subject, setSubject] = useState("Your Kiosk store is almost ready");
-  const [previewText, setPreviewText] = useState(
-    "Your products, M-Pesa and online store are waiting for you.",
-  );
-  const [body, setBody] = useState(generateCampaign("finish setup", "activate").body);
-  const [cta, setCta] = useState("Continue setup");
+  const [subject, setSubject] = useState("");
+  const [previewText, setPreviewText] = useState("");
+  const [body, setBody] = useState("");
+  const [cta, setCta] = useState("Continue");
   const [activeFilters, setActiveFilters] = useState<string[]>(["setup"]);
   const [composerTab, setComposerTab] = useState<"write" | "design" | "preview">("write");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
-  const [merchantId, setMerchantId] = useState(SAMPLE_MERCHANTS[1]?.id ?? "m2");
-  const [aiPrompt, setAiPrompt] = useState(
-    "Write an email to merchants who signed up but haven't finished setting up their store.",
-  );
-  const [sendMode, setSendMode] = useState<"now" | "schedule" | "smart">("smart");
-  const [scheduleAt, setScheduleAt] = useState("2026-08-26T09:00");
+  const [merchantId, setMerchantId] = useState("");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [sendMode, setSendMode] = useState<"now" | "schedule" | "smart">("now");
+  const [scheduleAt, setScheduleAt] = useState(defaultScheduleLocal);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<SaEmailPreview | null>(null);
   const [detail, setDetail] = useState<SaEmailCampaignDetail | null>(null);
   const [recipients, setRecipients] = useState<SaEmailRecipientRow[]>([]);
   const [liveAudience, setLiveAudience] = useState<number | null>(null);
   const [peopleQuery, setPeopleQuery] = useState("");
-  const [selectedPerson, setSelectedPerson] = useState<
-    SampleMerchant | SaEmailRecipientRow | null
-  >(SAMPLE_MERCHANTS[0] ?? null);
+  const [selectedPerson, setSelectedPerson] = useState<SaEmailRecipientRow | null>(null);
   const [ab, setAb] = useState({
     on: false,
-    a: "Your Kiosk store is almost ready",
-    b: "You're only 5 minutes away from selling online",
+    a: "",
+    b: "",
   });
-  const [dynamicIfStorefront, setDynamicIfStorefront] = useState(true);
 
   const reload = useCallback(async () => {
     setLoadError("");
@@ -131,17 +129,16 @@ export function CampaignsCommandCentre({
   }, [reload]);
 
   useEffect(() => {
-    const segment = FILTERS.find((f) => activeFilters.includes(f.id) && f.segment)?.segment;
-    if (!segment) {
-      setLiveAudience(null);
-      return;
-    }
+    const segment =
+      FILTERS.find((f) => activeFilters.includes(f.id))?.segment ?? "stuck_signup";
     let cancelled = false;
     void fetchSaEmailRecipients({ segment }, 0, 500)
       .then((r) => {
         if (cancelled) return;
         setRecipients(r.rows);
         setLiveAudience(r.total);
+        setMerchantId((id) => id || r.rows[0]?.userId || "");
+        setSelectedPerson((prev) => prev ?? r.rows[0] ?? null);
       })
       .catch(() => {
         if (!cancelled) setLiveAudience(null);
@@ -276,11 +273,9 @@ export function CampaignsCommandCentre({
       id: "send-kiosk-campaign",
       title: "Send this campaign?",
       description:
-        sendMode === "smart"
-          ? "Smart send: tomorrow 9:00 AM based on previous engagement. From: Kiosk <hello@kiosk.ke>."
-          : sendMode === "schedule"
-            ? `Scheduled for ${scheduleAt}. From: Kiosk <hello@kiosk.ke>.`
-            : "From: Kiosk <hello@kiosk.ke>. This send cannot be run twice.",
+        sendMode === "schedule"
+          ? `Scheduled for ${scheduleAt}. From: Kiosk <hello@${PLATFORM_DOMAIN}>.`
+          : `From: Kiosk <hello@${PLATFORM_DOMAIN}>. This send cannot be run twice.`,
       confirmLabel: "Send",
       onConfirm: () => void performSend(),
     });
@@ -384,7 +379,7 @@ export function CampaignsCommandCentre({
       {askResult ? (
         <div className="flex flex-wrap items-center gap-3 border-b border-border/70 bg-emerald-50/80 px-4 py-2 text-sm">
           <span className="font-medium text-foreground">
-            {askResult.count.toLocaleString()} merchants found.
+            {(liveAudience ?? 0).toLocaleString()} merchants in the live audience.
           </span>
           <span className="text-muted-foreground">{askResult.summary}</span>
           <Button type="button" size="sm" className="h-7" onClick={() => setMode("compose")}>
@@ -442,26 +437,10 @@ export function CampaignsCommandCentre({
               onPickIntent={(id) => {
                 setIntent(id);
                 setPickingIntent(false);
-                const item = {
-                  activate: ["setup"],
-                  upgrade: ["gt-500", "plan"],
-                  storefront: ["any-products", "unpublished"],
-                  catalog: ["no-products", "setup"],
-                  feature: ["verified"],
-                  reengage: ["last-login"],
-                  custom: [] as string[],
-                }[id];
+                const item = INTENTS.find((i) => i.id === id)?.defaultFilters ?? [];
                 setActiveFilters(item);
                 applyGenerated(generateCampaign(id, id));
-                setCampaignName(
-                  id === "activate"
-                    ? "Activate merchants"
-                    : id === "storefront"
-                      ? "Grow online stores"
-                      : id === "reengage"
-                        ? "Re-engage inactive merchants"
-                        : "Campaign",
-                );
+                setCampaignName(INTENTS.find((i) => i.id === id)?.title ?? "Campaign");
               }}
               name={campaignName}
               onName={setCampaignName}
@@ -498,8 +477,6 @@ export function CampaignsCommandCentre({
               onScheduleAt={setScheduleAt}
               ab={ab}
               onAb={setAb}
-              dynamicIfStorefront={dynamicIfStorefront}
-              onDynamic={setDynamicIfStorefront}
             />
           ) : null}
           {mode === "analytics" && detail ? <CampaignsAnalytics detail={detail} /> : null}
@@ -508,6 +485,7 @@ export function CampaignsCommandCentre({
               query={peopleQuery}
               onQuery={setPeopleQuery}
               recipients={recipients}
+              liveAudience={liveAudience}
               selected={selectedPerson}
               onSelect={setSelectedPerson}
             />

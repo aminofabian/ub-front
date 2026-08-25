@@ -2,11 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import type { SaEmailRecipientRow } from "@/lib/super-admin-api";
-import { cn } from "@/lib/utils";
 
 import {
   AI_SUGGESTIONS,
-  type SampleMerchant,
   estimateAudience,
   rewriteBody,
 } from "./campaigns-model";
@@ -24,7 +22,7 @@ export function CampaignsAiPanel({
   onUseSuggestion,
 }: {
   mode: WorkspaceMode;
-  person: SampleMerchant | SaEmailRecipientRow | null;
+  person: SaEmailRecipientRow | null;
   prompt: string;
   onPrompt: (v: string) => void;
   onGenerate: () => void;
@@ -33,7 +31,7 @@ export function CampaignsAiPanel({
   filters: string[];
   onUseSuggestion: (ids: string[]) => void;
 }) {
-  const audience = estimateAudience(filters, liveAudience);
+  const audience = estimateAudience(liveAudience);
 
   if (mode === "people" && person) {
     return <PersonCard person={person} />;
@@ -97,7 +95,7 @@ export function CampaignsAiPanel({
               <li key={s.id} className="rounded-lg border border-border/70 p-2.5">
                 <p className="text-[13px] font-medium leading-snug">{s.title}</p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  {s.count.toLocaleString()} merchants · {s.why}
+                  {s.why}
                 </p>
                 <button
                   type="button"
@@ -115,42 +113,18 @@ export function CampaignsAiPanel({
   );
 }
 
-function PersonCard({ person }: { person: SampleMerchant | SaEmailRecipientRow }) {
-  const sample = "productCount" in person ? person : null;
-  const row = "userId" in person ? person : null;
+function PersonCard({ person }: { person: SaEmailRecipientRow }) {
   return (
     <div className="h-full overflow-y-auto border-l border-border/70 bg-white p-4 text-sm">
-      <p className="font-semibold">{sample?.businessName ?? row?.businessName}</p>
-      <p className="text-muted-foreground">{sample?.owner ?? row?.name}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{sample?.email ?? row?.email}</p>
-      {sample ? (
-        <>
-          <h3 className="mt-4 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Engagement
-          </h3>
-          <ul className={cn("mt-1 space-y-1 text-muted-foreground")}>
-            <li>Last active: {sample.lastLogin}</li>
-            <li>Emails received: {sample.emailsReceived}</li>
-            <li>Opened: {sample.opened}</li>
-            <li>Clicked: {sample.clicked}</li>
-          </ul>
-          <h3 className="mt-4 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Store
-          </h3>
-          <ul className="mt-1 space-y-1 text-muted-foreground">
-            <li>Products: {sample.productCount}</li>
-            <li>Storefront: {sample.storefront}</li>
-            <li>M-Pesa: {sample.mpesa ? "Enabled" : "No"}</li>
-            <li>Custom domain: {sample.customDomain ? "Yes" : "No"}</li>
-            <li>Plan: {sample.plan}</li>
-          </ul>
-        </>
-      ) : (
-        <ul className="mt-4 space-y-1 text-muted-foreground">
-          <li>Status: {row?.userStatus}</li>
-          <li>Onboarding: {row?.onboardingStatus}</li>
-        </ul>
-      )}
+      <p className="font-semibold">{person.businessName}</p>
+      <p className="text-muted-foreground">{person.name}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{person.email || "No email"}</p>
+      <ul className="mt-4 space-y-1 text-muted-foreground">
+        <li>Status: {person.userStatus}</li>
+        <li>Onboarding: {person.onboardingStatus}</li>
+        {person.lastLoginAt ? <li>Last login: {person.lastLoginAt}</li> : null}
+        {person.skipReason ? <li>Skip: {person.skipReason}</li> : null}
+      </ul>
     </div>
   );
 }

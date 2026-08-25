@@ -108,7 +108,7 @@ export function CampaignsLibraryNav({
         <ul className="space-y-1">
           <li className="flex items-center gap-2">
             <span className="size-1.5 rounded-full bg-emerald-600" />
-            {(liveAudience ?? 12481).toLocaleString()} contacts
+            {(liveAudience ?? 0).toLocaleString()} contacts
           </li>
           <li className="flex items-center gap-2">
             <span className="size-1.5 rounded-full bg-emerald-600" />
@@ -117,10 +117,6 @@ export function CampaignsLibraryNav({
           <li className="flex items-center gap-2">
             <span className="size-1.5 rounded-full bg-sky-600" />
             {scheduledCount} scheduled
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-emerald-700" />
-            92% deliverability
           </li>
         </ul>
       </div>

@@ -111,15 +111,31 @@ export function CampaignsOverview({
 
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border/70 bg-border/70 sm:grid-cols-3 lg:grid-cols-5">
         {[
-          { label: "Total audience", value: "12,481", sub: "+8.4% this month" },
+          { label: "Campaigns", value: String(total), sub: "Loaded" },
           {
-            label: "Active campaigns",
-            value: String(Math.max(activeCount, total)),
+            label: "Active",
+            value: String(activeCount),
             sub: `${scheduledCount} scheduled`,
           },
-          { label: "Average open rate", value: "48.2%", sub: "+4.1%" },
-          { label: "Average click rate", value: "12.8%", sub: "+2.3%" },
-          { label: "Engaged merchants", value: "7,421", sub: "59.5%" },
+          {
+            label: "Sent",
+            value: String(sentCount),
+            sub: "Completed sends",
+          },
+          {
+            label: "Recipients targeted",
+            value: rows
+              .reduce((sum, r) => sum + (r.recipientsTargeted || 0), 0)
+              .toLocaleString(),
+            sub: "Across this view",
+          },
+          {
+            label: "Send failures",
+            value: rows
+              .reduce((sum, r) => sum + (r.recipientsFailed || 0), 0)
+              .toLocaleString(),
+            sub: "From completed sends",
+          },
         ].map((m) => (
           <div key={m.label} className="bg-white px-3 py-3">
             <p className="text-[11px] text-muted-foreground">{m.label}</p>
@@ -173,7 +189,7 @@ export function CampaignsOverview({
             <table className="w-full min-w-[860px] text-left text-sm">
               <thead className="border-b border-border/70 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  {["Campaign", "Type", "Audience", "Status", "Sent", "Opened", "Clicked", "Created", ""].map(
+                  {["Campaign", "Type", "Audience", "Status", "Sent", "Failed", "Skipped", "Created", ""].map(
                     (h) => (
                       <th key={h || "actions"} className="px-3 py-2.5 font-medium">
                         {h}
@@ -185,10 +201,6 @@ export function CampaignsOverview({
               <tbody className="divide-y divide-border/60">
                 {rows.map((row) => {
                   const st = mapApiStatus(row.status);
-                  const opened =
-                    row.recipientsSent > 0 ? Math.round(row.recipientsSent * 0.48) : null;
-                  const clicked =
-                    row.recipientsSent > 0 ? Math.round(row.recipientsSent * 0.128) : null;
                   return (
                     <tr key={row.id} className="group hover:bg-[#F7F7F5]">
                       <td className="px-3 py-2.5 font-medium">
@@ -213,13 +225,13 @@ export function CampaignsOverview({
                         </span>
                       </td>
                       <td className="px-3 py-2.5 tabular-nums">
-                        {row.recipientsSent || formatWhen(row.startedAt)}
+                        {row.recipientsSent.toLocaleString()}
                       </td>
                       <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
-                        {opened ?? "—"}
+                        {row.recipientsFailed.toLocaleString()}
                       </td>
                       <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
-                        {clicked ?? "—"}
+                        {row.recipientsSkipped.toLocaleString()}
                       </td>
                       <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
                         {formatWhen(row.createdAt)}
