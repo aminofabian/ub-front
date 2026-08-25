@@ -172,17 +172,15 @@ export async function startGuestThread(
     });
   };
 
-  let guestId = ensureGuestId();
+  const guestId = ensureGuestId();
   let session = loadGuestSession(ns);
   let response = await attempt(guestId, session.token);
 
   if (response.status === 400 || response.status === 401) {
-    // The server rejected this guest identity: the thread may already exist
-    // with a token we lost (or a stale duplicate key blocked the insert).
-    // Regenerate the identity and start a fresh thread.
-    write(`${NS}.id`, uuid());
+    // The stored thread credential is stale (another device rotated it) or the
+    // thread was lost. Drop the stored token and let the phone re-claim the
+    // thread; the identity (guestId) stays stable so we don't fragment.
     write(threadKey(ns), null);
-    guestId = ensureGuestId();
     session = loadGuestSession(ns);
     response = await attempt(guestId, session.token);
   }
@@ -222,6 +220,13 @@ export async function resumeGuestThread(
     apiUrl(`/api/v1/public/support/threads/me?${params.toString()}`),
     { credentials: "include", headers: guestHeaders(guestId, session.token) },
   );
+  if (response.status === 401) {
+    // Our credential was rotated out (another device claimed the phone).
+    // Forget the thread — the intro re-identifies with the phone and the
+    // server rotates a fresh secret back to us.
+    write(threadKey(ns), null);
+    return null;
+  }
   if (response.status === 404) {
     return null;
   }

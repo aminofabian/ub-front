@@ -27,6 +27,7 @@ import {
   type GuestThreadPayload,
   ensureGuestId,
   getGuestName,
+  getGuestPhone,
   guestRealtimeChannel,
   markGuestThreadRead,
   resumeGuestThread,
@@ -179,8 +180,8 @@ function GuestSupportPanel({
   const [sending, setSending] = React.useState(false);
   const [theirTyping, setTheirTyping] = React.useState(false);
   const [showJump, setShowJump] = React.useState(false);
-  const [introName, setIntroName] = React.useState("");
-  const [introPhone, setIntroPhone] = React.useState("");
+  const [introName, setIntroName] = React.useState(() => getGuestName() ?? "");
+  const [introPhone, setIntroPhone] = React.useState(() => getGuestPhone() ?? "");
   const [introError, setIntroError] = React.useState("");
   const [showIntro, setShowIntro] = React.useState(false);
   const [connectionState, setConnectionState] =
