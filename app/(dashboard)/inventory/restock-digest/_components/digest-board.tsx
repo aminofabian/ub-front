@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   useEffect,
   useMemo,
@@ -25,6 +24,7 @@ import {
 import { toast } from "sonner";
 
 import { fetchSupplierContacts, type RestockSuggestionRecord } from "@/lib/api";
+import { kioskPlaceholderWashClass } from "@/components/cashier/kiosk-listing-styles";
 import {
   buildMarketplaceOrderText,
   buildWhatsAppOrderUrl,
@@ -85,18 +85,23 @@ function parseQty(raw: string | undefined, fallback: number): number {
 
 function ProductImage({
   name,
+  thumbnailUrl,
   hue,
 }: {
   name: string;
+  thumbnailUrl?: string | null;
   hue: number;
 }) {
-  const src = posTileThumbUrl(name, null);
+  const src = posTileThumbUrl(name, thumbnailUrl);
   const [failed, setFailed] = useState(false);
   const showImage = Boolean(src && !failed);
 
   return (
     <div
-      className="relative aspect-[4/3] overflow-hidden"
+      className={cn(
+        "relative aspect-square overflow-hidden",
+        !showImage && kioskPlaceholderWashClass(name),
+      )}
       style={
         showImage
           ? undefined
@@ -106,18 +111,16 @@ function ProductImage({
       }
     >
       {showImage ? (
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element -- catalog URLs are not all on the Next image host list */}
+        <img
           src={src!}
           alt=""
-          fill
-          unoptimized
-          className="object-contain p-2"
-          sizes="(max-width: 640px) 50vw, 220px"
+          className="h-full w-full object-contain p-1"
           onError={() => setFailed(true)}
         />
       ) : (
         <span className="absolute inset-0 flex items-center justify-center text-foreground/55">
-          <Package className="size-7" />
+          <Package className="size-6" />
         </span>
       )}
     </div>
@@ -512,7 +515,7 @@ function SupplierStall({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-3">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
             {item.lines.map((s) => {
               const pendingLine = s.status === "pending";
               const q = pendingLine
@@ -528,8 +531,12 @@ function SupplierStall({
                   key={s.id}
                   className={cn(TILE, !pendingLine && "opacity-55")}
                 >
-                  <ProductImage name={label} hue={hueFromId(s.itemId)} />
-                  <div className="flex flex-1 flex-col gap-2 p-2">
+                  <ProductImage
+                    name={label}
+                    thumbnailUrl={s.thumbnailUrl}
+                    hue={hueFromId(s.itemId)}
+                  />
+                  <div className="flex flex-1 flex-col gap-1.5 p-1.5">
                     <RestockProductTitle
                       itemName={s.itemName}
                       variantName={s.variantName}

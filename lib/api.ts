@@ -11426,6 +11426,7 @@ export type RestockSuggestionRecord = {
   itemName: string;
   variantName: string | null;
   itemSku: string | null;
+  thumbnailUrl?: string | null;
   itemTypeId: string | null;
   itemTypeName: string | null;
   supplierId: string | null;
