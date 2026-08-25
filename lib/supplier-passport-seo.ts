@@ -78,6 +78,25 @@ function shortenProductForTitle(name: string): string {
   return truncateLabel(value || name, 22);
 }
 
+/**
+ * Placeholder / junk labels that leak from supplier-portal dropdown defaults
+ * (e.g. "optional", "choose", "n/a") into delivery regions. They wreck meta
+ * copy — "for shops in Mirema & optional" — and must never reach SERPs.
+ */
+const JUNK_AREA_PATTERN =
+  /^(?:optional|n\/?a|na|none|nil|tbd|todo|unknown|unspecified|not set|not specified|choose|select|pick one|other|various|anywhere|default|location|area)$/i;
+
+function isJunkLocationLabel(raw: string | null | undefined): boolean {
+  const t = (raw ?? "").trim();
+  if (!t) return true;
+  // Template placeholders like "{Area}" or "[Area]" are not real places.
+  if (/[{[]/.test(t)) return true;
+  if (JUNK_AREA_PATTERN.test(t)) return true;
+  // "optional …" / "choose …" sentences that start with a junk token.
+  if (/^(?:optional|n\/?a|na|none|nil|choose|select|pick one)\b/i.test(t)) return true;
+  return false;
+}
+
 /** Prefer delivery coverage, then multi-locations, then primary location. */
 export function resolveSupplierServiceAreas(
   detail?: MarketplaceSupplierDetail | null,
@@ -92,7 +111,7 @@ export function resolveSupplierServiceAreas(
   for (const bucket of buckets) {
     for (const raw of bucket) {
       const cleaned = cleanLocationLabel(raw);
-      if (!cleaned) continue;
+      if (!cleaned || isJunkLocationLabel(cleaned)) continue;
       const key = cleaned.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -203,6 +222,105 @@ export function supplierPassportTitle(input: SupplierPassportSeoInput): string {
     if (candidate.length <= 88) return candidate;
   }
   return `${name} — Wholesale Supplier | ${SITE_NAME}`;
+}
+
+/**
+ * Compact SERP title (~66 chars) — front-loads the name, stock, and service
+ * area so Google shows the full title instead of truncating it.
+ * Example: "David Mutuku — Wholesale Brookside DairyBest Milk in Mirema"
+ */
+export function supplierPassportShortTitle(
+  input: SupplierPassportSeoInput,
+  max = 66,
+): string {
+  const name = resolveSupplierDisplayName(input);
+  const rawProducts = resolveSupplierProductHighlights(input.detail?.products, 3);
+  const products = rawProducts.map(shortenProductForTitle);
+  const primaryArea = resolveSupplierServiceAreas(input.detail)[0] ?? null;
+  const cats = categoryHints(input.detail).map(shortenProductForTitle);
+
+  const candidates: string[] = [];
+
+  if (primaryArea) {
+    for (const count of [3, 2, 1] as const) {
+      if (products.length < count) continue;
+      const list = formatProductList(products.slice(0, count));
+      if (!list) continue;
+      candidates.push(`${name} — Wholesale ${list} in ${primaryArea}`);
+      candidates.push(`${name} — Wholesale ${list} in ${primaryArea} | Kiosk`);
+    }
+  }
+  for (const count of [3, 2, 1] as const) {
+    if (products.length < count) continue;
+    const list = formatProductList(products.slice(0, count));
+    if (!list) continue;
+    candidates.push(`${name} — Wholesale Supplier of ${list}`);
+    candidates.push(`${name} — Wholesale ${list} | Kiosk`);
+  }
+  if (primaryArea) {
+    candidates.push(`${name} — Wholesale Supplier in ${primaryArea}`);
+  }
+  const catList = formatProductList(cats);
+  if (catList) {
+    candidates.push(`${name} — Wholesale ${catList} Supplier`);
+  }
+  candidates.push(`${name} — Wholesale Supplier | Kiosk`);
+
+  for (const candidate of candidates) {
+    if (candidate.length <= max) return candidate;
+  }
+  return truncateLabel(`${name} — Wholesale Supplier | Kiosk`, max);
+}
+
+/** Absolute URL of the per-supplier branded OG card (`/og/supplier/{username}`). */
+export function supplierPassportOgImageUrl(username: string): string {
+  return `${siteBase()}/og/supplier/${encodeURIComponent(username.trim())}`;
+}
+
+/** "0745728543" / "745728543" / "254745728543" → "254745728543" or null. */
+function phoneToIntl(phone: string | null | undefined): string | null {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length === 10 && digits.startsWith("0")) return `254${digits.slice(1)}`;
+  if (digits.length === 9 && /^[17]/.test(digits)) return `254${digits}`;
+  if (digits.length === 12 && digits.startsWith("254")) return digits;
+  return null;
+}
+
+function supplierWhatsAppUrl(
+  detail?: MarketplaceSupplierDetail | null,
+): string | null {
+  const intl =
+    phoneToIntl(detail?.contactPhone) ?? phoneToIntl(detail?.payoutPhone);
+  return intl ? `https://wa.me/${intl}` : null;
+}
+
+function supplierPriceRange(
+  detail?: MarketplaceSupplierDetail | null,
+): string | null {
+  const prices = (detail?.products ?? [])
+    .map((p) => p.unitPrice)
+    .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+  if (!prices.length) return null;
+  const currency =
+    detail?.products.find((p) => p.currency?.trim())?.currency?.trim() || "KES";
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  if (min === max) return `${currency} ${min}`;
+  return `${currency} ${min} - ${currency} ${max}`;
+}
+
+function supplierCurrencies(
+  detail?: MarketplaceSupplierDetail | null,
+): string[] {
+  const codes = [
+    ...new Set(
+      (detail?.products ?? [])
+        .map((p) => p.currency?.trim())
+        .filter((v): v is string => Boolean(v)),
+    ),
+  ];
+  return codes.length ? codes : ["KES"];
 }
 
 /**
@@ -326,9 +444,12 @@ export function supplierPassportMetadata(
   const ogTitle = title.includes(SITE_NAME)
     ? title
     : `${title} · ${SITE_NAME}`;
+  const ogImageUrl = supplierPassportOgImageUrl(input.username);
 
   return {
-    title,
+    // Absolute bypasses the root layout "%s · Kiosk.ke" template so the short
+    // SERP title never gets truncated or duplicated-branded.
+    title: { absolute: supplierPassportShortTitle(input) },
     description,
     keywords,
     alternates: { canonical: url },
@@ -339,24 +460,44 @@ export function supplierPassportMetadata(
       siteName: SITE_NAME,
       type: "website",
       locale: "en_KE",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: ogTitle,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: ogTitle,
       description,
+      images: [ogImageUrl],
     },
-    robots: { index: true, follow: true },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+      },
+    },
   };
 }
 
-/** Schema.org WholesaleStore + Product highlights for passport pages. */
+/** Schema.org WholesaleStore + product offers for passport pages. */
 export function supplierPassportJsonLd(input: SupplierPassportSeoInput) {
   const name = resolveSupplierDisplayName(input);
   const description = supplierPassportDescription(input);
   const url = supplierPassportAbsoluteUrl(input.username);
   const areas = resolveSupplierServiceAreas(input.detail);
-  const products = resolveSupplierProductHighlights(input.detail?.products, 6);
   const detail = input.detail;
+  const whatsapp = supplierWhatsAppUrl(detail);
+  const priceRange = supplierPriceRange(detail);
+  const currencies = supplierCurrencies(detail);
+  const offerProducts = (detail?.products ?? []).slice(0, 10);
 
   const areaServed =
     areas.length > 0
@@ -372,9 +513,16 @@ export function supplierPassportJsonLd(input: SupplierPassportSeoInput) {
     name,
     url,
     description,
+    image: supplierPassportOgImageUrl(input.username),
     ...(input.username ? { alternateName: `@${input.username}` } : {}),
     ...(detail?.contactPhone ? { telephone: detail.contactPhone } : {}),
     ...(detail?.contactEmail ? { email: detail.contactEmail } : {}),
+    ...(whatsapp ? { sameAs: [whatsapp] } : {}),
+    ...(priceRange ? { priceRange } : {}),
+    currenciesAccepted: currencies.join(", "),
+    ...(detail?.paymentMethodPreferred?.trim()
+      ? { paymentAccepted: detail.paymentMethodPreferred.trim() }
+      : {}),
     areaServed,
     ...(areas[0]
       ? {
@@ -385,13 +533,35 @@ export function supplierPassportJsonLd(input: SupplierPassportSeoInput) {
           },
         }
       : {}),
-    ...(products.length
+    ...(offerProducts.length
       ? {
-          makesOffer: products.map((productName) => ({
+          makesOffer: offerProducts.map((product) => ({
             "@type": "Offer",
+            ...(product.unitPrice != null
+              ? {
+                  price: product.unitPrice,
+                  priceCurrency: product.currency?.trim() || "KES",
+                }
+              : {}),
+            ...(product.available != null
+              ? {
+                  availability: product.available
+                    ? "https://schema.org/InStock"
+                    : "https://schema.org/OutOfStock",
+                }
+              : {}),
+            ...(product.slug?.trim()
+              ? { url: `${url}?p=${encodeURIComponent(product.slug.trim())}` }
+              : {}),
             itemOffered: {
               "@type": "Product",
-              name: productName,
+              name: product.parentItemName?.trim() || product.name,
+              ...(product.imageUrl || product.parentImageUrl
+                ? { image: product.imageUrl || product.parentImageUrl }
+                : {}),
+              ...(product.sku ? { sku: product.sku } : {}),
+              ...(product.barcode ? { gtin13: product.barcode } : {}),
+              ...(product.categoryName ? { category: product.categoryName } : {}),
             },
             businessFunction: "https://schema.org/Sell",
             availableAtOrFrom: {

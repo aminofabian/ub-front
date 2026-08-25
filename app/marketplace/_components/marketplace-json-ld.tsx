@@ -101,6 +101,37 @@ export function MarketplaceSeoSummary({
   );
 }
 
+/** Breadcrumb trail: Kiosk.ke → Wholesale Suppliers → this supplier. */
+export function SupplierBreadcrumbJsonLd({
+  supplierName,
+  url,
+}: {
+  supplierName: string;
+  url: string;
+}) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Kiosk.ke", item: BASE },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Wholesale Suppliers",
+        item: `${BASE}/marketplace`,
+      },
+      { "@type": "ListItem", position: 3, name: supplierName, item: url },
+    ],
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
 export function marketplaceProductTitle(
   detail: MarketplaceSupplierDetail,
   product: MarketplaceCatalogProductPreview,

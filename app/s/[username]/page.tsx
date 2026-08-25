@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 
-import { MarketplaceSeoSummary } from "@/app/marketplace/_components/marketplace-json-ld";
+import { SupplierBreadcrumbJsonLd } from "@/app/marketplace/_components/marketplace-json-ld";
 import { GlobalSupplierHubView } from "@/components/supplier-portal/global-supplier-hub";
 import { PublicSupplierPortalView } from "@/components/supplier-portal/public-supplier-portal";
+import { SupplierPassportSeoBlock } from "@/components/supplier-portal/supplier-passport-seo-block";
 import {
   isPlatformApexHost,
   PLATFORM_DOMAIN,
@@ -17,10 +18,9 @@ import {
 import { fetchPublicStorefront } from "@/lib/public-storefront";
 import {
   resolveSupplierDisplayName,
-  supplierPassportDescription,
+  supplierPassportAbsoluteUrl,
   supplierPassportJsonLd,
   supplierPassportMetadata,
-  supplierPassportTitle,
 } from "@/lib/supplier-passport-seo";
 
 type PageProps = { params: Promise<{ username: string }> };
@@ -154,17 +154,17 @@ export default async function PublicSupplierPortalPage({ params }: PageProps) {
               displayName={displayName}
               detail={storefront.detail}
             />
-            <MarketplaceSeoSummary
-              title={supplierPassportTitle(seoInput)}
-              description={supplierPassportDescription(seoInput)}
+            <SupplierBreadcrumbJsonLd
+              supplierName={
+                resolveSupplierDisplayName(seoInput) || seoUsername
+              }
+              url={supplierPassportAbsoluteUrl(seoUsername)}
             />
-            {/* Extra crawler-visible product / area cues beyond the meta description */}
-            <div className="sr-only">
-              <p>
-                {resolveSupplierDisplayName(seoInput)} is a wholesale supplier
-                on Kiosk.ke.
-              </p>
-            </div>
+            <SupplierPassportSeoBlock
+              username={seoUsername}
+              displayName={displayName}
+              detail={storefront.detail}
+            />
           </>
         ) : null}
         <GlobalSupplierHubView username={decoded} />

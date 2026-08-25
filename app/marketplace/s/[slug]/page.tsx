@@ -13,12 +13,14 @@ import {
 import {
   marketplaceWholesaleSupplierTitle,
   supplierPassportKeywords,
+  supplierPassportShortTitle,
 } from "@/lib/supplier-passport-seo";
 
 import { MarketplaceOrderWorkspace } from "../../_components/marketplace-order-panel";
 import {
   MarketplaceSeoSummary,
   MarketplaceSupplierJsonLd,
+  SupplierBreadcrumbJsonLd,
 } from "../../_components/marketplace-json-ld";
 import { MarketplacePageFrame } from "../../_components/marketplace-page-frame";
 
@@ -51,12 +53,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const canonical = `${base}${marketplaceSupplierPath(detail)}`;
   const title = marketplaceWholesaleSupplierTitle(detail);
   const description = marketplaceSupplierDescription(detail);
+  const username = detail.slug?.split("--")[0] || detail.name;
+  const ogImageUrl = `${base}/og/supplier/${encodeURIComponent(username)}`;
 
   return {
-    title,
+    title: {
+      absolute: supplierPassportShortTitle({
+        username,
+        displayName: detail.name,
+        detail,
+      }),
+    },
     description,
     keywords: supplierPassportKeywords({
-      username: detail.slug?.split("--")[0] || detail.name,
+      username,
       displayName: detail.name,
       detail,
     }),
@@ -68,13 +78,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       siteName: "Kiosk",
       type: "website",
       locale: "en_KE",
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      images: [ogImageUrl],
     },
-    robots: { index: true, follow: true },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+      },
+    },
   };
 }
 
@@ -102,10 +122,15 @@ export default async function MarketplaceSupplierSlugPage({
   }
 
   const description = marketplaceSupplierDescription(detail);
+  const canonical = `${APP_BASE_URL.replace(/\/+$/, "")}${marketplaceSupplierPath(detail)}`;
 
   return (
     <>
       <MarketplaceSupplierJsonLd detail={detail} />
+      <SupplierBreadcrumbJsonLd
+        supplierName={detail.name}
+        url={canonical}
+      />
       <MarketplacePageFrame>
         <MarketplaceSeoSummary title={detail.name} description={description} />
         <div className="mx-auto w-full max-w-[1400px] px-3 pb-8 pt-4 sm:px-5">
