@@ -49,6 +49,10 @@ export type SokoMindRouteGuide = {
 export function surfaceFromPathname(pathname: string): string {
   const path = (pathname || "/").split("?")[0] || "/";
   if (path === "/business" || path.startsWith("/business/")) return "business.hub";
+  if (path.startsWith("/purchasing/ap-aging")) return "purchasing.ap";
+  if (path.startsWith("/purchasing/record-payment")) return "purchasing.pay";
+  if (path.startsWith("/purchasing/intelligence")) return "purchasing.intel";
+  if (path === "/supplies" || path.startsWith("/supplies/")) return "purchasing.supplies";
   if (path.startsWith("/products")) return "products.catalog";
   if (path.startsWith("/suppliers") || path.startsWith("/supplier/")) return "suppliers.ap";
   if (path.startsWith("/inventory") || path.startsWith("/stock")) return "inventory.stock";
