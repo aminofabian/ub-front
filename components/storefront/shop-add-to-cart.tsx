@@ -64,8 +64,9 @@ export default function ShopAddToCart({
   const cl = useChemLabCopy();
   const addLabel = cl?.dispense?.trim() || "Add to Cart";
   const addMoreLabel = cl
-    ? `${(cl.dispense.trim() || "Dispense")} more`
+    ? `${(cl.dispense.trim() || "Add")} more`
     : "Add more";
+  const busyLabel = cl?.busy?.trim() || "Adding…";
 
   const cartLine = findCartLine(cartCtx?.cart ?? null, itemId);
   const inCartQty = cartLine ? cartLineQuantity(cartLine.quantity) : 0;
@@ -301,7 +302,7 @@ export default function ShopAddToCart({
             disabled={busy}
             className="h-11 flex-1 rounded-xl text-sm font-semibold"
           >
-            {busy ? "Adding…" : inCart ? addMoreLabel : addLabel}
+            {busy ? busyLabel : inCart ? addMoreLabel : addLabel}
           </Button>
           {cartCtx ? (
             <button
@@ -363,7 +364,7 @@ export default function ShopAddToCart({
             !inCart && "shadow-md ring-2 ring-primary/25",
           )}
         >
-          {busy ? "Adding…" : inCart ? addMoreLabel : addLabel}
+          {busy ? busyLabel : inCart ? addMoreLabel : addLabel}
         </Button>
         {inCart ? (
           <Link href={APP_ROUTES.shopCheckout} className="block">

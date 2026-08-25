@@ -22,31 +22,37 @@ export function ChemLabDrawers({ types }: { types: PublicCatalogType[] }) {
     : undefined;
 
   return (
-    <nav className={styles.drawers} aria-label="Shop by type">
-      {visible.map((type) => {
-        const selected = activeId === type.id;
-        const href = shopListPath({
-          categoryPathSlug,
-          q: q || undefined,
-          typeId: selected ? undefined : type.id,
-        });
-        return (
-          <Link
-            key={type.id}
-            href={href}
-            scroll={false}
-            className={styles.drawer}
-            aria-current={selected ? "true" : undefined}
-          >
-            <span className={styles.drawerTape} aria-hidden />
-            <span className={styles.drawerPull} aria-hidden />
-            {type.label}
-            {type.itemCount != null ? (
-              <span className={styles.drawerCount}>{type.itemCount}</span>
-            ) : null}
-          </Link>
-        );
-      })}
-    </nav>
+    <div className={styles.drawerBay}>
+      <nav className={styles.drawers} aria-label="Shop by type">
+        {visible.map((type, index) => {
+          const selected = activeId === type.id;
+          const href = shopListPath({
+            categoryPathSlug,
+            q: q || undefined,
+            typeId: selected ? undefined : type.id,
+          });
+          const bay = String(index + 1).padStart(2, "0");
+          return (
+            <Link
+              key={type.id}
+              href={href}
+              scroll={false}
+              className={styles.drawer}
+              aria-current={selected ? "true" : undefined}
+            >
+              <span className={styles.drawerTape} aria-hidden />
+              <span className={styles.drawerBayIdx} aria-hidden>
+                {bay}
+              </span>
+              <span className={styles.drawerHandle} aria-hidden />
+              {type.label}
+              {type.itemCount != null ? (
+                <span className={styles.drawerCount}>{type.itemCount}</span>
+              ) : null}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }

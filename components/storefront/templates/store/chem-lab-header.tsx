@@ -7,6 +7,7 @@ import { StorefrontAccountLink } from "@/components/storefront/storefront-accoun
 import { StorefrontEditableLogoMark } from "@/components/storefront/storefront-editable-logo";
 import {
   ChemLabModeToggle,
+  useChemLabCopy,
   useChemLabMode,
 } from "@/components/storefront/templates/store/chem-lab-mode";
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
@@ -23,9 +24,12 @@ function SearchForm({
 }) {
   const pathname = usePathname();
   const sp = useSearchParams();
+  const copy = useChemLabCopy();
   const q = sp.get("q")?.trim() ?? "";
   const typeId = sp.get("typeId")?.trim() || sp.get("departmentId")?.trim();
   const action = pathname.startsWith("/shop") ? pathname : APP_ROUTES.shop;
+  const prefix = copy?.searchPrefix || "Find";
+  const placeholder = copy?.searchPlaceholder || "Search products…";
 
   return (
     <form
@@ -38,14 +42,14 @@ function SearchForm({
         Search products
       </label>
       <span className={styles.searchPrefix} aria-hidden>
-        CAS
+        {prefix}
       </span>
       <input
         id={inputId}
         name="q"
         type="search"
         defaultValue={q}
-        placeholder="Lookup compound…"
+        placeholder={placeholder}
       />
       {typeId ? <input type="hidden" name="typeId" value={typeId} /> : null}
       <button type="submit" aria-label="Search">
@@ -74,6 +78,12 @@ export function ChemLabHeader({
 }) {
   const { itemCount, openDrawer } = useShopCart();
   const clMode = useChemLabMode();
+  const copy = useChemLabCopy();
+  const cartLabel = copy?.cart || "Cart";
+  const shiftLabel =
+    clMode === "dark"
+      ? copy?.shiftDark || "Night"
+      : copy?.shiftLight || "Day";
 
   return (
     <header className={cn(styles.header, className)}>
@@ -81,8 +91,8 @@ export function ChemLabHeader({
         <Link href={APP_ROUTES.shop} className={styles.wordmark}>
           <StorefrontEditableLogoMark
             logoUrl={logoUrl}
-            width={32}
-            height={32}
+            width={36}
+            height={36}
             className={styles.wordmarkImg}
             fallback={
               <span className={styles.flaskIcon} aria-hidden>
@@ -104,9 +114,12 @@ export function ChemLabHeader({
               </span>
             }
           />
-          <span className={styles.wordmarkText}>{storeName}</span>
-          <span className={styles.wordmarkSub}>
-            {clMode === "dark" ? "Night shift · open" : "Day shift · open"}
+          <span className={styles.wordmarkCopy}>
+            <span className={styles.wordmarkText}>{storeName}</span>
+            <span className={styles.wordmarkSub}>
+              <span className={styles.statusLed} aria-hidden />
+              {shiftLabel}
+            </span>
           </span>
         </Link>
         <SearchForm />
@@ -122,7 +135,23 @@ export function ChemLabHeader({
             onClick={openDrawer}
             aria-label={`Open cart, ${itemCount} items`}
           >
-            Beaker · {Math.min(itemCount, 99)}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M9 3.5h6M10 3.5v3.8L6.4 15.5A3.2 3.2 0 0 0 9.2 20h5.6a3.2 3.2 0 0 0 2.8-4.5L14 7.3V3.5"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M8.4 14.8h7.2"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                opacity="0.5"
+              />
+            </svg>
+            {cartLabel}
+            <span className={styles.cartPip}>{Math.min(itemCount, 99)}</span>
           </button>
         </div>
       </div>

@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  chemLabCopyString,
+  chemLabVoiceFromTheme,
+  resolveChemLabCopy,
+} from "@/lib/chem-lab-copy";
+import {
   normalizeThemeBlob,
   normalizeThemeOptions,
   serializeThemeOptions,
@@ -13,11 +18,16 @@ import {
 describe("storefront theme options", () => {
   test("defines options for the flagship themes", () => {
     expect(storefrontThemeOptionDefs("chem-lab").map((d) => d.key)).toEqual([
+      "voice",
       "grid",
       "glow",
       "tape",
-      "inventory",
+      "cart",
       "dispense",
+      "inventory",
+      "searchPrefix",
+      "searchPlaceholder",
+      "rack",
     ]);
     expect(storefrontThemeOptionDefs("milk-run").map((d) => d.key)).toEqual([
       "paper",
@@ -28,11 +38,16 @@ describe("storefront theme options", () => {
   test("defaults fill every option key", () => {
     const defaults = storefrontThemeOptionDefaults("chem-lab");
     expect(defaults).toEqual({
+      voice: "shop",
       grid: true,
       glow: 1,
       tape: true,
-      inventory: "Reagent inventory",
-      dispense: "Dispense",
+      cart: "Cart",
+      dispense: "Add",
+      inventory: "Inventory",
+      searchPrefix: "Find",
+      searchPlaceholder: "Search products…",
+      rack: "Featured",
     });
   });
 
@@ -78,15 +93,45 @@ describe("storefront theme options", () => {
     expect(
       themeOptionString("chem-lab", { "chem-lab": { inventory: "Stock room" } }, "inventory"),
     ).toBe("Stock room");
-    expect(themeOptionString("chem-lab", null, "dispense")).toBe("Dispense");
+    expect(themeOptionString("chem-lab", null, "dispense")).toBe("Add");
     expect(
       serializeThemeOptions("chem-lab", {
-        inventory: "Reagent inventory",
-        dispense: "Add",
+        inventory: "Inventory",
+        dispense: "Buy",
       }),
-    ).toEqual({ dispense: "Add" });
+    ).toEqual({ dispense: "Buy" });
     expect(
       serializeThemeOptions("chem-lab", { inventory: "", dispense: "   " }),
     ).toBeNull();
+  });
+});
+
+describe("chem-lab copy voice packs", () => {
+  test("defaults to shop voice with ecommerce labels", () => {
+    expect(chemLabVoiceFromTheme(null)).toBe("shop");
+    const copy = resolveChemLabCopy(null);
+    expect(copy.cart).toBe("Cart");
+    expect(copy.dispense).toBe("Add");
+    expect(copy.inventory).toBe("Inventory");
+    expect(copy.searchPrefix).toBe("Find");
+    expect(copy.assay).toBe("");
+  });
+
+  test("lab voice restores reagent-bench lingo", () => {
+    const theme = { "chem-lab": { voice: "lab" } };
+    expect(chemLabVoiceFromTheme(theme)).toBe("lab");
+    expect(chemLabCopyString(theme, "cart")).toBe("Beaker");
+    expect(chemLabCopyString(theme, "dispense")).toBe("Dispense");
+    expect(chemLabCopyString(theme, "coaTitle")).toBe("Certificate of analysis");
+    expect(chemLabCopyString(theme, "assay")).toBe("Assay pass");
+  });
+
+  test("stored text overrides win over the voice pack", () => {
+    const theme = {
+      "chem-lab": { voice: "lab", cart: "Basket", dispense: "Grab" },
+    };
+    expect(chemLabCopyString(theme, "cart")).toBe("Basket");
+    expect(chemLabCopyString(theme, "dispense")).toBe("Grab");
+    expect(chemLabCopyString(theme, "inventory")).toBe("Reagent inventory");
   });
 });

@@ -425,49 +425,70 @@ function MilkRunArt() {
 
 function ChemLabArt() {
   return (
-    <Frame paper="#071015" ink="#E7F4FB">
-      <div className="flex items-center justify-between border-b border-[#84CC16]/30 px-3 py-1.5">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#E8F3FA]">
-          Chem <span className="text-[#84CC16]">Lab</span>
+    <Frame paper="#0b1116" ink="#EEF3F6">
+      <div className="flex items-center justify-between border-b border-white/10 px-3 py-1.5">
+        <span className="flex items-center gap-1.5">
+          <span className="size-1.5 rounded-full bg-[#84CC16]" aria-hidden />
+          <span className="text-[10px] font-bold tracking-tight text-[#EEF3F6]">
+            Chem Lab
+          </span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="flex items-center gap-0.5 rounded-sm border border-[#84CC16]/40 px-1 py-0.5 font-mono text-[6px] uppercase tracking-wider text-[#F59E0B]">
-            <span className="inline-block size-1.5 rounded-full bg-[#F2F5EE]" aria-hidden />
-            <span className="inline-block size-1.5 rounded-full bg-[#0A1218] ring-1 ring-white/30" aria-hidden />
-            Day/Night
+          <span className="border border-white/15 px-1.5 py-0.5 font-mono text-[6px] uppercase tracking-wider text-[#8AA0AE]">
+            Day / Night
           </span>
-          <span className="border border-[#84CC16]/50 bg-[#84CC16]/15 px-2 py-0.5 font-mono text-[7px] text-[#84CC16]">
-            Beaker · 2
+          <span className="flex items-center gap-1 border border-[#84CC16]/50 bg-[#84CC16]/12 px-1.5 py-0.5 font-mono text-[7px] uppercase text-[#84CC16]">
+            Cart
+            <span className="bg-[#84CC16] px-1 text-[6px] text-[#0b1116]">2</span>
           </span>
         </span>
       </div>
-      <div className="grid flex-1 grid-cols-[1.35fr_1fr] gap-2 p-2">
-        <div className="border border-[#84CC16]/30 bg-[#0F1A22]/90 p-2">
-          <div className="font-mono text-[7px] uppercase tracking-widest text-[#F59E0B]">
-            Primary reagent
+      <div className="grid flex-1 grid-cols-[1.25fr_1fr] gap-2 p-2">
+        <div className="relative grid grid-cols-2 gap-1.5 border border-white/10 bg-[#121920]/95 p-2">
+          <div className="absolute left-1 top-1 size-1 rounded-full border border-white/20" />
+          <div className="absolute right-1 top-1 size-1 rounded-full border border-white/20" />
+          <div className="relative aspect-[4/3] overflow-hidden border border-[#D97706] bg-[#D97706]/15">
+            <div className="absolute inset-x-[18%] top-0 h-1.5 bg-[#D97706]" />
+            <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-b from-[#D97706]/45 to-[#9A4A0A]/80" />
+            <div className="absolute inset-x-2 top-2 h-1.5 bg-white/90" />
           </div>
-          <div className="relative mt-1 aspect-[4/3] overflow-hidden rounded-b-xl border-2 border-[#F59E0B] bg-gradient-to-b from-[#F59E0B]/40 to-[#78350F]/70">
-            <div className="absolute left-2 right-2 top-2 h-2 bg-[#E2F0F8]/90" />
-          </div>
-          <div className="mt-2 flex gap-2">
-            <span className="border border-[#84CC16]/50 bg-[#84CC16]/15 px-2 py-0.5 font-mono text-[8px] text-[#84CC16]">
-              KSh…
-            </span>
-            <span className="bg-[#84CC16] px-2 py-0.5 font-mono text-[7px] text-[#0A1218]">
-              Dispense
-            </span>
+          <div className="relative flex flex-col justify-end gap-1 pr-1">
+            <div className="font-mono text-[5px] uppercase tracking-widest text-[#8AA0AE]">
+              Details · SKU
+            </div>
+            <div className="h-1 w-4/5 bg-[#EEF3F6]/45" />
+            <div className="h-1 w-3/5 bg-[#EEF3F6]/30" />
+            <div className="mt-1 bg-[#84CC16] px-1.5 py-0.5 font-mono text-[7px] text-[#0b1116]">
+              Add
+            </div>
+            <div className="absolute right-0 top-0 size-5 rotate-[-12deg] rounded-full border border-[#84CC16]/50 font-mono text-[4px] uppercase leading-5 text-center text-[#84CC16]/80">
+              ·
+            </div>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5 pt-2">
+        <div className="flex flex-col overflow-hidden border border-white/10 bg-[#121920]/80">
+          <div className="flex items-center justify-between border-b border-white/10 px-1.5 py-0.5 font-mono text-[5px] uppercase tracking-wider text-[#8AA0AE]">
+            Featured
+            <span className="flex gap-0.5">
+              <span className="h-0.5 w-1.5 bg-white/25" />
+              <span className="h-0.5 w-1.5 bg-white/25" />
+            </span>
+          </div>
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="flex min-h-0 flex-1 overflow-hidden border border-[#84CC16]/20 bg-[#0F1A22]/80"
+              className="flex min-h-0 flex-1 overflow-hidden border-b border-white/10 last:border-b-0"
             >
-              <div className="w-2/5 border-r border-[#F59E0B]/40 bg-gradient-to-b from-[#F59E0B]/30 to-[#78350F]/60" />
+              <div className="flex w-3 items-center justify-center border-r border-white/10 font-mono text-[5px] text-[#8AA0AE]">
+                V{i + 1}
+              </div>
+              <div className="relative w-2/5 border-r border-[#D97706]/40 bg-[#D97706]/15">
+                <div className="absolute inset-x-[16%] top-0 h-1 bg-[#D97706]" />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[#9A4A0A]/70" />
+              </div>
               <div className="flex flex-1 flex-col justify-center gap-1 p-1.5">
-                <div className="font-mono text-[6px] text-[#F59E0B]">RX-00{i + 1}</div>
-                <div className="h-1.5 w-3/4 bg-[#E2F0F8]/50" />
+                <div className="font-mono text-[6px] text-[#D97706]">RX-00{i + 1}</div>
+                <div className="h-1.5 w-3/4 bg-[#EEF3F6]/45" />
               </div>
             </div>
           ))}

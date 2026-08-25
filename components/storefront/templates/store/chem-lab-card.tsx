@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
@@ -31,6 +32,122 @@ function skuHint(item: PublicCatalogItemCard): string {
   return `RX-${item.id.slice(0, 6).toUpperCase()}`;
 }
 
+/** Deterministic fill % + bay label from item id (visual only). */
+function reagentSignal(id: string): { fill: number; bay: string } {
+  let h = 0;
+  for (let i = 0; i < id.length; i += 1) {
+    h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return {
+    fill: 38 + (h % 42),
+    bay: `${String.fromCharCode(65 + (h % 6))}${(h % 9) + 1}`,
+  };
+}
+
+function PipetteIcon() {
+  return (
+    <svg
+      className={styles.addIcon}
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M10 2.5h4M12 2.5v5.2"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9.2 7.7h5.6v3.1H9.2z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 10.8v6.4"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10.2 17.2h3.6L12 21.2z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function ChemLabBondMark() {
+  return (
+    <svg
+      className={styles.bondMark}
+      viewBox="0 0 56 56"
+      fill="none"
+      aria-hidden
+    >
+      <circle cx="12" cy="32" r="4.2" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="28" cy="16" r="4.2" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="44" cy="34" r="4.2" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M15.6 29.2 24.6 18.8"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M31.6 18.6 40.6 30.6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M31.2 14.4 40.4 31.4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function ChemLabAssaySeal({ label }: { label?: string }) {
+  const text = label?.trim() ?? "";
+  if (!text) return null;
+  const lines = text.split(/\s+/);
+  const top = lines[0] ?? text;
+  const bottom = lines.slice(1).join(" ");
+  return (
+    <span className={styles.assaySeal} aria-hidden>
+      <span className={styles.assaySealRing} />
+      <span className={styles.assaySealText}>
+        {top}
+        {bottom ? (
+          <>
+            <br />
+            {bottom}
+          </>
+        ) : null}
+      </span>
+    </span>
+  );
+}
+
+function ChassisScrews() {
+  return (
+    <span className={styles.chassisScrews} aria-hidden>
+      <i />
+      <i />
+      <i />
+      <i />
+    </span>
+  );
+}
+
 export function ChemLabAddButton({
   item,
   size = "default",
@@ -41,8 +158,10 @@ export function ChemLabAddButton({
   const cart = useShopCart();
   const copy = useChemLabCopy();
   const [busy, setBusy] = useState(false);
-  const label = copy?.dispense || "Dispense";
+  const label = copy?.dispense || "Add";
+  const busyLabel = copy?.busy || "Adding…";
   const editing = Boolean(copy?.editMode);
+  const showPipette = size === "default" && copy?.voice === "lab";
 
   const onAdd = async () => {
     if (busy || item.price == null) return;
@@ -67,10 +186,11 @@ export function ChemLabAddButton({
   if (editing) {
     return (
       <span className={className}>
+        {showPipette ? <PipetteIcon /> : null}
         <StorefrontInlineText
           as="span"
           value={label}
-          placeholder="Dispense"
+          placeholder="Add"
           onCommit={(next) => copy?.commitDispense(next)}
         />
       </span>
@@ -84,7 +204,8 @@ export function ChemLabAddButton({
       disabled={busy}
       onClick={() => void onAdd()}
     >
-      {busy ? "…" : label}
+      {showPipette ? <PipetteIcon /> : null}
+      {busy ? busyLabel : label}
     </button>
   );
 }
@@ -103,6 +224,9 @@ function BottleVisual({
   variant?: "default" | "vial";
 }) {
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
+  const { fill } = reagentSignal(item.id);
+  const fillStyle = { "--cl-fill": `${fill}%` } as CSSProperties;
+
   return (
     <StorefrontProductImageShell
       href={href}
@@ -115,8 +239,9 @@ function BottleVisual({
       itemName={item.name}
       ariaLabel={item.name}
     >
+      <span className={styles.bottleCap} aria-hidden />
       <span className={styles.glassSheen} aria-hidden />
-      <span className={styles.bottleLabel} aria-hidden />
+      <span className={styles.reticle} aria-hidden />
       {imageUrl ? (
         <Image
           src={imageUrl}
@@ -125,30 +250,51 @@ function BottleVisual({
           sizes={sizes}
           unoptimized
           priority={priority}
+          className={styles.bottlePhoto}
           style={{ objectFit: "cover" }}
         />
       ) : (
-        <span className={styles.visualPlaceholder} aria-hidden />
+        <>
+          <span className={styles.bottleFill} style={fillStyle} aria-hidden />
+          <span className={styles.meniscus} style={fillStyle} aria-hidden />
+          <span className={styles.bottleLabel} aria-hidden />
+          <span className={styles.visualPlaceholder} aria-hidden />
+        </>
       )}
     </StorefrontProductImageShell>
+  );
+}
+
+function LotChip({ item }: { item: PublicCatalogItemCard }) {
+  const { bay } = reagentSignal(item.id);
+  return (
+    <span className={styles.lotChip}>
+      <span className={styles.compoundCode}>{skuHint(item)}</span>
+      <span className={styles.lotChipBay}>{bay}</span>
+    </span>
   );
 }
 
 export function ChemLabVial({
   item,
   currency,
+  slot,
 }: {
   item: PublicCatalogItemCard;
   currency: string;
+  slot?: string;
 }) {
   const href = shopItemPathFromCard(item) || APP_ROUTES.shop;
   const meta = item.variantName?.trim() || "";
 
   return (
     <article className={styles.vial}>
+      <span className={styles.vialSlot} aria-hidden>
+        {slot ?? "V"}
+      </span>
       <BottleVisual item={item} href={href} sizes="160px" variant="vial" />
       <div className={styles.vialBody}>
-        <span className={styles.compoundCode}>{skuHint(item)}</span>
+        <LotChip item={item} />
         <Link href={href} className={styles.vialName}>
           {item.name}
         </Link>
@@ -176,7 +322,7 @@ export function ChemLabCard({
     <article className={styles.card}>
       <BottleVisual item={item} href={href} sizes="(min-width: 900px) 30vw, 50vw" />
       <div className={styles.cardBody}>
-        <span className={styles.compoundCode}>{skuHint(item)}</span>
+        <LotChip item={item} />
         <Link href={href} className={styles.cardName}>
           {item.name}
         </Link>
@@ -201,13 +347,15 @@ export function ChemLabHero({
 }) {
   const href = shopItemPathFromCard(item) || APP_ROUTES.shop;
   const meta = item.variantName?.trim() || "";
+  const { bay } = reagentSignal(item.id);
+  const copy = useChemLabCopy();
 
   return (
     <article className={styles.flask}>
-      <span className={styles.moleculeDecor} aria-hidden />
+      <ChemLabBondMark />
       <div className={styles.flaskInner}>
+        <ChassisScrews />
         <div className={styles.flaskHead}>
-          <span className={styles.flaskBadge}>Primary reagent · bench A1</span>
           <StorefrontNativeHeroHeadline
             value={headline}
             className={styles.flaskHeadline}
@@ -219,28 +367,39 @@ export function ChemLabHero({
           sizes="(min-width: 900px) 55vw, 100vw"
           priority
         />
-        <div className={styles.flaskSpec}>
-          <div className={styles.specRow}>
-            <span className={styles.specKey}>Compound</span>
-            <Link href={href} className={styles.specVal}>
+        <div className={styles.coa}>
+          <ChemLabAssaySeal label={copy?.assay} />
+          <div className={styles.coaHead}>
+            <span>{copy?.coaTitle || "Details"}</span>
+            <span className={styles.coaDocId}>{skuHint(item)}</span>
+          </div>
+          <div className={styles.coaRow}>
+            <span className={styles.coaKey}>{copy?.statusKey || "Status"}</span>
+            <span className={styles.coaValPlain}>
+              <span className={styles.statusLed} aria-hidden />
+              {copy?.statusOn || "In stock"}
+            </span>
+          </div>
+          <div className={styles.coaRow}>
+            <span className={styles.coaKey}>{copy?.compoundKey || "Product"}</span>
+            <Link href={href} className={styles.coaVal}>
               {item.name}
             </Link>
           </div>
-          <div className={styles.specRow}>
-            <span className={styles.specKey}>Catalog</span>
-            <span className={styles.specValPlain}>{skuHint(item)}</span>
+          <div className={styles.coaRow}>
+            <span className={styles.coaKey}>{copy?.bayKey || "Shelf"}</span>
+            <span className={styles.coaValPlain}>{bay}</span>
           </div>
           {meta ? (
-            <div className={styles.specRow}>
-              <span className={styles.specKey}>Grade</span>
-              <span className={styles.specValPlain}>{meta}</span>
+            <div className={styles.coaRow}>
+              <span className={styles.coaKey}>{copy?.gradeKey || "Variant"}</span>
+              <span className={styles.coaValPlain}>{meta}</span>
             </div>
           ) : null}
-          <div className={styles.specRow}>
-            <span className={styles.specKey}>Yield</span>
+          <div className={styles.coaActions}>
             <span className={styles.priceTagLarge}>{priceLabel(item, currency)}</span>
+            <ChemLabAddButton item={item} />
           </div>
-          <ChemLabAddButton item={item} />
         </div>
       </div>
     </article>

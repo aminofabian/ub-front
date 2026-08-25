@@ -29,7 +29,11 @@ export function ChemLabCatalog({
   const [cursor, setCursor] = useState(initialNextCursor);
   const [loading, setLoading] = useState(false);
   const copy = useChemLabCopy();
-  const inventoryTitle = copy?.inventory || "Reagent inventory";
+  const inventoryTitle = copy?.inventory || "Inventory";
+  const emptyLabel =
+    copy?.empty || "Nothing here yet — new items arriving soon.";
+  const loadMoreLabel = copy?.loadMore || "Load more";
+  const loadingLabel = copy?.loading || "Loading…";
 
   const loadMore = useCallback(async () => {
     if (!cursor || loading) return;
@@ -65,24 +69,23 @@ export function ChemLabCatalog({
       : `${items.length} in inventory`;
 
   return (
-    <section id="inventory">
+    <section id="inventory" className={styles.ledger}>
       <div className={styles.sectionHead}>
         <StorefrontInlineText
           as="h2"
           className={styles.sectionTitle}
           value={inventoryTitle}
-          placeholder="Reagent inventory"
+          placeholder="Inventory"
           onCommit={(next) => copy?.commitInventory(next)}
         >
           <h2 className={styles.sectionTitle}>{inventoryTitle}</h2>
         </StorefrontInlineText>
         <span className={styles.sectionMeta}>{countLabel}</span>
       </div>
+      <div className={styles.sectionRule} aria-hidden />
 
       {items.length === 0 ? (
-        <div className={styles.empty}>
-          Bench empty — new compounds arriving soon.
-        </div>
+        <div className={styles.empty}>{emptyLabel}</div>
       ) : (
         <div className={styles.grid}>
           {items.map((item) => (
@@ -99,7 +102,7 @@ export function ChemLabCatalog({
             disabled={loading}
             onClick={() => void loadMore()}
           >
-            {loading ? "Synthesizing…" : "Load more compounds"}
+            {loading ? loadingLabel : loadMoreLabel}
           </button>
         </div>
       ) : null}

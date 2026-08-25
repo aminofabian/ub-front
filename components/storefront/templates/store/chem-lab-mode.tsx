@@ -16,7 +16,7 @@ import {
   useStorefrontStaffEditOptional,
 } from "@/components/storefront/storefront-staff-edit";
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
-import { themeOptionString } from "@/lib/storefront-theme-options";
+import { resolveChemLabCopy } from "@/lib/chem-lab-copy";
 
 /**
  * Chem lab "shifts": the theme ships two full palettes — a dark Night shift
@@ -171,12 +171,11 @@ export function chemLabPaletteVars(
 /* header switch                                                       */
 /* ------------------------------------------------------------------ */
 
-export type ChemLabCopy = {
-  inventory: string;
-  dispense: string;
+export type ChemLabCopy = ReturnType<typeof resolveChemLabCopy> & {
   editMode: boolean;
   commitInventory: (next: string) => void;
   commitDispense: (next: string) => void;
+  commitCart: (next: string) => void;
 };
 
 const ChemLabCopyContext = createContext<ChemLabCopy | null>(null);
@@ -194,15 +193,18 @@ export function ChemLabCopyProvider({
   const value = useMemo<ChemLabCopy | null>(() => {
     if (!enabled) return null;
     const theme = design?.theme ?? null;
+    const copy = resolveChemLabCopy(theme);
     return {
-      inventory: themeOptionString("chem-lab", theme, "inventory"),
-      dispense: themeOptionString("chem-lab", theme, "dispense"),
+      ...copy,
       editMode: Boolean(staff?.editMode),
       commitInventory: (next) => {
         void staff?.patchThemeOption("inventory", next, "chem-lab");
       },
       commitDispense: (next) => {
         void staff?.patchThemeOption("dispense", next, "chem-lab");
+      },
+      commitCart: (next) => {
+        void staff?.patchThemeOption("cart", next, "chem-lab");
       },
     };
   }, [enabled, design?.theme, staff]);
@@ -219,14 +221,18 @@ export function useChemLabCopy(): ChemLabCopy | null {
 
 export function ChemLabModeToggle() {
   const mode = useChemLabMode();
-  const nextLabel = mode === "dark" ? "day shift" : "night shift";
+  const copy = useChemLabCopy();
+  const nextLabel =
+    mode === "dark"
+      ? (copy?.shiftLight || "day").toLowerCase()
+      : (copy?.shiftDark || "night").toLowerCase();
   return (
     <button
       type="button"
       className={styles.modeToggle}
       onClick={() => toggleChemLabMode()}
-      aria-label={`Switch to the ${nextLabel}`}
-      title={`Switch to the ${nextLabel}`}
+      aria-label={`Switch to ${nextLabel}`}
+      title={`Switch to ${nextLabel}`}
     >
       <span
         className={styles.modeThumb}
