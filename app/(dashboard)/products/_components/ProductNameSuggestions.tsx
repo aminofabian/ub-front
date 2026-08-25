@@ -39,6 +39,10 @@ function formatPrice(value: number | null | undefined): string | null {
   });
 }
 
+function suggestionQueryKey(name: string, barcode: string): string {
+  return `${name.trim()}|${barcode.trim()}`;
+}
+
 export function ProductNameSuggestions({
   name,
   barcode = "",
@@ -50,7 +54,10 @@ export function ProductNameSuggestions({
   const [tenantHits, setTenantHits] = useState<ItemSummaryRecord[]>([]);
   const [globalHits, setGlobalHits] = useState<GlobalProductRecord[]>([]);
   const [busy, setBusy] = useState(false);
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  const activeKey = suggestionQueryKey(name, barcode);
+  const dismissed = dismissedKey === activeKey;
 
   useEffect(() => {
     if (!enabled) {
@@ -143,6 +150,21 @@ export function ProductNameSuggestions({
 
   const hasMatches = tenantHits.length > 0 || globalHits.length > 0;
   if (!busy && !hasMatches) return null;
+
+  if (dismissed && hasMatches) {
+    return (
+      <div className="flex items-center justify-between gap-2 border border-border bg-muted/15 px-2 py-1.5">
+        <p className="text-[11px] text-muted-foreground">Creating as a new product</p>
+        <button
+          type="button"
+          onClick={() => setDismissedKey(null)}
+          className="shrink-0 text-[11px] font-medium text-primary hover:underline"
+        >
+          Show matches
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2 rounded-none border border-border bg-muted/15 p-2 shadow-none">
@@ -239,6 +261,16 @@ export function ProductNameSuggestions({
             })}
           </ul>
         </section>
+      ) : null}
+
+      {hasMatches ? (
+        <button
+          type="button"
+          onClick={() => setDismissedKey(activeKey)}
+          className="w-full border border-border bg-background px-2 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-muted/50"
+        >
+          None of these — create new
+        </button>
       ) : null}
     </div>
   );
