@@ -32,6 +32,7 @@ import {
   resumeGuestThread,
   sendGuestMessage,
   setGuestName,
+  setGuestPhone,
   startGuestThread,
 } from "@/lib/public-support-api";
 import {
@@ -179,6 +180,8 @@ function GuestSupportPanel({
   const [theirTyping, setTheirTyping] = React.useState(false);
   const [showJump, setShowJump] = React.useState(false);
   const [introName, setIntroName] = React.useState("");
+  const [introPhone, setIntroPhone] = React.useState("");
+  const [introError, setIntroError] = React.useState("");
   const [showIntro, setShowIntro] = React.useState(false);
   const [connectionState, setConnectionState] =
     React.useState<RealtimeConnectionState>("disconnected");
@@ -428,7 +431,15 @@ function GuestSupportPanel({
 
   const beginIntro = () => {
     const name = introName.trim();
+    const phone = introPhone.trim();
+    const digits = phone.replace(/[^0-9+]/g, "");
+    if (digits.length < 9 || digits.length > 16) {
+      setIntroError("Please enter a valid phone number so we can follow up.");
+      return;
+    }
+    setIntroError("");
     if (name) setGuestName(name);
+    setGuestPhone(phone);
     setShowIntro(false);
   };
 
@@ -473,7 +484,7 @@ function GuestSupportPanel({
       </header>
 
       {showIntro ? (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-6 py-6 text-center">
           <span
             className="flex size-12 items-center justify-center rounded-full shadow-md"
             style={{
@@ -483,30 +494,52 @@ function GuestSupportPanel({
           >
             <Headset className="size-6" aria-hidden />
           </span>
-          <p className="text-sm font-medium text-foreground">{context.blurb}</p>
-          <input
-            value={introName}
-            onChange={(e) => setIntroName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") beginIntro();
-            }}
-            placeholder="What's your name? (optional)"
-            aria-label="Your name"
-            className="h-10 w-full max-w-60 rounded-xl border border-border/70 bg-muted/40 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/20"
-          />
-          <button
-            type="button"
-            onClick={beginIntro}
-            className="inline-flex h-10 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{
-              backgroundColor: accent || "var(--primary)",
-              color: accent ? "#fff" : "var(--primary-foreground)",
-            }}
-          >
-            Start chatting
-          </button>
+          <div>
+            <p className="text-sm font-medium text-foreground">{context.blurb}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Tell us who you are so we can keep your conversation in one place.
+            </p>
+          </div>
+          <div className="flex w-full max-w-64 flex-col gap-2">
+            <input
+              value={introName}
+              onChange={(e) => setIntroName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") beginIntro();
+              }}
+              placeholder="Your name"
+              aria-label="Your name"
+              className="h-10 w-full rounded-xl border border-border/70 bg-muted/40 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/20"
+            />
+            <input
+              value={introPhone}
+              onChange={(e) => setIntroPhone(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") beginIntro();
+              }}
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="Phone number — e.g. 0712 345 678"
+              aria-label="Phone number"
+              className="h-10 w-full rounded-xl border border-border/70 bg-muted/40 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/20"
+            />
+            {introError ? (
+              <p className="text-left text-[11px] text-destructive">{introError}</p>
+            ) : null}
+            <button
+              type="button"
+              onClick={beginIntro}
+              className="mt-1 inline-flex h-10 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{
+                backgroundColor: accent || "var(--primary)",
+                color: accent ? "#fff" : "var(--primary-foreground)",
+              }}
+            >
+              Start chatting
+            </button>
+          </div>
           <p className="max-w-56 text-[11px] leading-relaxed text-muted-foreground">
-            No account needed — your conversation stays on this browser.
+            No account needed — we only use this to recognise you when you come back.
           </p>
         </div>
       ) : (

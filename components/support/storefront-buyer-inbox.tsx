@@ -408,8 +408,18 @@ export function StorefrontBuyerInbox() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
-                        <p className={cn("truncate text-sm", conversation.status === "RESOLVED" ? "text-muted-foreground" : "font-semibold text-foreground")}>
-                          {conversation.guestName ?? "Storefront buyer"}
+                        <p className="flex min-w-0 items-baseline gap-1.5">
+                          <span className={cn("truncate text-sm", conversation.status === "RESOLVED" ? "text-muted-foreground" : "font-semibold text-foreground")}>
+                            {conversation.guestName ?? "Storefront buyer"}
+                          </span>
+                          {conversation.guestPhone ? (
+                            <span className="shrink-0 text-[10px] text-muted-foreground/70">
+                              · {conversation.guestPhone}
+                            </span>
+                          ) : null}
+                          <span className="shrink-0 rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-sky-600 dark:text-sky-400">
+                            Storefront
+                          </span>
                         </p>
                         <span className="shrink-0 text-[10px] text-muted-foreground">
                           {listTime(conversation.lastMessageAt ?? conversation.updatedAt)}
@@ -450,8 +460,13 @@ export function StorefrontBuyerInbox() {
         </Button>
         <Avatar name={activeConversation.guestName ?? "Buyer"} seed={activeConversation.guestId ?? activeConversation.id} className="size-10" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">
-            {activeConversation.guestName ?? "Storefront buyer"}
+          <p className="flex min-w-0 items-baseline gap-1.5 text-sm font-semibold text-foreground">
+            <span className="truncate">{activeConversation.guestName ?? "Storefront buyer"}</span>
+            {activeConversation.guestPhone ? (
+              <span className="shrink-0 text-[10px] font-normal text-muted-foreground/70">
+                · {activeConversation.guestPhone}
+              </span>
+            ) : null}
           </p>
           <p className="truncate text-xs text-muted-foreground">
             {theirTyping ? "typing…" : "Storefront chat"}

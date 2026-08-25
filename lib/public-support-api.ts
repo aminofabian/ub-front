@@ -15,6 +15,7 @@ export type GuestConversation = {
   businessId: string;
   conversationType: GuestChatType;
   guestName: string | null;
+  guestPhone: string | null;
   status: "OPEN" | "RESOLVED" | string;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
@@ -45,6 +46,7 @@ export type GuestSession = {
   token: string | null;
   conversationId: string | null;
   name: string | null;
+  phone: string | null;
 };
 
 const NS = "ub.support.guest";
@@ -97,6 +99,14 @@ export function setGuestName(name: string): void {
   write(`${NS}.name`, name.trim() ? name.trim().slice(0, 120) : null);
 }
 
+export function getGuestPhone(): string | null {
+  return read(`${NS}.phone`);
+}
+
+export function setGuestPhone(phone: string): void {
+  write(`${NS}.phone`, phone.trim() ? phone.trim().slice(0, 32) : null);
+}
+
 /** Per-shop thread credentials. `ns` isolates shops (slug) and the platform. */
 function threadKey(ns: string): string {
   return `${NS}.thread.${ns}`;
@@ -117,6 +127,7 @@ export function loadGuestSession(ns: string): GuestSession {
     token: parsed?.token ?? null,
     conversationId: parsed?.conversationId ?? null,
     name: getGuestName(),
+    phone: getGuestPhone(),
   };
 }
 
@@ -131,6 +142,8 @@ function guestHeaders(guestId: string, token: string | null): Record<string, str
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (guestId) headers["X-Guest-Id"] = guestId;
   if (token) headers["X-Guest-Token"] = token;
+  const phone = getGuestPhone();
+  if (phone) headers["X-Guest-Phone"] = phone;
   return headers;
 }
 
@@ -184,6 +197,7 @@ export async function startGuestThread(
       token: payload.token,
       conversationId: payload.conversation.id,
       name: getGuestName(),
+      phone: getGuestPhone(),
     });
   }
   return payload;
@@ -214,7 +228,18 @@ export async function resumeGuestThread(
   if (!response.ok) {
     throw new Error(`Could not load conversation (${response.status})`);
   }
-  return (await response.json()) as GuestThreadPayload;
+  const payload = (await response.json()) as GuestThreadPayload;
+  // A new-device resume via phone returns a freshly rotated token — keep it.
+  if (payload.token && payload.conversation) {
+    saveGuestSession(ns, {
+      guestId,
+      token: payload.token,
+      conversationId: payload.conversation.id,
+      name: getGuestName(),
+      phone: getGuestPhone(),
+    });
+  }
+  return payload;
 }
 
 export async function sendGuestMessage(

@@ -638,13 +638,30 @@ export function SaSupportInbox() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
-                        <p
-                          className={cn(
-                            "truncate text-sm",
-                            isResolved ? "text-muted-foreground" : "font-semibold text-foreground",
-                          )}
-                        >
-                          {displayName(conversation)}
+                        <p className="flex min-w-0 items-baseline gap-1.5">
+                          <span
+                            className={cn(
+                              "truncate text-sm",
+                              isResolved ? "text-muted-foreground" : "font-semibold text-foreground",
+                            )}
+                          >
+                            {displayName(conversation)}
+                          </span>
+                          {conversation.guestPhone ? (
+                            <span className="shrink-0 text-[10px] text-muted-foreground/70">
+                              · {conversation.guestPhone}
+                            </span>
+                          ) : null}
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+                              conversation.conversationType === "VISITOR"
+                                ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
+                                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                            )}
+                          >
+                            {conversation.conversationType === "VISITOR" ? "Visitor" : "Tenant"}
+                          </span>
                         </p>
                         <span className="shrink-0 text-[10px] text-muted-foreground">
                           {listTime(conversation.lastMessageAt ?? conversation.updatedAt)}
@@ -704,8 +721,13 @@ export function SaSupportInbox() {
           className="size-10"
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">
-            {displayName(activeConversation)}
+          <p className="flex min-w-0 items-baseline gap-1.5 text-sm font-semibold text-foreground">
+            <span className="truncate">{displayName(activeConversation)}</span>
+            {activeConversation.guestPhone ? (
+              <span className="shrink-0 text-[10px] font-normal text-muted-foreground/70">
+                · {activeConversation.guestPhone}
+              </span>
+            ) : null}
           </p>
           <p className="truncate text-xs text-muted-foreground">
             {theirTyping ? (

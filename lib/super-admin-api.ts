@@ -2824,6 +2824,7 @@ export type SaSupportConversation = {
   conversationType: "TENANT" | "VISITOR" | "STOREFRONT" | string;
   guestId: string | null;
   guestName: string | null;
+  guestPhone: string | null;
   status: "OPEN" | "RESOLVED" | string;
   subject: string | null;
   createdByName: string | null;

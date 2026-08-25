@@ -89,6 +89,7 @@ export type StorefrontBuyerConversation = {
   conversationType: "STOREFRONT";
   guestId: string | null;
   guestName: string | null;
+  guestPhone: string | null;
   status: "OPEN" | "RESOLVED" | string;
   subject: string | null;
   createdByName: string | null;
