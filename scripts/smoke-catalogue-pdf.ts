@@ -115,3 +115,19 @@ if (failures.length) {
   process.exit(1);
 }
 console.log("PASS — catalogue PDF is structurally valid");
+
+const { buildMarketplaceCatalogueChalkPdf } = await import(
+  "../app/marketplace/_lib/marketplace-catalogue-chalk-pdf"
+);
+const chalkBlob = await buildMarketplaceCatalogueChalkPdf({
+  detail,
+  origin: "https://kiosk.ke",
+  includePrices: true,
+});
+const chalkBytes = new Uint8Array(await chalkBlob.arrayBuffer());
+fs.writeFileSync("/tmp/catalogue-chalk-smoke.pdf", Buffer.from(chalkBytes));
+if (chalkBytes.length < 800) {
+  console.error("FAILURES:\nchalk pdf too small");
+  process.exit(1);
+}
+console.log(`PASS — chalk stall PDF ${chalkBytes.length} bytes`);

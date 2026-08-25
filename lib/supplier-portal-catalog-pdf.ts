@@ -4,6 +4,7 @@
  */
 import { buildMarketplaceCataloguePdf } from "@/app/marketplace/_lib/marketplace-catalogue-pdf";
 import { buildMarketplaceCatalogueSheetPdf } from "@/app/marketplace/_lib/marketplace-catalogue-sheet-pdf";
+import { buildMarketplaceCatalogueChalkPdf } from "@/app/marketplace/_lib/marketplace-catalogue-chalk-pdf";
 import { downloadBlob } from "@/app/marketplace/_lib/marketplace-order-pdf";
 import type {
   MarketplaceCatalogProductPreview,
@@ -88,13 +89,16 @@ function toDetail(input: SupplierPortalCatalogPdfInput): MarketplaceSupplierDeta
 
 export async function buildSupplierPortalCatalogPdf(
   input: SupplierPortalCatalogPdfInput,
-  kind: "list" | "sheet" = "list",
+  kind: "list" | "sheet" | "chalk" = "list",
 ): Promise<Blob> {
   const detail = toDetail(input);
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://kiosk.ke";
   if (kind === "sheet") {
     return buildMarketplaceCatalogueSheetPdf({ detail, origin, includePrices: true });
+  }
+  if (kind === "chalk") {
+    return buildMarketplaceCatalogueChalkPdf({ detail, origin, includePrices: true });
   }
   return buildMarketplaceCataloguePdf({ detail, origin, includePrices: true });
 }
@@ -104,7 +108,7 @@ export { downloadBlob };
 export async function downloadSupplierPortalCatalogPdf(
   input: SupplierPortalCatalogPdfInput,
   filename?: string,
-  kind: "list" | "sheet" = "sheet",
+  kind: "list" | "sheet" | "chalk" = "sheet",
 ) {
   const blob = await buildSupplierPortalCatalogPdf(input, kind);
   const safe = (input.supplierName || "catalogue")
