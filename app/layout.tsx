@@ -110,8 +110,14 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <TenantHostSync />
-        {withTenantProvider(tenant, body)}
-        {IS_DESKTOP ? null : <PlatformSupportLauncher />}
+        {withTenantProvider(
+          tenant,
+          <>
+            {body}
+            {/* Inside TenantProvider so host-mapped shops hide the platform VISITOR chat. */}
+            {IS_DESKTOP ? null : <PlatformSupportLauncher />}
+          </>,
+        )}
         {IS_DESKTOP ? null : (
           <>
             {/* Google Analytics — cloud only. */}

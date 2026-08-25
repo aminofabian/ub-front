@@ -3,6 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 
+import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
   GuestSupportLauncher,
   type GuestSupportContext,
@@ -64,22 +65,32 @@ const APP_PATH_PREFIXES = [
   "/shop",
 ];
 
-function computeVisible(pathname: string | null): boolean {
+/**
+ * True only for the platform marketing apex — never for a host-mapped tenant
+ * shop (custom domains like palmart.co.ke, or `{slug}.kiosk.ke`).
+ */
+function isPlatformApexHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  const apex = PLATFORM_DOMAIN.toLowerCase();
+  return (
+    host === apex ||
+    host === `www.${apex}` ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1"
+  );
+}
+
+function computeVisible(pathname: string | null, hasTenant: boolean): boolean {
   if (typeof window === "undefined") {
     return false; // SSR renders nothing; the mount effect flips it after hydration
   }
-  const host = window.location.hostname.toLowerCase();
-  const apex = PLATFORM_DOMAIN.toLowerCase();
-  const isApex =
-    host === apex ||
-    host === `www.${apex}` ||
-    host === "palmart.co.ke" ||
-    host === "www.palmart.co.ke" ||
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "::1";
-  if (!isApex) {
-    return false; // tenant subdomains get the storefront-branded launcher
+  // Host-mapped storefronts own their own STOREFRONT chat — never VISITOR→SA.
+  if (hasTenant) {
+    return false;
+  }
+  if (!isPlatformApexHost(window.location.hostname)) {
+    return false;
   }
   const path = (pathname ?? window.location.pathname ?? "/").toLowerCase();
   if (APP_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) {
@@ -92,14 +103,18 @@ function computeVisible(pathname: string | null): boolean {
  * Public kiosk.ke guest chat — a floating support button on the marketing,
  * help, blog, and product pages. Talks to the platform team as an anonymous
  * VISITOR (name + phone captured in the chat).
+ *
+ * Must not render on tenant storefronts (custom domain or subdomain) — those
+ * use {@link StorefrontSupportLauncher} so buyers reach the shop's staff.
  */
 export function PlatformSupportLauncher() {
   const pathname = usePathname();
+  const tenant = useOptionalTenant();
   const [visible, setVisible] = React.useState(false);
 
   React.useEffect(() => {
-    setVisible(computeVisible(pathname));
-  }, [pathname]);
+    setVisible(computeVisible(pathname, Boolean(tenant)));
+  }, [pathname, tenant]);
 
   if (!visible) return null;
 
