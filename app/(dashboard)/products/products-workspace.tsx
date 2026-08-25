@@ -385,6 +385,13 @@ export function ProductsWorkspace() {
       ? () => void m.onToggleWeighed()
       : undefined,
     weighedBusy: m.weighedBusy,
+    polishCategories: catalog.sortedCategories,
+    polishItemTypes: catalog.itemTypes,
+    polishCurrencyCode: business?.currency?.trim() || "",
+    onProductPolished: () => {
+      void m.refreshSelectedDetail();
+      m.syncListRowFromDetail();
+    },
   };
 
   return (
