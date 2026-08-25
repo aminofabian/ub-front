@@ -29,6 +29,13 @@ export type FormDrawerProps = {
   footer?: React.ReactNode;
   /** default ≈ md; wide ≈ 3xl; large ≈ 5xl; extraWide ≈ data tables; half = right 50vw; full = entire viewport */
   width?: "default" | "wide" | "large" | "extraWide" | "half" | "full";
+  /**
+   * When set on large layouts, the panel fills this node (the last products
+   * column) instead of covering the whole page. Mobile still uses the overlay.
+   */
+  dockRoot?: HTMLElement | null;
+  /** True when the host column is on screen (lg+). Overlay is used otherwise. */
+  docked?: boolean;
   /** Square panels and crisp borders — buttons keep their default radius */
   appearance?: "default" | "sharp";
   /** Tighter header row — icon, kicker, and title on one line */
@@ -128,11 +135,14 @@ export function FormDrawer({
   headerDensity = "default",
   bodyLayout = "scroll",
   onboardingTarget,
+  dockRoot = null,
+  docked = false,
 }: FormDrawerProps) {
   const sharp = appearance === "sharp";
   const compactHeader = headerDensity === "compact";
   const fillBody = bodyLayout === "fill";
   const isFull = width === "full";
+  const inColumn = docked && !!dockRoot;
   const dash = useOptionalDashboard();
   const brandStops = React.useMemo(
     () => dashboardBrandingAccentStops(dash?.business?.branding ?? null),
@@ -153,9 +163,13 @@ export function FormDrawer({
     : undefined;
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange} modal={!onboardingTarget}>
-      <Dialog.Portal>
-        {!onboardingTarget && !isFull ? (
+    <Dialog.Root
+      open={open}
+      onOpenChange={onOpenChange}
+      modal={!onboardingTarget && !inColumn}
+    >
+      <Dialog.Portal container={inColumn ? dockRoot : undefined}>
+        {!onboardingTarget && !isFull && !inColumn ? (
           <Dialog.Overlay
             className={cn(
               // Base color must read as a real scrim on browsers that don't
@@ -175,9 +189,17 @@ export function FormDrawer({
             ? { "data-onboarding-target": onboardingTarget }
             : {})}
           className={cn(
-            "fixed flex flex-col overflow-hidden outline-none",
-            onboardingTarget ? "z-[250]" : "z-50",
-            isFull
+            "flex flex-col overflow-hidden outline-none",
+            inColumn
+              ? "absolute inset-0 z-10 h-full max-h-full w-full max-w-none"
+              : "fixed",
+            !inColumn && (onboardingTarget ? "z-[250]" : "z-50"),
+            inColumn
+              ? cn(
+                  "rounded-none border-0 bg-background shadow-none",
+                  "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+                )
+              : isFull
               ? cn(
                   "inset-0 h-[100dvh] max-h-[100dvh] w-full max-w-none rounded-none border-0 bg-background shadow-none",
                   "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -208,14 +230,15 @@ export function FormDrawer({
                 ),
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-            "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
-            isFull
-              ? "pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
-              : "pr-[env(safe-area-inset-right)]",
+            !inColumn && "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
+            !inColumn &&
+              (isFull
+                ? "pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+                : "pr-[env(safe-area-inset-right)]"),
           )}
         >
           {/* Accent rail — thin when sharp, soft brand bar otherwise */}
-          {brandStops ? (
+          {!inColumn && brandStops ? (
             <div
               className={cn(
                 "pointer-events-none absolute inset-y-0 left-0 opacity-[0.92]",
@@ -228,7 +251,7 @@ export function FormDrawer({
               }}
               aria-hidden
             />
-          ) : (
+          ) : !inColumn ? (
             <div
               className={cn(
                 "pointer-events-none absolute inset-y-0 left-0",
@@ -238,8 +261,8 @@ export function FormDrawer({
               )}
               aria-hidden
             />
-          )}
-          {!sharp ? (
+          ) : null}
+          {!inColumn && !sharp ? (
             <div
               className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-primary-foreground/25 via-transparent to-primary-foreground/15 dark:from-primary-foreground/20 dark:to-transparent"
               aria-hidden
@@ -249,7 +272,7 @@ export function FormDrawer({
           <div
             className={cn(
               "relative flex min-h-0 flex-1 flex-col",
-              sharp ? "pl-0.5" : "pl-[5px]",
+              !inColumn && (sharp ? "pl-0.5" : "pl-[5px]"),
             )}
           >
             <header

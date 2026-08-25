@@ -69,6 +69,8 @@ export function ProductEditDrawer({
   refreshSelectedDetail,
   setMessage,
   onOpenPhotos,
+  docked = false,
+  dockRoot = null,
 }: {
   open: boolean;
   onClose: () => void;
@@ -94,6 +96,8 @@ export function ProductEditDrawer({
   refreshSelectedDetail: ProductDetailApi["refreshSelectedDetail"];
   setMessage: (msg: string) => void;
   onOpenPhotos?: () => void;
+  docked?: boolean;
+  dockRoot?: HTMLElement | null;
 }) {
   const d = detail.detail;
   const dr = detail.patchDraft;
@@ -217,7 +221,9 @@ export function ProductEditDrawer({
         if (!o) onClose();
       }}
       banner={banner}
-      width="wide"
+      width={docked ? "default" : "wide"}
+      docked={docked}
+      dockRoot={dockRoot}
       appearance="sharp"
       headerDensity="compact"
       title={heroTitle}

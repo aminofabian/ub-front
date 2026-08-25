@@ -18,8 +18,6 @@ import { cn } from "@/lib/utils";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import {
   FormDrawer,
-  FormDrawerFields,
-  FormDrawerSheet,
   type FormDrawerProps,
 } from "@/components/form-drawer";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
@@ -31,8 +29,6 @@ import {
   productFormInputClass,
   productFormLabelClass,
   productFormMetaClass,
-  productFormRequiredClass,
-  productFormSectionTitleClass,
 } from "./product-form-styles";
 import { StockIncreaseFields } from "./StockIncreaseFields";
 import { ProductCreatePricingSection } from "./ProductCreatePricingSection";
@@ -76,6 +72,8 @@ type Props = {
   branches: BranchRecord[];
   canGlobalCatalog?: boolean;
   onOpenExistingProduct?: (itemId: string) => void;
+  docked?: boolean;
+  dockRoot?: HTMLElement | null;
 };
 
 function matchItemTypeFromHint(
@@ -123,14 +121,14 @@ function CompactSectionToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center gap-2 border-y border-border bg-muted/15 px-3 py-1.5 text-left transition-colors hover:bg-muted/25"
+      className="flex w-full items-center gap-2 px-1 py-2 text-left text-foreground/60 transition-colors hover:text-foreground"
     >
       {expanded ? (
         <ChevronDown className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
       ) : (
         <ChevronRight className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
       )}
-      <span className="min-w-0 flex-1 text-[11px] font-semibold tracking-tight text-foreground/70">
+      <span className="min-w-0 flex-1 text-[13px] font-medium tracking-tight">
         {label}
       </span>
       {badge}
@@ -142,7 +140,7 @@ function Label({
   label,
   children,
   className,
-  required,
+  required: _required,
   hint,
 }: {
   label: React.ReactNode;
@@ -152,16 +150,9 @@ function Label({
   hint?: React.ReactNode;
 }) {
   return (
-    <label className={cn("flex flex-col gap-1", className)}>
+    <label className={cn("flex flex-col gap-1.5", className)}>
       <span className="flex min-w-0 items-baseline justify-between gap-2">
-        <span className={cn(productFormLabelClass, "flex items-center gap-1")}>
-          {label}
-          {required ? (
-            <span className={productFormRequiredClass} aria-hidden>
-              *
-            </span>
-          ) : null}
-        </span>
+        <span className={productFormLabelClass}>{label}</span>
         {hint ? (
           <span className={cn(productFormHintClass, "truncate text-right")}>
             {hint}
@@ -292,6 +283,8 @@ export function ProductCreateDrawer({
   branches,
   canGlobalCatalog = false,
   onOpenExistingProduct,
+  docked = false,
+  dockRoot = null,
 }: Props) {
   const { business } = useDashboard();
   const showButcherTemplates = isButcheryBusiness(business);
@@ -525,9 +518,10 @@ export function ProductCreateDrawer({
         if (!o) onClose();
       }}
       banner={banner}
-      title={isGroup ? "New product family" : "Add product"}
-      contextLabel="Products"
-      width="wide"
+      title={isGroup ? "New family" : "Add product"}
+      width={docked ? "default" : "wide"}
+      docked={docked}
+      dockRoot={dockRoot}
       appearance="sharp"
       headerDensity="compact"
       icon={<PackagePlus className="size-3.5 text-primary" aria-hidden />}
@@ -578,7 +572,7 @@ export function ProductCreateDrawer({
         </div>
       }
     >
-      <form id="create-parent-form" className="space-y-1.5" onSubmit={handleSubmit}>
+      <form id="create-parent-form" className="space-y-5" onSubmit={handleSubmit}>
         {m.parentDraft.globalProductSourceId ? (
           <div className="flex flex-wrap items-center gap-2 rounded-none border border-border bg-muted/20 px-2.5 py-1.5 text-[11px] text-foreground">
             <Globe2 className="size-3 shrink-0 text-primary" aria-hidden />
@@ -602,113 +596,69 @@ export function ProductCreateDrawer({
           </div>
         )}
 
-        <FormDrawerSheet>
-        <FormDrawerFields appearance="sharp" embedded compact>
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-none border border-border bg-border">
-            <button
-              type="button"
-              onClick={() =>
-                m.setParentDraft((p) => ({
-                  ...p,
-                  productStructure: "standalone",
-                  isSellable: true,
-                }))
-              }
-              className={cn(
-                "h-7 px-2 text-[11px] font-medium tracking-tight transition",
-                !isGroup
-                  ? "bg-foreground text-background"
-                  : "bg-background text-foreground/50 hover:text-foreground",
-              )}
-            >
-              One item
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                m.setParentDraft((p) => ({
-                  ...p,
-                  productStructure: "group",
-                  isSellable: false,
-                  globalProductSourceId: null,
-                }));
-                setLinkedGlobalLabel(null);
-              }}
-              className={cn(
-                "h-7 px-2 text-[11px] font-medium tracking-tight transition",
-                isGroup
-                  ? "bg-foreground text-background"
-                  : "bg-background text-foreground/50 hover:text-foreground",
-              )}
-            >
-              Family of sizes
-            </button>
-          </div>
-
-          <div className="flex items-start gap-2">
-            {!isGroup ? (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                className={cn(
-                  "relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-none border bg-background transition hover:border-foreground/40",
-                  previewUrl ? "border-border" : "border-dashed border-border",
-                )}
-                aria-label="Upload photo"
-              >
-                {previewUrl ? (
-                  <Image
-                    src={previewUrl}
-                    alt=""
-                    width={32}
-                    height={32}
-                    unoptimized
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <Upload className="size-3.5 text-muted-foreground/50" aria-hidden />
-                )}
-              </button>
-            ) : null}
-            <div className="min-w-0 flex-1 space-y-1">
-              <Label required className="gap-0.5" label={isGroup ? "Family name" : "Product name"}>
-                <input
-                  className={icClass()}
-                  placeholder={isGroup ? "e.g. Fresh milk" : "e.g. Brookside 500ml"}
-                  value={m.parentDraft.name}
-                  onChange={(e) => {
-                    m.setParentDraft((p) => ({ ...p, name: e.target.value }));
-                  }}
-                  required
-                  autoFocus
-                />
-              </Label>
-              {!isGroup && !m.parentDraft.globalProductSourceId ? (
-                <ProductNameSuggestions
-                  name={m.parentDraft.name}
-                  barcode={m.parentDraft.barcode}
-                  canGlobalCatalog={canGlobalCatalog}
-                  onOpenExisting={(itemId) => {
-                    onOpenExistingProduct?.(itemId);
-                    onClose();
-                  }}
-                  onUseGlobal={applyGlobalMatch}
-                />
+        <div className="space-y-4 px-0.5">
+          <Label label={isGroup ? "Family name" : "Name"}>
+            <div className="flex items-start gap-2">
+              {!isGroup ? (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  className={cn(
+                    "relative flex size-12 shrink-0 items-center justify-center overflow-hidden border bg-muted/20 transition hover:border-foreground/30",
+                    previewUrl ? "border-border" : "border-dashed border-border",
+                  )}
+                  aria-label="Add a photo"
+                >
+                  {previewUrl ? (
+                    <Image
+                      src={previewUrl}
+                      alt=""
+                      width={48}
+                      height={48}
+                      unoptimized
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Upload className="size-4 text-foreground/35" aria-hidden />
+                  )}
+                </button>
+              ) : null}
+              <input
+                className={icClass()}
+                placeholder={isGroup ? "e.g. Fresh milk" : "e.g. Brookside 500ml"}
+                value={m.parentDraft.name}
+                onChange={(e) => {
+                  m.setParentDraft((p) => ({ ...p, name: e.target.value }));
+                }}
+                required
+                autoFocus
+              />
+              {!isGroup && m.pendingCreateImage ? (
+                <button
+                  type="button"
+                  onClick={() => m.setPendingCreateImage(null)}
+                  className="flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
+                  aria-label="Remove photo"
+                >
+                  <X className="size-3.5" aria-hidden />
+                </button>
               ) : null}
             </div>
-            {!isGroup && m.pendingCreateImage ? (
-              <button
-                type="button"
-                onClick={() => m.setPendingCreateImage(null)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/50"
-                aria-label="Remove image"
-              >
-                <X className="size-3.5" aria-hidden />
-              </button>
-            ) : null}
-          </div>
+          </Label>
+          {!isGroup && !m.parentDraft.globalProductSourceId ? (
+            <ProductNameSuggestions
+              name={m.parentDraft.name}
+              barcode={m.parentDraft.barcode}
+              canGlobalCatalog={canGlobalCatalog}
+              onOpenExisting={(itemId) => {
+                onOpenExistingProduct?.(itemId);
+                onClose();
+              }}
+              onUseGlobal={applyGlobalMatch}
+            />
+          ) : null}
 
           <input
             ref={fileRef}
@@ -721,95 +671,80 @@ export function ProductCreateDrawer({
             }}
           />
 
-          {isGroup ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Label required className="gap-0.5" label="Department">
-                <select
-                  className={icClass()}
-                  value={m.parentDraft.itemTypeId}
-                  onChange={(e) =>
-                    m.setParentDraft((p) => ({ ...p, itemTypeId: e.target.value }))
-                  }
-                  required
-                >
-                  {catalog.itemTypes.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </Label>
-              <Label required className="gap-0.5" label="Category">
-                <select
-                  className={icClass()}
-                  value={m.parentDraft.categoryId}
-                  onChange={(e) =>
-                    m.setParentDraft((p) => ({ ...p, categoryId: e.target.value }))
-                  }
-                  required
-                >
-                  <option value="">— Select category —</option>
-                  {catalog.sortedCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                      {!c.active ? " (inactive)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </Label>
-            </div>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Label required className="gap-0.5" label="Department">
-                <select
-                  className={icClass()}
-                  value={m.parentDraft.itemTypeId}
-                  onChange={(e) =>
-                    m.setParentDraft((p) => ({ ...p, itemTypeId: e.target.value }))
-                  }
-                  required
-                >
-                  {catalog.itemTypes.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </Label>
-              <Label className="gap-0.5" label="Category" hint="Optional">
-                <select
-                  className={icClass()}
-                  value={m.parentDraft.categoryId}
-                  onChange={(e) =>
-                    m.setParentDraft((p) => ({
-                      ...p,
-                      categoryId: e.target.value,
-                    }))
-                  }
-                >
-                  <option value="">— None —</option>
-                  {catalog.sortedCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                      {!c.active ? " (inactive)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </Label>
-            </div>
-          )}
-          {isGroup ? (
-            <p className={productFormHintClass}>
-              Sizes and packs you add later stay in this family.
-            </p>
-          ) : null}
-        </FormDrawerFields>
+          <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-foreground/75">
+            <input
+              type="checkbox"
+              className="mt-0.5 size-3.5 rounded-none border-border"
+              checked={isGroup}
+              onChange={(e) => {
+                const next = e.target.checked;
+                if (next) {
+                  m.setParentDraft((p) => ({
+                    ...p,
+                    productStructure: "group",
+                    isSellable: false,
+                    globalProductSourceId: null,
+                  }));
+                  setLinkedGlobalLabel(null);
+                } else {
+                  m.setParentDraft((p) => ({
+                    ...p,
+                    productStructure: "standalone",
+                    isSellable: true,
+                  }));
+                }
+              }}
+            />
+            <span>
+              This has sizes or packs
+              <span className="mt-0.5 block text-[12px] text-foreground/45">
+                Like 500ml and 1 litre under one name
+              </span>
+            </span>
+          </label>
+
+          <Label label="Which aisle">
+            <select
+              className={icClass()}
+              value={m.parentDraft.itemTypeId}
+              onChange={(e) =>
+                m.setParentDraft((p) => ({ ...p, itemTypeId: e.target.value }))
+              }
+              required
+            >
+              {catalog.itemTypes.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </Label>
+          <Label label="Category" hint={isGroup ? undefined : "Skip if you like"}>
+            <select
+              className={icClass()}
+              value={m.parentDraft.categoryId}
+              onChange={(e) =>
+                m.setParentDraft((p) => ({
+                  ...p,
+                  categoryId: e.target.value,
+                }))
+              }
+              required={isGroup}
+            >
+              <option value="">{isGroup ? "Pick one" : "None"}</option>
+              {catalog.sortedCategories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                  {!c.active ? " (off)" : ""}
+                </option>
+              ))}
+            </select>
+          </Label>
+        </div>
 
         {!isGroup && showButcherTemplates ? (
           <div className="flex flex-wrap items-center gap-1.5 border-t border-border bg-muted/10 px-2.5 py-1.5">
-            <span className={productFormSectionTitleClass}>
-              Meat template
-            </span>
+            <span className={productFormHintClass}>Quick fill</span>
             {BUTCHER_PRODUCT_TEMPLATES.map((template) => (
               <button
                 key={template.id}
@@ -835,46 +770,40 @@ export function ProductCreateDrawer({
         ) : null}
 
         {!isGroup ? (
-          <>
-            <FormDrawerFields legend="Price" appearance="sharp" embedded compact>
-              <ProductCreatePricingSection
-                draft={m.parentDraft}
-                setDraft={m.setParentDraft}
-                syncCostsFromBuyingPrice={syncCostsFromBuyingPrice}
-                currencyCode={currencyCode}
-                marginInfo={marginInfo}
-                isWeighed={m.parentDraft.isWeighed}
-              />
-            </FormDrawerFields>
-
-            <FormDrawerFields appearance="sharp" embedded compact>
-              <Label className="gap-0.5" label="Barcode" hint="Optional — scan or type">
-                <div className="flex gap-px overflow-hidden rounded-none border border-border bg-border">
-                  <input
-                    className={cn(
-                      icClass(),
-                      "min-w-0 flex-1 border-0 font-mono text-xs focus-visible:ring-inset",
-                    )}
-                    placeholder="Barcode"
-                    value={m.parentDraft.barcode}
-                    onChange={(e) => {
-                      m.setParentDraft((p) => ({ ...p, barcode: e.target.value }));
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setScannerOpen(true)}
-                    className="flex size-8 shrink-0 items-center justify-center bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                    aria-label="Scan barcode with camera"
-                  >
-                    <Camera className="size-3.5" aria-hidden />
-                  </button>
-                </div>
-              </Label>
-            </FormDrawerFields>
-          </>
+          <div className="space-y-4 px-0.5">
+            <ProductCreatePricingSection
+              draft={m.parentDraft}
+              setDraft={m.setParentDraft}
+              syncCostsFromBuyingPrice={syncCostsFromBuyingPrice}
+              currencyCode={currencyCode}
+              marginInfo={marginInfo}
+              isWeighed={m.parentDraft.isWeighed}
+            />
+            <Label label="Barcode" hint="Scan or type if you have one">
+              <div className="flex gap-px overflow-hidden border border-border bg-border">
+                <input
+                  className={cn(
+                    icClass(),
+                    "min-w-0 flex-1 border-0 font-mono text-xs focus-visible:ring-inset",
+                  )}
+                  placeholder="Optional"
+                  value={m.parentDraft.barcode}
+                  onChange={(e) => {
+                    m.setParentDraft((p) => ({ ...p, barcode: e.target.value }));
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setScannerOpen(true)}
+                  className="flex size-8 shrink-0 items-center justify-center bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  aria-label="Scan barcode with camera"
+                >
+                  <Camera className="size-3.5" aria-hidden />
+                </button>
+              </div>
+            </Label>
+          </div>
         ) : null}
-        </FormDrawerSheet>
 
         {!isGroup ? (
           <>

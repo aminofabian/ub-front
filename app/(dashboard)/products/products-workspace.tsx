@@ -118,6 +118,7 @@ export function ProductsWorkspace() {
     quick.openQuickEdit,
   ]);
   const [isLg, setIsLg] = useState(false);
+  const [dockRoot, setDockRoot] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
     setIsLg(mq.matches);  
@@ -516,8 +517,13 @@ export function ProductsWorkspace() {
                 canCreateNew={canCatalogWrite && catalog.itemTypes.length > 0}
                 />
               </div>
-              <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border">
-                {D ? (
+              <div
+                ref={setDockRoot}
+                className="relative hidden min-h-0 min-w-0 max-w-full overflow-hidden lg:flex lg:flex-col lg:border-l lg:border-border"
+              >
+                {isLg &&
+                (activeDrawer === "create-parent" ||
+                  (activeDrawer === "edit-product" && D)) ? null : D ? (
                   <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pb-24 p-0">
                     <ProductDetailPanel {...p} />
                   </div>
@@ -553,6 +559,8 @@ export function ProductsWorkspace() {
 
       <ProductCreateDrawer
         open={activeDrawer === "create-parent"}
+        docked={isLg}
+        dockRoot={dockRoot}
         onClose={() => setActiveDrawer(null)}
         banner={
           activeDrawer === "create-parent" && catalog.message.trim() ? (
@@ -574,6 +582,8 @@ export function ProductsWorkspace() {
 
       <ProductEditDrawer
         open={activeDrawer === "edit-product" && !!D}
+        docked={isLg}
+        dockRoot={dockRoot}
         onClose={() => setActiveDrawer(null)}
         banner={
           activeDrawer === "edit-product" && catalog.message.trim() ? (
