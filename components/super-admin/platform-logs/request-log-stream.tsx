@@ -220,9 +220,18 @@ export function RequestLogStream({
                     <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs">{row.method}</td>
                     <td
                       className="max-w-xs truncate px-3 py-2.5 font-mono text-xs lg:max-w-md"
-                      title={row.path}
+                      title={
+                        !row.success && row.errorTitle
+                          ? `${row.path}\n${row.errorTitle}${row.errorDetail ? ` — ${row.errorDetail}` : ""}`
+                          : row.path
+                      }
                     >
-                      {row.path}
+                      <span className="block truncate">{row.path}</span>
+                      {!row.success && !expected && row.errorTitle ? (
+                        <span className="mt-0.5 block truncate font-sans text-[11px] text-red-600/90 dark:text-red-400/90">
+                          {row.errorTitle}
+                        </span>
+                      ) : null}
                     </td>
                     <td
                       className="max-w-40 truncate whitespace-nowrap px-3 py-2.5 text-xs"

@@ -345,6 +345,7 @@ export async function onboardBusiness(
   host: string,
   name: string,
   countryCode?: string,
+  slug?: string,
 ): Promise<{
   tenantId: string;
   tenantName: string;
@@ -357,6 +358,7 @@ export async function onboardBusiness(
     return null;
   }
   const code = countryCode?.trim().toUpperCase() ?? "";
+  const handle = slug?.trim().toLowerCase() ?? "";
   const url = apiUrl(PUBLIC_HOST_ONBOARD_PATH);
   try {
     const response = await fetch(url, {
@@ -369,6 +371,7 @@ export async function onboardBusiness(
         name: n,
         host: h,
         ...(code ? { countryCode: code } : {}),
+        ...(handle ? { slug: handle } : {}),
       }),
     });
     if (!response.ok) {

@@ -18,6 +18,7 @@ import {
 } from "@/lib/auth";
 import { slugDerivedShopUrl } from "@/lib/config";
 import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
+import { businessNameToSlug } from "@/lib/shop-lookup";
 import { handleRegistrationResult } from "@/lib/post-registration-auth";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,8 @@ export function LandingSignupModal({
 }: LandingSignupModalProps) {
   const [step, setStep] = useState<SignupStep>(1);
   const [businessName, setBusinessName] = useState("");
+  const [shopSlug, setShopSlug] = useState("");
+  const [slugLocked, setSlugLocked] = useState(false);
   const [countryCode, setCountryCode] = useState(DEFAULT_SELFSERVE_COUNTRY_CODE);
   const [tenantSlug, setTenantSlug] = useState("");
   const [name, setName] = useState("");
@@ -61,6 +64,8 @@ export function LandingSignupModal({
   const resetState = () => {
     setStep(1);
     setBusinessName("");
+    setShopSlug("");
+    setSlugLocked(false);
     setCountryCode(DEFAULT_SELFSERVE_COUNTRY_CODE);
     setTenantSlug("");
     setName("");
@@ -99,7 +104,13 @@ export function LandingSignupModal({
         return;
       }
 
-      const result = await onboardBusiness(host, businessName, countryCode);
+      const handle = businessNameToSlug(shopSlug) || businessNameToSlug(businessName);
+      const result = await onboardBusiness(
+        host,
+        businessName,
+        countryCode,
+        handle,
+      );
       if (!result?.tenantId) {
         setErrorMessage(
           "Could not create business. Please try a different name.",
@@ -204,19 +215,29 @@ export function LandingSignupModal({
                     Name your business
                   </DialogTitle>
                   <DialogDescription className="text-sm leading-relaxed text-[#5F5D58] sm:text-[15px]">
-                    Claim a subdomain and become the owner. You&apos;ll create
-                    your account on the next step.
+                    Pick a name and a shop address. You&apos;ll create your
+                    owner account on the next step.
                   </DialogDescription>
                 </DialogHeader>
 
                 <div className="mt-6">
                   <LandingOnboarding
                     businessName={businessName}
+                    shopSlug={shopSlug}
                     countryCode={countryCode}
                     countries={countries}
                     errorMessage={errorMessage}
                     isSubmitting={isSubmitting}
-                    onBusinessNameChange={setBusinessName}
+                    onBusinessNameChange={(value) => {
+                      setBusinessName(value);
+                      if (!slugLocked) {
+                        setShopSlug(businessNameToSlug(value));
+                      }
+                    }}
+                    onShopSlugChange={(value) => {
+                      setSlugLocked(true);
+                      setShopSlug(value);
+                    }}
                     onCountryCodeChange={setCountryCode}
                     onSubmit={onStep1Submit}
                     onBack={() => onOpenChange(false)}

@@ -272,11 +272,15 @@ export function PlatformLogsPage() {
         onOpenChange={(open) => {
           if (!open) setSelectedRow(null);
         }}
-        title="Request details"
+        title={selectedRow && !selectedRow.success ? "Failed request" : "Request details"}
         description={
-          selectedRow ? `${selectedRow.method} · ${timeAgo(selectedRow.loggedAt)}` : undefined
+          selectedRow
+            ? selectedRow.success
+              ? `${selectedRow.method} · ${timeAgo(selectedRow.loggedAt)}`
+              : `${selectedRow.status} · ${selectedRow.errorTitle || selectedRow.method} · ${timeAgo(selectedRow.loggedAt)}`
+            : undefined
         }
-        width="default"
+        width={selectedRow && !selectedRow.success ? "wide" : "default"}
       >
         {selectedRow ? <RequestLogDrawerContent row={selectedRow} /> : null}
       </SuperAdminDrawer>

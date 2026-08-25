@@ -54,12 +54,39 @@ export type SaBusinessStats = {
   totalUsers: number;
   activeUsers: number;
   totalProducts: number;
+  webPublishedProducts: number;
   totalBranches: number;
-  totalSalesToday: number;
-  revenueToday: number;
-  totalSalesThisMonth: number;
-  revenueThisMonth: number;
   openShifts: number;
+  sales: {
+    salesToday: number;
+    revenueToday: number;
+    unitsToday: number;
+    salesLast7Days: number;
+    revenueLast7Days: number;
+    salesLast30Days: number;
+    revenueLast30Days: number;
+    unitsLast30Days: number;
+    salesAllTime: number;
+    revenueAllTime: number;
+    unitsAllTime: number;
+  };
+  storefront: {
+    paidOrdersLast30Days: number;
+    paidGmvLast30Days: number;
+    paidOrdersAllTime: number;
+    paidGmvAllTime: number;
+  };
+  paymentMethods: Array<{
+    gatewayType: string;
+    label: string;
+    status: string;
+    isDefault: boolean;
+  }>;
+  kioskPayActive: boolean;
+  kioskPayStatus: string;
+  onboardingStatus: string;
+  lastUserLoginAt: string | null;
+  lastSaleAt: string | null;
 };
 
 function getNetworkErrorMessage(): string {
@@ -749,6 +776,14 @@ export type PlatformRequestLogRow = {
   ip: string | null;
   /** Set when the request came from a load-test run (Platform → Load test). */
   loadTestRunId: string | null;
+  errorTitle?: string | null;
+  errorDetail?: string | null;
+  errorType?: string | null;
+  exceptionClass?: string | null;
+  exceptionChain?: string | null;
+  stackSummary?: string | null;
+  userAgent?: string | null;
+  requestMeta?: string | null;
 };
 
 export type PlatformRequestLogCategorySummary = {

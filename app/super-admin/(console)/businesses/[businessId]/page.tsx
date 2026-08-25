@@ -16,15 +16,18 @@ import { Switch } from "@/components/ui/switch";
 import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
 import {
   APP_ROUTES,
+  PLATFORM_DOMAIN,
   hostDerivedShopUrl,
   slugDerivedShopUrl,
 } from "@/lib/config";
 import {
+  type SaBusinessStats,
   type SaBusinessUserRow,
   type SaDomainRow,
   addSaDomain,
   ensureSaTenantSupportThread,
   fetchSaBusiness,
+  fetchSaBusinessStats,
   fetchSaBusinessUsers,
   fetchSaDomains,
   impersonateSaBusiness,
@@ -51,6 +54,54 @@ function userStatusVariant(status: string): "success" | "warning" | "secondary" 
   const value = status.toLowerCase();
   if (value === "active") return "success";
   if (value === "invited") return "warning";
+  return "secondary";
+}
+
+function formatKes(amount: number | null | undefined, currency = "KES") {
+  const n = Number(amount ?? 0);
+  if (!Number.isFinite(n)) return `${currency} —`;
+  try {
+    return new Intl.NumberFormat("en-KE", {
+      style: "currency",
+      currency: currency.length === 3 ? currency : "KES",
+      maximumFractionDigits: n >= 1000 ? 0 : 2,
+    }).format(n);
+  } catch {
+    return `${currency} ${n.toLocaleString()}`;
+  }
+}
+
+function formatInt(n: number | null | undefined) {
+  return new Intl.NumberFormat("en-KE").format(Number(n ?? 0));
+}
+
+function formatUnits(n: number | null | undefined) {
+  const v = Number(n ?? 0);
+  if (!Number.isFinite(v)) return "—";
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 10_000) return `${Math.round(v / 1000)}k`;
+  return new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(v);
+}
+
+function relativeWhen(iso: string | null | undefined) {
+  if (!iso) return "Never";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  const delta = Date.now() - date.getTime();
+  const mins = Math.round(delta / 60_000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 48) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 14) return `${days}d ago`;
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+function paymentStatusVariant(status: string): "success" | "warning" | "secondary" {
+  const s = status.toUpperCase();
+  if (s === "ACTIVE") return "success";
+  if (s === "TESTED" || s === "TESTING") return "warning";
   return "secondary";
 }
 
@@ -102,6 +153,8 @@ function BusinessDetailInner() {
   const [copied, setCopied] = useState(false);
   const [bizLoaded, setBizLoaded] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
+  const [stats, setStats] = useState<SaBusinessStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const copyTimer = useRef<number | null>(null);
 
   const loadBusiness = useCallback(async () => {
@@ -154,11 +207,24 @@ function BusinessDetailInner() {
     }
   }, [businessId]);
 
+  const loadStats = useCallback(async () => {
+    if (!businessId) return;
+    setStatsLoading(true);
+    try {
+      setStats(await fetchSaBusinessStats(businessId));
+    } catch {
+      setStats(null);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [businessId]);
+
   useEffect(() => {
     void loadBusiness();
     void loadDomains();
     void loadUsers();
-  }, [loadBusiness, loadDomains, loadUsers]);
+    void loadStats();
+  }, [loadBusiness, loadDomains, loadUsers, loadStats]);
 
   useEffect(() => {
     setBizName(titleName);
@@ -439,8 +505,31 @@ function BusinessDetailInner() {
             {bizTier}
           </Badge>
         ) : null}
+        {stats?.onboardingStatus ? (
+          <Badge variant="outline" className="capitalize">
+            Onboarding · {stats.onboardingStatus}
+          </Badge>
+        ) : null}
         {primaryDomain ? (
-          <span className="font-mono text-xs text-muted-foreground">{primaryDomain}</span>
+          <a
+            href={hostDerivedShopUrl(primaryDomain) || undefined}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            {primaryDomain}
+            <ExternalLink className="size-3 opacity-60" aria-hidden />
+          </a>
+        ) : bizSlug ? (
+          <a
+            href={slugDerivedShopUrl(bizSlug) || undefined}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            {bizSlug}.{PLATFORM_DOMAIN}
+            <ExternalLink className="size-3 opacity-60" aria-hidden />
+          </a>
         ) : bizLoaded ? (
           <span className="text-xs text-muted-foreground">No primary domain</span>
         ) : null}
@@ -450,6 +539,142 @@ function BusinessDetailInner() {
       <p className="sr-only" aria-live="polite">
         {copied ? "Tenant ID copied to clipboard." : ""}
       </p>
+
+      {/* Tenant intelligence */}
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="font-heading text-lg font-semibold tracking-tight">Tenant pulse</h2>
+            <p className="text-xs text-muted-foreground">
+              Sales, catalog, payments, and last activity — what you need before opening a session
+            </p>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Last sale {relativeWhen(stats?.lastSaleAt)} · Last login {relativeWhen(stats?.lastUserLoginAt)}
+          </p>
+        </div>
+
+        <div className="grid overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+          <PulseCell
+            label="Revenue today"
+            value={statsLoading ? "—" : formatKes(stats?.sales.revenueToday, bizCurrency)}
+            hint={
+              statsLoading
+                ? "…"
+                : `${formatInt(stats?.sales.salesToday)} sales · ${formatUnits(stats?.sales.unitsToday)} units`
+            }
+          />
+          <PulseCell
+            label="Revenue · 30 days"
+            value={statsLoading ? "—" : formatKes(stats?.sales.revenueLast30Days, bizCurrency)}
+            hint={
+              statsLoading
+                ? "…"
+                : `${formatInt(stats?.sales.salesLast30Days)} sales · ${formatUnits(stats?.sales.unitsLast30Days)} units`
+            }
+          />
+          <PulseCell
+            label="Items in catalog"
+            value={statsLoading ? "—" : formatInt(stats?.totalProducts)}
+            hint={
+              statsLoading
+                ? "…"
+                : `${formatInt(stats?.webPublishedProducts)} on storefront · ${formatInt(stats?.totalBranches)} branches`
+            }
+          />
+          <PulseCell
+            label="All-time till sales"
+            value={statsLoading ? "—" : formatKes(stats?.sales.revenueAllTime, bizCurrency)}
+            hint={
+              statsLoading
+                ? "…"
+                : `${formatInt(stats?.sales.salesAllTime)} sales · ${formatUnits(stats?.sales.unitsAllTime)} units`
+            }
+          />
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          <div className="rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm sm:px-5">
+            <h3 className="text-sm font-medium">Team & shifts</h3>
+            <dl className="mt-3 grid grid-cols-2 gap-3">
+              <MiniStat label="Users" value={statsLoading ? "—" : formatInt(stats?.totalUsers)} />
+              <MiniStat label="Active" value={statsLoading ? "—" : formatInt(stats?.activeUsers)} />
+              <MiniStat label="Open shifts" value={statsLoading ? "—" : formatInt(stats?.openShifts)} />
+              <MiniStat
+                label="7d sales"
+                value={statsLoading ? "—" : formatInt(stats?.sales.salesLast7Days)}
+              />
+            </dl>
+          </div>
+
+          <div className="rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm sm:px-5">
+            <h3 className="text-sm font-medium">Storefront</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">Paid web / WhatsApp orders</p>
+            <dl className="mt-3 space-y-2.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <dt className="text-xs text-muted-foreground">GMV · 30d</dt>
+                <dd className="text-sm font-semibold tabular-nums">
+                  {statsLoading ? "—" : formatKes(stats?.storefront.paidGmvLast30Days, bizCurrency)}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-2">
+                <dt className="text-xs text-muted-foreground">Orders · 30d</dt>
+                <dd className="text-sm tabular-nums">
+                  {statsLoading ? "—" : formatInt(stats?.storefront.paidOrdersLast30Days)}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-2 border-t border-border/50 pt-2.5">
+                <dt className="text-xs text-muted-foreground">Orders all-time</dt>
+                <dd className="text-sm tabular-nums text-muted-foreground">
+                  {statsLoading ? "—" : formatInt(stats?.storefront.paidOrdersAllTime)}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm sm:px-5">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-medium">Payment methods</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">Configured gateways for this shop</p>
+              </div>
+              <Badge variant={stats?.kioskPayActive ? "success" : "secondary"} className="shrink-0">
+                Kiosk Pay · {stats?.kioskPayStatus ?? "—"}
+              </Badge>
+            </div>
+            {statsLoading ? (
+              <div className="mt-3 space-y-2" aria-hidden>
+                <div className="h-8 animate-pulse rounded-lg bg-muted" />
+                <div className="h-8 animate-pulse rounded-lg bg-muted" />
+              </div>
+            ) : !stats?.paymentMethods.length ? (
+              <p className="mt-4 text-sm text-muted-foreground">
+                No gateway configs yet — cash / manual may still work at the till.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-1.5">
+                {stats.paymentMethods.map((m) => (
+                  <li
+                    key={`${m.gatewayType}-${m.label}`}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border/50 px-2.5 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{m.label || m.gatewayType}</p>
+                      <p className="truncate font-mono text-[10px] uppercase text-muted-foreground">
+                        {m.gatewayType}
+                        {m.isDefault ? " · default" : ""}
+                      </p>
+                    </div>
+                    <Badge variant={paymentStatusVariant(m.status)} className="shrink-0 capitalize">
+                      {m.status.toLowerCase()}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:px-5">
         <p className="min-w-0 flex-1 text-sm leading-relaxed text-muted-foreground">
@@ -783,6 +1008,33 @@ function BusinessDetailInner() {
           </>
         )}
       </section>
+    </div>
+  );
+}
+
+function PulseCell({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+}) {
+  return (
+    <div className="border-b border-border/60 px-4 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:px-5 sm:last:border-r-0 lg:[&:nth-child(2)]:border-r lg:[&:nth-child(4)]:border-r-0">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 font-heading text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 font-heading text-lg font-semibold tabular-nums">{value}</dd>
     </div>
   );
 }
