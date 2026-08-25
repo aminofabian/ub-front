@@ -54,8 +54,8 @@ export function buildActionItems(input: BuildActionItemsInput): ActionItem[] {
   if (input.canViewShifts && input.openShifts > 0) {
     items.push({
       id: "open-shifts",
-      label: `${fmtCount(input.openShifts)} till${input.openShifts === 1 ? "" : "s"} still open`,
-      detail: "Close or check the till",
+      label: `${fmtCount(input.openShifts)} open shift${input.openShifts === 1 ? "" : "s"}`,
+      detail: "Close or review cashier shifts",
       href: APP_ROUTES.shifts,
       tone: "warning",
     });
@@ -74,8 +74,8 @@ export function buildActionItems(input: BuildActionItemsInput): ActionItem[] {
   if (input.canViewSupplyBatches && expiringCount > 0) {
     items.push({
       id: "expiring",
-      label: `${fmtCount(expiringCount)} item${expiringCount === 1 ? "" : "s"} going off soon`,
-      detail: "Use or sell before they spoil",
+      label: `${fmtCount(expiringCount)} batch${expiringCount === 1 ? "" : "es"} expiring soon`,
+      detail: "Check supply batches before they spoil",
       href: APP_ROUTES.inventorySupplyBatches,
       tone: "warning",
     });
@@ -84,8 +84,8 @@ export function buildActionItems(input: BuildActionItemsInput): ActionItem[] {
   if (input.canManageBusinessSettings && input.storefrontEnabled === false) {
     items.push({
       id: "storefront-off",
-      label: "Online shop is off",
-      detail: "Turn it on to take pickup orders",
+      label: "Online storefront is off",
+      detail: "Enable it to accept web orders",
       href: APP_ROUTES.businessSettings,
       tone: "info",
     });
@@ -94,8 +94,8 @@ export function buildActionItems(input: BuildActionItemsInput): ActionItem[] {
   if (input.canViewStorefrontOrders && input.openWebOrders > 0) {
     items.push({
       id: "web-orders",
-      label: `${fmtCount(input.openWebOrders)} pickup order${input.openWebOrders === 1 ? "" : "s"} waiting`,
-      detail: "Confirm, pack, or complete",
+      label: `${fmtCount(input.openWebOrders)} open web order${input.openWebOrders === 1 ? "" : "s"}`,
+      detail: "Confirm, pack, or complete pickup",
       href: APP_ROUTES.storefrontWebOrders,
       tone: "warning",
     });
@@ -105,8 +105,8 @@ export function buildActionItems(input: BuildActionItemsInput): ActionItem[] {
   if (input.canViewApAging && payables > 0) {
     items.push({
       id: "payables",
-      label: `${fmtKes(payables)} unpaid to suppliers`,
-      detail: "Pay the bills you still owe",
+      label: `${fmtKes(payables)} in open payables`,
+      detail: "Review supplier bills",
       href: APP_ROUTES.purchasingApAging,
       tone: "info",
     });

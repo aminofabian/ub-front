@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { FileUp, Library, ListFilter, PackagePlus, Search, X } from "lucide-react";
 
@@ -12,8 +12,10 @@ import {
   catalogFilterNeedsRowActiveClass,
   catalogFilterNeedsRowClass,
   catalogFilterNeedsSheetClass,
-  catalogFilterSelectClass,
+  catalogFilterInputClass,
 } from "./catalog-list-styles";
+import { SearchableSelect } from "./SearchableSelect";
+import { categorySelectOptions } from "./category-select-options";
 
 type Props = {
   catalog: Pick<
@@ -91,6 +93,10 @@ export function ProductMobileChrome({
   canAddFromCatalog = false,
 }: Props) {
   const [panelOpen, setPanelOpen] = useState(false);
+  const categoryOptions = useMemo(
+    () => categorySelectOptions(catalog.sortedCategories),
+    [catalog.sortedCategories],
+  );
   const searchPending =
     catalog.search.trim() !== catalog.debouncedSearch.trim();
   const panelCount = countPanelFilters(catalog);
@@ -288,23 +294,18 @@ export function ProductMobileChrome({
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40">
                 Category
               </p>
-              <select
+              <SearchableSelect
                 className={cn(
-                  catalogFilterSelectClass,
+                  catalogFilterInputClass,
                   "h-10 w-full rounded-none text-[13px]",
                 )}
                 value={catalog.filterCategoryId}
-                onChange={(e) => catalog.setFilterCategoryId(e.target.value)}
+                onChange={catalog.setFilterCategoryId}
+                options={categoryOptions}
+                noneLabel="All categories"
+                placeholder="Type to find…"
                 aria-label="Filter by category"
-              >
-                <option value="">All categories</option>
-                {catalog.sortedCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                    {!c.active ? " (inactive)" : ""}
-                  </option>
-                ))}
-              </select>
+              />
               {catalog.filterCategoryId ? (
                 <button
                   type="button"

@@ -59,9 +59,10 @@ export function RecentTicksRail({
   currency,
   live = false,
   justUpdated = false,
-  title = "Recent sales",
+  title = "Till tape",
   subtitle,
   showCashier = true,
+  accent = "brass",
   laneIndex,
   fillViewport = true,
   className,
@@ -94,14 +95,22 @@ export function RecentTicksRail({
   return (
     <aside
       className={cn(
-        "hub-rise relative flex h-full min-h-0 flex-col text-[#141414]",
+        "hub-rise relative flex h-full min-h-[16rem] flex-col border border-[#E6E1D8] bg-white text-[#141414]",
         fillViewport && "xl:min-h-[100dvh] xl:h-[100dvh]",
-        justUpdated && "hub-scan-sweep",
+        justUpdated && "hub-scan-sweep border-[#B08D48]/55",
         className,
       )}
       aria-label={title}
     >
-      <header className="shrink-0 py-1">
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-y-0 left-0 w-0.5",
+          accent === "ink" ? "bg-[#141414]" : "bg-[#B08D48]",
+        )}
+        aria-hidden
+      />
+
+      <header className="shrink-0 border-b border-[#E6E1D8] px-3.5 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -111,7 +120,7 @@ export function RecentTicksRail({
                 </span>
               ) : null}
               <p
-                className="truncate text-[13px] font-semibold tracking-tight text-[#141414]"
+                className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]"
                 title={title}
               >
                 {title}
@@ -142,7 +151,7 @@ export function RecentTicksRail({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {empty ? (
-          <div className="flex flex-col px-0 py-3">
+          <div className="flex h-full min-h-[8rem] flex-col justify-center px-2.5 py-6">
             <p
               className="text-sm font-medium text-[#141414]"
               style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
@@ -164,7 +173,7 @@ export function RecentTicksRail({
                     <li
                       key={tick.saleId}
                       className={cn(
-                        "px-0 py-2 transition-colors",
+                        "px-3.5 py-4 transition-colors sm:px-4 sm:py-5",
                         newest && "bg-[#FCFAF6] hub-figure-pop",
                       )}
                     >
@@ -189,11 +198,15 @@ export function RecentTicksRail({
                         </div>
                         <span
                           className={cn(
-                            "shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em]",
-                            payTone === "cash" && "text-[#5A5A5A]",
-                            payTone === "mpesa" && "text-emerald-800",
-                            payTone === "split" && "text-[#8A6B2E]",
-                            payTone === "other" && "text-[#666666]",
+                            "shrink-0 border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                            payTone === "cash" &&
+                              "border-[#E6E1D8] bg-[#F7F5F1] text-[#5A5A5A]",
+                            payTone === "mpesa" &&
+                              "border-emerald-200 bg-emerald-500/10 text-emerald-800",
+                            payTone === "split" &&
+                              "border-[#E8DFD0] bg-[#F9F6F0] text-[#8A6B2E]",
+                            payTone === "other" &&
+                              "border-[#E6E1D8] bg-white text-[#666666]",
                           )}
                           title={tick.paymentLabel}
                         >
@@ -203,7 +216,7 @@ export function RecentTicksRail({
 
                       {showCashier ? (
                         <p
-                          className="mt-0.5 truncate text-[10px] text-[#8A8A8A]"
+                          className="mt-2 truncate text-[10px] text-[#8A8A8A]"
                           title={tick.cashierName}
                         >
                           <span className="uppercase tracking-[0.08em]">By</span>{" "}
@@ -215,8 +228,8 @@ export function RecentTicksRail({
 
                       <ul
                         className={cn(
-                          "space-y-0.5",
-                          showCashier ? "mt-1" : "mt-1",
+                          "space-y-2",
+                          showCashier ? "mt-3" : "mt-3",
                         )}
                       >
                         {tick.items.map((item, itemIndex) => (

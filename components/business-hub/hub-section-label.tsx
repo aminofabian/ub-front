@@ -1,5 +1,6 @@
 "use client";
 
+import { HUB_MUTED } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export function HubSectionLabel({
@@ -31,7 +32,8 @@ export function HubSectionLabel({
         ) : null}
         <h2
           className={cn(
-            "text-[13px] font-semibold tracking-tight text-[#141414]",
+            "text-[11px] font-semibold uppercase tracking-[0.14em]",
+            HUB_MUTED,
           )}
         >
           {title}

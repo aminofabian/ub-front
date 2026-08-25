@@ -52,8 +52,8 @@ export function buildPulseHeadline(input: {
 
   if (salesEmpty) {
     return period === "today"
-      ? "Quiet so far — waiting for the first sale."
-      : "A quiet week so far — numbers fill in as you sell.";
+      ? "Quiet so far — the till is waiting for the first sale."
+      : "A soft week so far — trends will light up after the next sales.";
   }
 
   const trend = fmtTrendPct(revenue, prevRevenue);
@@ -85,8 +85,8 @@ export function buildPulseHeadline(input: {
 
   if (parts.length === 0) {
     return period === "today"
-      ? "How today is going."
-      : "How this week is going.";
+      ? "Live pulse for today."
+      : "Seven-day trading snapshot.";
   }
 
   return parts.join(" · ");
@@ -99,12 +99,12 @@ export function buildChartCaption(input: {
   const stats = chartWindowStats(input.points);
   if (stats.total <= 0) {
     return input.period === "today"
-      ? "Last 12 days — bars fill in as you sell."
-      : "Last 7 days — bars fill in as you sell.";
+      ? "Last 12 days — bars appear as revenue lands."
+      : "Last 7 days — bars appear as revenue lands.";
   }
 
   const bits = [
-    `Together ${fmtKes(stats.total)}`,
+    `Window ${fmtKes(stats.total)}`,
     `avg ${fmtKes(stats.average)}/day`,
   ];
   if (stats.best) {

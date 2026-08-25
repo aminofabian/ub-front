@@ -33,6 +33,8 @@ import {
   usesSharedPackageStock,
 } from "../_utils";
 import { ProductFormField } from "./ProductFormField";
+import { SearchableSelect } from "./SearchableSelect";
+import { categorySelectOptions } from "./category-select-options";
 import { ProductDescriptionField } from "./ProductDescriptionField";
 import { ProductFormSectionToggle } from "./ProductFormSectionToggle";
 import { StockIncreaseFields } from "./StockIncreaseFields";
@@ -148,6 +150,8 @@ export function ProductEditDrawer({
     if (!d) return "";
     return dr.name?.trim() || d.name?.trim() || "Product";
   }, [d, dr.name]);
+
+  const categoryOptions = useMemo(() => categorySelectOptions(cats), [cats]);
 
   const descriptionCategoryName = useMemo(() => {
     const id = dr.categoryId?.trim();
@@ -393,24 +397,17 @@ export function ProductEditDrawer({
                 </ProductFormField>
               ) : null}
               <ProductFormField label="Category">
-                <select
+                <SearchableSelect
                   className={productFormSelectClass}
                   value={dr.categoryId}
-                  onChange={(e) =>
-                    detail.setPatchDraft((p) => ({
-                      ...p,
-                      categoryId: e.target.value,
-                    }))
+                  onChange={(categoryId) =>
+                    detail.setPatchDraft((p) => ({ ...p, categoryId }))
                   }
-                >
-                  <option value="">— None —</option>
-                  {cats.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                      {!c.active ? " (inactive)" : ""}
-                    </option>
-                  ))}
-                </select>
+                  options={categoryOptions}
+                  noneLabel="None"
+                  placeholder="Type to find…"
+                  aria-label="Category"
+                />
               </ProductFormField>
               <ProductDescriptionField
                 value={dr.description ?? ""}

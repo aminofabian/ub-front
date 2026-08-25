@@ -63,7 +63,7 @@ describe("buildChartCaption", () => {
         { day: "2026-07-13", value: 0, label: "13 Jul" },
       ],
     });
-    expect(caption).toContain("Together");
+    expect(caption).toContain("Window");
     expect(caption).toContain("best 12 Jul");
   });
 });

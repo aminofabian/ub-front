@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { toNum } from "@/lib/business-hub/formatters";
+import { cn } from "@/lib/utils";
 import { useFormatMoney } from "@/hooks/use-format-money";
 
 export type TopMover = {
@@ -19,30 +21,39 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
 
   return (
     <section className="space-y-2">
-      <h2 className="mb-1 text-[12px] font-medium text-[#888888]">
-        Best sellers · 30 days
+      <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
+        Top sellers · 30d
       </h2>
-      <div className="space-y-0.5">
-        {rows.map((sku, i) => {
-          const revenue = toNum(sku.revenueLast30Days);
-          return (
-            <Link
-              key={sku.itemId}
-              href={`/products?search=${encodeURIComponent(sku.itemName)}`}
-              className="group flex items-center gap-2 py-0.5 transition-colors hover:text-[#8A6B2E]"
-            >
-              <span className="w-3 shrink-0 font-mono text-[10px] tabular-nums text-[#B0A898]">
-                {i + 1}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#141414]">
-                {sku.itemName}
-              </span>
-              <span className="shrink-0 text-xs font-semibold tabular-nums text-[#141414]">
-                {formatMoneyCompact(revenue)}
-              </span>
-            </Link>
-          );
-        })}
+      <div className={cn(HUB_SURFACE, "overflow-hidden")}>
+        <div className="divide-y divide-[#EDE8DF]">
+          {rows.map((sku, i) => {
+            const revenue = toNum(sku.revenueLast30Days);
+            return (
+              <Link
+                key={sku.itemId}
+                href={`/products?search=${encodeURIComponent(sku.itemName)}`}
+                className="group flex items-center gap-2.5 px-3 py-2 transition-colors hover:bg-[#FCFAF6]"
+              >
+                <span
+                  className={cn(
+                    "flex size-5 shrink-0 items-center justify-center font-mono text-[10px] font-semibold tabular-nums",
+                    i === 0
+                      ? "border border-[#B08D48] bg-[#F9F6F0] text-[#8A6B2E]"
+                      : "border border-[#E6E1D8] bg-white text-[#666666]",
+                  )}
+                >
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#141414] group-hover:text-[#8A6B2E]">
+                  {sku.itemName}
+                </span>
+                <span className="shrink-0 text-xs font-semibold tabular-nums text-[#141414]">
+                  {formatMoneyCompact(revenue)}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

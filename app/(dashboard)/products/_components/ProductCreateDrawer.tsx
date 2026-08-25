@@ -35,6 +35,8 @@ import { ProductCreatePricingSection } from "./ProductCreatePricingSection";
 import { PackageVariantsSection } from "./PackageVariantsSection";
 import { ProductDescriptionField } from "./ProductDescriptionField";
 import { ProductNameSuggestions } from "./ProductNameSuggestions";
+import { SearchableSelect } from "./SearchableSelect";
+import { categorySelectOptions } from "./category-select-options";
 import type { ParentDraft } from "../_types";
 import { toNumber } from "../_utils";
 import {
@@ -451,6 +453,11 @@ export function ProductCreateDrawer({
     return catalog.sortedCategories.find((c) => c.id === id)?.name;
   }, [catalog.sortedCategories, m.parentDraft.categoryId]);
 
+  const categoryOptions = useMemo(
+    () => categorySelectOptions(catalog.sortedCategories),
+    [catalog.sortedCategories],
+  );
+
   /* ── Submit wrapper that optionally keeps drawer open ── */
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -720,25 +727,18 @@ export function ProductCreateDrawer({
             </select>
           </Label>
           <Label label="Category" hint={isGroup ? undefined : "Skip if you like"}>
-            <select
+            <SearchableSelect
               className={icClass()}
               value={m.parentDraft.categoryId}
-              onChange={(e) =>
-                m.setParentDraft((p) => ({
-                  ...p,
-                  categoryId: e.target.value,
-                }))
+              onChange={(categoryId) =>
+                m.setParentDraft((p) => ({ ...p, categoryId }))
               }
+              options={categoryOptions}
+              noneLabel={isGroup ? "Pick one" : "None"}
+              placeholder="Type to find…"
               required={isGroup}
-            >
-              <option value="">{isGroup ? "Pick one" : "None"}</option>
-              {catalog.sortedCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                  {!c.active ? " (off)" : ""}
-                </option>
-              ))}
-            </select>
+              aria-label="Category"
+            />
           </Label>
         </div>
 

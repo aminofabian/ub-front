@@ -20,10 +20,11 @@ import {
   catalogFilterScopeCellClass,
   catalogFilterScopeGridClass,
   catalogFilterSectionClass,
-  catalogFilterSelectClass,
   catalogFilterToolbarClass,
   catalogFilterToolbarTitleClass,
 } from "./catalog-list-styles";
+import { SearchableSelect } from "./SearchableSelect";
+import { categorySelectOptions } from "./category-select-options";
 
 type Props = {
   catalog: Pick<
@@ -82,6 +83,10 @@ export function ProductFilterSidebar({ catalog }: Props) {
   const filtersActive = useMemo(() => hasActiveFilters(catalog), [catalog]);
   const searchPending = catalog.search.trim() !== catalog.debouncedSearch.trim();
   const categorySelected = !!catalog.filterCategoryId.trim();
+  const categoryOptions = useMemo(
+    () => categorySelectOptions(catalog.sortedCategories),
+    [catalog.sortedCategories],
+  );
 
   const needs = (
     [
@@ -173,20 +178,15 @@ export function ProductFilterSidebar({ catalog }: Props) {
 
         <div className={catalogFilterSectionClass}>
           <span className={catalogFilterLabelClass}>Category</span>
-          <select
-            className={catalogFilterSelectClass}
+          <SearchableSelect
+            className={catalogFilterInputClass}
             value={catalog.filterCategoryId}
-            onChange={(e) => catalog.setFilterCategoryId(e.target.value)}
+            onChange={catalog.setFilterCategoryId}
+            options={categoryOptions}
+            noneLabel="All"
+            placeholder="Type to find…"
             aria-label="Category"
-          >
-            <option value="">All</option>
-            {catalog.sortedCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-                {!c.active ? " (off)" : ""}
-              </option>
-            ))}
-          </select>
+          />
           {categorySelected ? (
             <label className={cn(catalogFilterOptionClass, "mt-0.5 px-0.5")}>
               <input

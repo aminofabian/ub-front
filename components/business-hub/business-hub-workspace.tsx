@@ -3,21 +3,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  BarChart3,
   Boxes,
+  ClipboardCheck,
+  CreditCard,
+  MessageCircle,
   Package,
   RefreshCw,
   ScanLine,
   Settings,
   ShoppingCart,
+  Store,
+  Users,
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { ActionItemsStrip } from "@/components/business-hub/action-items-strip";
+import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-empty-state";
 import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skeleton";
 import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
 import { CommandGrid, type CommandLink } from "@/components/business-hub/command-grid";
+import { HubAllClear } from "@/components/business-hub/hub-all-clear";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PostSetupChecklist } from "@/components/business-hub/post-setup-checklist";
 import { StockShelvesBanner } from "@/components/business-hub/stock-shelves-banner";
@@ -35,6 +43,7 @@ import { useOptionalRealtime } from "@/components/realtime-provider";
 import { playCashierChime } from "@/lib/cashier-chime";
 import { hubAlertsFromBusiness } from "@/lib/hub-alert-settings";
 import { APP_ROUTES } from "@/lib/config";
+import { isButcherPosEnabled } from "@/lib/butcher-feature";
 import {
   buildActionItems,
   expiringBatchCount,
@@ -61,6 +70,7 @@ import {
 } from "@/lib/business-hub/pulse-insights";
 import type { Period } from "@/lib/business-hub/types";
 import { cn } from "@/lib/utils";
+import { hasPermission, Permission } from "@/lib/permissions";
 import {
   addDays,
   presetRange,
@@ -144,6 +154,7 @@ export function BusinessHubWorkspace() {
     itemTypeId,
     headerScopeReady,
     canManageBusinessSettings,
+    canListUsers,
     canQuickSale,
     canViewAnalytics,
     canViewInventoryValuation,
@@ -166,9 +177,15 @@ export function BusinessHubWorkspace() {
       }),
     [featureFlags, business?.hubAlerts?.volume],
   );
+  const showButcherCounter =
+    isButcherPosEnabled(featureFlags) && canQuickSale;
   const shopEnabled = featureFlags?.shop !== false;
 
   const roleKey = me?.role?.key?.trim().toLowerCase();
+  const canApproveStockTake = hasPermission(
+    me?.permissions,
+    Permission.StocktakeApprove,
+  );
   const canViewOwnerSummary =
     roleKey !== "stock_manager" && roleKey !== "cashier";
   const canViewSupplyBills = canPathBRead || canViewApAging;
@@ -657,6 +674,13 @@ export function BusinessHubWorkspace() {
     ],
   );
 
+  const showAttentionSection =
+    canViewShifts ||
+    canViewSupplyBatches ||
+    canManageBusinessSettings ||
+    canViewApAging ||
+    canShowWebOrders;
+
   const chartRevenue = chartPoints.map((p) => p.value);
   const salesEmpty = isHubSalesEmpty(revenue, orders, chartRevenue);
 
@@ -676,9 +700,9 @@ export function BusinessHubWorkspace() {
   const pulseMetrics = useMemo(() => {
     const metrics = [
       {
-        label: isToday ? "Sales" : "Items sold",
+        label: isToday ? "Orders" : "Units sold",
         value: fmtCount(orders),
-        hint: ordersTrend ?? (isToday ? "Completed today" : "How many went out"),
+        hint: ordersTrend ?? (isToday ? "Completed sales" : "Quantity moved"),
         tone: (!ordersTrend
           ? "muted"
           : ordersTrend.startsWith("-") || ordersTrend.startsWith("<-")
@@ -687,13 +711,13 @@ export function BusinessHubWorkspace() {
         href: APP_ROUTES.salesTransactions,
       },
       {
-        label: "Profit",
+        label: "Gross profit",
         value: canViewAnalytics ? money(grossProfit) : "—",
         hint: canViewAnalytics
           ? margin != null
-            ? `${fmtPct(margin)} after cost`
-            : "After what you paid for stock"
-          : "Need permission to see this",
+            ? `${fmtPct(margin)} margin`
+            : "After cost of goods"
+          : "Analytics access required",
         tone: (canViewAnalytics ? profitTone : "muted") as
           | "muted"
           | "positive"
@@ -701,7 +725,7 @@ export function BusinessHubWorkspace() {
         href: canViewAnalytics ? APP_ROUTES.analytics : APP_ROUTES.sales,
       },
       {
-        label: isToday ? "Average sale" : "Average day",
+        label: isToday ? "Avg ticket" : "Avg / day",
         value: isToday
           ? ticket != null
             ? money(ticket)
@@ -711,15 +735,15 @@ export function BusinessHubWorkspace() {
             : "—",
         hint: isToday
           ? ticket != null
-            ? "Money in ÷ number of sales"
+            ? "Revenue ÷ sales"
             : "Needs at least one sale"
-          : "This week's typical day",
+          : "Across this week's window",
         href: APP_ROUTES.sales,
       },
       {
-        label: "Open tills",
+        label: "Open shifts",
         value: fmtCount(openShifts),
-        hint: openShifts > 0 ? "Still need closing" : "All closed",
+        hint: openShifts > 0 ? "Needs review" : "All closed",
         tone: (openShifts > 0 ? "warning" : "muted") as "warning" | "muted",
         href: APP_ROUTES.shifts,
       },
@@ -759,15 +783,15 @@ export function BusinessHubWorkspace() {
         id: "stock-value",
         label: "Stock value",
         value: money(valuation?.totalExtensionValue),
-        detail: "What you paid for goods on the shelf",
+        detail: "Inventory at cost on hand",
         href: APP_ROUTES.inventoryValuation,
         tone: "ok" as const,
       });
       items.push({
         id: "branches",
-        label: "Shops with stock",
+        label: "Branches with stock",
         value: fmtCount(valuation?.byBranch?.length ?? null),
-        detail: "Locations holding goods",
+        detail: "Locations holding inventory",
         href: APP_ROUTES.branches,
         tone: "ok" as const,
       });
@@ -777,7 +801,7 @@ export function BusinessHubWorkspace() {
         id: "low-stock",
         label: "Low stock",
         value: fmtCount(lowStockCount),
-        detail: "Need restocking",
+        detail: "Products below reorder comfort",
         href: APP_ROUTES.inventoryRestock,
         tone: "alert" as const,
       });
@@ -787,7 +811,7 @@ export function BusinessHubWorkspace() {
         id: "expiring",
         label: "Expiring soon",
         value: fmtCount(expiringCount),
-        detail: "Use or sell soon",
+        detail: "Batches to clear or discount",
         href: APP_ROUTES.inventorySupplyBatches,
         tone: "alert" as const,
       });
@@ -795,9 +819,9 @@ export function BusinessHubWorkspace() {
     if (canViewApAging && payablesOpen > 0) {
       items.push({
         id: "payables",
-        label: "Unpaid bills",
+        label: "Open payables",
         value: money(payablesOpen),
-        detail: "Still owing suppliers",
+        detail: "Supplier bills still outstanding",
         href: APP_ROUTES.purchasingApAging,
         tone: "watch" as const,
       });
@@ -820,7 +844,7 @@ export function BusinessHubWorkspace() {
       {
         href: APP_ROUTES.sales,
         label: "Sales",
-        hint: "Receipts and today's till",
+        hint: "Till, receipts, and today's floor",
         icon: ShoppingCart,
       },
       {
@@ -832,28 +856,97 @@ export function BusinessHubWorkspace() {
       {
         href: APP_ROUTES.inventoryStock,
         label: "Stock",
-        hint: "What's in the shop",
+        hint: "What's in the shop and what to restock",
         icon: Boxes,
       },
+      {
+        href: APP_ROUTES.analytics,
+        label: "Analytics",
+        hint: "Deeper trends and margins",
+        icon: BarChart3,
+      },
+      {
+        href: canShowWebOrders
+          ? APP_ROUTES.storefrontWebOrders
+          : APP_ROUTES.businessSettings,
+        label: canShowWebOrders ? "Web orders" : "Storefront",
+        hint: canShowWebOrders
+          ? "Online pickup orders"
+          : "Set up your public shop",
+        icon: Store,
+      },
     ];
-    if (canQuickSale) {
-      links.unshift({
-        href: APP_ROUTES.salesQuick,
-        label: "Open till",
-        hint: "Sell now",
+    if (canApproveStockTake) {
+      links.splice(3, 0, {
+        href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
+        label: "Audit review",
+        hint: "Approve stock-take findings",
+        icon: ClipboardCheck,
+      });
+    }
+    if (canViewSalesIntelligence) {
+      links.push({
+        href: APP_ROUTES.creditsOnTab,
+        label: "On tab",
+        hint: "Credit sales today",
+        icon: CreditCard,
+      });
+    } else if (canViewCustomers) {
+      links.push({
+        href: APP_ROUTES.customers,
+        label: "Credit customers",
+        hint: "Balances and reminders",
+        icon: Users,
+      });
+    }
+    if (canViewCustomers && canViewSalesIntelligence) {
+      links.push({
+        href: APP_ROUTES.customers,
+        label: "Credit customers",
+        hint: "Balances and reminders",
+        icon: Users,
+      });
+    }
+    if (canListUsers) {
+      links.push({
+        href: APP_ROUTES.users,
+        label: "Team",
+        hint: "Roles, access, and staff",
+        icon: Users,
+      });
+    }
+    if (showButcherCounter) {
+      links.push({
+        href: APP_ROUTES.butcher,
+        label: "Butcher counter",
+        hint: "Weigh, cut, and sell",
         icon: ScanLine,
       });
     }
     if (canManageBusinessSettings) {
       links.push({
-        href: APP_ROUTES.businessSettings,
-        label: "Shop settings",
-        hint: "Name, hours, and how the shop looks",
+        href: APP_ROUTES.businessConfiguration,
+        label: "Configuration",
+        hint: "Inventory and till policies",
         icon: Settings,
+      });
+      links.push({
+        href: `${APP_ROUTES.businessConfiguration}#settings-whatsapp-alerts`,
+        label: "WhatsApp alerts",
+        hint: "Owner order & shift notifications",
+        icon: MessageCircle,
       });
     }
     return links;
-  }, [canManageBusinessSettings, canQuickSale]);
+  }, [
+    canApproveStockTake,
+    canListUsers,
+    canManageBusinessSettings,
+    canShowWebOrders,
+    canViewCustomers,
+    canViewSalesIntelligence,
+    showButcherCounter,
+  ]);
 
   const cashierNames = useMemo(() => {
     const fromSales = cashiersFromTicks(recentTicks);
@@ -877,11 +970,11 @@ export function BusinessHubWorkspace() {
       return [
         {
           key: "floor",
-          title: "Recent sales",
+          title: "Floor tape",
           subtitle:
             drawouts.length > 0
-              ? "Sales and cash taken out"
-              : "Last few sales · every cashier",
+              ? "Open-shift sales & drawouts"
+              : "Last 3 · every cashier",
           ticks: filterTicksByCashiers(recentTicks, []),
           drawouts,
           showCashier: true,
@@ -944,16 +1037,16 @@ export function BusinessHubWorkspace() {
   const showMovers = canViewOwnerSummary && topMovers.length > 0;
 
   return (
-    <div className="hub-paper -mx-3 min-h-full px-3 py-2 sm:-mx-4 sm:px-4 sm:py-3 lg:mx-0 lg:px-0 lg:py-2">
+    <div className="hub-paper -mx-3 min-h-full px-3 py-4 sm:-mx-4 sm:px-4 sm:py-5 lg:mx-0 lg:px-0 lg:py-4">
       <div
         className={cn(
-          "mx-auto w-full max-w-5xl",
-          "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-2",
+          "mx-auto w-full max-w-5xl border border-[#E6E1D8] bg-white/70 p-3 shadow-[0_1px_0_rgba(20,20,20,0.03)] sm:p-4",
+          "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-4",
           showTillStage && "max-w-6xl xl:max-w-7xl",
           dualLanes && "max-w-7xl",
         )}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {showTillStage ? (
             <CashierStageTabs
               cashiers={cashierNames}
@@ -978,30 +1071,20 @@ export function BusinessHubWorkspace() {
           >
             <div
               className={cn(
-                "flex flex-col gap-2",
-                showTillStage && !galleryOpen && "xl:pr-4",
+                "flex flex-col gap-3",
+                showTillStage &&
+                  !galleryOpen &&
+                  "xl:border-r xl:border-[#E6E1D8] xl:pr-4",
               )}
             >
-              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                <div className="min-w-0">
-                  <h1 className="text-[15px] font-semibold tracking-tight text-[#141414]">
-                    {business?.branding?.displayName?.trim() ||
-                      business?.name?.trim() ||
-                      "Your shop"}
-                  </h1>
-                  <p className="text-[12px] text-[#666666]">
-                    {isToday ? "How today is going" : "How this week is going"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                <CommandGrid links={commandLinks} />
+              <div className="flex items-center justify-end gap-1.5">
                 <button
                   type="button"
                   onClick={() => void load()}
                   disabled={refreshing}
                   className={cn(
-                    "inline-flex size-7 items-center justify-center text-[#666666]",
-                    "transition-colors hover:text-[#8A6B2E]",
+                    "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                    "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
                     "disabled:cursor-not-allowed disabled:opacity-60",
                   )}
@@ -1017,8 +1100,8 @@ export function BusinessHubWorkspace() {
                   <Link
                     href={APP_ROUTES.businessSettings}
                     className={cn(
-                      "inline-flex size-7 items-center justify-center text-[#666666]",
-                      "transition-colors hover:text-[#8A6B2E]",
+                      "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
+                      "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
                     )}
                     aria-label="Business settings"
@@ -1026,13 +1109,19 @@ export function BusinessHubWorkspace() {
                     <Settings className="size-3.5" aria-hidden />
                   </Link>
                 ) : null}
-                </div>
               </div>
+
+              {salesEmpty ? (
+                <BusinessHubEmptyState
+                  period={period}
+                  showStorefrontLink={canManageBusinessSettings}
+                />
+              ) : null}
 
               {showTillStage && !galleryOpen ? (
                 <div
                   className={cn(
-                    "grid gap-2 xl:hidden",
+                    "grid gap-3 xl:hidden",
                     dualLanes && "sm:grid-cols-2",
                   )}
                 >
@@ -1057,8 +1146,8 @@ export function BusinessHubWorkspace() {
               ) : null}
 
               <PulseHero
-                eyebrow={isToday ? "Today" : "This week"}
-                revenueLabel={isToday ? "Money taken" : "Money taken this week"}
+                eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
+                revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
                 revenue={money(revenue)}
                 revenueBreakdown={revenueBreakdown}
                 headline={headline}
@@ -1069,11 +1158,7 @@ export function BusinessHubWorkspace() {
                 justUpdated={justUpdated}
               />
 
-              {actionItems.length > 0 ? (
-                <ActionItemsStrip items={actionItems} />
-              ) : null}
-
-              {canViewSupplyBills && todaySupplies.length > 0 ? (
+              {canViewSupplyBills ? (
                 <SupplyBillsRail
                   bills={todaySupplies}
                   currency={currency}
@@ -1083,9 +1168,7 @@ export function BusinessHubWorkspace() {
                 />
               ) : null}
 
-              {canViewCreditTabs &&
-              (openCreditTabs.length > 0 ||
-                Number(creditActivity?.totalPaid ?? 0) > 0.009) ? (
+              {canViewCreditTabs ? (
                 <CreditTabsRail
                   tabs={openCreditTabs}
                   currency={currency}
@@ -1098,7 +1181,7 @@ export function BusinessHubWorkspace() {
                 />
               ) : null}
 
-              {canShowWebOrders && openWebOrders.length > 0 ? (
+              {canShowWebOrders ? (
                 <WebOrdersRail
                   orders={openWebOrders}
                   currency={currency}
@@ -1111,13 +1194,21 @@ export function BusinessHubWorkspace() {
                 points={chartPoints}
                 ariaLabel={chartAriaLabel}
                 caption={chartCaption}
-                title={isToday ? "Last 12 days" : "This week"}
+                title={isToday ? "Twelve-day runway" : "Seven-day runway"}
               />
+
+              {showAttentionSection ? (
+                actionItems.length > 0 ? (
+                  <ActionItemsStrip items={actionItems} />
+                ) : (
+                  <HubAllClear />
+                )
+              ) : null}
 
               {(stockItems.length > 0 || showMovers) ? (
                 <div
                   className={cn(
-                    "grid gap-2 lg:items-start",
+                    "grid gap-3 lg:items-start",
                     stockItems.length > 0 &&
                       showMovers &&
                       "lg:grid-cols-[1.15fr_0.85fr]",
@@ -1128,7 +1219,9 @@ export function BusinessHubWorkspace() {
                 </div>
               ) : null}
 
-              <div className="space-y-2 xl:hidden">
+              <CommandGrid links={commandLinks} />
+
+              <div className="space-y-3 xl:hidden">
                 <StockShelvesBanner catalogueCount={catalogueCount} />
                 <PostSetupChecklist catalogueCount={catalogueCount} />
               </div>
@@ -1140,7 +1233,9 @@ export function BusinessHubWorkspace() {
                     key={lane.key}
                     className={cn(
                       "hidden xl:block xl:self-stretch",
-                      dualLanes && index === 0 && "xl:pl-3",
+                      dualLanes &&
+                        index === 0 &&
+                        "xl:border-r xl:border-[#E6E1D8]",
                     )}
                   >
                     <RecentTicksRail
@@ -1155,7 +1250,7 @@ export function BusinessHubWorkspace() {
                       accent={lane.accent}
                       laneIndex={dualLanes ? index : undefined}
                       fillViewport={false}
-                      className="h-full max-h-[min(28rem,56dvh)]"
+                      className="h-full max-h-[min(40rem,72dvh)] border-0 border-l border-[#E6E1D8]"
                     />
                   </div>
                 ))

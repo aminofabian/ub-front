@@ -55,17 +55,22 @@ export function CreditTabsRail({
   return (
     <section
       className={cn(
-        "hub-rise relative text-[#141414]",
-        justUpdated && "hub-scan-sweep",
+        "hub-rise relative border border-[#E6E1D8] bg-white text-[#141414]",
+        justUpdated && "hub-scan-sweep border-[#B08D48]/55",
         className,
       )}
       aria-label="Open credit tabs"
     >
-      <header className="flex shrink-0 items-center justify-between gap-2 py-1">
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-[#C47A5A]"
+        aria-hidden
+      />
+
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[#E6E1D8] px-3 py-1.5">
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="flex min-w-0 items-baseline gap-2">
-            <p className="truncate text-[13px] font-semibold tracking-tight text-[#141414]">
-              On credit
+            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#C47A5A]">
+              Credit tape
             </p>
             {!empty ? (
               <p className="truncate text-[10px] text-[#8A8A8A]">

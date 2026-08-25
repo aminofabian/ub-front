@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export type PulseMetric = {
@@ -36,19 +37,32 @@ export function PulseHero({
   justUpdated?: boolean;
 }) {
   return (
-    <section className={cn(justUpdated && "hub-scan-sweep")}>
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <p className="text-[13px] font-semibold tracking-tight text-[#141414]">
+    <section
+      className={cn(
+        HUB_SURFACE,
+        "relative overflow-hidden",
+        justUpdated && "hub-scan-sweep border-[#B08D48]/55",
+      )}
+    >
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-[#141414]"
+        aria-hidden
+      />
+
+      <div className="relative grid gap-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="flex flex-col justify-center gap-2 border-b border-[#E6E1D8] px-4 py-3.5 lg:border-b-0 lg:border-r">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className={cn("text-[10px] font-semibold uppercase tracking-[0.1em]", HUB_MUTED)}>
               {eyebrow}
             </p>
-            <span className="text-[#C4BBA8]" aria-hidden>
-              ·
+            <span className="text-[#D4CBB8]" aria-hidden>
+              /
             </span>
-            <p className="text-[12px] text-[#666666]">{revenueLabel}</p>
+            <p className={cn("text-[10px] uppercase tracking-[0.1em]", HUB_MUTED)}>
+              {revenueLabel}
+            </p>
             {live ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700">
+              <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
                 <span
                   className={cn(
                     "size-1.5 bg-emerald-500 hub-live-beacon",
@@ -60,11 +74,12 @@ export function PulseHero({
               </span>
             ) : null}
           </div>
-          <div className="mt-1 flex flex-wrap items-baseline gap-2">
+
+          <div className="flex flex-wrap items-end gap-2.5">
             <p
               key={justUpdated ? `${revenue}-tick` : revenue}
               className={cn(
-                "text-[1.65rem] font-medium leading-none tracking-tight text-[#141414] tabular-nums",
+                "text-[clamp(1.55rem,2.6vw,1.95rem)] font-medium leading-none tracking-tight text-[#141414] tabular-nums",
                 justUpdated && "hub-figure-pop",
               )}
               style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
@@ -74,31 +89,38 @@ export function PulseHero({
             {trend ? (
               <span
                 className={cn(
-                  "text-[11px] font-semibold tabular-nums",
-                  trendTone === "positive" && "text-emerald-700",
-                  trendTone === "warning" && "text-[#C47A5A]",
-                  trendTone === "negative" && "text-rose-700",
-                  trendTone === "muted" && "text-[#888888]",
+                  "mb-0.5 inline-flex items-center border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                  trendTone === "positive" &&
+                    "border-emerald-200 bg-emerald-500/10 text-emerald-700",
+                  trendTone === "warning" &&
+                    "border-[#E8C9BB] bg-[#C47A5A]/10 text-[#C47A5A]",
+                  trendTone === "negative" &&
+                    "border-rose-200 bg-rose-500/10 text-rose-700",
+                  trendTone === "muted" &&
+                    "border-[#E6E1D8] bg-[#F7F5F1] text-[#666666]",
                 )}
               >
                 {trend}
               </span>
             ) : null}
           </div>
+
           {revenueBreakdown ? (
-            <p className="mt-1 flex flex-wrap gap-x-2.5 text-[11px] tabular-nums text-[#666666]">
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] tabular-nums text-[#666666]">
               <span>
                 Cash{" "}
                 <span className="font-medium text-[#141414]">
                   {revenueBreakdown.cash}
                 </span>
               </span>
+              <span aria-hidden>·</span>
               <span>
                 M-Pesa{" "}
                 <span className="font-medium text-[#141414]">
                   {revenueBreakdown.mpesa}
                 </span>
               </span>
+              <span aria-hidden>·</span>
               <span>
                 Credit{" "}
                 <span className="font-medium text-[#141414]">
@@ -107,43 +129,47 @@ export function PulseHero({
               </span>
             </p>
           ) : null}
-          <p className="mt-1 line-clamp-1 text-[11px] text-[#888888]">{headline}</p>
-        </div>
-      </div>
 
-      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-4">
-        {metrics.map((metric) => {
-          const body = (
-            <div className="py-1.5 transition-colors hover:text-[#8A6B2E]">
-              <p className="text-[11px] text-[#888888]">{metric.label}</p>
-              <p className="text-[14px] font-semibold tracking-tight text-[#141414] tabular-nums">
-                {metric.value}
-              </p>
-              {metric.hint ? (
-                <p
-                  className={cn(
-                    "truncate text-[10px] leading-tight",
-                    metric.tone === "positive" && "text-emerald-600",
-                    metric.tone === "warning" && "text-[#C47A5A]",
-                    metric.tone === "negative" && "text-rose-600",
-                    (!metric.tone || metric.tone === "muted") && "text-[#AAAAAA]",
-                  )}
-                >
-                  {metric.hint}
+          <p className="line-clamp-2 text-xs leading-snug text-[#5A5A5A]">
+            {headline}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 bg-[#E6E1D8] sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => {
+            const body = (
+              <div className="bg-white px-3 py-3 transition-colors hover:bg-[#FCFAF6]">
+                <p className={cn("text-[10px] font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
+                  {metric.label}
                 </p>
-              ) : null}
-            </div>
-          );
-          return metric.href ? (
-            <Link key={metric.label} href={metric.href} className="block min-w-0">
-              {body}
-            </Link>
-          ) : (
-            <div key={metric.label} className="min-w-0">
-              {body}
-            </div>
-          );
-        })}
+                <p className="mt-1 text-[15px] font-semibold tracking-tight text-[#141414] tabular-nums">
+                  {metric.value}
+                </p>
+                {metric.hint ? (
+                  <p
+                    className={cn(
+                      "mt-1 truncate text-[10px] font-medium leading-tight",
+                      metric.tone === "positive" && "text-emerald-600",
+                      metric.tone === "warning" && "text-[#C47A5A]",
+                      metric.tone === "negative" && "text-rose-600",
+                      (!metric.tone || metric.tone === "muted") &&
+                        "text-[#888888]",
+                    )}
+                  >
+                    {metric.hint}
+                  </p>
+                ) : null}
+              </div>
+            );
+            return metric.href ? (
+              <Link key={metric.label} href={metric.href} className="block">
+                {body}
+              </Link>
+            ) : (
+              <div key={metric.label}>{body}</div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

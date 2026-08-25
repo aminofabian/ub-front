@@ -12,6 +12,8 @@ import type { BranchRecord, CategoryRecord, SupplierRecord } from "@/lib/api";
 import { type VariantDraft, emptyVariantDraft } from "./_types";
 import { formatAmount, toNumber } from "./_utils";
 import { StockIncreaseFields } from "./_components/StockIncreaseFields";
+import { SearchableSelect } from "./_components/SearchableSelect";
+import { categorySelectOptions } from "./_components/category-select-options";
 import {
   productFormHintClass,
   productFormInputClass,
@@ -280,26 +282,25 @@ function VariantRowFields({
     return null;
   }, [row.defaultCostPrice, row.bundleQty]);
 
+  const categoryOptions = useMemo(
+    () => categorySelectOptions(sortedCategories),
+    [sortedCategories],
+  );
+
   const categorySelectValue =
     row.categoryId.trim() || parentCategoryId?.trim() || "";
 
   const categoryField = (
     <Label className="gap-0.5" label="Category">
-      <select
+      <SearchableSelect
         className={productFormSelectClass}
         value={categorySelectValue}
-        onChange={(e) => onPatch({ categoryId: e.target.value })}
-      >
-        {!parentCategoryId ? (
-          <option value="">— None —</option>
-        ) : null}
-        {sortedCategories.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-            {!c.active ? " (inactive)" : ""}
-          </option>
-        ))}
-      </select>
+        onChange={(categoryId) => onPatch({ categoryId })}
+        options={categoryOptions}
+        noneLabel={parentCategoryId ? undefined : "None"}
+        placeholder="Type to find…"
+        aria-label="Category"
+      />
     </Label>
   );
 
