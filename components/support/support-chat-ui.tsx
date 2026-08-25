@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 // Used by both the tenant chat page and the super-admin inbox so the two sides
 // of the conversation speak the same visual language.
 
-export type ChatSenderType = "TENANT" | "SUPER_ADMIN";
+export type ChatSenderType = "TENANT" | "SUPER_ADMIN" | "GUEST";
 
 export type ChatMessageShape = {
   id: string;

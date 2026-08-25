@@ -78,3 +78,71 @@ export async function fetchSupportUnreadCount(): Promise<number> {
   const payload = await apiRequest<{ count?: number }>(`${API_ROUTES.support}/unread-count`);
   return typeof payload?.count === "number" ? payload.count : 0;
 }
+
+// ── Storefront buyer threads (tenant staff answers shoppers here) ─────────
+
+export type StorefrontBuyerConversation = {
+  id: string;
+  businessId: string;
+  businessName: string | null;
+  businessSlug: string | null;
+  conversationType: "STOREFRONT";
+  guestId: string | null;
+  guestName: string | null;
+  status: "OPEN" | "RESOLVED" | string;
+  subject: string | null;
+  createdByName: string | null;
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  tenantLastReadAt: string | null;
+  adminLastReadAt: string | null;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function fetchStorefrontBuyerConversations(opts?: {
+  status?: "OPEN" | "RESOLVED" | "ALL";
+}): Promise<{
+  conversations: StorefrontBuyerConversation[];
+  total: number;
+  unread: number;
+}> {
+  const params = new URLSearchParams();
+  if (opts?.status && opts.status !== "ALL") {
+    params.set("status", opts.status);
+  }
+  const suffix = params.toString();
+  return apiRequest<{ conversations: StorefrontBuyerConversation[]; total: number; unread: number }>(
+    `${API_ROUTES.support}/storefront/conversations${suffix ? `?${suffix}` : ""}`,
+  );
+}
+
+export async function fetchStorefrontBuyerConversation(
+  id: string,
+): Promise<SupportConversationDetail> {
+  return apiRequest<SupportConversationDetail>(
+    `${API_ROUTES.support}/storefront/conversations/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function sendStorefrontBuyerReply(id: string, body: string): Promise<SupportMessage> {
+  return apiRequest<SupportMessage>(
+    `${API_ROUTES.support}/storefront/conversations/${encodeURIComponent(id)}/messages`,
+    { method: "POST", body: { body } },
+  );
+}
+
+export async function markStorefrontBuyerConversationRead(id: string): Promise<void> {
+  await apiRequest<void>(
+    `${API_ROUTES.support}/storefront/conversations/${encodeURIComponent(id)}/read`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchStorefrontBuyerUnreadCount(): Promise<number> {
+  const payload = await apiRequest<{ count?: number }>(
+    `${API_ROUTES.support}/storefront/unread-count`,
+  );
+  return typeof payload?.count === "number" ? payload.count : 0;
+}

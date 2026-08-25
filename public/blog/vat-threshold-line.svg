@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">The VAT cliff — where registration becomes compulsory</text>
+
+  <!-- ============ LEFT: the gauge ============ -->
+  <rect x="16" y="64" width="520" height="420" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="40" y="96" font-size="12.5" font-weight="700" fill="#1F2937">Annual taxable turnover (KES)</text>
+
+  <!-- Scale line -->
+  <line x1="60" y1="200" x2="500" y2="200" stroke="#d1d5db" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Zone 1: 0-5M -->
+  <rect x="60" y="190" width="120" height="20" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="120" y="176" font-size="10.5" font-weight="700" fill="#15803d" text-anchor="middle">0 – 5M · NO VAT</text>
+  <text x="120" y="234" font-size="10" fill="#6b7280" text-anchor="middle">Most single-branch</text>
+  <text x="120" y="250" font-size="10" fill="#6b7280" text-anchor="middle">mini-marts live here</text>
+
+  <!-- Zone 2: 5-8M -->
+  <rect x="190" y="190" width="150" height="20" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="265" y="176" font-size="10.5" font-weight="700" fill="#A8842C" text-anchor="middle">5 – 8M · OPTIONAL</text>
+  <text x="265" y="234" font-size="10" fill="#6b7280" text-anchor="middle">Voluntary registration —</text>
+  <text x="265" y="250" font-size="10" fill="#6b7280">useful to reclaim input VAT</text>
+
+  <!-- Zone 3: 8M+ -->
+  <rect x="350" y="190" width="150" height="20" rx="10" fill="#fee2e2" stroke="#fca5a5"/>
+  <text x="425" y="176" font-size="10.5" font-weight="700" fill="#b91c1c" text-anchor="middle">8M+ · MANDATORY</text>
+  <text x="425" y="234" font-size="10" fill="#6b7280" text-anchor="middle">Compulsory registration,</text>
+  <text x="425" y="250" font-size="10" fill="#6b7280">16% on taxable sales</text>
+
+  <!-- Marker -->
+  <g>
+    <rect x="102" y="120" width="36" height="54" rx="6" fill="#1F2937"/>
+    <path d="M120 174 L110 190 L130 190 Z" fill="#1F2937"/>
+    <rect x="102" y="132" width="36" height="3" fill="#fbbf24"/>
+  </g>
+  <text x="120" y="112" font-size="10.5" font-weight="700" fill="#1F2937" text-anchor="middle">≈ 4.5M/yr</text>
+
+  <!-- Notes -->
+  <rect x="40" y="292" width="472" height="164" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="60" y="320" font-size="11.5" font-weight="700" fill="#15803d">The cliff, not a suggestion</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="60" y="344">· Once turnover passes KSh 8M in 12 months, registration is</text>
+    <text x="60" y="360">  compulsory and backdates to the point you crossed it.</text>
+    <text x="60" y="382">· Track your running 12-month total — a till that sums your</text>
+    <text x="60" y="398">  sales automatically makes this visible, not guesswork.</text>
+    <text x="60" y="420">· Thresholds move with Finance Act changes — confirm</text>
+    <text x="60" y="436">  current figures with KRA before deciding.</text>
+  </g>
+
+  <!-- ============ RIGHT: what 16% touches ============ -->
+  <rect x="564" y="64" width="380" height="420" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="588" y="96" font-size="12.5" font-weight="700" fill="#1F2937">What 16% applies to</text>
+
+  <rect x="588" y="116" width="332" height="86" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="142" font-size="11.5" font-weight="700" fill="#1F2937">Standard-rated · 16%</text>
+  <text x="608" y="164" font-size="10.5" fill="#6b7280">Non-food retail: toiletries, cleaning,</text>
+  <text x="608" y="180" font-size="10.5" fill="#6b7280">packaged snacks, general goods.</text>
+
+  <rect x="588" y="214" width="332" height="86" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="240" font-size="11.5" font-weight="700" fill="#1F2937">Zero-rated · 0%</text>
+  <text x="608" y="262" font-size="10.5" fill="#6b7280">Exports and certain supplies — plus</text>
+  <text x="608" y="278" font-size="10.5" fill="#6b7280">many staples like maize flour.</text>
+
+  <rect x="588" y="312" width="332" height="86" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="338" font-size="11.5" font-weight="700" fill="#1F2937">Exempt</text>
+  <text x="608" y="360" font-size="10.5" fill="#6b7280">No VAT charged and no input VAT</text>
+  <text x="608" y="376" font-size="10.5" fill="#6b7280">reclaimable — milk and other items.</text>
+
+  <rect x="588" y="410" width="332" height="50" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="608" y="436" font-size="10.5" font-weight="700" fill="#A8842C">Staples-heavy shops: little output VAT,</text>
+  <text x="608" y="452" font-size="10.5" fill="#374151">even after crossing the threshold.</text>
+</svg>

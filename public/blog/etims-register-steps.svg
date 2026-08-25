@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">eTIMS onboarding — four steps, usually under an hour</text>
+
+  <!-- ============ 4 step cards ============ -->
+  <!-- Step 1 -->
+  <rect x="16" y="64" width="220" height="230" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <circle cx="54" cy="104" r="20" fill="#A8842C"/>
+  <text x="54" y="110" font-size="14" font-weight="800" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="126" y="110" font-size="12.5" font-weight="700" fill="#1F2937">Log in to iTax</text>
+  <text x="36" y="146" font-size="10.5" fill="#6b7280">Sign in at itax.kra.go.ke with your</text>
+  <text x="36" y="162" font-size="10.5" fill="#6b7280">KRA PIN and password. Open the</text>
+  <text x="36" y="178" font-size="10.5" fill="#6b7280">eTIMS section and start the</text>
+  <text x="36" y="194" font-size="10.5" fill="#6b7280">onboarding flow.</text>
+  <rect x="36" y="216" width="180" height="26" rx="8" fill="#fefce8" stroke="#fde68a"/>
+  <text x="126" y="233" font-size="9.5" font-weight="700" fill="#A8842C" text-anchor="middle">NEED: KRA PIN</text>
+
+  <!-- Step 2 -->
+  <rect x="252" y="64" width="220" height="230" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <circle cx="290" cy="104" r="20" fill="#A8842C"/>
+  <text x="290" y="110" font-size="14" font-weight="800" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="362" y="110" font-size="12.5" font-weight="700" fill="#1F2937">Pick a method</text>
+  <text x="272" y="146" font-size="10.5" fill="#6b7280">Web portal, mobile app, offline</text>
+  <text x="272" y="162" font-size="10.5" fill="#6b7280">desktop, or POS/API integration.</text>
+  <text x="272" y="186" font-size="10.5" font-weight="700" fill="#15803d">Shops: choose the POS route.</text>
+  <text x="272" y="202" font-size="10.5" fill="#6b7280">Every sale then invoices itself.</text>
+  <rect x="272" y="216" width="180" height="26" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="362" y="233" font-size="9.5" font-weight="700" fill="#15803d" text-anchor="middle">SHOP PICK: POS</text>
+
+  <!-- Step 3 -->
+  <rect x="488" y="64" width="220" height="230" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <circle cx="526" cy="104" r="20" fill="#A8842C"/>
+  <text x="526" y="110" font-size="14" font-weight="800" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="598" y="110" font-size="12.5" font-weight="700" fill="#1F2937">Connect &amp; confirm</text>
+  <text x="508" y="146" font-size="10.5" fill="#6b7280">Register the device (a USB token</text>
+  <text x="508" y="162" font-size="10.5" fill="#6b7280">for desktops) or link your POS to</text>
+  <text x="508" y="178" font-size="10.5" fill="#6b7280">your KRA PIN. Your provider</text>
+  <text x="508" y="194" font-size="10.5" fill="#6b7280">walks you through it.</text>
+  <rect x="508" y="216" width="180" height="26" rx="8" fill="#fefce8" stroke="#fde68a"/>
+  <text x="598" y="233" font-size="9.5" font-weight="700" fill="#A8842C" text-anchor="middle">~10 MINUTES</text>
+
+  <!-- Step 4 -->
+  <rect x="724" y="64" width="220" height="230" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <circle cx="762" cy="104" r="20" fill="#28a745"/>
+  <path d="M753 104 l7 7 l13 -15" stroke="#ffffff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="834" y="110" font-size="12.5" font-weight="700" fill="#1F2937">Go live</text>
+  <text x="744" y="146" font-size="10.5" fill="#6b7280">KRA confirms onboarding and you</text>
+  <text x="744" y="162" font-size="10.5" fill="#6b7280">start issuing authorized invoices</text>
+  <text x="744" y="178" font-size="10.5" fill="#6b7280">— often the very same day.</text>
+  <rect x="744" y="216" width="180" height="26" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="834" y="233" font-size="9.5" font-weight="700" fill="#15803d" text-anchor="middle">LIVE TODAY</text>
+
+  <!-- Arrows between steps -->
+  <path d="M236 179 L248 179" stroke="#d1d5db" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M472 179 L484 179" stroke="#d1d5db" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M708 179 L720 179" stroke="#d1d5db" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- ============ Bottom note ============ -->
+  <rect x="16" y="320" width="928" height="120" rx="14" fill="#fefce8" stroke="#fde68a"/>
+  <text x="480" y="352" font-size="12.5" font-weight="700" fill="#A8842C" text-anchor="middle">What you need before you start</text>
+  <g font-size="11" fill="#374151" text-anchor="middle">
+    <text x="480" y="378">· A KRA PIN attached to the business, not just to you personally.</text>
+    <text x="480" y="398">· Business registration — the name on eCitizen or company documents.</text>
+    <text x="480" y="418">· An active iTax account with your credentials handy.</text>
+  </g>
+
+  <!-- Footer -->
+  <text x="480" y="480" font-size="10.5" fill="#6b7280" text-anchor="middle">KRA doesn't charge a registration fee — web portal and mobile app are free to use.</text>
+  <text x="480" y="498" font-size="10.5" fill="#6b7280" text-anchor="middle">Device or token setups may carry hardware cost; POS integration rides on your software plan.</text>
+</svg>

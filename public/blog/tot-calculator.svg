@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Turnover tax — the 3% in plain arithmetic</text>
+
+  <!-- ============ LEFT: the calculator ============ -->
+  <rect x="16" y="64" width="440" height="420" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="64" width="440" height="48" rx="14" fill="#1F2937"/>
+  <rect x="16" y="90" width="440" height="22" fill="#1F2937"/>
+  <text x="236" y="95" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">TOT calculator — one month</text>
+
+  <!-- Input -->
+  <text x="40" y="156" font-size="11" font-weight="700" fill="#1F2937">Your gross turnover this month</text>
+  <rect x="40" y="170" width="392" height="58" rx="12" fill="#fefce8" stroke="#fde68a"/>
+  <text x="60" y="208" font-size="24" font-weight="800" fill="#1F2937">KSh 400,000</text>
+
+  <!-- Operator -->
+  <circle cx="236" cy="268" r="26" fill="#A8842C"/>
+  <text x="236" y="275" font-size="22" font-weight="800" fill="#ffffff" text-anchor="middle">×</text>
+  <rect x="150" y="310" width="172" height="36" rx="18" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="236" y="334" font-size="12" font-weight="700" fill="#A8842C" text-anchor="middle">3% TOT rate</text>
+
+  <!-- Equals -->
+  <line x1="236" y1="366" x2="236" y2="392" stroke="#d1d5db" stroke-width="3"/>
+
+  <!-- Output -->
+  <rect x="40" y="400" width="392" height="58" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="60" y="438" font-size="24" font-weight="800" fill="#15803d">KSh 12,000</text>
+  <text x="300" y="432" font-size="10.5" font-weight="700" fill="#15803d">due by the 20th</text>
+  <text x="300" y="448" font-size="10" fill="#6b7280">of next month</text>
+
+  <!-- ============ RIGHT: what TOT means ============ -->
+  <rect x="504" y="64" width="440" height="420" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="528" y="96" font-size="12.5" font-weight="700" fill="#1F2937">What you're actually agreeing to</text>
+
+  <rect x="528" y="116" width="392" height="72" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="548" y="142" font-size="11.5" font-weight="700" fill="#1F2937">Simple, and blind to expenses</text>
+  <text x="548" y="162" font-size="10.5" fill="#6b7280">No expense schedules, no deductions, no arguments.</text>
+  <text x="548" y="178" font-size="10.5" fill="#6b7280">Thin-margin month still owes its 3%.</text>
+
+  <rect x="528" y="200" width="392" height="72" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="548" y="226" font-size="11.5" font-weight="700" fill="#1F2937">Who it fits</text>
+  <text x="548" y="246" font-size="10.5" fill="#6b7280">Annual turnover KSh 1–25 million — the bracket</text>
+  <text x="548" y="262" font-size="10.5" fill="#6b7280">almost every single-branch mini-mart lives in.</text>
+
+  <rect x="528" y="284" width="392" height="72" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="548" y="310" font-size="11.5" font-weight="700" fill="#1F2937">The honest trade-off</text>
+  <text x="548" y="330" font-size="10.5" fill="#6b7280">Two shops, 30% vs 8% margins, pay the same 3%.</text>
+  <text x="548" y="346" font-size="10.5" fill="#6b7280">Very thin margins → ask an accountant about</text>
+  <text x="548" y="362" font-size="10.5" fill="#6b7280">regular income tax on profits instead.</text>
+
+  <rect x="528" y="368" width="392" height="92" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="548" y="394" font-size="11.5" font-weight="700" fill="#A8842C">Filing rhythm</text>
+  <text x="548" y="414" font-size="10.5" fill="#374151">· Monthly return on iTax by the 20th, paid same day.</text>
+  <text x="548" y="432" font-size="10.5" fill="#374151">· Annual return at year end; a 25% top-up applies if</text>
+  <text x="548" y="448" font-size="10.5" fill="#374151">  your year's TOT undercuts income tax on profits.</text>
+</svg>

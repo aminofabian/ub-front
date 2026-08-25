@@ -30,6 +30,7 @@ export const SETUP_POS_ARTICLE: BlogArticle = {
     "online-physical-one-inventory",
     "why-kiosk-beats-odoo-for-kenyan-shops",
     "5-signs-youve-outgrown-your-pos",
+    "taxes-for-mini-marts-in-kenya",
   ],
   faqs: [
     {

@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Connect KopoKopo — and where each credential comes from</text>
+
+  <!-- ============ LEFT: the credential form ============ -->
+  <rect x="16" y="56" width="520" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="520" height="48" rx="14" fill="#0F766E"/>
+  <rect x="16" y="82" width="520" height="22" fill="#0F766E"/>
+  <text x="40" y="87" font-size="13.5" font-weight="700" fill="#ffffff">Connect KopoKopo</text>
+  <text x="512" y="87" font-size="9.5" fill="#ccfbf1" text-anchor="end">Payments → Add method</text>
+
+  <!-- Environment -->
+  <text x="40" y="112" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#6b7280">ENVIRONMENT</text>
+  <rect x="40" y="120" width="136" height="30" rx="8" fill="#f0fdf4" stroke="#0F766E" stroke-width="1.5"/>
+  <circle cx="58" cy="135" r="6" fill="#0F766E"/>
+  <circle cx="58" cy="135" r="2.5" fill="#ffffff"/>
+  <text x="74" y="139" font-size="10.5" font-weight="600" fill="#0F766E">Sandbox</text>
+  <rect x="184" y="120" width="136" height="30" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <circle cx="202" cy="135" r="6" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="218" y="139" font-size="10.5" fill="#6b7280">Production</text>
+
+  <!-- Client ID -->
+  <text x="40" y="174" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#6b7280">CLIENT ID</text>
+  <rect x="40" y="182" width="472" height="30" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="54" y="202" font-size="11" fill="#1F2937">ab12cd34-ef56-7890-kopo-app-key</text>
+
+  <!-- Client Secret -->
+  <text x="40" y="228" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#6b7280">CLIENT SECRET</text>
+  <rect x="40" y="236" width="472" height="30" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="54" y="256" font-size="11" fill="#1F2937">••••••••••••••••••••••••</text>
+
+  <!-- API Key -->
+  <text x="40" y="282" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#6b7280">API KEY</text>
+  <rect x="40" y="290" width="472" height="30" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="54" y="310" font-size="11" fill="#1F2937">kpk_live_9f2a7c4e8d1b6f0a3c5e7d9b</text>
+
+  <!-- Till number -->
+  <text x="40" y="336" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#6b7280">TILL NUMBER *</text>
+  <rect x="40" y="344" width="472" height="30" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="54" y="364" font-size="11" fill="#1F2937">3502582</text>
+
+  <!-- Webhook tills -->
+  <text x="40" y="390" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#6b7280">WEBHOOK TILLS</text>
+  <rect x="40" y="398" width="472" height="30" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="54" y="418" font-size="11" fill="#1F2937">3020127,3502582</text>
+
+  <!-- Save -->
+  <rect x="40" y="444" width="472" height="34" rx="8" fill="#0F766E"/>
+  <text x="276" y="466" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">Save</text>
+  <text x="276" y="494" font-size="9" fill="#6b7280" text-anchor="middle">After save: Manage → Test → Activate → Subscribe till webhooks</text>
+
+  <!-- ============ RIGHT: where each value comes from ============ -->
+  <rect x="556" y="56" width="388" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="556" y="56" width="388" height="48" rx="14" fill="#1F2937"/>
+  <rect x="556" y="82" width="388" height="22" fill="#1F2937"/>
+  <text x="580" y="87" font-size="13.5" font-weight="700" fill="#ffffff">Where each value comes from</text>
+
+  <!-- dashboard card -->
+  <rect x="580" y="120" width="340" height="46" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="600" y="140" font-size="10.5" font-weight="700" fill="#1F2937">Kopo Kopo dashboard</text>
+  <text x="600" y="156" font-size="9" font-family="ui-monospace, SFMono-Regular, monospace" fill="#0F766E">app.kopokopo.com/applications</text>
+
+  <!-- mapping rows -->
+  <rect x="580" y="184" width="118" height="32" rx="8" fill="#F0FDF4" stroke="#BBF7D0"/>
+  <text x="639" y="205" font-size="10.5" font-weight="700" fill="#15803d" text-anchor="middle">Client ID</text>
+  <text x="714" y="197" font-size="12" font-weight="700" fill="#A8842C">→</text>
+  <text x="730" y="205" font-size="10" fill="#374151">Application key — not the API Key</text>
+
+  <rect x="580" y="226" width="118" height="32" rx="8" fill="#F0FDF4" stroke="#BBF7D0"/>
+  <text x="639" y="247" font-size="10.5" font-weight="700" fill="#15803d" text-anchor="middle">Client Secret</text>
+  <text x="714" y="239" font-size="12" font-weight="700" fill="#A8842C">→</text>
+  <text x="730" y="247" font-size="10" fill="#374151">Secret on the Applications page</text>
+
+  <rect x="580" y="268" width="118" height="32" rx="8" fill="#F0FDF4" stroke="#BBF7D0"/>
+  <text x="639" y="289" font-size="10.5" font-weight="700" fill="#15803d" text-anchor="middle">API Key</text>
+  <text x="714" y="281" font-size="12" font-weight="700" fill="#A8842C">→</text>
+  <text x="730" y="289" font-size="10" fill="#374151">API key on the dashboard</text>
+
+  <rect x="580" y="310" width="118" height="32" rx="8" fill="#F0FDF4" stroke="#BBF7D0"/>
+  <text x="639" y="331" font-size="10.5" font-weight="700" fill="#15803d" text-anchor="middle">Till number</text>
+  <text x="714" y="323" font-size="12" font-weight="700" fill="#A8842C">→</text>
+  <text x="730" y="331" font-size="10" fill="#374151">Your M-Pesa Buy Goods till</text>
+
+  <!-- environment note -->
+  <rect x="580" y="366" width="340" height="74" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="600" y="388" font-size="10" font-weight="700" fill="#A8842C">Sandbox and Production use different keys</text>
+  <text x="600" y="406" font-size="9" fill="#6b7280">Each environment's Client ID / Secret pair comes from</text>
+  <text x="600" y="420" font-size="9" fill="#6b7280">that environment's Applications page — don't mix them.</text>
+  <text x="600" y="434" font-size="9" fill="#6b7280">A production till won't authenticate with sandbox keys.</text>
+
+  <!-- next flow -->
+  <text x="750" y="472" font-size="9.5" font-weight="700" fill="#1F2937" text-anchor="middle">Then, on the KopoKopo row:</text>
+  <g font-size="10" font-weight="700">
+    <rect x="600" y="484" width="92" height="30" rx="15" fill="#E0F2F1"/>
+    <text x="646" y="504" fill="#0F766E" text-anchor="middle">Test</text>
+    <text x="704" y="504" font-size="11" fill="#A8842C">→</text>
+    <rect x="718" y="484" width="92" height="30" rx="15" fill="#E0F2F1"/>
+    <text x="764" y="504" fill="#0F766E" text-anchor="middle">Activate</text>
+    <text x="822" y="504" font-size="11" fill="#A8842C">→</text>
+    <rect x="836" y="484" width="92" height="30" rx="15" fill="#0F766E"/>
+    <text x="882" y="504" fill="#ffffff" text-anchor="middle">Webhooks</text>
+  </g>
+</svg>

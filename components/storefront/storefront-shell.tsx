@@ -4,6 +4,7 @@ import { StorefrontPwaRuntime } from "@/components/storefront/storefront-pwa-run
 import { StorefrontPreviewBanner } from "@/components/storefront/storefront-preview-banner";
 import { StorefrontSignInProvider } from "@/components/storefront/storefront-sign-in-sheet";
 import { StorefrontThemeScope } from "@/components/storefront/storefront-theme-scope";
+import { StorefrontSupportLauncher } from "@/components/support/storefront-support-launcher";
 import { resolveStoreChromeVariant } from "@/components/storefront/templates/registry";
 import {
   fetchPublicCategories,
@@ -177,6 +178,11 @@ export async function StorefrontShell({
       )}
       <ShopStorefrontRealtime currency={currency} branding={branding} />
       <StorefrontPwaRuntime />
+      <StorefrontSupportLauncher
+        slug={slug}
+        label={headerTitle}
+        primaryHex={primary}
+      />
     </StorefrontThemeScope>
   );
 }

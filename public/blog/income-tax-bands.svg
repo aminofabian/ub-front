@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Income tax for a sole proprietor — tax on profit, not turnover</text>
+
+  <!-- ============ LEFT: the band ladder ============ -->
+  <rect x="16" y="64" width="520" height="420" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="40" y="96" font-size="12.5" font-weight="700" fill="#1F2937">Annual taxable profit (KES)</text>
+
+  <!-- Band 1 -->
+  <rect x="40" y="120" width="452" height="88" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <circle cx="72" cy="156" r="18" fill="#28a745"/>
+  <text x="72" y="162" font-size="13" font-weight="800" fill="#ffffff" text-anchor="middle">10%</text>
+  <text x="104" y="150" font-size="12" font-weight="700" fill="#1F2937">Up to KSh 288,000</text>
+  <text x="104" y="170" font-size="10.5" fill="#6b7280">The first band — most mini-mart profits that</text>
+  <text x="104" y="186" font-size="10.5" fill="#6b7280">aren't withdrawn sit here.</text>
+
+  <!-- Band 2 -->
+  <rect x="40" y="222" width="452" height="88" rx="12" fill="#fefce8" stroke="#fde68a"/>
+  <circle cx="72" cy="258" r="18" fill="#A8842C"/>
+  <text x="72" y="264" font-size="13" font-weight="800" fill="#ffffff" text-anchor="middle">25%</text>
+  <text x="104" y="252" font-size="12" font-weight="700" fill="#1F2937">KSh 288,001 – 388,000</text>
+  <text x="104" y="272" font-size="10.5" fill="#6b7280">Only the slice of profit inside this band</text>
+  <text x="104" y="288" font-size="10.5" fill="#6b7280">is taxed at 25%.</text>
+
+  <!-- Band 3 -->
+  <rect x="40" y="324" width="452" height="88" rx="12" fill="#fee2e2" stroke="#fca5a5"/>
+  <circle cx="72" cy="360" r="18" fill="#b91c1c"/>
+  <text x="72" y="366" font-size="13" font-weight="800" fill="#ffffff" text-anchor="middle">30%</text>
+  <text x="104" y="354" font-size="12" font-weight="700" fill="#1F2937">Above KSh 388,000</text>
+  <text x="104" y="374" font-size="10.5" fill="#6b7280">Bands stack: each slice is taxed at its own</text>
+  <text x="104" y="390" font-size="10.5" fill="#6b7280">rate — hitting 30% doesn't retax the lower slices.</text>
+
+  <rect x="40" y="430" width="452" height="30" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="266" y="449" font-size="10.5" font-weight="700" fill="#6b7280" text-anchor="middle">Annual return due 30 June · quarterly installments during the year</text>
+
+  <!-- ============ RIGHT: expenses + PAYE ============ -->
+  <rect x="564" y="64" width="380" height="420" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="588" y="96" font-size="12.5" font-weight="700" fill="#1F2937">Profit = sales − real expenses</text>
+
+  <rect x="588" y="116" width="332" height="150" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="142" font-size="11.5" font-weight="700" fill="#1F2937">Deductible (with records)</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="608" y="166">· Stock purchases — supplier invoices</text>
+    <text x="608" y="184">· Rent, power, water, transport</text>
+    <text x="608" y="202">· Staff wages</text>
+    <text x="608" y="220">· Repairs, small equipment, business fees</text>
+    <text x="608" y="238">· Insurance &amp; banking charges</text>
+  </g>
+  <text x="608" y="258" font-size="10" fill="#b91c1c">No record = no deduction, in KRA's eyes.</text>
+
+  <rect x="588" y="282" width="332" height="86" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="608" y="308" font-size="11.5" font-weight="700" fill="#1F2937">PAYE — if you employ staff</text>
+  <text x="608" y="330" font-size="10.5" fill="#6b7280">Deduct from salaries at source, remit</text>
+  <text x="608" y="346" font-size="10.5" fill="#6b7280">by the 9th of every month.</text>
+
+  <rect x="588" y="384" width="332" height="76" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="608" y="410" font-size="11.5" font-weight="700" fill="#A8842C">TOT vs income tax</text>
+  <text x="608" y="432" font-size="10.5" fill="#374151">Below KSh 25M turnover you're usually on</text>
+  <text x="608" y="448" font-size="10.5" fill="#374151">TOT (3% flat). Clean books make the choice real.</text>
+</svg>

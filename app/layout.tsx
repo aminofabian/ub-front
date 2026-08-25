@@ -6,6 +6,7 @@ import { cormorant } from "@/app/fonts/cormorant";
 import { dmSans } from "@/app/fonts/dm-sans";
 import { geistMono } from "@/app/fonts/geist-mono";
 import { TenantProvider } from "@/components/providers/tenant-provider";
+import { PlatformSupportLauncher } from "@/components/support/platform-support-launcher";
 import { TenantFaviconSync } from "@/components/tenant-favicon-sync";
 import { TenantHostSync } from "@/components/tenant-host-sync";
 import { TenantStatusPage } from "@/components/storefront/tenant-status-page";
@@ -110,6 +111,7 @@ export default async function RootLayout({
       >
         <TenantHostSync />
         {withTenantProvider(tenant, body)}
+        {IS_DESKTOP ? null : <PlatformSupportLauncher />}
         {IS_DESKTOP ? null : (
           <>
             {/* Google Analytics — cloud only. */}

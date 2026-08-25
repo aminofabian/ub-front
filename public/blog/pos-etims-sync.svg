@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">The integrated till — every sale becomes an authorized invoice</text>
+
+  <!-- ============ LEFT: till ============ -->
+  <rect x="16" y="64" width="400" height="420" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="64" width="400" height="48" rx="14" fill="#1F2937"/>
+  <rect x="16" y="90" width="400" height="22" fill="#1F2937"/>
+  <text x="216" y="95" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">The till — Kiosk</text>
+
+  <!-- Cart lines -->
+  <rect x="40" y="132" width="352" height="40" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="56" y="156" font-size="11" fill="#374151">Maize flour 2kg</text>
+  <text x="368" y="156" font-size="11" font-weight="700" fill="#1F2937" text-anchor="end">210.00</text>
+  <rect x="40" y="180" width="352" height="40" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="56" y="204" font-size="11" fill="#374151">Soda 500ml (zero-rated)</text>
+  <text x="368" y="204" font-size="11" font-weight="700" fill="#1F2937" text-anchor="end">60.00</text>
+  <rect x="40" y="228" width="352" height="40" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="56" y="252" font-size="11" fill="#374151">Toilet soap</text>
+  <text x="368" y="252" font-size="11" font-weight="700" fill="#1F2937" text-anchor="end">45.00</text>
+
+  <!-- Total -->
+  <rect x="40" y="282" width="352" height="50" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="56" y="314" font-size="12" font-weight="700" fill="#1F2937">Total</text>
+  <text x="368" y="314" font-size="16" font-weight="800" fill="#1F2937" text-anchor="end">KSh 315.00</text>
+
+  <!-- M-Pesa + complete -->
+  <rect x="40" y="348" width="170" height="42" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="125" y="374" font-size="10.5" font-weight="700" fill="#15803d" text-anchor="middle">M-Pesa STK sent</text>
+  <rect x="222" y="348" width="170" height="42" rx="10" fill="#28a745"/>
+  <text x="307" y="374" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">Complete sale</text>
+
+  <!-- AUTH tag -->
+  <rect x="40" y="410" width="352" height="50" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="56" y="432" font-size="10" font-weight="700" fill="#15803d">AUTH: KRA-9F2A-77 · QR attached</text>
+  <text x="56" y="448" font-size="9.5" fill="#6b7280">Issued automatically — nobody retyped anything</text>
+
+  <!-- Arrow -->
+  <path d="M416 274 L470 274" stroke="#A8842C" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M466 268 L476 274 L466 280" fill="#A8842C"/>
+  <text x="446" y="262" font-size="10" fill="#6b7280" text-anchor="middle">invoice</text>
+
+  <!-- ============ RIGHT: KRA + offline ============ -->
+  <rect x="480" y="64" width="464" height="200" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="480" y="64" width="464" height="48" rx="14" fill="#A8842C"/>
+  <rect x="480" y="90" width="464" height="22" fill="#A8842C"/>
+  <text x="712" y="95" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">KRA eTIMS</text>
+  <g font-size="11" fill="#374151">
+    <text x="504" y="142">· Checks the invoice and returns the AUTH code in real time.</text>
+    <text x="504" y="166">· Logs the sale — your declared turnover can't drift from</text>
+    <text x="504" y="184">  what KRA already saw.</text>
+    <text x="504" y="208">· Month end becomes a report, not a reconstruction.</text>
+  </g>
+  <rect x="504" y="224" width="416" height="26" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="712" y="241" font-size="10" font-weight="700" fill="#15803d" text-anchor="middle">OSCU / VSCU — valid invoices even offline</text>
+
+  <!-- Offline queue card -->
+  <rect x="480" y="288" width="464" height="196" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="504" y="318" font-size="12.5" font-weight="700" fill="#1F2937">When the network drops</text>
+  <g font-size="11" fill="#374151">
+    <text x="504" y="342">· Sales keep flowing — the till queues invoices locally.</text>
+    <text x="504" y="366">· Invoices stay numbered and signed per OSCU/VSCU rules.</text>
+    <text x="504" y="390">· When connectivity returns, the queue syncs to KRA and</text>
+    <text x="504" y="408">  every AUTH code lands. No lost paper trail.</text>
+  </g>
+  <rect x="504" y="430" width="416" height="30" rx="8" fill="#fefce8" stroke="#fde68a"/>
+  <text x="712" y="450" font-size="10.5" font-weight="700" fill="#A8842C" text-anchor="middle">Selling offline is fine — losing the invoice trail is not</text>
+</svg>

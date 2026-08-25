@@ -7,7 +7,7 @@
  */
 
 const SOUND_KEY = "ub.support.sound";
-const VOLUME = 0.07;
+const VOLUME = 0.28;
 
 let audioCtx: AudioContext | null = null;
 

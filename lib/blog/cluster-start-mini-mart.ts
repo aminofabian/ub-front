@@ -38,6 +38,7 @@ export const START_MINI_MART_ARTICLE: BlogArticle = {
     "what-hardware-do-you-actually-need",
     "why-m-pesa-integration-matters",
     "building-systems-for-your-mini-mart",
+    "taxes-for-mini-marts-in-kenya",
   ],
   faqs: [
     {

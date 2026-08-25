@@ -95,6 +95,7 @@ const PILLAR_ARTICLE: BlogArticle = {
     "why-m-pesa-integration-matters",
     "set-up-a-pos-in-30-minutes",
     "the-real-cost-of-free-software",
+    "taxes-for-mini-marts-in-kenya",
   ],
   faqs: PILLAR_FAQS,
   ranking: [

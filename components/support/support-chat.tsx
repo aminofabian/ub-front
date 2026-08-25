@@ -147,6 +147,10 @@ export function SupportChat({
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
 
+        // This panel only renders the tenant's platform thread — storefront
+        // buyer chats (separate conversation ids) belong to the buyer inbox.
+        if (conversationId && incoming.conversationId !== conversationId) return;
+
         setMessages((prev) => {
           if (prev.some((m) => m.id === incoming.id)) return prev;
           const next = [...prev, incoming];

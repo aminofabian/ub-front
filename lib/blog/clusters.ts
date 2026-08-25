@@ -1,6 +1,10 @@
 import { GROW_MINI_MART_PILLAR_SLUG } from "./cluster-grow-mini-mart";
 import { BARCODE_LOOKUP_PILLAR_SLUG } from "./cluster-barcode-lookup";
 import {
+  ETIMS_TAX_PILLAR_SLUG,
+  ETIMS_TAX_SPOKE_SLUGS,
+} from "./cluster-etims-tax";
+import {
   KOPOKOPO_PILLAR_SLUG,
   KOPOKOPO_SPOKE_SLUGS,
 } from "./cluster-kopokopo";
@@ -92,5 +96,15 @@ export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
       "How Kopo Kopo connects to a POS — Buy Goods tills, STK Push, webhooks, reconciliation, and fees — so every M-Pesa payment matches a sale automatically.",
     pillarSlug: KOPOKOPO_PILLAR_SLUG,
     spokeSlugs: [...KOPOKOPO_SPOKE_SLUGS],
+  },
+  {
+    id: "etims-tax",
+    code: "06",
+    title: "eTIMS & Taxes for Mini-Marts",
+    shortTitle: "eTIMS & Taxes",
+    description:
+      "Everything a mini-mart owner in Kenya needs to know about tax — eTIMS, VAT, turnover tax, income tax, PAYE, excise, and the records that keep KRA happy.",
+    pillarSlug: ETIMS_TAX_PILLAR_SLUG,
+    spokeSlugs: [...ETIMS_TAX_SPOKE_SLUGS],
   },
 ];

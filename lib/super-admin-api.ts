@@ -2821,6 +2821,9 @@ export type SaSupportConversation = {
   businessId: string;
   businessName: string | null;
   businessSlug: string | null;
+  conversationType: "TENANT" | "VISITOR" | "STOREFRONT" | string;
+  guestId: string | null;
+  guestName: string | null;
   status: "OPEN" | "RESOLVED" | string;
   subject: string | null;
   createdByName: string | null;
@@ -2849,21 +2852,32 @@ export type SaSupportConversationDetail = {
   messages: SaSupportMessage[];
 };
 
-/** Live tenant presence as seen by the super-admin inbox. */
+/** Live tenant/visitor presence as seen by the super-admin inbox. */
 export type SaSupportPresence = {
   online: boolean;
   lastSeenAt: string | null;
 };
 
-export async function fetchSaSupportPresence(): Promise<Record<string, SaSupportPresence>> {
-  const payload = await saRequest<{ presence?: Record<string, SaSupportPresence> }>(
+export type SaSupportPresencePayload = {
+  /** Tenant threads keyed by businessId. */
+  presence: Record<string, SaSupportPresence>;
+  /** Visitor threads keyed by guestId. */
+  guestPresence: Record<string, SaSupportPresence>;
+};
+
+export async function fetchSaSupportPresence(): Promise<SaSupportPresencePayload> {
+  const payload = await saRequest<Partial<SaSupportPresencePayload>>(
     `${API_ROUTES.superAdminSupport}/presence`,
   );
-  return payload.presence ?? {};
+  return {
+    presence: payload.presence ?? {},
+    guestPresence: payload.guestPresence ?? {},
+  };
 }
 
 export async function fetchSaSupportConversations(opts?: {
   status?: "OPEN" | "RESOLVED" | "ALL";
+  type?: "TENANT" | "VISITOR";
 }): Promise<{
   conversations: SaSupportConversation[];
   total: number;
@@ -2872,6 +2886,9 @@ export async function fetchSaSupportConversations(opts?: {
   const params = new URLSearchParams();
   if (opts?.status && opts.status !== "ALL") {
     params.set("status", opts.status);
+  }
+  if (opts?.type && opts.type !== "TENANT") {
+    params.set("type", opts.type);
   }
   const suffix = params.toString();
   return saRequest<{

@@ -61,7 +61,14 @@ export function useSaSupportUnread(): number {
       channels: ["support"],
       onSupportMessage: (frame) => {
         const data = frame.data as Record<string, unknown>;
-        if (String(data.senderType ?? "") !== "TENANT") return;
+        const senderType = String(data.senderType ?? "");
+        const conversationType = String(data.conversationType ?? "TENANT");
+        // Tenant threads arrive from TENANT; visitor threads (kiosk.ke guests)
+        // arrive from GUEST. Storefront buyer chats belong to the tenant's staff.
+        const countsAsUnread =
+          senderType === "TENANT" ||
+          (senderType === "GUEST" && conversationType === "VISITOR");
+        if (!countsAsUnread) return;
         if (pathname === APP_ROUTES.superAdminSupport) return;
         const messageId = String(data.messageId ?? "");
         if (messageId && lastChimeRef.current !== messageId) {

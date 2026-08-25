@@ -32,6 +32,7 @@ export const GROW_MINI_MART_ARTICLES: BlogArticle[] = [
       "set-up-a-pos-in-30-minutes",
       "choosing-the-right-pos-kiosk-vs-odoo",
       START_MINI_MART_SLUG,
+      "taxes-for-mini-marts-in-kenya",
     ],
     body: [
       {

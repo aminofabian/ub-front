@@ -34,7 +34,7 @@ import { getSuperAdminAccessToken } from "./super-admin-session";
 import { refreshSaTokenIfNeeded } from "./super-admin-api";
 
 /** Which auth world this client connects as. */
-export type RealtimeScope = "tenant" | "super-admin";
+export type RealtimeScope = "tenant" | "super-admin" | "guest";
 
 /** Parse notification timestamps from REST (ISO string, epoch ms/s, etc.). */
 function coerceNotificationTimestamp(value: unknown): string | null {
@@ -250,6 +250,9 @@ async function mintTicket(channels: string[], scope: RealtimeScope = "tenant"): 
   if (scope === "super-admin") {
     return mintSuperAdminTicket(channels);
   }
+  if (scope === "guest") {
+    return mintGuestTicket(channels);
+  }
   /*
   /*
    * Ticket mint is a normal authenticated API call. If our access token has
@@ -288,6 +291,21 @@ async function mintTicket(channels: string[], scope: RealtimeScope = "tenant"): 
   }
 
   return response.json() as Promise<TicketResponse>;
+}
+
+/**
+ * Anonymous visitor/buyer socket: tickets mint against the public support
+ * endpoint with the guest's localStorage credentials.
+ */
+async function mintGuestTicket(channels: string[]): Promise<TicketResponse> {
+  const { mintGuestRealtimeTicket } = await import("@/lib/public-support-api");
+  const outcome = await mintGuestRealtimeTicket();
+  // The guest endpoint mints for the browser guest's own channel — the client
+  // must be requesting exactly that channel (per-guest isolation).
+  if (channels.length === 0) {
+    throw new Error("Guest socket needs its own channel");
+  }
+  return outcome;
 }
 
 /** Super-admin console: same single-use ticket, minted against the SA endpoint. */
@@ -840,6 +858,13 @@ export class RealtimeClient {
    * attemptReconnect will retry with exponential backoff.
    */
   private async handleReauthAndReconnect(): Promise<void> {
+    if (this.scope === "guest") {
+      // Anonymous visitor: nothing to refresh — just retry with the stored
+      // localStorage credentials (token lost? the chat falls back to REST and
+      // offers a fresh thread).
+      this.attemptReconnect();
+      return;
+    }
     if (this.scope === "super-admin") {
       // Platform console: refresh the SA token (no tenant session flows apply),
       // then retry. If the session is gone the inbox page's own 401 handling
@@ -1087,6 +1112,20 @@ export function getSuperAdminRealtimeClient(): RealtimeClient {
     _saInstance = new RealtimeClient({ scope: "super-admin" });
   }
   return _saInstance;
+}
+
+/**
+ * Guest client (anonymous visitor/buyer scope). Shared across launchers — one
+ * socket per browser, subscribed to the browser guest's own channel, receives
+ * events for every thread that guest owns across shops.
+ */
+let _guestInstance: RealtimeClient | null = null;
+
+export function getGuestRealtimeClient(): RealtimeClient {
+  if (!_guestInstance) {
+    _guestInstance = new RealtimeClient({ scope: "guest" });
+  }
+  return _guestInstance;
 }
 
 export function disconnectSuperAdminRealtimeClient(): void {

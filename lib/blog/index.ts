@@ -2,6 +2,7 @@ import {
   BLOG_ARTICLES,
   CLUSTER_PILLAR_SLUGS,
   isClusterPillar,
+  ETIMS_TAX_PILLAR_SLUG,
   GROW_MINI_MART_PILLAR_SLUG,
   KIOSK_VS_ODOO_PILLAR_SLUG,
   PILLAR_SLUG,
@@ -27,6 +28,7 @@ export type { BlogCluster, BlogClusterDef } from "./clusters";
 export {
   BLOG_CLUSTER_DEFS,
   CLUSTER_PILLAR_SLUGS,
+  ETIMS_TAX_PILLAR_SLUG,
   isClusterPillar,
   GROW_MINI_MART_PILLAR_SLUG,
   KIOSK_VS_ODOO_PILLAR_SLUG,

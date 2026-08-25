@@ -5,7 +5,10 @@ import { usePathname } from "next/navigation";
 
 import { APP_ROUTES } from "@/lib/config";
 import { getRealtimeClient } from "@/lib/realtime";
-import { fetchSupportUnreadCount } from "@/lib/support-api";
+import {
+  fetchStorefrontBuyerUnreadCount,
+  fetchSupportUnreadCount,
+} from "@/lib/support-api";
 
 let supportListenerSeq = 0;
 
@@ -23,8 +26,8 @@ export function useSupportUnread(): number {
   const listenerIdRef = useRef(`support-unread-${supportListenerSeq++}`);
 
   const syncFromServer = useCallback(() => {
-    fetchSupportUnreadCount()
-      .then((count) => setUnread(count))
+    Promise.all([fetchSupportUnreadCount(), fetchStorefrontBuyerUnreadCount()])
+      .then(([platform, storefront]) => setUnread(platform + storefront))
       .catch(() => {
         // Offline — keep the current count; the realtime stream still updates it.
       });
@@ -52,7 +55,14 @@ export function useSupportUnread(): number {
       channels: ["support"],
       onSupportMessage: (frame) => {
         const data = frame.data as Record<string, unknown>;
-        if (String(data.senderType ?? "") !== "SUPER_ADMIN") return;
+        const senderType = String(data.senderType ?? "");
+        const conversationType = String(data.conversationType ?? "TENANT");
+        // Platform replies to our thread (SUPER_ADMIN) plus new storefront
+        // buyer messages (GUEST on STOREFRONT threads) both mean unread.
+        const countsAsUnread =
+          senderType === "SUPER_ADMIN" ||
+          (senderType === "GUEST" && conversationType === "STOREFRONT");
+        if (!countsAsUnread) return;
         if (pathname === APP_ROUTES.support) return;
         setUnread((n) => n + 1);
       },
