@@ -260,6 +260,7 @@ export const API_ROUTES = {
   superAdminPlatformSokoMind: "/api/v1/super-admin/platform/sokomind",
   superAdminPlatformDomains: "/api/v1/super-admin/platform/domains",
   superAdminPlatformDomainOrders: "/api/v1/super-admin/platform/domain-orders",
+  superAdminPlatformOverview: "/api/v1/super-admin/platform/overview",
   superAdminPlatformSupplierPortal: "/api/v1/super-admin/platform/supplier-portal",
   superAdminMarketplaceSuppliers: "/api/v1/super-admin/marketplace/suppliers",
   superAdminGlobalCatalog: "/api/v1/super-admin/global-catalog",

@@ -1805,6 +1805,90 @@ export async function fetchSaBusinessStats(
   );
 }
 
+export type SaPlatformOverview = {
+  tenants: {
+    total: number;
+    active: number;
+    inactive: number;
+    createdLast7Days: number;
+    kioskPayActive: number;
+  };
+  stuckSignups: {
+    total: number;
+    sample: Array<{
+      businessId: string;
+      businessName: string;
+      slug: string;
+      email: string;
+      name: string;
+      onboardingStatus: string;
+      continueKind: string;
+      lastLoginAt: string | null;
+    }>;
+  };
+  commerce: {
+    salesToday: number;
+    revenueToday: number;
+    unitsSoldToday: number;
+    salesLast30Days: number;
+    revenueLast30Days: number;
+    unitsSoldLast30Days: number;
+    unitsSoldAllTime: number;
+    salesAllTime: number;
+    revenueAllTime: number;
+  };
+  storefront: {
+    paidOrdersLast30Days: number;
+    paidGmvLast30Days: number;
+    unitsSoldLast30Days: number;
+    paidOrdersAllTime: number;
+    paidGmvAllTime: number;
+  };
+  support: {
+    openTenantThreads: number;
+    openVisitorThreads: number;
+    waitingOnAdmin: number;
+  };
+  bestSellers: Array<{
+    itemId: string;
+    itemName: string;
+    businessId: string;
+    businessName: string;
+    unitsSold: number;
+    revenue: number;
+    saleCount: number;
+  }>;
+  hotTenants: Array<{
+    businessId: string;
+    businessName: string;
+    slug: string;
+    salesLast7Days: number;
+    revenueLast7Days: number;
+    unitsLast7Days: number;
+  }>;
+  last14Days: Array<{
+    day: string;
+    sales: number;
+    revenue: number;
+    units: number;
+  }>;
+  recentTenants: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    active: boolean;
+    subscriptionTier: string;
+    createdAt: string | null;
+  }>;
+};
+
+/** Fleet health + commerce pulse for the super-admin home. */
+export async function fetchSaPlatformOverview(): Promise<SaPlatformOverview> {
+  return saRequest<SaPlatformOverview>(API_ROUTES.superAdminPlatformOverview, {
+    method: "GET",
+  });
+}
+
 export type SaImpersonateResult = {
   accessToken: string;
   refreshToken: string;
