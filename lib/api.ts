@@ -2169,6 +2169,16 @@ export async function fetchCsvImportTemplate(
   return requestBinary(`/api/v1/integrations/imports/templates/${kind}`);
 }
 
+/**
+ * Download current business data as CSV using the same columns as the import
+ * templates. Backend: {@code GET /api/v1/integrations/imports/exports/{kind}}.
+ */
+export async function fetchCsvExport(
+  kind: "items" | "suppliers" | "opening-stock",
+): Promise<Blob> {
+  return requestBinary(`/api/v1/integrations/imports/exports/${kind}`);
+}
+
 /** Multipart CSV item import (template: {@code /templates/items}). Same response shape as the JSON imports. */
 export async function postCsvItemsImport(
   file: File,

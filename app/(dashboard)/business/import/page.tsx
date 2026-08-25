@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import {
   enqueueCsvImportJob,
+  fetchCsvExport,
   fetchCsvImportJob,
   fetchCsvImportTemplate,
   postLegacyBuyingPriceJsonImport,
@@ -367,6 +368,8 @@ export default function BusinessImportPage() {
   const [result, setResult] = useState<JsonImportResponse | null>(null);
   const [templateBusy, setTemplateBusy] = useState<CsvTemplateKind | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
+  const [exportBusy, setExportBusy] = useState<CsvTemplateKind | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [csvKind, setCsvKind] = useState<CsvTemplateKind>("items");
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvBusy, setCsvBusy] = useState<"dry" | "commit" | null>(null);
@@ -496,6 +499,29 @@ export default function BusinessImportPage() {
     }
   }, []);
 
+  const onDownloadExport = useCallback(async (kind: CsvTemplateKind) => {
+    setExportBusy(kind);
+    setExportError(null);
+    try {
+      const blob = await fetchCsvExport(kind);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${kind}-export.csv`;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError(
+        "Could not export. Check your connection and permission, then try again.",
+      );
+    } finally {
+      setExportBusy(null);
+    }
+  }, []);
+
   const run = useCallback(
     async (dryRun: boolean) => {
       if (!file) {
@@ -578,7 +604,7 @@ export default function BusinessImportPage() {
         icon={FileSpreadsheet}
         eyebrow="Integrations"
         title="Data import"
-        description="Upload items, suppliers, and opening stock from pre-mapped CSV templates — validate first, then import with live progress. Legacy JSON exports (products, suppliers, buying and selling prices) are supported below."
+        description="Export catalog data as CSV, edit in Excel, and import back with the same columns. Validate first, then import with live progress. Legacy JSON exports are supported below."
       >
         <DashboardQuickLinks
           links={[
@@ -966,20 +992,84 @@ export default function BusinessImportPage() {
           <section className={DASHBOARD_SECTION_SURFACE}>
             <div className="flex items-center gap-2.5">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
+                <Download className="size-4" aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                  Export current data
+                </h2>
+                <p className={cn(dashboardHintClass(), "mt-0.5")}>
+                  Same columns as the templates — edit and re-upload.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {CSV_TEMPLATES.map((t) => {
+                const Icon = CSV_KIND_ICONS[t.kind];
+                const busy = exportBusy === t.kind;
+                return (
+                  <div
+                    key={`export-${t.kind}`}
+                    className="flex items-center gap-3 rounded-xl border border-border/60 bg-background p-3 shadow-sm transition-colors hover:border-border"
+                  >
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-muted/50 text-muted-foreground">
+                      <Icon className="size-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold leading-tight text-foreground">{t.label}</p>
+                      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                        {CSV_COLUMNS[t.kind].length} columns · live catalog
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      disabled={exportBusy != null}
+                      aria-label={`Export ${t.label} CSV`}
+                      onClick={() => void onDownloadExport(t.kind)}
+                    >
+                      {busy ? (
+                        <Loader2 className="animate-spin" aria-hidden />
+                      ) : (
+                        <Download aria-hidden />
+                      )}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            {exportError ? (
+              <p className="mt-3 flex items-start gap-1.5 text-xs text-destructive">
+                <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                {exportError}
+              </p>
+            ) : null}
+            <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+              Items and suppliers import creates new rows — existing SKUs / supplier names will
+              fail validation. Opening stock posts additional quantity (it does not replace
+              on-hand). Prefer export for backup and for adding only new rows.
+            </p>
+          </section>
+
+          <section className={DASHBOARD_SECTION_SURFACE}>
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
                 <ListChecks className="size-4" aria-hidden />
               </span>
               <div>
                 <h2 className="text-sm font-semibold tracking-tight text-foreground">How it works</h2>
                 <p className={cn(dashboardHintClass(), "mt-0.5")}>
-                  CSV in, catalog out.
+                  CSV round-trip.
                 </p>
               </div>
             </div>
 
             <ol className="mt-4 space-y-3.5">
               {[
-                ["Download a template", "Items, suppliers, or opening stock — the columns are pre-filled."],
-                ["Fill it in", "Work in Excel or Google Sheets, then save as a .csv file."],
+                ["Export or download a template", "Start from live data or an empty pre-mapped file."],
+                ["Edit in Excel", "Keep the header row; save as .csv when done."],
                 ["Upload & validate", "A dry run checks every row and reports line-level errors."],
                 ["Import & track", "Rows are committed in the background — watch the progress bar."],
               ].map(([title, desc], i) => (
