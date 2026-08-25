@@ -88,12 +88,12 @@ export function ProductPolishDialog({
   const currentCategoryName = useMemo(() => {
     if (!detail?.categoryId) return null;
     return categories.find((c) => c.id === detail.categoryId)?.name ?? null;
-  }, [categories, detail?.categoryId]);
+  }, [categories, detail]);
 
   const currentDepartmentName = useMemo(() => {
     if (!detail?.itemTypeId) return null;
     return itemTypes.find((t) => t.id === detail.itemTypeId)?.label ?? null;
-  }, [itemTypes, detail?.itemTypeId]);
+  }, [itemTypes, detail]);
 
   const rows = useMemo(() => {
     if (!result) return [];

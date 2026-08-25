@@ -389,8 +389,8 @@ export function ProductsWorkspace() {
     polishItemTypes: catalog.itemTypes,
     polishCurrencyCode: business?.currency?.trim() || "",
     onProductPolished: () => {
-      void m.refreshSelectedDetail();
-      m.syncListRowFromDetail();
+      void detail.refreshSelectedDetail();
+      if (D) catalog.syncListRowFromDetail(D);
     },
   };
 
