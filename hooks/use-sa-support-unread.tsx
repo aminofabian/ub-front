@@ -65,6 +65,7 @@ export function useSaSupportUnread(): number {
         const conversationType = String(data.conversationType ?? "TENANT");
         // Tenant threads arrive from TENANT; visitor threads (kiosk.ke guests)
         // arrive from GUEST. Storefront buyer chats belong to the tenant's staff.
+        if (conversationType === "STOREFRONT") return;
         const countsAsUnread =
           senderType === "TENANT" ||
           (senderType === "GUEST" && conversationType === "VISITOR");

@@ -6,10 +6,12 @@ import { ArrowDown, Headset, MessageCircle, X } from "lucide-react";
 import {
   type ChatMessageShape,
   Avatar,
+  ChatThreadSurface,
   Composer,
   DayDivider,
   LiveStatusPill,
   MessageBubble,
+  PlatformAvatar,
   TypingBubble,
   chatDayLabel,
   mergeByTimestamp,
@@ -96,14 +98,14 @@ export function GuestSupportLauncher({ context }: { context: GuestSupportContext
         <DialogContent
           side="right"
           showCloseButton={false}
-          overlayClassName="bg-black/30 supports-[backdrop-filter]:bg-black/25 supports-[backdrop-filter]:backdrop-blur-[2px]"
-          className="gap-0 border-border/60 p-0 sm:w-[min(100%,26rem)]"
+          overlayClassName="bg-black/35 supports-[backdrop-filter]:bg-black/25 supports-[backdrop-filter]:backdrop-blur-[3px]"
+          className="gap-0 overflow-hidden border-border/50 p-0 shadow-[0_24px_80px_-28px_rgba(15,23,42,0.45)] sm:w-[min(100%,26.5rem)] sm:rounded-l-2xl"
         >
           <DialogTitle className="sr-only">{context.title}</DialogTitle>
           <DialogDescription className="sr-only">
             Chat with {context.teamName}.
           </DialogDescription>
-          <div className="flex h-full min-h-0 flex-1 flex-col">
+          <div className="flex h-full min-h-0 flex-1 flex-col bg-background">
             <GuestSupportPanel
               context={context}
               open={open}
@@ -121,33 +123,38 @@ export function GuestSupportLauncher({ context }: { context: GuestSupportContext
         aria-label={open ? "Close chat" : `Chat with ${context.teamName}`}
         title={open ? "Close chat" : `Chat with ${context.teamName}`}
         className={cn(
-          "group fixed bottom-4 right-4 z-40 flex size-14 items-center justify-center rounded-full shadow-lg outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)]",
-          open ? "bg-muted-foreground text-white" : "text-primary-foreground",
+          "group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full outline-none transition-[transform,box-shadow,background-color] duration-200",
+          "bottom-[calc(env(safe-area-inset-bottom,0px)+1.15rem)] right-4",
+          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          open
+            ? "bg-foreground text-background shadow-[0_10px_28px_-12px_rgba(15,23,42,0.55)] hover:scale-[1.03]"
+            : "text-primary-foreground shadow-[0_14px_36px_-12px_rgba(40,167,69,0.65)] hover:scale-[1.06] hover:shadow-[0_18px_40px_-12px_rgba(40,167,69,0.7)]",
         )}
         style={{ backgroundColor: !open ? context.accentHex || "var(--primary)" : undefined }}
       >
         {unread > 0 && !open ? (
           <span
-            className="absolute inset-0 animate-ping rounded-full bg-current opacity-20"
+            className="absolute inset-0 animate-ping rounded-full bg-current opacity-[0.18]"
             aria-hidden
           />
         ) : null}
-        {open ? (
-          <X className="size-6" aria-hidden />
-        ) : (
-          <MessageCircle className="size-6" aria-hidden />
-        )}
+        <span className="relative transition-transform duration-200 group-hover:scale-105">
+          {open ? (
+            <X className="size-5" strokeWidth={2.25} aria-hidden />
+          ) : (
+            <MessageCircle className="size-6" strokeWidth={2} aria-hidden />
+          )}
+        </span>
         <span
           className={cn(
-            "absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-background",
-            live ? "bg-emerald-400" : busy ? "bg-amber-400" : "bg-muted-foreground/70",
+            "absolute bottom-0.5 right-0.5 size-3 rounded-full border-2 border-background",
+            live ? "bg-emerald-400" : busy ? "bg-amber-400" : "bg-white/55",
           )}
           title={live ? "Connected" : busy ? "Connecting…" : "Offline"}
           aria-hidden
         />
-        {unread > 0 ? (
-          <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-foreground px-1 text-[10px] font-bold leading-none text-background">
+        {unread > 0 && !open ? (
+          <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-foreground px-1 text-[10px] font-bold leading-none text-background shadow-sm">
             {unread > 9 ? "9+" : unread}
           </span>
         ) : null}
@@ -361,7 +368,7 @@ function GuestSupportPanel({
     if (!el) return;
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     stickToBottomRef.current = nearBottom;
-    if (nearBottom) setShowJump(false);
+    setShowJump(!nearBottom);
   };
 
   // ── Send / start ─────────────────────────────────────────────────────────
@@ -457,19 +464,39 @@ function GuestSupportPanel({
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={`Chat with ${context.teamName}`}>
       <header
-        className="flex items-center gap-3 border-b border-border/60 px-4 py-3"
+        className="relative flex items-center gap-3 border-b border-border/50 px-4 py-3.5"
         style={
           accent
-            ? { backgroundColor: `${accent}0d` } // ~5% tint of the brand colour
-            : undefined
+            ? {
+                backgroundImage: `linear-gradient(135deg, ${accent}14 0%, transparent 62%)`,
+              }
+            : {
+                backgroundImage:
+                  "linear-gradient(135deg, rgba(40,167,69,0.08) 0%, transparent 62%)",
+              }
         }
       >
-        <Avatar name={context.title} seed={context.ns} className="size-10" />
+        <div className="relative shrink-0">
+          {context.type === "VISITOR" ? (
+            <PlatformAvatar className="size-11" />
+          ) : (
+            <Avatar name={context.title} seed={context.ns} className="size-11 text-sm" />
+          )}
+          <span
+            className={cn(
+              "absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-background",
+              connectionState === "connected" ? "bg-emerald-500" : "bg-muted-foreground/50",
+            )}
+            aria-hidden
+          />
+        </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">{context.title}</p>
+          <p className="truncate font-[family-name:var(--font-heading)] text-[1.05rem] font-semibold tracking-tight text-foreground">
+            {context.title}
+          </p>
           <p className="truncate text-xs text-muted-foreground">
             {theirTyping ? (
-              <span className="font-medium text-primary">typing…</span>
+              <span className="font-medium text-primary">{context.teamName} is typing…</span>
             ) : resolved ? (
               "Conversation resolved"
             ) : (
@@ -492,95 +519,122 @@ function GuestSupportPanel({
       </header>
 
       {showIntro ? (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-6 py-6 text-center">
-          <span
-            className="flex size-12 items-center justify-center rounded-full shadow-md"
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <div
+            className="pointer-events-none absolute inset-0"
             style={{
-              backgroundColor: accent || "var(--primary)",
-              color: accent ? "#fff" : "var(--primary-foreground)",
+              background: accent
+                ? `radial-gradient(90% 60% at 50% 0%, ${accent}18, transparent 70%)`
+                : "radial-gradient(90% 60% at 50% 0%, rgba(40,167,69,0.12), transparent 70%)",
             }}
-          >
-            <Headset className="size-6" aria-hidden />
-          </span>
-          <div>
-            <p className="text-sm font-medium text-foreground">{context.blurb}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Tell us who you are so we can keep your conversation in one place.
-            </p>
-          </div>
-          <div className="flex w-full max-w-64 flex-col gap-2">
-            <input
-              value={introName}
-              onChange={(e) => setIntroName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") beginIntro();
-              }}
-              placeholder="Your name"
-              aria-label="Your name"
-              className="h-10 w-full rounded-xl border border-border/70 bg-muted/40 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/20"
-            />
-            <input
-              value={introPhone}
-              onChange={(e) => setIntroPhone(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") beginIntro();
-              }}
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="Phone number — e.g. 0712 345 678"
-              aria-label="Phone number"
-              className="h-10 w-full rounded-xl border border-border/70 bg-muted/40 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/20"
-            />
-            {introError ? (
-              <p className="text-left text-[11px] text-destructive">{introError}</p>
-            ) : null}
-            <button
-              type="button"
-              onClick={beginIntro}
-              className="mt-1 inline-flex h-10 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90"
+            aria-hidden
+          />
+          <div className="relative flex flex-1 flex-col items-center justify-center gap-4 px-6 py-6 text-center">
+            <span
+              className="flex size-12 items-center justify-center rounded-2xl shadow-[0_12px_28px_-14px_rgba(40,167,69,0.7)]"
               style={{
                 backgroundColor: accent || "var(--primary)",
                 color: accent ? "#fff" : "var(--primary-foreground)",
               }}
             >
-              Start chatting
-            </button>
+              <Headset className="size-6" aria-hidden />
+            </span>
+            <div className="max-w-[17.5rem]">
+              <p className="font-[family-name:var(--font-heading)] text-xl font-semibold tracking-tight text-foreground">
+                We&apos;re here to help
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{context.blurb}</p>
+            </div>
+            <div className="flex w-full max-w-[17.5rem] flex-col gap-2 text-left">
+              <label className="space-y-1">
+                <span className="px-0.5 text-xs font-medium text-muted-foreground">Your name</span>
+                <input
+                  value={introName}
+                  onChange={(e) => setIntroName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") beginIntro();
+                  }}
+                  placeholder="e.g. Wanjiru"
+                  aria-label="Your name"
+                  className="h-11 w-full rounded-xl border border-border/70 bg-background/90 px-3.5 text-sm text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] placeholder:text-muted-foreground/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="px-0.5 text-xs font-medium text-muted-foreground">Phone number</span>
+                <input
+                  value={introPhone}
+                  onChange={(e) => setIntroPhone(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") beginIntro();
+                  }}
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="0712 345 678"
+                  aria-label="Phone number"
+                  className="h-11 w-full rounded-xl border border-border/70 bg-background/90 px-3.5 text-sm text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] placeholder:text-muted-foreground/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                />
+              </label>
+              {introError ? (
+                <p className="px-0.5 text-[11px] text-destructive">{introError}</p>
+              ) : null}
+              <button
+                type="button"
+                onClick={beginIntro}
+                className="mt-1 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold shadow-[0_10px_24px_-14px_rgba(40,167,69,0.85)] transition-[opacity,transform] hover:opacity-95 active:scale-[0.99]"
+                style={{
+                  backgroundColor: accent || "var(--primary)",
+                  color: accent ? "#fff" : "var(--primary-foreground)",
+                }}
+              >
+                Start chatting
+              </button>
+            </div>
+            <p className="max-w-[16rem] text-[11px] leading-relaxed text-muted-foreground">
+              No account needed — we use this to keep your conversation in one place when you come back.
+            </p>
           </div>
-          <p className="max-w-56 text-[11px] leading-relaxed text-muted-foreground">
-            No account needed — we only use this to recognise you when you come back.
-          </p>
         </div>
       ) : (
         <>
-          <div className="relative min-h-0 flex-1 bg-muted/20">
-            <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto px-4 py-4">
+          <ChatThreadSurface>
+            <div
+              ref={scrollRef}
+              onScroll={onScroll}
+              className="h-full space-y-2.5 overflow-y-auto px-4 py-4"
+            >
               {loading ? (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+                  <span className="size-8 animate-pulse rounded-full bg-primary/15" aria-hidden />
                   Loading conversation…
                 </div>
               ) : loadError ? (
-                <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+                <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
                   <p className="text-sm text-muted-foreground">{loadError}</p>
                   <button
                     type="button"
                     onClick={() => void loadThread()}
-                    className="text-sm font-medium text-primary hover:underline"
+                    className="rounded-full bg-primary/10 px-3.5 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/15"
                   >
                     Try again
                   </button>
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-                  <p className="text-sm font-medium text-foreground">
-                    Say hello to {context.teamName}
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-2">
+                <div className="flex h-full flex-col items-center justify-center gap-4 px-5 text-center">
+                  <div className="max-w-[16rem]">
+                    <p className="font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight text-foreground">
+                      Say hello to {context.teamName}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Pick a prompt or write your own — we&apos;ll pick it up from here.
+                    </p>
+                  </div>
+                  <div className="flex max-w-[20rem] flex-wrap items-center justify-center gap-2">
                     {context.quickPrompts.map((prompt) => (
                       <button
                         key={prompt}
                         type="button"
                         onClick={() => void send(prompt)}
-                        className="rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-ring/60 hover:text-foreground"
+                        className="rounded-full border border-border/70 bg-card/90 px-3.5 py-2 text-left text-xs leading-snug text-foreground/80 shadow-sm transition-[border-color,background-color,transform] hover:border-primary/35 hover:bg-primary/[0.04] hover:text-foreground active:scale-[0.98]"
                       >
                         {prompt}
                       </button>
@@ -592,13 +646,26 @@ function GuestSupportPanel({
                   {messages.map((message, index) => {
                     const mine = isMine(message);
                     const prev = messages[index - 1];
-                    const newDay = !prev || chatDayLabel(prev.createdAt) !== chatDayLabel(message.createdAt);
-                    const showAvatar = !mine && (index === 0 || isMine(prev));
+                    const newDay =
+                      !prev || chatDayLabel(prev.createdAt) !== chatDayLabel(message.createdAt);
+                    const showAvatar =
+                      !mine && (!prev || isMine(prev) || newDay);
+                    const tight =
+                      prev &&
+                      !newDay &&
+                      isMine(prev) === mine &&
+                      Math.abs(
+                        new Date(message.createdAt).getTime() - new Date(prev.createdAt).getTime(),
+                      ) < 120_000;
                     return (
                       <React.Fragment key={message.id}>
-                        {newDay && index > 0 ? <DayDivider iso={message.createdAt} /> : null}
-                        <div className={cn("flex w-full", mine ? "justify-end" : "justify-start")}>
-                          <MessageBubble message={message} mine={mine} showAvatar={showAvatar} />
+                        {newDay ? <DayDivider iso={message.createdAt} /> : null}
+                        <div className={cn(tight ? "mt-0.5" : "mt-0")}>
+                          <MessageBubble
+                            message={message}
+                            mine={mine}
+                            showAvatar={showAvatar && !tight}
+                          />
                         </div>
                       </React.Fragment>
                     );
@@ -617,23 +684,25 @@ function GuestSupportPanel({
                   setShowJump(false);
                 }}
                 aria-label="Jump to latest messages"
-                className="absolute bottom-3 right-3 inline-flex size-9 items-center justify-center rounded-full border border-border/70 bg-card text-muted-foreground shadow-md transition-colors hover:text-foreground"
+                className="absolute bottom-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/70 bg-card/95 px-3 py-1.5 text-[11px] font-medium text-foreground shadow-[0_8px_24px_-12px_rgba(15,23,42,0.45)] backdrop-blur-sm transition-colors hover:bg-card"
               >
-                <ArrowDown className="size-4" aria-hidden />
+                <ArrowDown className="size-3.5" aria-hidden />
+                Latest
               </button>
             ) : null}
-          </div>
-          <div className="border-t border-border/60 p-3">
+          </ChatThreadSurface>
+          <div className="border-t border-border/50 bg-background">
             <Composer
               value={draft}
               onChange={setDraft}
               onSend={(text) => void send(text)}
               disabled={Boolean(loadError)}
               sending={sending}
+              accentHex={accent}
             />
             {resolved ? (
-              <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
-                This conversation was resolved — sending a new message reopens it.
+              <p className="-mt-1 pb-2.5 text-center text-[11px] text-muted-foreground">
+                Resolved — a new message will reopen this conversation.
               </p>
             ) : null}
           </div>

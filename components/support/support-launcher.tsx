@@ -48,8 +48,8 @@ export function SupportLauncher() {
         <DialogContent
           side="left"
           showCloseButton={false}
-          overlayClassName="bg-black/30 supports-[backdrop-filter]:bg-black/25 supports-[backdrop-filter]:backdrop-blur-[2px]"
-          className="gap-0 border-border/60 p-0 sm:w-[min(100%,24.5rem)]"
+          overlayClassName="bg-black/35 supports-[backdrop-filter]:bg-black/25 supports-[backdrop-filter]:backdrop-blur-[3px]"
+          className="gap-0 overflow-hidden border-border/50 p-0 shadow-[0_24px_80px_-28px_rgba(15,23,42,0.45)] sm:w-[min(100%,25rem)] sm:rounded-r-2xl"
         >
           <DialogTitle className="sr-only">Kiosk Support</DialogTitle>
           <DialogDescription className="sr-only">
@@ -67,9 +67,12 @@ export function SupportLauncher() {
         aria-label={open ? "Close support chat" : "Open support chat"}
         title={open ? "Close support" : "Chat with Kiosk Support"}
         className={cn(
-          "group fixed left-4 z-40 flex size-14 items-center justify-center rounded-full text-primary-foreground shadow-lg shadow-primary/30 outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:bottom-6 2xl:left-6",
-          open ? "bg-muted-foreground" : "bg-primary",
+          "group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full text-primary-foreground outline-none transition-[transform,box-shadow,background-color] duration-200",
+          "bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] left-4 2xl:bottom-6 2xl:left-6",
+          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          open
+            ? "bg-foreground shadow-[0_10px_28px_-12px_rgba(15,23,42,0.55)] hover:scale-[1.03]"
+            : "bg-primary shadow-[0_14px_36px_-12px_rgba(40,167,69,0.65)] hover:scale-[1.06] hover:shadow-[0_18px_40px_-12px_rgba(40,167,69,0.7)]",
         )}
       >
         {unread > 0 && !open ? (

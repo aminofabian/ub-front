@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // ─── Shared support-chat primitives ────────────────────────────────────────
-// Used by both the tenant chat page and the super-admin inbox so the two sides
-// of the conversation speak the same visual language.
+// Used by guest, tenant, and super-admin surfaces so every side of the
+// conversation speaks the same visual language: calm, exact, readable.
 
 export type ChatSenderType = "TENANT" | "SUPER_ADMIN" | "GUEST";
 
@@ -28,16 +28,16 @@ export type ChatMessageShape = {
 };
 
 const AVATAR_HUES = [
-  "bg-emerald-600",
-  "bg-teal-600",
-  "bg-cyan-600",
-  "bg-sky-600",
-  "bg-indigo-600",
-  "bg-violet-600",
-  "bg-fuchsia-600",
-  "bg-rose-600",
-  "bg-orange-600",
-  "bg-amber-600",
+  "bg-emerald-700",
+  "bg-teal-700",
+  "bg-cyan-700",
+  "bg-sky-700",
+  "bg-indigo-700",
+  "bg-violet-700",
+  "bg-fuchsia-700",
+  "bg-rose-700",
+  "bg-orange-700",
+  "bg-amber-700",
 ];
 
 function hueFor(seed: string): string {
@@ -69,7 +69,7 @@ export function Avatar({
     <span
       aria-hidden
       className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full text-xs font-semibold text-white",
+        "inline-flex shrink-0 select-none items-center justify-center rounded-full text-[11px] font-semibold tracking-wide text-white ring-2 ring-background",
         hueFor(seed),
         className ?? "size-9",
       )}
@@ -85,7 +85,7 @@ export function PlatformAvatar({ className }: { className?: string }) {
     <span
       aria-hidden
       className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full bg-primary font-bold text-primary-foreground",
+        "inline-flex shrink-0 select-none items-center justify-center rounded-full bg-primary font-bold text-primary-foreground shadow-[0_2px_8px_-2px_rgba(40,167,69,0.45)] ring-2 ring-background",
         className ?? "size-9",
       )}
     >
@@ -136,10 +136,12 @@ export function listTime(iso: string | null | undefined): string {
 
 export function DayDivider({ iso }: { iso: string }) {
   return (
-    <div className="my-3 flex justify-center">
-      <span className="rounded-full bg-muted/90 px-3 py-0.5 text-[11px] font-medium text-muted-foreground">
+    <div className="my-4 flex items-center gap-3 px-1" role="separator" aria-label={chatDayLabel(iso)}>
+      <span className="h-px flex-1 bg-border/70" />
+      <span className="shrink-0 text-[11px] font-medium tracking-wide text-muted-foreground">
         {chatDayLabel(iso)}
       </span>
+      <span className="h-px flex-1 bg-border/70" />
     </div>
   );
 }
@@ -150,51 +152,73 @@ export function MessageBubble({
   message,
   mine,
   showAvatar,
+  onRetry,
 }: {
   message: ChatMessageShape;
   mine: boolean;
   showAvatar: boolean;
+  onRetry?: () => void;
 }) {
   const isFailed = message.failed === true;
   const isPending = message.pending === true;
 
   return (
-    <div className={cn("flex w-full items-end gap-2", mine ? "justify-end" : "justify-start")}>
+    <div
+      className={cn(
+        "group flex w-full items-end gap-2",
+        mine ? "justify-end" : "justify-start",
+        "animate-in fade-in slide-in-from-bottom-1 duration-200",
+      )}
+    >
       {!mine && showAvatar ? (
-        <Avatar name={message.senderName} seed={message.senderUserId} className="mb-4 size-7" />
+        <Avatar name={message.senderName} seed={message.senderUserId} className="mb-5 size-7" />
       ) : !mine ? (
-        <span className="mb-4 size-7 shrink-0" aria-hidden />
+        <span className="mb-5 size-7 shrink-0" aria-hidden />
       ) : null}
-      <div
-        className={cn(
-          "relative max-w-[min(82%,22rem)] px-3.5 py-2 text-sm leading-relaxed",
-          mine
-            ? "rounded-[1.15rem] rounded-br-md bg-primary text-primary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
-            : "rounded-[1.15rem] rounded-bl-md border border-border/70 bg-card text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
-          (isPending || isFailed) && "opacity-80",
-        )}
-      >
-        {!mine && message.senderName ? (
-          <p className="mb-0.5 text-[11px] font-semibold text-primary">{message.senderName}</p>
-        ) : null}
-        <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.body}</p>
-        <span
+      <div className={cn("flex max-w-[min(84%,22.5rem)] flex-col", mine ? "items-end" : "items-start")}>
+        <div
           className={cn(
-            "mt-1 flex items-center justify-end gap-1 text-[10px] leading-none",
-            mine ? "text-primary-foreground/70" : "text-muted-foreground",
+            "relative px-3.5 py-2.5 text-[13.5px] leading-[1.45]",
+            mine
+              ? "rounded-[1.2rem] rounded-br-md bg-primary text-primary-foreground shadow-[0_2px_10px_-4px_rgba(40,167,69,0.55)]"
+              : "rounded-[1.2rem] rounded-bl-md border border-border/60 bg-card text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.06)]",
+            isPending && "opacity-70",
+            isFailed && "border-destructive/40 bg-destructive/5 text-foreground opacity-100 shadow-none",
           )}
         >
-          <span>{chatTime(message.createdAt)}</span>
-          {mine ? (
-            isFailed ? (
-              <span className="text-destructive">Failed</span>
-            ) : message.readAt ? (
-              <CheckCheck className="size-3.5 opacity-90" aria-label="Read" />
-            ) : (
-              <Check className="size-3.5" aria-label="Sent" />
-            )
+          {!mine && message.senderName ? (
+            <p className="mb-1 text-[11px] font-semibold tracking-wide text-primary/90">
+              {message.senderName}
+            </p>
           ) : null}
-        </span>
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.body}</p>
+          <span
+            className={cn(
+              "mt-1.5 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums",
+              mine && !isFailed ? "text-primary-foreground/75" : "text-muted-foreground",
+            )}
+          >
+            <span>{chatTime(message.createdAt)}</span>
+            {mine ? (
+              isFailed ? (
+                <span className="font-medium text-destructive">Failed</span>
+              ) : message.readAt ? (
+                <CheckCheck className="size-3.5 opacity-95" aria-label="Read" />
+              ) : (
+                <Check className="size-3.5 opacity-90" aria-label="Sent" />
+              )
+            ) : null}
+          </span>
+        </div>
+        {isFailed && onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-1 px-1 text-[11px] font-medium text-destructive underline-offset-2 hover:underline"
+          >
+            Tap to retry
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -204,14 +228,15 @@ export function MessageBubble({
 
 export function TypingBubble({ label }: { label: string }) {
   return (
-    <div className="flex w-full items-end gap-2">
-      <div className="rounded-2xl rounded-bl-md border border-border/70 bg-card px-4 py-3 shadow-sm">
-        <span className="flex items-center gap-1" aria-label={label}>
+    <div className="flex w-full items-end gap-2 animate-in fade-in duration-200">
+      <span className="mb-1 size-7 shrink-0" aria-hidden />
+      <div className="rounded-[1.2rem] rounded-bl-md border border-border/60 bg-card px-4 py-3 shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
+        <span className="flex items-center gap-1.5" aria-label={label}>
           {[0, 1, 2].map((i) => (
             <span
               key={i}
-              className="size-1.5 animate-pulse rounded-full bg-muted-foreground/70"
-              style={{ animationDelay: `${i * 180}ms` }}
+              className="support-typing-dot size-1.5 rounded-full bg-muted-foreground/55"
+              style={{ animationDelay: `${i * 150}ms` }}
             />
           ))}
         </span>
@@ -231,6 +256,7 @@ export function Composer({
   disabled,
   disabledHint,
   sending,
+  accentHex,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -238,6 +264,8 @@ export function Composer({
   disabled?: boolean;
   disabledHint?: string;
   sending?: boolean;
+  /** Optional brand colour for the send button (storefront). */
+  accentHex?: string | null;
 }) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const [emojiOpen, setEmojiOpen] = React.useState(false);
@@ -275,10 +303,10 @@ export function Composer({
   };
 
   return (
-    <div className="shrink-0 border-t border-border/60 bg-background px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+    <div className="shrink-0 bg-gradient-to-t from-background via-background to-background/80 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
       <div
         className={cn(
-          "flex items-end gap-1.5 rounded-[1.75rem] border border-border/80 bg-muted/30 py-1.5 pl-1.5 pr-1.5 transition-colors focus-within:border-ring/50 focus-within:bg-background focus-within:ring-2 focus-within:ring-ring/15",
+          "flex items-end gap-1 rounded-[1.35rem] border border-border/70 bg-muted/25 py-1.5 pl-1.5 pr-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-[border-color,box-shadow,background-color] duration-200 focus-within:border-primary/35 focus-within:bg-background focus-within:shadow-[0_0_0_3px_rgba(40,167,69,0.12)]",
           disabled && "opacity-60",
         )}
       >
@@ -287,21 +315,22 @@ export function Composer({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="mb-0.5 size-9 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+            className="mb-0.5 size-9 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label="Add emoji"
+            aria-expanded={emojiOpen}
             onClick={() => setEmojiOpen((v) => !v)}
             disabled={disabled}
           >
             <Smile className="size-4" />
           </Button>
           {emojiOpen ? (
-            <div className="absolute bottom-12 left-0 z-20 w-60 rounded-2xl border border-border/70 bg-card p-2 shadow-lg">
-              <div className="grid grid-cols-5 gap-1">
+            <div className="absolute bottom-12 left-0 z-20 w-60 origin-bottom-left animate-in fade-in zoom-in-95 duration-150 rounded-2xl border border-border/70 bg-card p-2 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.35)]">
+              <div className="grid grid-cols-5 gap-0.5">
                 {QUICK_EMOJIS.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
-                    className="rounded-lg p-1.5 text-lg transition-colors hover:bg-muted"
+                    className="rounded-xl p-1.5 text-lg transition-colors hover:bg-muted"
                     onClick={() => {
                       onChange(`${value}${emoji}`);
                       textareaRef.current?.focus();
@@ -320,8 +349,8 @@ export function Composer({
           rows={1}
           value={value}
           disabled={disabled}
-          placeholder={disabled ? (disabledHint ?? "This conversation is closed") : "Type a message…"}
-          className="max-h-[120px] min-h-[2.25rem] flex-1 resize-none bg-transparent px-1 py-1.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
+          placeholder={disabled ? (disabledHint ?? "This conversation is closed") : "Write a message…"}
+          className="max-h-[120px] min-h-[2.25rem] flex-1 resize-none bg-transparent px-1 py-1.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/80 focus:outline-none disabled:cursor-not-allowed"
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -334,15 +363,23 @@ export function Composer({
         <Button
           type="button"
           size="icon"
-          className="mb-0.5 size-9 shrink-0 rounded-full"
+          className={cn(
+            "mb-0.5 size-9 shrink-0 rounded-full transition-transform duration-150",
+            canSend && !sending && "hover:scale-105 active:scale-95",
+          )}
+          style={
+            accentHex && canSend
+              ? { backgroundColor: accentHex, color: "#fff" }
+              : undefined
+          }
           onClick={submit}
           disabled={!canSend || sending}
           aria-label="Send message"
         >
-          <Send className="size-4" />
+          <Send className={cn("size-3.5 transition-transform", canSend && "-translate-x-px translate-y-px")} />
         </Button>
       </div>
-      <p className="mt-2 px-1 text-center text-[10px] text-muted-foreground/70">
+      <p className="mt-2 px-1 text-center text-[10px] tracking-wide text-muted-foreground/65">
         Enter to send · Shift+Enter for a new line
       </p>
     </div>
@@ -362,17 +399,17 @@ export function LiveStatusPill({
     connected: {
       label: "Live",
       dot: "bg-emerald-500",
-      pill: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      pill: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
     },
     connecting: {
       label: "Connecting…",
       dot: "bg-amber-500",
-      pill: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      pill: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
     },
     reconnecting: {
       label: "Reconnecting…",
       dot: "bg-amber-500",
-      pill: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      pill: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
     },
     disconnected: {
       label: "Offline",
@@ -391,7 +428,9 @@ export function LiveStatusPill({
       title="Realtime connection status"
     >
       <span className="relative flex size-1.5">
-        <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-60", cfg.dot)} />
+        {state === "connected" ? (
+          <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-50", cfg.dot)} />
+        ) : null}
         <span className={cn("relative inline-flex size-1.5 rounded-full", cfg.dot)} />
       </span>
       {cfg.label}
@@ -418,7 +457,7 @@ export function ResolvedBanner({
         type="button"
         disabled={busy}
         onClick={onResolve}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/25 hover:bg-muted/40 hover:text-foreground disabled:opacity-50"
       >
         <Check className="size-3" />
         Mark resolved
@@ -426,10 +465,10 @@ export function ResolvedBanner({
     ) : null;
   }
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 border-b border-border/60 bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
-      <span className="inline-flex items-center gap-1.5">
-        <Check className="size-3.5 text-emerald-500" aria-hidden />
-        This conversation is resolved.
+    <div className="flex flex-wrap items-center justify-center gap-2 border-b border-border/50 bg-emerald-500/[0.06] px-4 py-2.5 text-xs text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5 font-medium text-foreground/80">
+        <Check className="size-3.5 text-emerald-600" aria-hidden />
+        Conversation resolved
       </span>
       {onReopen ? (
         <button
@@ -438,7 +477,7 @@ export function ResolvedBanner({
           onClick={onReopen}
           className="font-medium text-primary underline-offset-2 hover:underline disabled:opacity-50"
         >
-          Reopen it
+          Reopen
         </button>
       ) : null}
     </div>
@@ -458,11 +497,37 @@ export function ChatEmptyState({
 }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-      <div className="mb-3 flex size-12 items-center justify-center rounded-2xl border border-border/70 bg-card shadow-sm">
+      <div className="mb-4 flex size-14 items-center justify-center rounded-2xl border border-border/60 bg-card text-muted-foreground shadow-[0_8px_24px_-16px_rgba(15,23,42,0.35)]">
         {icon}
       </div>
-      <p className="text-sm font-semibold text-foreground">{title}</p>
-      <p className="mt-1 max-w-xs text-sm text-muted-foreground">{body}</p>
+      <p className="font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight text-foreground">
+        {title}
+      </p>
+      <p className="mt-1.5 max-w-[18rem] text-sm leading-relaxed text-muted-foreground">{body}</p>
+    </div>
+  );
+}
+
+/**
+ * Soft message-plane background used across guest, tenant, and SA threads.
+ * Keeps the conversation area from feeling like an empty white box.
+ */
+export function ChatThreadSurface({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative min-h-0 flex-1 overflow-hidden",
+        "bg-[radial-gradient(120%_80%_at_50%_-10%,rgba(40,167,69,0.07),transparent_55%)] bg-muted/25",
+        className,
+      )}
+    >
+      {children}
     </div>
   );
 }

@@ -211,6 +211,10 @@ export function SaSupportInbox() {
       channels: ["support"],
       onSupportMessage: (frame: RealtimeFrame) => {
         const data = frame.data as Record<string, unknown>;
+        const conversationType = String(data.conversationType ?? "");
+        // Storefront buyer chats belong to the tenant staff inbox — ignore them here.
+        if (conversationType === "STOREFRONT") return;
+
         const messageId = String(data.messageId ?? "");
         const convId = String(data.conversationId ?? "");
         if (!messageId || !convId || seenIdsRef.current.has(messageId)) return;
@@ -232,7 +236,7 @@ export function SaSupportInbox() {
         // staring at this thread, skimming the list, or has the tab in the background.
         const isStaffMatter =
           incoming.senderType === "TENANT" ||
-          (incoming.senderType === "GUEST" && String(data.conversationType ?? "") === "VISITOR");
+          (incoming.senderType === "GUEST" && conversationType === "VISITOR");
         if (isStaffMatter) {
           playSupportMessageSound();
         }
@@ -258,15 +262,18 @@ export function SaSupportInbox() {
         setConversations((prev) => {
           const row = prev.find((c) => c.id === convId);
           if (!row) return prev;
+          // Only bump unread for peers this inbox actually staffs.
+          const countsAsUnread =
+            !isActive &&
+            incoming.senderType !== "SUPER_ADMIN" &&
+            (incoming.senderType === "TENANT" ||
+              (incoming.senderType === "GUEST" && conversationType === "VISITOR"));
           return [
             {
               ...row,
               lastMessageAt: incoming.createdAt,
               lastMessagePreview: incoming.body,
-              unreadCount:
-                isActive || incoming.senderType === "SUPER_ADMIN"
-                  ? row.unreadCount
-                  : row.unreadCount + 1,
+              unreadCount: countsAsUnread ? row.unreadCount + 1 : row.unreadCount,
             },
             ...prev.filter((c) => c.id !== convId),
           ].sort(byLatest);
@@ -499,9 +506,9 @@ export function SaSupportInbox() {
   });
 
   const listPane = (
-    <div className="flex min-h-0 w-full flex-col md:w-80 md:shrink-0 md:border-r md:border-border/60">
-      <div className="border-b border-border/60 p-3">
-        <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-0.5">
+    <div className="flex min-h-0 w-full flex-col bg-background md:w-[19.5rem] md:shrink-0 md:border-r md:border-border/50">
+      <div className="border-b border-border/50 bg-[linear-gradient(180deg,rgba(40,167,69,0.05),transparent)] p-3">
+        <div className="flex items-center gap-1 rounded-xl bg-muted/60 p-1">
           {(["TENANT", "VISITOR"] as InboxTab[]).map((key) => (
             <button
               key={key}
@@ -509,7 +516,7 @@ export function SaSupportInbox() {
               onClick={() => setTab(key)}
               aria-pressed={tab === key}
               className={cn(
-                "inline-flex h-7 flex-1 items-center justify-center rounded-md text-xs font-medium transition-colors",
+                "inline-flex h-8 flex-1 items-center justify-center rounded-lg text-xs font-semibold tracking-wide transition-colors",
                 tab === key
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -519,13 +526,13 @@ export function SaSupportInbox() {
             </button>
           ))}
         </div>
-        <div className="relative mt-2">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
+        <div className="relative mt-2.5">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={tab === "VISITOR" ? "Search visitors…" : "Search tenants…"}
-            className="h-9 w-full rounded-lg border border-border/70 bg-muted/40 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/20"
+            className="h-10 w-full rounded-xl border border-border/70 bg-background/90 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
           />
         </div>
         <div className="mt-2 flex items-center gap-1">
@@ -609,7 +616,7 @@ export function SaSupportInbox() {
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-border/50">
+          <ul className="space-y-0.5 p-1.5">
             {visible.map((conversation) => {
               const isActive = conversation.id === activeId;
               const isResolved = conversation.status === "RESOLVED";
@@ -620,8 +627,10 @@ export function SaSupportInbox() {
                     type="button"
                     onClick={() => void openConversation(conversation.id)}
                     className={cn(
-                      "flex w-full items-start gap-2.5 px-3 py-3 text-left transition-colors",
-                      isActive ? "bg-primary/8" : "hover:bg-muted/50",
+                      "flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition-colors",
+                      isActive
+                        ? "bg-primary/[0.09] ring-1 ring-primary/15"
+                        : "hover:bg-muted/60",
                     )}
                   >
                     <div className="relative shrink-0">
@@ -702,10 +711,10 @@ export function SaSupportInbox() {
 
   const chatPane = activeConversation ? (
     <section
-      className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:rounded-l-none"
+      className="relative flex h-full min-h-0 flex-col overflow-hidden border-border/50 bg-background md:border-l-0 md:rounded-none"
       aria-label={`Support chat with ${displayName(activeConversation)}`}
     >
-      <header className="flex items-center gap-3 border-b border-border/60 bg-background/60 px-3 py-3 backdrop-blur sm:px-4">
+      <header className="flex items-center gap-3 border-b border-border/50 bg-[linear-gradient(135deg,rgba(40,167,69,0.07)_0%,transparent_62%)] px-3 py-3.5 sm:px-4">
         <Button
           type="button"
           variant="ghost"

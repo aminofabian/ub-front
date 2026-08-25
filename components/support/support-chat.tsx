@@ -6,6 +6,7 @@ import { ArrowDown, LifeBuoy, MessageCircleQuestion, RotateCw, Volume2, VolumeX,
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   ChatMessageShape,
+  ChatThreadSurface,
   Composer,
   DayDivider,
   LiveStatusPill,
@@ -373,42 +374,43 @@ export function SupportChat({
   return (
     <section
       className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden bg-card",
+        "flex h-full min-h-0 flex-col overflow-hidden bg-background",
         isDrawer
           ? "rounded-none border-0 shadow-none"
-          : "rounded-2xl border border-border/70 shadow-sm",
+          : "rounded-2xl border border-border/60 shadow-[0_12px_40px_-24px_rgba(15,23,42,0.35)]",
       )}
       aria-label="Support chat with Kiosk"
     >
       {/* Header */}
       <header
         className={cn(
-          "flex shrink-0 items-center gap-3 border-b border-border/60 bg-background px-4 py-3.5",
+          "flex shrink-0 items-center gap-3 border-b border-border/50 px-4 py-3.5",
+          "bg-[linear-gradient(135deg,rgba(40,167,69,0.08)_0%,transparent_62%)]",
           isDrawer && "pt-[max(0.875rem,env(safe-area-inset-top))]",
         )}
       >
         <div className="relative shrink-0">
-          <PlatformAvatar className="size-10" />
+          <PlatformAvatar className="size-11" />
           <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-background bg-emerald-500" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-semibold tracking-tight text-foreground">
+          <p className="truncate font-[family-name:var(--font-heading)] text-[1.05rem] font-semibold tracking-tight text-foreground">
             Kiosk Support
           </p>
           <p className="truncate text-xs text-muted-foreground">
             {theirTyping
-              ? "typing…"
+              ? "Kiosk Support is typing…"
               : connectionState === "connected"
-                ? "Platform team · usually replies within minutes"
-                : "Live sync paused — new messages appear automatically"}
+                ? "Platform team · usually replies in minutes"
+                : "Live sync paused — messages still sync automatically"}
           </p>
         </div>
-        <LiveStatusPill state={connectionState} />
+        <LiveStatusPill state={connectionState} className="hidden sm:inline-flex" />
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="shrink-0 text-muted-foreground hover:text-foreground"
+          className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
           aria-label={soundOn ? "Mute message sounds" : "Unmute message sounds"}
           title={soundOn ? "Message sounds on" : "Message sounds off"}
           onClick={() => {
@@ -424,7 +426,7 @@ export function SupportChat({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="shrink-0 text-muted-foreground hover:text-foreground"
+            className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
             aria-label="Close support chat"
             onClick={onClose}
           >
@@ -436,14 +438,15 @@ export function SupportChat({
       <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />
 
       {/* Messages */}
-      <div className="relative min-h-0 flex-1 bg-muted/25">
+      <ChatThreadSurface>
         <div
           ref={scrollRef}
           onScroll={onScroll}
           className="h-full overflow-y-auto overscroll-contain px-3 py-5 sm:px-5"
         >
           {loading ? (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+              <span className="size-8 animate-pulse rounded-full bg-primary/15" aria-hidden />
               Loading conversation…
             </div>
           ) : loadError ? (
@@ -456,21 +459,22 @@ export function SupportChat({
             </div>
           ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-5">
-              <div className="mb-5 flex size-16 items-center justify-center rounded-2xl border border-border/80 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                <LifeBuoy className="size-7 text-primary" aria-hidden />
+              <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[0_12px_28px_-14px_rgba(40,167,69,0.75)]">
+                <LifeBuoy className="size-7" aria-hidden />
               </div>
-              <p className="text-base font-semibold tracking-tight text-foreground">Hi there 👋</p>
-              <p className="mt-1.5 max-w-[18rem] text-center text-sm leading-relaxed text-muted-foreground">
-                This is your direct line to the Kiosk team. Ask us anything — setup, payments,
-                your online store, you name it.
+              <p className="font-[family-name:var(--font-heading)] text-xl font-semibold tracking-tight text-foreground">
+                How can we help?
               </p>
-              <div className="mt-6 flex w-full max-w-sm flex-col gap-2.5">
+              <p className="mt-1.5 max-w-[18rem] text-center text-sm leading-relaxed text-muted-foreground">
+                Your direct line to the Kiosk team — setup, payments, your online store, or anything else.
+              </p>
+              <div className="mt-6 flex w-full max-w-sm flex-col gap-2">
                 {QUICK_PROMPTS.map((prompt) => (
                   <button
                     key={prompt}
                     type="button"
                     onClick={() => void send(prompt)}
-                    className="group flex items-start gap-2.5 rounded-2xl border border-border/80 bg-card px-3.5 py-3 text-left text-sm leading-snug text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors hover:border-primary/35 hover:bg-primary/[0.03] hover:text-foreground"
+                    className="group flex items-start gap-2.5 rounded-2xl border border-border/70 bg-card/90 px-3.5 py-3 text-left text-sm leading-snug text-foreground/80 shadow-sm transition-[border-color,background-color,transform] hover:border-primary/35 hover:bg-primary/[0.04] hover:text-foreground active:scale-[0.99]"
                   >
                     <MessageCircleQuestion
                       className="mt-0.5 size-4 shrink-0 text-primary"
@@ -493,24 +497,12 @@ export function SupportChat({
                 return (
                   <React.Fragment key={message.id}>
                     {newDay ? <DayDivider iso={message.createdAt} /> : null}
-                    <div
-                      className={cn(
-                        "flex flex-col gap-1",
-                        mine ? "items-end" : "items-start",
-                      )}
-                    >
-                      <MessageBubble message={message} mine={mine} showAvatar={showAvatar} />
-                      {message.failed ? (
-                        <button
-                          type="button"
-                          onClick={() => retry(message)}
-                          className="mr-2 inline-flex items-center gap-1 text-[11px] font-medium text-destructive underline-offset-2 hover:underline"
-                        >
-                          <RotateCw className="size-3" />
-                          Failed to send — tap to retry
-                        </button>
-                      ) : null}
-                    </div>
+                    <MessageBubble
+                      message={message}
+                      mine={mine}
+                      showAvatar={showAvatar}
+                      onRetry={message.failed ? () => retry(message) : undefined}
+                    />
                   </React.Fragment>
                 );
               })}
@@ -528,25 +520,27 @@ export function SupportChat({
           <button
             type="button"
             onClick={jumpToBottom}
-            className="absolute bottom-4 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-lg transition-transform hover:scale-105"
+            className="absolute bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/70 bg-card/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-[0_8px_24px_-12px_rgba(15,23,42,0.45)] backdrop-blur-sm transition-colors hover:bg-card"
           >
             <ArrowDown className="size-3.5" />
             {jumpCount > 1
-              ? `${Math.min(jumpCount, 99)} new message${jumpCount === 1 ? "" : "s"}`
-              : "New messages"}
+              ? `${Math.min(jumpCount, 99)} new`
+              : "Latest"}
           </button>
         ) : null}
-      </div>
+      </ChatThreadSurface>
 
       {/* Composer */}
-      <Composer
-        value={draft}
-        onChange={setDraft}
-        onSend={(text) => void send(text)}
-        disabled={resolved}
-        disabledHint={resolved ? "Reopen the conversation to send a message" : undefined}
-        sending={sending}
-      />
+      <div className="border-t border-border/50">
+        <Composer
+          value={draft}
+          onChange={setDraft}
+          onSend={(text) => void send(text)}
+          disabled={resolved}
+          disabledHint={resolved ? "Reopen the conversation to send a message" : undefined}
+          sending={sending}
+        />
+      </div>
     </section>
   );
 }
