@@ -8,6 +8,7 @@ import {
   Avatar,
   ChatThreadSurface,
   Composer,
+  type ComposerSendPayload,
   DayDivider,
   LiveStatusPill,
   MessageBubble,
@@ -28,6 +29,7 @@ import {
   type GuestMessage,
   type GuestThreadPayload,
   ensureGuestId,
+  getGuestCloudinarySignature,
   getGuestName,
   getGuestPhone,
   guestRealtimeChannel,
@@ -38,6 +40,7 @@ import {
   setGuestPhone,
   startGuestThread,
 } from "@/lib/public-support-api";
+import { uploadSupportAttachmentToCloudinary } from "@/lib/support-attachments";
 import {
   getGuestRealtimeClient,
   type RealtimeConnectionState,
@@ -75,8 +78,24 @@ function toLocalMessage(message: GuestMessage): ChatMessageShape {
     senderUserId: message.senderUserId,
     senderName: message.senderName,
     body: message.body,
+    attachment: message.attachment ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
+  };
+}
+
+function attachmentFromRealtime(data: Record<string, unknown>): ChatMessageShape["attachment"] {
+  const raw = data.attachment;
+  if (!raw || typeof raw !== "object") return null;
+  const a = raw as Record<string, unknown>;
+  const url = typeof a.url === "string" ? a.url : "";
+  if (!url) return null;
+  return {
+    url,
+    publicId: typeof a.publicId === "string" ? a.publicId : null,
+    fileName: typeof a.fileName === "string" ? a.fileName : null,
+    contentType: typeof a.contentType === "string" ? a.contentType : null,
+    bytes: typeof a.bytes === "number" ? a.bytes : null,
   };
 }
 
@@ -285,6 +304,7 @@ function GuestSupportPanel({
           senderUserId: String(data.senderUserId ?? ""),
           senderName: String(data.senderName ?? "") || null,
           body: String(data.body ?? ""),
+          attachment: attachmentFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
@@ -373,47 +393,71 @@ function GuestSupportPanel({
 
   // ── Send / start ─────────────────────────────────────────────────────────
   const send = React.useCallback(
-    async (text: string) => {
-      const body = text.trim();
-      if (!body || sending) return;
-      if (!conversationId) {
-        // First message creates the thread (and the server mints the token).
+    async (payload: ComposerSendPayload | string) => {
+      const body = typeof payload === "string" ? payload.trim() : payload.body.trim();
+      const file = typeof payload === "string" ? null : payload.file ?? null;
+      const existingAttachment =
+        typeof payload === "string" ? null : payload.attachment ?? null;
+      if ((!body && !file && !existingAttachment) || sending) return;
+
+      // First message may need to create the thread (and mint the guest token).
+      let threadId = conversationId;
+      if (!threadId) {
         setSending(true);
         try {
           const savedName = getGuestName();
-          const payload = await startGuestThread(context.ns, {
+          // Empty body is fine when attaching — creates the thread without a text row.
+          const payloadStart = await startGuestThread(context.ns, {
             type: context.type,
             businessSlug: context.businessSlug,
-            body,
+            body: file || existingAttachment ? "" : body,
             name: savedName,
           });
-          if (payload.conversation) {
-            applyPayload(payload, false);
-            setShowIntro(false);
-            if (open) {
-              void markGuestThreadRead(context.ns, payload.conversation.id).catch(() => {});
-              onUnreadChange(0);
-            }
+          if (!payloadStart.conversation) {
+            throw new Error("Could not start the conversation.");
+          }
+          applyPayload(payloadStart, false);
+          setShowIntro(false);
+          threadId = payloadStart.conversation.id;
+          if (open) {
+            void markGuestThreadRead(context.ns, threadId).catch(() => {});
+            onUnreadChange(0);
+          }
+          // Text-only first message was already persisted by startGuestThread.
+          if (!file && !existingAttachment) {
+            return;
           }
         } catch (e) {
           setLoadError(e instanceof Error ? e.message : "Could not start the conversation.");
-        } finally {
           setSending(false);
+          return;
         }
-        return;
       }
+
       setSending(true);
       const tempId =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `tmp-${Date.now()}`;
+      const localPreviewUrl =
+        file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
       const optimistic: ChatMessageShape = {
         id: tempId,
-        conversationId,
+        conversationId: threadId,
         senderType: "GUEST",
         senderUserId: guestId,
         senderName: getGuestName(),
         body,
+        attachment:
+          existingAttachment ??
+          (file
+            ? {
+                url: localPreviewUrl || "#",
+                fileName: file.name,
+                contentType: file.type || null,
+                bytes: file.size,
+              }
+            : null),
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
@@ -421,9 +465,18 @@ function GuestSupportPanel({
       setMessages((prev) => [...prev, optimistic]);
       setDraft("");
       try {
-        const saved = await sendGuestMessage(context.ns, conversationId, body, {
+        let attachment = existingAttachment;
+        if (file) {
+          attachment = await uploadSupportAttachmentToCloudinary(
+            threadId,
+            file,
+            async () => getGuestCloudinarySignature(context.ns, threadId!),
+          );
+        }
+        const saved = await sendGuestMessage(context.ns, threadId, body, {
           type: context.type,
           businessSlug: context.businessSlug,
+          attachment,
         });
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
@@ -438,10 +491,21 @@ function GuestSupportPanel({
         );
         setLoadError(e instanceof Error ? e.message : "Message failed to send.");
       } finally {
+        if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
         setSending(false);
       }
     },
-    [conversationId, context.ns, context.type, context.businessSlug, guestId, open, sending, applyPayload, onUnreadChange],
+    [
+      conversationId,
+      context.ns,
+      context.type,
+      context.businessSlug,
+      guestId,
+      open,
+      sending,
+      applyPayload,
+      onUnreadChange,
+    ],
   );
 
   const beginIntro = () => {
@@ -695,7 +759,7 @@ function GuestSupportPanel({
             <Composer
               value={draft}
               onChange={setDraft}
-              onSend={(text) => void send(text)}
+              onSend={(payload) => void send(payload)}
               disabled={Boolean(loadError)}
               sending={sending}
               accentHex={accent}

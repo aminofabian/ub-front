@@ -1,9 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { Check, CheckCheck, Send, Smile, X } from "lucide-react";
+import {
+  Check,
+  CheckCheck,
+  FileText,
+  Paperclip,
+  Send,
+  Smile,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  SUPPORT_ATTACHMENT_ACCEPT,
+  formatAttachmentBytes,
+  isSupportImageContentType,
+  validateSupportAttachmentFile,
+  type SupportAttachmentPayload,
+} from "@/lib/support-attachments";
 import { cn } from "@/lib/utils";
 
 // ─── Shared support-chat primitives ────────────────────────────────────────
@@ -12,6 +27,14 @@ import { cn } from "@/lib/utils";
 
 export type ChatSenderType = "TENANT" | "SUPER_ADMIN" | "GUEST";
 
+export type ChatAttachmentShape = {
+  url: string;
+  publicId?: string | null;
+  fileName?: string | null;
+  contentType?: string | null;
+  bytes?: number | null;
+};
+
 export type ChatMessageShape = {
   id: string;
   conversationId: string;
@@ -19,12 +42,20 @@ export type ChatMessageShape = {
   senderUserId: string;
   senderName: string | null;
   body: string;
+  attachment?: ChatAttachmentShape | null;
   readAt: string | null;
   createdAt: string;
   /** Optimistic, not yet confirmed by the server. */
   pending?: boolean;
   /** The POST failed; show a retry affordance. */
   failed?: boolean;
+};
+
+export type ComposerSendPayload = {
+  body: string;
+  attachment?: SupportAttachmentPayload | null;
+  /** Local file still uploading when send is pressed — parent uploads then sends. */
+  file?: File | null;
 };
 
 const AVATAR_HUES = [
@@ -191,7 +222,12 @@ export function MessageBubble({
               {message.senderName}
             </p>
           ) : null}
-          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.body}</p>
+          {message.attachment?.url ? (
+            <AttachmentBlock attachment={message.attachment} mine={mine} />
+          ) : null}
+          {message.body?.trim() ? (
+            <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.body}</p>
+          ) : null}
           <span
             className={cn(
               "mt-1.5 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums",
@@ -245,6 +281,75 @@ export function TypingBubble({ label }: { label: string }) {
   );
 }
 
+// ─── Attachments ───────────────────────────────────────────────────────────
+
+function AttachmentBlock({
+  attachment,
+  mine,
+}: {
+  attachment: ChatAttachmentShape;
+  mine: boolean;
+}) {
+  const name = attachment.fileName?.trim() || "Attachment";
+  const sizeLabel = formatAttachmentBytes(attachment.bytes);
+  const isImage = isSupportImageContentType(attachment.contentType)
+    || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(attachment.url);
+
+  if (isImage) {
+    return (
+      <a
+        href={attachment.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mb-2 block overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={attachment.url}
+          alt={name}
+          className="max-h-56 w-full object-cover"
+        />
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={attachment.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "mb-2 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors",
+        mine
+          ? "bg-primary-foreground/12 hover:bg-primary-foreground/18"
+          : "bg-muted/70 hover:bg-muted",
+      )}
+    >
+      <span
+        className={cn(
+          "inline-flex size-9 shrink-0 items-center justify-center rounded-lg",
+          mine ? "bg-primary-foreground/15 text-primary-foreground" : "bg-background text-foreground",
+        )}
+      >
+        <FileText className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-medium leading-tight">{name}</span>
+        {sizeLabel ? (
+          <span
+            className={cn(
+              "mt-0.5 block text-[10px] tabular-nums",
+              mine ? "text-primary-foreground/70" : "text-muted-foreground",
+            )}
+          >
+            {sizeLabel}
+          </span>
+        ) : null}
+      </span>
+    </a>
+  );
+}
+
 // ─── Composer ──────────────────────────────────────────────────────────────
 
 const QUICK_EMOJIS = ["🙂", "😄", "😂", "👍", "❤️", "🙏", "🎉", "🤔", "😅", "😎"];
@@ -257,18 +362,24 @@ export function Composer({
   disabledHint,
   sending,
   accentHex,
+  attachmentsEnabled = true,
 }: {
   value: string;
   onChange: (value: string) => void;
-  onSend: (text: string) => void;
+  onSend: (payload: ComposerSendPayload) => void;
   disabled?: boolean;
   disabledHint?: string;
   sending?: boolean;
   /** Optional brand colour for the send button (storefront). */
   accentHex?: string | null;
+  attachmentsEnabled?: boolean;
 }) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [emojiOpen, setEmojiOpen] = React.useState(false);
+  const [file, setFile] = React.useState<File | null>(null);
+  const [fileError, setFileError] = React.useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const emojiRef = React.useRef<HTMLDivElement>(null);
 
   const autosize = React.useCallback(() => {
@@ -283,6 +394,16 @@ export function Composer({
   }, [value, autosize]);
 
   React.useEffect(() => {
+    if (!file || !isSupportImageContentType(file.type)) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  React.useEffect(() => {
     if (!emojiOpen) return;
     const onDown = (e: MouseEvent) => {
       if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
@@ -293,23 +414,99 @@ export function Composer({
     return () => document.removeEventListener("mousedown", onDown);
   }, [emojiOpen]);
 
-  const canSend = value.trim().length > 0 && !disabled;
+  const canSend = (value.trim().length > 0 || file != null) && !disabled;
+
+  const clearFile = () => {
+    setFile(null);
+    setFileError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const submit = () => {
     if (!canSend) return;
-    onSend(value.trim());
+    onSend({ body: value.trim(), file });
     onChange("");
+    clearFile();
     setEmojiOpen(false);
   };
 
   return (
     <div className="shrink-0 bg-gradient-to-t from-background via-background to-background/80 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+      {file ? (
+        <div className="mb-2 flex items-center gap-2 rounded-2xl border border-border/60 bg-card px-3 py-2 shadow-sm">
+          {previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewUrl} alt="" className="size-10 rounded-lg object-cover" />
+          ) : (
+            <span className="inline-flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <FileText className="size-4" />
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-foreground">{file.name}</p>
+            <p className="text-[10px] tabular-nums text-muted-foreground">
+              {formatAttachmentBytes(file.size)}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="size-8 rounded-full"
+            aria-label="Remove attachment"
+            onClick={clearFile}
+          >
+            <X className="size-3.5" />
+          </Button>
+        </div>
+      ) : null}
+      {fileError ? (
+        <p className="mb-2 px-1 text-[11px] text-destructive">{fileError}</p>
+      ) : null}
       <div
         className={cn(
           "flex items-end gap-1 rounded-[1.35rem] border border-border/70 bg-muted/25 py-1.5 pl-1.5 pr-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-[border-color,box-shadow,background-color] duration-200 focus-within:border-primary/35 focus-within:bg-background focus-within:shadow-[0_0_0_3px_rgba(40,167,69,0.12)]",
           disabled && "opacity-60",
         )}
       >
+        {attachmentsEnabled ? (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept={SUPPORT_ATTACHMENT_ACCEPT}
+              onChange={(e) => {
+                const next = e.target.files?.[0] ?? null;
+                if (!next) {
+                  clearFile();
+                  return;
+                }
+                const err = validateSupportAttachmentFile(next);
+                if (err) {
+                  setFile(null);
+                  setFileError(err);
+                  e.target.value = "";
+                  return;
+                }
+                setFileError(null);
+                setFile(next);
+              }}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="mb-0.5 size-9 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Attach file"
+              disabled={disabled || sending}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="size-4" />
+            </Button>
+          </>
+        ) : null}
+
         <div className="relative" ref={emojiRef}>
           <Button
             type="button"
@@ -381,6 +578,7 @@ export function Composer({
       </div>
       <p className="mt-2 px-1 text-center text-[10px] tracking-wide text-muted-foreground/65">
         Enter to send · Shift+Enter for a new line
+        {attachmentsEnabled ? " · Attach images, PDF, CSV, Excel" : ""}
       </p>
     </div>
   );

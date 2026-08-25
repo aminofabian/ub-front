@@ -4293,14 +4293,17 @@ export type CloudinarySignature = {
   timestamp: number;
   signature: string;
   folder: string;
+  /** Defaults to image when omitted (older servers). */
+  resourceType?: "image" | "auto" | "raw" | string;
 };
 
 export async function getCloudinarySignature(
   folder: string,
+  resourceType: "image" | "auto" | "raw" = "image",
 ): Promise<CloudinarySignature> {
   return request<CloudinarySignature>("/api/v1/media/cloudinary-signature", {
     method: "POST",
-    body: { folder },
+    body: { folder, resourceType },
   });
 }
 
@@ -4317,6 +4320,7 @@ export async function uploadToCloudinary(
   version?: number;
   phash?: string;
   predominant_color?: string;
+  resource_type?: string;
 }> {
   const form = new FormData();
   form.append("file", file);
@@ -4324,10 +4328,13 @@ export async function uploadToCloudinary(
   form.append("timestamp", String(signature.timestamp));
   form.append("signature", signature.signature);
   form.append("folder", signature.folder);
-  form.append("phash", "true");
-  form.append("colors", "true");
+  const resourceType = (signature.resourceType || "image").toLowerCase();
+  if (resourceType === "image") {
+    form.append("phash", "true");
+    form.append("colors", "true");
+  }
 
-  const url = `https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`;
+  const url = `https://api.cloudinary.com/v1_1/${signature.cloudName}/${resourceType}/upload`;
   const res = await fetch(url, { method: "POST", body: form });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

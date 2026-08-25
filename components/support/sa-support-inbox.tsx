@@ -16,6 +16,7 @@ import {
   ChatEmptyState,
   ChatMessageShape,
   Composer,
+  type ComposerSendPayload,
   DayDivider,
   LiveStatusPill,
   MessageBubble,
@@ -31,6 +32,7 @@ import {
   type RealtimeConnectionState,
   type RealtimeFrame,
 } from "@/lib/realtime";
+import { uploadSupportAttachmentToCloudinary } from "@/lib/support-attachments";
 import {
   type SaSupportConversation,
   type SaSupportMessage,
@@ -38,6 +40,7 @@ import {
   fetchSaSupportConversation,
   fetchSaSupportConversations,
   fetchSaSupportPresence,
+  getSaCloudinarySignature,
   markSaSupportConversationRead,
   reopenSaSupportConversation,
   resolveSaSupportConversation,
@@ -59,8 +62,24 @@ function toLocalMessage(message: SaSupportMessage): ChatMessageShape {
     senderUserId: message.senderUserId,
     senderName: message.senderName,
     body: message.body,
+    attachment: message.attachment ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
+  };
+}
+
+function attachmentFromRealtime(data: Record<string, unknown>): ChatMessageShape["attachment"] {
+  const raw = data.attachment;
+  if (!raw || typeof raw !== "object") return null;
+  const a = raw as Record<string, unknown>;
+  const url = typeof a.url === "string" ? a.url : "";
+  if (!url) return null;
+  return {
+    url,
+    publicId: typeof a.publicId === "string" ? a.publicId : null,
+    fileName: typeof a.fileName === "string" ? a.fileName : null,
+    contentType: typeof a.contentType === "string" ? a.contentType : null,
+    bytes: typeof a.bytes === "number" ? a.bytes : null,
   };
 }
 
@@ -248,6 +267,7 @@ export function SaSupportInbox() {
           senderUserId: String(data.senderUserId ?? ""),
           senderName: String(data.senderName ?? "") || null,
           body: String(data.body ?? ""),
+          attachment: attachmentFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
@@ -436,15 +456,20 @@ export function SaSupportInbox() {
 
   // ── Reply / status ──────────────────────────────────────────────────────
   const send = React.useCallback(
-    async (text: string) => {
+    async (payload: ComposerSendPayload | string) => {
       if (!activeId || sending) return;
-      const body = text.trim();
-      if (!body) return;
+      const body = typeof payload === "string" ? payload.trim() : payload.body.trim();
+      const file = typeof payload === "string" ? null : payload.file ?? null;
+      const existingAttachment =
+        typeof payload === "string" ? null : payload.attachment ?? null;
+      if (!body && !file && !existingAttachment) return;
       setSending(true);
       const tempId =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `tmp-${Date.now()}`;
+      const localPreviewUrl =
+        file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
       const optimistic: ChatMessageShape = {
         id: tempId,
         conversationId: activeId,
@@ -452,13 +477,31 @@ export function SaSupportInbox() {
         senderUserId: "platform",
         senderName: "Kiosk Team",
         body,
+        attachment:
+          existingAttachment ??
+          (file
+            ? {
+                url: localPreviewUrl || "#",
+                fileName: file.name,
+                contentType: file.type || null,
+                bytes: file.size,
+              }
+            : null),
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
       };
       setMessages((prev) => [...prev, optimistic]);
       try {
-        const saved = await sendSaSupportMessage(activeId, body);
+        let attachment = existingAttachment;
+        if (file) {
+          attachment = await uploadSupportAttachmentToCloudinary(
+            activeId,
+            file,
+            (folder) => getSaCloudinarySignature(folder, "auto"),
+          );
+        }
+        const saved = await sendSaSupportMessage(activeId, body, attachment);
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) {
@@ -469,7 +512,17 @@ export function SaSupportInbox() {
         setConversations((prev) =>
           prev
             .map((c) =>
-              c.id === activeId ? { ...c, lastMessageAt: saved.createdAt, lastMessagePreview: saved.body } : c,
+              c.id === activeId
+                ? {
+                    ...c,
+                    lastMessageAt: saved.createdAt,
+                    lastMessagePreview:
+                      saved.body?.trim() ||
+                      (saved.attachment?.fileName
+                        ? `📎 ${saved.attachment.fileName}`
+                        : saved.body),
+                  }
+                : c,
             )
             .sort(byLatest),
         );
@@ -478,6 +531,7 @@ export function SaSupportInbox() {
           prev.map((m) => (m.id === tempId ? { ...m, pending: false, failed: true } : m)),
         );
       } finally {
+        if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
         setSending(false);
       }
     },
@@ -486,7 +540,13 @@ export function SaSupportInbox() {
 
   const retry = (message: ChatMessageShape) => {
     setMessages((prev) => prev.filter((m) => m.id !== message.id));
-    void send(message.body);
+    void send({
+      body: message.body,
+      attachment:
+        message.attachment?.url && message.attachment.url !== "#"
+          ? message.attachment
+          : null,
+    });
   };
 
   const toggleStatus = async () => {
@@ -864,7 +924,7 @@ export function SaSupportInbox() {
       <Composer
         value={draft}
         onChange={setDraft}
-        onSend={(text) => void send(text)}
+        onSend={(payload) => void send(payload)}
         disabled={resolved}
         disabledHint={resolved ? "Reopen the conversation to reply" : undefined}
         sending={sending}

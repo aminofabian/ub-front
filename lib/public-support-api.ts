@@ -31,6 +31,13 @@ export type GuestMessage = {
   senderUserId: string;
   senderName: string | null;
   body: string;
+  attachment?: {
+    url: string;
+    publicId?: string | null;
+    fileName?: string | null;
+    contentType?: string | null;
+    bytes?: number | null;
+  } | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -272,7 +279,11 @@ export async function sendGuestMessage(
   ns: string,
   conversationId: string,
   body: string,
-  opts: { type: GuestChatType; businessSlug?: string },
+  opts: {
+    type: GuestChatType;
+    businessSlug?: string;
+    attachment?: GuestMessage["attachment"];
+  },
 ): Promise<GuestMessage> {
   const guestId = ensureGuestId();
   let session = loadGuestSession(ns);
@@ -281,7 +292,19 @@ export async function sendGuestMessage(
       method: "POST",
       credentials: "include",
       headers: guestHeaders(guestId, token),
-      body: JSON.stringify({ body, guestName: getGuestName() ?? undefined }),
+      body: JSON.stringify({
+        body: body || "",
+        guestName: getGuestName() ?? undefined,
+        attachment: opts.attachment
+          ? {
+              url: opts.attachment.url,
+              publicId: opts.attachment.publicId ?? undefined,
+              fileName: opts.attachment.fileName ?? undefined,
+              contentType: opts.attachment.contentType ?? undefined,
+              bytes: opts.attachment.bytes ?? undefined,
+            }
+          : undefined,
+      }),
     });
 
   let response = await post(conversationId, session.token);
@@ -298,6 +321,40 @@ export async function sendGuestMessage(
     throw new Error(`Could not send message (${response.status})`);
   }
   return (await response.json()) as GuestMessage;
+}
+
+export async function getGuestCloudinarySignature(
+  ns: string,
+  conversationId: string,
+): Promise<{
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  resourceType?: string;
+}> {
+  const guestId = ensureGuestId();
+  const session = loadGuestSession(ns);
+  const response = await fetch(
+    apiUrl(`/api/v1/public/support/threads/${encodeURIComponent(conversationId)}/cloudinary-signature`),
+    {
+      method: "POST",
+      credentials: "include",
+      headers: guestHeaders(guestId, session.token),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Could not prepare upload (${response.status})`);
+  }
+  return (await response.json()) as {
+    cloudName: string;
+    apiKey: string;
+    timestamp: number;
+    signature: string;
+    folder: string;
+    resourceType?: string;
+  };
 }
 
 export async function markGuestThreadRead(ns: string, conversationId: string): Promise<void> {

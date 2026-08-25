@@ -2840,10 +2840,17 @@ export type SaSupportConversation = {
 export type SaSupportMessage = {
   id: string;
   conversationId: string;
-  senderType: "TENANT" | "SUPER_ADMIN";
+  senderType: "TENANT" | "SUPER_ADMIN" | "GUEST";
   senderUserId: string;
   senderName: string | null;
   body: string;
+  attachment?: {
+    url: string;
+    publicId?: string | null;
+    fileName?: string | null;
+    contentType?: string | null;
+    bytes?: number | null;
+  } | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -2920,11 +2927,49 @@ export async function ensureSaTenantSupportThread(
 export async function sendSaSupportMessage(
   conversationId: string,
   body: string,
+  attachment?: {
+    url: string;
+    publicId?: string | null;
+    fileName?: string | null;
+    contentType?: string | null;
+    bytes?: number | null;
+  } | null,
 ): Promise<SaSupportMessage> {
   return saRequest<SaSupportMessage>(
     `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(conversationId)}/messages`,
-    { method: "POST", body: JSON.stringify({ body }) },
+    {
+      method: "POST",
+      body: JSON.stringify({
+        body: body || "",
+        attachment: attachment
+          ? {
+              url: attachment.url,
+              publicId: attachment.publicId ?? undefined,
+              fileName: attachment.fileName ?? undefined,
+              contentType: attachment.contentType ?? undefined,
+              bytes: attachment.bytes ?? undefined,
+            }
+          : undefined,
+      }),
+    },
   );
+}
+
+export async function getSaCloudinarySignature(
+  folder: string,
+  resourceType: "image" | "auto" | "raw" = "auto",
+): Promise<{
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  resourceType?: string;
+}> {
+  return saRequest("/api/v1/media/cloudinary-signature", {
+    method: "POST",
+    body: JSON.stringify({ folder, resourceType }),
+  });
 }
 
 export async function markSaSupportConversationRead(id: string): Promise<void> {

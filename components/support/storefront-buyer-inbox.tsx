@@ -7,6 +7,7 @@ import {
   type ChatMessageShape,
   Avatar,
   Composer,
+  type ComposerSendPayload,
   DayDivider,
   LiveStatusPill,
   MessageBubble,
@@ -17,6 +18,7 @@ import {
 } from "@/components/support/support-chat-ui";
 import { Button } from "@/components/ui/button";
 import { getRealtimeClient, type RealtimeConnectionState, type RealtimeFrame } from "@/lib/realtime";
+import { uploadSupportAttachmentToCloudinary } from "@/lib/support-attachments";
 import {
   type StorefrontBuyerConversation,
   fetchStorefrontBuyerConversation,
@@ -39,6 +41,7 @@ function toLocalMessage(message: {
   senderUserId: string;
   senderName: string | null;
   body: string;
+  attachment?: LocalMessage["attachment"];
   readAt: string | null;
   createdAt: string;
 }): LocalMessage {
@@ -49,8 +52,24 @@ function toLocalMessage(message: {
     senderUserId: message.senderUserId,
     senderName: message.senderName,
     body: message.body,
+    attachment: message.attachment ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
+  };
+}
+
+function attachmentFromRealtime(data: Record<string, unknown>): LocalMessage["attachment"] {
+  const raw = data.attachment;
+  if (!raw || typeof raw !== "object") return null;
+  const a = raw as Record<string, unknown>;
+  const url = typeof a.url === "string" ? a.url : "";
+  if (!url) return null;
+  return {
+    url,
+    publicId: typeof a.publicId === "string" ? a.publicId : null,
+    fileName: typeof a.fileName === "string" ? a.fileName : null,
+    contentType: typeof a.contentType === "string" ? a.contentType : null,
+    bytes: typeof a.bytes === "number" ? a.bytes : null,
   };
 }
 
@@ -158,6 +177,7 @@ export function StorefrontBuyerInbox() {
           senderUserId: String(data.senderUserId ?? ""),
           senderName: String(data.senderName ?? "") || null,
           body: String(data.body ?? ""),
+          attachment: attachmentFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
@@ -272,12 +292,17 @@ export function StorefrontBuyerInbox() {
 
   // ── Send ────────────────────────────────────────────────────────────────
   const send = React.useCallback(
-    async (text: string) => {
-      const body = text.trim();
-      if (!body || !activeId || sending) return;
+    async (payload: ComposerSendPayload | string) => {
+      const body = typeof payload === "string" ? payload.trim() : payload.body.trim();
+      const file = typeof payload === "string" ? null : payload.file ?? null;
+      const existingAttachment =
+        typeof payload === "string" ? null : payload.attachment ?? null;
+      if ((!body && !file && !existingAttachment) || !activeId || sending) return;
       setSending(true);
       const tempId =
         typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `tmp-${Date.now()}`;
+      const localPreviewUrl =
+        file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
       const optimistic: LocalMessage = {
         id: tempId,
         conversationId: activeId,
@@ -285,6 +310,16 @@ export function StorefrontBuyerInbox() {
         senderUserId: "me",
         senderName: null,
         body,
+        attachment:
+          existingAttachment ??
+          (file
+            ? {
+                url: localPreviewUrl || "#",
+                fileName: file.name,
+                contentType: file.type || null,
+                bytes: file.size,
+              }
+            : null),
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
@@ -292,7 +327,11 @@ export function StorefrontBuyerInbox() {
       setMessages((prev) => [...prev, optimistic]);
       setDraft("");
       try {
-        const saved = await sendStorefrontBuyerReply(activeId, body);
+        let attachment = existingAttachment;
+        if (file) {
+          attachment = await uploadSupportAttachmentToCloudinary(activeId, file);
+        }
+        const saved = await sendStorefrontBuyerReply(activeId, body, attachment);
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) {
@@ -303,7 +342,14 @@ export function StorefrontBuyerInbox() {
         setConversations((prev) =>
           prev.map((c) =>
             c.id === activeId
-              ? { ...c, lastMessageAt: saved.createdAt, lastMessagePreview: body, status: "OPEN" }
+              ? {
+                  ...c,
+                  lastMessageAt: saved.createdAt,
+                  lastMessagePreview:
+                    body ||
+                    (attachment?.fileName ? `📎 ${attachment.fileName}` : body),
+                  status: "OPEN",
+                }
               : c,
           ),
         );
@@ -312,6 +358,7 @@ export function StorefrontBuyerInbox() {
           prev.map((m) => (m.id === tempId ? { ...m, pending: false, failed: true } : m)),
         );
       } finally {
+        if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
         setSending(false);
       }
     },
@@ -538,7 +585,7 @@ export function StorefrontBuyerInbox() {
         ) : null}
       </div>
       <div className="border-t border-border/60 p-3">
-        <Composer value={draft} onChange={setDraft} onSend={(text) => void send(text)} disabled={sending} sending={sending} />
+        <Composer value={draft} onChange={setDraft} onSend={(payload) => void send(payload)} disabled={sending} sending={sending} />
       </div>
     </section>
   ) : (

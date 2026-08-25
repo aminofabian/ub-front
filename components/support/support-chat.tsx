@@ -8,6 +8,7 @@ import {
   ChatMessageShape,
   ChatThreadSurface,
   Composer,
+  type ComposerSendPayload,
   DayDivider,
   LiveStatusPill,
   MessageBubble,
@@ -19,11 +20,13 @@ import {
 } from "@/components/support/support-chat-ui";
 import { Button } from "@/components/ui/button";
 import { getRealtimeClient, type RealtimeConnectionState, type RealtimeFrame } from "@/lib/realtime";
+import { uploadSupportAttachmentToCloudinary } from "@/lib/support-attachments";
 import {
   type SupportConversation,
   type SupportMessage,
   fetchSupportConversation,
   markSupportConversationRead,
+  openSupportConversation,
   reopenSupportConversation,
   resolveSupportConversation,
   sendSupportMessage,
@@ -48,8 +51,24 @@ function toLocalMessage(message: SupportMessage): LocalMessage {
     senderUserId: message.senderUserId,
     senderName: message.senderName,
     body: message.body,
+    attachment: message.attachment ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
+  };
+}
+
+function attachmentFromRealtime(data: Record<string, unknown>): ChatMessageShape["attachment"] {
+  const raw = data.attachment;
+  if (!raw || typeof raw !== "object") return null;
+  const a = raw as Record<string, unknown>;
+  const url = typeof a.url === "string" ? a.url : "";
+  if (!url) return null;
+  return {
+    url,
+    publicId: typeof a.publicId === "string" ? a.publicId : null,
+    fileName: typeof a.fileName === "string" ? a.fileName : null,
+    contentType: typeof a.contentType === "string" ? a.contentType : null,
+    bytes: typeof a.bytes === "number" ? a.bytes : null,
   };
 }
 
@@ -152,6 +171,7 @@ export function SupportChat({
           senderUserId: String(data.senderUserId ?? ""),
           senderName: String(data.senderName ?? "") || null,
           body: String(data.body ?? ""),
+          attachment: attachmentFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
@@ -304,15 +324,20 @@ export function SupportChat({
 
   // ── Send ────────────────────────────────────────────────────────────────
   const send = React.useCallback(
-    async (text: string) => {
-      const body = text.trim();
-      if (!body || sending) return;
+    async (payload: ComposerSendPayload | string) => {
+      const body = typeof payload === "string" ? payload.trim() : payload.body.trim();
+      const file = typeof payload === "string" ? null : payload.file ?? null;
+      const existingAttachment =
+        typeof payload === "string" ? null : payload.attachment ?? null;
+      if ((!body && !file && !existingAttachment) || sending) return;
       stopTyping();
       setSending(true);
       const tempId =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `tmp-${Date.now()}`;
+      const localPreviewUrl =
+        file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
       const optimistic: LocalMessage = {
         id: tempId,
         conversationId: conversationId ?? "",
@@ -320,13 +345,36 @@ export function SupportChat({
         senderUserId: meId,
         senderName: meName,
         body,
+        attachment:
+          existingAttachment ??
+          (file
+            ? {
+                url: localPreviewUrl || "#",
+                fileName: file.name,
+                contentType: file.type || null,
+                bytes: file.size,
+              }
+            : null),
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
       };
       setMessages((prev) => [...prev, optimistic]);
       try {
-        const saved = await sendSupportMessage(body);
+        let convId = conversationId;
+        if ((file || existingAttachment) && !convId) {
+          const opened = await openSupportConversation();
+          if (opened.conversation) {
+            setConversation(opened.conversation);
+            convId = opened.conversation.id;
+          }
+        }
+        let attachment = existingAttachment;
+        if (file) {
+          if (!convId) throw new Error("Could not open support thread for upload");
+          attachment = await uploadSupportAttachmentToCloudinary(convId, file);
+        }
+        const saved = await sendSupportMessage(body, attachment);
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) {
@@ -348,6 +396,7 @@ export function SupportChat({
           prev.map((m) => (m.id === tempId ? { ...m, pending: false, failed: true } : m)),
         );
       } finally {
+        if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
         setSending(false);
       }
     },
@@ -356,7 +405,13 @@ export function SupportChat({
 
   const retry = (message: LocalMessage) => {
     setMessages((prev) => prev.filter((m) => m.id !== message.id));
-    void send(message.body);
+    void send({
+      body: message.body,
+      attachment:
+        message.attachment?.url && message.attachment.url !== "#"
+          ? message.attachment
+          : null,
+    });
   };
 
   const toggleStatus = async () => {
@@ -543,7 +598,7 @@ export function SupportChat({
         <Composer
           value={draft}
           onChange={setDraft}
-          onSend={(text) => void send(text)}
+          onSend={(payload) => void send(payload)}
           disabled={resolved}
           disabledHint={resolved ? "Reopen the conversation to send a message" : undefined}
           sending={sending}

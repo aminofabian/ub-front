@@ -25,10 +25,17 @@ export type SupportConversation = {
 export type SupportMessage = {
   id: string;
   conversationId: string;
-  senderType: SupportSenderType;
+  senderType: SupportSenderType | "GUEST";
   senderUserId: string;
   senderName: string | null;
   body: string;
+  attachment?: {
+    url: string;
+    publicId?: string | null;
+    fileName?: string | null;
+    contentType?: string | null;
+    bytes?: number | null;
+  } | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -55,10 +62,24 @@ export async function openSupportConversation(
   });
 }
 
-export async function sendSupportMessage(body: string): Promise<SupportMessage> {
+export async function sendSupportMessage(
+  body: string,
+  attachment?: SupportMessage["attachment"],
+): Promise<SupportMessage> {
   return apiRequest<SupportMessage>(`${API_ROUTES.support}/conversation/messages`, {
     method: "POST",
-    body: { body },
+    body: {
+      body: body || "",
+      attachment: attachment
+        ? {
+            url: attachment.url,
+            publicId: attachment.publicId ?? undefined,
+            fileName: attachment.fileName ?? undefined,
+            contentType: attachment.contentType ?? undefined,
+            bytes: attachment.bytes ?? undefined,
+          }
+        : undefined,
+    },
   });
 }
 
@@ -127,10 +148,28 @@ export async function fetchStorefrontBuyerConversation(
   );
 }
 
-export async function sendStorefrontBuyerReply(id: string, body: string): Promise<SupportMessage> {
+export async function sendStorefrontBuyerReply(
+  id: string,
+  body: string,
+  attachment?: SupportMessage["attachment"],
+): Promise<SupportMessage> {
   return apiRequest<SupportMessage>(
     `${API_ROUTES.support}/storefront/conversations/${encodeURIComponent(id)}/messages`,
-    { method: "POST", body: { body } },
+    {
+      method: "POST",
+      body: {
+        body: body || "",
+        attachment: attachment
+          ? {
+              url: attachment.url,
+              publicId: attachment.publicId ?? undefined,
+              fileName: attachment.fileName ?? undefined,
+              contentType: attachment.contentType ?? undefined,
+              bytes: attachment.bytes ?? undefined,
+            }
+          : undefined,
+      },
+    },
   );
 }
 
