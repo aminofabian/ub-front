@@ -7,41 +7,41 @@ export function shellPageTitle(pathname: string): string {
   const exact: Record<string, string> = {
     [APP_ROUTES.overview]: "Overview",
     [APP_ROUTES.businessSettings]: "Settings",
-    [APP_ROUTES.businessLogs]: "Activity log",
-    [APP_ROUTES.businessConfiguration]: "Configuration",
-    [APP_ROUTES.products]: "Products",
+    [APP_ROUTES.businessLogs]: "What happened",
+    [APP_ROUTES.businessConfiguration]: "How the shop runs",
+    [APP_ROUTES.products]: "Add products",
     [APP_ROUTES.itemTypes]: "Departments",
     [APP_ROUTES.categories]: "Categories",
     [APP_ROUTES.suppliers]: "Suppliers",
-    [APP_ROUTES.marketplace]: "Marketplace",
+    [APP_ROUTES.marketplace]: "Find suppliers",
     [APP_ROUTES.creditsOnTab]: "On tab",
-    [APP_ROUTES.customers]: "Credit customers",
-    [APP_ROUTES.customerPhones]: "Customer phones",
-    [APP_ROUTES.creditsPaymentClaims]: "Payment claims",
-    [APP_ROUTES.inventoryStock]: "Stock",
-    [APP_ROUTES.inventoryRestock]: "Out of stock",
-    [APP_ROUTES.inventoryValuation]: "Valuation",
-    [APP_ROUTES.inventoryTransfers]: "Transfers",
-    [APP_ROUTES.inventoryStockTake]: "Stock take",
-    [APP_ROUTES.inventoryStockTakeDailyAudit]: "Daily audit",
-    [APP_ROUTES.inventoryStockTakeDailyAuditReview]: "Audit review",
-    [APP_ROUTES.inventoryStockTakeInvestigations]: "Investigations",
-    [APP_ROUTES.inventoryStockTakeRestock]: "Restock review",
+    [APP_ROUTES.customers]: "People on credit",
+    [APP_ROUTES.customerPhones]: "Phone numbers",
+    [APP_ROUTES.creditsPaymentClaims]: "They say they paid",
+    [APP_ROUTES.inventoryStock]: "Stock levels",
+    [APP_ROUTES.inventoryRestock]: "Sold out",
+    [APP_ROUTES.inventoryValuation]: "What stock is worth",
+    [APP_ROUTES.inventoryTransfers]: "Move between shops",
+    [APP_ROUTES.inventoryStockTake]: "Full count",
+    [APP_ROUTES.inventoryStockTakeDailyAudit]: "Today's count",
+    [APP_ROUTES.inventoryStockTakeDailyAuditReview]: "Count review",
+    [APP_ROUTES.inventoryStockTakeInvestigations]: "Odd counts",
+    [APP_ROUTES.inventoryStockTakeRestock]: "What to buy",
     [APP_ROUTES.inventoryStockTakeRestockOrders]: "Restock orders",
-    [APP_ROUTES.inventoryOrderPad]: "Order pad",
-    [APP_ROUTES.inventorySupplyBatches]: "Supply batches",
-    [APP_ROUTES.inventoryCostIssues]: "Cost issues",
-    [APP_ROUTES.purchasingAddSupplies]: "Receive supplies",
-    [APP_ROUTES.order]: "Order",
-    [APP_ROUTES.orderReceive]: "Confirm orders",
-    [APP_ROUTES.purchasingIntelligence]: "Supplier intel",
-    [APP_ROUTES.purchasingApAging]: "AP aging",
-    [APP_ROUTES.purchasingRecordPayment]: "Pay open balances",
+    [APP_ROUTES.inventoryOrderPad]: "Shopping list",
+    [APP_ROUTES.inventorySupplyBatches]: "Deliveries",
+    [APP_ROUTES.inventoryCostIssues]: "Selling too cheap",
+    [APP_ROUTES.purchasingAddSupplies]: "Record delivery",
+    [APP_ROUTES.order]: "New order",
+    [APP_ROUTES.orderReceive]: "Confirm delivery",
+    [APP_ROUTES.purchasingIntelligence]: "Compare suppliers",
+    [APP_ROUTES.purchasingApAging]: "Unpaid bills",
+    [APP_ROUTES.purchasingRecordPayment]: "Pay bills",
     [APP_ROUTES.pricing]: "Pricing",
     [APP_ROUTES.discounts]: "Discounts",
     [APP_ROUTES.shifts]: "Shifts",
     [APP_ROUTES.sales]: "Sales",
-    [APP_ROUTES.salesTransactions]: "Transactions",
+    [APP_ROUTES.salesTransactions]: "Receipts",
     [APP_ROUTES.salesReports]: "Sales reports",
     [APP_ROUTES.salesQuick]: "Quick sale",
     [APP_ROUTES.cashier]: "Cashier",
@@ -51,8 +51,8 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.butcherSuppliers]: "Suppliers",
     [APP_ROUTES.grocery]: "Grocery",
     [APP_ROUTES.groceryInvoices]: "Invoices",
-    [APP_ROUTES.analytics]: "Analytics",
-    [APP_ROUTES.analyticsActivity]: "Activity",
+    [APP_ROUTES.analytics]: "Trends",
+    [APP_ROUTES.analyticsActivity]: "Who did what",
     [APP_ROUTES.analyticsCustomers]: "Shoppers",
     [APP_ROUTES.business]: "Business",
     [APP_ROUTES.businessBranding]: "Branding",
@@ -60,8 +60,8 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.businessMobile]: "Store app",
     [APP_ROUTES.users]: "Team",
     [APP_ROUTES.branches]: "Branches",
-    [APP_ROUTES.paymentsSettings]: "Payments",
-    [APP_ROUTES.paymentsDayLedger]: "Day ledger",
+    [APP_ROUTES.paymentsSettings]: "How you get paid",
+    [APP_ROUTES.paymentsDayLedger]: "Today's takings",
     [APP_ROUTES.paymentsKioskPay]: "Kiosk Pay",
     [APP_ROUTES.airtime]: "Airtime",
     [APP_ROUTES.onlineAirtime]: "Online airtime",
@@ -70,13 +70,13 @@ export function shellPageTitle(pathname: string): string {
 
   if (exact[path]) return exact[path];
 
-  if (path.startsWith(APP_ROUTES.products)) return "Products";
-  if (path.startsWith("/inventory")) return "Inventory";
+  if (path.startsWith(APP_ROUTES.products)) return "Add products";
+  if (path.startsWith("/inventory")) return "Stock";
   if (
     path.startsWith("/purchasing") ||
     path.startsWith(APP_ROUTES.purchasingAddSupplies)
   )
-    return "Purchasing";
+    return "Suppliers & bills";
   if (path.startsWith(APP_ROUTES.sales)) return "Sales";
   if (path.startsWith(APP_ROUTES.business)) return "Business";
   if (path.startsWith(APP_ROUTES.grocery)) return "Grocery";

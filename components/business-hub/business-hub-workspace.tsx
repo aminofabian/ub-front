@@ -768,12 +768,12 @@ export function BusinessHubWorkspace() {
     if (canViewInventoryValuation) {
       items.push({
         id: "catalogue",
-        label: "Catalogue",
+        label: "Products",
         value: fmtCount(catalogueCount),
         detail:
           catalogueCount && catalogueCount > 0
-            ? "Sellable items in scope"
-            : "Add products to start trading",
+            ? "Items you can sell"
+            : "Add products to start selling",
         href: APP_ROUTES.products,
         tone: (catalogueCount && catalogueCount > 0 ? "ok" : "watch") as
           | "ok"
@@ -849,14 +849,14 @@ export function BusinessHubWorkspace() {
       },
       {
         href: APP_ROUTES.products,
-        label: "Catalogue",
-        hint: "Prices, barcodes, and product truth",
+        label: "Products",
+        hint: "Add items, prices, and barcodes",
         icon: Package,
       },
       {
         href: APP_ROUTES.inventoryStock,
-        label: "Inventory",
-        hint: "Stock levels and movement",
+        label: "Stock",
+        hint: "What's in the shop and what to restock",
         icon: Boxes,
       },
       {

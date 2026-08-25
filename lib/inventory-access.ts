@@ -60,7 +60,7 @@ export const STOCK_PAGE_QUICK_LINKS: readonly InventoryQuickLink[] = [
   {
     href: APP_ROUTES.products,
     label: "Products",
-    desc: "Catalog",
+    desc: "What you sell",
     icon: Package,
   },
 ];

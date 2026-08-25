@@ -190,7 +190,7 @@ describe("inventory-access", () => {
       {
         href: APP_ROUTES.products,
         label: "Products",
-        desc: "Catalog",
+        desc: "What you sell",
         icon,
       },
     ]).map((link) => link.href);
