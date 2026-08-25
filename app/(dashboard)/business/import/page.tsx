@@ -60,7 +60,7 @@ const CSV_TEMPLATES: {
   label: string;
   hint: string;
 }[] = [
-  { kind: "items", label: "Items", hint: "Catalog rows" },
+  { kind: "items", label: "Items", hint: "Catalog + prices + on-hand" },
   { kind: "suppliers", label: "Suppliers", hint: "Vendors" },
   { kind: "opening-stock", label: "Opening stock", hint: "Branch + SKU + qty" },
 ];
@@ -74,8 +74,13 @@ const CSV_COLUMNS: Record<CsvTemplateKind, string[]> = {
     "unit_type",
     "is_stocked",
     "is_sellable",
+    "category_name",
+    "brand",
+    "size",
     "buying_price",
     "selling_price",
+    "on_hand",
+    "min_stock_level",
     "reorder_level",
   ],
   suppliers: ["name", "code", "supplier_type", "vat_pin", "status", "notes"],
@@ -691,7 +696,16 @@ export default function BusinessImportPage() {
               <div>
                 <p className={cn(dashboardHintClass(), "mb-1.5")}>
                   Columns expected for{" "}
-                  <span className="font-semibold text-foreground">{csvKindLabel}</span>:
+                  <span className="font-semibold text-foreground">{csvKindLabel}</span>
+                  {csvKind === "items" ? (
+                    <>
+                      {" "}
+                      — only <code className="rounded bg-muted px-1">sku</code> and{" "}
+                      <code className="rounded bg-muted px-1">name</code> are required; leave the rest blank or omit
+                      them
+                    </>
+                  ) : null}
+                  :
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {CSV_COLUMNS[csvKind].map((col) => (
@@ -1008,7 +1022,8 @@ export default function BusinessImportPage() {
                   Export current data
                 </h2>
                 <p className={cn(dashboardHintClass(), "mt-0.5")}>
-                  Same columns as the templates — edit and re-upload.
+                  Same columns as the templates — edit and re-upload. Extra item columns
+                  (prices, on-hand, category) are optional on import.
                 </p>
               </div>
             </div>
