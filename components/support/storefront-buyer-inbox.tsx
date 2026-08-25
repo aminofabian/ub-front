@@ -41,6 +41,8 @@ function toLocalMessage(message: {
   senderUserId: string;
   senderName: string | null;
   body: string;
+  messageKind?: string | null;
+  orderCard?: LocalMessage["orderCard"];
   attachment?: LocalMessage["attachment"];
   readAt: string | null;
   createdAt: string;
@@ -52,9 +54,50 @@ function toLocalMessage(message: {
     senderUserId: message.senderUserId,
     senderName: message.senderName,
     body: message.body,
+    messageKind: message.messageKind ?? "TEXT",
+    orderCard: message.orderCard ?? null,
     attachment: message.attachment ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
+  };
+}
+
+function orderCardFromRealtime(data: Record<string, unknown>): LocalMessage["orderCard"] {
+  const raw = data.orderCard;
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const orderId = typeof o.orderId === "string" ? o.orderId : "";
+  const orderCode = typeof o.orderCode === "string" ? o.orderCode : "";
+  if (!orderId && !orderCode) return null;
+  const linesRaw = Array.isArray(o.lines) ? o.lines : [];
+  return {
+    orderId,
+    orderCode: orderCode || orderId.slice(0, 8),
+    status: typeof o.status === "string" ? o.status : "",
+    currency: typeof o.currency === "string" ? o.currency : null,
+    grandTotal:
+      typeof o.grandTotal === "number" || typeof o.grandTotal === "string"
+        ? o.grandTotal
+        : null,
+    customerName: typeof o.customerName === "string" ? o.customerName : null,
+    customerPhone: typeof o.customerPhone === "string" ? o.customerPhone : null,
+    branchName: typeof o.branchName === "string" ? o.branchName : null,
+    channel: typeof o.channel === "string" ? o.channel : null,
+    lines: linesRaw
+      .filter((l): l is Record<string, unknown> => !!l && typeof l === "object")
+      .map((l) => ({
+        itemName: typeof l.itemName === "string" ? l.itemName : "Item",
+        variantName: typeof l.variantName === "string" ? l.variantName : null,
+        quantity:
+          typeof l.quantity === "number" || typeof l.quantity === "string"
+            ? l.quantity
+            : 1,
+        lineTotal:
+          typeof l.lineTotal === "number" || typeof l.lineTotal === "string"
+            ? l.lineTotal
+            : 0,
+      })),
+    lineCount: typeof o.lineCount === "number" ? o.lineCount : linesRaw.length,
   };
 }
 
@@ -177,6 +220,8 @@ export function StorefrontBuyerInbox() {
           senderUserId: String(data.senderUserId ?? ""),
           senderName: String(data.senderName ?? "") || null,
           body: String(data.body ?? ""),
+          messageKind: String(data.messageKind ?? "TEXT"),
+          orderCard: orderCardFromRealtime(data),
           attachment: attachmentFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),

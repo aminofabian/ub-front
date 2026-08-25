@@ -51,6 +51,8 @@ function toLocalMessage(message: SupportMessage): LocalMessage {
     senderUserId: message.senderUserId,
     senderName: message.senderName,
     body: message.body,
+    messageKind: message.messageKind ?? "TEXT",
+    orderCard: message.orderCard ?? null,
     attachment: message.attachment ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,

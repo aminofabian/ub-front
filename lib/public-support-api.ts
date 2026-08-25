@@ -31,6 +31,25 @@ export type GuestMessage = {
   senderUserId: string;
   senderName: string | null;
   body: string;
+  messageKind?: "TEXT" | "ORDER_CARD" | string | null;
+  orderCard?: {
+    orderId: string;
+    orderCode: string;
+    status: string;
+    currency: string | null;
+    grandTotal: number | string | null;
+    customerName: string | null;
+    customerPhone: string | null;
+    branchName: string | null;
+    channel: string | null;
+    lines: Array<{
+      itemName: string;
+      variantName?: string | null;
+      quantity: number | string;
+      lineTotal: number | string;
+    }>;
+    lineCount: number;
+  } | null;
   attachment?: {
     url: string;
     publicId?: string | null;

@@ -7,11 +7,13 @@ import {
   FileText,
   Paperclip,
   Send,
+  ShoppingBag,
   Smile,
   X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { APP_ROUTES } from "@/lib/config";
 import {
   SUPPORT_ATTACHMENT_ACCEPT,
   formatAttachmentBytes,
@@ -20,6 +22,7 @@ import {
   type SupportAttachmentPayload,
 } from "@/lib/support-attachments";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 // ─── Shared support-chat primitives ────────────────────────────────────────
 // Used by guest, tenant, and super-admin surfaces so every side of the
@@ -35,6 +38,25 @@ export type ChatAttachmentShape = {
   bytes?: number | null;
 };
 
+export type ChatOrderCardShape = {
+  orderId: string;
+  orderCode: string;
+  status: string;
+  currency: string | null;
+  grandTotal: number | string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  branchName: string | null;
+  channel: string | null;
+  lines: Array<{
+    itemName: string;
+    variantName?: string | null;
+    quantity: number | string;
+    lineTotal: number | string;
+  }>;
+  lineCount: number;
+};
+
 export type ChatMessageShape = {
   id: string;
   conversationId: string;
@@ -42,6 +64,8 @@ export type ChatMessageShape = {
   senderUserId: string;
   senderName: string | null;
   body: string;
+  messageKind?: "TEXT" | "ORDER_CARD" | string | null;
+  orderCard?: ChatOrderCardShape | null;
   attachment?: ChatAttachmentShape | null;
   readAt: string | null;
   createdAt: string;
@@ -184,14 +208,50 @@ export function MessageBubble({
   mine,
   showAvatar,
   onRetry,
+  staffActions = true,
 }: {
   message: ChatMessageShape;
   mine: boolean;
   showAvatar: boolean;
   onRetry?: () => void;
+  /** When false, hide tenant-only CTAs (e.g. Open order in guest chat). */
+  staffActions?: boolean;
 }) {
   const isFailed = message.failed === true;
   const isPending = message.pending === true;
+  const isOrderCard =
+    message.messageKind === "ORDER_CARD" && message.orderCard != null;
+
+  if (isOrderCard) {
+    return (
+      <div
+        className={cn(
+          "group flex w-full items-end gap-2",
+          mine ? "justify-end" : "justify-start",
+          "animate-in fade-in slide-in-from-bottom-1 duration-200",
+        )}
+      >
+        {!mine && showAvatar ? (
+          <Avatar name={message.senderName} seed={message.senderUserId} className="mb-5 size-7" />
+        ) : !mine ? (
+          <span className="mb-5 size-7 shrink-0" aria-hidden />
+        ) : null}
+        <div className={cn("flex max-w-[min(92%,24rem)] flex-col", mine ? "items-end" : "items-start")}>
+          {!mine && message.senderName ? (
+            <p className="mb-1 px-1 text-[11px] font-semibold tracking-wide text-primary/90">
+              {message.senderName}
+            </p>
+          ) : null}
+          <OrderCardBubble
+            card={message.orderCard!}
+            createdAt={message.createdAt}
+            pending={isPending}
+            staffActions={staffActions}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -254,6 +314,125 @@ export function MessageBubble({
           >
             Tap to retry
           </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function formatMoney(currency: string | null | undefined, amount: number | string | null | undefined): string {
+  if (amount == null || amount === "") return "—";
+  const n = typeof amount === "number" ? amount : Number(amount);
+  const cur = (currency ?? "").trim() || "KES";
+  if (!Number.isFinite(n)) return `${cur} ${String(amount)}`;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: cur.length === 3 ? cur : "KES",
+      maximumFractionDigits: 2,
+    }).format(n);
+  } catch {
+    return `${cur} ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  }
+}
+
+function qtyLabel(qty: number | string): string {
+  const n = typeof qty === "number" ? qty : Number(qty);
+  if (!Number.isFinite(n)) return String(qty);
+  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function OrderCardBubble({
+  card,
+  createdAt,
+  pending,
+  staffActions,
+}: {
+  card: ChatOrderCardShape;
+  createdAt: string;
+  pending?: boolean;
+  staffActions?: boolean;
+}) {
+  const lines = card.lines ?? [];
+  const shown = lines.slice(0, 4);
+  const more = Math.max(0, (card.lineCount || lines.length) - shown.length);
+  const status = (card.status ?? "").replace(/_/g, " ").toLowerCase();
+
+  return (
+    <div
+      className={cn(
+        "w-full overflow-hidden rounded-2xl border border-emerald-500/25 bg-[linear-gradient(165deg,rgba(40,167,69,0.12),rgba(255,255,255,0.92)_42%)] shadow-[0_10px_28px_-18px_rgba(15,23,42,0.45)]",
+        pending && "opacity-70",
+      )}
+    >
+      <div className="flex items-start gap-2.5 border-b border-emerald-500/15 px-3.5 py-3">
+        <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-[0_6px_16px_-8px_rgba(40,167,69,0.9)]">
+          <ShoppingBag className="size-4" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800/80 dark:text-emerald-300/90">
+              Online order
+            </p>
+            {status ? (
+              <span className="rounded-full bg-emerald-600/12 px-2 py-0.5 text-[10px] font-semibold capitalize text-emerald-800 dark:text-emerald-300">
+                {status}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 font-[family-name:var(--font-heading)] text-base font-semibold tracking-tight text-foreground">
+            {card.orderCode}
+          </p>
+          {card.branchName ? (
+            <p className="text-[11px] text-muted-foreground">{card.branchName}</p>
+          ) : null}
+        </div>
+        <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+          {chatTime(createdAt)}
+        </span>
+      </div>
+
+      <div className="space-y-1.5 px-3.5 py-3">
+        {shown.map((line, i) => (
+          <div key={`${line.itemName}-${i}`} className="flex items-baseline justify-between gap-3 text-[13px]">
+            <p className="min-w-0 flex-1 truncate text-foreground/90">
+              <span className="font-medium tabular-nums text-muted-foreground">
+                {qtyLabel(line.quantity)}×
+              </span>{" "}
+              {line.itemName}
+              {line.variantName ? (
+                <span className="text-muted-foreground"> · {line.variantName}</span>
+              ) : null}
+            </p>
+            <span className="shrink-0 tabular-nums text-foreground/80">
+              {formatMoney(card.currency, line.lineTotal)}
+            </span>
+          </div>
+        ))}
+        {more > 0 ? (
+          <p className="text-[11px] text-muted-foreground">+{more} more item{more === 1 ? "" : "s"}</p>
+        ) : null}
+      </div>
+
+      <div className="flex items-end justify-between gap-3 border-t border-dashed border-emerald-500/20 bg-emerald-500/[0.06] px-3.5 py-3">
+        <div className="min-w-0">
+          {card.customerPhone ? (
+            <p className="truncate text-[11px] text-muted-foreground">{card.customerPhone}</p>
+          ) : null}
+          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
+            Total
+          </p>
+          <p className="font-[family-name:var(--font-heading)] text-lg font-semibold tabular-nums tracking-tight text-foreground">
+            {formatMoney(card.currency, card.grandTotal)}
+          </p>
+        </div>
+        {staffActions ? (
+          <Link
+            href={`${APP_ROUTES.storefrontWebOrders}?q=${encodeURIComponent(card.orderCode)}`}
+            className="inline-flex shrink-0 items-center rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.03] hover:bg-emerald-800"
+          >
+            Open order
+          </Link>
         ) : null}
       </div>
     </div>
