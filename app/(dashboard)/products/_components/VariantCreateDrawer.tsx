@@ -79,15 +79,15 @@ export function VariantCreateDrawer({
       banner={banner}
       title={
         isSibling
-          ? `Add sibling under ${parentDisplayName}`
-          : `Add variants to ${parentDisplayName}`
+          ? `Add another size under ${parentDisplayName}`
+          : `Add sizes to ${parentDisplayName}`
       }
       contextLabel={
         isSibling
-          ? `Same group as “${siblingContextLabel}”`
+          ? `Same family as “${siblingContextLabel}”`
           : parentIsProductGroup
-            ? "Parent group"
-            : "Parent product"
+            ? "Product family"
+            : "Main product"
       }
       icon={<Layers className="size-3.5 text-foreground/50" aria-hidden />}
       width="wide"

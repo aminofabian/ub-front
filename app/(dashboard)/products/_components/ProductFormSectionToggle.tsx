@@ -32,18 +32,11 @@ export function ProductFormSectionToggle({
       onClick={onToggle}
       className={cn(
         productFormSectionToggleClass,
-        expanded ? "bg-muted/25" : "bg-transparent hover:bg-muted/15",
+        expanded ? "bg-muted/20" : "bg-transparent hover:bg-muted/10",
       )}
       aria-expanded={expanded}
     >
-      <div
-        className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-none border border-border transition-colors",
-          expanded ? "bg-foreground text-background" : "bg-muted/40 text-foreground/50",
-        )}
-      >
-        <Icon className="size-4" aria-hidden />
-      </div>
+      <Icon className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
       <div className="min-w-0 flex-1 text-left">
         <div className="flex flex-wrap items-center gap-2">
           <span className={productFormSectionToggleLabelClass}>{label}</span>

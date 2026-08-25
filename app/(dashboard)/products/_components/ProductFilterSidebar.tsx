@@ -58,9 +58,9 @@ type Props = {
 
 const SCOPE = [
   ["ALL", "All"],
-  ["SKUS_ONLY", "SKUs"],
-  ["PARENTS_ONLY", "Groups"],
-  ["VARIANTS_ONLY", "Variants"],
+  ["SKUS_ONLY", "For sale"],
+  ["PARENTS_ONLY", "Families"],
+  ["VARIANTS_ONLY", "Packs"],
 ] as const;
 
 function hasActiveFilters(catalog: Props["catalog"]): boolean {
@@ -96,7 +96,7 @@ export function ProductFilterSidebar({ catalog }: Props) {
   return (
     <aside className={catalogFilterColumnClass}>
       <div className={catalogFilterToolbarClass}>
-        <span className={catalogFilterToolbarTitleClass}>Tune</span>
+        <span className={catalogFilterToolbarTitleClass}>Find</span>
         {filtersActive ? (
           <button
             type="button"
@@ -124,8 +124,8 @@ export function ProductFilterSidebar({ catalog }: Props) {
               className={cn(catalogFilterInputClass, "pl-6 pr-6")}
               value={catalog.search}
               onChange={(e) => catalog.setSearch(e.target.value)}
-              placeholder="Name / SKU"
-              aria-label="Search catalog"
+              placeholder="Name or code"
+              aria-label="Search products"
             />
             {catalog.search ? (
               <button
@@ -144,7 +144,7 @@ export function ProductFilterSidebar({ catalog }: Props) {
         </label>
 
         <div className={catalogFilterSectionClass}>
-          <span className={catalogFilterLabelClass}>Rows</span>
+          <span className={catalogFilterLabelClass}>Show</span>
           <div
             className={catalogFilterScopeGridClass}
             role="tablist"

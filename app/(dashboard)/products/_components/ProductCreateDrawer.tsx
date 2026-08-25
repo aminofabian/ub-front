@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import {
   PackagePlus,
   X,
@@ -13,12 +12,8 @@ import {
   Plus,
   Camera,
   Globe2,
-  FileSpreadsheet,
-  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { APP_ROUTES } from "@/lib/config";
-import { helpHostUrl } from "@/lib/help/help-url";
 import { cn } from "@/lib/utils";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import {
@@ -31,7 +26,6 @@ import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import type { BranchRecord, GlobalProductRecord, ItemTypeRecord } from "@/lib/api";
-import { fetchCsvImportTemplate } from "@/lib/api";
 import {
   productFormHintClass,
   productFormInputClass,
@@ -307,38 +301,19 @@ export function ProductCreateDrawer({
   const [keepOpen, setKeepOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [moreExpanded, setMoreExpanded] = useState(false);
+  const [codesOpen, setCodesOpen] = useState(false);
+  const [stockOpen, setStockOpen] = useState(false);
+  const [packsOpen, setPacksOpen] = useState(false);
   const [descGenError, setDescGenError] = useState("");
   const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(null);
-  const [templateBusy, setTemplateBusy] = useState(false);
-  const [templateError, setTemplateError] = useState<string | null>(null);
-
-  const downloadTemplate = useCallback(async () => {
-    setTemplateBusy(true);
-    setTemplateError(null);
-    try {
-      const blob = await fetchCsvImportTemplate("items");
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "items-import-template.csv";
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch {
-      setTemplateError(
-        "Could not download the template here — open Business settings → Data import and download it there.",
-      );
-    } finally {
-      setTemplateBusy(false);
-    }
-  }, []);
 
   /* ── Reset when drawer opens ── */
   useEffect(() => {
     if (open) {
       setMoreExpanded(false);
+      setCodesOpen(false);
+      setStockOpen(false);
+      setPacksOpen(false);
       setKeepOpen(false);
       setScannerOpen(false);
       setDescGenError("");
@@ -550,8 +525,8 @@ export function ProductCreateDrawer({
         if (!o) onClose();
       }}
       banner={banner}
-      title={isGroup ? "New product group" : "Add product"}
-      contextLabel="Catalog"
+      title={isGroup ? "New product family" : "Add product"}
+      contextLabel="Products"
       width="wide"
       appearance="sharp"
       headerDensity="compact"
@@ -565,7 +540,7 @@ export function ProductCreateDrawer({
               onChange={(e) => setKeepOpen(e.target.checked)}
               className="size-3.5 rounded-none border-border text-primary"
             />
-            Keep open
+            Keep adding
           </label>
           <div className="flex shrink-0 items-center gap-1.5">
             <Button
@@ -591,7 +566,7 @@ export function ProductCreateDrawer({
                   Saving…
                 </>
               ) : isGroup ? (
-                "Create group"
+                "Create family"
               ) : (
                 <>
                   <Plus className="size-3.5" />
@@ -604,49 +579,6 @@ export function ProductCreateDrawer({
       }
     >
       <form id="create-parent-form" className="space-y-1.5" onSubmit={handleSubmit}>
-        <div className="flex flex-wrap items-center gap-2 border border-border bg-muted/15 px-2.5 py-1.5">
-          <FileSpreadsheet className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-foreground/80">
-              Adding many products? Import them from a CSV.
-            </p>
-            <p className="mt-0.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
-              sku · name · item_type_key · barcode · unit_type · is_stocked · is_sellable · selling_price · reorder_level
-            </p>
-            {templateError ? (
-              <p className="mt-0.5 text-[10px] text-destructive">{templateError}</p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 rounded-none px-2 text-[11px] shadow-none"
-              disabled={templateBusy}
-              onClick={() => void downloadTemplate()}
-            >
-              {templateBusy ? (
-                <Loader2 className="size-3 animate-spin" aria-hidden />
-              ) : (
-                <Download className="size-3" aria-hidden />
-              )}
-              Template
-            </Button>
-            <Button
-              asChild
-              type="button"
-              size="sm"
-              className="h-7 gap-1 rounded-none px-2 text-[11px] shadow-none"
-            >
-              <Link href={APP_ROUTES.businessImport}>
-                <Upload className="size-3" aria-hidden />
-                Upload CSV
-              </Link>
-            </Button>
-          </div>
-        </div>
-
         {m.parentDraft.globalProductSourceId ? (
           <div className="flex flex-wrap items-center gap-2 rounded-none border border-border bg-muted/20 px-2.5 py-1.5 text-[11px] text-foreground">
             <Globe2 className="size-3 shrink-0 text-primary" aria-hidden />
@@ -666,7 +598,7 @@ export function ProductCreateDrawer({
 
         {catalog.itemTypes.length === 0 && (
           <div className="rounded-none border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
-            Add departments first (Catalog → Departments).
+            Add departments first (Your shop → Departments).
           </div>
         )}
 
@@ -689,7 +621,7 @@ export function ProductCreateDrawer({
                   : "bg-background text-foreground/50 hover:text-foreground",
               )}
             >
-              Single product
+              One item
             </button>
             <button
               type="button"
@@ -709,7 +641,7 @@ export function ProductCreateDrawer({
                   : "bg-background text-foreground/50 hover:text-foreground",
               )}
             >
-              Group
+              Family of sizes
             </button>
           </div>
 
@@ -741,10 +673,10 @@ export function ProductCreateDrawer({
               </button>
             ) : null}
             <div className="min-w-0 flex-1 space-y-1">
-              <Label required className="gap-0.5" label={isGroup ? "Group name" : "Product name"}>
+              <Label required className="gap-0.5" label={isGroup ? "Family name" : "Product name"}>
                 <input
                   className={icClass()}
-                  placeholder={isGroup ? "Group name" : "Product name"}
+                  placeholder={isGroup ? "e.g. Fresh milk" : "e.g. Brookside 500ml"}
                   value={m.parentDraft.name}
                   onChange={(e) => {
                     m.setParentDraft((p) => ({ ...p, name: e.target.value }));
@@ -868,7 +800,7 @@ export function ProductCreateDrawer({
           )}
           {isGroup ? (
             <p className={productFormHintClass}>
-              Variants under this group inherit its category.
+              Sizes and packs you add later stay in this family.
             </p>
           ) : null}
         </FormDrawerFields>
@@ -904,7 +836,7 @@ export function ProductCreateDrawer({
 
         {!isGroup ? (
           <>
-            <FormDrawerFields legend="Pricing" appearance="sharp" embedded compact>
+            <FormDrawerFields legend="Price" appearance="sharp" embedded compact>
               <ProductCreatePricingSection
                 draft={m.parentDraft}
                 setDraft={m.setParentDraft}
@@ -915,42 +847,60 @@ export function ProductCreateDrawer({
               />
             </FormDrawerFields>
 
-            <FormDrawerFields legend="Codes" appearance="sharp" embedded compact>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Label className="gap-0.5" label="Barcode" hint="Scan or type">
-                  <div className="flex gap-px overflow-hidden rounded-none border border-border bg-border">
-                    <input
-                      className={cn(
-                        icClass(),
-                        "min-w-0 flex-1 border-0 font-mono text-xs focus-visible:ring-inset",
-                      )}
-                      placeholder="Barcode"
-                      value={m.parentDraft.barcode}
-                      onChange={(e) => {
-                        m.setParentDraft((p) => ({ ...p, barcode: e.target.value }));
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setScannerOpen(true)}
-                      className="flex size-8 shrink-0 items-center justify-center bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                      aria-label="Scan barcode with camera"
-                    >
-                      <Camera className="size-3.5" aria-hidden />
-                    </button>
-                  </div>
-                </Label>
+            <FormDrawerFields appearance="sharp" embedded compact>
+              <Label className="gap-0.5" label="Barcode" hint="Optional — scan or type">
+                <div className="flex gap-px overflow-hidden rounded-none border border-border bg-border">
+                  <input
+                    className={cn(
+                      icClass(),
+                      "min-w-0 flex-1 border-0 font-mono text-xs focus-visible:ring-inset",
+                    )}
+                    placeholder="Barcode"
+                    value={m.parentDraft.barcode}
+                    onChange={(e) => {
+                      m.setParentDraft((p) => ({ ...p, barcode: e.target.value }));
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setScannerOpen(true)}
+                    className="flex size-8 shrink-0 items-center justify-center bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    aria-label="Scan barcode with camera"
+                  >
+                    <Camera className="size-3.5" aria-hidden />
+                  </button>
+                </div>
+              </Label>
+            </FormDrawerFields>
+          </>
+        ) : null}
+        </FormDrawerSheet>
+
+        {!isGroup ? (
+          <>
+            <CompactSectionToggle
+              label="Shop code"
+              expanded={codesOpen}
+              onToggle={() => setCodesOpen((v) => !v)}
+              badge={
+                m.parentDraft.sku.trim() ? (
+                  <span className="inline-flex size-1.5 rounded-none bg-foreground" />
+                ) : undefined
+              }
+            />
+            {codesOpen ? (
+              <div className="space-y-3 border border-t-0 border-border bg-background p-3 shadow-none">
                 <div className="flex min-w-0 flex-col gap-1">
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className={productFormLabelClass}>SKU</span>
+                    <span className={productFormLabelClass}>Shop code (SKU)</span>
                     <span className={cn(productFormHintClass, "truncate")}>
-                      Auto if blank
+                      Left blank, we make one
                     </span>
                   </span>
                   <div className="flex gap-1.5">
                     <input
                       className={cn(icClass(), "min-w-0 flex-1 font-mono text-xs")}
-                      placeholder="Auto-generated"
+                      placeholder="Auto"
                       value={m.parentDraft.sku}
                       onChange={(e) => m.setParentDraft((p) => ({ ...p, sku: e.target.value }))}
                     />
@@ -972,99 +922,122 @@ export function ProductCreateDrawer({
                     ) : null}
                   </div>
                 </div>
+                {m.parentDraft.isWeighed ? (
+                  <label className="flex flex-col gap-1">
+                    <span className={productFormLabelClass}>Scale code</span>
+                    <span className={productFormHintClass}>
+                      5-digit code on weight labels
+                    </span>
+                    <input
+                      className={cn(icClass(), "font-mono text-xs")}
+                      placeholder="01234"
+                      inputMode="numeric"
+                      maxLength={5}
+                      value={m.parentDraft.pluCode}
+                      onChange={(e) =>
+                        m.setParentDraft((p) => ({
+                          ...p,
+                          pluCode: e.target.value.replace(/\D/g, "").slice(0, 5),
+                        }))
+                      }
+                    />
+                  </label>
+                ) : null}
               </div>
-              {m.parentDraft.isWeighed ? (
-                <label className="flex flex-col gap-1">
-                  <span className={productFormLabelClass}>Scale PLU</span>
-                  <span className={productFormHintClass}>
-                    5-digit code on variable-weight labels
-                  </span>
-                  <input
-                    className={cn(icClass(), "font-mono text-xs")}
-                    placeholder="01234"
-                    inputMode="numeric"
-                    maxLength={5}
-                    value={m.parentDraft.pluCode}
-                    onChange={(e) =>
+            ) : null}
+
+            <CompactSectionToggle
+              label="Opening stock"
+              expanded={stockOpen}
+              onToggle={() => setStockOpen((v) => !v)}
+              badge={
+                m.parentDraft.openingQty.trim() ? (
+                  <span className="inline-flex size-1.5 rounded-none bg-foreground" />
+                ) : undefined
+              }
+            />
+            {stockOpen ? (
+              <div className="space-y-3 border border-t-0 border-border bg-background p-3 shadow-none">
+                <StockIncreaseFields
+                  minimal
+                  mode="opening"
+                  hideUnitCostInput
+                  branches={branches}
+                  branchId={m.parentDraft.openingBranchId}
+                  onBranchIdChange={(id) =>
+                    m.setParentDraft((p) => ({ ...p, openingBranchId: id }))
+                  }
+                  quantity={m.parentDraft.openingQty}
+                  onQuantityChange={(v) =>
+                    m.setParentDraft((p) => ({ ...p, openingQty: v }))
+                  }
+                  unitCost={m.parentDraft.openingUnitCost}
+                  onUnitCostChange={(v) =>
+                    m.setParentDraft((p) => ({ ...p, openingUnitCost: v }))
+                  }
+                  className="space-y-2 border-0 bg-transparent p-0 shadow-none ring-0"
+                />
+                <div className="flex flex-wrap gap-1">
+                  <ToggleChip
+                    checked={m.parentDraft.isStocked}
+                    onChange={(v) => m.setParentDraft((p) => ({ ...p, isStocked: v }))}
+                    label="Track stock"
+                  />
+                  <ToggleChip
+                    checked={m.parentDraft.isSellable}
+                    onChange={(v) => m.setParentDraft((p) => ({ ...p, isSellable: v }))}
+                    label="Can sell"
+                  />
+                  <ToggleChip
+                    checked={m.parentDraft.isWeighed}
+                    onChange={(v) =>
                       m.setParentDraft((p) => ({
                         ...p,
-                        pluCode: e.target.value.replace(/\D/g, "").slice(0, 5),
+                        isWeighed: v,
+                        unitType: v ? p.unitType?.trim() || "kg" : p.unitType,
+                        pluCode: v ? p.pluCode : "",
                       }))
                     }
+                    label="Sell by weight"
                   />
-                </label>
-              ) : null}
-            </FormDrawerFields>
+                </div>
+              </div>
+            ) : null}
 
-            <FormDrawerFields legend="Stock" appearance="sharp" embedded compact>
-              <StockIncreaseFields
-                minimal
-                mode="opening"
-                hideUnitCostInput
-                branches={branches}
-                branchId={m.parentDraft.openingBranchId}
-                onBranchIdChange={(id) =>
-                  m.setParentDraft((p) => ({ ...p, openingBranchId: id }))
-                }
-                quantity={m.parentDraft.openingQty}
-                onQuantityChange={(v) =>
-                  m.setParentDraft((p) => ({ ...p, openingQty: v }))
-                }
-                unitCost={m.parentDraft.openingUnitCost}
-                onUnitCostChange={(v) =>
-                  m.setParentDraft((p) => ({ ...p, openingUnitCost: v }))
-                }
-                className="space-y-2 border-0 bg-transparent p-0 shadow-none ring-0"
-              />
-              <div className="flex flex-wrap gap-1">
-                <ToggleChip
-                  checked={m.parentDraft.isStocked}
-                  onChange={(v) => m.setParentDraft((p) => ({ ...p, isStocked: v }))}
-                  label="Track stock"
-                />
-                <ToggleChip
-                  checked={m.parentDraft.isSellable}
-                  onChange={(v) => m.setParentDraft((p) => ({ ...p, isSellable: v }))}
-                  label="Sellable"
-                />
-                <ToggleChip
-                  checked={m.parentDraft.isWeighed}
-                  onChange={(v) =>
-                    m.setParentDraft((p) => ({
-                      ...p,
-                      isWeighed: v,
-                      unitType: v ? p.unitType?.trim() || "kg" : p.unitType,
-                      pluCode: v ? p.pluCode : "",
-                    }))
+            <CompactSectionToggle
+              label="Also sell as a pack"
+              expanded={packsOpen}
+              onToggle={() => setPacksOpen((v) => !v)}
+              badge={
+                m.parentDraft.sellAsPackages ? (
+                  <span className="inline-flex size-1.5 rounded-none bg-foreground" />
+                ) : undefined
+              }
+            />
+            {packsOpen ? (
+              <div className="border border-t-0 border-border bg-background p-3 shadow-none">
+                <PackageVariantsSection
+                  compact
+                  showEnableToggle
+                  enabled={m.parentDraft.sellAsPackages}
+                  onEnabledChange={(sellAsPackages) =>
+                    m.setParentDraft((p) => ({ ...p, sellAsPackages }))
                   }
-                  label="Sell by weight"
+                  rows={m.parentDraft.packageRows}
+                  onRowsChange={(packageRows) =>
+                    m.setParentDraft((p) => ({ ...p, packageRows }))
+                  }
+                  baseUnitHint={m.parentDraft.name.trim() || "piece"}
+                  currencyCode={currencyCode}
+                  className="border-0 bg-transparent p-0 shadow-none ring-0"
                 />
               </div>
-            </FormDrawerFields>
-
-            <FormDrawerFields appearance="sharp" embedded compact>
-              <PackageVariantsSection
-                compact
-                showEnableToggle
-                enabled={m.parentDraft.sellAsPackages}
-                onEnabledChange={(sellAsPackages) =>
-                  m.setParentDraft((p) => ({ ...p, sellAsPackages }))
-                }
-                rows={m.parentDraft.packageRows}
-                onRowsChange={(packageRows) =>
-                  m.setParentDraft((p) => ({ ...p, packageRows }))
-                }
-                baseUnitHint={m.parentDraft.name.trim() || "piece"}
-                currencyCode={currencyCode}
-                className="border-0 bg-transparent p-0 shadow-none ring-0"
-              />
-            </FormDrawerFields>
+            ) : null}
           </>
         ) : null}
-        </FormDrawerSheet>
 
         <CompactSectionToggle
-          label="More options"
+          label="More (brand, supplier, description)"
           expanded={moreExpanded}
           onToggle={toggleMore}
           badge={
@@ -1209,15 +1182,7 @@ export function ProductCreateDrawer({
         ) : null}
 
         <p className="px-0.5 pt-1 text-center text-[11px] text-muted-foreground/70">
-          Not sure whether to use Single, Group, or packages?{" "}
-          <Link
-            href={helpHostUrl(APP_ROUTES.helpAddProducts)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-primary underline-offset-2 hover:underline"
-          >
-            Read the step-by-step guide
-          </Link>
+          Adding many at once? Use Import on the products page.
         </p>
       </form>
     </FormDrawer>

@@ -1,16 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  BookOpen,
-  Building2,
-  CircleDollarSign,
-  FileUp,
-  Layers,
-  LayoutGrid,
-  PackagePlus,
-  Library,
-} from "lucide-react";
+import { BookOpen, FileUp, PackagePlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
@@ -43,41 +34,34 @@ type Props = {
   canAddFromCatalog?: boolean;
 };
 
-const relatedLinks = [
-  { href: APP_ROUTES.categories, label: "Categories", icon: LayoutGrid },
-  { href: APP_ROUTES.suppliers, label: "Suppliers", icon: Building2 },
-  { href: APP_ROUTES.pricing, label: "Pricing", icon: CircleDollarSign },
-] as const;
-
 export function ProductHeroHeader({
   itemTypeCount,
   attentionStats = [],
   onAttentionToggle,
   onCreateNew,
-  onAddVariant,
-  canAddVariant = true,
-  onAddFromCatalog,
-  canAddFromCatalog = true,
 }: Props) {
   const canCreate = itemTypeCount > 0;
   const visibleAttention = attentionStats.filter((s) => s.count > 0);
 
   return (
-    <header
-      className={cn(
-        "flex shrink-0 flex-col gap-1 border border-border bg-card px-2 py-1",
-        "sm:flex-row sm:items-center sm:justify-between sm:gap-2",
-      )}
-    >
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-        <ActiveScopeSubtitle className="w-full text-[10px] sm:w-auto" />
+    <header className="flex shrink-0 flex-col gap-2 border-b border-border bg-background px-1 py-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="min-w-0">
+          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">
+            Products
+          </h1>
+          <ActiveScopeSubtitle className="text-[11px]" />
+        </div>
 
         {visibleAttention.length > 0 ? (
           <div
-            className="hidden min-w-0 flex-wrap items-center gap-0.5 lg:flex"
+            className="flex min-w-0 flex-wrap items-center gap-1"
             role="group"
-            aria-label="Needs attention filters"
+            aria-label="Needs a look"
           >
+            <span className="pr-1 text-[11px] text-muted-foreground">
+              Needs a look
+            </span>
             {visibleAttention.map((stat) => (
               <button
                 key={stat.id}
@@ -87,83 +71,50 @@ export function ProductHeroHeader({
                 title={
                   stat.active
                     ? `Clear “${stat.label}” filter`
-                    : `Filter: ${stat.label}`
+                    : `Show products with ${stat.label}`
                 }
                 className={cn(
-                  "inline-flex h-6 items-center gap-1 border px-1.5 text-[10px] transition-colors",
+                  "inline-flex h-7 items-center gap-1 border px-2 text-[11px] transition-colors",
                   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   stat.active
                     ? "border-foreground bg-foreground text-background"
-                    : "border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground",
+                    : "border-border bg-background text-foreground/70 hover:border-foreground/40 hover:text-foreground",
                 )}
               >
                 <span className="tabular-nums font-semibold">
                   {stat.count.toLocaleString()}
                 </span>
-                <span className="hidden sm:inline">{stat.label}</span>
+                <span>{stat.label}</span>
               </button>
             ))}
           </div>
         ) : null}
-
-        <nav
-          aria-label="Related catalog pages"
-          className="flex min-w-0 items-center gap-0.5 sm:border-l sm:border-border/50 sm:pl-2"
-        >
-          {relatedLinks.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              title={label}
-              className={cn(
-                "inline-flex size-6 items-center justify-center text-muted-foreground",
-                "transition-colors hover:bg-muted/60 hover:text-foreground",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              )}
-            >
-              <Icon className="size-3" aria-hidden />
-              <span className="sr-only">{label}</span>
-            </Link>
-          ))}
-        </nav>
       </div>
 
-      <div className="flex shrink-0 items-center gap-0.5">
-        {onAddVariant ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={!canCreate || !canAddVariant}
-            onClick={onAddVariant}
-            className="h-6 gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground shadow-none hover:text-foreground"
-          >
-            <Layers className="size-3" aria-hidden />
-            <span className="hidden sm:inline">Variant</span>
-          </Button>
-        ) : null}
-        {onAddFromCatalog ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={!canCreate || !canAddFromCatalog}
-            onClick={onAddFromCatalog}
-            className="h-6 gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground shadow-none hover:text-foreground"
-          >
-            <Library className="size-3" aria-hidden />
-            <span className="hidden sm:inline">Library</span>
-          </Button>
-        ) : null}
+      <div className="flex shrink-0 items-center gap-1">
+        <ProductGuideDrawer
+          trigger={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 rounded-none px-2 text-[12px] text-muted-foreground shadow-none hover:text-foreground"
+              title="How to add products"
+            >
+              <BookOpen className="size-3.5" aria-hidden />
+              <span className="hidden sm:inline">Help</span>
+            </Button>
+          }
+        />
         <Button
           asChild
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="h-6 gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground shadow-none hover:text-foreground"
+          className="h-8 gap-1 rounded-none px-2.5 text-[12px] shadow-none"
         >
-          <Link href={APP_ROUTES.businessImport} title="Bulk import products from a CSV">
-            <FileUp className="size-3" aria-hidden />
-            <span className="hidden sm:inline">Import</span>
+          <Link href={APP_ROUTES.businessImport} title="Add many products from a spreadsheet">
+            <FileUp className="size-3.5" aria-hidden />
+            Import
           </Link>
         </Button>
         <Button
@@ -171,25 +122,11 @@ export function ProductHeroHeader({
           size="sm"
           disabled={!canCreate}
           onClick={onCreateNew}
-          className="h-6 gap-1 rounded-none px-2 text-[11px] shadow-none"
+          className="h-8 gap-1.5 rounded-none px-3 text-[12px] shadow-none"
         >
-          <PackagePlus className="size-3" aria-hidden />
-          New
+          <PackagePlus className="size-3.5" aria-hidden />
+          Add product
         </Button>
-        <ProductGuideDrawer
-          trigger={
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-6 gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground shadow-none hover:text-foreground"
-              title="How to add products — summary + full guide"
-            >
-              <BookOpen className="size-3" aria-hidden />
-              <span className="hidden sm:inline">Guide</span>
-            </Button>
-          }
-        />
       </div>
     </header>
   );

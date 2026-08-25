@@ -44,9 +44,9 @@ const ROW_TYPE_LEGEND: {
   id: CatalogListDisplayType;
   label: string;
 }[] = [
-  { id: "parent", label: "Parents" },
-  { id: "variant", label: "Variants" },
-  { id: "standalone", label: "Standalones" },
+  { id: "parent", label: "Families" },
+  { id: "variant", label: "Packs" },
+  { id: "standalone", label: "Items" },
 ];
 
 export function CatalogListColumn({

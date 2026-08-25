@@ -129,8 +129,8 @@ export function ProductEditDrawer({
       basics: true,
       package: isVariant,
       pricing: true,
-      inventory: !sharedStock,
-      visibility: true,
+      inventory: false,
+      visibility: false,
       media: false,
     });
   }, [open, d?.id, d?.buyingPrice, headerBranchId, dr.buyingPriceStr, m.branches, isVariant, sharedStock]);
@@ -226,7 +226,7 @@ export function ProductEditDrawer({
           ? [d.sku, d.variantName?.trim()].filter(Boolean).join(" · ")
           : undefined
       }
-      contextLabel={sharedStock ? "Package SKU" : isVariant ? "Variant" : "Product"}
+      contextLabel={sharedStock ? "Pack" : isVariant ? "Size / pack" : "Product"}
       icon={
         sharedStock ? (
           <Boxes className="size-3.5 text-primary" aria-hidden />
@@ -324,8 +324,8 @@ export function ProductEditDrawer({
 
           <ProductFormSectionToggle
             icon={FileText}
-            label="Basics"
-            hint="Name, codes, category, description"
+            label="Name & details"
+            hint="What you call it, barcode, category"
             expanded={openSections.basics}
             onToggle={() => toggleSection("basics")}
           />
@@ -430,8 +430,8 @@ export function ProductEditDrawer({
             <>
               <ProductFormSectionToggle
                 icon={Boxes}
-                label="Package & variant"
-                hint="How this SKU sells and deducts stock"
+                label="How it sells"
+                hint="Pack size and how stock is taken"
                 expanded={openSections.package}
                 onToggle={() => toggleSection("package")}
                 badge={
@@ -507,8 +507,8 @@ export function ProductEditDrawer({
 
           <ProductFormSectionToggle
             icon={CircleDollarSign}
-            label="Pricing"
-            hint="Shelf price, pack size, cost"
+            label="Price"
+            hint="What customers pay, and what it costs you"
             expanded={openSections.pricing}
             onToggle={() => toggleSection("pricing")}
           />
@@ -565,11 +565,11 @@ export function ProductEditDrawer({
 
           <ProductFormSectionToggle
             icon={Warehouse}
-            label="Inventory"
+            label="Stock"
             hint={
               sharedStock
-                ? "Stock lives on the base product"
-                : "Alerts and stock adjustments"
+                ? "Count lives on the main product"
+                : "When to reorder, and add stock"
             }
             expanded={openSections.inventory}
             onToggle={() => toggleSection("inventory")}
@@ -676,8 +676,8 @@ export function ProductEditDrawer({
 
           <ProductFormSectionToggle
             icon={Settings2}
-            label="Visibility"
-            hint="POS and online shop"
+            label="On till & online"
+            hint="Can cashiers sell it? Show in the shop?"
             expanded={openSections.visibility}
             onToggle={() => toggleSection("visibility")}
           />
@@ -724,8 +724,8 @@ export function ProductEditDrawer({
 
           <ProductFormSectionToggle
             icon={Camera}
-            label="Cover image"
-            hint="Quick upload — full gallery in Photo studio"
+            label="Photo"
+            hint="Cover picture"
             expanded={openSections.media}
             onToggle={() => toggleSection("media")}
           />
@@ -739,7 +739,7 @@ export function ProductEditDrawer({
                   onClick={onOpenPhotos}
                 >
                   <Camera className="size-3.5" aria-hidden />
-                  Open photo studio
+                  Open photos
                 </Button>
               ) : null}
               <input

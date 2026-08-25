@@ -85,7 +85,7 @@ export const productFormSectionBodyCompactClass = cn(
 );
 
 export const productFormSectionToggleClass = cn(
-  "group flex w-full items-center gap-3 rounded-none border-0 border-b border-border px-3.5 py-3 text-left transition-colors",
+  "group flex w-full items-center gap-2 rounded-none border-0 border-b border-border px-3 py-2 text-left transition-colors",
   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/40",
 );
 

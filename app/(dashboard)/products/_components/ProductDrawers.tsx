@@ -76,8 +76,8 @@ export function ProductPhotosDrawer({
         if (!o) onClose();
       }}
       banner={banner}
-      title="Photo studio"
-      contextLabel="Media"
+      title="Photos"
+      contextLabel="Products"
       appearance="sharp"
       headerDensity="compact"
       icon={<Camera className="size-3.5 text-primary" />}

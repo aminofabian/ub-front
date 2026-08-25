@@ -50,9 +50,9 @@ type Props = {
 
 const SCOPE = [
   ["ALL", "All"],
-  ["SKUS_ONLY", "SKUs"],
-  ["PARENTS_ONLY", "Groups"],
-  ["VARIANTS_ONLY", "Variants"],
+  ["SKUS_ONLY", "For sale"],
+  ["PARENTS_ONLY", "Families"],
+  ["VARIANTS_ONLY", "Packs"],
 ] as const;
 
 function countPanelFilters(catalog: Props["catalog"]): number {

@@ -85,9 +85,9 @@ export function VariantParentPickDrawer({
       onOpenChange={(o) => {
         if (!o && !busy) onClose();
       }}
-      title="Add variant"
-      description="Search for the parent product or group label, then add option SKUs under it."
-      contextLabel="Catalog"
+      title="Add a size or pack"
+      description="Find the product family, then add the size you sell."
+      contextLabel="Products"
       appearance="sharp"
       headerDensity="compact"
       icon={<Layers className="size-3.5 text-primary" aria-hidden />}
@@ -96,7 +96,7 @@ export function VariantParentPickDrawer({
       <div className="space-y-3">
         <label className="block space-y-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-            Parent product
+            Main product
           </span>
           <div className="relative">
             <Search
@@ -109,7 +109,7 @@ export function VariantParentPickDrawer({
               disabled={busy}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name or SKU…"
+              placeholder="Search by name or code…"
               className={cn(dashboardInputClass(busy), "h-10 rounded-none py-2 pl-9 pr-3 shadow-none")}
             />
           </div>
