@@ -72,6 +72,7 @@ export function CampaignsOverview({
   library,
   activeCount,
   scheduledCount,
+  sentCount,
 }: {
   loading: boolean;
   total: number;
