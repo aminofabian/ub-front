@@ -86,7 +86,21 @@ export function ChemLabHeader({
             className={styles.wordmarkImg}
             fallback={
               <span className={styles.flaskIcon} aria-hidden>
-                ⚗
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M9 3.5h6M10 3.5v4.2L6.2 16.2A3.6 3.6 0 0 0 9.4 21h5.2a3.6 3.6 0 0 0 3.2-4.8L14 7.7V3.5"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M8.2 15.2h7.6"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    opacity="0.55"
+                  />
+                </svg>
               </span>
             }
           />

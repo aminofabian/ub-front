@@ -3,7 +3,9 @@
 import { useCallback, useState } from "react";
 
 import { ChemLabCard } from "@/components/storefront/templates/store/chem-lab-card";
+import { useChemLabCopy } from "@/components/storefront/templates/store/chem-lab-mode";
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
+import { StorefrontInlineText } from "@/components/storefront/storefront-inline-text";
 import { apiUrl } from "@/lib/config";
 import type {
   PublicCatalogItemCard,
@@ -26,6 +28,8 @@ export function ChemLabCatalog({
   const [items, setItems] = useState(initialItems);
   const [cursor, setCursor] = useState(initialNextCursor);
   const [loading, setLoading] = useState(false);
+  const copy = useChemLabCopy();
+  const inventoryTitle = copy?.inventory || "Reagent inventory";
 
   const loadMore = useCallback(async () => {
     if (!cursor || loading) return;
@@ -63,7 +67,15 @@ export function ChemLabCatalog({
   return (
     <section id="inventory">
       <div className={styles.sectionHead}>
-        <h2 className={styles.sectionTitle}>Reagent inventory</h2>
+        <StorefrontInlineText
+          as="h2"
+          className={styles.sectionTitle}
+          value={inventoryTitle}
+          placeholder="Reagent inventory"
+          onCommit={(next) => copy?.commitInventory(next)}
+        >
+          <h2 className={styles.sectionTitle}>{inventoryTitle}</h2>
+        </StorefrontInlineText>
         <span className={styles.sectionMeta}>{countLabel}</span>
       </div>
 

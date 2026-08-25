@@ -39,6 +39,7 @@ export function ChemLabDrawers({ types }: { types: PublicCatalogType[] }) {
             aria-current={selected ? "true" : undefined}
           >
             <span className={styles.drawerTape} aria-hidden />
+            <span className={styles.drawerPull} aria-hidden />
             {type.label}
             {type.itemCount != null ? (
               <span className={styles.drawerCount}>{type.itemCount}</span>

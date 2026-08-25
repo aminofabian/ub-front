@@ -70,7 +70,8 @@ import {
   trackStorefrontEditEvent,
 } from "@/lib/storefront-staff-edit";
 import { storefrontPreviewUrl } from "@/lib/storefront-preview";
-import { normalizeStoreThemeId } from "@/lib/storefront-templates";
+import { serializeThemeOptions } from "@/lib/storefront-theme-options";
+import { normalizeStoreThemeId, type StoreThemeId } from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 
 export type { StorefrontQuickEditField };
@@ -182,6 +183,12 @@ type StaffEditContextValue = {
   commitInlineField: (
     field: StorefrontQuickEditField,
     values: Record<string, string>,
+  ) => Promise<void>;
+  /** Stage a per-theme personality string (e.g. chem-lab "Dispense"). */
+  patchThemeOption: (
+    key: string,
+    value: string,
+    themeId?: StoreThemeId,
   ) => Promise<void>;
   openQuickEdit: (field: StorefrontQuickEditField) => void;
   openHeroPhoto: () => void;
@@ -840,6 +847,38 @@ export function StorefrontStaffEditProvider({
     [handleQuickSave],
   );
 
+  const patchThemeOption = useCallback(
+    async (key: string, value: string, themeIdArg?: StoreThemeId) => {
+      const optionKey = key.trim();
+      if (!optionKey) return;
+      let base = design;
+      if (!base) {
+        base = await ensureDesignLoaded();
+      }
+      const themeId = themeIdArg ?? storeThemeId;
+      const blob = { ...(base?.theme ?? {}) };
+      const current = { ...(blob[themeId] ?? {}) };
+      current[optionKey] = value.trim();
+      const serialized = serializeThemeOptions(themeId, current);
+      if (serialized) {
+        blob[themeId] = serialized;
+      } else {
+        delete blob[themeId];
+      }
+      const next: StorefrontDesign = {
+        ...(base ?? { version: 1 }),
+        version: 1,
+        theme: Object.keys(blob).length > 0 ? blob : null,
+      };
+      applyDraft(next, {
+        field: optionKey,
+        event: "storefront_theme_option_patched",
+        data: { themeId, key: optionKey },
+      });
+    },
+    [design, ensureDesignLoaded, applyDraft, storeThemeId],
+  );
+
   const handleHeroPhotoSave = useCallback(
     async (photo: StorefrontDesignPhoto | null) => {
       let base = design;
@@ -968,6 +1007,7 @@ export function StorefrontStaffEditProvider({
       displayLogoUrl,
       uploadLogo,
       commitInlineField,
+      patchThemeOption,
       openQuickEdit,
       openHeroPhoto,
       openSectionsPanel,
@@ -996,6 +1036,7 @@ export function StorefrontStaffEditProvider({
       displayLogoUrl,
       uploadLogo,
       commitInlineField,
+      patchThemeOption,
       openQuickEdit,
       openHeroPhoto,
       openSectionsPanel,

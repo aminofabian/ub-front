@@ -6,6 +6,7 @@ import {
   serializeThemeOptions,
   storefrontThemeOptionDefaults,
   storefrontThemeOptionDefs,
+  themeOptionString,
   themeOptionVars,
 } from "@/lib/storefront-theme-options";
 
@@ -15,6 +16,8 @@ describe("storefront theme options", () => {
       "grid",
       "glow",
       "tape",
+      "inventory",
+      "dispense",
     ]);
     expect(storefrontThemeOptionDefs("milk-run").map((d) => d.key)).toEqual([
       "paper",
@@ -24,7 +27,13 @@ describe("storefront theme options", () => {
 
   test("defaults fill every option key", () => {
     const defaults = storefrontThemeOptionDefaults("chem-lab");
-    expect(defaults).toEqual({ grid: true, glow: 1, tape: true });
+    expect(defaults).toEqual({
+      grid: true,
+      glow: 1,
+      tape: true,
+      inventory: "Reagent inventory",
+      dispense: "Dispense",
+    });
   });
 
   test("normalize drops unknown keys and clamps ranges", () => {
@@ -58,5 +67,26 @@ describe("storefront theme options", () => {
     expect(themeOptionVars("milk-run", { "milk-run": { paper: "rose" } })).toEqual({
       "--milk-cream": "#fff3ec",
     });
+  });
+
+  test("text options round-trip and fall back to defaults", () => {
+    const normalized = normalizeThemeOptions("chem-lab", {
+      inventory: "  Stock room  ",
+      dispense: "",
+    });
+    expect(normalized).toEqual({ inventory: "Stock room" });
+    expect(
+      themeOptionString("chem-lab", { "chem-lab": { inventory: "Stock room" } }, "inventory"),
+    ).toBe("Stock room");
+    expect(themeOptionString("chem-lab", null, "dispense")).toBe("Dispense");
+    expect(
+      serializeThemeOptions("chem-lab", {
+        inventory: "Reagent inventory",
+        dispense: "Add",
+      }),
+    ).toEqual({ dispense: "Add" });
+    expect(
+      serializeThemeOptions("chem-lab", { inventory: "", dispense: "   " }),
+    ).toBeNull();
   });
 });

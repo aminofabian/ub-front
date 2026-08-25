@@ -6,6 +6,7 @@ import { MessageCircle } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
 import { Button } from "@/components/ui/button";
+import { useChemLabCopy } from "@/components/storefront/templates/store/chem-lab-mode";
 import {
   cartLineQuantity,
   findCartLine,
@@ -60,6 +61,11 @@ export default function ShopAddToCart({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const cartCtx = useShopCartOptional();
+  const cl = useChemLabCopy();
+  const addLabel = cl?.dispense?.trim() || "Add to Cart";
+  const addMoreLabel = cl
+    ? `${(cl.dispense.trim() || "Dispense")} more`
+    : "Add more";
 
   const cartLine = findCartLine(cartCtx?.cart ?? null, itemId);
   const inCartQty = cartLine ? cartLineQuantity(cartLine.quantity) : 0;
@@ -295,7 +301,7 @@ export default function ShopAddToCart({
             disabled={busy}
             className="h-11 flex-1 rounded-xl text-sm font-semibold"
           >
-            {busy ? "Adding…" : inCart ? "Add more" : "Add to cart"}
+            {busy ? "Adding…" : inCart ? addMoreLabel : addLabel}
           </Button>
           {cartCtx ? (
             <button
@@ -357,7 +363,7 @@ export default function ShopAddToCart({
             !inCart && "shadow-md ring-2 ring-primary/25",
           )}
         >
-          {busy ? "Adding…" : "Add to Cart"}
+          {busy ? "Adding…" : inCart ? addMoreLabel : addLabel}
         </Button>
         {inCart ? (
           <Link href={APP_ROUTES.shopCheckout} className="block">

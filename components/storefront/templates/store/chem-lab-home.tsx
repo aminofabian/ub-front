@@ -104,6 +104,7 @@ export function ChemLabStoreHome(props: StoreHomeTemplateProps) {
     <div
       className={cn(styles.root, styles.body, chemLabFontVariables)}
       data-store-theme-id="chem-lab"
+      data-cl-mode={clMode}
       style={{ ...chemLabPaletteVars(neon, amber, clMode), ...optionVars }}
     >
       <div className={styles.wrap}>

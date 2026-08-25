@@ -1,63 +1,85 @@
 .root {
   /* ---- night shift (default): dark glass bench ---- */
-  --cl-bench: #0a1218;
-  --cl-bench-mid: #0f1a22;
-  --cl-grid: rgb(56 189 248 / 0.07);
-  --cl-ink: #e8f3fa;
-  --cl-muted: #a9bfcc;
+  --cl-bench: #071015;
+  --cl-bench-mid: #0c1820;
+  --cl-grid: rgb(56 189 248 / 0.055);
+  --cl-ink: #e7f4fb;
+  --cl-muted: #8eacbc;
   --cl-neon: #84cc16;
   --cl-neon-soft: color-mix(
     in srgb,
     var(--cl-neon) calc(var(--cl-glow, 1) * 18%),
     transparent
   );
+  --cl-on-neon: #071015;
   --cl-amber: #f59e0b;
   --cl-amber-deep: #b45309;
   --cl-glass: rgb(245 158 11 / 0.22);
   --cl-hazard: #eab308;
+  --cl-tape-ink: #121212;
   --cl-max: 1180px;
 
   /* derived surfaces, all switchable per shift */
-  --cl-panel: rgb(15 26 34 / 0.72);
-  --cl-panel-strong: rgb(15 26 34 / 0.92);
-  --cl-panel-deep: rgb(10 18 24 / 0.98);
-  --cl-header-bg: rgb(10 18 24 / 0.92);
-  --cl-field-bg: rgb(15 26 34 / 0.8);
-  --cl-line: color-mix(in srgb, var(--cl-neon) 28%, transparent);
+  --cl-panel: rgb(12 24 32 / 0.78);
+  --cl-panel-strong: rgb(12 24 32 / 0.94);
+  --cl-panel-deep: rgb(7 16 21 / 0.98);
+  --cl-header-bg: rgb(7 16 21 / 0.9);
+  --cl-field-bg: rgb(12 24 32 / 0.82);
+  --cl-line: color-mix(in srgb, var(--cl-neon) 30%, transparent);
   --cl-line-soft: color-mix(in srgb, var(--cl-neon) 16%, transparent);
-  --cl-rule: rgb(169 191 204 / 0.24);
+  --cl-rule: rgb(142 172 188 / 0.22);
   --cl-label: rgb(232 243 250 / 0.94);
-  --cl-shadow-card: 0 0 24px color-mix(in srgb, var(--cl-neon) 14%, transparent);
-  --cl-shadow-deep: 0 16px 48px rgb(0 0 0 / 0.45);
-  --cl-shadow-bottle: 0 8px 24px rgb(0 0 0 / 0.4);
+  --cl-shadow-card: 0 12px 32px color-mix(in srgb, var(--cl-neon) 12%, rgb(0 0 0 / 0.35));
+  --cl-shadow-deep: 0 18px 48px rgb(0 0 0 / 0.5);
+  --cl-shadow-bottle: 0 10px 28px rgb(0 0 0 / 0.45);
+
+  /* Bridge the bench into cart drawers, checkout, and product slugs. */
+  --background: var(--sf-surface, var(--cl-bench));
+  --foreground: var(--cl-ink);
+  --card: var(--cl-panel-strong);
+  --card-foreground: var(--cl-ink);
+  --popover: var(--cl-panel-deep);
+  --popover-foreground: var(--cl-ink);
+  --primary: var(--cl-neon);
+  --primary-foreground: var(--cl-on-neon);
+  --secondary: var(--cl-panel);
+  --secondary-foreground: var(--cl-ink);
+  --muted: color-mix(in srgb, var(--cl-ink) 8%, var(--cl-bench));
+  --muted-foreground: var(--cl-muted);
+  --accent: var(--cl-neon-soft);
+  --accent-foreground: var(--cl-ink);
+  --border: var(--cl-line);
+  --input: var(--cl-line);
+  --ring: color-mix(in srgb, var(--cl-neon) 50%, transparent);
+  --radius: 0.2rem;
 
   /* A merchant-set custom page surface (design studio) wins over the bench;   */
   /* the grid + glows still layer on top so the lab texture survives.         */
   background-color: var(--sf-surface, var(--cl-bench));
   background-image:
     radial-gradient(
-      ellipse 60% 40% at 80% 0%,
-      color-mix(in srgb, var(--cl-neon) 9%, transparent),
-      transparent 55%
+      ellipse 55% 38% at 82% -4%,
+      color-mix(in srgb, var(--cl-neon) 11%, transparent),
+      transparent 58%
     ),
     radial-gradient(
-      ellipse 50% 35% at 10% 90%,
-      color-mix(in srgb, var(--cl-amber) 8%, transparent),
-      transparent 50%
+      ellipse 48% 32% at 8% 96%,
+      color-mix(in srgb, var(--cl-amber) 9%, transparent),
+      transparent 52%
     ),
     repeating-linear-gradient(
       0deg,
       transparent,
-      transparent 23px,
-      var(--cl-grid) 23px,
-      var(--cl-grid) 24px
+      transparent 27px,
+      var(--cl-grid) 27px,
+      var(--cl-grid) 28px
     ),
     repeating-linear-gradient(
       90deg,
       transparent,
-      transparent 23px,
-      var(--cl-grid) 23px,
-      var(--cl-grid) 24px
+      transparent 27px,
+      var(--cl-grid) 27px,
+      var(--cl-grid) 28px
     ),
     linear-gradient(180deg, var(--cl-bench-mid) 0%, var(--cl-bench) 100%);
   color: var(--cl-ink);
@@ -65,35 +87,37 @@
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   color-scheme: dark;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.35s ease, color 0.35s ease;
 }
 
-/* ---- day shift: pale bench paper, ink-dark, lime-700 / amber-700 ---- */
+/* ---- day shift: daylight on a clinical compounding bench ---- */
 .root[data-cl-mode="light"] {
-  --cl-bench: #f2f5ee;
-  --cl-bench-mid: #e8ede1;
-  --cl-grid: rgb(15 60 90 / 0.08);
-  --cl-ink: #10202c;
-  --cl-muted: #466072;
+  --cl-bench: #f4f1e8;
+  --cl-bench-mid: #ebe6d8;
+  --cl-grid: rgb(18 48 62 / 0.07);
+  --cl-ink: #13202a;
+  --cl-muted: #4a6270;
+  --cl-on-neon: #f7f4eb;
   --cl-neon-soft: color-mix(
     in srgb,
     var(--cl-neon) calc(var(--cl-glow, 1) * 14%),
     transparent
   );
   --cl-amber-deep: #92400e;
-  --cl-glass: rgb(180 83 9 / 0.18);
-  --cl-panel: rgb(255 255 255 / 0.72);
-  --cl-panel-strong: rgb(255 255 255 / 0.94);
-  --cl-panel-deep: rgb(248 250 244 / 0.98);
-  --cl-header-bg: rgb(242 245 238 / 0.9);
-  --cl-field-bg: rgb(255 255 255 / 0.9);
-  --cl-line: color-mix(in srgb, var(--cl-neon) 32%, transparent);
-  --cl-line-soft: color-mix(in srgb, var(--cl-neon) 18%, transparent);
-  --cl-rule: rgb(16 32 44 / 0.16);
+  --cl-glass: rgb(180 83 9 / 0.16);
+  --cl-tape-ink: #fff8e7;
+  --cl-panel: rgb(255 253 247 / 0.78);
+  --cl-panel-strong: rgb(255 253 247 / 0.96);
+  --cl-panel-deep: rgb(250 247 238 / 0.98);
+  --cl-header-bg: rgb(244 241 232 / 0.9);
+  --cl-field-bg: rgb(255 253 247 / 0.92);
+  --cl-line: color-mix(in srgb, var(--cl-neon) 28%, rgb(19 32 42 / 0.18));
+  --cl-line-soft: color-mix(in srgb, var(--cl-neon) 16%, rgb(19 32 42 / 0.1));
+  --cl-rule: rgb(19 32 42 / 0.14);
   --cl-label: rgb(255 255 255 / 0.96);
-  --cl-shadow-card: 0 10px 30px rgb(16 32 44 / 0.12);
-  --cl-shadow-deep: 0 16px 40px rgb(16 32 44 / 0.14);
-  --cl-shadow-bottle: 0 10px 26px rgb(16 32 44 / 0.18);
+  --cl-shadow-card: 0 12px 28px rgb(19 32 42 / 0.1);
+  --cl-shadow-deep: 0 18px 40px rgb(19 32 42 / 0.12);
+  --cl-shadow-bottle: 0 10px 24px rgb(19 32 42 / 0.14);
   color-scheme: light;
 }
 
@@ -132,9 +156,10 @@
   top: 0;
   z-index: 50;
   background: var(--cl-header-bg);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--cl-line);
-  box-shadow: 0 0 24px var(--cl-neon-soft);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--cl-neon) 35%, transparent),
+    0 12px 28px var(--cl-neon-soft);
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -173,9 +198,13 @@
 }
 
 .flaskIcon {
-  font-size: 22px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   margin-bottom: 2px;
+  color: var(--cl-neon);
   filter: drop-shadow(0 0 8px var(--cl-neon-soft));
 }
 
@@ -236,7 +265,7 @@
   border: 0;
   border-left: 1px solid var(--cl-line-soft);
   background: var(--cl-neon);
-  color: var(--cl-bench);
+  color: var(--cl-on-neon);
   cursor: pointer;
   transition: filter 0.2s ease;
 }
@@ -278,18 +307,25 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 0 12px var(--cl-neon-soft);
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  box-shadow: 0 4px 14px var(--cl-neon-soft);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease,
+    transform 0.15s ease;
+}
+
+.cartBtn:hover {
+  background: var(--cl-neon);
+  color: var(--cl-on-neon);
 }
 
 .modeToggle {
-  display: inline-flex;
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
   align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 10px;
+  height: 30px;
+  padding: 2px;
   border: 1px solid var(--cl-line);
-  background: transparent;
+  background: var(--cl-field-bg);
   color: var(--cl-muted);
   font-family: var(--font-cl-mono), ui-monospace, monospace;
   font-size: 10px;
@@ -298,21 +334,54 @@
   text-transform: uppercase;
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  isolation: isolate;
 }
 
-.modeToggle:hover {
-  color: var(--cl-ink);
-  border-color: var(--cl-neon);
+.modeThumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
   background: var(--cl-neon-soft);
+  border: 1px solid var(--cl-neon);
+  box-shadow: 0 0 12px var(--cl-neon-soft);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 0;
+}
+
+.modeThumb[data-shift="dark"] {
+  transform: translateX(100%);
+}
+
+.modeOpt {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 100%;
+  padding: 0 8px;
+  color: var(--cl-muted);
+  transition: color 0.2s ease;
+}
+
+.modeOpt[data-active="true"] {
+  color: var(--cl-neon);
 }
 
 @media (max-width: 479px) {
   .modeToggle {
-    padding: 0 9px;
+    width: 64px;
+    grid-template-columns: 1fr 1fr;
+    padding: 2px;
   }
-  .modeToggle span {
+  .modeOpt span {
     display: none;
+  }
+  .modeOpt {
+    padding: 0;
   }
 }
 
@@ -349,10 +418,14 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px 8px 18px;
-  background: var(--cl-panel);
+  gap: 8px;
+  padding: 14px 14px 8px 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--cl-ink) 4%, transparent), transparent 40%),
+    var(--cl-panel);
   border: 1px solid var(--cl-line-soft);
+  border-bottom-width: 3px;
+  border-bottom-color: color-mix(in srgb, var(--cl-ink) 18%, var(--cl-line-soft));
   font-family: var(--font-cl-mono), ui-monospace, monospace;
   font-size: 11.5px;
   font-weight: 500;
@@ -361,30 +434,49 @@
   text-decoration: none;
   color: var(--cl-ink);
   overflow: hidden;
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--cl-ink) 8%, transparent);
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease,
+    transform 0.2s ease;
 }
 
 .drawerTape {
   position: absolute;
   left: 0;
+  right: 0;
   top: 0;
-  bottom: 0;
-  width: 6px;
+  height: 5px;
   opacity: var(--cl-tape, 1);
   background: repeating-linear-gradient(
     -45deg,
     var(--cl-hazard),
     var(--cl-hazard) 4px,
-    #1a1a1a 4px,
-    #1a1a1a 8px
+    var(--cl-tape-ink) 4px,
+    var(--cl-tape-ink) 8px
   );
+}
+
+.drawerPull {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--cl-muted);
+  border-radius: 99px;
+  opacity: 0.55;
+  box-shadow: inset 0 0 0 2px var(--cl-panel);
+  flex-shrink: 0;
 }
 
 .drawer[aria-current="true"] {
   border-color: var(--cl-neon);
+  border-bottom-color: var(--cl-neon);
   background: var(--cl-neon-soft);
-  box-shadow: 0 0 16px var(--cl-neon-soft);
+  box-shadow: 0 8px 20px var(--cl-neon-soft);
   color: var(--cl-neon);
+  transform: translateY(2px);
+}
+
+.drawer[aria-current="true"] .drawerPull {
+  border-color: var(--cl-neon);
+  opacity: 1;
 }
 
 .drawerCount {
@@ -454,7 +546,7 @@
   box-shadow:
     inset 0 1px 0 var(--cl-line-soft),
     var(--cl-shadow-deep),
-    0 0 40px var(--cl-neon-soft);
+    0 16px 40px var(--cl-neon-soft);
   transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -527,7 +619,7 @@
   display: block;
   aspect-ratio: 4 / 3;
   border: 2px solid var(--cl-amber);
-  border-radius: 4px 4px 12px 12px;
+  border-radius: 4px 4px 14px 14px !important;
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--cl-amber) 42%, transparent) 0%,
@@ -628,21 +720,30 @@
   align-self: start;
   margin-top: 4px;
   border: 0;
-  background: var(--cl-neon);
-  color: var(--cl-bench);
-  padding: 10px 18px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, white 22%, var(--cl-neon)), var(--cl-neon));
+  color: var(--cl-on-neon);
+  padding: 11px 20px;
   font-family: var(--font-cl-mono), ui-monospace, monospace;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 0 20px var(--cl-neon-soft);
-  transition: filter 0.2s ease, background-color 0.3s ease;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 8px 22px var(--cl-neon-soft);
+  transition: filter 0.2s ease, transform 0.15s ease, background-color 0.3s ease;
 }
 
 .addBtn:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.addBtn:active:not(:disabled) {
+  transform: translateY(1px);
+  filter: brightness(0.96);
 }
 
 .addBtn:disabled,
@@ -655,7 +756,7 @@
   border: 1px solid var(--cl-neon);
   background: transparent;
   color: var(--cl-neon);
-  padding: 4px 8px;
+  padding: 5px 9px;
   font-family: var(--font-cl-mono), ui-monospace, monospace;
   font-size: 10.5px;
   font-weight: 600;
@@ -663,11 +764,12 @@
   text-transform: uppercase;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .addBtnSmall:hover:not(:disabled) {
-  background: var(--cl-neon-soft);
+  background: var(--cl-neon);
+  color: var(--cl-on-neon);
 }
 
 /* ---------- vials ---------- */
@@ -726,7 +828,7 @@
   justify-content: space-between;
   gap: 8px;
   margin: 40px 0 16px;
-  padding-top: 20px;
+  padding-top: 22px;
   border-top: 1px solid var(--cl-line-soft);
 }
 
@@ -734,9 +836,19 @@
   margin: 0;
   font-weight: 700;
   font-size: clamp(20px, 3.5vw, 28px);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   text-transform: uppercase;
   line-height: 1.1;
+  background-image: linear-gradient(
+    90deg,
+    var(--cl-neon),
+    var(--cl-neon) 2px,
+    transparent 2px
+  );
+  background-size: 18px 2px;
+  background-repeat: repeat-x;
+  background-position: 0 100%;
+  padding-bottom: 8px;
 }
 
 .sectionMeta {
@@ -830,7 +942,8 @@
 }
 
 .loadMoreBtn:hover:not(:disabled) {
-  background: var(--cl-neon-soft);
+  background: var(--cl-neon);
+  color: var(--cl-on-neon);
 }
 
 .loadMoreBtn:disabled {
@@ -856,4 +969,25 @@
 
 .footer p {
   margin: 4px 0 0;
+}
+
+/* Product slugs + cart/checkout drawers inherit the bench (they're rendered
+   inside this root). Tune a few generic shop surfaces so they don't flash
+   the default app chrome. */
+.root :global([aria-label="Back to shop"]) {
+  font-family: var(--font-cl-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cl-muted);
+}
+
+.root :global([aria-label="Back to shop"]:hover) {
+  color: var(--cl-neon);
+}
+
+.root :global([role="dialog"]) {
+  background: var(--cl-panel-deep);
+  color: var(--cl-ink);
+  border-color: var(--cl-line);
 }

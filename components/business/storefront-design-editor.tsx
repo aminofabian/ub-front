@@ -322,6 +322,23 @@ function ThemeOptionControl({
           {def.hint ? <p className={dashboardHintClass()}>{def.hint}</p> : null}
         </div>
       );
+    case "text":
+      return (
+        <div className="space-y-2">
+          <span className="block text-sm font-medium text-foreground">
+            {def.label}
+          </span>
+          <input
+            type="text"
+            value={typeof value === "string" ? value : def.default}
+            maxLength={def.max ?? 80}
+            placeholder={def.placeholder ?? def.default}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20"
+          />
+          {def.hint ? <p className={dashboardHintClass()}>{def.hint}</p> : null}
+        </div>
+      );
   }
 }
 

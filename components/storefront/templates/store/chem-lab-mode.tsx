@@ -1,9 +1,22 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Moon, Sun } from "lucide-react";
 
+import {
+  useStorefrontLiveDesign,
+  useStorefrontStaffEditOptional,
+} from "@/components/storefront/storefront-staff-edit";
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
+import { themeOptionString } from "@/lib/storefront-theme-options";
 
 /**
  * Chem lab "shifts": the theme ships two full palettes — a dark Night shift
@@ -158,6 +171,52 @@ export function chemLabPaletteVars(
 /* header switch                                                       */
 /* ------------------------------------------------------------------ */
 
+export type ChemLabCopy = {
+  inventory: string;
+  dispense: string;
+  editMode: boolean;
+  commitInventory: (next: string) => void;
+  commitDispense: (next: string) => void;
+};
+
+const ChemLabCopyContext = createContext<ChemLabCopy | null>(null);
+
+/** Labels + inline-edit commits for chem-lab copy. Null outside this theme. */
+export function ChemLabCopyProvider({
+  enabled,
+  children,
+}: {
+  enabled: boolean;
+  children: ReactNode;
+}) {
+  const design = useStorefrontLiveDesign(null);
+  const staff = useStorefrontStaffEditOptional();
+  const value = useMemo<ChemLabCopy | null>(() => {
+    if (!enabled) return null;
+    const theme = design?.theme ?? null;
+    return {
+      inventory: themeOptionString("chem-lab", theme, "inventory"),
+      dispense: themeOptionString("chem-lab", theme, "dispense"),
+      editMode: Boolean(staff?.editMode),
+      commitInventory: (next) => {
+        void staff?.patchThemeOption("inventory", next, "chem-lab");
+      },
+      commitDispense: (next) => {
+        void staff?.patchThemeOption("dispense", next, "chem-lab");
+      },
+    };
+  }, [enabled, design?.theme, staff]);
+  return (
+    <ChemLabCopyContext.Provider value={value}>
+      {children}
+    </ChemLabCopyContext.Provider>
+  );
+}
+
+export function useChemLabCopy(): ChemLabCopy | null {
+  return useContext(ChemLabCopyContext);
+}
+
 export function ChemLabModeToggle() {
   const mode = useChemLabMode();
   const nextLabel = mode === "dark" ? "day shift" : "night shift";
@@ -169,12 +228,19 @@ export function ChemLabModeToggle() {
       aria-label={`Switch to the ${nextLabel}`}
       title={`Switch to the ${nextLabel}`}
     >
-      {mode === "dark" ? (
+      <span
+        className={styles.modeThumb}
+        data-shift={mode}
+        aria-hidden
+      />
+      <span className={styles.modeOpt} data-active={mode === "light"}>
         <Sun className="size-3.5" aria-hidden />
-      ) : (
+        <span>Day</span>
+      </span>
+      <span className={styles.modeOpt} data-active={mode === "dark"}>
         <Moon className="size-3.5" aria-hidden />
-      )}
-      <span>{mode === "dark" ? "Day" : "Night"}</span>
+        <span>Night</span>
+      </span>
     </button>
   );
 }

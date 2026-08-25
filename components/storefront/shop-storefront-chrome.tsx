@@ -39,6 +39,7 @@ import boutiqueShelfStyles from "@/components/storefront/templates/store/boutiqu
 import { ChemLabHeader } from "@/components/storefront/templates/store/chem-lab-header";
 import { chemLabFontVariables } from "@/components/storefront/templates/store/chem-lab-fonts";
 import {
+  ChemLabCopyProvider,
   chemLabPaletteVars,
   useChemLabMode,
 } from "@/components/storefront/templates/store/chem-lab-mode";
@@ -311,8 +312,10 @@ export function ShopStorefrontChrome({
         initialDesign={initialDesign}
         categories={categories}
       >
+      <ChemLabCopyProvider enabled={isChemLab}>
       <div
         data-store-theme-id={storeThemeId ?? undefined}
+        data-cl-mode={isChemLab ? clMode : undefined}
         data-sf-font={pairing.id !== "default" ? pairing.id : undefined}
         className={cn(
           "storefront-browse flex min-h-0 flex-1 flex-col",
@@ -507,6 +510,7 @@ export function ShopStorefrontChrome({
       {!isCustomChrome ? <FloatingCartButton accentHex={accentHex} /> : null}
       <DashboardToaster />
       </div>
+      </ChemLabCopyProvider>
       </StorefrontStaffEditProvider>
       </StorefrontSignInProvider>
     </ShopCartProvider>

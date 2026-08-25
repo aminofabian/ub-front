@@ -145,7 +145,7 @@ export async function StorefrontShell({
         chromeVariant === "boutique-shelf" && "bg-[#1F1020] dark:bg-[#1F1020]",
         chromeVariant === "beauty-edit" && "bg-white dark:bg-white",
         chromeVariant === "scent-story" && "bg-[#FCF8F0] dark:bg-[#FCF8F0]",
-        chromeVariant === "chem-lab" && "bg-[#0A1218] dark:bg-[#0A1218]",
+        chromeVariant === "chem-lab" && "bg-transparent dark:bg-transparent",
         chromeVariant === "spirits-cellar" && "bg-[#14100E] dark:bg-[#14100E]",
       )}
     >

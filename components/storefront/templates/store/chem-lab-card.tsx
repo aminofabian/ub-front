@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useState } from "react";
 
 import styles from "@/components/storefront/templates/store/chem-lab.module.css";
+import { StorefrontInlineText } from "@/components/storefront/storefront-inline-text";
 import { StorefrontNativeHeroHeadline } from "@/components/storefront/storefront-native-hero-copy";
 import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
+import { useChemLabCopy } from "@/components/storefront/templates/store/chem-lab-mode";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -37,7 +39,10 @@ export function ChemLabAddButton({
   size?: "default" | "small";
 }) {
   const cart = useShopCart();
+  const copy = useChemLabCopy();
   const [busy, setBusy] = useState(false);
+  const label = copy?.dispense || "Dispense";
+  const editing = Boolean(copy?.editMode);
 
   const onAdd = async () => {
     if (busy || item.price == null) return;
@@ -57,14 +62,29 @@ export function ChemLabAddButton({
 
   if (item.price == null) return null;
 
+  const className = size === "small" ? styles.addBtnSmall : styles.addBtn;
+
+  if (editing) {
+    return (
+      <span className={className}>
+        <StorefrontInlineText
+          as="span"
+          value={label}
+          placeholder="Dispense"
+          onCommit={(next) => copy?.commitDispense(next)}
+        />
+      </span>
+    );
+  }
+
   return (
     <button
       type="button"
-      className={size === "small" ? styles.addBtnSmall : styles.addBtn}
+      className={className}
       disabled={busy}
       onClick={() => void onAdd()}
     >
-      {busy ? "…" : "Dispense"}
+      {busy ? "…" : label}
     </button>
   );
 }

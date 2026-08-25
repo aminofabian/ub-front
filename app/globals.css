@@ -2532,11 +2532,12 @@ body:has(.landing-page) {
 /* Chem lab theme — keep browser chrome (scrollbars, overscroll flash) in
    sync with the active shift so the day palette never shows a dark edge. */
 html:has([data-store-theme-id="chem-lab"]) {
+    background-color: #071015;
     color-scheme: dark;
 }
 
 html:has([data-store-theme-id="chem-lab"][data-cl-mode="light"]) {
-    background-color: #f2f5ee;
+    background-color: #f4f1e8;
     color-scheme: light;
 }
 

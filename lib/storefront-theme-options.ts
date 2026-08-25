@@ -59,6 +59,17 @@ export type ThemeOptionDef =
       type: "color";
       var: string;
       default: string;
+    }
+  | {
+      key: string;
+      label: string;
+      hint?: string;
+      type: "text";
+      /** Optional CSS custom property (most copy is read in JS). */
+      var?: string;
+      default: string;
+      max?: number;
+      placeholder?: string;
     };
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
@@ -95,6 +106,24 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
       var: "--cl-tape",
       default: true,
       offValue: "0",
+    },
+    {
+      key: "inventory",
+      label: "Inventory heading",
+      hint: "Title above the product grid",
+      type: "text",
+      default: "Reagent inventory",
+      max: 48,
+      placeholder: "Reagent inventory",
+    },
+    {
+      key: "dispense",
+      label: "Dispense button",
+      hint: "Add-to-cart label on every bottle",
+      type: "text",
+      default: "Dispense",
+      max: 24,
+      placeholder: "Dispense",
     },
   ],
   "milk-run": [
@@ -288,6 +317,11 @@ function normalizeValue(
     case "select": {
       return typeof value === "string" && value in def.values ? value : null;
     }
+    case "text": {
+      if (typeof value !== "string") return null;
+      const s = value.trim().slice(0, def.max ?? 80);
+      return s.length > 0 ? s : null;
+    }
   }
 }
 
@@ -337,6 +371,7 @@ export function serializeThemeOptions(
   for (const def of defs) {
     const value = values[def.key];
     if (value === undefined || value === null || value === def.default) continue;
+    if (def.type === "text" && String(value).trim() === "") continue;
     out[def.key] = value;
   }
   return Object.keys(out).length > 0 ? out : null;
@@ -370,9 +405,30 @@ export function themeOptionVars(
       out[def.var] = `${value}${def.unit ?? ""}`;
     } else if (def.type === "color") {
       out[def.var] = String(value);
+    } else if (def.type === "text") {
+      if (def.var) out[def.var] = String(value);
     } else {
       out[def.var] = def.values[String(value)];
     }
   }
   return Object.keys(out).length > 0 ? (out as CSSProperties) : undefined;
+}
+
+/**
+ * Resolved string for a theme text option (stored value, else the default).
+ * Empty / missing / wrong type fall back to the option's default copy.
+ */
+export function themeOptionString(
+  themeId: string | null | undefined,
+  theme:
+    | Record<string, Record<string, ThemeOptionValue>>
+    | null
+    | undefined,
+  key: string,
+): string {
+  const def = storefrontThemeOptionDefs(themeId).find((d) => d.key === key);
+  if (!def || def.type !== "text") return "";
+  const stored = theme?.[themeId ?? ""]?.[key];
+  if (typeof stored === "string" && stored.trim()) return stored.trim();
+  return def.default;
 }

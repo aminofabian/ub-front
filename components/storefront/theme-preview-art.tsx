@@ -425,7 +425,7 @@ function MilkRunArt() {
 
 function ChemLabArt() {
   return (
-    <Frame paper="#0A1218" ink="#E8F3FA">
+    <Frame paper="#071015" ink="#E7F4FB">
       <div className="flex items-center justify-between border-b border-[#84CC16]/30 px-3 py-1.5">
         <span className="text-[10px] font-bold uppercase tracking-wider text-[#E8F3FA]">
           Chem <span className="text-[#84CC16]">Lab</span>
