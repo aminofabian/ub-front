@@ -25,16 +25,16 @@ export function PeriodToggle({
             type="button"
             onClick={() => onChange(id)}
             className={cn(
-              "relative min-w-[3.75rem] border bg-white px-2.5 py-1.5 text-[12px] font-medium transition-colors",
+              "relative min-w-0 px-2 py-1 text-[12px] font-medium transition-colors",
               active
-                ? "border-[#B08D48] text-[#8A6B2E]"
-                : "border-[#E6E1D8] text-[#666666] hover:border-[#D4C4A0] hover:text-[#141414]",
+                ? "text-[#8A6B2E]"
+                : "text-[#666666] hover:text-[#141414]",
             )}
           >
             {label}
             {active ? (
               <span
-                className="pointer-events-none absolute inset-x-2 bottom-0 h-0.5 bg-[#B08D48]"
+                className="pointer-events-none absolute inset-x-2 bottom-0 h-px bg-[#B08D48]"
                 aria-hidden
               />
             ) : null}

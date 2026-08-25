@@ -31,7 +31,6 @@ export function CashierStageTabs({
   className?: string;
 }) {
   const viewingAll = selected.length === 0;
-  const columns = 1 + cashiers.length;
 
   function selectAll() {
     onChange([]);
@@ -49,7 +48,7 @@ export function CashierStageTabs({
 
   return (
     <div className={cn("bg-transparent", className)}>
-      <div className="mb-2 flex items-baseline justify-between gap-3">
+      <div className="mb-1 flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-2">
           <p className="text-[13px] font-semibold tracking-tight text-[#141414]">
             Who sold
@@ -65,10 +64,7 @@ export function CashierStageTabs({
       </div>
 
       <div
-        className="grid gap-2"
-        style={{
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        }}
+        className="flex flex-wrap gap-x-3 gap-y-1"
         role="tablist"
         aria-label="Cashier lanes"
       >
@@ -78,39 +74,23 @@ export function CashierStageTabs({
           aria-selected={viewingAll}
           onClick={selectAll}
           className={cn(
-            "group relative flex items-center justify-between gap-2 border bg-white px-3.5 py-3 text-left transition-colors",
+            "group relative pb-1 text-left transition-colors",
             viewingAll
-              ? "border-[#B08D48] text-[#141414]"
-              : "border-[#E6E1D8] text-[#141414] hover:border-[#D4C4A0]",
+              ? "text-[#141414]"
+              : "text-[#8A8A8A] hover:text-[#141414]",
           )}
         >
-          <span className="min-w-0">
-            <span
-              className={cn(
-                "block text-[9px] font-semibold uppercase tracking-[0.14em]",
-                viewingAll ? "text-[#B08D48]" : "text-[#8A8A8A]",
-              )}
-            >
-              All
-            </span>
-            <span
-              className="mt-0.5 block truncate text-[14px] font-medium leading-tight"
-              style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-            >
-              Everyone
-            </span>
-          </span>
+            <span className="text-[13px] font-medium">Everyone</span>
           {viewingAll ? (
             <span
-              className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 bg-[#B08D48]"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[#B08D48]"
               aria-hidden
             />
           ) : null}
         </button>
 
-        {cashiers.map((name, index) => {
+        {cashiers.map((name) => {
           const active = selected.includes(name);
-          const laneIndex = selected.indexOf(name);
           return (
             <button
               key={name}
@@ -128,42 +108,18 @@ export function CashierStageTabs({
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                "relative flex items-center gap-2.5 border bg-white px-3.5 py-3 text-left transition-colors",
+                "relative pb-1 text-left transition-colors",
                 active
-                  ? "border-[#B08D48] text-[#141414]"
-                  : "border-[#E6E1D8] text-[#141414] hover:border-[#D4C4A0]",
+                  ? "text-[#141414]"
+                  : "text-[#8A8A8A] hover:text-[#141414]",
               )}
             >
-              <span
-                className={cn(
-                  "font-mono text-[10px] tabular-nums",
-                  active ? "text-[#B08D48]" : "text-[#C4BBA8]",
-                )}
-              >
-                {laneIndex >= 0
-                  ? String(laneIndex + 1).padStart(2, "0")
-                  : String(index + 1).padStart(2, "0")}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span
-                  className={cn(
-                    "block text-[9px] font-semibold uppercase tracking-[0.14em]",
-                    active ? "text-[#B08D48]" : "text-[#8A8A8A]",
-                  )}
-                >
-                  Till
-                </span>
-                <span
-                  className="mt-0.5 block truncate text-[14px] font-medium leading-tight"
-                  style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
-                  title={name}
-                >
-                  {shortName(name)}
-                </span>
+              <span className="text-[13px] font-medium" title={name}>
+                {shortName(name)}
               </span>
               {active ? (
                 <span
-                  className="pointer-events-none absolute inset-x-3 bottom-0 h-0.5 bg-[#B08D48]"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[#B08D48]"
                   aria-hidden
                 />
               ) : null}

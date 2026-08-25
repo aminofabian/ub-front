@@ -2,8 +2,6 @@
 
 import {
   HUB_ACCENT,
-  HUB_MUTED,
-  HUB_SURFACE,
 } from "@/lib/business-hub/constants";
 import type { DailyRevenuePoint } from "@/lib/business-hub/build-daily-revenue-series";
 import { chartWindowStats } from "@/lib/business-hub/pulse-insights";
@@ -11,17 +9,11 @@ import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { useFormatMoney } from "@/hooks/use-format-money";
 import { cn } from "@/lib/utils";
 
-const METER_TRACK_PX = 52;
+const METER_TRACK_PX = 28;
 
 function dayOfMonth(isoDay: string): string {
   const day = isoDay.slice(8, 10);
   return day.startsWith("0") ? day.slice(1) : day;
-}
-
-function weekdayInitial(isoDay: string): string {
-  const date = new Date(`${isoDay}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-GB", { weekday: "narrow" });
 }
 
 export function RevenueBarChart({
@@ -41,72 +33,20 @@ export function RevenueBarChart({
   const peakDay = stats.best?.day ?? null;
   const todayDay = points[points.length - 1]?.day ?? null;
 
-  const summary = [
-    {
-      id: "window",
-      label: "Last days",
-      value: formatMoneyCompact(stats.total),
-      hint: `${points.length} days`,
-    },
-    {
-      id: "avg",
-      label: "Typical day",
-      value: formatMoneyCompact(stats.average),
-      hint: "Average",
-    },
-    {
-      id: "best",
-      label: "Best day",
-      value: stats.best ? stats.best.label : "—",
-      hint: stats.best ? formatMoneyCompact(stats.best.value) : "No sales yet",
-    },
-    {
-      id: "active",
-      label: "Active",
-      value: String(stats.activeDays),
-      hint: stats.activeDays === 1 ? "day with sales" : "days with sales",
-    },
-  ] as const;
-
   return (
-    <section className={cn(HUB_SURFACE, "overflow-hidden")}>
-      <div className="space-y-0">
-        <div className="border-b border-[#E6E1D8] px-4 py-2.5">
-          <HubSectionLabel
-            title={title}
-            meta={
-              stats.activeDays > 0
-                ? `${stats.activeDays} of ${points.length}`
-                : "Waiting"
-            }
-          />
-        </div>
+    <section>
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <HubSectionLabel
+          title={title}
+          meta={
+            stats.activeDays > 0
+              ? `${stats.activeDays} of ${points.length}`
+              : undefined
+          }
+        />
+      </div>
 
-        <div className="grid grid-cols-2 gap-px border-b border-[#E6E1D8] bg-[#E6E1D8] sm:grid-cols-4">
-          {summary.map((item) => (
-            <div key={item.id} className="bg-white px-3 py-2.5">
-              <p
-                className={cn(
-                  "text-[10px] font-medium uppercase tracking-[0.08em]",
-                  HUB_MUTED,
-                )}
-              >
-                {item.label}
-              </p>
-              <p
-                className="mt-1 truncate text-[15px] font-semibold tracking-tight text-[#141414] tabular-nums"
-                title={item.value}
-              >
-                {item.value}
-              </p>
-              <p className="mt-0.5 truncate text-[10px] text-[#8A8A8A]">
-                {item.hint}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="px-3 py-3 sm:px-4" role="img" aria-label={ariaLabel}>
+      <div className="py-1" role="img" aria-label={ariaLabel}>
           <div
             className="grid items-end gap-1"
             style={{
@@ -147,10 +87,7 @@ export function RevenueBarChart({
                   >
                     {point.value > 0 ? (
                       <div
-                        className={cn(
-                          "hub-bar-grow w-full",
-                          isToday && "outline outline-1 outline-[#B08D48] outline-offset-1",
-                        )}
+                        className="hub-bar-grow w-full"
                         style={{
                           height: heightPx,
                           backgroundColor: isToday
@@ -165,22 +102,14 @@ export function RevenueBarChart({
                     )}
                   </div>
 
-                  <div className="flex flex-col items-center gap-0.5">
+                  <div className="flex flex-col items-center">
                     <span
                       className={cn(
-                        "text-[10px] font-semibold tabular-nums leading-none",
+                        "text-[9px] font-semibold tabular-nums leading-none",
                         isToday ? "text-[#8A6B2E]" : "text-[#141414]",
                       )}
                     >
                       {dayOfMonth(point.day)}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-[9px] uppercase leading-none",
-                        isToday ? "text-[#B08D48]" : "text-[#B0A898]",
-                      )}
-                    >
-                      {weekdayInitial(point.day)}
                     </span>
                   </div>
                 </div>
@@ -188,7 +117,6 @@ export function RevenueBarChart({
             })}
           </div>
         </div>
-      </div>
     </section>
   );
 }

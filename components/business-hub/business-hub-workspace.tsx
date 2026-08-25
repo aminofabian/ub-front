@@ -14,7 +14,6 @@ import {
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { ActionItemsStrip } from "@/components/business-hub/action-items-strip";
-import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-empty-state";
 import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skeleton";
 import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
@@ -945,16 +944,16 @@ export function BusinessHubWorkspace() {
   const showMovers = canViewOwnerSummary && topMovers.length > 0;
 
   return (
-    <div className="hub-paper -mx-3 min-h-full px-3 py-4 sm:-mx-4 sm:px-4 sm:py-5 lg:mx-0 lg:px-0 lg:py-4">
+    <div className="hub-paper -mx-3 min-h-full px-3 py-2 sm:-mx-4 sm:px-4 sm:py-3 lg:mx-0 lg:px-0 lg:py-2">
       <div
         className={cn(
-          "mx-auto w-full max-w-5xl border border-[#E6E1D8] bg-white/70 p-3 shadow-[0_1px_0_rgba(20,20,20,0.03)] sm:p-4",
-          "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-4",
+          "mx-auto w-full max-w-5xl",
+          "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-2",
           showTillStage && "max-w-6xl xl:max-w-7xl",
           dualLanes && "max-w-7xl",
         )}
       >
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {showTillStage ? (
             <CashierStageTabs
               cashiers={cashierNames}
@@ -979,13 +978,11 @@ export function BusinessHubWorkspace() {
           >
             <div
               className={cn(
-                "flex flex-col gap-3",
-                showTillStage &&
-                  !galleryOpen &&
-                  "xl:border-r xl:border-[#E6E1D8] xl:pr-4",
+                "flex flex-col gap-2",
+                showTillStage && !galleryOpen && "xl:pr-4",
               )}
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                 <div className="min-w-0">
                   <h1 className="text-[15px] font-semibold tracking-tight text-[#141414]">
                     {business?.branding?.displayName?.trim() ||
@@ -996,14 +993,15 @@ export function BusinessHubWorkspace() {
                     {isToday ? "How today is going" : "How this week is going"}
                   </p>
                 </div>
-                <div className="flex items-center justify-end gap-1.5">
+                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                <CommandGrid links={commandLinks} />
                 <button
                   type="button"
                   onClick={() => void load()}
                   disabled={refreshing}
                   className={cn(
-                    "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-                    "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
+                    "inline-flex size-7 items-center justify-center text-[#666666]",
+                    "transition-colors hover:text-[#8A6B2E]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
                     "disabled:cursor-not-allowed disabled:opacity-60",
                   )}
@@ -1019,8 +1017,8 @@ export function BusinessHubWorkspace() {
                   <Link
                     href={APP_ROUTES.businessSettings}
                     className={cn(
-                      "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-                      "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
+                      "inline-flex size-7 items-center justify-center text-[#666666]",
+                      "transition-colors hover:text-[#8A6B2E]",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
                     )}
                     aria-label="Business settings"
@@ -1031,17 +1029,10 @@ export function BusinessHubWorkspace() {
                 </div>
               </div>
 
-              {salesEmpty ? (
-                <BusinessHubEmptyState
-                  period={period}
-                  showStorefrontLink={canManageBusinessSettings}
-                />
-              ) : null}
-
               {showTillStage && !galleryOpen ? (
                 <div
                   className={cn(
-                    "grid gap-3 xl:hidden",
+                    "grid gap-2 xl:hidden",
                     dualLanes && "sm:grid-cols-2",
                   )}
                 >
@@ -1082,7 +1073,7 @@ export function BusinessHubWorkspace() {
                 <ActionItemsStrip items={actionItems} />
               ) : null}
 
-              {canViewSupplyBills ? (
+              {canViewSupplyBills && todaySupplies.length > 0 ? (
                 <SupplyBillsRail
                   bills={todaySupplies}
                   currency={currency}
@@ -1092,7 +1083,9 @@ export function BusinessHubWorkspace() {
                 />
               ) : null}
 
-              {canViewCreditTabs ? (
+              {canViewCreditTabs &&
+              (openCreditTabs.length > 0 ||
+                Number(creditActivity?.totalPaid ?? 0) > 0.009) ? (
                 <CreditTabsRail
                   tabs={openCreditTabs}
                   currency={currency}
@@ -1105,7 +1098,7 @@ export function BusinessHubWorkspace() {
                 />
               ) : null}
 
-              {canShowWebOrders ? (
+              {canShowWebOrders && openWebOrders.length > 0 ? (
                 <WebOrdersRail
                   orders={openWebOrders}
                   currency={currency}
@@ -1124,7 +1117,7 @@ export function BusinessHubWorkspace() {
               {(stockItems.length > 0 || showMovers) ? (
                 <div
                   className={cn(
-                    "grid gap-3 lg:items-start",
+                    "grid gap-2 lg:items-start",
                     stockItems.length > 0 &&
                       showMovers &&
                       "lg:grid-cols-[1.15fr_0.85fr]",
@@ -1135,9 +1128,7 @@ export function BusinessHubWorkspace() {
                 </div>
               ) : null}
 
-              <CommandGrid links={commandLinks} />
-
-              <div className="space-y-3 xl:hidden">
+              <div className="space-y-2 xl:hidden">
                 <StockShelvesBanner catalogueCount={catalogueCount} />
                 <PostSetupChecklist catalogueCount={catalogueCount} />
               </div>
@@ -1149,9 +1140,7 @@ export function BusinessHubWorkspace() {
                     key={lane.key}
                     className={cn(
                       "hidden xl:block xl:self-stretch",
-                      dualLanes &&
-                        index === 0 &&
-                        "xl:border-r xl:border-[#E6E1D8]",
+                      dualLanes && index === 0 && "xl:pl-3",
                     )}
                   >
                     <RecentTicksRail
@@ -1166,7 +1155,7 @@ export function BusinessHubWorkspace() {
                       accent={lane.accent}
                       laneIndex={dualLanes ? index : undefined}
                       fillViewport={false}
-                      className="h-full max-h-[min(40rem,72dvh)] border-0 border-l border-[#E6E1D8]"
+                      className="h-full max-h-[min(28rem,56dvh)]"
                     />
                   </div>
                 ))
