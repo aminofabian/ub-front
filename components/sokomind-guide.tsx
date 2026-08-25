@@ -368,7 +368,7 @@ export function SokoMindGuide() {
             : "pointer-events-none translate-y-3 scale-95 opacity-0",
         )}
       >
-        <header className="flex items-center gap-2.5 bg-[var(--tablet-header-leaf)] px-3.5 py-3 text-white">
+        <header className="flex items-center gap-2.5 bg-[var(--tablet-header-leaf,#1a3d30)] px-3.5 py-3 text-white">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15">
             <Sparkles className="size-4" aria-hidden />
           </span>
@@ -384,7 +384,7 @@ export function SokoMindGuide() {
               type="button"
               size="icon-sm"
               variant="ghost"
-              className="size-8 shrink-0 text-white hover:bg-white/15 hover:text-white"
+              className="size-8 shrink-0 bg-white/15 text-white hover:bg-white/25 hover:text-white"
               onClick={clearThread}
               aria-label="Start a new chat"
               title="Start a new chat"
@@ -396,9 +396,10 @@ export function SokoMindGuide() {
             type="button"
             size="icon-sm"
             variant="ghost"
-            className="size-8 shrink-0 text-white hover:bg-white/15 hover:text-white"
+            className="size-8 shrink-0 bg-white/15 text-white hover:bg-white/25 hover:text-white"
             onClick={() => setOpen(false)}
             aria-label="Close chat"
+            title="Close chat"
           >
             <X className="size-4" />
           </Button>
