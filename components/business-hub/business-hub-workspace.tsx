@@ -3,18 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  BarChart3,
   Boxes,
-  ClipboardCheck,
-  CreditCard,
-  MessageCircle,
   Package,
   RefreshCw,
   ScanLine,
   Settings,
   ShoppingCart,
-  Store,
-  Users,
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
@@ -25,7 +19,6 @@ import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skel
 import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
 import { CommandGrid, type CommandLink } from "@/components/business-hub/command-grid";
-import { HubAllClear } from "@/components/business-hub/hub-all-clear";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PostSetupChecklist } from "@/components/business-hub/post-setup-checklist";
 import { StockShelvesBanner } from "@/components/business-hub/stock-shelves-banner";
@@ -43,7 +36,6 @@ import { useOptionalRealtime } from "@/components/realtime-provider";
 import { playCashierChime } from "@/lib/cashier-chime";
 import { hubAlertsFromBusiness } from "@/lib/hub-alert-settings";
 import { APP_ROUTES } from "@/lib/config";
-import { isButcherPosEnabled } from "@/lib/butcher-feature";
 import {
   buildActionItems,
   expiringBatchCount,
@@ -70,7 +62,6 @@ import {
 } from "@/lib/business-hub/pulse-insights";
 import type { Period } from "@/lib/business-hub/types";
 import { cn } from "@/lib/utils";
-import { hasPermission, Permission } from "@/lib/permissions";
 import {
   addDays,
   presetRange,
@@ -154,7 +145,6 @@ export function BusinessHubWorkspace() {
     itemTypeId,
     headerScopeReady,
     canManageBusinessSettings,
-    canListUsers,
     canQuickSale,
     canViewAnalytics,
     canViewInventoryValuation,
@@ -177,15 +167,9 @@ export function BusinessHubWorkspace() {
       }),
     [featureFlags, business?.hubAlerts?.volume],
   );
-  const showButcherCounter =
-    isButcherPosEnabled(featureFlags) && canQuickSale;
   const shopEnabled = featureFlags?.shop !== false;
 
   const roleKey = me?.role?.key?.trim().toLowerCase();
-  const canApproveStockTake = hasPermission(
-    me?.permissions,
-    Permission.StocktakeApprove,
-  );
   const canViewOwnerSummary =
     roleKey !== "stock_manager" && roleKey !== "cashier";
   const canViewSupplyBills = canPathBRead || canViewApAging;
@@ -674,13 +658,6 @@ export function BusinessHubWorkspace() {
     ],
   );
 
-  const showAttentionSection =
-    canViewShifts ||
-    canViewSupplyBatches ||
-    canManageBusinessSettings ||
-    canViewApAging ||
-    canShowWebOrders;
-
   const chartRevenue = chartPoints.map((p) => p.value);
   const salesEmpty = isHubSalesEmpty(revenue, orders, chartRevenue);
 
@@ -700,9 +677,9 @@ export function BusinessHubWorkspace() {
   const pulseMetrics = useMemo(() => {
     const metrics = [
       {
-        label: isToday ? "Orders" : "Units sold",
+        label: isToday ? "Sales" : "Items sold",
         value: fmtCount(orders),
-        hint: ordersTrend ?? (isToday ? "Completed sales" : "Quantity moved"),
+        hint: ordersTrend ?? (isToday ? "Completed today" : "How many went out"),
         tone: (!ordersTrend
           ? "muted"
           : ordersTrend.startsWith("-") || ordersTrend.startsWith("<-")
@@ -711,13 +688,13 @@ export function BusinessHubWorkspace() {
         href: APP_ROUTES.salesTransactions,
       },
       {
-        label: "Gross profit",
+        label: "Profit",
         value: canViewAnalytics ? money(grossProfit) : "—",
         hint: canViewAnalytics
           ? margin != null
-            ? `${fmtPct(margin)} margin`
-            : "After cost of goods"
-          : "Analytics access required",
+            ? `${fmtPct(margin)} after cost`
+            : "After what you paid for stock"
+          : "Need permission to see this",
         tone: (canViewAnalytics ? profitTone : "muted") as
           | "muted"
           | "positive"
@@ -725,7 +702,7 @@ export function BusinessHubWorkspace() {
         href: canViewAnalytics ? APP_ROUTES.analytics : APP_ROUTES.sales,
       },
       {
-        label: isToday ? "Avg ticket" : "Avg / day",
+        label: isToday ? "Average sale" : "Average day",
         value: isToday
           ? ticket != null
             ? money(ticket)
@@ -735,15 +712,15 @@ export function BusinessHubWorkspace() {
             : "—",
         hint: isToday
           ? ticket != null
-            ? "Revenue ÷ sales"
+            ? "Money in ÷ number of sales"
             : "Needs at least one sale"
-          : "Across this week's window",
+          : "This week's typical day",
         href: APP_ROUTES.sales,
       },
       {
-        label: "Open shifts",
+        label: "Open tills",
         value: fmtCount(openShifts),
-        hint: openShifts > 0 ? "Needs review" : "All closed",
+        hint: openShifts > 0 ? "Still need closing" : "All closed",
         tone: (openShifts > 0 ? "warning" : "muted") as "warning" | "muted",
         href: APP_ROUTES.shifts,
       },
@@ -783,15 +760,15 @@ export function BusinessHubWorkspace() {
         id: "stock-value",
         label: "Stock value",
         value: money(valuation?.totalExtensionValue),
-        detail: "Inventory at cost on hand",
+        detail: "What you paid for goods on the shelf",
         href: APP_ROUTES.inventoryValuation,
         tone: "ok" as const,
       });
       items.push({
         id: "branches",
-        label: "Branches with stock",
+        label: "Shops with stock",
         value: fmtCount(valuation?.byBranch?.length ?? null),
-        detail: "Locations holding inventory",
+        detail: "Locations holding goods",
         href: APP_ROUTES.branches,
         tone: "ok" as const,
       });
@@ -801,7 +778,7 @@ export function BusinessHubWorkspace() {
         id: "low-stock",
         label: "Low stock",
         value: fmtCount(lowStockCount),
-        detail: "Products below reorder comfort",
+        detail: "Need restocking",
         href: APP_ROUTES.inventoryRestock,
         tone: "alert" as const,
       });
@@ -811,7 +788,7 @@ export function BusinessHubWorkspace() {
         id: "expiring",
         label: "Expiring soon",
         value: fmtCount(expiringCount),
-        detail: "Batches to clear or discount",
+        detail: "Use or sell soon",
         href: APP_ROUTES.inventorySupplyBatches,
         tone: "alert" as const,
       });
@@ -819,9 +796,9 @@ export function BusinessHubWorkspace() {
     if (canViewApAging && payablesOpen > 0) {
       items.push({
         id: "payables",
-        label: "Open payables",
+        label: "Unpaid bills",
         value: money(payablesOpen),
-        detail: "Supplier bills still outstanding",
+        detail: "Still owing suppliers",
         href: APP_ROUTES.purchasingApAging,
         tone: "watch" as const,
       });
@@ -844,7 +821,7 @@ export function BusinessHubWorkspace() {
       {
         href: APP_ROUTES.sales,
         label: "Sales",
-        hint: "Till, receipts, and today's floor",
+        hint: "Receipts and today's till",
         icon: ShoppingCart,
       },
       {
@@ -856,97 +833,28 @@ export function BusinessHubWorkspace() {
       {
         href: APP_ROUTES.inventoryStock,
         label: "Stock",
-        hint: "What's in the shop and what to restock",
+        hint: "What's in the shop",
         icon: Boxes,
       },
-      {
-        href: APP_ROUTES.analytics,
-        label: "Analytics",
-        hint: "Deeper trends and margins",
-        icon: BarChart3,
-      },
-      {
-        href: canShowWebOrders
-          ? APP_ROUTES.storefrontWebOrders
-          : APP_ROUTES.businessSettings,
-        label: canShowWebOrders ? "Web orders" : "Storefront",
-        hint: canShowWebOrders
-          ? "Online pickup orders"
-          : "Set up your public shop",
-        icon: Store,
-      },
     ];
-    if (canApproveStockTake) {
-      links.splice(3, 0, {
-        href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
-        label: "Audit review",
-        hint: "Approve stock-take findings",
-        icon: ClipboardCheck,
-      });
-    }
-    if (canViewSalesIntelligence) {
-      links.push({
-        href: APP_ROUTES.creditsOnTab,
-        label: "On tab",
-        hint: "Credit sales today",
-        icon: CreditCard,
-      });
-    } else if (canViewCustomers) {
-      links.push({
-        href: APP_ROUTES.customers,
-        label: "Credit customers",
-        hint: "Balances and reminders",
-        icon: Users,
-      });
-    }
-    if (canViewCustomers && canViewSalesIntelligence) {
-      links.push({
-        href: APP_ROUTES.customers,
-        label: "Credit customers",
-        hint: "Balances and reminders",
-        icon: Users,
-      });
-    }
-    if (canListUsers) {
-      links.push({
-        href: APP_ROUTES.users,
-        label: "Team",
-        hint: "Roles, access, and staff",
-        icon: Users,
-      });
-    }
-    if (showButcherCounter) {
-      links.push({
-        href: APP_ROUTES.butcher,
-        label: "Butcher counter",
-        hint: "Weigh, cut, and sell",
+    if (canQuickSale) {
+      links.unshift({
+        href: APP_ROUTES.salesQuick,
+        label: "Open till",
+        hint: "Sell now",
         icon: ScanLine,
       });
     }
     if (canManageBusinessSettings) {
       links.push({
-        href: APP_ROUTES.businessConfiguration,
-        label: "Configuration",
-        hint: "Inventory and till policies",
+        href: APP_ROUTES.businessSettings,
+        label: "Shop settings",
+        hint: "Name, hours, and how the shop looks",
         icon: Settings,
-      });
-      links.push({
-        href: `${APP_ROUTES.businessConfiguration}#settings-whatsapp-alerts`,
-        label: "WhatsApp alerts",
-        hint: "Owner order & shift notifications",
-        icon: MessageCircle,
       });
     }
     return links;
-  }, [
-    canApproveStockTake,
-    canListUsers,
-    canManageBusinessSettings,
-    canShowWebOrders,
-    canViewCustomers,
-    canViewSalesIntelligence,
-    showButcherCounter,
-  ]);
+  }, [canManageBusinessSettings, canQuickSale]);
 
   const cashierNames = useMemo(() => {
     const fromSales = cashiersFromTicks(recentTicks);
@@ -970,11 +878,11 @@ export function BusinessHubWorkspace() {
       return [
         {
           key: "floor",
-          title: "Floor tape",
+          title: "Recent sales",
           subtitle:
             drawouts.length > 0
-              ? "Open-shift sales & drawouts"
-              : "Last 3 · every cashier",
+              ? "Sales and cash taken out"
+              : "Last few sales · every cashier",
           ticks: filterTicksByCashiers(recentTicks, []),
           drawouts,
           showCashier: true,
@@ -1077,7 +985,18 @@ export function BusinessHubWorkspace() {
                   "xl:border-r xl:border-[#E6E1D8] xl:pr-4",
               )}
             >
-              <div className="flex items-center justify-end gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <h1 className="text-[15px] font-semibold tracking-tight text-[#141414]">
+                    {business?.branding?.displayName?.trim() ||
+                      business?.name?.trim() ||
+                      "Your shop"}
+                  </h1>
+                  <p className="text-[12px] text-[#666666]">
+                    {isToday ? "How today is going" : "How this week is going"}
+                  </p>
+                </div>
+                <div className="flex items-center justify-end gap-1.5">
                 <button
                   type="button"
                   onClick={() => void load()}
@@ -1109,6 +1028,7 @@ export function BusinessHubWorkspace() {
                     <Settings className="size-3.5" aria-hidden />
                   </Link>
                 ) : null}
+                </div>
               </div>
 
               {salesEmpty ? (
@@ -1146,8 +1066,8 @@ export function BusinessHubWorkspace() {
               ) : null}
 
               <PulseHero
-                eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
-                revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
+                eyebrow={isToday ? "Today" : "This week"}
+                revenueLabel={isToday ? "Money taken" : "Money taken this week"}
                 revenue={money(revenue)}
                 revenueBreakdown={revenueBreakdown}
                 headline={headline}
@@ -1157,6 +1077,10 @@ export function BusinessHubWorkspace() {
                 live={pulseLive}
                 justUpdated={justUpdated}
               />
+
+              {actionItems.length > 0 ? (
+                <ActionItemsStrip items={actionItems} />
+              ) : null}
 
               {canViewSupplyBills ? (
                 <SupplyBillsRail
@@ -1194,16 +1118,8 @@ export function BusinessHubWorkspace() {
                 points={chartPoints}
                 ariaLabel={chartAriaLabel}
                 caption={chartCaption}
-                title={isToday ? "Twelve-day runway" : "Seven-day runway"}
+                title={isToday ? "Last 12 days" : "This week"}
               />
-
-              {showAttentionSection ? (
-                actionItems.length > 0 ? (
-                  <ActionItemsStrip items={actionItems} />
-                ) : (
-                  <HubAllClear />
-                )
-              ) : null}
 
               {(stockItems.length > 0 || showMovers) ? (
                 <div

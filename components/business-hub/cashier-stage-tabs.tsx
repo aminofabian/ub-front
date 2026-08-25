@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { HUB_ACCENT } from "@/lib/business-hub/constants";
 
 const DUAL_LANE_MAX = 2;
 
@@ -12,10 +11,10 @@ function shortName(name: string): string {
 }
 
 function modeCopy(selected: string[]): string {
-  if (selected.length === 0) return "Floor";
-  if (selected.length === 1) return `Solo · ${shortName(selected[0]!)}`;
-  if (selected.length === 2) return "Dual";
-  return `Gallery · ${selected.length}`;
+  if (selected.length === 0) return "Everyone";
+  if (selected.length === 1) return shortName(selected[0]!);
+  if (selected.length === 2) return "Two tills";
+  return `${selected.length} tills`;
 }
 
 export function CashierStageTabs({
@@ -52,11 +51,8 @@ export function CashierStageTabs({
     <div className={cn("bg-transparent", className)}>
       <div className="mb-2 flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <p
-            className="text-[10px] font-semibold uppercase tracking-[0.16em]"
-            style={{ color: HUB_ACCENT }}
-          >
-            Stage
+          <p className="text-[13px] font-semibold tracking-tight text-[#141414]">
+            Who sold
           </p>
           <span className="text-[11px] text-[#8A8A8A]">{modeCopy(selected)}</span>
         </div>
@@ -101,7 +97,7 @@ export function CashierStageTabs({
               className="mt-0.5 block truncate text-[14px] font-medium leading-tight"
               style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
             >
-              Floor
+              Everyone
             </span>
           </span>
           {viewingAll ? (

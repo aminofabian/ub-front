@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export type StockHealthItem = {
@@ -19,8 +19,8 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
 
   return (
     <section className="space-y-2">
-      <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
-        Store & stock
+      <h2 className="text-[13px] font-semibold tracking-tight text-[#141414]">
+        Stock
       </h2>
       <div className="grid grid-cols-2 gap-px border border-[#E6E1D8] bg-[#E6E1D8] sm:grid-cols-4">
         {items.map((item) => (
@@ -42,12 +42,7 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
               aria-hidden
             />
             <div className="pl-1.5">
-              <p
-                className={cn(
-                  "text-[10px] font-medium uppercase tracking-[0.08em]",
-                  HUB_MUTED,
-                )}
-              >
+              <p className="text-[11px] font-medium text-[#666666]">
                 {item.label}
               </p>
               <p className="mt-1 truncate text-[15px] font-semibold tracking-tight text-[#141414] tabular-nums">

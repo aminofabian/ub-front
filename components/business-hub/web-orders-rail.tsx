@@ -75,8 +75,8 @@ export function WebOrdersRail({
 
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[#E6E1D8] px-3 py-1.5">
         <div className="flex min-w-0 items-baseline gap-2">
-          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]">
-            Web orders
+          <p className="truncate text-[13px] font-semibold tracking-tight text-[#141414]">
+            Pickup orders
           </p>
           {!empty ? (
             <p className="truncate text-[10px] text-[#8A8A8A]">
@@ -106,7 +106,7 @@ export function WebOrdersRail({
       {empty ? (
         <div className="px-3 py-2.5">
           <p className="text-[11px] text-[#8A8A8A]">
-            No open web orders right now.
+            No pickup orders waiting.
           </p>
         </div>
       ) : (

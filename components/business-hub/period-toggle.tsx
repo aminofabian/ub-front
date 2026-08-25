@@ -25,7 +25,7 @@ export function PeriodToggle({
             type="button"
             onClick={() => onChange(id)}
             className={cn(
-              "relative min-w-[3.75rem] border bg-white px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors",
+              "relative min-w-[3.75rem] border bg-white px-2.5 py-1.5 text-[12px] font-medium transition-colors",
               active
                 ? "border-[#B08D48] text-[#8A6B2E]"
                 : "border-[#E6E1D8] text-[#666666] hover:border-[#D4C4A0] hover:text-[#141414]",

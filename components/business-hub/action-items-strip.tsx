@@ -22,8 +22,8 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   return (
     <section className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
-          Needs attention
+        <h2 className="text-[13px] font-semibold tracking-tight text-[#141414]">
+          Needs a look
         </h2>
         <p className="text-[11px] text-[#AAAAAA]">{items.length}</p>
       </div>

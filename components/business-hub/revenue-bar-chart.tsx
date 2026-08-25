@@ -44,15 +44,15 @@ export function RevenueBarChart({
   const summary = [
     {
       id: "window",
-      label: "Window",
+      label: "Last days",
       value: formatMoneyCompact(stats.total),
       hint: `${points.length} days`,
     },
     {
       id: "avg",
-      label: "Daily avg",
+      label: "Typical day",
       value: formatMoneyCompact(stats.average),
-      hint: "Across runway",
+      hint: "Average",
     },
     {
       id: "best",

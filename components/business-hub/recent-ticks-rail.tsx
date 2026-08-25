@@ -59,7 +59,7 @@ export function RecentTicksRail({
   currency,
   live = false,
   justUpdated = false,
-  title = "Till tape",
+  title = "Recent sales",
   subtitle,
   showCashier = true,
   accent = "brass",
@@ -120,7 +120,7 @@ export function RecentTicksRail({
                 </span>
               ) : null}
               <p
-                className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B08D48]"
+                className="truncate text-[13px] font-semibold tracking-tight text-[#141414]"
                 title={title}
               >
                 {title}

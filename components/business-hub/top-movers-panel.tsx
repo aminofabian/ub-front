@@ -21,8 +21,8 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
 
   return (
     <section className="space-y-2">
-      <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8A8A]">
-        Top sellers · 30d
+      <h2 className="text-[13px] font-semibold tracking-tight text-[#141414]">
+        Best sellers · 30 days
       </h2>
       <div className={cn(HUB_SURFACE, "overflow-hidden")}>
         <div className="divide-y divide-[#EDE8DF]">

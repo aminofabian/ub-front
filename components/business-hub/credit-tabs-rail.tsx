@@ -69,8 +69,8 @@ export function CreditTabsRail({
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[#E6E1D8] px-3 py-1.5">
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="flex min-w-0 items-baseline gap-2">
-            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#C47A5A]">
-              Credit tape
+            <p className="truncate text-[13px] font-semibold tracking-tight text-[#141414]">
+              On credit
             </p>
             {!empty ? (
               <p className="truncate text-[10px] text-[#8A8A8A]">

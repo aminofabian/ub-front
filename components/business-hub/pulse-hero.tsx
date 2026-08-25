@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 export type PulseMetric = {
@@ -52,15 +52,13 @@ export function PulseHero({
       <div className="relative grid gap-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="flex flex-col justify-center gap-2 border-b border-[#E6E1D8] px-4 py-3.5 lg:border-b-0 lg:border-r">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className={cn("text-[10px] font-semibold uppercase tracking-[0.1em]", HUB_MUTED)}>
+            <p className="text-[13px] font-semibold tracking-tight text-[#141414]">
               {eyebrow}
             </p>
             <span className="text-[#D4CBB8]" aria-hidden>
-              /
+              ·
             </span>
-            <p className={cn("text-[10px] uppercase tracking-[0.1em]", HUB_MUTED)}>
-              {revenueLabel}
-            </p>
+            <p className="text-[12px] text-[#666666]">{revenueLabel}</p>
             {live ? (
               <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
                 <span
@@ -139,7 +137,7 @@ export function PulseHero({
           {metrics.map((metric) => {
             const body = (
               <div className="bg-white px-3 py-3 transition-colors hover:bg-[#FCFAF6]">
-                <p className={cn("text-[10px] font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
+                <p className="text-[11px] font-medium text-[#666666]">
                   {metric.label}
                 </p>
                 <p className="mt-1 text-[15px] font-semibold tracking-tight text-[#141414] tabular-nums">
