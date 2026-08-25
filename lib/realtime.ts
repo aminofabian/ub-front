@@ -85,6 +85,7 @@ export type RealtimeEventType =
   | "support.read"
   | "support.typing"
   | "support.conversation"
+  | "support.presence"
   | "catch-up.overflow"
   | "error"
   | "ping";
@@ -150,6 +151,7 @@ export interface RealtimeClientOptions {
   onSupportRead?: FrameHandler;
   onSupportTyping?: FrameHandler;
   onSupportConversation?: FrameHandler;
+  onSupportPresence?: FrameHandler;
   onError?: ErrorHandler;
   onConnectionStateChange?: ConnectionStateHandler;
 }
@@ -194,6 +196,7 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "support.read": "onSupportRead",
   "support.typing": "onSupportTyping",
   "support.conversation": "onSupportConversation",
+  "support.presence": "onSupportPresence",
 };
 
 // ── WS URL Resolution ──
@@ -375,6 +378,7 @@ export type RealtimeListenerOptions = Pick<
   | "onSupportRead"
   | "onSupportTyping"
   | "onSupportConversation"
+  | "onSupportPresence"
   | "onError"
   | "onConnectionStateChange"
 >;
@@ -408,6 +412,7 @@ const LISTENER_HANDLER_KEYS = [
   "onSupportRead",
   "onSupportTyping",
   "onSupportConversation",
+  "onSupportPresence",
   "onError",
   "onConnectionStateChange",
 ] as const satisfies readonly (keyof RealtimeListenerOptions)[];

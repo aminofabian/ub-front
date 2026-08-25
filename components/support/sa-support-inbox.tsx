@@ -33,8 +33,10 @@ import {
 import {
   type SaSupportConversation,
   type SaSupportMessage,
+  type SaSupportPresence,
   fetchSaSupportConversation,
   fetchSaSupportConversations,
+  fetchSaSupportPresence,
   markSaSupportConversationRead,
   reopenSaSupportConversation,
   resolveSaSupportConversation,
@@ -57,6 +59,43 @@ function toLocalMessage(message: SaSupportMessage): ChatMessageShape {
     readAt: message.readAt,
     createdAt: message.createdAt,
   };
+}
+
+/** Human "last seen" label for an offline tenant, or null when unknown. */
+function lastSeenLabel(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const mins = Math.max(0, Math.floor((Date.now() - d.getTime()) / 60_000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  return `${days}d ago`;
+}
+
+/** Live presence dot + label for a tenant row in the inbox list. */
+function PresenceLine({ presence }: { presence: SaSupportPresence | undefined }) {
+  if (presence?.online) {
+    return (
+      <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+        <span className="relative flex size-1.5">
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+          <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+        </span>
+        Online
+      </p>
+    );
+  }
+  const lastSeen = lastSeenLabel(presence?.lastSeenAt);
+  return (
+    <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <span className="size-1.5 rounded-full bg-muted-foreground/40" />
+      {lastSeen ? `Last seen ${lastSeen}` : "Offline"}
+    </p>
+  );
 }
 
 const FILTERS: { key: Filter; label: string }[] = [
@@ -86,6 +125,8 @@ export function SaSupportInbox() {
   const [typingByConv, setTypingByConv] = React.useState<Record<string, boolean>>({});
   const [mobileView, setMobileView] = React.useState<MobileView>("list");
   const [showJump, setShowJump] = React.useState(false);
+  const [presence, setPresence] = React.useState<Record<string, SaSupportPresence>>({});
+  const [onlineOnly, setOnlineOnly] = React.useState(false);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const stickToBottomRef = React.useRef(true);
@@ -100,9 +141,15 @@ export function SaSupportInbox() {
     async (silent = false) => {
       if (!silent) setListLoading(true);
       try {
-        const payload = await fetchSaSupportConversations({ status: filter });
+        const [payload, presencePayload] = await Promise.all([
+          fetchSaSupportConversations({ status: filter }),
+          fetchSaSupportPresence().catch(() => null),
+        ]);
         setConversations(payload.conversations);
         setTotalUnread(payload.unread);
+        if (presencePayload) {
+          setPresence((prev) => ({ ...prev, ...presencePayload }));
+        }
         setListError("");
       } catch (e) {
         setListError(e instanceof Error ? e.message : "Could not load conversations.");
@@ -184,9 +231,9 @@ export function SaSupportInbox() {
         };
 
         const isActive = convId === activeId;
-        // Soft chime for incoming tenant messages while the tab is in the
-        // background — the agent may be working in another window.
-        if (incoming.senderType === "TENANT" && typeof document !== "undefined" && document.hidden) {
+        // Soft chime for every incoming tenant message — whether the agent is
+        // staring at this thread, skimming the list, or has the tab in the background.
+        if (incoming.senderType === "TENANT") {
           playSupportMessageSound();
         }
         if (isActive) {
@@ -264,6 +311,18 @@ export function SaSupportInbox() {
         if (convId === activeId) {
           setDetail((prev) => (prev ? { ...prev, status } : prev));
         }
+      },
+      onSupportPresence: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        const businessId = String(data.businessId ?? "");
+        if (!businessId) return;
+        setPresence((prev) => ({
+          ...prev,
+          [businessId]: {
+            online: data.online === true,
+            lastSeenAt: data.lastSeenAt ? String(data.lastSeenAt) : null,
+          },
+        }));
       },
       onConnectionStateChange: (state) => setConnectionState(state),
     });
@@ -420,7 +479,11 @@ export function SaSupportInbox() {
 
   // ── Derived ─────────────────────────────────────────────────────────────
   const normalizedSearch = search.trim().toLowerCase();
+  const onlineCount = conversations.filter((c) => presence[c.businessId]?.online === true).length;
+  const tenantPresence = activeConversation ? presence[activeConversation.businessId] : undefined;
+  const tenantLastSeen = tenantPresence ? lastSeenLabel(tenantPresence.lastSeenAt) : null;
   const visible = conversations.filter((c) => {
+    if (onlineOnly && presence[c.businessId]?.online !== true) return false;
     if (normalizedSearch) {
       const haystack = [c.businessName, c.subject, c.createdByName].filter(Boolean).join(" ").toLowerCase();
       if (!haystack.includes(normalizedSearch)) return false;
@@ -465,6 +528,24 @@ export function SaSupportInbox() {
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={() => setOnlineOnly((v) => !v)}
+            aria-pressed={onlineOnly}
+            title="Show only tenants that are online right now"
+            className={cn(
+              "inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-md text-xs font-medium transition-colors",
+              onlineOnly
+                ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <span className={cn("size-1.5 rounded-full", onlineOnly ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+            Online
+            <span className={cn("text-[10px]", onlineOnly ? "text-emerald-600/80 dark:text-emerald-400/80" : "text-muted-foreground/60")}>
+              {onlineCount}
+            </span>
+          </button>
         </div>
         {totalUnread > 0 ? (
           <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-primary">
@@ -493,7 +574,11 @@ export function SaSupportInbox() {
           <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
             <Inbox className="size-6 text-muted-foreground/40" aria-hidden />
             <p className="text-sm text-muted-foreground">
-              {search ? "No tenants match your search." : "No conversations here yet."}
+              {search
+                ? "No tenants match your search."
+                : onlineOnly
+                  ? "No tenants online right now."
+                  : "No conversations here yet."}
             </p>
           </div>
         ) : (
@@ -559,6 +644,7 @@ export function SaSupportInbox() {
                           <span className="italic">No messages yet</span>
                         )}
                       </p>
+                      <PresenceLine presence={presence[conversation.businessId]} />
                     </div>
                   </button>
                 </li>
@@ -599,7 +685,25 @@ export function SaSupportInbox() {
             {activeConversation.businessName ?? "Tenant"}
           </p>
           <p className="truncate text-xs text-muted-foreground">
-            {theirTyping ? "typing…" : resolved ? "Resolved" : "Open conversation"}
+            {theirTyping ? (
+              "typing…"
+            ) : resolved ? (
+              "Resolved"
+            ) : tenantPresence?.online ? (
+              <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                <span className="relative flex size-1.5">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                </span>
+                Online now
+              </span>
+            ) : tenantLastSeen ? (
+              `Last seen ${tenantLastSeen}`
+            ) : tenantPresence ? (
+              "Offline"
+            ) : (
+              "Open conversation"
+            )}
           </p>
         </div>
         <div className="hidden sm:block">

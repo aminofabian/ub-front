@@ -2849,6 +2849,19 @@ export type SaSupportConversationDetail = {
   messages: SaSupportMessage[];
 };
 
+/** Live tenant presence as seen by the super-admin inbox. */
+export type SaSupportPresence = {
+  online: boolean;
+  lastSeenAt: string | null;
+};
+
+export async function fetchSaSupportPresence(): Promise<Record<string, SaSupportPresence>> {
+  const payload = await saRequest<{ presence?: Record<string, SaSupportPresence> }>(
+    `${API_ROUTES.superAdminSupport}/presence`,
+  );
+  return payload.presence ?? {};
+}
+
 export async function fetchSaSupportConversations(opts?: {
   status?: "OPEN" | "RESOLVED" | "ALL";
 }): Promise<{
