@@ -2907,6 +2907,16 @@ export async function fetchSaSupportConversation(
   );
 }
 
+/** Create or reopen the TENANT support thread for a business (SA starts the chat). */
+export async function ensureSaTenantSupportThread(
+  businessId: string,
+): Promise<SaSupportConversationDetail> {
+  return saRequest<SaSupportConversationDetail>(
+    `${API_ROUTES.superAdminSupport}/tenants/${encodeURIComponent(businessId.trim())}/thread`,
+    { method: "POST" },
+  );
+}
+
 export async function sendSaSupportMessage(
   conversationId: string,
   body: string,

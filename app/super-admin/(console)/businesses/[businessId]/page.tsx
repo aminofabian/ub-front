@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, ExternalLink, Globe, Mail, Plus, Users } from "lucide-react";
+import { Check, Copy, ExternalLink, Globe, Mail, MessageCircle, Plus, Users } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
@@ -23,6 +23,7 @@ import {
   type SaBusinessUserRow,
   type SaDomainRow,
   addSaDomain,
+  ensureSaTenantSupportThread,
   fetchSaBusiness,
   fetchSaBusinessUsers,
   fetchSaDomains,
@@ -100,6 +101,7 @@ function BusinessDetailInner() {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [copied, setCopied] = useState(false);
   const [bizLoaded, setBizLoaded] = useState(false);
+  const [startingChat, setStartingChat] = useState(false);
   const copyTimer = useRef<number | null>(null);
 
   const loadBusiness = useCallback(async () => {
@@ -325,6 +327,25 @@ function BusinessDetailInner() {
     }
   }
 
+  async function onMessageTenant() {
+    if (!businessId || startingChat) return;
+    setStartingChat(true);
+    setError("");
+    try {
+      const detail = await ensureSaTenantSupportThread(businessId);
+      const conversationId = detail.conversation?.id?.trim();
+      if (!conversationId) {
+        throw new Error("Could not open the support thread.");
+      }
+      router.push(
+        `${APP_ROUTES.superAdminSupport}?c=${encodeURIComponent(conversationId)}`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start chat with tenant.");
+      setStartingChat(false);
+    }
+  }
+
   const onChangeUserStatus = (userId: string, nextStatus: string) => {
     const user = users.find((u) => u.id === userId);
     if (!user || user.status === nextStatus || locked) return;
@@ -365,7 +386,7 @@ function BusinessDetailInner() {
   }
 
   const activeUsers = users.filter((u) => u.status.toLowerCase() === "active");
-  const locked = busy || impersonating;
+  const locked = busy || impersonating || startingChat;
 
   return (
     <div className="space-y-6">
@@ -385,6 +406,17 @@ function BusinessDetailInner() {
             >
               {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
               {copied ? "Copied" : "Copy ID"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={locked}
+              onClick={() => void onMessageTenant()}
+            >
+              <MessageCircle className="size-3.5" />
+              {startingChat ? "Opening…" : "Message tenant"}
             </Button>
             <Button
               type="button"

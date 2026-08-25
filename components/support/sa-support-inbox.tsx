@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowDown,
   CheckCircle2,
@@ -42,6 +43,7 @@ import {
   resolveSaSupportConversation,
   sendSaSupportMessage,
 } from "@/lib/super-admin-api";
+import { APP_ROUTES } from "@/lib/config";
 import { playSupportMessageSound, unlockSupportAudio } from "@/lib/support-sound";
 import { cn } from "@/lib/utils";
 
@@ -106,14 +108,18 @@ const FILTERS: { key: Filter; label: string }[] = [
 ];
 
 export function SaSupportInbox() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const deepLinkId = searchParams.get("c")?.trim() || null;
+
   const [tab, setTab] = React.useState<InboxTab>("TENANT");
-  const [filter, setFilter] = React.useState<Filter>("OPEN");
+  const [filter, setFilter] = React.useState<Filter>(deepLinkId ? "ALL" : "OPEN");
   const [search, setSearch] = React.useState("");
   const [conversations, setConversations] = React.useState<SaSupportConversation[]>([]);
   const [listLoading, setListLoading] = React.useState(true);
   const [listError, setListError] = React.useState("");
 
-  const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [activeId, setActiveId] = React.useState<string | null>(deepLinkId);
   const [detail, setDetail] = React.useState<SaSupportConversation | null>(null);
   const [messages, setMessages] = React.useState<ChatMessageShape[]>([]);
   const [detailLoading, setDetailLoading] = React.useState(false);
@@ -124,7 +130,7 @@ export function SaSupportInbox() {
   const [connectionState, setConnectionState] =
     React.useState<RealtimeConnectionState>("disconnected");
   const [typingByConv, setTypingByConv] = React.useState<Record<string, boolean>>({});
-  const [mobileView, setMobileView] = React.useState<MobileView>("list");
+  const [mobileView, setMobileView] = React.useState<MobileView>(deepLinkId ? "chat" : "list");
   const [showJump, setShowJump] = React.useState(false);
   const [presence, setPresence] = React.useState<Record<string, SaSupportPresence>>({});
   const [onlineOnly, setOnlineOnly] = React.useState(false);
@@ -133,6 +139,7 @@ export function SaSupportInbox() {
   const stickToBottomRef = React.useRef(true);
   const seenIdsRef = React.useRef<Set<string>>(new Set());
   const typingStopRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const deepLinkHandledRef = React.useRef<string | null>(null);
 
   const activeConversation =
     conversations.find((c) => c.id === activeId) ?? (detail ? { ...detail } : null) ?? null;
@@ -177,13 +184,17 @@ export function SaSupportInbox() {
         seenIdsRef.current.add(message.id);
       }
       setMessages((fetched.messages ?? []).map(toLocalMessage));
-      setConversations((prev) =>
-        prev.map((c) =>
+      setConversations((prev) => {
+        const mapped = prev.map((c) =>
           c.id === id
             ? { ...(fetched.conversation ?? c), unreadCount: 0 }
             : c,
-        ),
-      );
+        );
+        if (fetched.conversation && !prev.some((c) => c.id === id)) {
+          return [{ ...fetched.conversation, unreadCount: 0 }, ...mapped];
+        }
+        return mapped;
+      });
       // Receipts: our GET marked peer messages (tenant or visitor) as read.
       setMessages((prev) =>
         prev.map((m) =>
@@ -198,6 +209,16 @@ export function SaSupportInbox() {
       setDetailLoading(false);
     }
   }, []);
+
+  // Deep-link from a tenant business page: /super-admin/support?c=<conversationId>
+  React.useEffect(() => {
+    if (!deepLinkId || deepLinkHandledRef.current === deepLinkId) return;
+    deepLinkHandledRef.current = deepLinkId;
+    setTab("TENANT");
+    setFilter("ALL");
+    void openConversation(deepLinkId);
+    router.replace(APP_ROUTES.superAdminSupport, { scroll: false });
+  }, [deepLinkId, openConversation, router]);
 
   // ── Realtime (super-admin client) ───────────────────────────────────────
   React.useEffect(() => {
