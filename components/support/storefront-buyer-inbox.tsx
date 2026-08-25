@@ -288,11 +288,17 @@ export function StorefrontBuyerInbox() {
       setDraft("");
       try {
         const saved = await sendStorefrontBuyerReply(activeId, body);
-        setMessages((prev) => prev.map((m) => (m.id === tempId ? toLocalMessage(saved) : m)));
+        seenIdsRef.current.add(saved.id);
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === saved.id)) {
+            return prev.filter((m) => m.id !== tempId);
+          }
+          return prev.map((m) => (m.id === tempId ? toLocalMessage(saved) : m));
+        });
         setConversations((prev) =>
           prev.map((c) =>
             c.id === activeId
-              ? { ...c, lastMessageAt: saved.createdAt, lastMessagePreview: body }
+              ? { ...c, lastMessageAt: saved.createdAt, lastMessagePreview: body, status: "OPEN" }
               : c,
           ),
         );

@@ -251,14 +251,12 @@ function GuestSupportPanel({
     void loadThread();
   }, [loadThread]);
 
-  // Connect the guest socket once a thread exists (ticket mint needs a token).
-  const hasThreadRef = React.useRef(false);
+  // Connect (or reconnect) once a thread token exists — mint needs a valid secret.
   React.useEffect(() => {
-    if (!hasThread || hasThreadRef.current) return;
-    hasThreadRef.current = true;
+    if (!hasThread) return;
     const client = getGuestRealtimeClient();
     client.connect().catch(() => {});
-  }, [hasThread]);
+  }, [hasThread, conversationId]);
 
   // ── Realtime ─────────────────────────────────────────────────────────────
   React.useEffect(() => {
@@ -416,8 +414,17 @@ function GuestSupportPanel({
       setMessages((prev) => [...prev, optimistic]);
       setDraft("");
       try {
-        const saved = await sendGuestMessage(context.ns, conversationId, body);
-        setMessages((prev) => prev.map((m) => (m.id === tempId ? toLocalMessage(saved) : m)));
+        const saved = await sendGuestMessage(context.ns, conversationId, body, {
+          type: context.type,
+          businessSlug: context.businessSlug,
+        });
+        seenIdsRef.current.add(saved.id);
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === saved.id)) {
+            return prev.filter((m) => m.id !== tempId);
+          }
+          return prev.map((m) => (m.id === tempId ? toLocalMessage(saved) : m));
+        });
       } catch (e) {
         setMessages((prev) =>
           prev.map((m) => (m.id === tempId ? { ...m, pending: false, failed: true } : m)),

@@ -25,6 +25,10 @@ const HEADER_ALLOWLIST = [
   "x-page-unlock",
   "x-till-device-id",
   "x-kiosk-client",
+  // Public guest support chat (VISITOR / STOREFRONT) — identity + thread secret.
+  "x-guest-id",
+  "x-guest-token",
+  "x-guest-phone",
   "x-test-user-id",
   "x-test-role-id",
 ] as const;

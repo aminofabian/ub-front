@@ -218,7 +218,9 @@ export async function resumeGuestThread(
 ): Promise<GuestThreadPayload | null> {
   const guestId = ensureGuestId();
   const session = loadGuestSession(ns);
-  if (!session.token || !session.conversationId) {
+  const phone = getGuestPhone();
+  // Need either a stored thread credential or a phone to reclaim one.
+  if (!session.token && !phone) {
     return null;
   }
   const params = new URLSearchParams({
@@ -253,6 +255,15 @@ export async function resumeGuestThread(
       name: getGuestName(),
       phone: getGuestPhone(),
     });
+  } else if (payload.conversation && session.token) {
+    // Same device resume returns token:null — keep the stored secret + id.
+    saveGuestSession(ns, {
+      guestId,
+      token: session.token,
+      conversationId: payload.conversation.id,
+      name: getGuestName(),
+      phone: getGuestPhone(),
+    });
   }
   return payload;
 }
@@ -261,18 +272,28 @@ export async function sendGuestMessage(
   ns: string,
   conversationId: string,
   body: string,
+  opts: { type: GuestChatType; businessSlug?: string },
 ): Promise<GuestMessage> {
   const guestId = ensureGuestId();
-  const session = loadGuestSession(ns);
-  const response = await fetch(
-    apiUrl(`/api/v1/public/support/threads/${encodeURIComponent(conversationId)}/messages`),
-    {
+  let session = loadGuestSession(ns);
+  const post = (id: string, token: string | null) =>
+    fetch(apiUrl(`/api/v1/public/support/threads/${encodeURIComponent(id)}/messages`), {
       method: "POST",
       credentials: "include",
-      headers: guestHeaders(guestId, session.token),
+      headers: guestHeaders(guestId, token),
       body: JSON.stringify({ body, guestName: getGuestName() ?? undefined }),
-    },
-  );
+    });
+
+  let response = await post(conversationId, session.token);
+  if (response.status === 401) {
+    // Token rotated (another device) — reclaim via phone when we have one.
+    write(threadKey(ns), null);
+    const recovered = await resumeGuestThread(ns, opts).catch(() => null);
+    if (recovered?.conversation?.id) {
+      session = loadGuestSession(ns);
+      response = await post(recovered.conversation.id, session.token);
+    }
+  }
   if (!response.ok) {
     throw new Error(`Could not send message (${response.status})`);
   }
@@ -290,28 +311,47 @@ export async function markGuestThreadRead(ns: string, conversationId: string): P
 }
 
 /** Mint a guest WebSocket ticket for the shared browser guest. */
-export async function mintGuestRealtimeTicket(): Promise<{
+export async function mintGuestRealtimeTicket(preferredNs?: string): Promise<{
   ticket: string;
   expiresAt: number;
   wsUrl: string;
 }> {
   const guestId = ensureGuestId();
-  // Any valid per-shop token proves the visitor owns their threads.
-  const token = guessValidGuestToken();
-  const response = await fetch(apiUrl("/api/v1/public/support/realtime/tickets"), {
-    method: "POST",
-    credentials: "include",
-    headers: guestHeaders(guestId, token),
-  });
-  if (!response.ok) {
-    throw new Error(`Ticket mint failed: ${response.status}`);
+  const tokens = collectGuestTokens(preferredNs);
+  if (tokens.length === 0) {
+    throw new Error("Ticket mint failed: no guest token");
   }
-  return (await response.json()) as { ticket: string; expiresAt: number; wsUrl: string };
+  let lastStatus = 0;
+  for (const token of tokens) {
+    const response = await fetch(apiUrl("/api/v1/public/support/realtime/tickets"), {
+      method: "POST",
+      credentials: "include",
+      headers: guestHeaders(guestId, token),
+    });
+    lastStatus = response.status;
+    if (response.ok) {
+      return (await response.json()) as { ticket: string; expiresAt: number; wsUrl: string };
+    }
+  }
+  throw new Error(`Ticket mint failed: ${lastStatus}`);
 }
 
-/** Find any stored thread token (the server accepts any token that opens a thread). */
-function guessValidGuestToken(): string | null {
-  if (typeof window === "undefined") return null;
+/**
+ * Prefer the active shop/platform thread token, then any other stored secrets.
+ * Rotated-out tokens are tried last so mint does not fail on the first stale hit.
+ */
+function collectGuestTokens(preferredNs?: string): string[] {
+  if (typeof window === "undefined") return [];
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  const push = (token: string | null | undefined) => {
+    if (!token || seen.has(token)) return;
+    seen.add(token);
+    ordered.push(token);
+  };
+  if (preferredNs) {
+    push(loadGuestSession(preferredNs).token);
+  }
   try {
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i);
@@ -319,14 +359,14 @@ function guessValidGuestToken(): string | null {
         const raw = window.localStorage.getItem(key);
         if (raw) {
           const parsed = JSON.parse(raw) as { token?: string };
-          if (parsed.token) return parsed.token;
+          push(parsed.token);
         }
       }
     }
   } catch {
-    // ignore — no token means the visitor has no threads yet
+    // ignore — private mode / quota
   }
-  return null;
+  return ordered;
 }
 
 /** The guest's realtime channel — the only channel their socket ever joins. */

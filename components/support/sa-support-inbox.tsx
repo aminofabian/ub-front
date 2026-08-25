@@ -184,10 +184,12 @@ export function SaSupportInbox() {
             : c,
         ),
       );
-      // Receipts: our GET marked the tenant's messages as read.
+      // Receipts: our GET marked peer messages (tenant or visitor) as read.
       setMessages((prev) =>
         prev.map((m) =>
-          m.senderType === "TENANT" && !m.readAt ? { ...m, readAt: new Date().toISOString() } : m,
+          (m.senderType === "TENANT" || m.senderType === "GUEST") && !m.readAt
+            ? { ...m, readAt: new Date().toISOString() }
+            : m,
         ),
       );
     } catch {
@@ -239,11 +241,12 @@ export function SaSupportInbox() {
             if (prev.some((m) => m.id === incoming.id)) return prev;
             return [...prev, incoming];
           });
-          // We're looking at it — read it instantly.
-          if (incoming.senderType === "TENANT") {
+          // We're looking at it — read tenant + visitor messages instantly.
+          if (incoming.senderType === "TENANT" || incoming.senderType === "GUEST") {
+            const peerType = incoming.senderType;
             setMessages((prev) =>
               prev.map((m) =>
-                m.senderType === "TENANT" && !m.readAt
+                m.senderType === peerType && !m.readAt
                   ? { ...m, readAt: new Date().toISOString() }
                   : m,
               ),
@@ -273,8 +276,9 @@ export function SaSupportInbox() {
         const data = frame.data as Record<string, unknown>;
         const convId = String(data.conversationId ?? "");
         if (convId !== activeId) return;
-        if (String(data.readerType ?? "") === "TENANT") {
-          // Tenant read our replies — flip our sent ticks to ✓✓.
+        const reader = String(data.readerType ?? "");
+        if (reader === "TENANT" || reader === "GUEST") {
+          // Tenant/visitor read our replies — flip our sent ticks to ✓✓.
           setMessages((prev) =>
             prev.map((m) =>
               m.senderType === "SUPER_ADMIN" && !m.readAt
