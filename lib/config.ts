@@ -274,6 +274,7 @@ export const API_ROUTES = {
   aiFeedback: "/api/v1/ai/feedback",
   aiRouteGuide: "/api/v1/ai/route-guide",
   aiPriceRadar: "/api/v1/ai/price-radar",
+  aiProductPolish: "/api/v1/ai/product-polish",
   supplierPortalAiStatus: "/api/v1/supplier-portal/ai/status",
   supplierPortalAiChat: "/api/v1/supplier-portal/ai/chat",
   supplierPortalAiFeedback: "/api/v1/supplier-portal/ai/feedback",

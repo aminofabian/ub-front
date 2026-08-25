@@ -18,6 +18,7 @@ import {
   PencilLine,
   Save,
   Scale,
+  Sparkles,
   Star,
 } from "lucide-react";
 
@@ -27,9 +28,11 @@ import { BarcodeScanner } from "@/components/barcode-scanner";
 import {
   itemListThumbnailUrl,
   recordItemScan,
+  type CategoryRecord,
   type ItemDetailRecord,
   type ItemSummaryRecord,
   type ItemSupplierLinkRecord,
+  type ItemTypeRecord,
 } from "@/lib/api";
 import { CATALOG_FIX_NAME_LABEL, resolveCatalogItemName } from "@/lib/catalog-display";
 import { type ProductEditDraft, type QuickEditKey } from "../_types";
@@ -54,6 +57,7 @@ import {
   productFormSelectClass,
 } from "./product-form-styles";
 import { ProductItemTimeline } from "./ProductItemTimeline";
+import { ProductPolishDialog } from "./ProductPolishDialog";
 import {
   detailCollapsibleTriggerClass,
   detailFieldRowClass,
@@ -173,6 +177,11 @@ type Props = {
   showMobileStickyActions?: boolean;
   /** Full-screen mobile app layout: tighter hero, no inline action strip. */
   mobileAppLayout?: boolean;
+  /** When provided, the panel shows a "Polish with AI" quick action. */
+  polishCategories?: CategoryRecord[];
+  polishItemTypes?: ItemTypeRecord[];
+  polishCurrencyCode?: string;
+  onProductPolished?: () => void;
 };
 
 export function ProductDetailPanel(props: Props) {
@@ -254,10 +263,15 @@ export function ProductDetailPanel(props: Props) {
     weighedBusy = false,
     showMobileStickyActions = true,
     mobileAppLayout = false,
+    polishCategories,
+    polishItemTypes,
+    polishCurrencyCode,
+    onProductPolished,
   } = props;
 
   const [scannerOpen, setScannerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [polishOpen, setPolishOpen] = useState(false);
   const [suppliersOpen, setSuppliersOpen] = useState(
     supplierLinks.length > 0 && supplierLinks.length <= 3,
   );
@@ -713,6 +727,17 @@ export function ProductDetailPanel(props: Props) {
           <Camera className="size-3" aria-hidden />
           Photos
         </button>
+        {canCatalogWrite && polishCategories ? (
+          <button
+            type="button"
+            className={cn(detailActionBtnPrimaryClass, "text-primary")}
+            onClick={() => setPolishOpen(true)}
+            title="AI review of name, description, category, pricing and stock"
+          >
+            <Sparkles className="size-3" aria-hidden />
+            Polish
+          </button>
+        ) : null}
         {canCatalogWrite && onOpenChangeItemType ? (
           <button
             type="button"
@@ -1789,6 +1814,20 @@ export function ProductDetailPanel(props: Props) {
           onClose={() => setScannerOpen(false)}
         />
       )}
+
+      {polishCategories && polishItemTypes ? (
+        <ProductPolishDialog
+          open={polishOpen}
+          onOpenChange={setPolishOpen}
+          itemId={detail.id}
+          detail={detail}
+          categories={polishCategories}
+          itemTypes={polishItemTypes}
+          currencyCode={polishCurrencyCode}
+          canEdit={canCatalogWrite}
+          onApplied={onProductPolished}
+        />
+      ) : null}
     </div>
   );
 }

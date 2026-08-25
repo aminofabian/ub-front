@@ -150,6 +150,37 @@ export async function fetchSokoMindRouteGuide(
   );
 }
 
+export type ProductPolishSuggestion = {
+  requestId: string;
+  summary: string;
+  issues: string[];
+  suggestedName: string | null;
+  suggestedBrand: string | null;
+  suggestedSize: string | null;
+  suggestedDescription: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  categoryReason: string | null;
+  itemTypeId: string | null;
+  itemTypeName: string | null;
+  itemTypeReason: string | null;
+  suggestedSellPrice: number | null;
+  suggestedCostPrice: number | null;
+  pricingReason: string | null;
+  suggestedMinStock: number | null;
+  suggestedReorderLevel: number | null;
+  suggestedReorderQty: number | null;
+  stockReason: string | null;
+};
+
+/** AI review of a single product: name, description, category, pricing and stock tips. */
+export async function polishProduct(itemId: string): Promise<ProductPolishSuggestion> {
+  return apiRequest<ProductPolishSuggestion>(API_ROUTES.aiProductPolish, {
+    method: "POST",
+    body: { itemId: itemId.trim() },
+  });
+}
+
 export type PriceRadarRecord = {
   itemId: string;
   itemName: string | null;
