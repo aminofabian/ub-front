@@ -296,14 +296,17 @@ export default function RestockDigestReviewPage() {
             <ArrowLeft className="size-4" aria-hidden />
           </Button>
           <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold tracking-tight text-foreground">
+            <h1 className="truncate font-[family-name:var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.03em] text-[var(--pos-ink,#1c1915)]">
               Tonight&apos;s list
             </h1>
-            <p className="truncate text-[11px] text-muted-foreground">
-              {run ? `${run.branchName} · ${dateLabel}` : "Loading…"}
+            <p className="truncate text-[12px] tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_58%,transparent)]">
+              {run
+                ? `${run.branchName} · ${dateLabel} · ${run.lineCount} items · ${formatMoney(run.estTotal, currency)}`
+                : "Loading…"}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1.5">
+            {run ? <StatusBadge status={run.status} /> : null}
             {run && run.lineCount > 0 ? (
               <Button
                 type="button"
@@ -327,6 +330,22 @@ export default function RestockDigestReviewPage() {
                 {activeDept ? "PDF" : "All PDF"}
               </Button>
             ) : null}
+            {run && pending.length > 0 && runActive && (canWritePo || canWritePad) ? (
+              <Button
+                type="button"
+                size="sm"
+                className="hidden h-8 rounded-none px-2.5 text-[11px] sm:inline-flex"
+                disabled={busyAction !== null}
+                onClick={() => void acceptLines(pending.map((l) => l.id), "all")}
+              >
+                {busyAction?.startsWith("accept:all") ? (
+                  <Loader2 className="mr-1 size-3 animate-spin" aria-hidden />
+                ) : (
+                  <CheckCircle2 className="mr-1 size-3" aria-hidden />
+                )}
+                {activeDept ? "Accept aisle" : "Accept all"}
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -341,43 +360,16 @@ export default function RestockDigestReviewPage() {
           </div>
         </div>
 
-        {run ? (
-          <div className="grid grid-cols-3 border-t border-border sm:grid-cols-4">
-            <StatCell label="Items" value={String(run.lineCount)} />
-            <StatCell label="Estimate" value={formatMoney(run.estTotal, currency)} />
-            <StatCell label="Suppliers" value={String(Math.max(rail.filter((r) => r.kind !== "handled").length, 0))} />
-            <div className="hidden items-center justify-between gap-2 border-l border-border px-3 py-1.5 sm:flex">
-              <StatusBadge status={run.status} />
-              {pending.length > 0 && runActive && (canWritePo || canWritePad) ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-7 rounded-none px-2.5 text-[11px]"
-                  disabled={busyAction !== null}
-                  onClick={() => void acceptLines(pending.map((l) => l.id), "all")}
-                >
-                  {busyAction?.startsWith("accept:all") ? (
-                    <Loader2 className="mr-1 size-3 animate-spin" aria-hidden />
-                  ) : (
-                    <CheckCircle2 className="mr-1 size-3" aria-hidden />
-                  )}
-                  {activeDept ? "Accept aisle" : "Accept all"}
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
         {departments.length > 0 ? (
           <nav
-            className="flex gap-0 overflow-x-auto border-t border-border"
+            className="flex gap-0 overflow-x-auto border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]"
             aria-label="Departments"
           >
             <button
               type="button"
               aria-pressed={deptFilter == null}
               className={cn(
-                "shrink-0 border-r border-border px-3.5 py-2 text-[12px] font-semibold",
+                "shrink-0 border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-3.5 py-2 text-[12px] font-semibold",
                 deptFilter == null
                   ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
                   : "bg-transparent text-muted-foreground hover:bg-background/70 hover:text-foreground",
@@ -396,7 +388,7 @@ export default function RestockDigestReviewPage() {
                 type="button"
                 aria-pressed={deptFilter === d.id}
                 className={cn(
-                  "shrink-0 border-r border-border px-3.5 py-2 text-[12px] font-medium",
+                  "shrink-0 border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-3.5 py-2 text-[12px] font-medium",
                   deptFilter === d.id
                     ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
                     : "bg-transparent text-muted-foreground hover:bg-background/70 hover:text-foreground",
@@ -455,7 +447,7 @@ export default function RestockDigestReviewPage() {
       ) : null}
 
       {loading && !run ? (
-        <div className="flex min-h-[70vh] flex-col md:grid md:grid-cols-[minmax(16.5rem,32%)_minmax(0,1fr)]">
+        <div className="flex min-h-[70vh] flex-col lg:grid lg:grid-cols-[6.75rem_minmax(0,1fr)_19.5rem]">
           <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] md:border-b-0 md:border-r dark:bg-muted/40">
             <div className="h-11" />
             {Array.from({ length: 5 }).map((_, i) => (
@@ -519,15 +511,6 @@ export default function RestockDigestReviewPage() {
           </Button>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function StatCell({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border-l border-border px-3 py-1.5 first:border-l-0">
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-      <p className="text-sm font-semibold tabular-nums leading-tight text-foreground">{value}</p>
     </div>
   );
 }
