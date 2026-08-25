@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Gateway settings — KopoKopo live in three steps</text>
+
+  <!-- ============ MAIN SCREEN: Payments → Accept payments ============ -->
+  <rect x="16" y="56" width="680" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- header -->
+  <text x="40" y="90" font-size="17" font-weight="700" fill="#1F2937">Payments</text>
+  <text x="40" y="107" font-size="9.5" fill="#6b7280">Connect checkout providers, show till instructions, and pay suppliers with M-Pesa.</text>
+  <rect x="484" y="68" width="88" height="30" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="528" y="87" font-size="10" font-weight="600" fill="#374151" text-anchor="middle">↻ Refresh</text>
+  <rect x="584" y="68" width="96" height="30" rx="8" fill="#0F766E"/>
+  <text x="632" y="87" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">＋ Add method</text>
+
+  <!-- section pills -->
+  <rect x="40" y="118" width="112" height="26" rx="13" fill="#0F766E"/>
+  <text x="96" y="135" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">Accept payments</text>
+  <rect x="160" y="118" width="82" height="26" rx="13" fill="#f3f4f6" stroke="#e5e7eb"/>
+  <text x="201" y="135" font-size="10" fill="#4b5563" text-anchor="middle">Kiosk Pay</text>
+  <rect x="250" y="118" width="92" height="26" rx="13" fill="#f3f4f6" stroke="#e5e7eb"/>
+  <text x="296" y="135" font-size="10" fill="#4b5563" text-anchor="middle">Pay suppliers</text>
+
+  <!-- stats row -->
+  <rect x="40" y="158" width="202" height="58" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="60" y="178" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#6b7280">METHODS</text>
+  <text x="60" y="202" font-size="17" font-weight="700" fill="#1F2937">2</text>
+  <rect x="253" y="158" width="202" height="58" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="273" y="178" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#6b7280">ACTIVE</text>
+  <text x="273" y="202" font-size="17" font-weight="700" fill="#0F766E">2</text>
+  <rect x="466" y="158" width="202" height="58" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="486" y="178" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#6b7280">NEEDS ATTENTION</text>
+  <text x="486" y="202" font-size="17" font-weight="700" fill="#1F2937">0</text>
+
+  <!-- section -->
+  <text x="40" y="252" font-size="13" font-weight="700" fill="#1F2937">Accept payments</text>
+  <text x="40" y="268" font-size="9.5" fill="#6b7280">API gateways need a successful connection test before activation.</text>
+
+  <!-- KopoKopo row -->
+  <rect x="40" y="282" width="632" height="62" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="56" y="296" width="34" height="34" rx="8" fill="#0F766E"/>
+  <text x="73" y="319" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">K</text>
+  <text x="104" y="312" font-size="12" font-weight="700" fill="#1F2937">KopoKopo</text>
+  <rect x="190" y="298" width="52" height="20" rx="10" fill="#F0FDF4" stroke="#BBF7D0"/>
+  <text x="216" y="312" font-size="9" font-weight="700" fill="#15803d" text-anchor="middle">Active</text>
+  <rect x="250" y="298" width="56" height="20" rx="4" fill="#CCFBF1"/>
+  <text x="278" y="312" font-size="9" font-weight="700" fill="#0F766E" text-anchor="middle">Default</text>
+  <text x="104" y="332" font-size="9.5" fill="#6b7280">Kopo Kopo · Last tested Aug 25, 2026 · STK Push, Buy Goods, Send Money</text>
+  <rect x="540" y="296" width="56" height="28" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="568" y="315" font-size="10" fill="#374151" text-anchor="middle">Edit</text>
+  <rect x="604" y="296" width="56" height="28" rx="8" fill="#0F766E"/>
+  <text x="632" y="315" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">Manage</text>
+
+  <!-- manual row -->
+  <rect x="40" y="352" width="632" height="62" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="56" y="366" width="34" height="34" rx="8" fill="#f3f4f6"/>
+  <text x="73" y="389" font-size="13" font-weight="700" fill="#6b7280" text-anchor="middle">T</text>
+  <text x="104" y="382" font-size="12" font-weight="700" fill="#1F2937">Mpesa Till</text>
+  <rect x="190" y="368" width="52" height="20" rx="10" fill="#F0FDF4" stroke="#BBF7D0"/>
+  <text x="216" y="382" font-size="9" font-weight="700" fill="#15803d" text-anchor="middle">Active</text>
+  <text x="104" y="402" font-size="9.5" fill="#6b7280">Manual · prints till instructions on receipts — does not receive payments</text>
+  <rect x="540" y="366" width="56" height="28" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="568" y="385" font-size="10" fill="#374151" text-anchor="middle">Edit</text>
+  <rect x="604" y="366" width="56" height="28" rx="8" fill="#0F766E"/>
+  <text x="632" y="385" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">Manage</text>
+
+  <!-- footer note -->
+  <rect x="40" y="432" width="632" height="62" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="60" y="456" font-size="10.5" font-weight="700" fill="#A8842C">KopoKopo is wired for the whole loop</text>
+  <text x="60" y="474" font-size="9.5" fill="#6b7280">M-Pesa STK, Buy Goods till matching, and supplier Send Money — one gateway, one till record.</text>
+  <text x="60" y="487" font-size="9.5" fill="#6b7280">A manual “Mpesa Till” row only prints instructions; it does not receive payments.</text>
+
+  <!-- ============ MANAGE DRAWER ============ -->
+  <rect x="712" y="56" width="232" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="712" y="56" width="232" height="48" rx="14" fill="#0F766E"/>
+  <rect x="712" y="82" width="232" height="22" fill="#0F766E"/>
+  <text x="732" y="87" font-size="12.5" font-weight="700" fill="#ffffff">Manage · KopoKopo</text>
+
+  <!-- setup path -->
+  <rect x="728" y="118" width="200" height="122" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="744" y="138" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#6b7280">SETUP PATH</text>
+  <circle cx="752" cy="162" r="9" fill="#15803d"/>
+  <path d="M747 162 l3.5 3.5 l7 -8" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="770" y="166" font-size="10" font-weight="600" fill="#1F2937">Test connection</text>
+  <circle cx="752" cy="190" r="9" fill="#15803d"/>
+  <path d="M747 190 l3.5 3.5 l7 -8" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="770" y="194" font-size="10" font-weight="600" fill="#1F2937">Activate the gateway</text>
+  <circle cx="752" cy="218" r="9" fill="#15803d"/>
+  <path d="M747 218 l3.5 3.5 l7 -8" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="770" y="222" font-size="10" font-weight="600" fill="#1F2937">Subscribe till webhooks</text>
+
+  <!-- settlement -->
+  <rect x="728" y="252" width="200" height="120" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="744" y="272" font-size="8.5" font-weight="700" letter-spacing="1.2" fill="#15803d">SETTLEMENT &amp; WITHDRAWALS</text>
+  <g font-size="8.5" fill="#374151">
+    <text x="744" y="292">Kiosk never holds your money.</text>
+    <text x="744" y="307">Payments settle to your KopoKopo</text>
+    <text x="744" y="322">account. Withdraw to your bank</text>
+    <text x="744" y="337">from their dashboard.</text>
+  </g>
+  <rect x="744" y="346" width="168" height="26" rx="8" fill="#ffffff" stroke="#0F766E"/>
+  <text x="828" y="364" font-size="8.5" font-weight="700" fill="#0F766E" text-anchor="middle">Open KopoKopo Dashboard</text>
+
+  <!-- actions -->
+  <rect x="728" y="388" width="200" height="32" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="828" y="409" font-size="10" fill="#374151" text-anchor="middle">Edit details</text>
+  <rect x="728" y="428" width="200" height="32" rx="8" fill="#0F766E"/>
+  <text x="828" y="449" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">Subscribe till webhooks</text>
+
+  <text x="828" y="486" font-size="8.5" fill="#9ca3af" text-anchor="middle">Sandbox: sandbox.kopokopo.com</text>
+</svg>

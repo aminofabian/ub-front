@@ -1,5 +1,9 @@
 import { GROW_MINI_MART_PILLAR_SLUG } from "./cluster-grow-mini-mart";
 import { BARCODE_LOOKUP_PILLAR_SLUG } from "./cluster-barcode-lookup";
+import {
+  KOPOKOPO_PILLAR_SLUG,
+  KOPOKOPO_SPOKE_SLUGS,
+} from "./cluster-kopokopo";
 import { KIOSK_VS_ODOO_PILLAR_SLUG } from "./cluster-kiosk-vs-odoo";
 import {
   TOP_10_POS_KENYA_PILLAR_SLUG,
@@ -78,5 +82,15 @@ export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
       "Look up any product by barcode or name — EAN-13, UPC, GTIN — and check Kenyan store prices in seconds.",
     pillarSlug: BARCODE_LOOKUP_PILLAR_SLUG,
     spokeSlugs: [],
+  },
+  {
+    id: "kopokopo-pos",
+    code: "05",
+    title: "Kopo Kopo & M-Pesa Payments",
+    shortTitle: "Kopo Kopo",
+    description:
+      "How Kopo Kopo connects to a POS — Buy Goods tills, STK Push, webhooks, reconciliation, and fees — so every M-Pesa payment matches a sale automatically.",
+    pillarSlug: KOPOKOPO_PILLAR_SLUG,
+    spokeSlugs: [...KOPOKOPO_SPOKE_SLUGS],
   },
 ];

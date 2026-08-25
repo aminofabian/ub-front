@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">The till — M-Pesa that completes the sale itself</text>
+
+  <!-- ============ LEFT: the POS screen ============ -->
+  <rect x="16" y="56" width="560" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="560" height="48" rx="14" fill="#1F2937"/>
+  <rect x="16" y="82" width="560" height="22" fill="#1F2937"/>
+  <text x="40" y="87" font-size="13.5" font-weight="700" fill="#ffffff">WANJIKU MINI-MART</text>
+  <text x="552" y="87" font-size="9.5" fill="#cbd5e1" text-anchor="end">Cashier: Amina · Tue 25 Aug</text>
+
+  <!-- cart -->
+  <rect x="40" y="130" width="512" height="210" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="56" y="158" font-size="11.5" font-weight="700" fill="#374151">Sunbest Cooking Oil 1 L</text>
+  <text x="56" y="176" font-size="11" fill="#6b7280">2 × KES 520.00</text>
+  <text x="532" y="176" font-size="12" font-weight="700" fill="#1F2937" text-anchor="end">1,040.00</text>
+  <line x1="56" y1="190" x2="532" y2="190" stroke="#e5e7eb"/>
+  <text x="56" y="218" font-size="11.5" font-weight="700" fill="#374151">Pishori Rice 2 kg</text>
+  <text x="56" y="236" font-size="11" fill="#6b7280">1 × KES 460.00</text>
+  <text x="532" y="236" font-size="12" font-weight="700" fill="#1F2937" text-anchor="end">460.00</text>
+  <line x1="56" y1="250" x2="532" y2="250" stroke="#e5e7eb"/>
+  <text x="56" y="282" font-size="13" font-weight="800" fill="#1F2937">Total</text>
+  <text x="532" y="282" font-size="17" font-weight="800" fill="#15803d" text-anchor="end">KES 1,500.00</text>
+  <line x1="56" y1="300" x2="532" y2="300" stroke="#f0f0f0"/>
+  <text x="56" y="320" font-size="10" fill="#6b7280">6 items · 2 lines · ready to tender</text>
+
+  <!-- tender tiles -->
+  <text x="40" y="360" font-size="9" font-weight="700" letter-spacing="1.2" fill="#6b7280">TENDER</text>
+  <rect x="40" y="370" width="150" height="46" rx="10" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="58" y="398" font-size="11.5" font-weight="600" fill="#374151">💵 Cash</text>
+  <rect x="198" y="370" width="166" height="46" rx="10" fill="#f0fdf4" stroke="#15803d" stroke-width="1.5"/>
+  <text x="216" y="393" font-size="11.5" font-weight="700" fill="#15803d">📱 M-Pesa</text>
+  <text x="216" y="408" font-size="8.5" font-weight="600" fill="#15803d">Your till STK</text>
+  <rect x="372" y="370" width="180" height="46" rx="10" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="390" y="393" font-size="11.5" font-weight="600" fill="#374151">🏪 Kiosk Pay</text>
+  <text x="390" y="408" font-size="8.5" fill="#6b7280">Platform STK</text>
+
+  <!-- stk input -->
+  <rect x="40" y="428" width="512" height="44" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="56" y="455" font-size="8.5" font-weight="600" fill="#6b7280">PHONE</text>
+  <rect x="100" y="438" width="168" height="24" rx="6" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="110" y="455" font-size="10" fill="#1F2937">+254 712 345 678</text>
+  <rect x="420" y="434" width="116" height="32" rx="8" fill="#28a745"/>
+  <text x="478" y="455" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">Send STK prompt</text>
+
+  <!-- listening banner -->
+  <rect x="40" y="484" width="512" height="42" rx="10" fill="#EFF6FF" stroke="#BFDBFE"/>
+  <text x="56" y="504" font-size="10" font-weight="700" fill="#1d4ed8">Listening for till payment… Customer can pay Buy Goods now,</text>
+  <text x="56" y="519" font-size="9" fill="#3b82f6">or send an STK prompt above. The sale completes automatically either way.</text>
+
+  <!-- ============ RIGHT: customer phone ============ -->
+  <rect x="604" y="56" width="340" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="604" y="56" width="340" height="48" rx="14" fill="#0F766E"/>
+  <rect x="604" y="82" width="340" height="22" fill="#0F766E"/>
+  <text x="628" y="87" font-size="13" font-weight="700" fill="#ffffff">On the customer's phone</text>
+
+  <!-- phone -->
+  <rect x="668" y="130" width="212" height="340" rx="26" fill="#0a0a0a"/>
+  <rect x="678" y="140" width="192" height="320" rx="18" fill="#ffffff"/>
+  <rect x="678" y="140" width="192" height="34" rx="18" fill="#f3f4f6"/>
+  <text x="774" y="162" font-size="10" font-weight="700" fill="#1F2937" text-anchor="middle">M-PESA</text>
+  <circle cx="706" cy="152" r="3" fill="#0a0a0a"/>
+
+  <circle cx="774" cy="206" r="20" fill="#f0fdf4" stroke="#28a745"/>
+  <path d="M762 206 l8 8 l17 -19" stroke="#15803d" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="774" y="250" font-size="10.5" font-weight="600" fill="#1F2937" text-anchor="middle">Confirm payment of</text>
+  <text x="774" y="274" font-size="19" font-weight="800" fill="#15803d" text-anchor="middle">KES 1,500.00</text>
+  <text x="774" y="296" font-size="8.5" fill="#6b7280" text-anchor="middle">to WANJIKU MINI-MART</text>
+  <text x="774" y="312" font-size="8.5" fill="#6b7280" text-anchor="middle">Buy Goods · 1-Click</text>
+
+  <rect x="722" y="340" width="104" height="36" rx="8" fill="#28a745"/>
+  <text x="774" y="364" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Enter PIN</text>
+
+  <!-- outcome card -->
+  <rect x="628" y="490" width="292" height="34" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="774" y="512" font-size="10" font-weight="700" fill="#15803d" text-anchor="middle">Paid — the till closes the sale, prints, and drops stock</text>
+</svg>
