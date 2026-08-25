@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
@@ -20,13 +20,10 @@ import {
  * Unread is also mirrored into the document title.
  */
 export function SupportUnreadWatcher() {
-  const pathname = usePathname();
   const router = useRouter();
   const unread = useSupportUnread();
   const lastChimeRef = useRef<string | null>(null);
   const baseTitleRef = useRef("");
-  const pathnameRef = useRef(pathname);
-  pathnameRef.current = pathname;
 
   useEffect(() => {
     baseTitleRef.current = document.title;
@@ -75,26 +72,33 @@ export function SupportUnreadWatcher() {
 
         playSupportMessageSound();
 
-        // Toast only when the matching thread isn't on screen — otherwise the
-        // open chat already shows the message.
-        if (conversationId && isSupportConversationFocused(conversationId)) return;
+        const focused =
+          conversationId.length > 0 && isSupportConversationFocused(conversationId);
+        const tabHidden =
+          typeof document !== "undefined" && document.visibilityState === "hidden";
+
+        // Toast when the thread isn't on screen, or the browser tab is hidden.
+        if (focused && !tabHidden) return;
 
         const body = String(data.body ?? "").trim();
+        const attachment = data.attachment as { fileName?: string } | null | undefined;
         const senderName =
           String(data.senderName ?? "").trim() ||
           (fromPlatform ? "Kiosk Support" : "Storefront buyer");
-        const preview = body.length > 120 ? `${body.slice(0, 120)}…` : body;
+        const rawPreview =
+          body ||
+          (attachment?.fileName ? `📎 ${attachment.fileName}` : "") ||
+          (fromPlatform ? "Sent you a message" : "New storefront message");
+        const preview =
+          rawPreview.length > 120 ? `${rawPreview.slice(0, 120)}…` : rawPreview;
 
         toast(`New message from ${senderName}`, {
           description: preview,
-          duration: 6000,
-          action:
-            pathnameRef.current !== APP_ROUTES.support
-              ? {
-                  label: "Open",
-                  onClick: () => router.push(APP_ROUTES.support),
-                }
-              : undefined,
+          duration: 7000,
+          action: {
+            label: "Open",
+            onClick: () => router.push(APP_ROUTES.support),
+          },
         });
       },
     });

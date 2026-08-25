@@ -559,33 +559,34 @@ export class RealtimeClient {
     if (!channelsChanged && !opts?.forceReconnect) {
       return;
     }
+    const addedChannels = nextChannels.filter((c) => !prevChannels.includes(c));
     this.channels = nextChannels;
+
+    // New channels must be on the ticket's allowedChannels — mid-session
+    // subscribe alone is rejected by the server. Remint + reconnect.
+    const needsRemint =
+      addedChannels.length > 0 &&
+      (this.state === "connected" ||
+        this.ws?.readyState === WebSocket.OPEN ||
+        this.state === "connecting" ||
+        this.state === "reconnecting");
+
+    if (needsRemint || opts?.forceReconnect) {
+      if (this.ws) {
+        this.teardownWebSocket(1000, "Channel set expanded");
+      }
+      void this.connect();
+      return;
+    }
 
     if (
       this.state === "connected" &&
-      this.ws?.readyState === WebSocket.OPEN &&
-      !opts?.forceReconnect
+      this.ws?.readyState === WebSocket.OPEN
     ) {
-      for (const channel of nextChannels) {
-        if (!prevChannels.includes(channel)) {
-          this.send({ op: "subscribe", channel });
-        }
+      for (const channel of addedChannels) {
+        this.send({ op: "subscribe", channel });
       }
       return;
-    }
-
-    if (
-      this.state === "connecting" ||
-      this.state === "reconnecting" ||
-      (!opts?.forceReconnect && channelsChanged)
-    ) {
-      // onopen subscribes to this.channels — no mid-handshake reconnect storm.
-      return;
-    }
-
-    if (opts?.forceReconnect && this.ws) {
-      this.teardownWebSocket(1000, "Channel set changed");
-      void this.connect();
     }
   }
 

@@ -126,6 +126,225 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "ALL", label: "All" },
 ];
 
+type UnreadHeadline = {
+  id: string;
+  type: InboxTab;
+  name: string;
+  preview: string;
+  unread: number;
+  at: string;
+  seed: string;
+};
+
+type TabStats = Record<InboxTab, { unread: number; waiting: number }>;
+
+const EMPTY_TAB_STATS: TabStats = {
+  TENANT: { unread: 0, waiting: 0 },
+  VISITOR: { unread: 0, waiting: 0 },
+};
+
+function sumUnread(rows: SaSupportConversation[]): { unread: number; waiting: number } {
+  let unread = 0;
+  let waiting = 0;
+  for (const row of rows) {
+    const n = row.unreadCount ?? 0;
+    if (n > 0) {
+      unread += n;
+      waiting += 1;
+    }
+  }
+  return { unread, waiting };
+}
+
+function headlineFromConversation(c: SaSupportConversation): UnreadHeadline | null {
+  const unread = c.unreadCount ?? 0;
+  if (unread <= 0) return null;
+  const type: InboxTab = c.conversationType === "VISITOR" ? "VISITOR" : "TENANT";
+  const name =
+    c.businessName?.trim() ||
+    c.guestName?.trim() ||
+    (type === "VISITOR" ? "Visitor" : "Tenant");
+  const preview = (c.lastMessagePreview ?? "").trim() || "New message";
+  return {
+    id: c.id,
+    type,
+    name,
+    preview,
+    unread,
+    at: c.lastMessageAt ?? c.updatedAt ?? c.createdAt,
+    seed: c.guestId ?? c.businessId,
+  };
+}
+
+function rebuildHeadlines(
+  tenantRows: SaSupportConversation[],
+  visitorRows: SaSupportConversation[],
+): UnreadHeadline[] {
+  const map = new Map<string, UnreadHeadline>();
+  for (const row of [...tenantRows, ...visitorRows]) {
+    const h = headlineFromConversation(row);
+    if (h) map.set(h.id, h);
+  }
+  return [...map.values()].sort(
+    (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
+  );
+}
+
+function previewFromIncoming(data: Record<string, unknown>): string {
+  const body = String(data.body ?? "").trim();
+  if (body) return body;
+  const attachment = attachmentFromRealtime(data);
+  if (attachment?.fileName) return `📎 ${attachment.fileName}`;
+  if (attachment?.url) return "📎 Attachment";
+  return "New message";
+}
+
+/** Soft crossfade rail of waiting unread threads across tenants + visitors. */
+function UnreadCycleRail({
+  items,
+  activeTab,
+  onOpen,
+}: {
+  items: UnreadHeadline[];
+  activeTab: InboxTab;
+  onOpen: (id: string, type: InboxTab) => void;
+}) {
+  const [index, setIndex] = React.useState(0);
+  const [phase, setPhase] = React.useState<"in" | "out">("in");
+  const reducedMotion = usePrefersReducedMotion();
+
+  React.useEffect(() => {
+    setIndex(0);
+    setPhase("in");
+  }, [items.length, items[0]?.id]);
+
+  React.useEffect(() => {
+    if (items.length <= 1 || reducedMotion) return;
+    const timer = window.setInterval(() => {
+      setPhase("out");
+      window.setTimeout(() => {
+        setIndex((i) => (i + 1) % items.length);
+        setPhase("in");
+      }, 280);
+    }, 3800);
+    return () => window.clearInterval(timer);
+  }, [items.length, reducedMotion]);
+
+  if (items.length === 0) {
+    return (
+      <div className="mx-1 mb-1.5 flex items-center gap-2 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.06] px-3 py-2.5">
+        <span className="relative flex size-2">
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/50 opacity-60" />
+          <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+        </span>
+        <p className="text-[11px] font-medium tracking-wide text-emerald-700 dark:text-emerald-400">
+          Inbox clear — nothing waiting
+        </p>
+      </div>
+    );
+  }
+
+  const current = items[Math.min(index, items.length - 1)]!;
+  const tenantUnread = items.filter((i) => i.type === "TENANT").reduce((s, i) => s + i.unread, 0);
+  const visitorUnread = items.filter((i) => i.type === "VISITOR").reduce((s, i) => s + i.unread, 0);
+
+  return (
+    <div className="mx-1 mb-1.5 overflow-hidden rounded-xl border border-primary/20 bg-[linear-gradient(135deg,rgba(40,167,69,0.12),rgba(40,167,69,0.03)_55%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+      <div className="flex items-center justify-between gap-2 border-b border-primary/10 px-3 py-1.5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/80">
+          Waiting replies
+        </p>
+        <div className="flex items-center gap-1.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+          <span className={cn(tenantUnread > 0 ? "text-emerald-700 dark:text-emerald-400" : "")}>
+            {tenantUnread} tenant{tenantUnread === 1 ? "" : "s"}
+          </span>
+          <span className="text-border">·</span>
+          <span className={cn(visitorUnread > 0 ? "text-sky-700 dark:text-sky-400" : "")}>
+            {visitorUnread} visitor{visitorUnread === 1 ? "" : "s"}
+          </span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onOpen(current.id, current.type)}
+        className="group relative flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-primary/[0.06]"
+      >
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 items-start gap-2.5 transition-all duration-300 ease-out",
+            phase === "in" && !reducedMotion
+              ? "translate-y-0 opacity-100"
+              : reducedMotion
+                ? "opacity-100"
+                : "translate-y-1.5 opacity-0",
+          )}
+        >
+          <Avatar name={current.name} seed={current.seed} className="size-8" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-[13px] font-semibold text-foreground">
+                {current.name}
+              </span>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+                  current.type === "VISITOR"
+                    ? "bg-sky-500/12 text-sky-700 dark:text-sky-400"
+                    : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
+                  current.type !== activeTab && "opacity-80",
+                )}
+              >
+                {current.type === "VISITOR" ? "Visitor" : "Tenant"}
+              </span>
+              <span className="ml-auto inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                {current.unread > 9 ? "9+" : current.unread}
+              </span>
+            </div>
+            <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-foreground/70">
+              {current.preview}
+            </p>
+          </div>
+        </div>
+      </button>
+
+      {items.length > 1 ? (
+        <div className="flex items-center justify-center gap-1 pb-2">
+          {items.slice(0, 8).map((item, i) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={`Show unread from ${item.name}`}
+              onClick={() => {
+                setPhase("in");
+                setIndex(i);
+              }}
+              className={cn(
+                "h-1 rounded-full transition-all duration-300",
+                i === index % Math.min(items.length, 8)
+                  ? "w-4 bg-primary"
+                  : "w-1.5 bg-primary/25 hover:bg-primary/45",
+              )}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return reduced;
+}
+
 export function SaSupportInbox() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -137,6 +356,9 @@ export function SaSupportInbox() {
   const [conversations, setConversations] = React.useState<SaSupportConversation[]>([]);
   const [listLoading, setListLoading] = React.useState(true);
   const [listError, setListError] = React.useState("");
+  const [tabStats, setTabStats] = React.useState<TabStats>(EMPTY_TAB_STATS);
+  const [unreadHeadlines, setUnreadHeadlines] = React.useState<UnreadHeadline[]>([]);
+  const [listPulse, setListPulse] = React.useState(0);
 
   const [activeId, setActiveId] = React.useState<string | null>(deepLinkId);
   const [detail, setDetail] = React.useState<SaSupportConversation | null>(null);
@@ -159,39 +381,125 @@ export function SaSupportInbox() {
   const seenIdsRef = React.useRef<Set<string>>(new Set());
   const typingStopRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const deepLinkHandledRef = React.useRef<string | null>(null);
+  const activeIdRef = React.useRef(activeId);
+  activeIdRef.current = activeId;
+  const tabRef = React.useRef(tab);
+  tabRef.current = tab;
 
   const activeConversation =
     conversations.find((c) => c.id === activeId) ?? (detail ? { ...detail } : null) ?? null;
+
+  const applyUnreadSnapshot = React.useCallback(
+    (tenantRows: SaSupportConversation[], visitorRows: SaSupportConversation[]) => {
+      setTabStats({
+        TENANT: sumUnread(tenantRows),
+        VISITOR: sumUnread(visitorRows),
+      });
+      setUnreadHeadlines(rebuildHeadlines(tenantRows, visitorRows));
+    },
+    [],
+  );
 
   // ── List ────────────────────────────────────────────────────────────────
   const loadList = React.useCallback(
     async (silent = false) => {
       if (!silent) setListLoading(true);
       try {
-        const [payload, presencePayload] = await Promise.all([
+        const [payload, tenantOpen, visitorOpen, presencePayload] = await Promise.all([
           fetchSaSupportConversations({ status: filter, type: tab }),
+          fetchSaSupportConversations({ status: "OPEN", type: "TENANT" }),
+          fetchSaSupportConversations({ status: "OPEN", type: "VISITOR" }),
           fetchSaSupportPresence().catch(() => null),
         ]);
         setConversations(payload.conversations);
+        applyUnreadSnapshot(tenantOpen.conversations, visitorOpen.conversations);
         if (presencePayload) {
-          setPresence((prev) => ({ ...prev, ...presencePayload.presence, ...presencePayload.guestPresence }));
+          setPresence((prev) => ({
+            ...prev,
+            ...presencePayload.presence,
+            ...presencePayload.guestPresence,
+          }));
         }
         setListError("");
+        setListPulse((n) => n + 1);
       } catch (e) {
         setListError(e instanceof Error ? e.message : "Could not load conversations.");
       } finally {
         if (!silent) setListLoading(false);
       }
     },
-    [filter, tab],
+    [filter, tab, applyUnreadSnapshot],
   );
 
   React.useEffect(() => {
     void loadList();
   }, [loadList]);
 
+  const bumpUnreadHeadline = React.useCallback(
+    (partial: {
+      id: string;
+      type: InboxTab;
+      name: string;
+      preview: string;
+      seed: string;
+      at: string;
+      delta?: number;
+    }) => {
+      const delta = partial.delta ?? 1;
+      setUnreadHeadlines((prev) => {
+        const existing = prev.find((h) => h.id === partial.id);
+        const next: UnreadHeadline = {
+          id: partial.id,
+          type: partial.type,
+          name: partial.name,
+          preview: partial.preview,
+          unread: Math.max(1, (existing?.unread ?? 0) + delta),
+          at: partial.at,
+          seed: partial.seed,
+        };
+        const headlines = [next, ...prev.filter((h) => h.id !== partial.id)].sort(
+          (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
+        );
+        setTabStats({
+          TENANT: {
+            unread: headlines.filter((h) => h.type === "TENANT").reduce((s, h) => s + h.unread, 0),
+            waiting: headlines.filter((h) => h.type === "TENANT").length,
+          },
+          VISITOR: {
+            unread: headlines.filter((h) => h.type === "VISITOR").reduce((s, h) => s + h.unread, 0),
+            waiting: headlines.filter((h) => h.type === "VISITOR").length,
+          },
+        });
+        return headlines;
+      });
+    },
+    [],
+  );
+
+  const clearUnreadFor = React.useCallback((id: string, _type: InboxTab) => {
+    setUnreadHeadlines((prev) => {
+      if (!prev.some((h) => h.id === id)) return prev;
+      const headlines = prev.filter((h) => h.id !== id);
+      setTabStats({
+        TENANT: {
+          unread: headlines.filter((h) => h.type === "TENANT").reduce((s, h) => s + h.unread, 0),
+          waiting: headlines.filter((h) => h.type === "TENANT").length,
+        },
+        VISITOR: {
+          unread: headlines.filter((h) => h.type === "VISITOR").reduce((s, h) => s + h.unread, 0),
+          waiting: headlines.filter((h) => h.type === "VISITOR").length,
+        },
+      });
+      return headlines;
+    });
+  }, []);
+
   // ── Select conversation ─────────────────────────────────────────────────
-  const openConversation = React.useCallback(async (id: string) => {
+  const openConversation = React.useCallback(async (id: string, preferType?: InboxTab) => {
+    if (preferType && preferType !== tabRef.current) {
+      setTab(preferType);
+      setFilter("ALL");
+    }
     setActiveId(id);
     setMobileView("chat");
     setDetailLoading(true);
@@ -203,6 +511,9 @@ export function SaSupportInbox() {
         seenIdsRef.current.add(message.id);
       }
       setMessages((fetched.messages ?? []).map(toLocalMessage));
+      const clearedType: InboxTab =
+        fetched.conversation?.conversationType === "VISITOR" ? "VISITOR" : "TENANT";
+      clearUnreadFor(id, clearedType);
       setConversations((prev) => {
         const mapped = prev.map((c) =>
           c.id === id
@@ -227,7 +538,7 @@ export function SaSupportInbox() {
     } finally {
       setDetailLoading(false);
     }
-  }, []);
+  }, [clearUnreadFor]);
 
   // Deep-link from a tenant business page: /super-admin/support?c=<conversationId>
   React.useEffect(() => {
@@ -272,7 +583,7 @@ export function SaSupportInbox() {
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
 
-        const isActive = convId === activeId;
+        const isActive = convId === activeIdRef.current;
         // Soft chime for every incoming tenant/visitor message — whether the agent is
         // staring at this thread, skimming the list, or has the tab in the background.
         const isStaffMatter =
@@ -297,23 +608,46 @@ export function SaSupportInbox() {
               ),
             );
             void markSaSupportConversationRead(convId).catch(() => {});
+            clearUnreadFor(
+              convId,
+              conversationType === "VISITOR" ? "VISITOR" : "TENANT",
+            );
           }
         }
 
+        const preview = previewFromIncoming(data);
         setConversations((prev) => {
           const row = prev.find((c) => c.id === convId);
-          if (!row) return prev;
+          if (!row) {
+            // Message for the other tab (or unknown row) — still refresh silently.
+            void loadList(true);
+            return prev;
+          }
           // Only bump unread for peers this inbox actually staffs.
           const countsAsUnread =
             !isActive &&
             incoming.senderType !== "SUPER_ADMIN" &&
             (incoming.senderType === "TENANT" ||
               (incoming.senderType === "GUEST" && conversationType === "VISITOR"));
+          if (countsAsUnread) {
+            bumpUnreadHeadline({
+              id: convId,
+              type: conversationType === "VISITOR" ? "VISITOR" : "TENANT",
+              name:
+                row.businessName?.trim() ||
+                row.guestName?.trim() ||
+                (conversationType === "VISITOR" ? "Visitor" : "Tenant"),
+              preview,
+              seed: row.guestId ?? row.businessId,
+              at: incoming.createdAt,
+              delta: 1,
+            });
+          }
           return [
             {
               ...row,
               lastMessageAt: incoming.createdAt,
-              lastMessagePreview: incoming.body,
+              lastMessagePreview: preview,
               unreadCount: countsAsUnread ? row.unreadCount + 1 : row.unreadCount,
             },
             ...prev.filter((c) => c.id !== convId),
@@ -323,7 +657,7 @@ export function SaSupportInbox() {
       onSupportRead: (frame: RealtimeFrame) => {
         const data = frame.data as Record<string, unknown>;
         const convId = String(data.conversationId ?? "");
-        if (convId !== activeId) return;
+        if (convId !== activeIdRef.current) return;
         const reader = String(data.readerType ?? "");
         if (reader === "TENANT" || reader === "GUEST") {
           // Tenant/visitor read our replies — flip our sent ticks to ✓✓.
@@ -355,7 +689,7 @@ export function SaSupportInbox() {
         const status = String(data.status ?? "");
         if (!convId || !status) return;
         setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, status } : c)));
-        if (convId === activeId) {
+        if (convId === activeIdRef.current) {
           setDetail((prev) => (prev ? { ...prev, status } : prev));
         }
       },
@@ -392,7 +726,7 @@ export function SaSupportInbox() {
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
     };
-  }, [activeId]);
+  }, [bumpUnreadHeadline, clearUnreadFor, loadList]);
 
   // Fast background sync keeps the inbox live even when the socket is down.
   React.useEffect(() => {
@@ -571,7 +905,6 @@ export function SaSupportInbox() {
   const displayName = (c: SaSupportConversation) =>
     c.businessName?.trim() || (c.conversationType === "VISITOR" ? "Visitor" : "Tenant");
   const onlineCount = conversations.filter((c) => presence[presenceKey(c)]?.online === true).length;
-  const tabUnread = conversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
   const tenantPresence = activeConversation ? presence[presenceKey(activeConversation)] : undefined;
   const tenantLastSeen = tenantPresence ? lastSeenLabel(tenantPresence.lastSeenAt) : null;
   const visible = conversations.filter((c) => {
@@ -586,36 +919,74 @@ export function SaSupportInbox() {
     return true;
   });
 
+  const switchTab = (next: InboxTab) => {
+    if (next === tab) return;
+    setTab(next);
+    setActiveId(null);
+    setMobileView("list");
+    setSearch("");
+  };
+
   const listPane = (
     <div className="flex min-h-0 w-full flex-col bg-background md:w-[19.5rem] md:shrink-0 md:border-r md:border-border/50">
-      <div className="border-b border-border/50 bg-[linear-gradient(180deg,rgba(40,167,69,0.05),transparent)] p-3">
+      <div className="border-b border-border/50 bg-[linear-gradient(180deg,rgba(40,167,69,0.06),transparent_70%)] p-3">
         <div className="flex items-center gap-1 rounded-xl bg-muted/60 p-1">
-          {(["TENANT", "VISITOR"] as InboxTab[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
-              aria-pressed={tab === key}
-              className={cn(
-                "inline-flex h-8 flex-1 items-center justify-center rounded-lg text-xs font-semibold tracking-wide transition-colors",
-                tab === key
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {key === "TENANT" ? "Tenants" : "Visitors"}
-            </button>
-          ))}
+          {(["TENANT", "VISITOR"] as InboxTab[]).map((key) => {
+            const stats = tabStats[key];
+            const selected = tab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => switchTab(key)}
+                aria-pressed={selected}
+                className={cn(
+                  "relative inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200",
+                  selected
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {key === "TENANT" ? "Tenants" : "Visitors"}
+                {stats.unread > 0 ? (
+                  <span
+                    className={cn(
+                      "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums transition-transform duration-200",
+                      selected
+                        ? "bg-primary text-primary-foreground"
+                        : key === "VISITOR"
+                          ? "bg-sky-500 text-white"
+                          : "bg-emerald-600 text-white",
+                      !selected && "animate-pulse",
+                    )}
+                  >
+                    {stats.unread > 99 ? "99+" : stats.unread}
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "text-[10px] font-medium tabular-nums",
+                      selected ? "text-muted-foreground" : "text-muted-foreground/55",
+                    )}
+                  >
+                    0
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
+
         <div className="relative mt-2.5">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={tab === "VISITOR" ? "Search visitors…" : "Search tenants…"}
-            className="h-10 w-full rounded-xl border border-border/70 bg-background/90 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
+            className="h-10 w-full rounded-xl border border-border/70 bg-background/90 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/70 transition-[border-color,box-shadow] focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
           />
         </div>
+
         <div className="mt-2 flex items-center gap-1">
           {FILTERS.map((f) => {
             const count =
@@ -645,7 +1016,7 @@ export function SaSupportInbox() {
             type="button"
             onClick={() => setOnlineOnly((v) => !v)}
             aria-pressed={onlineOnly}
-            title="Show only tenants that are online right now"
+            title="Show only people that are online right now"
             className={cn(
               "inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-md text-xs font-medium transition-colors",
               onlineOnly
@@ -660,17 +1031,17 @@ export function SaSupportInbox() {
             </span>
           </button>
         </div>
-        {tabUnread > 0 ? (
-          <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-primary">
-            <span className="inline-flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
-              {tabUnread > 9 ? "9+" : tabUnread}
-            </span>
-            unread across {tab === "VISITOR" ? "visitors" : "tenants"}
-          </p>
-        ) : null}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-background/95 px-1.5 pt-2 backdrop-blur-sm">
+          <UnreadCycleRail
+            items={unreadHeadlines}
+            activeTab={tab}
+            onOpen={(id, type) => void openConversation(id, type)}
+          />
+        </div>
+
         {listLoading ? (
           <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
             Loading conversations…
@@ -684,7 +1055,7 @@ export function SaSupportInbox() {
             </Button>
           </div>
         ) : visible.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
+          <div className="flex flex-col items-center gap-2 px-4 py-12 text-center animate-in fade-in duration-300">
             <Inbox className="size-6 text-muted-foreground/40" aria-hidden />
             <p className="text-sm text-muted-foreground">
               {search
@@ -697,21 +1068,26 @@ export function SaSupportInbox() {
             </p>
           </div>
         ) : (
-          <ul className="space-y-0.5 p-1.5">
-            {visible.map((conversation) => {
+          <ul key={`${tab}-${listPulse}`} className="space-y-0.5 p-1.5 pt-0">
+            {visible.map((conversation, index) => {
               const isActive = conversation.id === activeId;
               const isResolved = conversation.status === "RESOLVED";
               const unread = conversation.unreadCount ?? 0;
               return (
-                <li key={conversation.id}>
+                <li
+                  key={conversation.id}
+                  className="animate-in fade-in slide-in-from-left-1 fill-mode-both duration-300"
+                  style={{ animationDelay: `${Math.min(index, 10) * 28}ms` }}
+                >
                   <button
                     type="button"
                     onClick={() => void openConversation(conversation.id)}
                     className={cn(
-                      "flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition-colors",
+                      "flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition-[background-color,box-shadow,transform] duration-200",
                       isActive
-                        ? "bg-primary/[0.09] ring-1 ring-primary/15"
+                        ? "bg-primary/[0.09] shadow-[inset_0_0_0_1px_rgba(40,167,69,0.18)]"
                         : "hover:bg-muted/60",
+                      unread > 0 && !isActive && "bg-primary/[0.04]",
                     )}
                   >
                     <div className="relative shrink-0">
@@ -725,7 +1101,7 @@ export function SaSupportInbox() {
                           <CheckCircle2 className="size-3 text-emerald-500" aria-hidden />
                         </span>
                       ) : unread > 0 ? (
-                        <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                        <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground shadow-[0_0_0_2px_hsl(var(--background))]">
                           {unread > 9 ? "9+" : unread}
                         </span>
                       ) : null}
@@ -736,7 +1112,11 @@ export function SaSupportInbox() {
                           <span
                             className={cn(
                               "truncate text-sm",
-                              isResolved ? "text-muted-foreground" : "font-semibold text-foreground",
+                              isResolved
+                                ? "text-muted-foreground"
+                                : unread > 0
+                                  ? "font-bold text-foreground"
+                                  : "font-semibold text-foreground",
                             )}
                           >
                             {displayName(conversation)}
@@ -757,23 +1137,29 @@ export function SaSupportInbox() {
                             {conversation.conversationType === "VISITOR" ? "Visitor" : "Tenant"}
                           </span>
                         </p>
-                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                        <span
+                          className={cn(
+                            "shrink-0 text-[10px] tabular-nums",
+                            unread > 0 ? "font-semibold text-primary" : "text-muted-foreground",
+                          )}
+                        >
                           {listTime(conversation.lastMessageAt ?? conversation.updatedAt)}
                         </span>
                       </div>
-                      <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                      <p
+                        className={cn(
+                          "mt-0.5 flex items-center gap-1.5 truncate text-xs",
+                          unread > 0 ? "font-medium text-foreground/80" : "text-muted-foreground",
+                        )}
+                      >
                         {theirTyping && conversation.id === activeId ? (
                           <span className="font-medium text-primary">typing…</span>
                         ) : conversation.lastMessagePreview ? (
-                          <>
-                            {conversation.lastMessageAt && (
-                              <span className="font-medium text-foreground/60">
-                                {conversation.lastMessagePreview.length > 60
-                                  ? `${conversation.lastMessagePreview.slice(0, 60)}…`
-                                  : conversation.lastMessagePreview}
-                              </span>
-                            )}
-                          </>
+                          <span className="truncate">
+                            {conversation.lastMessagePreview.length > 60
+                              ? `${conversation.lastMessagePreview.slice(0, 60)}…`
+                              : conversation.lastMessagePreview}
+                          </span>
                         ) : (
                           <span className="italic">No messages yet</span>
                         )}
