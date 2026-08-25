@@ -2,7 +2,7 @@
  * Supplier catalogue PDF — chalkboard stall sheet.
  *
  * Matches the mini-mart HTML template: chalk-green banner, torn paper,
- * family sections, cream cards, mango price tags. No product photos.
+ * family sections, cream cards, product photos, mango price tags.
  */
 import type {
   MarketplaceCatalogProductPreview,
@@ -13,6 +13,7 @@ import {
   groupCatalogProducts,
   normalizeCatalogLabel,
 } from "@/lib/marketplace-catalog-groups";
+import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 
 type Rgb = readonly [number, number, number];
 
@@ -23,7 +24,8 @@ const CONTENT_W = PAGE_W - MARGIN * 2;
 const COLS = 3;
 const CARD_GAP = 10;
 const CARD_W = (CONTENT_W - CARD_GAP * (COLS - 1)) / COLS;
-const CARD_H = 78;
+const CARD_H = 118;
+const PHOTO = 52;
 const CAT_H = 22;
 const BANNER_H = 92;
 const TORN_H = 14;
@@ -126,17 +128,30 @@ class PdfCanvas {
     this.ops.push(`${rgb(color)} rg`, ...ops, "f");
   }
 
+  image(name: string, x: number, y: number, w: number, h: number) {
+    this.ops.push("q", `${round(w)} 0 0 ${round(h)} ${round(x)} ${round(y)} cm`, `/${name} Do`, "Q");
+  }
+
   toStream(): string {
     return this.ops.join("\n");
   }
 }
 
+type EmbeddedImage = { data: Uint8Array; width: number; height: number };
+
 type Card = {
+  id: string;
   family: string;
   name: string;
   unit: string;
   price: string;
   flag: string | null;
+  imageUrl: string | null;
+};
+
+type PageBuild = {
+  canvas: PdfCanvas;
+  images: EmbeddedImage[];
 };
 
 type PageBlock =
@@ -205,9 +220,148 @@ function pdfPrice(product: MarketplaceCatalogProductPreview, currency: string): 
   return `${code} ${whole}`;
 }
 
+function hueFromId(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return hash % 360;
+}
+
+function hslToRgb(h: number, s: number, l: number): Rgb {
+  const sn = s / 100;
+  const ln = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = sn * Math.min(ln, 1 - ln);
+  const f = (n: number) => ln - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [f(0), f(8), f(4)];
+}
+
+function resolveImageUrl(url: string | null | undefined, origin?: string): string | null {
+  const raw = url?.trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/") && origin) return `${origin.replace(/\/+$/, "")}${raw}`;
+  return raw;
+}
+
+function jpegSize(bytes: Uint8Array): { width: number; height: number } | null {
+  if (bytes.length < 8 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  let offset = 2;
+  while (offset + 4 <= bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    const marker = bytes[offset + 1];
+    if (marker === 0xff) {
+      offset += 2;
+      continue;
+    }
+    if (marker === 0xd9 || marker === 0xda) break;
+    const len = (bytes[offset + 2] << 8) | bytes[offset + 3];
+    if (len < 2 || offset + 2 + len > bytes.length) break;
+    const sof =
+      (marker >= 0xc0 && marker <= 0xc3) ||
+      (marker >= 0xc5 && marker <= 0xc7) ||
+      (marker >= 0xc9 && marker <= 0xcb) ||
+      (marker >= 0xcd && marker <= 0xcf);
+    if (sof && offset + 9 <= bytes.length) {
+      const height = (bytes[offset + 5] << 8) | bytes[offset + 6];
+      const width = (bytes[offset + 7] << 8) | bytes[offset + 8];
+      if (width > 0 && height > 0) return { width, height };
+    }
+    offset += 2 + len;
+  }
+  return null;
+}
+
+async function rasterToJpeg(url: string): Promise<EmbeddedImage | null> {
+  if (typeof document === "undefined") return null;
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.crossOrigin = "anonymous";
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("img"));
+      el.src = url;
+    });
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if (w < 4 || h < 4) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.min(w, 720);
+    canvas.height = Math.round((h * canvas.width) / w);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.82),
+    );
+    if (!blob) return null;
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const dim = jpegSize(bytes);
+    return dim ? { data: bytes, ...dim } : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchJpeg(url: string): Promise<EmbeddedImage | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try {
+    const res = await fetch(url, { cache: "force-cache", signal: controller.signal });
+    if (!res.ok) return null;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const dim = jpegSize(bytes);
+    if (dim && dim.width <= 4096 && dim.height <= 4096) return { data: bytes, ...dim };
+    return rasterToJpeg(url);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function loadProductImages(urls: (string | null)[]): Promise<(EmbeddedImage | null)[]> {
+  const out: (EmbeddedImage | null)[] = new Array(urls.length).fill(null);
+  const queue = urls
+    .map((url, index) => ({ url, index }))
+    .filter((job): job is { url: string; index: number } => Boolean(job.url));
+  const workers = Array.from({ length: 6 }, async () => {
+    while (queue.length > 0) {
+      const job = queue.shift();
+      if (!job) break;
+      try {
+        const img = await fetchJpeg(job.url);
+        if (img) out[job.index] = img;
+      } catch {
+        /* letter tile */
+      }
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+function cardImageUrl(
+  product: MarketplaceCatalogProductPreview,
+  familyLabel: string,
+  familyThumb: string | null,
+  origin?: string,
+): string | null {
+  return resolveImageUrl(
+    posTileThumbUrl(
+      product.name || familyLabel,
+      product.imageUrl || product.parentImageUrl || familyThumb,
+    ),
+    origin,
+  );
+}
+
 function toCards(
   products: MarketplaceCatalogProductPreview[],
   currency: string,
+  origin?: string,
 ): { family: string; cards: Card[] }[] {
   return groupCatalogProducts(products).map((group) => ({
     family: group.label,
@@ -216,11 +370,13 @@ function toCards(
       const unit =
         normalizeCatalogLabel(pack) === normalizeCatalogLabel(group.label) ? "" : pack;
       return {
+        id: product.id,
         family: group.label,
         name: group.items.length === 1 ? group.label : pack,
         unit: group.items.length === 1 ? unit : group.label,
         price: pdfPrice(product, currency),
         flag: product.available === false ? "ASK" : null,
+        imageUrl: cardImageUrl(product, group.label, group.thumbnailUrl, origin),
       };
     }),
   }));
@@ -318,22 +474,49 @@ function paintTorn(canvas: PdfCanvas, yTop: number) {
   canvas.pathFill(pts, C.paper);
 }
 
-function paintCard(canvas: PdfCanvas, x: number, y: number, card: Card, tilt: number) {
+function paintCard(
+  page: PageBuild,
+  x: number,
+  y: number,
+  card: Card,
+  image: EmbeddedImage | null,
+  tilt: number,
+) {
+  const { canvas } = page;
   canvas.roundRect(x + 1.5, y - 2, CARD_W, CARD_H, 5, C.shadow);
   canvas.roundRect(x, y, CARD_W, CARD_H, 5, C.cream);
+  const photoX = x + (CARD_W - PHOTO) / 2;
+  const photoY = y + CARD_H - PHOTO - 14;
+  if (image) {
+    const scale = Math.min(PHOTO / image.width, PHOTO / image.height);
+    const w = image.width * scale;
+    const h = image.height * scale;
+    const name = `Im${page.images.length + 1}`;
+    canvas.roundRect(photoX, photoY, PHOTO, PHOTO, 4, C.paper);
+    canvas.image(name, photoX + (PHOTO - w) / 2, photoY + (PHOTO - h) / 2, w, h);
+    page.images.push(image);
+  } else {
+    const hue = hueFromId(card.id);
+    canvas.roundRect(photoX, photoY, PHOTO, PHOTO, 4, hslToRgb(hue, 38, 88));
+    canvas.textCenter(photoX + PHOTO / 2, photoY + PHOTO / 2 - 5, (card.name.trim()[0] ?? "?").toUpperCase(), {
+      font: "serif",
+      size: 16,
+      color: hslToRgb(hue, 42, 28),
+    });
+  }
   if (card.flag) {
     canvas.roundRect(x - 4, y + CARD_H - 14, 28, 12, 2, C.tomato);
     canvas.text(x - 1, y + CARD_H - 11, card.flag, { font: "mono", size: 6, color: C.white });
   }
-  canvas.textCenter(x + CARD_W / 2, y + CARD_H - 28, truncateToWidth(card.name, 9, CARD_W - 16), {
+  canvas.textCenter(x + CARD_W / 2, y + 22, truncateToWidth(card.name, 8.5, CARD_W - 16), {
     font: "bold",
-    size: 9,
+    size: 8.5,
     color: C.ink,
   });
   if (card.unit) {
-    canvas.textCenter(x + CARD_W / 2, y + CARD_H - 40, truncateToWidth(card.unit, 7, CARD_W - 18), {
+    canvas.textCenter(x + CARD_W / 2, y + 12, truncateToWidth(card.unit, 6.5, CARD_W - 18), {
       font: "regular",
-      size: 7,
+      size: 6.5,
       color: C.inkSoft,
     });
   }
@@ -373,6 +556,7 @@ export type CatalogueChalkPdfInput = {
 
 export async function buildMarketplaceCatalogueChalkPdf({
   detail,
+  origin,
   includePrices = true,
 }: CatalogueChalkPdfInput): Promise<Blob> {
   const products = detail.products;
@@ -384,49 +568,52 @@ export async function buildMarketplaceCatalogueChalkPdf({
     .filter((l, i, arr) => arr.indexOf(l) === i)
     .join(" · ");
   const phone = detail.contactPhone?.trim() ? formatPhone(detail.contactPhone) : null;
-  const sections = toCards(products, currency).map((section) => ({
+  const sections = toCards(products, currency, origin).map((section) => ({
     ...section,
     cards: section.cards.map((card) => ({
       ...card,
       price: includePrices ? card.price : "—",
     })),
   }));
+  const allCards = sections.flatMap((section) => section.cards);
+  const thumbs = await loadProductImages(allCards.map((card) => card.imageUrl));
+  const imageById = new Map(allCards.map((card, i) => [card.id, thumbs[i] ?? null]));
   const packed = packPages(sections);
-  const pages = packed.map((blocks, index) => {
-    const canvas = new PdfCanvas();
-    canvas.fill(0, 0, PAGE_W, PAGE_H, C.paper);
+  const pages: PageBuild[] = packed.map((blocks, index) => {
+    const page: PageBuild = { canvas: new PdfCanvas(), images: [] };
+    page.canvas.fill(0, 0, PAGE_W, PAGE_H, C.paper);
     const first = index === 0;
     if (first) {
-      paintBanner(canvas, detail, areaLabel, phone);
-      paintTorn(canvas, PAGE_H - BANNER_H);
+      paintBanner(page.canvas, detail, areaLabel, phone);
+      paintTorn(page.canvas, PAGE_H - BANNER_H);
     }
     let y = first ? PAGE_H - BANNER_H - TORN_H - 8 : PAGE_H - 28;
     for (const block of blocks) {
       if (block.kind === "cat") {
-        canvas.text(MARGIN, y - 14, truncateToWidth(block.label, 12, CONTENT_W - 40), {
+        page.canvas.text(MARGIN, y - 14, truncateToWidth(block.label, 12, CONTENT_W - 40), {
           font: "serif",
           size: 12,
           color: C.chalk,
         });
         const labelW = Math.min(CONTENT_W - 24, textWidth(block.label, 12) + 10);
-        canvas.dashLine(MARGIN + labelW, y - 10, MARGIN + CONTENT_W, y - 10, C.inkSoft);
+        page.canvas.dashLine(MARGIN + labelW, y - 10, MARGIN + CONTENT_W, y - 10, C.inkSoft);
         y -= CAT_H;
       } else {
         block.cards.forEach((card, i) => {
           const x = MARGIN + i * (CARD_W + CARD_GAP);
-          paintCard(canvas, x, y - CARD_H, card, i % 2 === 0 ? 1 : -1);
+          paintCard(page, x, y - CARD_H, card, imageById.get(card.id) ?? null, i % 2 === 0 ? 1 : -1);
         });
         y -= CARD_H + 8;
       }
     }
-    paintFooter(canvas, detail.name, index + 1, packed.length);
-    return canvas;
+    paintFooter(page.canvas, detail.name, index + 1, packed.length);
+    return page;
   });
 
   return assemblePdf(pages);
 }
 
-function assemblePdf(pages: PdfCanvas[]): Blob {
+function assemblePdf(pages: PageBuild[]): Blob {
   const enc = new TextEncoder();
   const chunks: Uint8Array[] = [];
   let length = 0;
@@ -436,32 +623,67 @@ function assemblePdf(pages: PdfCanvas[]): Blob {
     chunks.push(b);
     length += b.length;
   };
+  const pushBytes = (b: Uint8Array) => {
+    chunks.push(b);
+    length += b.length;
+  };
   const writeObject = (body: string) => {
     offsets.push(length);
     push(body);
   };
-  const totalObjects = 6 + pages.length * 2;
+
+  const pageObjStart = 7;
+  const imageIdStart = 6 + pages.length * 2 + 1;
+  const imageIds: number[][] = [];
+  let nextImageId = imageIdStart;
+  for (const page of pages) {
+    const ids: number[] = [];
+    page.images.forEach(() => {
+      ids.push(nextImageId);
+      nextImageId += 1;
+    });
+    imageIds.push(ids);
+  }
+  const totalObjects = nextImageId - 1;
+
   push("%PDF-1.4\n");
   writeObject("1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj\n");
-  const kids = pages.map((_, i) => `${7 + i * 2} 0 R`).join(" ");
+  const kids = pages.map((_, i) => `${pageObjStart + i * 2} 0 R`).join(" ");
   writeObject(`2 0 obj<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>endobj\n`);
   writeObject("3 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj\n");
   writeObject("4 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>endobj\n");
   writeObject("5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold >>endobj\n");
   writeObject("6 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold >>endobj\n");
-  pages.forEach((canvas, pageIndex) => {
-    const pageId = 7 + pageIndex * 2;
+
+  pages.forEach((page, pageIndex) => {
+    const pageId = pageObjStart + pageIndex * 2;
     const contentId = pageId + 1;
+    const xObjects = imageIds[pageIndex].map((id, i) => `/Im${i + 1} ${id} 0 R`).join(" ");
+    const resources = `/Font<< /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >>${
+      xObjects ? ` /XObject<< ${xObjects} >>` : ""
+    }`;
     writeObject(
       `${pageId} 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] ` +
-        `/Contents ${contentId} 0 R /Resources<< /Font<< /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> >>endobj\n`,
+        `/Contents ${contentId} 0 R /Resources<< ${resources} >> >>endobj\n`,
     );
-    const streamBytes = latin1Encode(canvas.toStream());
+    const streamBytes = latin1Encode(page.canvas.toStream());
     writeObject(`${contentId} 0 obj<< /Length ${streamBytes.length} >>stream\n`);
-    chunks.push(streamBytes);
-    length += streamBytes.length;
+    pushBytes(streamBytes);
     push("\nendstream\nendobj\n");
   });
+
+  pages.forEach((page, pageIndex) => {
+    page.images.forEach((image, imageIndex) => {
+      const id = imageIds[pageIndex][imageIndex];
+      writeObject(
+        `${id} 0 obj<< /Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} ` +
+          `/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.data.length} >>stream\n`,
+      );
+      pushBytes(image.data);
+      push("\nendstream\nendobj\n");
+    });
+  });
+
   const xrefStart = length;
   push(`xref\n0 ${totalObjects + 1}\n`);
   push("0000000000 65535 f \n");
@@ -470,6 +692,7 @@ function assemblePdf(pages: PdfCanvas[]): Blob {
   }
   push(`trailer<< /Size ${totalObjects + 1} /Root 1 0 R >>\n`);
   push(`startxref\n${xrefStart}\n%%EOF`);
+
   const out = new Uint8Array(length);
   let pos = 0;
   for (const chunk of chunks) {

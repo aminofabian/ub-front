@@ -488,6 +488,111 @@ function HubShell({ children }: { children: ReactNode }) {
   );
 }
 
+/** Pulse bar used across the supplier-passport skeleton. */
+function SkeletonBar({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "block animate-pulse rounded-md bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_9%,transparent)]",
+        className,
+      )}
+      aria-hidden
+    />
+  );
+}
+
+/**
+ * Page-load placeholder that mirrors the real passport layout: the
+ * passport strip (identity + owed/paid/partial stats), the sign-in hint,
+ * the catalogue header row, and a shelf grid of product tiles.
+ */
+function GlobalSupplierHubSkeleton() {
+  return (
+    <HubShell>
+      <div
+        className="mx-auto w-full max-w-[1400px] px-3 pb-10 pt-3 sm:px-5"
+        aria-busy="true"
+        aria-label="Loading supplier passport"
+      >
+        <section className="space-y-4">
+          {/* Passport strip */}
+          <div
+            className={cn(
+              "relative overflow-hidden border bg-white/80",
+              INK_BORDER,
+            )}
+          >
+            <span
+              aria-hidden
+              className="absolute inset-y-0 left-0 w-1 bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]"
+            />
+            <div className="space-y-2.5 px-3.5 py-4 pl-5 sm:px-5">
+              <SkeletonBar className="h-2.5 w-40" />
+              <SkeletonBar className="h-5 w-48" />
+              <SkeletonBar className="h-3 w-32" />
+            </div>
+            <div
+              className={cn(
+                "grid grid-cols-3 divide-x border-t",
+                INK_BORDER_SOFT,
+                "divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]",
+              )}
+            >
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="space-y-1.5 px-3 py-3 sm:px-4">
+                  <SkeletonBar className="h-2.5 w-10" />
+                  <SkeletonBar className="h-4 w-14" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Sign-in hint row */}
+          <div
+            className={cn(
+              "flex flex-wrap items-center justify-between gap-3 border border-dashed px-3.5 py-3",
+              "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
+            )}
+          >
+            <SkeletonBar className="h-3 w-56" />
+            <SkeletonBar className="h-8 w-24" />
+          </div>
+        </section>
+
+        {/* Catalogue header row */}
+        <div className="mb-2 mt-5 flex flex-wrap items-center justify-between gap-2">
+          <SkeletonBar className="h-3 w-32" />
+          <div className="flex flex-wrap items-center gap-2">
+            <SkeletonBar className="h-7 w-28" />
+            <SkeletonBar className="h-7 w-16" />
+          </div>
+        </div>
+
+        {/* Shelf grid */}
+        <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className={cn(
+                "flex h-full flex-col overflow-hidden border",
+                "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+                "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]",
+              )}
+            >
+              <SkeletonBar className="aspect-square w-full rounded-none" />
+              <div className="flex flex-1 flex-col gap-2 p-2.5">
+                <SkeletonBar className="h-3 w-3/4" />
+                <SkeletonBar className="h-3 w-1/2" />
+                <SkeletonBar className="mt-auto h-7 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </HubShell>
+  );
+}
+
 export function GlobalSupplierHubView({ username }: Props) {
   const [storefront, setStorefront] = useState<GlobalSupplierStorefront | undefined>(
     undefined,
@@ -554,12 +659,7 @@ export function GlobalSupplierHubView({ username }: Props) {
   }, [username, sealEpoch]);
 
   if (storefront === undefined) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center gap-2 text-muted-foreground">
-        <Loader2 className="size-5 animate-spin" />
-        Loading supplier…
-      </div>
-    );
+    return <GlobalSupplierHubSkeleton />;
   }
 
   const { hub, detail } = storefront;
