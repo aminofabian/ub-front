@@ -6,6 +6,7 @@ import {
   ArrowDown,
   CheckCircle2,
   ChevronLeft,
+  ExternalLink,
   Inbox,
   RotateCw,
   Search,
@@ -27,6 +28,7 @@ import {
   mergeByTimestamp,
 } from "@/components/support/support-chat-ui";
 import { Button } from "@/components/ui/button";
+import { APP_ROUTES, PLATFORM_DOMAIN, slugDerivedShopUrl } from "@/lib/config";
 import {
   getSuperAdminRealtimeClient,
   type RealtimeConnectionState,
@@ -46,7 +48,6 @@ import {
   resolveSaSupportConversation,
   sendSaSupportMessage,
 } from "@/lib/super-admin-api";
-import { APP_ROUTES } from "@/lib/config";
 import { playSupportMessageSound, unlockSupportAudio } from "@/lib/support-sound";
 import { cn } from "@/lib/utils";
 
@@ -375,6 +376,12 @@ export function SaSupportInbox() {
   const [showJump, setShowJump] = React.useState(false);
   const [presence, setPresence] = React.useState<Record<string, SaSupportPresence>>({});
   const [onlineOnly, setOnlineOnly] = React.useState(false);
+  const [liveCounts, setLiveCounts] = React.useState({
+    tenantsOnline: 0,
+    visitorsOnline: 0,
+    tenantsOnSupport: 0,
+    visitorsOnSupport: 0,
+  });
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const stickToBottomRef = React.useRef(true);
@@ -419,6 +426,12 @@ export function SaSupportInbox() {
             ...presencePayload.presence,
             ...presencePayload.guestPresence,
           }));
+          setLiveCounts({
+            tenantsOnline: presencePayload.tenantsOnline,
+            visitorsOnline: presencePayload.visitorsOnline,
+            tenantsOnSupport: presencePayload.tenantsOnSupport,
+            visitorsOnSupport: presencePayload.visitorsOnSupport,
+          });
         }
         setListError("");
         setListPulse((n) => n + 1);
@@ -907,6 +920,23 @@ export function SaSupportInbox() {
   const onlineCount = conversations.filter((c) => presence[presenceKey(c)]?.online === true).length;
   const tenantPresence = activeConversation ? presence[presenceKey(activeConversation)] : undefined;
   const tenantLastSeen = tenantPresence ? lastSeenLabel(tenantPresence.lastSeenAt) : null;
+  const liveTenantsLoggedIn = liveCounts.tenantsOnline;
+  const shopHref =
+    activeConversation?.conversationType === "TENANT" && activeConversation.businessSlug
+      ? slugDerivedShopUrl(activeConversation.businessSlug)
+      : "";
+  const saTenantHref =
+    activeConversation?.conversationType === "TENANT" && activeConversation.businessId
+      ? `${APP_ROUTES.superAdminBusinesses}/${encodeURIComponent(activeConversation.businessId)}?${new URLSearchParams(
+          {
+            name: activeConversation.businessName ?? "",
+            slug: activeConversation.businessSlug ?? "",
+            tier: "",
+            active: "1",
+          },
+        ).toString()}`
+      : "";
+  const tenantTitleHref = shopHref || saTenantHref;
   const visible = conversations.filter((c) => {
     if (onlineOnly && presence[presenceKey(c)]?.online !== true) return false;
     if (normalizedSearch) {
@@ -1016,7 +1046,11 @@ export function SaSupportInbox() {
             type="button"
             onClick={() => setOnlineOnly((v) => !v)}
             aria-pressed={onlineOnly}
-            title="Show only people that are online right now"
+            title={
+              tab === "VISITOR"
+                ? `${liveCounts.visitorsOnline} visitors connected · ${liveCounts.visitorsOnSupport} in this inbox`
+                : `${liveTenantsLoggedIn} tenants logged in · ${liveCounts.tenantsOnSupport} on support`
+            }
             className={cn(
               "inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-md text-xs font-medium transition-colors",
               onlineOnly
@@ -1026,11 +1060,51 @@ export function SaSupportInbox() {
           >
             <span className={cn("size-1.5 rounded-full", onlineOnly ? "bg-emerald-500" : "bg-muted-foreground/40")} />
             Online
-            <span className={cn("text-[10px]", onlineOnly ? "text-emerald-600/80 dark:text-emerald-400/80" : "text-muted-foreground/60")}>
-              {onlineCount}
+            <span
+              className={cn(
+                "text-[10px] tabular-nums",
+                onlineOnly ? "text-emerald-600/80 dark:text-emerald-400/80" : "text-muted-foreground/60",
+              )}
+            >
+              {tab === "VISITOR" ? liveCounts.visitorsOnline : liveTenantsLoggedIn}
             </span>
           </button>
         </div>
+
+        <p className="mt-2 flex items-center gap-1.5 px-0.5 text-[11px] text-muted-foreground">
+          <span
+            className={cn(
+              "size-1.5 shrink-0 rounded-full",
+              (tab === "VISITOR" ? liveCounts.visitorsOnline : liveTenantsLoggedIn) > 0
+                ? "bg-emerald-500"
+                : "bg-muted-foreground/35",
+            )}
+            aria-hidden
+          />
+          {tab === "VISITOR" ? (
+            <>
+              <span className="font-medium tabular-nums text-foreground">
+                {liveCounts.visitorsOnline}
+              </span>{" "}
+              visitors connected
+              <span className="text-muted-foreground/50">·</span>
+              <span className="tabular-nums">{liveCounts.visitorsOnSupport}</span> in inbox
+            </>
+          ) : (
+            <>
+              <span className="font-medium tabular-nums text-foreground">{liveTenantsLoggedIn}</span>{" "}
+              tenants logged in
+              <span className="text-muted-foreground/50">·</span>
+              <span className="tabular-nums">{liveCounts.tenantsOnSupport}</span> on support
+              {onlineOnly ? (
+                <>
+                  <span className="text-muted-foreground/50">·</span>
+                  <span className="tabular-nums">{onlineCount}</span> in this list
+                </>
+              ) : null}
+            </>
+          )}
+        </p>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -1202,10 +1276,32 @@ export function SaSupportInbox() {
         />
         <div className="min-w-0 flex-1">
           <p className="flex min-w-0 items-baseline gap-1.5 text-sm font-semibold text-foreground">
-            <span className="truncate">{displayName(activeConversation)}</span>
+            {tenantTitleHref ? (
+              <a
+                href={tenantTitleHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={
+                  shopHref
+                    ? `Open ${activeConversation.businessSlug}.${PLATFORM_DOMAIN}`
+                    : "Open tenant in console"
+                }
+                className="inline-flex min-w-0 max-w-full items-center gap-1 truncate text-foreground underline-offset-2 transition-colors hover:text-primary hover:underline"
+              >
+                <span className="truncate">{displayName(activeConversation)}</span>
+                <ExternalLink className="size-3 shrink-0 opacity-55" aria-hidden />
+              </a>
+            ) : (
+              <span className="truncate">{displayName(activeConversation)}</span>
+            )}
             {activeConversation.guestPhone ? (
               <span className="shrink-0 text-[10px] font-normal text-muted-foreground/70">
                 · {activeConversation.guestPhone}
+              </span>
+            ) : null}
+            {shopHref && activeConversation.businessSlug ? (
+              <span className="hidden shrink-0 font-mono text-[10px] font-normal text-muted-foreground/70 sm:inline">
+                {activeConversation.businessSlug}.{PLATFORM_DOMAIN}
               </span>
             ) : null}
           </p>

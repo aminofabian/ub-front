@@ -2955,6 +2955,14 @@ export type SaSupportPresencePayload = {
   presence: Record<string, SaSupportPresence>;
   /** Visitor threads keyed by guestId. */
   guestPresence: Record<string, SaSupportPresence>;
+  /** Distinct tenants with any open realtime socket (logged into the app). */
+  tenantsOnline: number;
+  /** Distinct guests with an open visitor socket. */
+  visitorsOnline: number;
+  /** Tenants currently on the support channel (inbox presence). */
+  tenantsOnSupport: number;
+  /** Visitors currently on their guest support channel. */
+  visitorsOnSupport: number;
 };
 
 export async function fetchSaSupportPresence(): Promise<SaSupportPresencePayload> {
@@ -2964,6 +2972,10 @@ export async function fetchSaSupportPresence(): Promise<SaSupportPresencePayload
   return {
     presence: payload.presence ?? {},
     guestPresence: payload.guestPresence ?? {},
+    tenantsOnline: Number(payload.tenantsOnline ?? 0),
+    visitorsOnline: Number(payload.visitorsOnline ?? 0),
+    tenantsOnSupport: Number(payload.tenantsOnSupport ?? 0),
+    visitorsOnSupport: Number(payload.visitorsOnSupport ?? 0),
   };
 }
 
