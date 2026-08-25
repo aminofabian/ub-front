@@ -144,20 +144,36 @@ export async function startGuestThread(
     name?: string | null;
   },
 ): Promise<GuestThreadPayload> {
-  const guestId = ensureGuestId();
-  const session = loadGuestSession(ns);
-  const response = await fetch(apiUrl("/api/v1/public/support/threads"), {
-    method: "POST",
-    credentials: "include",
-    headers: guestHeaders(guestId, session.token),
-    body: JSON.stringify({
-      type: opts.type,
-      businessSlug: opts.businessSlug,
-      guestId,
-      guestName: opts.name ?? getGuestName() ?? undefined,
-      body: opts.body,
-    }),
-  });
+  const attempt = async (guestId: string, token: string | null): Promise<Response> => {
+    return fetch(apiUrl("/api/v1/public/support/threads"), {
+      method: "POST",
+      credentials: "include",
+      headers: guestHeaders(guestId, token),
+      body: JSON.stringify({
+        type: opts.type,
+        businessSlug: opts.businessSlug,
+        guestId,
+        guestName: opts.name ?? getGuestName() ?? undefined,
+        body: opts.body,
+      }),
+    });
+  };
+
+  let guestId = ensureGuestId();
+  let session = loadGuestSession(ns);
+  let response = await attempt(guestId, session.token);
+
+  if (response.status === 400 || response.status === 401) {
+    // The server rejected this guest identity: the thread may already exist
+    // with a token we lost (or a stale duplicate key blocked the insert).
+    // Regenerate the identity and start a fresh thread.
+    write(`${NS}.id`, uuid());
+    write(threadKey(ns), null);
+    guestId = ensureGuestId();
+    session = loadGuestSession(ns);
+    response = await attempt(guestId, session.token);
+  }
+
   if (!response.ok) {
     throw new Error(`Could not start conversation (${response.status})`);
   }

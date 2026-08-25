@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Three ways into the same M-Pesa rails</text>
+
+  <!-- ============ COL 1: Buy Goods till ============ -->
+  <rect x="16" y="56" width="296" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="56" width="296" height="48" rx="14" fill="#0F766E"/>
+  <rect x="16" y="82" width="296" height="22" fill="#0F766E"/>
+  <text x="40" y="87" font-size="12.5" font-weight="700" fill="#ffffff">Buy Goods (till)</text>
+
+  <circle cx="164" cy="140" r="24" fill="#E0F2F1" stroke="#0F766E"/>
+  <text x="164" y="148" font-size="18" text-anchor="middle">🏪</text>
+  <text x="164" y="194" font-size="10.5" font-weight="700" fill="#1F2937" text-anchor="middle">The customer pays your till number</text>
+
+  <g font-size="10" fill="#374151">
+    <rect x="40" y="216" width="248" height="88" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="60" y="238" font-size="9" font-weight="700" letter-spacing="1.1" fill="#6b7280">WHO STARTS IT</text>
+    <text x="60" y="258" font-size="10.5" fill="#1F2937">Customer — on their phone</text>
+    <text x="60" y="278" font-size="9.5" fill="#6b7280">The till listens; cashier keeps working</text>
+
+    <rect x="40" y="314" width="248" height="88" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="60" y="336" font-size="9" font-weight="700" letter-spacing="1.1" fill="#6b7280">CUSTOMER SEES</text>
+    <text x="60" y="356" font-size="10.5" fill="#1F2937">The normal M-Pesa Buy Goods flow</text>
+    <text x="60" y="376" font-size="9.5" fill="#6b7280">Confirms by amount + paying number</text>
+
+    <rect x="40" y="412" width="248" height="88" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="60" y="434" font-size="9" font-weight="700" letter-spacing="1.1" fill="#6b7280">BEST FOR</text>
+    <text x="60" y="454" font-size="10.5" fill="#1F2937">Counter customers who already</text>
+    <text x="60" y="470" font-size="10.5" fill="#1F2937">pay the till directly</text>
+  </g>
+
+  <!-- ============ COL 2: Paybill ============ -->
+  <rect x="332" y="56" width="296" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="332" y="56" width="296" height="48" rx="14" fill="#A8842C"/>
+  <rect x="332" y="82" width="296" height="22" fill="#A8842C"/>
+  <text x="356" y="87" font-size="12.5" font-weight="700" fill="#ffffff">Paybill</text>
+
+  <circle cx="480" cy="140" r="24" fill="#fefce8" stroke="#A8842C"/>
+  <text x="480" y="148" font-size="18" text-anchor="middle">🧾</text>
+  <text x="480" y="194" font-size="10.5" font-weight="700" fill="#1F2937" text-anchor="middle">Paybill number + account reference</text>
+
+  <g font-size="10" fill="#374151">
+    <rect x="356" y="216" width="248" height="88" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="376" y="238" font-size="9" font-weight="700" letter-spacing="1.1" fill="#6b7280">WHO STARTS IT</text>
+    <text x="376" y="258" font-size="10.5" fill="#1F2937">Customer — paybill + account number</text>
+    <text x="376" y="278" font-size="9.5" fill="#6b7280">Reference identifies the payment</text>
+
+    <rect x="356" y="314" width="248" height="88" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="376" y="336" font-size="9" font-weight="700" letter-spacing="1.1" fill="#6b7280">CUSTOMER SEES</text>
+    <text x="376" y="356" font-size="10.5" fill="#1F2937">The paybill entry screen</text>
+    <text x="376" y="376" font-size="9.5" fill="#6b7280">Account number they type matters</text>
+
+    <rect x="356" y="412" width="248" height="88" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="376" y="434" font-size="9" font-weight="700" letter-spacing="1.1" fill="#6b7280">BEST FOR</text>
+    <text x="376" y="454" font-size="10.5" fill="#1F2937">Larger sums, B2B, utilities,</text>
+    <text x="376" y="470" font-size="10.5" fill="#1F2937">invoiced payments</text>
+  </g>
+
+  <!-- ============ COL 3: STK Push ============ -->
+  <rect x="648" y="56" width="296" height="480" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="648" y="56" width="296" height="48" rx="14" fill="#15803d"/>
+  <rect x="648" y="82" width="296" height="22" fill="#15803d"/>
+  <text x="672" y="87" font-size="12.5" font-weight="700" fill="#ffffff">STK Push</text>
+
+  <circle cx="796" cy="140" r="24" fill="#f0fdf4" stroke="#15803d"/>
+  <text x="796" y="148" font-size="18" text-anchor="middle">📱</text>
+  <text x="796" y="194" font-size="10.5" font-weight="700" fill="#1F2937" text-anchor="middle">The till sends the prompt</text>
+
+  <g font-size="10" fill="#374151">
+    <rect x="672" y="216" width="248" height="88" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="692" y="238" font-size="9" font-weight="700" letter-spacing="1.1" fill="#6b7280">WHO STARTS IT</text>
+    <text x="692" y="258" font-size="10.5" fill="#1F2937">Cashier — from the till</text>
+    <text x="692" y="278" font-size="9.5" fill="#6b7280">Enter the number, send the prompt</text>
+
+    <rect x="672" y="314" width="248" height="88" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="692" y="336" font-size="9" font-weight="700" letter-spacing="1.1" fill="#6b7280">CUSTOMER SEES</text>
+    <text x="692" y="356" font-size="10.5" fill="#1F2937">A prompt: amount + Enter PIN</text>
+    <text x="692" y="376" font-size="9.5" fill="#6b7280">Confirms on their own phone</text>
+
+    <rect x="672" y="412" width="248" height="88" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+    <text x="692" y="434" font-size="9" font-weight="700" letter-spacing="1.1" fill="#6b7280">BEST FOR</text>
+    <text x="692" y="454" font-size="10.5" fill="#1F2937">Fastest checkout when the</text>
+    <text x="692" y="470" font-size="10.5" fill="#1F2937">customer is at the counter</text>
+  </g>
+</svg>

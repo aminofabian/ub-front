@@ -119,11 +119,11 @@ export function GuestSupportLauncher({ context }: { context: GuestSupportContext
         aria-label={open ? "Close chat" : `Chat with ${context.teamName}`}
         title={open ? "Close chat" : `Chat with ${context.teamName}`}
         className={cn(
-          "group fixed bottom-4 right-4 z-40 flex size-14 items-center justify-center rounded-full text-white shadow-lg outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "group fixed bottom-4 right-4 z-40 flex size-14 items-center justify-center rounded-full shadow-lg outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           "bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)]",
-          open ? "bg-muted-foreground" : "",
+          open ? "bg-muted-foreground text-white" : "text-primary-foreground",
         )}
-        style={!open ? { backgroundColor: context.accentHex || undefined } : undefined}
+        style={{ backgroundColor: !open ? context.accentHex || "var(--primary)" : undefined }}
       >
         {unread > 0 && !open ? (
           <span
@@ -475,8 +475,11 @@ function GuestSupportPanel({
       {showIntro ? (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
           <span
-            className="flex size-12 items-center justify-center rounded-full text-white shadow-md"
-            style={{ backgroundColor: accent || "var(--primary)" }}
+            className="flex size-12 items-center justify-center rounded-full shadow-md"
+            style={{
+              backgroundColor: accent || "var(--primary)",
+              color: accent ? "#fff" : "var(--primary-foreground)",
+            }}
           >
             <Headset className="size-6" aria-hidden />
           </span>
@@ -494,8 +497,11 @@ function GuestSupportPanel({
           <button
             type="button"
             onClick={beginIntro}
-            className="inline-flex h-10 items-center justify-center rounded-xl px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: accent || "var(--primary)" }}
+            className="inline-flex h-10 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{
+              backgroundColor: accent || "var(--primary)",
+              color: accent ? "#fff" : "var(--primary-foreground)",
+            }}
           >
             Start chatting
           </button>

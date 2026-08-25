@@ -57,18 +57,25 @@ export function PlatformSupportLauncher() {
     const host = window.location.hostname.toLowerCase();
     const apex = PLATFORM_DOMAIN.toLowerCase();
     const isApex =
-      host === apex || host === `www.${apex}` || host === "localhost" || host === "127.0.0.1";
+      host === apex ||
+      host === `www.${apex}` ||
+      host === "palmart.co.ke" ||
+      host === "www.palmart.co.ke" ||
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1";
     if (!isApex) {
       setVisible(false);
       return;
     }
     const path = pathname ?? "/";
     const onAppPath = APP_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
-    const signedIn =
-      (typeof window !== "undefined" &&
-        Boolean(window.localStorage.getItem(STORAGE_KEYS.accessToken))) ||
+    // A signed-in tenant is inside the dashboard world (where the in-app
+    // support chat takes over). Super-admins and visitors keep the guest chat.
+    const signedInAsTenant =
+      Boolean(window.localStorage.getItem(STORAGE_KEYS.accessToken)) ||
       Boolean(window.localStorage.getItem(STORAGE_KEYS.tenantId));
-    setVisible(!onAppPath && !signedIn);
+    setVisible(!onAppPath && !signedInAsTenant);
   }, [pathname]);
 
   if (!visible) return null;

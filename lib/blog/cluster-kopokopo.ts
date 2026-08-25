@@ -828,26 +828,175 @@ const SPOKE_ARTICLES: BlogArticle[] = [
       },
     ],
   },
-  comingSoon({
+  {
     slug: "kopokopo-buy-goods-vs-till-vs-paybill",
     title: "Kopo Kopo Buy Goods vs. Till Number vs. Paybill: Which One for Your Shop?",
     description:
       "Buy Goods (till), Paybill, and STK Push all move money through M-Pesa — but they behave differently at the counter. Which one belongs in your shop's till setup?",
     category: "Payments",
+    publishedAt: "2026-08-25",
+    updatedAt: "2026-08-25",
     tags: ["Kopo Kopo", "M-Pesa", "Buy Goods", "Paybill", "Kenya"],
     keywords: [
       "Kopo Kopo Buy Goods",
       "till number vs paybill",
       "M-Pesa Buy Goods till",
+      "paybill vs till Kenya",
+      "M-Pesa payment channels for shops",
     ],
+    author: "Kiosk",
     relatedSlugs: [
       PILLAR_SLUG,
       "setting-up-kopokopo-stk-push-on-pos",
       "how-to-connect-kopokopo-to-your-pos",
+      "kopokopo-fees-and-retailer-margins",
+      "kiosk-kopokopo-integration",
     ],
-    teaser:
-      "Buy Goods tills, Paybill accounts, and STK Push are different ways into the same M-Pesa rails — and they suit different shops. This guide helps you pick the channel (or mix) your counter should run.",
-  }),
+    faqs: [
+      {
+        question: "What's the difference between Buy Goods and Paybill?",
+        answer:
+          "Buy Goods is the till number customers pay directly for purchases — typical at shop counters. Paybill is a business number with an account reference, usually for larger or business-to-business payments. They're different routes into the same M-Pesa rails.",
+      },
+      {
+        question: "Do I need all three — till, paybill, and STK?",
+        answer:
+          "No. Most shops run till (Buy Goods) plus STK Push: customers who prefer the till number keep paying it, and the cashier uses STK for fast checkout. Add paybill only if you take larger, invoiced, or B2B payments.",
+      },
+      {
+        question: "Which is fastest at the counter?",
+        answer:
+          "STK Push — the prompt is on the customer's phone in seconds and they just confirm. Buy Goods till is just as fast for customers who are already used to paying the till directly.",
+      },
+      {
+        question: "Can customers still pay my till number if the POS uses STK?",
+        answer:
+          "Yes — both modes are built in. The till listens for Buy Goods payments while the cashier keeps working, and STK Push is available for customers at the counter. Same gateway, same sale record.",
+      },
+      {
+        question: "Is there a cost difference between the channels?",
+        answer:
+          "Channel fees can differ and rates change, so the exact numbers live in your Kopo Kopo dashboard. Choose by how your customers pay first — the cost difference is rarely the deciding factor for a shop.",
+      },
+      {
+        question: "What is the paybill account number for?",
+        answer:
+          "It's the reference the customer enters alongside the paybill number, and it's how the business identifies the payment — like an invoice number. The till matches it to the right customer or order.",
+      },
+    ],
+    body: [
+      {
+        type: "paragraph",
+        text: "Walk into any Kenyan shop and the till displays three or four ways to pay by M-Pesa: a till number, maybe a paybill, sometimes an STK prompt from the cashier. They all move money through the same rails — but they behave differently at the counter, and the right mix depends on your shop. This guide sorts them out.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "This is the channel-picking spoke in the Kopo Kopo series. The STK setup guide covers the checkout flow in detail; the fees guide covers what each channel costs. Here, the question is which channel your shop should run.",
+      },
+      {
+        type: "heading",
+        text: "1. What Each One Is",
+      },
+      {
+        type: "paragraph",
+        text: "Buy Goods (till) — the till number customers pay directly. It's the everyday shop payment: the customer opens M-Pesa, chooses Buy Goods, enters your till number and the amount, and pays. Kopo Kopo confirms the payment to your POS the moment it happens, and the till matches it to the open sale.",
+      },
+      {
+        type: "paragraph",
+        text: "Paybill — a business number with an account reference. The customer pays the paybill number and types a reference (often an invoice or customer number). It's the channel for larger sums, utilities, and business-to-business payments, where identifying who paid matters as much as the amount.",
+      },
+      {
+        type: "paragraph",
+        text: "STK Push — the till-initiated prompt. The cashier sends the payment prompt to the customer's phone; the customer confirms the amount and enters their PIN. It's the fastest checkout at the counter because nothing has to be typed.",
+      },
+      {
+        type: "image",
+        src: "/blog/kopokopo-channels.svg",
+        alt: "Three channels side by side: Buy Goods till, Paybill, and STK Push — each with who starts it, what the customer sees, and what it's best for",
+        caption:
+          "Three ways into the same rails — the difference is who starts it and what it suits.",
+      },
+      {
+        type: "heading",
+        text: "2. Side by Side",
+      },
+      {
+        type: "table",
+        headers: ["", "Buy Goods (till)", "Paybill", "STK Push"],
+        rows: [
+          ["Who starts it", "Customer", "Customer", "Cashier, from the till"],
+          ["What's entered", "Till number + amount", "Paybill + account reference", "Nothing by the customer — just confirm"],
+          ["Best for", "Everyday counter sales", "Larger sums, B2B, invoices", "Fast checkout at the counter"],
+          ["Confirmation at the till", "Webhook, by amount + number", "Reference-matched", "Confirmation on PIN entry"],
+        ],
+      },
+      {
+        type: "heading",
+        text: "3. What Actually Matters at Your Counter",
+      },
+      {
+        type: "paragraph",
+        text: "For a shop, two rules of thumb cover most cases. First: run the till (Buy Goods) as the base — it's what customers expect and already know. Second: use STK Push as the fast lane for checkout — it removes the typing without asking customers to change anything. Paybill earns its place when payments are larger or invoiced: a supplier, a school, a business customer.",
+      },
+      {
+        type: "list",
+        items: [
+          "Small retail at the counter — till plus STK Push.",
+          "Larger or business payments — paybill with a reference.",
+          "Remote or phone orders — STK Push (the till sends the prompt to the orderer).",
+          "Customers who 'just pay the till' — always keep the till number working.",
+        ],
+      },
+      {
+        type: "heading",
+        text: "4. Setting Up the Right Mix",
+      },
+      {
+        type: "paragraph",
+        text: "On Kiosk the mix is one gateway, not three projects: the KopoKopo config holds your till number (the STK till) and the Webhook tills list (any extra tills that should fire payment confirmations). One subscription registers them all. Paybill, if you add it, is its own number to display and its own payments to match — Kopo Kopo handles the confirmations either way.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "The Kopo Kopo angle: you don't pick a provider per channel. One integration receives Buy Goods till payments, sends STK prompts, and confirms paybill payments — and every one lands in the same sale record and the same shift report.",
+      },
+      {
+        type: "paragraph",
+        text: "Read next:",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Kopo Kopo Integration for POS Systems: The Complete Guide",
+            href: "/blog/kopokopo-pos-integration",
+            blurb: "The pillar guide — how every channel connects to a till.",
+          },
+          {
+            label: "Setting Up STK Push Checkout on Your POS",
+            href: "/blog/setting-up-kopokopo-stk-push-on-pos",
+            blurb: "The fast lane at the counter — states, testing, and fixes.",
+          },
+          {
+            label: "How to Connect Kopo Kopo to Your POS System",
+            href: "/blog/how-to-connect-kopokopo-to-your-pos",
+            blurb: "Where your till numbers and webhook tills are configured.",
+          },
+          {
+            label: "Kopo Kopo Fees and How They Affect Your Margins",
+            href: "/blog/kopokopo-fees-and-retailer-margins",
+            blurb: "What each channel costs, and the hidden costs of going manual.",
+          },
+          {
+            label: "Kiosk.ke's Kopo Kopo Integration",
+            href: "/blog/kiosk-kopokopo-integration",
+            blurb: "Both M-Pesa modes, one till record — the deep-dive.",
+          },
+        ],
+      },
+    ],
+  },
   {
     slug: "setting-up-kopokopo-stk-push-on-pos",
     title: "Setting Up STK Push Checkout on Your POS",
@@ -1643,22 +1792,168 @@ const SPOKE_ARTICLES: BlogArticle[] = [
     teaser:
       "Most till disputes are 'I paid / you didn't' with no record either side can point to. Integrated confirmations put a timestamped, verified payment on the sale — and end the argument on the spot.",
   }),
-  comingSoon({
+  {
     slug: "kopokopo-vs-daraja-api",
     title: "Kopo Kopo vs. the Direct Safaricom Daraja API: Which Should Your POS Use?",
     description:
       "Daraja gives you the raw Safaricom API. Kopo Kopo wraps it with support, webhooks, and multiple payment channels. What each means for your shop's till.",
     category: "Comparison",
+    publishedAt: "2026-08-25",
+    updatedAt: "2026-08-25",
     tags: ["Kopo Kopo", "Daraja", "Safaricom", "API", "Comparison"],
-    keywords: ["Kopo Kopo vs Daraja", "Safaricom Daraja API POS", "M-Pesa API Kenya"],
+    keywords: [
+      "Kopo Kopo vs Daraja",
+      "Safaricom Daraja API POS",
+      "M-Pesa API Kenya",
+      "Daraja vs aggregator",
+      "M-Pesa integration for shops",
+    ],
+    author: "Kiosk",
     relatedSlugs: [
       PILLAR_SLUG,
       "why-m-pesa-integration-matters",
       "best-pos-systems-kenya-with-kopokopo",
+      "kiosk-kopokopo-integration",
+      "kopokopo-webhooks-explained",
     ],
-    teaser:
-      "Safaricom's Daraja API is the raw pipe; Kopo Kopo is a payment company built on it. For a shop, the practical question is which one powers your till — and who answers the phone when it breaks.",
-  }),
+    faqs: [
+      {
+        question: "What is the difference between Daraja and Kopo Kopo?",
+        answer:
+          "Daraja is Safaricom's raw developer API for M-Pesa. Kopo Kopo is a payment company built on Safaricom's rails that adds what a shop actually needs: signed webhooks, Buy Goods till matching, Send Money, a dashboard, and support — behind one integration.",
+      },
+      {
+        question: "Does my shop need the Daraja API?",
+        answer:
+          "No. A shop needs a till that takes M-Pesa reliably — the POS and its payment provider handle the API. Kiosk connects to Kopo Kopo, which builds on the same rails Daraja exposes.",
+      },
+      {
+        question: "Is Daraja free?",
+        answer:
+          "Getting API access involves Safaricom's developer registration and approval, and M-Pesa transactions carry their own costs. The real cost of the direct route is the engineering: building and maintaining auth, callbacks, retries, and reconciliation.",
+      },
+      {
+        question: "Which is more reliable for a till?",
+        answer:
+          "The one with maintained integration, verified webhooks, and someone to call when it breaks. That's the aggregator's job — the direct API leaves the maintenance to you.",
+      },
+      {
+        question: "Is Kopo Kopo built on Daraja?",
+        answer:
+          "Kopo Kopo builds on Safaricom's M-Pesa infrastructure — the same rails the Daraja API exposes — and adds the payment layer on top: webhooks, till matching, Send Money, and a dashboard.",
+      },
+      {
+        question: "How do I know which my POS uses?",
+        answer:
+          "Look at the payment settings. A named gateway like KopoKopo or Paystack means an aggregator; raw API keys and endpoint configuration usually mean a direct integration. Kiosk lists its gateways by name under Payments.",
+      },
+    ],
+    body: [
+      {
+        type: "paragraph",
+        text: "Your POS needs to take M-Pesa. Behind the scenes there are two ways that happens: a direct connection to Safaricom's developer API — Daraja — or a payment company like Kopo Kopo that sits on the same rails and does the hard work for you. For a shop owner, the right answer is short. It's worth understanding why.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "This is the comparison spoke in the Kopo Kopo series: Daraja versus aggregator, and what the difference means at a Kenyan counter. The pillar guide explains the integration itself; this guide explains who builds it.",
+      },
+      {
+        type: "heading",
+        text: "1. What Daraja Actually Is",
+      },
+      {
+        type: "paragraph",
+        text: "Daraja is Safaricom's developer API for M-Pesa — the interface that lets software trigger STK Push, receive payment notifications, and move money. It's a pipe, and it's a powerful one. It is also raw: you register with Safaricom, manage authentication, handle callbacks, retry failures, and build the reconciliation yourself. Daraja doesn't run a till; it gives you the pieces a till needs and leaves the assembly to you.",
+      },
+      {
+        type: "heading",
+        text: "2. What Kopo Kopo Adds",
+      },
+      {
+        type: "paragraph",
+        text: "Kopo Kopo builds on Safaricom's infrastructure and wraps the pipe in what a business actually needs: signed webhooks so confirmations can't be faked, Buy Goods till matching by amount and paying number, Send Money for payouts, a dashboard to watch it all, and support with someone to call. One integration, several payment channels — money in and money out.",
+      },
+      {
+        type: "image",
+        src: "/blog/kopokopo-vs-daraja.svg",
+        alt: "The same rails: on the left, Daraja directly — Safaricom M-Pesa, the raw API, and your software with you building and maintaining everything; on the right, Kopo Kopo between Safaricom and your POS with webhooks, till matching, and support built in",
+        caption:
+          "Same rails, different question: who builds the rest — and who answers the phone when it breaks.",
+      },
+      {
+        type: "heading",
+        text: "3. The Comparison That Matters for a Shop",
+      },
+      {
+        type: "table",
+        headers: ["", "Direct Daraja", "Kopo Kopo"],
+        rows: [
+          ["Who builds the integration", "Your developer team", "The payment company, maintained"],
+          ["Payment confirmations", "You wire up callbacks", "Signed webhooks, verified"],
+          ["Till payment matching", "You build it", "Built in, by amount + number"],
+          ["Send Money payouts", "You build it", "Built in"],
+          ["What breaks", "Your code — you fix it", "Their rails — they fix it"],
+          ["Who you call", "Nobody; you're the support", "Kopo Kopo support"],
+        ],
+      },
+      {
+        type: "heading",
+        text: "4. When Daraja Makes Sense",
+      },
+      {
+        type: "paragraph",
+        text: "The direct route is for builders: a business with its own developers, building custom software at scale, for whom the API is the product. A fintech, a big retailer with a software team, an enterprise doing volume and wanting full control. If that's not you — and for a shop it usually isn't — the direct route buys you maintenance work you don't need.",
+      },
+      {
+        type: "heading",
+        text: "5. What Your POS Should Do",
+      },
+      {
+        type: "paragraph",
+        text: "Your POS should have made this decision for you: a named payment gateway with verified webhooks, till matching, and reports — so M-Pesa just works at the counter and the shift balances itself. On Kiosk, that's the KopoKopo gateway under Payments: connect it once, and STK Push, Buy Goods till matching, and supplier Send Money all run through it.",
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "A shop doesn't need the pipe — it needs the till to just work. Daraja is for builders; an aggregator like Kopo Kopo is for the rest of us, and the POS should have chosen for you.",
+      },
+      {
+        type: "paragraph",
+        text: "Read next:",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Kopo Kopo Integration for POS Systems: The Complete Guide",
+            href: "/blog/kopokopo-pos-integration",
+            blurb: "The pillar guide — how Kopo Kopo connects to a till, plain English.",
+          },
+          {
+            label: "Why M-Pesa Integration Matters",
+            href: "/blog/why-m-pesa-integration-matters",
+            blurb: "Native M-Pesa versus bolted-on payments, from the counter up.",
+          },
+          {
+            label: "Best POS Systems in Kenya with Kopo Kopo Integration",
+            href: "/blog/best-pos-systems-kenya-with-kopokopo",
+            blurb: "How systems compare on how deep their Kopo Kopo support goes.",
+          },
+          {
+            label: "Kopo Kopo API Webhooks Explained for Non-Developers",
+            href: "/blog/kopokopo-webhooks-explained",
+            blurb: "The signed confirmation — the piece a direct build gets wrong.",
+          },
+          {
+            label: "Kiosk.ke's Kopo Kopo Integration",
+            href: "/blog/kiosk-kopokopo-integration",
+            blurb: "What the built-in KopoKopo gateway looks like in practice.",
+          },
+        ],
+      },
+    ],
+  },
   comingSoon({
     slug: "best-pos-systems-kenya-with-kopokopo",
     title: "Best POS Systems in Kenya with Kopo Kopo Integration",
@@ -1680,22 +1975,186 @@ const SPOKE_ARTICLES: BlogArticle[] = [
     teaser:
       "Not every POS that mentions Kopo Kopo actually integrates it. This ranking scores Kenyan systems on how deep the connection goes — STK push, till matching, webhooks, and reports.",
   }),
-  comingSoon({
+  {
     slug: "kopokopo-fees-and-retailer-margins",
     title: "Kopo Kopo Fees and How They Affect Your Margins as a Retailer",
     description:
       "What Kopo Kopo charges per transaction, who pays it, and how to keep mobile money costs from eating your margin.",
     category: "Guides",
+    publishedAt: "2026-08-25",
+    updatedAt: "2026-08-25",
     tags: ["Kopo Kopo", "Fees", "Margins", "M-Pesa", "Kenya"],
-    keywords: ["Kopo Kopo fees", "M-Pesa transaction costs", "mobile money merchant fees"],
+    keywords: [
+      "Kopo Kopo fees",
+      "M-Pesa transaction costs",
+      "mobile money merchant fees",
+      "M-Pesa charges for shops",
+      "payment fees retail margins",
+    ],
+    author: "Kiosk",
     relatedSlugs: [
       PILLAR_SLUG,
       "the-real-cost-of-free-software",
       "kopokopo-buy-goods-vs-till-vs-paybill",
+      "end-of-day-reconciliation-manual-vs-automated",
+      "is-kopokopo-safe-security-and-settlement",
     ],
-    teaser:
-      "Every mobile money channel carries a cost, and who carries it — you or the customer — changes your margin. This guide breaks down Kopo Kopo's fees and how to price around them.",
-  }),
+    faqs: [
+      {
+        question: "What does Kopo Kopo charge a retailer?",
+        answer:
+          "Kopo Kopo charges per-transaction fees that vary by channel and can change, so the exact numbers live in your Kopo Kopo dashboard and your agreement. The important point for a shop: an integrated till doesn't add its own per-payment software fee on top.",
+      },
+      {
+        question: "Who pays the fee — me or the customer?",
+        answer:
+          "Usually the merchant carries the cost of receiving mobile money. Some shops price it into their goods or round up; that's a pricing decision, not a till setting. Know your rate, then decide.",
+      },
+      {
+        question: "How much is the fee on a typical sale?",
+        answer:
+          "It depends on your rate and channel. As a sense of the math: a 1.5% charge on a KES 1,500 sale is KES 22.50 — use your actual dashboard rate, not an example.",
+      },
+      {
+        question: "Do fees differ between STK Push, Buy Goods, and Paybill?",
+        answer:
+          "Channel rates can differ, and they change over time. Choose channels for how your customers pay; check your dashboard for the current rate of each one.",
+      },
+      {
+        question: "Can I pass the fee to customers?",
+        answer:
+          "Some shops round prices up or add a small payment handling note. There's no universal rule, and surprising customers at checkout costs goodwill — price it in gently or eat it as the cost of taking mobile money.",
+      },
+      {
+        question: "Does an integrated POS add its own fees?",
+        answer:
+          "No. Integration is part of the POS plan — there's no per-payment module fee or payment-plugin subscription. You pay the channel fee, not a software tax on top of it.",
+      },
+    ],
+    body: [
+      {
+        type: "paragraph",
+        text: "Every payment channel carries a cost, and mobile money is no exception. For a Kenyan shop, the question isn't whether M-Pesa costs something — it's whether you're paying the visible channel fee or also the hidden costs that quietly eat margins. This guide separates the two.",
+      },
+      {
+        type: "callout",
+        tone: "info",
+        text: "Honesty note: Kopo Kopo's fee schedule varies by channel and changes over time, so this guide won't quote numbers that will age badly. It gives you the shape of the math and where to find your actual rate.",
+      },
+      {
+        type: "heading",
+        text: "1. How Mobile Money Fees Work for a Shop",
+      },
+      {
+        type: "paragraph",
+        text: "When a customer pays your till, the transaction carries a merchant cost — a charge on receiving the money, set by the mobile money product and layered by your payment provider. Where the numbers live: your Kopo Kopo dashboard and your agreement. The exact rate is one lookup away; the shape of the cost is what this guide teaches.",
+      },
+      {
+        type: "heading",
+        text: "2. The Math, Made Visible",
+      },
+      {
+        type: "paragraph",
+        text: "The fee is proportional — a percentage of the sale, charged per transaction. That means it scales with your success: more sales, more fees, and small tickets add up fast because the charge repeats on every single payment.",
+      },
+      {
+        type: "list",
+        items: [
+          "A 1.5% charge on a KES 500 sale is KES 7.50.",
+          "The same rate on a KES 1,500 sale is KES 22.50.",
+          "A hundred KES 500 sales a day is KES 750 in fees — about the same as four of those sales.",
+        ],
+      },
+      {
+        type: "paragraph",
+        text: "Those are example rates — yours may differ. The point is the shape: the fee is small per sale but constant, so it belongs in your pricing thinking, not just your monthly review.",
+      },
+      {
+        type: "image",
+        src: "/blog/kopokopo-fee-math.svg",
+        alt: "The visible cost on the left — a sale, the channel fee, and what you keep — versus the hidden costs on the right: module subscriptions, manual matching, disputes, and shortages",
+        caption:
+          "The visible fee is one number you can plan around. The hidden costs are the ones that eat margins quietly.",
+      },
+      {
+        type: "heading",
+        text: "3. Who Pays — and What to Do About It",
+      },
+      {
+        type: "paragraph",
+        text: "For most shops, the merchant carries the cost of receiving mobile money. That leaves two honest options: price it in, or eat it as the cost of taking M-Pesa — which, for many shops, is simply the cost of doing business in Kenya. What doesn't work is pretending it isn't there and discovering the margin leak at month end.",
+      },
+      {
+        type: "heading",
+        text: "4. What the POS Changes",
+      },
+      {
+        type: "paragraph",
+        text: "An integrated till doesn't remove the channel fee — but it removes the hidden costs around it, and it makes the visible one accurate. The shift report totals M-Pesa from confirmed payments, so your sales figures reflect what actually landed. You see the real channel mix and the real volume, which is what pricing decisions need.",
+      },
+      {
+        type: "list",
+        items: [
+          "No payment-module subscription — integration is part of the plan, not a per-payment add-on.",
+          "No manual matching labor — the close is a report, not a ritual.",
+          "No disputes with no record — every payment is tied to a sale.",
+          "Accurate totals — M-Pesa figures come from confirmations, not memory.",
+        ],
+      },
+      {
+        type: "heading",
+        text: "5. Questions to Ask Before You Worry",
+      },
+      {
+        type: "list",
+        items: [
+          "Is the charge per transaction or a flat rate? (Usually per transaction.)",
+          "Who bears it — me, or does my pricing already cover it?",
+          "Does my till show gross sales or the net after charges?",
+          "Am I paying any software fee on top of the channel fee?",
+        ],
+      },
+      {
+        type: "callout",
+        tone: "tip",
+        text: "The fee is the cost of taking M-Pesa — visible, known, plan-around-able. The hidden costs — module subscriptions, midnight matching, disputes, shortages — are the cost of doing it wrong. An integrated till keeps the first and removes the rest.",
+      },
+      {
+        type: "paragraph",
+        text: "Read next:",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Kopo Kopo Integration for POS Systems: The Complete Guide",
+            href: "/blog/kopokopo-pos-integration",
+            blurb: "The pillar guide — how Kopo Kopo connects to a till, start to finish.",
+          },
+          {
+            label: "Kopo Kopo Buy Goods vs. Till Number vs. Paybill",
+            href: "/blog/kopokopo-buy-goods-vs-till-vs-paybill",
+            blurb: "Channel choice — where fee differences start.",
+          },
+          {
+            label: "The Real Cost of 'Free' Software",
+            href: "/blog/the-real-cost-of-free-software",
+            blurb: "Hidden fees beyond the channel charge — module fees and add-ons.",
+          },
+          {
+            label: "End-of-Day Reconciliation: Manual vs. Automated",
+            href: "/blog/end-of-day-reconciliation-manual-vs-automated",
+            blurb: "The 125-hours-a-year labor cost that integration removes.",
+          },
+          {
+            label: "Is Kopo Kopo Safe? Security and Settlement Explained",
+            href: "/blog/is-kopokopo-safe-security-and-settlement",
+            blurb: "Where the money sits, and how withdrawals work.",
+          },
+        ],
+      },
+    ],
+  },
   comingSoon({
     slug: "kopokopo-for-butcheries-and-weighed-goods",
     title: "Kopo Kopo Integration for Butcheries and Weighed-Goods Retailers",
