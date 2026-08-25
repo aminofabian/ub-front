@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Building2, PencilLine, Send, UserPlus, Wallet } from "lucide-react";
+import { Building2, Pencil, PencilLine, Send, Trash2, UserPlus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import type {
@@ -39,6 +39,9 @@ export function SupplierEditColumn({
   currency = "KES",
   onEditProfile,
   onAddContact,
+  onEditContact,
+  onDeleteContact,
+  deletingContactId = null,
   onDeposit,
   onSavePayout,
   variant = "default",
@@ -53,6 +56,9 @@ export function SupplierEditColumn({
   currency?: string;
   onEditProfile?: () => void;
   onAddContact?: () => void;
+  onEditContact?: (contact: SupplierContactRecord) => void;
+  onDeleteContact?: (contact: SupplierContactRecord) => void;
+  deletingContactId?: string | null;
   onDeposit?: () => void;
   /** Persist KopoKopo payout settings from the supplier sidebar. */
   onSavePayout?: (input: {
@@ -401,6 +407,9 @@ export function SupplierEditColumn({
           contacts={contacts}
           canWrite={canWrite}
           onAddContact={onAddContact}
+          onEditContact={onEditContact}
+          onDeleteContact={onDeleteContact}
+          deletingContactId={deletingContactId}
         />
       ) : null}
 
@@ -456,6 +465,11 @@ export function SupplierEditColumn({
                 <th className="border border-border px-2 py-1 font-semibold">Role</th>
                 <th className="border border-border px-2 py-1 font-semibold">Phone</th>
                 <th className="border border-border px-2 py-1 font-semibold">Email</th>
+                {canWrite && (onEditContact || onDeleteContact) ? (
+                  <th className="border border-border px-2 py-1 font-semibold">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -489,6 +503,16 @@ export function SupplierEditColumn({
                       "—"
                     )}
                   </td>
+                  {canWrite && (onEditContact || onDeleteContact) ? (
+                    <td className="border border-border/70 px-1 py-0.5">
+                      <ContactRowActions
+                        contact={c}
+                        onEditContact={onEditContact}
+                        onDeleteContact={onDeleteContact}
+                        deletingContactId={deletingContactId}
+                      />
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -506,19 +530,81 @@ function formatCreditTerms(days: number | null | undefined): string | null {
   return `Net ${days}`;
 }
 
+function ContactRowActions({
+  contact,
+  onEditContact,
+  onDeleteContact,
+  deletingContactId = null,
+  compact = false,
+}: {
+  contact: SupplierContactRecord;
+  onEditContact?: (contact: SupplierContactRecord) => void;
+  onDeleteContact?: (contact: SupplierContactRecord) => void;
+  deletingContactId?: string | null;
+  compact?: boolean;
+}) {
+  if (!onEditContact && !onDeleteContact) return null;
+  const label = contact.name?.trim() || "contact";
+  const sizeClass = compact ? "size-5" : "size-6";
+  const iconClass = compact ? "size-2.5" : "size-3";
+
+  return (
+    <div className="flex items-center justify-end gap-0.5">
+      {onEditContact ? (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className={cn(
+            sizeClass,
+            "rounded-md text-muted-foreground hover:text-foreground",
+          )}
+          aria-label={`Edit ${label}`}
+          onClick={() => onEditContact(contact)}
+        >
+          <Pencil className={iconClass} aria-hidden />
+        </Button>
+      ) : null}
+      {onDeleteContact ? (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className={cn(
+            sizeClass,
+            "rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
+          )}
+          aria-label={`Delete ${label}`}
+          disabled={deletingContactId === contact.id}
+          onClick={() => onDeleteContact(contact)}
+        >
+          <Trash2 className={iconClass} aria-hidden />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 function SupplierSidebarContactsDock({
   contacts,
   canWrite,
   onAddContact,
+  onEditContact,
+  onDeleteContact,
+  deletingContactId = null,
 }: {
   contacts: SupplierContactRecord[];
   canWrite: boolean;
   onAddContact?: () => void;
+  onEditContact?: (contact: SupplierContactRecord) => void;
+  onDeleteContact?: (contact: SupplierContactRecord) => void;
+  deletingContactId?: string | null;
 }) {
   const sorted = [...contacts].sort((a, b) => {
     if (a.primaryContact === b.primaryContact) return 0;
     return a.primaryContact ? -1 : 1;
   });
+  const showActions = canWrite && Boolean(onEditContact || onDeleteContact);
 
   return (
     <section className="shrink-0 border-t border-border bg-card">
@@ -562,6 +648,11 @@ function SupplierSidebarContactsDock({
                 <th className="border border-border px-1.5 py-0.5 font-semibold">
                   Email
                 </th>
+                {showActions ? (
+                  <th className="border border-border px-1.5 py-0.5 font-semibold">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -600,6 +691,17 @@ function SupplierSidebarContactsDock({
                         "—"
                       )}
                     </td>
+                    {showActions ? (
+                      <td className="border border-border/70 px-0.5 py-0">
+                        <ContactRowActions
+                          contact={c}
+                          onEditContact={onEditContact}
+                          onDeleteContact={onDeleteContact}
+                          deletingContactId={deletingContactId}
+                          compact
+                        />
+                      </td>
+                    ) : null}
                   </tr>
                 );
               })}

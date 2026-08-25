@@ -9493,6 +9493,14 @@ export type CreateSupplierContactPayload = {
   primaryContact?: boolean;
 };
 
+export type PatchSupplierContactPayload = {
+  name?: string;
+  roleLabel?: string;
+  phone?: string;
+  email?: string;
+  primaryContact?: boolean;
+};
+
 export type FetchSuppliersOpts = {
   search?: string;
   /** Exact match on supplier status (e.g. active, inactive, blocked). */
@@ -9653,6 +9661,30 @@ export async function createSupplierContact(
       method: "POST",
       body,
     },
+  );
+}
+
+export async function patchSupplierContact(
+  supplierId: string,
+  contactId: string,
+  body: PatchSupplierContactPayload,
+): Promise<SupplierContactRecord> {
+  return request<SupplierContactRecord>(
+    `/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}/contacts/${encodeURIComponent(contactId.trim())}`,
+    {
+      method: "PATCH",
+      body,
+    },
+  );
+}
+
+export async function deleteSupplierContact(
+  supplierId: string,
+  contactId: string,
+): Promise<void> {
+  await request(
+    `/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}/contacts/${encodeURIComponent(contactId.trim())}`,
+    { method: "DELETE" },
   );
 }
 

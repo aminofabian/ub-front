@@ -13,6 +13,7 @@ import {
   Search,
   Truck,
   UserPlus,
+  UserRoundPen,
   Wallet,
 } from "lucide-react";
 
@@ -36,11 +37,13 @@ import {
   createSupplierContact,
   deleteItemSupplierLink,
   deleteSupplier,
+  deleteSupplierContact,
   fetchSupplierById,
   fetchSupplierContacts,
   fetchSupplierItemLinks,
   fetchSuppliersPage,
   patchSupplier,
+  patchSupplierContact,
   postItemSupplierLinkSetPrimary,
   type CreateSupplierContactPayload,
   type CreateSupplierPayload,
@@ -81,6 +84,13 @@ import {
   supWorkspaceShell,
 } from "./_components/supplier-ui-tokens";
 import { VirtualizedSupplierList } from "./_components/VirtualizedSupplierList";
+
+const EMPTY_CONTACT_DRAFT: CreateSupplierContactPayload = {
+  name: "",
+  roleLabel: "",
+  email: "",
+  phone: "",
+};
 
 export default function SuppliersPage() {
   const router = useRouter();
@@ -141,12 +151,7 @@ export default function SuppliersPage() {
   const [createIdentityConflict, setCreateIdentityConflict] =
     useState<SupplierDuplicateMatch | null>(null);
   const [contactDraft, setContactDraft] =
-    useState<CreateSupplierContactPayload>({
-      name: "",
-      roleLabel: "",
-      email: "",
-      phone: "",
-    });
+    useState<CreateSupplierContactPayload>(EMPTY_CONTACT_DRAFT);
   const [itemLinks, setItemLinks] = useState<SupplierItemLinkRecord[]>([]);
   const [linksBusy, setLinksBusy] = useState(false);
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
@@ -162,7 +167,11 @@ export default function SuppliersPage() {
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [catalogDrawerOpen, setCatalogDrawerOpen] = useState(false);
   const [profileEditDrawerOpen, setProfileEditDrawerOpen] = useState(false);
-  const [addContactDrawerOpen, setAddContactDrawerOpen] = useState(false);
+  const [contactDrawerOpen, setContactDrawerOpen] = useState(false);
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [deletingContactId, setDeletingContactId] = useState<string | null>(
+    null,
+  );
   const [deletingSupplierId, setDeletingSupplierId] = useState<string | null>(
     null,
   );
@@ -310,11 +319,72 @@ export default function SuppliersPage() {
       setEditDrawerOpen(false);
       setCatalogDrawerOpen(false);
       setProfileEditDrawerOpen(false);
-      setAddContactDrawerOpen(false);
+      setContactDrawerOpen(false);
+      setEditingContactId(null);
+      setContactDraft(EMPTY_CONTACT_DRAFT);
       setSelectedInvoice(null);
       setInvoiceDrawerOpen(false);
     }
   }, [detail]);
+
+  const openAddContactDrawer = useCallback(() => {
+    setEditingContactId(null);
+    setContactDraft(EMPTY_CONTACT_DRAFT);
+    setContactDrawerOpen(true);
+  }, []);
+
+  const openEditContactDrawer = useCallback(
+    (contact: SupplierContactRecord) => {
+      setEditingContactId(contact.id);
+      setContactDraft({
+        name: contact.name ?? "",
+        roleLabel: contact.roleLabel ?? "",
+        email: contact.email ?? "",
+        phone: contact.phone ?? "",
+      });
+      setContactDrawerOpen(true);
+    },
+    [],
+  );
+
+  const onContactDrawerOpenChange = useCallback((open: boolean) => {
+    setContactDrawerOpen(open);
+    if (!open) {
+      setEditingContactId(null);
+      setContactDraft(EMPTY_CONTACT_DRAFT);
+    }
+  }, []);
+
+  const onDeleteContact = useCallback(
+    (contact: SupplierContactRecord) => {
+      if (!selectedId || !canWrite) return;
+      const label = contact.name?.trim() || contact.phone?.trim() || "this contact";
+      showThemedConfirmToast({
+        id: `delete-supplier-contact-${contact.id}`,
+        title: `Delete contact “${label}”?`,
+        description: "They will be removed from this supplier. This cannot be undone.",
+        confirmLabel: "Delete",
+        onConfirm: async () => {
+          setDeletingContactId(contact.id);
+          try {
+            await deleteSupplierContact(selectedId, contact.id);
+            setContacts(await fetchSupplierContacts(selectedId));
+            if (editingContactId === contact.id) {
+              onContactDrawerOpenChange(false);
+            }
+            toast.success("Contact deleted.");
+          } catch (e) {
+            toast.error(
+              e instanceof Error ? e.message : "Could not delete contact.",
+            );
+          } finally {
+            setDeletingContactId(null);
+          }
+        },
+      });
+    },
+    [canWrite, editingContactId, onContactDrawerOpenChange, selectedId],
+  );
 
   const handleSelectInvoice = useCallback(
     (order: SupplierPurchaseHistoryOrderRecord) => {
@@ -763,26 +833,41 @@ export default function SuppliersPage() {
     }
   };
 
-  const onAddContact = async (event: React.FormEvent) => {
+  const onSaveContact = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedId) {
       return;
     }
     setFeedback(null);
+    const payload = {
+      name: contactDraft.name?.trim() || "",
+      roleLabel: contactDraft.roleLabel?.trim() || "",
+      email: contactDraft.email?.trim() || "",
+      phone: contactDraft.phone?.trim() || "",
+    };
     try {
-      await createSupplierContact(selectedId, {
-        name: contactDraft.name?.trim() || undefined,
-        roleLabel: contactDraft.roleLabel?.trim() || undefined,
-        email: contactDraft.email?.trim() || undefined,
-        phone: contactDraft.phone?.trim() || undefined,
-      });
-      setContactDraft({ name: "", roleLabel: "", email: "", phone: "" });
+      if (editingContactId) {
+        await patchSupplierContact(selectedId, editingContactId, payload);
+        setFeedback({ text: "Contact updated.", kind: "success" });
+      } else {
+        await createSupplierContact(selectedId, {
+          name: payload.name || undefined,
+          roleLabel: payload.roleLabel || undefined,
+          email: payload.email || undefined,
+          phone: payload.phone || undefined,
+        });
+        setFeedback({ text: "Contact added.", kind: "success" });
+      }
       setContacts(await fetchSupplierContacts(selectedId));
-      setAddContactDrawerOpen(false);
-      setFeedback({ text: "Contact added.", kind: "success" });
+      onContactDrawerOpenChange(false);
     } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : "Add contact failed.",
+        text:
+          error instanceof Error
+            ? error.message
+            : editingContactId
+              ? "Update contact failed."
+              : "Add contact failed.",
         kind: "error",
       });
     }
@@ -1110,13 +1195,12 @@ export default function SuppliersPage() {
                             }
                           : undefined
                       }
-                      onAddContact={
-                        canWrite
-                          ? () => {
-                              setAddContactDrawerOpen(true);
-                            }
-                          : undefined
+                      onAddContact={canWrite ? openAddContactDrawer : undefined}
+                      onEditContact={
+                        canWrite ? openEditContactDrawer : undefined
                       }
+                      onDeleteContact={canWrite ? onDeleteContact : undefined}
+                      deletingContactId={deletingContactId}
                     />
                   </div>
                 </aside>
@@ -1220,7 +1304,7 @@ export default function SuppliersPage() {
             open={editDrawerOpen}
             onOpenChange={setEditDrawerOpen}
             title="Supplier details"
-            description="Overview, commercial data, and contacts. Use the buttons below to edit the profile or add a contact."
+            description="Overview, commercial data, and contacts. Use the buttons below to edit the profile or manage contacts."
             contextLabel="Supplier record"
             icon={<PencilLine className="size-5 text-primary" aria-hidden />}
             width="wide"
@@ -1261,10 +1345,20 @@ export default function SuppliersPage() {
                 canWrite
                   ? () => {
                       setEditDrawerOpen(false);
-                      setAddContactDrawerOpen(true);
+                      openAddContactDrawer();
                     }
                   : undefined
               }
+              onEditContact={
+                canWrite
+                  ? (contact) => {
+                      setEditDrawerOpen(false);
+                      openEditContactDrawer(contact);
+                    }
+                  : undefined
+              }
+              onDeleteContact={canWrite ? onDeleteContact : undefined}
+              deletingContactId={deletingContactId}
             />
           </FormDrawer>
 
@@ -1369,25 +1463,33 @@ export default function SuppliersPage() {
           </FormDrawer>
 
           <FormDrawer
-            open={addContactDrawerOpen}
-            onOpenChange={setAddContactDrawerOpen}
-            title="Add contact"
+            open={contactDrawerOpen}
+            onOpenChange={onContactDrawerOpenChange}
+            title={editingContactId ? "Edit contact" : "Add contact"}
             description="Optional fields — include at least one way to reach this person."
             contextLabel="Workspace"
-            icon={<UserPlus className="size-5 text-primary" aria-hidden />}
+            icon={
+              editingContactId ? (
+                <UserRoundPen className="size-5 text-primary" aria-hidden />
+              ) : (
+                <UserPlus className="size-5 text-primary" aria-hidden />
+              )
+            }
             width="wide"
             footer={
               <SupDrawerFooter
-                onCancel={() => setAddContactDrawerOpen(false)}
-                submitLabel="Add contact"
-                submitForm="supplier-add-contact-form"
+                onCancel={() => onContactDrawerOpenChange(false)}
+                submitLabel={
+                  editingContactId ? "Save contact" : "Add contact"
+                }
+                submitForm="supplier-contact-form"
               />
             }
           >
             <form
-              id="supplier-add-contact-form"
+              id="supplier-contact-form"
               className="space-y-5"
-              onSubmit={onAddContact}
+              onSubmit={onSaveContact}
             >
               <FormDrawerFields
                 legend="Contact details"
