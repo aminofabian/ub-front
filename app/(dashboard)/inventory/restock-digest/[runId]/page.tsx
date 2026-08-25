@@ -191,7 +191,13 @@ export default function RestockDigestReviewPage() {
   );
 
   async function acceptLines(ids: string[], mode: "po" | "pad" | "all") {
-    if (ids.length === 0) return;
+    const actionable = ids.filter((id) => {
+      const raw = (qty[id] ?? "").trim();
+      const n = raw === "" ? Number.NaN : Number(raw);
+      return Number.isFinite(n) ? n > 0 : true;
+    });
+    if (actionable.length === 0) return;
+    ids = actionable;
     setBusyAction(`accept:${mode}:${ids.join(",")}`);
     setFeedback(null);
     try {
@@ -276,8 +282,8 @@ export default function RestockDigestReviewPage() {
   const filterPdfName = activeDept ? slug(activeDept.name) : "all";
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#e8eef5] dark:bg-background">
-      <header className="z-20 shrink-0 border-b border-border bg-[#e8eef5] dark:bg-background">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_85%,transparent)] dark:bg-background">
+      <header className="z-20 shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] dark:bg-background">
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 px-3 py-2.5 sm:px-4">
           <Button
             type="button"
@@ -373,7 +379,7 @@ export default function RestockDigestReviewPage() {
               className={cn(
                 "shrink-0 border-r border-border px-3.5 py-2 text-[12px] font-semibold",
                 deptFilter == null
-                  ? "bg-[#16202a] text-white dark:bg-foreground dark:text-background"
+                  ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
                   : "bg-transparent text-muted-foreground hover:bg-background/70 hover:text-foreground",
               )}
               onClick={() => {
@@ -392,7 +398,7 @@ export default function RestockDigestReviewPage() {
                 className={cn(
                   "shrink-0 border-r border-border px-3.5 py-2 text-[12px] font-medium",
                   deptFilter === d.id
-                    ? "bg-[#16202a] text-white dark:bg-foreground dark:text-background"
+                    ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
                     : "bg-transparent text-muted-foreground hover:bg-background/70 hover:text-foreground",
                 )}
                 onClick={() => {
@@ -450,14 +456,14 @@ export default function RestockDigestReviewPage() {
 
       {loading && !run ? (
         <div className="flex min-h-[70vh] flex-col md:grid md:grid-cols-[minmax(16.5rem,32%)_minmax(0,1fr)]">
-          <div className="border-b border-border bg-[#dce6f0] md:border-b-0 md:border-r dark:bg-muted/40">
+          <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] md:border-b-0 md:border-r dark:bg-muted/40">
             <div className="h-11" />
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="h-14 animate-pulse border-b border-border/60 bg-muted/30" />
             ))}
           </div>
           <div className="bg-card">
-            <div className="h-16 animate-pulse bg-[#dce6f0] dark:bg-muted/40" />
+            <div className="h-16 animate-pulse bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] dark:bg-muted/40" />
             <div className="space-y-px">
               {Array.from({ length: 8 }).map((_, j) => (
                 <div key={j} className="h-16 animate-pulse bg-muted/25" />
@@ -482,6 +488,7 @@ export default function RestockDigestReviewPage() {
           departmentName={activeDept?.name}
           currency={currency}
           pdfDate={pdfDate}
+          branchName={run.branchName}
           qty={qty}
           setQty={setQty}
           busyAction={busyAction}
@@ -497,7 +504,7 @@ export default function RestockDigestReviewPage() {
       ) : null}
 
       {pending.length > 0 && runActive && (canWritePo || canWritePad) ? (
-        <div className="sticky bottom-0 z-20 flex items-center justify-between gap-2 border-t border-border bg-[#e8eef5] px-3 py-2 dark:bg-background sm:hidden">
+        <div className="sticky bottom-0 z-20 flex items-center justify-between gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-3 py-2 dark:bg-background sm:hidden">
           <span className="text-[11px] tabular-nums text-muted-foreground">
             {pending.length} pending
           </span>
