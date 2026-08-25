@@ -28,6 +28,7 @@ import {
   resolveSupportConversation,
   sendSupportMessage,
 } from "@/lib/support-api";
+import { setSupportConversationFocused } from "@/lib/support-focus";
 import { isSupportSoundEnabled, setSupportSoundEnabled } from "@/lib/support-sound";
 import { cn } from "@/lib/utils";
 
@@ -94,6 +95,13 @@ export function SupportChat({
   const typingActiveRef = React.useRef(false);
 
   const conversationId = conversation?.id ?? null;
+
+  // Mark the platform thread focused so shell toasts/unread skip while open.
+  React.useEffect(() => {
+    if (!conversationId) return;
+    setSupportConversationFocused(conversationId, true);
+    return () => setSupportConversationFocused(conversationId, false);
+  }, [conversationId]);
 
   // ── Load the thread ─────────────────────────────────────────────────────
   const loadThread = React.useCallback(async (silent = false) => {

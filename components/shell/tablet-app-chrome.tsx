@@ -10,7 +10,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  Bell,
   ChevronRight,
   Compass,
   Lock,
@@ -144,7 +143,6 @@ type TabletAppHeaderProps = {
   branchName?: string | null;
   departmentName?: string | null;
   userInitial: string;
-  canReadNotifications: boolean;
   /** Optional tools rendered before the notification bell (e.g. Kiosk Pay). */
   headerTools?: ReactNode;
   posLinks?: readonly HeaderPosLink[];
@@ -161,7 +159,6 @@ export function TabletAppHeader({
   branchName,
   departmentName,
   userInitial,
-  canReadNotifications,
   headerTools,
   posLinks = [],
   onOpenMore,
@@ -244,15 +241,9 @@ export function TabletAppHeader({
             <div className="flex shrink-0 items-stretch self-stretch border border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-paper)]/70">
               <HeaderPosLinks links={posLinks} pathname={pathname} />
               {headerTools}
-              {canReadNotifications ? (
-                <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-1.5">
-                  <NotificationBell />
-                </span>
-              ) : (
-                <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-2.5 text-[var(--tablet-header-ink)]/35">
-                  <Bell className="size-4" aria-hidden />
-                </span>
-              )}
+              <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-1.5">
+                <NotificationBell />
+              </span>
               <button
                 type="button"
                 onClick={onOpenMore}

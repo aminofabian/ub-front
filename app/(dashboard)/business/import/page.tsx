@@ -74,6 +74,7 @@ const CSV_COLUMNS: Record<CsvTemplateKind, string[]> = {
     "unit_type",
     "is_stocked",
     "is_sellable",
+    "buying_price",
     "selling_price",
     "reorder_level",
   ],
@@ -834,8 +835,16 @@ export default function BusinessImportPage() {
                     ))}
                   </select>
                   <span className={dashboardHintClass()}>
-                    Required when any row has <code className="rounded bg-muted px-1">current_stock</code> &gt; 0. Unit cost
-                    for opening balance defaults to 1% of sell price (minimum 0.01).
+                    Pulls shelf price, buying/cost, and stock from the product export when present
+                    (<code className="rounded bg-muted px-1">current_sell_price</code> /{" "}
+                    <code className="rounded bg-muted px-1">selling_price</code>,{" "}
+                    <code className="rounded bg-muted px-1">buying_price</code> /{" "}
+                    <code className="rounded bg-muted px-1">cost_price</code>,{" "}
+                    <code className="rounded bg-muted px-1">current_stock</code> /{" "}
+                    <code className="rounded bg-muted px-1">quantity</code>). Branch is required for stock &gt; 0
+                    (defaults to the first branch if left blank). Re-importing the same file updates prices on
+                    existing SKUs; opening stock is only posted when on-hand is still zero. Opening unit cost
+                    uses the buying price when available.
                   </span>
                 </label>
               ) : importKind === "suppliers" ? (

@@ -24,7 +24,8 @@ import {
   markStorefrontBuyerConversationRead,
   sendStorefrontBuyerReply,
 } from "@/lib/support-api";
-import { playSupportMessageSound, unlockSupportAudio } from "@/lib/support-sound";
+import { setSupportConversationFocused } from "@/lib/support-focus";
+import { unlockSupportAudio } from "@/lib/support-sound";
 import { cn } from "@/lib/utils";
 
 type LocalMessage = ChatMessageShape;
@@ -83,6 +84,13 @@ export function StorefrontBuyerInbox() {
   const typingStopRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null;
+
+  // Mark the open buyer thread focused so shell toasts/unread skip while viewing.
+  React.useEffect(() => {
+    if (!activeId) return;
+    setSupportConversationFocused(activeId, true);
+    return () => setSupportConversationFocused(activeId, false);
+  }, [activeId]);
 
   const loadList = React.useCallback(
     async (silent = false) => {
@@ -154,9 +162,6 @@ export function StorefrontBuyerInbox() {
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
 
-        if (incoming.senderType === "GUEST") {
-          playSupportMessageSound();
-        }
         if (convId === activeId) {
           setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]));
           if (incoming.senderType === "GUEST") {

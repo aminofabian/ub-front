@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { APP_ROUTES } from "@/lib/config";
 import { getRealtimeClient } from "@/lib/realtime";
+import { isSupportConversationFocused } from "@/lib/support-focus";
 import {
   fetchStorefrontBuyerUnreadCount,
   fetchSupportUnreadCount,
@@ -13,11 +14,11 @@ import {
 let supportListenerSeq = 0;
 
 /**
- * Live unread count for the tenant's support thread.
+ * Live unread count for the tenant's support threads (platform + storefront).
  *
- * Baseline is fetched once; the count increments on realtime platform replies
- * while the user is elsewhere, and resets to zero when they open `/support`
- * (or when a read receipt confirms another tab marked the thread read).
+ * Baseline is fetched once; the count increments on realtime replies while the
+ * matching conversation is not open, and reconciles when a read receipt lands
+ * or the user opens/leaves `/support`.
  */
 export function useSupportUnread(): number {
   const pathname = usePathname();
@@ -45,11 +46,12 @@ export function useSupportUnread(): number {
     return () => window.clearInterval(timer);
   }, [syncFromServer]);
 
+  // Reconcile when entering/leaving support (reads happen on the open thread).
   useEffect(() => {
-    if (pathname === APP_ROUTES.support) {
-      setUnread(0);
-      return;
-    }
+    syncFromServer();
+  }, [pathname, syncFromServer]);
+
+  useEffect(() => {
     const client = getRealtimeClient();
     const unregister = client.registerListener(listenerIdRef.current, {
       channels: ["support"],
@@ -57,13 +59,14 @@ export function useSupportUnread(): number {
         const data = frame.data as Record<string, unknown>;
         const senderType = String(data.senderType ?? "");
         const conversationType = String(data.conversationType ?? "TENANT");
+        const conversationId = String(data.conversationId ?? "");
         // Platform replies to our thread (SUPER_ADMIN) plus new storefront
         // buyer messages (GUEST on STOREFRONT threads) both mean unread.
         const countsAsUnread =
           senderType === "SUPER_ADMIN" ||
           (senderType === "GUEST" && conversationType === "STOREFRONT");
         if (!countsAsUnread) return;
-        if (pathname === APP_ROUTES.support) return;
+        if (conversationId && isSupportConversationFocused(conversationId)) return;
         setUnread((n) => n + 1);
       },
       onSupportRead: (frame) => {
@@ -75,7 +78,7 @@ export function useSupportUnread(): number {
       },
     });
     return unregister;
-  }, [pathname, syncFromServer]);
+  }, [syncFromServer]);
 
   return unread;
 }

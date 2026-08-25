@@ -48,15 +48,31 @@ export type SokoMindRouteGuide = {
 /** Map a dashboard pathname to a stable surface id for the Guide. */
 export function surfaceFromPathname(pathname: string): string {
   const path = (pathname || "/").split("?")[0] || "/";
+  if (path.startsWith("/business/settings")) return "business.settings";
   if (path === "/business" || path.startsWith("/business/")) return "business.hub";
   if (path.startsWith("/purchasing/ap-aging")) return "purchasing.ap";
   if (path.startsWith("/purchasing/record-payment")) return "purchasing.pay";
   if (path.startsWith("/purchasing/intelligence")) return "purchasing.intel";
   if (path === "/supplies" || path.startsWith("/supplies/")) return "purchasing.supplies";
-  if (path.startsWith("/products")) return "products.catalog";
-  if (path.startsWith("/suppliers") || path.startsWith("/supplier/")) return "suppliers.ap";
+  if (path.startsWith("/order")) return "ordering";
+  if (path.startsWith("/inventory/stock-take")) return "inventory.stocktake";
+  if (path.startsWith("/inventory/restock-digest")) return "inventory.restockdigest";
   if (path.startsWith("/inventory") || path.startsWith("/stock")) return "inventory.stock";
+  if (path.startsWith("/pricing")) return "pricing";
+  if (path.startsWith("/products")) return "products.catalog";
+  if (path.startsWith("/item-types")) return "departments";
+  if (path.startsWith("/categories")) return "categories";
+  if (path.startsWith("/suppliers") || path.startsWith("/supplier/")) return "suppliers.ap";
+  if (path.startsWith("/customers")) return "customers";
+  if (path.startsWith("/credits")) return "credits";
+  if (path.startsWith("/shifts")) return "shifts";
+  if (path.startsWith("/messages")) return "messages";
+  if (path.startsWith("/storefront")) return "storefront";
+  if (path.startsWith("/sales")) return "sales";
   if (path.startsWith("/analytics")) return "analytics";
+  if (path.startsWith("/discounts")) return "discounts";
+  if (path.startsWith("/payments/day")) return "payments.day";
+  if (path.startsWith("/payments/settings")) return "payments.settings";
   if (path.startsWith("/marketplace")) return "marketplace";
   if (path.startsWith("/supplier-portal")) return "supplier-portal";
   if (path.startsWith("/payroll")) return "payroll";

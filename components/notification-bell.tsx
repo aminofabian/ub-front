@@ -2,20 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, MessageCircle } from "lucide-react";
 
 import { useOptionalRealtime } from "@/components/realtime-provider";
+import { useSupportUnread } from "@/hooks/use-support-unread";
+import { APP_ROUTES } from "@/lib/config";
 import { getNotificationPresentation } from "@/lib/notification-display";
 import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
   const rt = useOptionalRealtime();
+  const supportUnread = useSupportUnread();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  if (!rt) return null;
-
-  const { unreadCount, notifications, markAllRead } = rt;
+  const notificationUnread = rt?.unreadCount ?? 0;
+  const unreadCount = notificationUnread + supportUnread;
+  const notifications = rt?.notifications ?? [];
+  const markAllRead = rt?.markAllRead;
 
   return (
     <div className="relative">
@@ -41,17 +45,46 @@ export function NotificationBell() {
           <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border border-border bg-card shadow-lg">
             <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
               <span className="text-sm font-semibold">Notifications</span>
-              {unreadCount > 0 && (
+              {notificationUnread > 0 && markAllRead ? (
                 <button
                   onClick={markAllRead}
                   className="text-xs text-primary hover:underline"
                 >
                   Mark all read
                 </button>
-              )}
+              ) : null}
             </div>
             <div className="max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
+              {supportUnread > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    router.push(APP_ROUTES.support);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/20 bg-primary/5"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                      <MessageCircle className="size-3.5" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium leading-snug">
+                          New support message{supportUnread > 1 ? "s" : ""}
+                        </p>
+                        <span className="shrink-0 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                          {supportUnread > 9 ? "9+" : supportUnread}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
+                        Open Inbox to reply to Kiosk or storefront buyers
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ) : null}
+              {notifications.length === 0 && supportUnread <= 0 ? (
                 <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                   No notifications yet
                 </p>

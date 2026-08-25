@@ -879,10 +879,6 @@ export function AppShell({ children }: AppShellProps) {
   const tabletChromeVisible = "2xl:hidden";
   const mainContentPadding = "p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:p-6 2xl:pb-6";
   const homeHref = resolvePostAuthDestination(me, null, business);
-  const canReadNotifications = hasPermission(
-    me?.permissions,
-    Permission.ReportsNotificationsRead,
-  );
   const canViewPaymentGateways = hasPermission(
     me?.permissions,
     Permission.PaymentsGatewaysRead,
@@ -1378,7 +1374,7 @@ export function AppShell({ children }: AppShellProps) {
                 variant="desktop"
               />
             ) : null}
-            {canReadNotifications ? <NotificationBell /> : null}
+            <NotificationBell />
             {/* Phase 9: Branch selector — hidden for stock managers, cashiers and grocery clerks who are locked to their assigned branch */}
             {isStockManager || isCashier || isButcherCashier || isGroceryClerk ? (
               currentBranch ? (
@@ -1474,7 +1470,6 @@ export function AppShell({ children }: AppShellProps) {
             branchName={currentBranch?.name}
             departmentName={currentItemType?.label ?? ALL_DEPARTMENTS_LABEL}
             userInitial={userInitial}
-            canReadNotifications={canReadNotifications}
             headerTools={
               showOwnerKioskPay ? (
                 <KioskPayHeaderBalance
