@@ -85,12 +85,10 @@ function ProductImage({
   name,
   thumbnailUrl,
   compact,
-  square,
 }: {
   name: string;
   thumbnailUrl?: string | null;
   compact?: boolean;
-  square?: boolean;
 }) {
   const src = posTileThumbUrl(name, thumbnailUrl);
   const [failed, setFailed] = useState(false);
@@ -100,7 +98,7 @@ function ProductImage({
     <div
       className={cn(
         "relative overflow-hidden bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,white)]",
-        compact ? "size-11 shrink-0" : square ? "aspect-square w-full" : "aspect-[5/4] w-full",
+        compact ? "size-10 shrink-0" : "aspect-square w-full",
         !showImage && `bg-gradient-to-br ${kioskPlaceholderWashClass(name)}`,
       )}
     >
@@ -108,7 +106,7 @@ function ProductImage({
         <img
           src={src!}
           alt=""
-          className={cn("h-full w-full object-contain", compact ? "p-0.5" : "p-2")}
+          className="absolute inset-0 size-full object-cover"
           onError={() => setFailed(true)}
         />
       ) : (
@@ -238,7 +236,7 @@ export function DigestBoard({
   const selected = rail.find((item) => item.key === selectedKey) ?? rail[0] ?? null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:grid lg:grid-cols-[6.75rem_minmax(0,1fr)_19.5rem] lg:items-stretch">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:grid lg:grid-cols-[13rem_minmax(0,1fr)_17rem] lg:items-stretch">
       <SupplierRail
         rail={rail}
         selectedKey={selected?.key ?? null}
@@ -289,12 +287,12 @@ function SupplierRail({
   qty: Record<string, string>;
 }) {
   return (
-    <aside className={cn("flex shrink-0 flex-col border-b lg:h-full lg:min-h-0 lg:border-b-0 lg:border-r", INK, PAPER)}>
-      <div className="flex h-9 shrink-0 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--pos-primary-ink,#fff)]">
+    <aside className={cn("flex min-w-0 shrink-0 flex-col border-b lg:h-full lg:min-h-0 lg:border-b-0 lg:border-r", INK, PAPER)}>
+      <div className="flex h-9 shrink-0 items-center bg-[var(--pos-primary,#0f766e)] px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--pos-primary-ink,#fff)]">
         Aisle
       </div>
       <nav
-        className="flex gap-2 overflow-x-auto p-2 lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-2 lg:overflow-y-auto"
+        className="flex gap-1 overflow-x-auto p-1.5 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto"
         aria-label="Suppliers"
       >
         {rail.map((item) => {
@@ -310,28 +308,20 @@ function SupplierRail({
               aria-current={selected ? "true" : undefined}
               onClick={() => onSelect(item.key)}
               className={cn(
-                "flex w-[4.85rem] shrink-0 flex-col overflow-hidden border text-left touch-manipulation lg:w-full",
-                INK,
+                "flex w-[12.5rem] shrink-0 items-center gap-2.5 px-2 py-1.5 text-left touch-manipulation lg:w-full",
                 selected
-                  ? "border-[var(--pos-primary,#0f766e)] ring-2 ring-[var(--pos-primary,#0f766e)] ring-offset-0"
-                  : "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
+                  ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                  : "text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--card)_78%,#ece6d8)]",
               )}
             >
-              <ProductImage name={label} thumbnailUrl={thumb} square />
-              <span
-                className={cn(
-                  "flex min-h-[2.75rem] flex-col justify-center px-1.5 py-1.5",
-                  selected
-                    ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
-                    : "text-[var(--pos-ink,#1c1915)]",
-                )}
-              >
-                <span className="line-clamp-2 text-[10px] font-semibold leading-tight">
+              <ProductImage name={label} thumbnailUrl={thumb} compact />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12px] font-semibold leading-snug">
                   {item.name}
                 </span>
                 <span
                   className={cn(
-                    "mt-0.5 text-[10px] tabular-nums",
+                    "block text-[10px] tabular-nums",
                     selected ? "opacity-80" : "text-muted-foreground",
                   )}
                 >
@@ -532,7 +522,7 @@ function SupplierStall({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(9.75rem,1fr))] gap-3">
             {item.lines.map((s) => {
               const pendingLine = s.status === "pending";
               const q = pendingLine
@@ -550,13 +540,13 @@ function SupplierStall({
               return (
                 <article
                   key={s.id}
+                  title={reason}
                   className={cn(
                     "group relative flex h-full flex-col overflow-hidden border",
                     INK,
-                    "bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)]",
-                    "transition-[border-color,box-shadow] duration-150",
-                    "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
-                    "hover:shadow-[2px_3px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]",
+                    "bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)]",
+                    "transition-[border-color] duration-150",
+                    "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_26%,transparent)]",
                     !pendingLine && "opacity-50",
                   )}
                 >
@@ -595,33 +585,25 @@ function SupplierStall({
                       </div>
                     ) : null}
                   </div>
-                  <div className="flex flex-1 flex-col gap-1.5 p-2">
+                  <div className="flex flex-1 flex-col gap-2 p-2.5">
                     <RestockProductTitle
                       itemName={s.itemName}
                       variantName={s.variantName}
                       itemSku={s.itemSku}
                       struck={!pendingLine}
                       size="sm"
-                      className="line-clamp-2 min-h-[2.25rem] text-[12px]"
+                      className="line-clamp-2 min-h-[2.4rem] text-[12.5px] leading-snug"
                     />
-                    <div className="flex items-baseline justify-between gap-1">
-                      <p className="text-[13px] font-semibold tabular-nums tracking-tight text-[var(--pos-ink,#1c1915)]">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-[14px] font-semibold tabular-nums tracking-tight text-[var(--pos-ink,#1c1915)]">
                         {s.unitCost != null ? formatMoney(s.unitCost, currency) : "Ask"}
                       </p>
-                      <p className="text-[10px] tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
-                        {formatQty(s.onHand)} / {formatQty(s.par)}
+                      <p className="text-[11px] tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_50%,transparent)]">
+                        {formatQty(s.onHand)}/{formatQty(s.par)}
+                        {total != null && q > 0 ? ` · ${formatMoney(total, currency)}` : ""}
                       </p>
                     </div>
-                    {total != null && q > 0 ? (
-                      <p className="text-[10px] tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
-                        Line {formatMoney(total, currency)}
-                      </p>
-                    ) : (
-                      <p className="truncate text-[10px] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_45%,transparent)]">
-                        {reason}
-                      </p>
-                    )}
-                    <div className="mt-auto pt-0.5">
+                    <div className="mt-auto">
                       {pendingLine && editable ? (
                         <QtyControl
                           qty={q}

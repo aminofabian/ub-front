@@ -447,7 +447,7 @@ export default function RestockDigestReviewPage() {
       ) : null}
 
       {loading && !run ? (
-        <div className="flex min-h-[70vh] flex-col lg:grid lg:grid-cols-[6.75rem_minmax(0,1fr)_19.5rem]">
+        <div className="flex min-h-[70vh] flex-col lg:grid lg:grid-cols-[13rem_minmax(0,1fr)_17rem]">
           <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] md:border-b-0 md:border-r dark:bg-muted/40">
             <div className="h-11" />
             {Array.from({ length: 5 }).map((_, i) => (
