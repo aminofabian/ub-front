@@ -172,17 +172,27 @@ export async function startGuestThread(
     });
   };
 
-  const guestId = ensureGuestId();
+  let guestId = ensureGuestId();
   let session = loadGuestSession(ns);
   let response = await attempt(guestId, session.token);
 
   if (response.status === 400 || response.status === 401) {
     // The stored thread credential is stale (another device rotated it) or the
-    // thread was lost. Drop the stored token and let the phone re-claim the
-    // thread; the identity (guestId) stays stable so we don't fragment.
+    // thread was lost. Drop the stored token and retry — the phone re-claims
+    // the same thread.
     write(threadKey(ns), null);
     session = loadGuestSession(ns);
     response = await attempt(guestId, session.token);
+  }
+
+  if (response.status === 401) {
+    // Still rejected: this identity no longer opens the thread and there's no
+    // matching phone. Regenerate the identity so the visitor is never locked
+    // out — the old thread is left behind rather than blocking the chat.
+    write(`${NS}.id`, uuid());
+    write(threadKey(ns), null);
+    guestId = ensureGuestId();
+    response = await attempt(guestId, null);
   }
 
   if (!response.ok) {

@@ -356,6 +356,39 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               ))}
             </nav>
 
+            <Link
+              href={APP_ROUTES.superAdminSupport}
+              aria-label={
+                saSupportUnread > 0
+                  ? `Support — ${saSupportUnread} unread message${saSupportUnread === 1 ? "" : "s"}`
+                  : "Support inbox"
+              }
+              title={
+                saSupportUnread > 0
+                  ? `${saSupportUnread} unread support message${saSupportUnread === 1 ? "" : "s"}`
+                  : "Support inbox"
+              }
+              className={cn(
+                "relative inline-flex size-9 items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+                saSupportUnread > 0
+                  ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              <Headset className="size-4" aria-hidden />
+              {saSupportUnread > 0 ? (
+                <>
+                  <span className="absolute right-1 top-1 flex size-2" aria-hidden>
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500 opacity-60" />
+                    <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+                  </span>
+                  <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                    {saSupportUnread > 9 ? "9+" : saSupportUnread}
+                  </span>
+                </>
+              ) : null}
+            </Link>
+
             <Button
               type="button"
               variant="ghost"
