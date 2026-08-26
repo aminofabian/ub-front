@@ -75,6 +75,7 @@ describe("order ticket", () => {
       links,
     );
     expect(result.cart).toEqual({ i1: 16, i2: 2 });
+    expect(result.packs).toEqual({});
     expect(result.matched).toBe(2);
     expect(result.missed).toEqual(["missing"]);
   });

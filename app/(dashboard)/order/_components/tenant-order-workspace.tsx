@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   ChevronDown,
@@ -23,6 +23,7 @@ import {
   buildMarketplaceOrderText,
   buildWhatsAppOrderUrl,
 } from "@/app/marketplace/_lib/marketplace-order-pdf";
+import { SupplyPackQtyModal } from "@/app/(dashboard)/supplies/_components/supply-pack-qty-modal";
 import { getSessionTenantId } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -33,6 +34,7 @@ import {
   postPathAPurchaseOrderLine,
   postPathAPurchaseOrderSend,
   postPathAPurchaseOrderSendToSupplier,
+  type ItemLinkPackOfferRecord,
   type SupplierContactRecord,
   type SupplierItemLinkRecord,
   type SupplierRecord,
@@ -41,6 +43,8 @@ import {
   clearOrderCartForSupplier,
   readOrderCartDraft,
   writeOrderCartDraft,
+  type OrderCartPackMeta,
+  type OrderCartPackSelection,
   type OrderCartQty,
 } from "@/lib/order-cart-storage";
 import {
@@ -59,6 +63,39 @@ import { type OrderParentOption } from "./order-parent-floater";
 const ORDER_CURRENCY = "KES";
 
 type CartQty = OrderCartQty;
+
+function formatPackSize(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+}
+
+function PackChoiceChip({
+  active,
+  onClick,
+  children,
+  title,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex h-6 min-w-7 items-center justify-center border px-1.5 font-mono text-[10px] font-bold tabular-nums transition",
+        active
+          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] text-[var(--order-ink,#15231f)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)]",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 async function copyText(value: string, label: string) {
   try {
@@ -91,8 +128,51 @@ function unitCost(link: SupplierItemLinkRecord): number {
   return 0;
 }
 
-function lineTotal(link: SupplierItemLinkRecord, qty: number): number {
-  return unitCost(link) * qty;
+function linkPacks(link: SupplierItemLinkRecord): ItemLinkPackOfferRecord[] {
+  return link.packs && link.packs.length > 0 ? link.packs : [];
+}
+
+/** Price for one pack (or one unit when not packed). */
+function packUnitPrice(
+  link: SupplierItemLinkRecord,
+  pack: OrderCartPackSelection | null,
+): number {
+  if (pack && pack.size > 1) {
+    if (pack.price != null && pack.price > 0) return pack.price;
+    return unitCost(link);
+  }
+  return unitCost(link);
+}
+
+function lineTotal(
+  link: SupplierItemLinkRecord,
+  qty: number,
+  pack: OrderCartPackSelection | null = null,
+): number {
+  return packUnitPrice(link, pack) * qty;
+}
+
+/** Stock units for a Path A PO line (packs × size when packed). */
+function stockQtyOrdered(
+  qty: number,
+  pack: OrderCartPackSelection | null,
+): number {
+  if (pack && pack.size > 1) return qty * pack.size;
+  return qty;
+}
+
+/** Unit cost for PO posting (each piece when packed). */
+function stockUnitCost(
+  link: SupplierItemLinkRecord,
+  pack: OrderCartPackSelection | null,
+): number {
+  if (pack && pack.size > 1) {
+    const packPrice = packUnitPrice(link, pack);
+    return pack.size > 0
+      ? Math.round((packPrice / pack.size) * 10000) / 10000
+      : packPrice;
+  }
+  return unitCost(link);
 }
 
 function normalizeParentLabel(label: string): string {
@@ -151,6 +231,8 @@ export function TenantOrderWorkspace({
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [filter, setFilter] = useState("");
   const [cart, setCart] = useState<CartQty>({});
+  const [packByItemId, setPackByItemId] = useState<OrderCartPackMeta>({});
+  const [packSheetItemId, setPackSheetItemId] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [whatsapping, setWhatsapping] = useState(false);
   const [supplierQuery, setSupplierQuery] = useState("");
@@ -163,28 +245,47 @@ export function TenantOrderWorkspace({
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const cartsBySupplierRef = useRef<Record<string, CartQty>>({});
+  const packsBySupplierRef = useRef<Record<string, OrderCartPackMeta>>({});
   const supplierIdRef = useRef<string | null>(null);
   const ticketAppliedRef = useRef(false);
   const pendingTicketRef = useRef(parseOrderTicket(initialTicket));
   supplierIdRef.current = supplierId;
 
+  const packSheetLink = packSheetItemId
+    ? links.find((l) => l.itemId === packSheetItemId) ?? null
+    : null;
+
   const persistDraft = (
     selectedSupplierId: string | null,
     nextCart: CartQty,
+    nextPacks: OrderCartPackMeta,
   ) => {
     if (!businessId) return;
     const maps = { ...cartsBySupplierRef.current };
+    const packMaps = { ...packsBySupplierRef.current };
     if (selectedSupplierId) {
       const clean = { ...nextCart };
-      if (Object.keys(clean).length === 0) delete maps[selectedSupplierId];
-      else maps[selectedSupplierId] = clean;
+      if (Object.keys(clean).length === 0) {
+        delete maps[selectedSupplierId];
+        delete packMaps[selectedSupplierId];
+      } else {
+        maps[selectedSupplierId] = clean;
+        const pruned: OrderCartPackMeta = {};
+        for (const [itemId, pack] of Object.entries(nextPacks)) {
+          if (clean[itemId] != null) pruned[itemId] = pack;
+        }
+        if (Object.keys(pruned).length === 0) delete packMaps[selectedSupplierId];
+        else packMaps[selectedSupplierId] = pruned;
+      }
     }
     cartsBySupplierRef.current = maps;
+    packsBySupplierRef.current = packMaps;
     writeOrderCartDraft({
       businessId,
       branchId,
       selectedSupplierId,
       cartsBySupplier: maps,
+      packsBySupplier: packMaps,
     });
   };
 
@@ -196,6 +297,7 @@ export function TenantOrderWorkspace({
     const draft = readOrderCartDraft(businessId, branchId);
     if (draft) {
       cartsBySupplierRef.current = draft.cartsBySupplier;
+      packsBySupplierRef.current = draft.packsBySupplier ?? {};
       const preferred =
         initialSupplierId?.trim() ||
         draft.selectedSupplierId ||
@@ -205,13 +307,19 @@ export function TenantOrderWorkspace({
         // Shared tickets replace the draft cart for that supplier.
         if (pendingTicketRef.current.length > 0) {
           setCart({});
+          setPackByItemId({});
         } else {
           setCart(draft.cartsBySupplier[preferred] ?? {});
+          setPackByItemId(draft.packsBySupplier?.[preferred] ?? {});
         }
       }
     } else {
       cartsBySupplierRef.current = {};
-      if (!initialSupplierId?.trim()) setCart({});
+      packsBySupplierRef.current = {};
+      if (!initialSupplierId?.trim()) {
+        setCart({});
+        setPackByItemId({});
+      }
     }
     setHydrated(true);
   }, [businessId, branchId, initialSupplierId]);
@@ -280,6 +388,7 @@ export function TenantOrderWorkspace({
     let cancelled = false;
     setLoadingLinks(true);
     setCart(cartsBySupplierRef.current[supplierId] ?? {});
+    setPackByItemId(packsBySupplierRef.current[supplierId] ?? {});
     void fetchSupplierItemLinks(supplierId, {
       branchId: branchId || undefined,
     })
@@ -319,6 +428,7 @@ export function TenantOrderWorkspace({
       return;
     }
     setCart(result.cart);
+    setPackByItemId(result.packs);
     setMobileOrderOpen(true);
     if (result.missed.length > 0) {
       toast.message(
@@ -337,15 +447,17 @@ export function TenantOrderWorkspace({
 
   useEffect(() => {
     if (!hydrated || !businessId) return;
-    persistDraft(supplierId, cart);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- persist cart/supplier only
-  }, [hydrated, businessId, branchId, supplierId, cart]);
+    persistDraft(supplierId, cart, packByItemId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- persist cart/supplier/packs only
+  }, [hydrated, businessId, branchId, supplierId, cart, packByItemId]);
 
   const selectSupplier = (nextId: string) => {
     const prev = supplierIdRef.current;
     if (prev && prev !== nextId) {
       const maps = { ...cartsBySupplierRef.current, [prev]: cart };
       cartsBySupplierRef.current = maps;
+      const packMaps = { ...packsBySupplierRef.current, [prev]: packByItemId };
+      packsBySupplierRef.current = packMaps;
     }
     setSupplierId(nextId);
   };
@@ -447,13 +559,18 @@ export function TenantOrderWorkspace({
     () =>
       links
         .filter((l) => (cart[l.itemId] ?? 0) > 0)
-        .map((l) => ({ link: l, qty: cart[l.itemId] ?? 0 })),
-    [links, cart],
+        .map((l) => ({
+          link: l,
+          qty: cart[l.itemId] ?? 0,
+          pack: packByItemId[l.itemId] ?? null,
+          packOptionId: packByItemId[l.itemId]?.packOptionId ?? null,
+        })),
+    [links, cart, packByItemId],
   );
 
   const cartUnits = cartLines.reduce((sum, line) => sum + line.qty, 0);
   const cartTotal = cartLines.reduce(
-    (sum, line) => sum + lineTotal(line.link, line.qty),
+    (sum, line) => sum + lineTotal(line.link, line.qty, line.pack),
     0,
   );
 
@@ -494,12 +611,15 @@ export function TenantOrderWorkspace({
 
   const whatsappLines = useMemo(
     () =>
-      cartLines.map(({ link, qty }) => ({
-        name: link.itemName,
+      cartLines.map(({ link, qty, pack }) => ({
+        name:
+          pack != null && pack.size > 1
+            ? `${link.itemName} (pack of ${formatPackSize(pack.size)})`
+            : link.itemName,
         sku: link.sku,
         barcode: link.barcode,
         qty,
-        unitPrice: unitCost(link) || null,
+        unitPrice: packUnitPrice(link, pack) || null,
         currency: ORDER_CURRENCY,
       })),
     [cartLines],
@@ -525,6 +645,7 @@ export function TenantOrderWorkspace({
       return;
     }
     setCart(result.cart);
+    setPackByItemId(result.packs);
     setImportOpen(false);
     setImportText("");
     setMobileOrderOpen(true);
@@ -551,8 +672,8 @@ export function TenantOrderWorkspace({
 
     const linesToPost = cartLines.map((line) => ({
       itemId: line.link.itemId,
-      qtyOrdered: line.qty,
-      unitEstimatedCost: unitCost(line.link),
+      qtyOrdered: stockQtyOrdered(line.qty, line.pack),
+      unitEstimatedCost: stockUnitCost(line.link, line.pack),
     }));
     if (roundingActive && linesToPost.length > 0) {
       const last = linesToPost[linesToPost.length - 1];
@@ -589,6 +710,7 @@ export function TenantOrderWorkspace({
     }
 
     setCart({});
+    setPackByItemId({});
     if (businessId) {
       clearOrderCartForSupplier({
         businessId,
@@ -598,6 +720,9 @@ export function TenantOrderWorkspace({
       const maps = { ...cartsBySupplierRef.current };
       delete maps[supplierId];
       cartsBySupplierRef.current = maps;
+      const packMaps = { ...packsBySupplierRef.current };
+      delete packMaps[supplierId];
+      packsBySupplierRef.current = packMaps;
     }
     return po.poNumber;
   };
@@ -698,7 +823,41 @@ export function TenantOrderWorkspace({
       else next[itemId] = qty;
       return next;
     });
+    if (qty <= 0) {
+      setPackByItemId((prev) => {
+        if (!prev[itemId]) return prev;
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
+    }
   };
+
+  const selectPack = useCallback(
+    (itemId: string, packOptionId: string | null) => {
+      setPackByItemId((prev) => {
+        const link = links.find((l) => l.itemId === itemId);
+        if (!link) return prev;
+        if (packOptionId == null) {
+          const next = { ...prev };
+          delete next[itemId];
+          return next;
+        }
+        const option = linkPacks(link).find((p) => p.id === packOptionId);
+        if (!option) return prev;
+        return {
+          ...prev,
+          [itemId]: {
+            packOptionId: option.id,
+            size: option.unitsPerPack,
+            unit: option.packUnit || "pack",
+            price: option.unitPrice ?? (unitCost(link) || null),
+          },
+        };
+      });
+    },
+    [links],
+  );
 
   const familyChips = parentOptions.filter((o) => o.id !== "all");
   const showFamilies = familyChips.length >= 2;
@@ -719,65 +878,150 @@ export function TenantOrderWorkspace({
               Empty slip
             </p>
             <p className="max-w-[16rem] text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
-              Tap a product on the shelf to start this order.
+              Tap a product on the shelf to start this order. Pack sizes
+              appear on each line when the supplier offers them.
             </p>
           </div>
         </div>
       ) : (
-        cartLines.map(({ link, qty }) => {
-          const cost = unitCost(link);
-          const amount = lineTotal(link, qty);
+        cartLines.map(({ link, qty, pack }) => {
+          const packed = pack != null && pack.size > 1;
+          const price = packUnitPrice(link, pack);
+          const amount = lineTotal(link, qty, pack);
+          const packs = linkPacks(link);
           const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
           return (
             <div
               key={link.itemId}
-              className="flex gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-3 last:border-b-0"
+              className="space-y-1.5 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-3 last:border-b-0"
             >
-              <div className="relative size-11 shrink-0 overflow-hidden bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,#fff)] ring-1 ring-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
-                {thumb ? (
-                  <Image
-                    src={thumb}
-                    alt=""
-                    fill
-                    sizes="44px"
-                    className="object-contain p-1"
-                    unoptimized
-                  />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center">
-                    <Package className="size-3.5 opacity-25" aria-hidden />
-                  </span>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
-                  {link.itemName}
-                </p>
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[var(--order-shelf,#f3f6f5)]">
-                    <button
-                      type="button"
-                      className="flex size-8 items-center justify-center text-[15px] text-[var(--order-ink,#15231f)]/70 transition-colors hover:bg-white hover:text-[var(--order-ink,#15231f)]"
-                      onClick={() => setQty(link.itemId, qty - 1)}
-                      aria-label="Decrease"
-                    >
-                      −
-                    </button>
-                    <span className="min-w-7 text-center font-mono text-[12px] font-semibold tabular-nums">
-                      {qty}
+              <div className="flex gap-3">
+                <div className="relative size-11 shrink-0 overflow-hidden bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,#fff)] ring-1 ring-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+                  {thumb ? (
+                    <Image
+                      src={thumb}
+                      alt=""
+                      fill
+                      sizes="44px"
+                      className="object-contain p-1"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center">
+                      <Package className="size-3.5 opacity-25" aria-hidden />
                     </span>
-                    <button
-                      type="button"
-                      className="flex size-8 items-center justify-center text-[15px] text-[var(--order-ink,#15231f)]/70 transition-colors hover:bg-white hover:text-[var(--order-ink,#15231f)]"
-                      onClick={() => setQty(link.itemId, qty + 1)}
-                      aria-label="Increase"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <p className="font-mono text-[13px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
-                    {cost > 0 ? formatMoney(amount, ORDER_CURRENCY) : "—"}
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
+                    {link.itemName}
                   </p>
+                  {packed ? (
+                    <p className="mt-0.5 font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
+                      ×{formatPackSize(pack.size)} / {pack.unit}
+                      {price > 0
+                        ? ` · ${formatMoney(price, ORDER_CURRENCY)} / pack`
+                        : ""}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              {packs.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-1">
+                  <PackChoiceChip
+                    active={!packed}
+                    onClick={() => selectPack(link.itemId, null)}
+                    title="Buy loose units"
+                  >
+                    Unit
+                  </PackChoiceChip>
+                  {packs.map((option) => (
+                    <PackChoiceChip
+                      key={option.id}
+                      active={packed && pack?.packOptionId === option.id}
+                      onClick={() => selectPack(link.itemId, option.id)}
+                      title={
+                        option.unitPrice != null
+                          ? `${formatMoney(option.unitPrice, ORDER_CURRENCY)} per ${option.packUnit || "pack"}`
+                          : `Pack of ${formatPackSize(option.unitsPerPack)}`
+                      }
+                    >
+                      ×{formatPackSize(option.unitsPerPack)}
+                    </PackChoiceChip>
+                  ))}
+                  <PackChoiceChip
+                    active={packed && !pack?.packOptionId}
+                    onClick={() => setPackSheetItemId(link.itemId)}
+                    title={
+                      packed && !pack?.packOptionId
+                        ? `Edit custom pack ×${formatPackSize(pack.size)}`
+                        : "Custom pack size…"
+                    }
+                  >
+                    {packed && !pack?.packOptionId
+                      ? `×${formatPackSize(pack.size)}`
+                      : "…"}
+                  </PackChoiceChip>
+                </div>
+              ) : null}
+
+              <div className="flex items-center justify-between gap-2">
+                <div
+                  className={cn(
+                    "inline-flex items-center border",
+                    packed
+                      ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[var(--order-shelf,#f3f6f5)]",
+                  )}
+                >
+                  <button
+                    type="button"
+                    className="flex size-8 items-center justify-center text-[15px] text-[var(--order-ink,#15231f)]/70 transition-colors hover:bg-white hover:text-[var(--order-ink,#15231f)]"
+                    onClick={() => setQty(link.itemId, qty - 1)}
+                    aria-label="Decrease"
+                  >
+                    −
+                  </button>
+                  <span className="min-w-7 text-center font-mono text-[12px] font-semibold tabular-nums">
+                    {qty}
+                  </span>
+                  <button
+                    type="button"
+                    className="flex size-8 items-center justify-center text-[15px] text-[var(--order-ink,#15231f)]/70 transition-colors hover:bg-white hover:text-[var(--order-ink,#15231f)]"
+                    onClick={() => setQty(link.itemId, qty + 1)}
+                    aria-label="Increase"
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex size-8 shrink-0 items-center justify-center",
+                      packed && !pack?.packOptionId
+                        ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                        : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] hover:bg-white hover:text-[var(--order-ink,#15231f)]",
+                    )}
+                    title={
+                      packed
+                        ? "Edit pack size"
+                        : "Custom pack size…"
+                    }
+                    aria-pressed={packed}
+                    onClick={() => setPackSheetItemId(link.itemId)}
+                  >
+                    <Package className="size-3.5" aria-hidden />
+                  </button>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono text-[13px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                    {price > 0 ? formatMoney(amount, ORDER_CURRENCY) : "—"}
+                  </p>
+                  {packed && price > 0 ? (
+                    <p className="font-mono text-[9px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
+                      {formatMoney(price, ORDER_CURRENCY)} / pack
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1131,7 +1375,10 @@ export function TenantOrderWorkspace({
                   const stock = toNum(link.currentStock);
                   const reorder = toNum(link.reorderLevel);
                   const low = reorder > 0 && stock <= reorder;
-                  const cost = unitCost(link);
+                  const pack = packByItemId[link.itemId] ?? null;
+                  const packed = pack != null && pack.size > 1;
+                  const cost = packUnitPrice(link, pack);
+                  const packs = linkPacks(link);
                   const thumb = posTileThumbUrl(
                     link.itemName,
                     link.thumbnailUrl,
@@ -1175,6 +1422,11 @@ export function TenantOrderWorkspace({
                             {qty}
                           </span>
                         ) : null}
+                        {packed ? (
+                          <span className="absolute right-1.5 top-1.5 z-[1] bg-amber-100 px-1 py-0.5 font-mono text-[9px] font-bold tabular-nums text-amber-950">
+                            ×{formatPackSize(pack.size)}
+                          </span>
+                        ) : null}
                         {low ? (
                           <span className="absolute bottom-1.5 right-1.5 z-[1] bg-amber-700/90 px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-white">
                             {stock}
@@ -1185,11 +1437,24 @@ export function TenantOrderWorkspace({
                         <p className="line-clamp-2 min-h-[2.1rem] text-[12px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
                           {link.itemName}
                         </p>
+                        {packs.length > 0 ? (
+                          <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                            {packs
+                              .map((p) => `×${formatPackSize(p.unitsPerPack)}`)
+                              .join(" · ")}
+                          </p>
+                        ) : null}
                         <div className="mt-auto flex items-center justify-between gap-1.5">
                           <p className="font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
                             {cost > 0
                               ? formatMoney(cost, ORDER_CURRENCY)
                               : "—"}
+                            {packed ? (
+                              <span className="font-sans text-[9px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
+                                {" "}
+                                / pack
+                              </span>
+                            ) : null}
                           </p>
                           <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[var(--order-shelf,#f3f6f5)]/80">
                             <button
@@ -1353,6 +1618,55 @@ export function TenantOrderWorkspace({
           </div>
         </div>
       ) : null}
+
+      <SupplyPackQtyModal
+        open={packSheetLink != null}
+        onOpenChange={(open) => {
+          if (!open) setPackSheetItemId(null);
+        }}
+        defaults={
+          packSheetLink
+            ? {
+                productLabel: packSheetLink.itemName,
+                packSize:
+                  packByItemId[packSheetLink.itemId]?.size ??
+                  packSheetLink.packSize ??
+                  null,
+                packUnit:
+                  packByItemId[packSheetLink.itemId]?.unit ??
+                  packSheetLink.packUnit ??
+                  "pack",
+              }
+            : null
+        }
+        initialUnitsPerPack={
+          packSheetLink
+            ? packByItemId[packSheetLink.itemId]?.size ?? null
+            : null
+        }
+        savedOptions={packSheetLink ? linkPacks(packSheetLink) : null}
+        onApply={(result) => {
+          if (!packSheetLink) return;
+          const itemId = packSheetLink.itemId;
+          setPackByItemId((prev) => ({
+            ...prev,
+            [itemId]: {
+              packOptionId: result.packOptionId ?? null,
+              size: result.unitsPerPack,
+              unit: result.packUnit || "pack",
+              price:
+                result.packPrice ??
+                (unitCost(packSheetLink) || null),
+            },
+          }));
+          if ((cart[itemId] ?? 0) <= 0) {
+            setQty(itemId, result.packCount > 0 ? result.packCount : 1);
+          } else if (result.packCount > 0) {
+            setQty(itemId, result.packCount);
+          }
+          setPackSheetItemId(null);
+        }}
+      />
     </div>
   );
 }

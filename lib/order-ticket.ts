@@ -1,5 +1,6 @@
 import { APP_ROUTES } from "@/lib/config";
 import type { SupplierItemLinkRecord } from "@/lib/api";
+import type { OrderCartPackMeta } from "@/lib/order-cart-storage";
 import {
   encodeMarketplaceOrderQuery,
   parseMarketplaceOrderQuery,
@@ -10,6 +11,7 @@ export type OrderTicketLine = MarketplaceOrderQueryLine;
 
 export type OrderTicketMatch = {
   cart: Record<string, number>;
+  packs: OrderCartPackMeta;
   matched: number;
   missed: string[];
 };
@@ -77,6 +79,7 @@ export function matchOrderTicketToLinks(
   links: SupplierItemLinkRecord[],
 ): OrderTicketMatch {
   const cart: Record<string, number> = {};
+  const packs: OrderCartPackMeta = {};
   const missed: string[] = [];
   let matched = 0;
 
@@ -101,24 +104,47 @@ export function matchOrderTicketToLinks(
     }
     cart[hit.itemId] = (cart[hit.itemId] ?? 0) + line.qty;
     matched += 1;
+
+    const packOptionId = line.packOptionId?.trim();
+    if (packOptionId) {
+      const option = hit.packs?.find((p) => p.id === packOptionId);
+      if (option && option.unitsPerPack > 1) {
+        packs[hit.itemId] = {
+          packOptionId: option.id,
+          size: option.unitsPerPack,
+          unit: option.packUnit || "pack",
+          price: option.unitPrice,
+        };
+      }
+    }
   }
 
-  return { cart, matched, missed };
+  return { cart, packs, matched, missed };
 }
 
 /** Encode a tenant cart for sharing — prefer SKU, then barcode, then item id. */
 export function encodeTenantCartTicket(
-  lines: { link: SupplierItemLinkRecord; qty: number }[],
+  lines: {
+    link: SupplierItemLinkRecord;
+    qty: number;
+    packOptionId?: string | null;
+  }[],
 ): string {
   return encodeOrderTicket(
-    lines.flatMap(({ link, qty }) => {
+    lines.flatMap(({ link, qty, packOptionId }) => {
       const key =
         link.sku?.trim() ||
         link.barcode?.trim() ||
         link.supplierSku?.trim() ||
         link.itemId;
       if (!key || qty <= 0) return [];
-      return [{ slug: key, qty }];
+      return [
+        {
+          slug: key,
+          qty,
+          packOptionId: packOptionId?.trim() || undefined,
+        },
+      ];
     }),
   );
 }

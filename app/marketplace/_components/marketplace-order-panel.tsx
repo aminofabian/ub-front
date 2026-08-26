@@ -46,6 +46,7 @@ import {
 import { kioskPlaceholderWashClass } from "@/components/cashier/kiosk-listing-styles";
 import { TelLink } from "@/components/tel-link";
 import { APP_ROUTES } from "@/lib/config";
+import type { ItemLinkPackOfferRecord } from "@/lib/api";
 import type {
   MarketplaceCatalogProductPreview,
   MarketplaceSupplierDetail,
@@ -188,15 +189,24 @@ function roundMoneyTo10(value: number): number {
   return rounded > 0 ? rounded : value;
 }
 
+/** Effective price for one pack (or one unit when not packed). */
+function packUnitPrice(
+  product: MarketplaceCatalogProductPreview,
+  pack: CartPackSelection | null,
+): number | null {
+  if (pack && pack.size > 1) {
+    return pack.price ?? product.unitPrice ?? null;
+  }
+  return product.unitPrice ?? null;
+}
+
 function productLineTotal(
   product: MarketplaceCatalogProductPreview,
   qty: number,
   pack: CartPackSelection | null = null,
 ): number | null {
-  if (pack && pack.size > 1) {
-    return pack.price == null ? null : pack.price * qty;
-  }
-  return product.unitPrice == null ? null : product.unitPrice * qty;
+  const price = packUnitPrice(product, pack);
+  return price == null ? null : price * qty;
 }
 
 async function copyText(value: string, label: string) {
@@ -422,7 +432,7 @@ export function MarketplaceOrderWorkspace({
         packOptionId: option.id,
         size: option.unitsPerPack,
         unit: option.packUnit || "pack",
-        price: option.unitPrice,
+        price: option.unitPrice ?? product.unitPrice ?? null,
       };
     }
     return next;
@@ -530,7 +540,9 @@ export function MarketplaceOrderWorkspace({
             packOptionId: option.id,
             size: option.unitsPerPack,
             unit: option.packUnit || "pack",
-            price: option.unitPrice,
+            // Prefer the pack's own price; fall back to catalogue unit so
+            // line totals never show "Ask" when the shelf already lists a price.
+            price: option.unitPrice ?? product.unitPrice ?? null,
           },
         };
       });
@@ -700,8 +712,7 @@ export function MarketplaceOrderWorkspace({
           sku: product.sku,
           barcode: product.barcode,
           qty,
-          unitPrice:
-            pack != null && pack.price != null ? pack.price : product.unitPrice,
+          unitPrice: packUnitPrice(product, pack),
           currency: product.currency,
           totalOverride:
             roundedLineIds[product.id] && raw != null ? roundMoneyTo10(raw) : undefined,
@@ -755,6 +766,7 @@ export function MarketplaceOrderWorkspace({
                   roundedLineIds[product.id] && rawTotal != null
                     ? roundMoneyTo10(rawTotal)
                     : undefined,
+                packOptionId: pack?.packOptionId ?? undefined,
               },
             ];
           }),
@@ -1133,16 +1145,24 @@ export function MarketplaceOrderWorkspace({
           ? packByProductId[packSheetProduct.id]?.size ?? null
           : null
       }
+      savedOptions={
+        packSheetProduct
+          ? (catalogPackOptions(packSheetProduct) as ItemLinkPackOfferRecord[])
+          : null
+      }
       onApply={(result) => {
         if (!packSheetProduct) return;
         const id = packSheetProduct.id;
         setPackByProductId((prev) => ({
           ...prev,
           [id]: {
-            packOptionId: null,
+            packOptionId: result.packOptionId ?? null,
             size: result.unitsPerPack,
             unit: result.packUnit || "pack",
-            price: null,
+            price:
+              result.packPrice ??
+              packSheetProduct.unitPrice ??
+              null,
           },
         }));
         if ((cart[id] ?? 0) <= 0) {
@@ -2450,8 +2470,8 @@ function OrderManifestPanel({
                       </p>
                       {packed ? (
                         <p className="font-mono text-[9px] tabular-nums text-muted-foreground">
-                          {(pack.price ?? line.product.unitPrice) != null ? (
-                            `${formatMoney(pack.price ?? line.product.unitPrice!, line.product.currency ?? currency)} / pack`
+                          {packUnitPrice(line.product, pack) != null ? (
+                            `${formatMoney(packUnitPrice(line.product, pack)!, line.product.currency ?? currency)} / pack`
                           ) : (
                             "Ask / pack"
                           )}
