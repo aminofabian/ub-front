@@ -48,6 +48,30 @@ export function catalogFamilyAnchor(id: string): string {
   return `catalog-family-${id.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")}`;
 }
 
+/** Wholesale carton: units inside one supplier pack. Hidden when size is 1 or missing. */
+export function catalogWholesalePack(
+  product: Pick<MarketplaceCatalogProductPreview, "packSize" | "packUnit">,
+): { size: number; unit: string } | null {
+  const size = Number(product.packSize);
+  if (!Number.isFinite(size) || size <= 1) return null;
+  const unit = (product.packUnit ?? "pcs").trim() || "pcs";
+  return { size, unit };
+}
+
+export function catalogEachFromPack(
+  product: Pick<
+    MarketplaceCatalogProductPreview,
+    "packSize" | "unitPrice"
+  >,
+): number | null {
+  const pack = catalogWholesalePack(product);
+  const price = product.unitPrice;
+  if (!pack || price == null || !Number.isFinite(price) || pack.size <= 0) {
+    return null;
+  }
+  return Math.round((price / pack.size) * 100) / 100;
+}
+
 /** Pack / size line shown under a family heading. "Avocado Medium" → "Medium". */
 export function catalogPackLabel(
   product: MarketplaceCatalogProductPreview,

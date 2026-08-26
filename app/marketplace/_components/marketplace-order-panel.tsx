@@ -55,6 +55,8 @@ import {
   catalogFamilyId,
   catalogFamilyLetters,
   catalogPackLabel,
+  catalogEachFromPack,
+  catalogWholesalePack,
   firstFamilyForLetter,
   groupCatalogProducts,
 } from "@/lib/marketplace-catalog-groups";
@@ -71,6 +73,7 @@ import {
 } from "@/lib/marketplace-url";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
+import { WholesalePackStamp } from "@/components/pack/wholesale-pack-stamp";
 import { cn, formatMoney } from "@/lib/utils";
 
 import {
@@ -1413,11 +1416,21 @@ export function MarketplaceOrderWorkspace({
                 {areaLabel ? ` · ${areaLabel}` : ""}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <p className="font-heading text-xl font-semibold tabular-nums sm:text-2xl">
-                  {selected.unitPrice != null
-                    ? formatMoney(selected.unitPrice, selected.currency ?? "KES")
-                    : "Ask price"}
-                </p>
+                <div>
+                  <p className="font-heading text-xl font-semibold tabular-nums sm:text-2xl">
+                    {selected.unitPrice != null
+                      ? formatMoney(selected.unitPrice, selected.currency ?? "KES")
+                      : "Ask price"}
+                  </p>
+                  {catalogWholesalePack(selected) ? (
+                    <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                      Pack of {catalogWholesalePack(selected)!.size}
+                      {catalogEachFromPack(selected) != null
+                        ? ` · ${formatMoney(catalogEachFromPack(selected)!, selected.currency ?? "KES")} each`
+                        : ""}
+                    </p>
+                  ) : null}
+                </div>
                 <QtyControl
                   qty={cart[selected.id] ?? 0}
                   onChange={(qty) => setQty(selected.id, qty, true)}
@@ -2339,6 +2352,14 @@ function CatalogueOrderRow({
             ? formatMoney(product.unitPrice, product.currency ?? "KES")
             : "Ask"}
         </p>
+        {catalogWholesalePack(product) ? (
+          <p className="text-[11px] font-semibold text-muted-foreground">
+            Pack of {catalogWholesalePack(product)!.size}
+            {catalogEachFromPack(product) != null
+              ? ` · ${formatMoney(catalogEachFromPack(product)!, product.currency ?? "KES")} ea`
+              : ""}
+          </p>
+        ) : null}
       </div>
       <QtyControl qty={qty} onChange={onSetQty} compact />
     </div>
@@ -2365,6 +2386,8 @@ function ShelfProductTile({
   const thumb = posTileThumbUrl(product.name, product.imageUrl);
   const href = marketplacePassportProductPath(supplierSlug, product.slug);
   const title = displayName?.trim() || product.name;
+  const wholesalePack = catalogWholesalePack(product);
+  const eachFromPack = catalogEachFromPack(product);
 
   return (
     <div
@@ -2414,6 +2437,13 @@ function ShelfProductTile({
             {qty}
           </span>
         ) : null}
+        {wholesalePack ? (
+          <WholesalePackStamp
+            overlay
+            units={wholesalePack.size}
+            packUnit={wholesalePack.unit}
+          />
+        ) : null}
       </div>
       <div className="flex min-h-[3.25rem] w-full flex-1 flex-col justify-between gap-1 px-1 pb-1 pt-1">
         {href ? (
@@ -2429,12 +2459,29 @@ function ShelfProductTile({
             {title}
           </p>
         )}
-        <div className="flex items-center justify-between gap-1">
-          <p className="font-mono text-[10px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
-            {product.unitPrice != null
-              ? formatMoney(product.unitPrice, product.currency ?? "KES")
-              : "Ask"}
+        {wholesalePack ? (
+          <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_62%,transparent)]">
+            Pack of {Number.isInteger(wholesalePack.size) ? wholesalePack.size : wholesalePack.size}
           </p>
+        ) : null}
+        <div className="flex items-center justify-between gap-1">
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+              {product.unitPrice != null
+                ? formatMoney(product.unitPrice, product.currency ?? "KES")
+                : "Ask"}
+              {wholesalePack ? (
+                <span className="font-sans font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
+                  {" "}/ pack
+                </span>
+              ) : null}
+            </p>
+            {eachFromPack != null ? (
+              <p className="font-mono text-[9px] tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
+                {formatMoney(eachFromPack, product.currency ?? "KES")} ea
+              </p>
+            ) : null}
+          </div>
           {qty > 0 ? (
             <div
               className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]"

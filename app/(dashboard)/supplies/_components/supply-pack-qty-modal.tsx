@@ -18,11 +18,11 @@ import { cn } from "@/lib/utils";
 import { nsdFieldLabel, nsdInput, nsdSelect } from "./new-supply-drawer-ui";
 
 const PACK_UNIT_OPTIONS = [
+  "pack",
   "tray",
   "crate",
   "box",
   "case",
-  "pack",
   ...COMMON_PURCHASE_UNITS.filter(
     (u) => !["tray", "crate", "box", "case", "each", "kg", "g", "lb"].includes(u),
   ),
@@ -41,6 +41,8 @@ export type SupplyPackQtyApply = {
   packUnit: string;
   /** Total money paid for these packs (optional). */
   amountSpent: number | null;
+  /** Price of one pack (optional). */
+  packPrice: number | null;
   /** Buying price per stock unit when amount spent was provided. */
   unitCost: number | null;
 };
@@ -87,9 +89,12 @@ function pluralizePack(unit: string, count: number): string {
 
 export function formatPackQtyHint(result: SupplyPackQtyApply): string {
   const unit = result.packUnit.trim() || "pack";
-  const packPart = `${formatQty(result.packCount)} × ${formatQty(result.unitsPerPack)} / ${unit}`;
+  const packPart =
+    result.packCount === 1
+      ? `Pack of ${formatQty(result.unitsPerPack)}`
+      : `${formatQty(result.packCount)} ${pluralizePack(unit, result.packCount)} × ${formatQty(result.unitsPerPack)}`;
   if (result.unitCost != null) {
-    return `${packPart} · @ ${formatMoney(result.unitCost)}`;
+    return `${packPart} · unit ${formatMoney(result.unitCost)}`;
   }
   return packPart;
 }
@@ -106,7 +111,7 @@ export function resolveSupplyPackDefaults(args: {
   const packUnit =
     args.packUnit?.trim() ||
     args.packagingUnitName?.trim() ||
-    "tray";
+    "pack";
   const packSize =
     args.packSize ??
     args.packageUnitsPerSale ??
@@ -126,11 +131,11 @@ export function SupplyPackQtyModal({
   onApply,
 }: SupplyPackQtyModalProps) {
   const dismissGuardRef = useRef(false);
-  const packsInputRef = useRef<HTMLInputElement | null>(null);
+  const unitsInputRef = useRef<HTMLInputElement | null>(null);
 
   const initialUnit = useMemo(() => {
     const fromDefaults = defaults?.packUnit?.trim();
-    return fromDefaults || "tray";
+    return fromDefaults || "pack";
   }, [defaults?.packUnit]);
 
   const initialSize = useMemo(() => {
@@ -161,7 +166,7 @@ export function SupplyPackQtyModal({
       setPackUnit("__custom__");
       setCustomUnit(initialUnit);
     }
-    setPacksStr("");
+    setPacksStr("1");
     setUnitsPerPackStr(initialSize);
     setAmountSpentStr("");
     setError(null);
@@ -170,37 +175,39 @@ export function SupplyPackQtyModal({
 
   useEffect(() => {
     if (!open) return;
-    const timer = window.setTimeout(() => packsInputRef.current?.focus(), 50);
+    const timer = window.setTimeout(() => unitsInputRef.current?.focus(), 50);
     return () => window.clearTimeout(timer);
   }, [open]);
 
   const resolvedUnit =
     packUnit === "__custom__"
       ? customUnit.trim() || "pack"
-      : packUnit.trim() || "tray";
+      : packUnit.trim() || "pack";
 
   const packs = toPositiveNumber(packsStr);
   const unitsPerPack = toPositiveNumber(unitsPerPackStr);
   const amountSpentRaw = amountSpentStr.trim();
-  const amountSpentParsed =
+  const packPriceParsed =
     amountSpentRaw === "" ? null : toNonNegNumber(amountSpentStr);
   const amountSpentInvalid =
-    amountSpentRaw !== "" && amountSpentParsed == null;
+    amountSpentRaw !== "" && packPriceParsed == null;
 
   const totalQty =
     packs != null && unitsPerPack != null
       ? Math.round(packs * unitsPerPack * 10000) / 10000
       : null;
 
-  const unitCost =
-    totalQty != null && amountSpentParsed != null && totalQty > 0
-      ? roundMoney2(amountSpentParsed / totalQty)
+  const amountSpentParsed =
+    packPriceParsed != null && packs != null
+      ? roundMoney2(packPriceParsed * packs)
       : null;
 
-  const costPerPack =
-    packs != null && amountSpentParsed != null && packs > 0
-      ? roundMoney2(amountSpentParsed / packs)
+  const unitCost =
+    unitsPerPack != null && packPriceParsed != null && unitsPerPack > 0
+      ? roundMoney2(packPriceParsed / unitsPerPack)
       : null;
+
+  const costPerPack = packPriceParsed;
 
   const canApply = totalQty != null && !amountSpentInvalid;
 
@@ -218,19 +225,23 @@ export function SupplyPackQtyModal({
       return;
     }
     if (amountSpentInvalid) {
-      setError("Amount spent must be 0 or a positive number.");
+      setError("Pack price must be 0 or a positive number.");
       return;
     }
     const total = Math.round(packs * unitsPerPack * 10000) / 10000;
+    const packPrice = packPriceParsed;
     const spent = amountSpentParsed;
     const unit =
-      spent != null && total > 0 ? roundMoney2(spent / total) : null;
+      packPrice != null && unitsPerPack > 0
+        ? roundMoney2(packPrice / unitsPerPack)
+        : null;
     onApply({
       totalQty: total,
       packCount: packs,
       unitsPerPack,
       packUnit: resolvedUnit,
       amountSpent: spent,
+      packPrice,
       unitCost: unit,
     });
     // Delay close so the Apply click cannot fall through onto
@@ -275,21 +286,19 @@ export function SupplyPackQtyModal({
           <DialogHeader className="border-b border-border/50 px-4 py-3 sm:px-5 sm:py-4">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Package className="size-5 text-primary" aria-hidden />
-              Enter by pack
+              Ordered as a pack
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
               {defaults?.productLabel?.trim() ? (
                 <>
-                  For{" "}
                   <span className="font-medium text-foreground">
                     {defaults.productLabel.trim()}
                   </span>
-                  . Enter packs, units per pack, and what you paid — we fill qty
-                  and unit cost.
+                  {" — "}
                 </>
-              ) : (
-                "Enter packs, units per pack, and what you paid — we fill qty and unit cost."
-              )}
+              ) : null}
+              Enter how many pieces are in the carton and the pack price. We
+              fill qty and unit cost.
             </DialogDescription>
           </DialogHeader>
 
@@ -300,26 +309,78 @@ export function SupplyPackQtyModal({
               </p>
             ) : null}
 
-            <label className="flex flex-col gap-1">
-              <span className={nsdFieldLabel}>Pack type</span>
-              <select
-                className={nsdSelect}
-                value={selectValue}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setPackUnit(v);
-                  if (v !== "__custom__") setCustomUnit("");
-                  setError(null);
-                }}
-              >
-                {PACK_UNIT_OPTIONS.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-                <option value="__custom__">Other…</option>
-              </select>
-            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1">
+                <span className={nsdFieldLabel}>Pieces in pack</span>
+                <input
+                  ref={unitsInputRef}
+                  className={cn(nsdInput, "text-right font-mono tabular-nums")}
+                  value={unitsPerPackStr}
+                  onChange={(e) => {
+                    setUnitsPerPackStr(e.target.value);
+                    setError(null);
+                  }}
+                  inputMode="decimal"
+                  placeholder="e.g. 40"
+                  autoComplete="off"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className={nsdFieldLabel}>
+                  Price / {resolvedUnit}
+                </span>
+                <input
+                  className={cn(nsdInput, "text-right font-mono tabular-nums")}
+                  value={amountSpentStr}
+                  onChange={(e) => {
+                    setAmountSpentStr(e.target.value);
+                    setError(null);
+                  }}
+                  inputMode="decimal"
+                  placeholder="e.g. 400"
+                  autoComplete="off"
+                  aria-invalid={amountSpentInvalid || undefined}
+                />
+              </label>
+            </div>
+
+            <div className="flex items-end justify-between gap-2">
+              <label className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className={nsdFieldLabel}>Pack type</span>
+                <select
+                  className={nsdSelect}
+                  value={selectValue}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setPackUnit(v);
+                    if (v !== "__custom__") setCustomUnit("");
+                    setError(null);
+                  }}
+                >
+                  {PACK_UNIT_OPTIONS.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                  <option value="__custom__">Other…</option>
+                </select>
+              </label>
+              <label className="flex w-[5.5rem] shrink-0 flex-col gap-1">
+                <span className={nsdFieldLabel}>How many</span>
+                <input
+                  className={cn(nsdInput, "text-right font-mono tabular-nums")}
+                  value={packsStr}
+                  onChange={(e) => {
+                    setPacksStr(e.target.value);
+                    setError(null);
+                  }}
+                  inputMode="decimal"
+                  placeholder="1"
+                  autoComplete="off"
+                  aria-label={`Number of ${pluralizePack(resolvedUnit, 2)} received`}
+                />
+              </label>
+            </div>
 
             {selectValue === "__custom__" ? (
               <label className="flex flex-col gap-1">
@@ -336,60 +397,6 @@ export function SupplyPackQtyModal({
                 />
               </label>
             ) : null}
-
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex flex-col gap-1">
-                <span className={nsdFieldLabel}>
-                  # of {pluralizePack(resolvedUnit, 2)}
-                </span>
-                <input
-                  ref={packsInputRef}
-                  className={cn(nsdInput, "text-right font-mono tabular-nums")}
-                  value={packsStr}
-                  onChange={(e) => {
-                    setPacksStr(e.target.value);
-                    setError(null);
-                  }}
-                  inputMode="decimal"
-                  placeholder="e.g. 5"
-                  autoComplete="off"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={nsdFieldLabel}>Units per {resolvedUnit}</span>
-                <input
-                  className={cn(nsdInput, "text-right font-mono tabular-nums")}
-                  value={unitsPerPackStr}
-                  onChange={(e) => {
-                    setUnitsPerPackStr(e.target.value);
-                    setError(null);
-                  }}
-                  inputMode="decimal"
-                  placeholder="e.g. 12"
-                  autoComplete="off"
-                />
-              </label>
-            </div>
-
-            <label className="flex flex-col gap-1">
-              <span className={nsdFieldLabel}>Amount spent (total)</span>
-              <input
-                className={cn(nsdInput, "text-right font-mono tabular-nums")}
-                value={amountSpentStr}
-                onChange={(e) => {
-                  setAmountSpentStr(e.target.value);
-                  setError(null);
-                }}
-                inputMode="decimal"
-                placeholder="e.g. 4500"
-                autoComplete="off"
-                aria-invalid={amountSpentInvalid || undefined}
-              />
-              <span className="text-[11px] text-muted-foreground">
-                What you paid for all {pluralizePack(resolvedUnit, packs ?? 2)}{" "}
-                — used to calculate unit cost.
-              </span>
-            </label>
 
             <div
               className={cn(
@@ -434,23 +441,26 @@ export function SupplyPackQtyModal({
               {totalQty != null ? (
                 <p className="text-[11px] text-muted-foreground">
                   {formatQty(packs!)} {pluralizePack(resolvedUnit, packs!)} ×{" "}
-                  {formatQty(unitsPerPack!)} units
-                  {amountSpentParsed != null
-                    ? ` · spent ${formatMoney(amountSpentParsed)}`
-                    : ""}
+                  {formatQty(unitsPerPack!)}
                   {costPerPack != null
                     ? ` · ${formatMoney(costPerPack)} / ${resolvedUnit}`
+                    : ""}
+                  {amountSpentParsed != null && packs != null && packs > 1
+                    ? ` · payable ${formatMoney(amountSpentParsed)}`
+                    : ""}
+                  {unitCost != null
+                    ? ` → ${formatMoney(unitCost)} each`
                     : ""}
                 </p>
               ) : (
                 <p className="text-[11px] text-muted-foreground">
-                  Fill packs and units per pack to calculate qty. Add amount
-                  spent to fill unit cost on the line.
+                  Royco example: 40 in the pack, pack price 400 → qty 40 and
+                  unit cost 10.00.
                 </p>
               )}
               {amountSpentInvalid ? (
                 <p className="text-[11px] font-medium text-amber-800 dark:text-amber-200">
-                  Enter a valid amount spent (0 or more).
+                  Enter a valid pack price (0 or more).
                 </p>
               ) : null}
             </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Trash2 } from "lucide-react";
 
+import { WholesalePackStamp } from "@/components/pack/wholesale-pack-stamp";
 import { Button } from "@/components/ui/button";
 import type { ItemSummaryRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,7 @@ import {
   SupplyQtyCell,
   SupplyStockCell,
 } from "./supply-line-metric-cells";
-import type { SupplyPackQtyDefaults } from "./supply-pack-qty-modal";
+import type { SupplyPackQtyApply, SupplyPackQtyDefaults } from "./supply-pack-qty-modal";
 import {
   formatSupplyMargin,
   SupplyShelfPriceCell,
@@ -35,6 +36,7 @@ type DraftLineRow = {
   sellPriceStr: string;
   sellPriceTouched: boolean;
   expiry: string;
+  packReceipt?: SupplyPackQtyApply | null;
 };
 
 type SupplyDraftLineCardProps = {
@@ -70,6 +72,8 @@ type SupplyDraftLineCardProps = {
   /** Receive date YYYY-MM-DD for shelf-life chips. */
   receivedYmd: string;
   packDefaults?: SupplyPackQtyDefaults | null;
+  packReceipt?: SupplyPackQtyApply | null;
+  onPackApply?: (result: SupplyPackQtyApply | null) => void;
   onPackModalOpenChange?: (open: boolean) => void;
   /** Always show sell in the main grid; expiry can stay optional. */
   showSellExpiry?: boolean;
@@ -111,6 +115,8 @@ export function SupplyDraftLineCard({
   onFocusExpiry,
   receivedYmd,
   packDefaults = null,
+  packReceipt = null,
+  onPackApply,
   onPackModalOpenChange,
   showSellExpiry = true,
   showExpiryColumn = false,
@@ -142,6 +148,21 @@ export function SupplyDraftLineCard({
       )}
     >
       <div className="flex items-start gap-2 px-2.5 py-2">
+        {packReceipt ? (
+          <WholesalePackStamp
+            units={packReceipt.unitsPerPack}
+            packCount={packReceipt.packCount}
+            packUnit={packReceipt.packUnit}
+            className="mt-0.5 shrink-0"
+          />
+        ) : packDefaults?.packSize != null &&
+          Number(packDefaults.packSize) > 1 ? (
+          <WholesalePackStamp
+            units={Number(packDefaults.packSize)}
+            packUnit={packDefaults.packUnit}
+            className="mt-0.5 shrink-0 opacity-80"
+          />
+        ) : null}
         <div className="min-w-0 flex-1">
           {row.source === "adhoc" ? (
             <ProductPickCell
@@ -248,6 +269,8 @@ export function SupplyDraftLineCard({
           disabled={busy}
           isReady={isReady}
           packDefaults={packDefaults}
+          packReceipt={packReceipt}
+          onPackApply={onPackApply}
           onPackModalOpenChange={onPackModalOpenChange}
           onEnterCost={onFocusCost}
           onEnterNext={onQtyEnterNext}

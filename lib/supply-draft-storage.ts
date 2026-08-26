@@ -24,6 +24,16 @@ export type SupplyDraftExtraPersisted = {
   desc: string;
 };
 
+export type SupplyDraftPackReceipt = {
+  totalQty: number;
+  packCount: number;
+  unitsPerPack: number;
+  packUnit: string;
+  amountSpent: number | null;
+  unitCost: number | null;
+  packPrice: number | null;
+};
+
 export type SupplyDraftRowPersisted = {
   key: string;
   source: "linked" | "adhoc";
@@ -35,6 +45,7 @@ export type SupplyDraftRowPersisted = {
   sellPriceTouched: boolean;
   expiry: string;
   serverLineId?: string | null;
+  packReceipt?: SupplyDraftPackReceipt | null;
 };
 
 export type NewSupplyDraftPersisted = {

@@ -102,7 +102,8 @@ import {
   SupplyLineTotalCell,
   SupplyQtyCell,
 } from "./supply-line-metric-cells";
-import { resolveSupplyPackDefaults } from "./supply-pack-qty-modal";
+import { WholesalePackStamp } from "@/components/pack/wholesale-pack-stamp";
+import { resolveSupplyPackDefaults, type SupplyPackQtyApply } from "./supply-pack-qty-modal";
 import {
   formatSupplyMargin,
   SupplyShelfPriceCell,
@@ -154,6 +155,7 @@ export type SupplyDraftRow = {
   sellPriceTouched: boolean;
   expiry: string;
   serverLineId?: string | null;
+  packReceipt?: SupplyPackQtyApply | null;
 };
 
 function newRowKey(): string {
@@ -340,6 +342,13 @@ function rowStock(row: SupplyDraftRow): number | null {
     return Number.isFinite(n) ? n : null;
   }
   return null;
+}
+
+function rowCatalogPack(row: SupplyDraftRow): { size: number; unit: string } | null {
+  const size = Number(row.link?.packSize ?? row.item?.packageUnitsPerSale);
+  if (!Number.isFinite(size) || size <= 1) return null;
+  const unit = row.link?.packUnit?.trim() || "pack";
+  return { size, unit };
 }
 
 function rowPackDefaults(row: SupplyDraftRow) {
@@ -2057,6 +2066,7 @@ export function NewSupplyDrawer({
                           receivedYmd={receivedYmd}
                           showSellExpiry
                           showExpiryColumn={showExpiry}
+                          packReceipt={row.packReceipt ?? null}
                           onStockChange={(next) => {
                             if (!iid) return;
                             setRows((prev) => applyOnHandToRows(prev, iid, next));
@@ -2065,6 +2075,15 @@ export function NewSupplyDrawer({
                             setRows((prev) =>
                               prev.map((r) =>
                                 r.key === row.key ? { ...r, qtyStr: value } : r,
+                              ),
+                            )
+                          }
+                          onPackApply={(result) =>
+                            setRows((prev) =>
+                              prev.map((r) =>
+                                r.key === row.key
+                                  ? { ...r, packReceipt: result }
+                                  : r,
                               ),
                             )
                           }
@@ -2214,6 +2233,7 @@ export function NewSupplyDrawer({
                   sellPrice < unitCost;
                 const referenceCost =
                   row.source === "linked" ? rowReferenceCost(row.link) : null;
+                const catalogPack = rowCatalogPack(row);
                 return (
                   <tr
                     key={row.key}
@@ -2231,7 +2251,22 @@ export function NewSupplyDrawer({
                         "bg-inherit py-1.5 align-middle",
                       )}
                     >
-                      <div className="min-w-0 pl-0.5">
+                      <div className="flex min-w-0 items-start gap-2 pl-0.5">
+                        {row.packReceipt ? (
+                          <WholesalePackStamp
+                            units={row.packReceipt.unitsPerPack}
+                            packCount={row.packReceipt.packCount}
+                            packUnit={row.packReceipt.packUnit}
+                            className="mt-0.5 shrink-0"
+                          />
+                        ) : catalogPack ? (
+                          <WholesalePackStamp
+                            units={catalogPack.size}
+                            packUnit={catalogPack.unit}
+                            className="mt-0.5 shrink-0 opacity-80"
+                          />
+                        ) : null}
+                        <div className="min-w-0 flex-1">
                         {row.source === "adhoc" ? (
                           <ProductPickCell
                             sharp
@@ -2280,6 +2315,7 @@ export function NewSupplyDrawer({
                               : ""}
                           </p>
                         ) : null}
+                        </div>
                       </div>
                     </td>
                     <td
@@ -2294,6 +2330,16 @@ export function NewSupplyDrawer({
                         quiet
                         value={row.qtyStr}
                         packDefaults={rowPackDefaults(row)}
+                        packReceipt={row.packReceipt ?? null}
+                        onPackApply={(result) =>
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.key === row.key
+                                ? { ...r, packReceipt: result }
+                                : r,
+                            ),
+                          )
+                        }
                         onPackModalOpenChange={handlePackModalOpenChange}
                         onChange={(value) =>
                           setRows((prev) =>
