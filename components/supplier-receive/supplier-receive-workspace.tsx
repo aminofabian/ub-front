@@ -99,7 +99,6 @@ import {
 } from "@/lib/supply-pack-math";
 import { SupplyPackQtyModal } from "@/app/(dashboard)/supplies/_components/supply-pack-qty-modal";
 import { SupplyPackGuideHintButton } from "@/app/(dashboard)/supplies/_components/supply-pack-guide-drawer";
-import { WholesalePackStamp } from "@/components/pack/wholesale-pack-stamp";
 import { publicSupplierPortalUrl } from "@/lib/public-supplier-portal";
 import { cn } from "@/lib/utils";
 
@@ -534,13 +533,17 @@ function packSizeLabel(n: number): string {
   return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
 }
 
+/** One choice in the manifest "Buy as" strip — the pack modal's quick-size chip language. */
 function PackChip({
   active,
+  custom = false,
   onClick,
   children,
   title,
 }: {
   active: boolean;
+  /** A custom (unsaved) pack size — dashed border signals "your own size". */
+  custom?: boolean;
   onClick: () => void;
   children: React.ReactNode;
   title?: string;
@@ -552,15 +555,28 @@ function PackChip({
       title={title}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-6 min-w-7 items-center justify-center border px-1.5 font-mono text-[10px] font-bold tabular-nums transition",
+        "inline-flex h-6 min-w-7 items-center justify-center border px-1.5 font-mono text-[10px] font-bold tabular-nums transition-colors",
         active
-          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
-          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]",
+          ? "border-amber-950 bg-amber-950 text-amber-50 dark:border-amber-100 dark:bg-amber-100 dark:text-amber-950"
+          : "border-amber-900/25 text-amber-950/80 hover:border-amber-900/50 dark:border-amber-200/25 dark:text-amber-100/80",
+        custom && !active && "border-dashed",
       )}
     >
       {children}
     </button>
   );
+}
+
+/** Fill saved pack options onto a line when its supplier link carries them (draft restores, stale carts). */
+function enrichLinePacks(
+  line: SupplyCartLine,
+  links: SupplierItemLinkRecord[],
+): SupplyCartLine {
+  if (line.packs && line.packs.length > 0) return line;
+  const link = links.find((l) => l.itemId === line.itemId && l.active);
+  const packs = link?.packs && link.packs.length > 0 ? link.packs : null;
+  if (!packs) return line;
+  return { ...line, packs };
 }
 
 /** Pick a saved pack option (or clear to unit mode) and seed the pack price when known. */
@@ -1275,27 +1291,34 @@ function ManifestExtrasBlock({
 }) {
   const total = extrasTotalOf(extras);
   return (
-    <div className="space-y-1.5 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2">
+    <div className="space-y-1.5 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 py-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-          Extra costs
+        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Extras
         </p>
-        {total > 0 ? (
-          <p className="font-mono text-[10px] tabular-nums text-muted-foreground">
-            +{total.toLocaleString("en-KE", { minimumFractionDigits: 2 })}{" "}
-            {currency}
-          </p>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {total > 0 ? (
+            <p className="font-mono text-[10px] tabular-nums text-muted-foreground">
+              +{total.toLocaleString("en-KE", { minimumFractionDigits: 2 })}{" "}
+              {currency}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            className="inline-flex h-6 items-center gap-0.5 px-1 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground disabled:opacity-50"
+            disabled={saving}
+            onClick={() => onChange([...extras, emptyManifestExtra()])}
+          >
+            <Plus className="size-3" aria-hidden />
+            Add
+          </button>
+        </div>
       </div>
-      {extras.length === 0 ? (
-        <p className="text-[10px] leading-snug text-muted-foreground">
-          Shipping, interest, handling…
-        </p>
-      ) : (
+      {extras.length === 0 ? null : (
         <div className="space-y-1.5">
           {extras.map((e) => (
             <div key={e.key} className="space-y-1">
-              <div className="grid grid-cols-[1fr_4.5rem_auto] gap-1">
+              <div className="grid grid-cols-[1fr_4.25rem_auto] gap-1">
                 <select
                   className={cn(fieldCompact, "px-1")}
                   value={e.category}
@@ -1364,15 +1387,6 @@ function ManifestExtrasBlock({
           ))}
         </div>
       )}
-      <button
-        type="button"
-        className="inline-flex h-7 items-center gap-1 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground disabled:opacity-50"
-        disabled={saving}
-        onClick={() => onChange([...extras, emptyManifestExtra()])}
-      >
-        <Plus className="size-3" aria-hidden />
-        Add cost
-      </button>
     </div>
   );
 }
@@ -1421,38 +1435,44 @@ function SupplyCartPanel({
   return (
     <aside
       className={cn(
-        "flex h-full max-h-full min-h-0 w-full shrink-0 flex-col self-stretch overflow-hidden lg:w-[min(100%,20rem)] xl:w-[22rem]",
+        "flex h-full max-h-full min-h-0 w-full shrink-0 flex-col self-stretch overflow-hidden lg:w-[min(100%,22rem)] xl:w-[24rem]",
       )}
     >
       <div
         className={cn(
           "pos-market-receipt flex h-full min-h-0 flex-1 flex-col overflow-hidden",
           "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-          "bg-[color-mix(in_srgb,var(--card)_92%,#faf7f1)] dark:border-border/40 dark:bg-card",
+          "bg-[color-mix(in_srgb,var(--card)_94%,#faf7f1)] dark:border-border/40 dark:bg-card",
           pulse &&
             "shadow-[inset_0_0_0_2px_color-mix(in_srgb,var(--pos-primary)_55%,transparent)]",
         )}
       >
-        <div className="flex shrink-0 items-start justify-between gap-2 border-b-2 border-[var(--pos-ink,#1c1915)] px-2.5 py-2 dark:border-foreground/80">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-3 py-2 dark:border-border/50">
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+            <h2 className="pos-market-section-label truncate text-[1.05rem] leading-none text-foreground">
               Manifest
-            </p>
-            <h2 className="pos-market-section-label mt-0.5 truncate text-base leading-none text-foreground">
-              {supplierName}
             </h2>
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+              {supplierName}
+              {lines.length > 0 ? (
+                <span className="font-mono tabular-nums">
+                  {" "}
+                  · {lines.length}
+                </span>
+              ) : null}
+            </p>
             {draftHint ? (
-              <p className="mt-1 text-[10px] leading-snug text-emerald-800 dark:text-emerald-200">
+              <p className="mt-0.5 truncate text-[10px] text-muted-foreground/80">
                 {draftHint}
               </p>
             ) : null}
           </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <SupplyPackGuideHintButton className="h-7 border-amber-900/20 px-1.5 text-[9px] sm:h-7 sm:text-[9px]" />
+          <div className="flex shrink-0 items-center gap-0.5">
+            <SupplyPackGuideHintButton className="h-7 border-transparent bg-transparent px-1.5 text-[9px] text-muted-foreground hover:bg-amber-50 hover:text-amber-950 sm:h-7 sm:text-[9px] dark:hover:bg-amber-950/40 dark:hover:text-amber-100" />
             {(lines.length > 0 || extras.length > 0) && onClearDraft ? (
               <button
                 type="button"
-                className="h-7 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-destructive"
+                className="h-7 px-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-destructive disabled:opacity-50"
                 onClick={onClearDraft}
                 disabled={saving}
                 title="Clear manifest draft"
@@ -1463,7 +1483,7 @@ function SupplyCartPanel({
             {onCloseMobile ? (
               <button
                 type="button"
-                className="flex size-7 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] text-muted-foreground hover:text-foreground lg:hidden"
+                className="flex size-7 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground lg:hidden"
                 onClick={onCloseMobile}
                 aria-label="Close cart"
               >
@@ -1473,213 +1493,234 @@ function SupplyCartPanel({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-0 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
           {lines.length === 0 ? (
-            <p className="mx-2.5 my-3 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-3 py-10 text-center text-[11px] leading-relaxed text-muted-foreground">
-              Tap shelf products or scan a barcode to build this delivery.
-              Drafts save on this device until you post.
+            <p className="mx-3 my-4 px-1 py-8 text-center text-[11px] leading-relaxed text-muted-foreground">
+              Tap a shelf product or scan a barcode.
+              Pack sizes appear on each line when available.
             </p>
           ) : (
-            lines.map((line, index) => {
-              const pack = line.packMode;
-              const packed = pack != null && pack.unitsPerPack > 0;
-              const qty = parsePos(line.qtyStr) ?? 0;
-              const cost = parseNonNeg(line.costStr) ?? 0;
-              const stockQty = supplyStockQty(line.qtyStr, pack) ?? 0;
-              const unitEach = supplyUnitCost(line.costStr, pack);
-              const lineTotal = supplyLineTotal(line.qtyStr, line.costStr, pack);
-              return (
-                <div
-                  key={line.itemId}
-                  className="space-y-1.5 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 last:border-b-0"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 items-start gap-1.5">
-                      {packed ? (
-                        <WholesalePackStamp
-                          units={pack.unitsPerPack}
-                          packCount={qty > 0 ? qty : 1}
-                          packUnit={pack.packUnit}
-                          className="mt-0.5 shrink-0"
-                        />
-                      ) : null}
-                      <div className="min-w-0">
-                      <p className="flex items-baseline gap-1.5 truncate text-[12px] font-semibold leading-tight">
-                        <span className="font-mono text-[9px] font-normal tabular-nums text-muted-foreground">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
-                        {line.name}
-                      </p>
-                      <p className="mt-0.5 pl-5 text-[9px] uppercase tracking-wide text-muted-foreground">
-                        {line.sku ? `${line.sku} · ` : ""}
-                        Stock {formatStock(line.stock)}
-                        {packed && qty > 0
-                          ? ` → +${stockQty}`
-                          : ""}
-                      </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="shrink-0 p-0.5 text-destructive/70 hover:text-destructive"
-                      onClick={() => onRemove(line.itemId)}
-                      aria-label={`Remove ${line.name}`}
-                      disabled={saving}
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
-                  </div>
-                  <div
+            <ul className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:divide-border/40">
+              {lines.map((line, index) => {
+                const pack = line.packMode;
+                const packed = pack != null && pack.unitsPerPack > 0;
+                const qty = parsePos(line.qtyStr) ?? 0;
+                const cost = parseNonNeg(line.costStr) ?? 0;
+                const stockQty = supplyStockQty(line.qtyStr, pack) ?? 0;
+                const unitEach = supplyUnitCost(line.costStr, pack);
+                return (
+                  <li
+                    key={line.itemId}
                     className={cn(
-                      "grid gap-1",
-                      canSetSellPrice ? "grid-cols-4" : "grid-cols-3",
+                      "grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-2 px-3 py-2.5",
+                      index % 2 === 1 &&
+                        "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_40%,transparent)] dark:bg-muted/15",
                     )}
                   >
-                    <label className="space-y-0.5">
-                      <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                        {packed ? "Packs" : "Qty"}
+                    <div className="flex flex-col items-center gap-1 pt-0.5">
+                      <span className="font-mono text-[10px] font-semibold tabular-nums leading-none text-muted-foreground">
+                        {String(index + 1).padStart(2, "0")}
                       </span>
-                      <div
-                        className={cn(
-                          "flex items-stretch",
-                          packed &&
-                            "border border-amber-800/30 bg-amber-50/90 dark:bg-amber-950/40",
-                        )}
-                      >
-                        <input
-                          className={cn(
-                            fieldCompact,
-                            packed && "border-0 bg-transparent",
-                          )}
-                          inputMode="decimal"
-                          value={line.qtyStr}
-                          disabled={saving}
-                          onChange={(e) =>
-                            onPatch(line.itemId, { qtyStr: e.target.value })
-                          }
-                        />
-                        {packed ? (
-                          <button
-                            type="button"
-                            className="inline-flex shrink-0 items-center px-0.5 font-mono text-[9px] font-black tabular-nums text-amber-950 dark:text-amber-100"
-                            disabled={saving}
-                            title="Change pack size"
-                            onClick={() => onEditPack(line.itemId)}
-                          >
-                            ×{pack.unitsPerPack}
-                          </button>
-                        ) : null}
+                      {packed ? (
+                        <span
+                          className="font-mono text-[9px] font-bold tabular-nums text-amber-900/80 dark:text-amber-200/80"
+                          title={`Pack of ${pack.unitsPerPack}`}
+                        >
+                          ×{packSizeLabel(pack.unitsPerPack)}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="min-w-0 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-[12px] font-semibold leading-snug text-foreground">
+                            {line.name}
+                          </p>
+                          <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
+                            Stock {formatStock(line.stock)}
+                            {qty > 0
+                              ? ` → +${packed ? stockQty : qty}`
+                              : ""}
+                            {packed && unitEach != null
+                              ? ` · ${unitEach.toFixed(2)} ea`
+                              : ""}
+                          </p>
+                        </div>
                         <button
                           type="button"
-                          className={cn(
-                            "inline-flex size-7 shrink-0 items-center justify-center",
-                            packed
-                              ? "bg-amber-200/80 text-amber-950 dark:bg-amber-800 dark:text-amber-50"
-                              : "text-muted-foreground hover:bg-amber-100 hover:text-amber-950",
-                          )}
+                          className="shrink-0 p-0.5 text-muted-foreground/60 hover:text-destructive"
+                          onClick={() => onRemove(line.itemId)}
+                          aria-label={`Remove ${line.name}`}
                           disabled={saving}
-                          title={
-                            packed
-                              ? "Counting packs — click to count pieces"
-                              : "Sold as a pack"
-                          }
-                          aria-pressed={packed}
-                          onClick={() => onTogglePack(line.itemId)}
                         >
-                          <Package className="size-3" aria-hidden />
+                          <Trash2 className="size-3" />
                         </button>
                       </div>
-                    </label>
-                    <label className="space-y-0.5">
-                      <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                        {packed ? "Pack" : "Unit"}
-                      </span>
-                      <input
+
+                      {line.packs && line.packs.length > 0 ? (
+                        <div className="flex flex-wrap items-center gap-1">
+                          <PackChip
+                            active={!packed}
+                            onClick={() => onSelectPack(line.itemId, null)}
+                            title="Buy loose pieces"
+                          >
+                            Unit
+                          </PackChip>
+                          {line.packs.map((option) => (
+                            <PackChip
+                              key={option.id}
+                              active={
+                                packed && line.packOptionId === option.id
+                              }
+                              onClick={() =>
+                                onSelectPack(line.itemId, option.id)
+                              }
+                              title={
+                                option.unitPrice != null
+                                  ? `Pack of ${packSizeLabel(option.unitsPerPack)} · ${Number(option.unitPrice).toFixed(2)} per ${option.packUnit || "pack"}`
+                                  : `Pack of ${packSizeLabel(option.unitsPerPack)}`
+                              }
+                            >
+                              ×{packSizeLabel(option.unitsPerPack)}
+                            </PackChip>
+                          ))}
+                          <PackChip
+                            custom
+                            active={packed && !line.packOptionId}
+                            onClick={() => onEditPack(line.itemId)}
+                            title={
+                              packed && !line.packOptionId
+                                ? `Edit custom pack ×${pack.unitsPerPack}`
+                                : "Set any other pack size"
+                            }
+                          >
+                            {packed && !line.packOptionId
+                              ? `×${packSizeLabel(pack?.unitsPerPack ?? 0)}`
+                              : "…"}
+                          </PackChip>
+                        </div>
+                      ) : null}
+
+                      <div
                         className={cn(
-                          fieldCompact,
-                          packed &&
-                            "border-amber-800/30 bg-amber-50/90 dark:bg-amber-950/40",
+                          "grid gap-1.5",
+                          canSetSellPrice
+                            ? "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,0.9fr)]"
+                            : "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]",
                         )}
-                        inputMode="decimal"
-                        value={line.costStr}
-                        disabled={saving}
-                        onChange={(e) =>
-                          onPatch(line.itemId, { costStr: e.target.value })
-                        }
-                        title={
-                          packed
-                            ? unitEach != null
-                              ? `Pack price — ${unitEach.toFixed(2)} each`
-                              : "Pack price"
-                            : "Unit cost — editing this updates total"
-                        }
-                      />
-                    </label>
-                    <ManifestLineTotalInput
-                      qty={qty}
-                      unitCost={cost}
-                      disabled={saving}
-                      onCommitTotal={(total) => {
-                        if (!(qty > 0)) {
-                          toast.error("Enter quantity first");
-                          return;
-                        }
-                        onPatch(line.itemId, {
-                          costStr: unitCostFromTotal(total, qty),
-                        });
-                      }}
-                    />
-                    {canSetSellPrice ? (
-                      <label className="space-y-0.5">
-                        <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                          Sell
-                        </span>
-                        <input
-                          className={fieldCompact}
-                          inputMode="decimal"
-                          value={line.sellStr}
-                          disabled={saving}
-                          onChange={(e) =>
-                            onPatch(line.itemId, { sellStr: e.target.value })
-                          }
-                        />
-                      </label>
-                    ) : null}
-                  </div>
-                  {packed && lineTotal != null && unitEach != null ? (
-                    <p className="text-[9px] text-amber-950/75 dark:text-amber-100/70">
-                      {qty} pack{qty === 1 ? "" : "s"} · {stockQty} pcs ·{" "}
-                      {unitEach.toFixed(2)} ea · total {lineTotal.toFixed(2)}
-                    </p>
-                  ) : null}
-                  {line.packs && line.packs.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-1">
-                      <PackChip
-                        active={!packed}
-                        onClick={() => onSelectPack(line.itemId, null)}
-                        title="Count pieces — unit purchase"
                       >
-                        Unit
-                      </PackChip>
-                      {line.packs.map((option) => (
-                        <PackChip
-                          key={option.id}
-                          active={packed && line.packOptionId === option.id}
-                          onClick={() => onSelectPack(line.itemId, option.id)}
-                          title={
-                            option.unitPrice != null
-                              ? `${Number(option.unitPrice).toFixed(2)} per ${option.packUnit || "pack"}`
-                              : `Pack of ${packSizeLabel(option.unitsPerPack)}`
-                          }
-                        >
-                          ×{packSizeLabel(option.unitsPerPack)}
-                        </PackChip>
-                      ))}
+                        <label className="min-w-0 space-y-0.5">
+                          <span className="block text-[8px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                            {packed ? "Packs" : "Qty"}
+                          </span>
+                          <div
+                            className={cn(
+                              "flex items-stretch",
+                              packed &&
+                                "border border-amber-800/25 bg-amber-50/70 dark:bg-amber-950/35",
+                            )}
+                          >
+                            <input
+                              className={cn(
+                                fieldCompact,
+                                packed && "border-0 bg-transparent",
+                              )}
+                              inputMode="decimal"
+                              value={line.qtyStr}
+                              disabled={saving}
+                              onChange={(e) =>
+                                onPatch(line.itemId, {
+                                  qtyStr: e.target.value,
+                                })
+                              }
+                            />
+                            <button
+                              type="button"
+                              className={cn(
+                                "inline-flex size-7 shrink-0 items-center justify-center",
+                                packed && !line.packOptionId
+                                  ? "bg-amber-200/70 text-amber-950 dark:bg-amber-800 dark:text-amber-50"
+                                  : "text-muted-foreground hover:bg-amber-100/80 hover:text-amber-950",
+                              )}
+                              disabled={saving}
+                              title={
+                                packed && !line.packOptionId
+                                  ? "Custom pack — click to edit size"
+                                  : "Custom pack size…"
+                              }
+                              aria-pressed={packed && !line.packOptionId}
+                              onClick={() => onTogglePack(line.itemId)}
+                            >
+                              <Package className="size-3" aria-hidden />
+                            </button>
+                          </div>
+                        </label>
+                        <label className="min-w-0 space-y-0.5">
+                          <span className="block text-[8px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                            {packed ? "Pack" : "Unit"}
+                          </span>
+                          <input
+                            className={cn(
+                              fieldCompact,
+                              packed &&
+                                "border-amber-800/25 bg-amber-50/70 dark:bg-amber-950/35",
+                            )}
+                            inputMode="decimal"
+                            value={line.costStr}
+                            disabled={saving}
+                            onChange={(e) =>
+                              onPatch(line.itemId, {
+                                costStr: e.target.value,
+                              })
+                            }
+                            title={
+                              packed
+                                ? unitEach != null
+                                  ? `Pack price — ${unitEach.toFixed(2)} each`
+                                  : "Pack price"
+                                : "Unit cost — editing this updates total"
+                            }
+                          />
+                        </label>
+                        <ManifestLineTotalInput
+                          qty={qty}
+                          unitCost={cost}
+                          disabled={saving}
+                          onCommitTotal={(total) => {
+                            if (!(qty > 0)) {
+                              toast.error("Enter quantity first");
+                              return;
+                            }
+                            onPatch(line.itemId, {
+                              costStr: unitCostFromTotal(total, qty),
+                            });
+                          }}
+                        />
+                        {canSetSellPrice ? (
+                          <label className="min-w-0 space-y-0.5">
+                            <span className="block text-[8px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                              Sell
+                            </span>
+                            <input
+                              className={fieldCompact}
+                              inputMode="decimal"
+                              value={line.sellStr}
+                              disabled={saving}
+                              onChange={(e) =>
+                                onPatch(line.itemId, {
+                                  sellStr: e.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                        ) : null}
+                      </div>
                     </div>
-                  ) : null}
-                </div>
-              );
-            })
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
 
@@ -1690,10 +1731,10 @@ function SupplyCartPanel({
           onChange={onExtrasChange}
         />
 
-        <div className="shrink-0 space-y-2 border-t-2 border-[var(--pos-ink,#1c1915)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-2.5 py-2.5 dark:border-foreground/80 dark:bg-muted/20">
+        <div className="shrink-0 space-y-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_50%,transparent)] px-3 py-2.5 dark:border-border/50 dark:bg-muted/20">
           <div className="flex items-end justify-between gap-2">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Payable
               </p>
               <p className="pos-market-section-label text-xl leading-none text-foreground">
@@ -1703,12 +1744,11 @@ function SupplyCartPanel({
                 </span>
               </p>
             </div>
-            <p className="font-mono text-[10px] tabular-nums text-muted-foreground">
-              {lines.length} ln
-              {extrasTotalOf(extras) > 0
-                ? ` · ${extras.length} extra`
-                : ""}
-            </p>
+            {extrasTotalOf(extras) > 0 ? (
+              <p className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                +{extras.length} extra
+              </p>
+            ) : null}
           </div>
           <Button
             type="button"
@@ -1952,6 +1992,8 @@ export function SupplierReceiveWorkspace({
       (e) => e.amount.trim() || e.desc.trim() || e.category.trim(),
     );
     if (draft && (hasLines || hasExtras)) {
+      // Drafts saved before pack options existed get their packs from the
+      // links-rehydration effect below (runs when links or draftReady change).
       setCart(draft.lines);
       setExtras(draftExtras);
       setDraftRestoredAt(draft.updatedAt);
@@ -1972,6 +2014,13 @@ export function SupplierReceiveWorkspace({
     }
     setDraftReady(true);
   }, [supplier?.id, draftBusinessId, draftUserId]);
+
+  // When links arrive/refresh (or the draft finishes restoring), backfill saved pack
+  // options onto lines that predate them. Idempotent — never touches pack selection.
+  useEffect(() => {
+    if (links.length === 0) return;
+    setCart((prev) => prev.map((l) => enrichLinePacks(l, links)));
+  }, [links, draftReady]);
 
   // Keep a flushable snapshot so exit / supplier switch cannot drop mid-edit qty.
   useEffect(() => {
@@ -2193,19 +2242,13 @@ export function SupplierReceiveWorkspace({
     ? cart.find((l) => l.itemId === packSheetItemId) ?? null
     : null;
 
+  /**
+   * Custom pack entry via the qty modal (the "Buy as" strip covers saved options;
+   * the modal covers any other size). Saved options are chosen with {@link selectPack}.
+   */
   const togglePack = useCallback((itemId: string) => {
-    const line = cart.find((l) => l.itemId === itemId);
-    if (!line) return;
-    if (line.packMode) {
-      setCart((prev) =>
-        prev.map((l) =>
-          l.itemId === itemId ? applyLinePackMode(l, null) : l,
-        ),
-      );
-      return;
-    }
     setPackSheetItemId(itemId);
-  }, [cart]);
+  }, []);
 
   const editPack = useCallback((itemId: string) => {
     setPackSheetItemId(itemId);
@@ -2779,35 +2822,29 @@ export function SupplierReceiveWorkspace({
           </aside>
         ) : null}
 
-        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_96%,transparent)] dark:border-border/40 dark:bg-background">
-          <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2 pb-1.5 pt-1.5 dark:border-border/40 sm:px-3">
-            <span
-              aria-hidden
-              className="absolute inset-y-0 left-0 w-1 bg-[var(--pos-primary)]"
-            />
-            <div className="flex flex-wrap items-center justify-between gap-1.5 pl-1.5">
+        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_98%,var(--pos-paper,#f1ece3))] dark:border-border/40 dark:bg-background">
+          <section className="relative shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-3 pb-2 pt-2 dark:border-border/40">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    Receive
-                  </p>
-                  {branchesLoading ? (
-                    <span className="text-[10px] text-muted-foreground">
-                      Loading branches…
-                    </span>
-                  ) : activeBranchName ? (
-                    <span className="truncate font-mono text-[10px] text-muted-foreground">
-                      @ {activeBranchName}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
-                      Pick a branch ↑
-                    </span>
-                  )}
-                </div>
-                <h2 className="pos-market-section-label mt-0.5 text-[1.05rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                <h2 className="pos-market-section-label text-[1.15rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
                   {supplier.name}
                 </h2>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Receive
+                  {branchesLoading ? (
+                    <span> · Loading branches…</span>
+                  ) : activeBranchName ? (
+                    <span className="font-mono tabular-nums">
+                      {" "}
+                      · {activeBranchName}
+                    </span>
+                  ) : (
+                    <span className="font-medium text-amber-800 dark:text-amber-200">
+                      {" "}
+                      · Pick a branch ↑
+                    </span>
+                  )}
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-1">
                 {canToggleAdminEdit ? (
@@ -2928,48 +2965,26 @@ export function SupplierReceiveWorkspace({
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-y-contain px-1.5 py-1.5 sm:px-2.5">
-            <div className="flex items-center justify-between gap-2 px-0.5">
-              <h3 className="flex items-baseline gap-2 pos-market-section-label text-[0.9rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2.5 py-2 sm:px-3">
+            <div className="mb-2 flex items-baseline gap-2">
+              <h3 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
                 {parentFilterId
                   ? parentOptions.find((p) => p.id === parentFilterId)?.label ??
                     "Shelf"
                   : "Shelf"}
-                <span className="font-mono text-[10px] font-medium tabular-nums tracking-normal text-muted-foreground">
-                  {visibleLinks.length}
-                </span>
               </h3>
-              {canCreateProduct || canLinkProducts ? (
-                <div className="hidden items-center gap-2 sm:flex">
-                  {canCreateProduct ? (
-                    <button
-                      type="button"
-                      onClick={() => setCreateProductOpen(true)}
-                      className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--pos-primary)] underline-offset-2 hover:underline"
-                    >
-                      Create
-                    </button>
-                  ) : null}
-                  {canLinkProducts ? (
-                    <button
-                      type="button"
-                      onClick={() => setLinkProductsOpen(true)}
-                      className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--pos-primary)] underline-offset-2 hover:underline"
-                    >
-                      Link
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {visibleLinks.length}
+              </span>
             </div>
 
             {linksBusy ? (
-              <div className="flex items-center justify-center gap-2 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-center gap-2 py-16 text-[11px] text-muted-foreground">
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
                 Loading products…
               </div>
             ) : visibleLinks.length === 0 ? (
-              <div className="space-y-3 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] py-10 text-center text-[11px] text-muted-foreground">
+              <div className="space-y-3 py-16 text-center text-[11px] text-muted-foreground">
                 <p>
                   {links.length === 0
                     ? "No linked products yet."
@@ -3003,7 +3018,7 @@ export function SupplierReceiveWorkspace({
                 ) : null}
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1 md:grid-cols-6 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                 {visibleLinks.map((link) => (
                   <ProductTile
                     key={link.id}
