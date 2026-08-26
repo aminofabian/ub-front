@@ -93,7 +93,11 @@ export function ShopItemVariantPicker({
           return (
             <li key={v.id}>
               <Link
-                href={shopItemPathFromCard({ sku: v.sku })}
+                href={shopItemPathFromCard({
+                  id: v.id,
+                  sku: v.sku,
+                  name: v.name,
+                })}
                 aria-current={selected ? "page" : undefined}
                 className={cn(
                   "flex min-h-[3.25rem] w-full items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-left transition-[border-color,background-color,box-shadow,transform] active:scale-[0.99]",

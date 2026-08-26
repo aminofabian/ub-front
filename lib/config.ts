@@ -172,12 +172,14 @@ export const APP_ROUTES = {
   tenantInactive: "/_status/inactive",
 } as const;
 
-/** Public product detail (Phase 15 storefront). */
+import { shopItemPathFromCard } from "./shop-item-url";
+
+/** Public product detail — Shopify-style `/products/{handle}?variant=`. */
 export function shopItemPath(sku: string): string {
-  return `/${encodeURIComponent(sku)}`;
+  return shopItemPathFromCard({ sku });
 }
 
-export { shopItemPathFromCard } from "./shop-item-url";
+export { shopItemPathFromCard };
 
 /** Dashboard category detail by slug. */
 export function categorySlugPath(slug: string): string {

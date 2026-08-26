@@ -6,7 +6,7 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { joinProductNameParts } from "@/lib/catalog-display";
-import { shopItemPath } from "@/lib/config";
+import { shopItemPathFromCard } from "@/lib/config";
 import { formatCartQty, formatDisplayPrice } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 import type { PublicWebCart } from "@/lib/web-cart";
@@ -53,7 +53,11 @@ export function ShopCartLines({
             )}
           >
             <Link
-              href={shopItemPath(line.sku)}
+              href={shopItemPathFromCard({
+                id: line.itemId,
+                sku: line.sku,
+                name: line.name,
+              })}
               className={cn(
                 "relative shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border/40",
                 compact ? "size-14" : "size-16 sm:size-[4.5rem]",
@@ -75,7 +79,11 @@ export function ShopCartLines({
             </Link>
             <div className="min-w-0 flex-1">
               <Link
-                href={shopItemPath(line.sku)}
+                href={shopItemPathFromCard({
+                id: line.itemId,
+                sku: line.sku,
+                name: line.name,
+              })}
                 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors hover:text-primary"
               >
                 {title}

@@ -30,8 +30,10 @@ function bytesToUuidString(bytes: Uint8Array): string | null {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-/** 16 raw bytes → 22-char base64url (shorter than hyphenated UUID). Uses standard base64 + URL-safe chars (no Node `base64url` encoding — older runtimes lack it). */
-function bytesToBase64Url(bytes: Uint8Array): string {
+/** 16 raw bytes → 22-char base64url (shorter than hyphenated UUID). */
+export function itemIdToCompactUrlId(id: string): string {
+  const bytes = uuidStringToBytes(id);
+  if (!bytes) return id;
   let b64: string;
   if (typeof Buffer !== "undefined") {
     b64 = Buffer.from(bytes).toString("base64");
@@ -45,43 +47,31 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-function base64UrlToBytes(s: string): Uint8Array | null {
-  const t = s.trim();
-  if (!t || !/^[A-Za-z0-9_-]+$/.test(t)) return null;
-  try {
-    const pad = (4 - (t.length % 4)) % 4;
-    const b64 = t.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat(pad);
-    if (typeof Buffer !== "undefined") {
-      const buf = Buffer.from(b64, "base64");
-      return buf.length === 16 ? new Uint8Array(buf) : null;
-    }
-    const bin = atob(b64);
-    if (bin.length !== 16) return null;
-    const u = new Uint8Array(16);
-    for (let i = 0; i < 16; i++) u[i] = bin.charCodeAt(i);
-    return u;
-  } catch {
-    return null;
-  }
-}
-
-/** Compact UUID for URL suffix (~22 chars vs 36). Non-UUID ids pass through unchanged. */
-export function itemIdToCompactUrlId(id: string): string {
-  const bytes = uuidStringToBytes(id);
-  if (!bytes) return id;
-  return bytesToBase64Url(bytes);
-}
-
 /** Inverse of {@link itemIdToCompactUrlId}; accepts full UUID or base64url blob. */
 export function compactUrlIdToItemId(suffix: string): string | null {
   const raw = suffix.trim();
   if (!raw) return null;
   if (ITEM_ID_UUID_RE.test(raw)) return raw;
-  const bytes = base64UrlToBytes(raw);
-  if (!bytes) return null;
-  const uuid = bytesToUuidString(bytes);
-  if (uuid && ITEM_ID_UUID_RE.test(uuid)) return uuid;
-  return null;
+  try {
+    const pad = (4 - (raw.length % 4)) % 4;
+    const b64 = raw.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat(pad);
+    let bytes: Uint8Array;
+    if (typeof Buffer !== "undefined") {
+      const buf = Buffer.from(b64, "base64");
+      if (buf.length !== 16) return null;
+      bytes = new Uint8Array(buf);
+    } else {
+      const bin = atob(b64);
+      if (bin.length !== 16) return null;
+      bytes = new Uint8Array(16);
+      for (let i = 0; i < 16; i++) bytes[i] = bin.charCodeAt(i);
+    }
+    const uuid = bytesToUuidString(bytes);
+    if (uuid && ITEM_ID_UUID_RE.test(uuid)) return uuid;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export function slugifyStorefrontItemSegment(text: string): string {
@@ -94,42 +84,92 @@ export function slugifyStorefrontItemSegment(text: string): string {
     .slice(0, 80);
 }
 
-/** Product detail URL path: `/{sku}` */
-export function shopItemUrlSegmentFromCard(item: {
+export type ShopItemUrlFields = {
+  id?: string | null;
   sku: string;
-}): string {
+  name?: string | null;
+};
+
+/** Pretty Shopify-style handle from the product name (falls back to SKU). */
+export function shopItemHandleFromCard(item: ShopItemUrlFields): string {
+  const fromName = item.name ? slugifyStorefrontItemSegment(item.name) : "";
+  if (fromName) return fromName;
+  const fromSku = slugifyStorefrontItemSegment(item.sku);
+  return fromSku || item.sku.trim();
+}
+
+/** Variant token for `?variant=` — compact item id, else SKU. */
+export function shopItemVariantFromCard(item: ShopItemUrlFields): string {
+  const id = item.id?.trim();
+  if (id) return itemIdToCompactUrlId(id);
+  return item.sku.trim();
+}
+
+/**
+ * Canonical product URL — matches Shopify shape:
+ * `/products/{name-slug}?variant={id}`
+ */
+export function shopItemPathFromCard(item: ShopItemUrlFields): string {
+  const handle = shopItemHandleFromCard(item);
+  const variant = shopItemVariantFromCard(item);
+  return `/products/${encodeURIComponent(handle)}?variant=${encodeURIComponent(variant)}`;
+}
+
+/** @deprecated Prefer {@link shopItemPathFromCard}. SKU-only helper. */
+export function shopItemUrlSegmentFromCard(item: { sku: string }): string {
   return item.sku;
 }
 
-/** True if the URL segment matches the item's SKU. */
+/** True when the URL handle (+ optional variant) matches the item. */
 export function shopItemUrlSegmentIsCanonical(
-  segment: string,
-  item: { sku: string },
+  handle: string,
+  item: ShopItemUrlFields,
+  variant?: string | null,
 ): boolean {
-  return safeDecodeURIComponent(segment) === item.sku;
+  const decoded = safeDecodeURIComponent(handle);
+  if (decoded !== shopItemHandleFromCard(item)) return false;
+  if (variant == null || variant === "") return true;
+  const v = safeDecodeURIComponent(variant);
+  const id = item.id?.trim();
+  if (id && (v === id || compactUrlIdToItemId(v) === id)) return true;
+  return v === item.sku;
 }
 
-/** `/:sku` (clean storefront product URL). */
-export function shopItemHrefFromSegment(segment: string): string {
-  return `/${encodeURIComponent(segment.trim())}`;
-}
-
-export function shopItemPathFromCard(item: {
-  sku: string;
-}): string {
-  return shopItemHrefFromSegment(shopItemUrlSegmentFromCard(item));
-}
-
-/** Resolve API item id from `/shop/items/:segment` (bare UUID, `…--uuid`, or `…--base64url`). */
+/** Resolve API item id / sku from a variant query or legacy URL segment. */
 export function resolvePublicItemIdFromShopUrlSegment(segment: string): string | null {
   const raw = safeDecodeURIComponent(segment);
   if (!raw) return null;
   if (ITEM_ID_UUID_RE.test(raw)) return raw;
+  const fromCompact = compactUrlIdToItemId(raw);
+  if (fromCompact) return fromCompact;
   const marker = "--";
   const idx = raw.lastIndexOf(marker);
-  if (idx === -1) return null;
-  const suffix = raw.slice(idx + marker.length);
-  const fromCompact = compactUrlIdToItemId(suffix);
-  if (fromCompact) return fromCompact;
-  return suffix.length > 0 ? suffix : null;
+  if (idx !== -1) {
+    const suffix = raw.slice(idx + marker.length);
+    const compact = compactUrlIdToItemId(suffix);
+    if (compact) return compact;
+    if (suffix.length > 0) return suffix;
+  }
+  return null;
+}
+
+/**
+ * Prefer `?variant=` (compact id / uuid / sku), else legacy `--id` in the
+ * path, else the raw handle (sku or name slug for backend fallback).
+ */
+export function resolveShopProductLookupKey(
+  handle: string,
+  variant?: string | null,
+): string {
+  const v = variant?.trim();
+  if (v) {
+    return (
+      resolvePublicItemIdFromShopUrlSegment(v) ||
+      safeDecodeURIComponent(v) ||
+      v
+    );
+  }
+  const fromHandle = resolvePublicItemIdFromShopUrlSegment(handle);
+  if (fromHandle) return fromHandle;
+  return safeDecodeURIComponent(handle) || handle.trim();
 }

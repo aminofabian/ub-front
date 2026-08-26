@@ -5,7 +5,6 @@ import Link from "next/link";
 import { type CSSProperties } from "react";
 
 import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
-import { StorefrontHeroSection } from "@/components/storefront/sections/hero-section";
 import {
   resolveNativeHeroHeadline,
   StorefrontNativeHeroEditFrame,
@@ -17,7 +16,6 @@ import { printAtelierFontVariables } from "@/components/storefront/templates/sto
 import styles from "@/components/storefront/templates/store/print-atelier.module.css";
 import type { StoreHomeTemplateProps } from "@/components/storefront/templates/types";
 import {
-  resolveStorefrontDesign,
   storefrontSectionConfig,
   type StorefrontHeroSectionSettings,
 } from "@/lib/storefront-design";
@@ -25,14 +23,14 @@ import { themeOptionVars } from "@/lib/storefront-theme-options";
 import { shopListPath } from "@/lib/shop-url";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_HEADLINE = "Ultra-realistic printed art";
+const DEFAULT_HEADLINE = "Ultra-realistic 3D-printed art";
 const DEFAULT_SUB =
   "Your premium fidget & desk accessory catalogue";
 
 /**
  * THESIS: A clean Nairobi gift gallery — sage announce, white chrome,
  * lifestyle hero, rounded tiles — not another dark boutique grid.
- * OWN-WORLD: Paper white, sage #C5D0B4, olive CTA, Jost + Cormorant, soft radii.
+ * OWN-WORLD: Paper white, sage #adc4c2, olive CTA, Jost + Cormorant, soft radii.
  * STORY: Land on the catalogue promise → shop new arrivals → browse collections.
  * FIRST VIEWPORT: Sage bar; logo + centered nav; full-bleed lifestyle hero + olive pill.
  * FORM: Print atelier · 3D East Africa craft bar (brief-pinned competitor look).
@@ -48,30 +46,25 @@ export function PrintAtelierStoreHome(props: StoreHomeTemplateProps) {
     totalCount,
     featured,
     heroTitle,
-    announcement,
     areaLabel,
     branchHint,
-    logoUrl,
     heroBannerUrls,
     showcaseImage,
     landingContent,
     primaryHex,
-    accentHex,
     design: designProp,
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
   const optionVars = themeOptionVars(themeId, design?.theme ?? null);
 
-  const sage = accentHex?.trim() || "#c5d0b4";
   const ink = primaryHex?.trim() || "#1c1a16";
   const heroSection = storefrontSectionConfig(design, "hero");
-  const heroOn = heroSection?.enabled === true;
   const heroSettings = heroSection?.settings as
     | StorefrontHeroSectionSettings
     | undefined;
   const headline = resolveNativeHeroHeadline(
     heroSettings,
-    announcement,
+    null,
     DEFAULT_HEADLINE,
   );
   const sub =
@@ -80,7 +73,6 @@ export function PrintAtelierStoreHome(props: StoreHomeTemplateProps) {
     DEFAULT_SUB;
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
-  const buttons = resolveStorefrontDesign(design).buttons;
 
   const seen = new Set<string>();
   const arrivals: typeof catalogItems = [];
@@ -90,9 +82,7 @@ export function PrintAtelierStoreHome(props: StoreHomeTemplateProps) {
     arrivals.push(item);
     if (arrivals.length >= 16) break;
   }
-  const catalogRest = heroOn
-    ? catalogItems
-    : catalogItems.filter((item) => !seen.has(item.id));
+  const catalogRest = catalogItems.filter((item) => !seen.has(item.id));
 
   const heroImage =
     heroBannerUrls?.find((u) => u?.trim()) ||
@@ -122,7 +112,6 @@ export function PrintAtelierStoreHome(props: StoreHomeTemplateProps) {
       data-store-theme-id="print-atelier"
       style={
         {
-          ["--pa-sage" as string]: sage,
           ["--pa-ink" as string]: ink,
           ...optionVars,
         } as CSSProperties
@@ -136,74 +125,52 @@ export function PrintAtelierStoreHome(props: StoreHomeTemplateProps) {
         FORM: Print atelier · brief-pinned 3DEA craft bar · seed n/a (canon).
         FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
       */}
-      {heroOn ? (
-        <StorefrontHeroSection
-          title={heroTitle}
-          tagline={
-            heroSettings?.headline.trim() ? heroSettings.headline : announcement
-          }
-          subheadline={heroSettings?.subheadline ?? null}
-          height={heroSettings?.height ?? "large"}
-          overlay={heroSettings?.overlay ?? "dark"}
-          showCta={heroSettings?.showCta ?? true}
-          showWhatsapp={heroSettings?.showWhatsapp ?? true}
-          buttons={buttons}
-          branchHint={branchHint}
-          areaLabel={areaLabel}
-          primaryHex={primaryHex}
-          accentHex={accentHex}
-          showcaseImage={showcaseImage}
-          logoUrl={logoUrl}
-          heroBannerUrls={heroBannerUrls}
-          design={design}
-          whatsappNumber={landingContent?.whatsapp ?? landingContent?.phone ?? null}
-          ctaAnchor="#arrivals"
-        />
-      ) : (
-        <StorefrontNativeHeroEditFrame>
-          {heroImage ? (
-            <section className={styles.hero} aria-label="Featured catalogue">
-              <div className={styles.heroMedia}>
-                <Image
-                  src={heroImage}
-                  alt=""
-                  fill
-                  priority
-                  unoptimized
-                  sizes="100vw"
-                  style={{ objectFit: "cover" }}
-                />
-              </div>
-              <span className={styles.heroScrim} aria-hidden />
-              <div className={styles.heroCopy}>
-                <StorefrontNativeHeroHeadline
-                  value={headline}
-                  className={styles.heroTitle}
-                  as="h1"
-                />
-                <p className={styles.heroSub}>{sub}</p>
-                <Link href="#arrivals" className={styles.heroCta}>
-                  Shop the catalogue
-                </Link>
-              </div>
-            </section>
-          ) : (
-            <section className={cn(styles.hero, styles.heroEmpty)} aria-label="Featured catalogue">
-              <div className={styles.heroCopy}>
-                <StorefrontNativeHeroHeadline
-                  value={headline}
-                  className={styles.heroTitle}
-                  as="h1"
-                />
-                <p className={styles.heroSub}>{sub}</p>
-                <Link href="#catalog" className={styles.heroCta}>
-                  Shop the catalogue
-                </Link>
-              </div>
-            </section>
-          )}
-        </StorefrontNativeHeroEditFrame>
-      )}
+      <StorefrontNativeHeroEditFrame>
+        {heroImage ? (
+          <section className={styles.hero} aria-label="Featured catalogue">
+            <div className={styles.heroMedia}>
+              <Image
+                src={heroImage}
+                alt=""
+                fill
+                priority
+                unoptimized
+                sizes="100vw"
+                style={{ objectFit: "cover", objectPosition: "center" }}
+              />
+            </div>
+            <span className={styles.heroScrim} aria-hidden />
+            <div className={styles.heroCopy}>
+              <StorefrontNativeHeroHeadline
+                value={headline}
+                className={styles.heroTitle}
+                as="h1"
+              />
+              <p className={styles.heroSub}>{sub}</p>
+              <Link href="#arrivals" className={styles.heroCta}>
+                Shop the catalogue
+              </Link>
+            </div>
+          </section>
+        ) : (
+          <section
+            className={cn(styles.hero, styles.heroEmpty)}
+            aria-label="Featured catalogue"
+          >
+            <div className={styles.heroCopy}>
+              <StorefrontNativeHeroHeadline
+                value={headline}
+                className={styles.heroTitle}
+                as="h1"
+              />
+              <p className={styles.heroSub}>{sub}</p>
+              <Link href="#catalog" className={styles.heroCta}>
+                Shop the catalogue
+              </Link>
+            </div>
+          </section>
+        )}
+      </StorefrontNativeHeroEditFrame>
 
       <div className={styles.wrap}>
         {productsOn && arrivals.length > 0 ? (

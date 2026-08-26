@@ -167,6 +167,7 @@ export function ShopStorefrontChrome({
   hasPresence,
   whatsappNumber,
   initialDesign = null,
+  announcement = null,
   children,
 }: {
   slug: string;
@@ -185,6 +186,8 @@ export function ShopStorefrontChrome({
   whatsappNumber?: string | null;
   /** Saved merchant design — seeds on-page edit mode. */
   initialDesign?: StorefrontDesign | null;
+  /** Storefront announcement for theme chrome that owns the top bar. */
+  announcement?: string | null;
   children: ReactNode;
 }) {
   const compactChrome = useCompactStorefrontChrome();
@@ -307,7 +310,6 @@ export function ShopStorefrontChrome({
                 : isPrintAtelier
                   ? ({
                       ["--pa-ink" as string]: primaryHex || "#1C1A16",
-                      ["--pa-sage" as string]: accentHex || "#C5D0B4",
                     } as CSSProperties)
         : undefined;
 
@@ -467,6 +469,7 @@ export function ShopStorefrontChrome({
             slug={slug}
             storeName={headerTitle}
             logoUrl={logoUrl}
+            announcement={announcement}
           />
         </Suspense>
       ) : null}

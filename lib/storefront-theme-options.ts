@@ -313,19 +313,19 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
     {
       key: "sage",
       label: "Announce sage",
-      hint: "The soft green bar and Add buttons",
+      hint: "The soft teal bar and Add buttons",
       type: "select",
       var: "--pa-sage",
-      default: "moss",
+      default: "mist",
       values: {
+        mist: "#adc4c2",
         moss: "#c5d0b4",
         fern: "#a8bc8a",
-        mist: "#d5dcc8",
       },
       options: [
+        { value: "mist", label: "Mist", swatch: "#adc4c2" },
         { value: "moss", label: "Moss", swatch: "#c5d0b4" },
         { value: "fern", label: "Fern", swatch: "#a8bc8a" },
-        { value: "mist", label: "Mist", swatch: "#d5dcc8" },
       ],
     },
   ],

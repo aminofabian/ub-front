@@ -1,8 +1,8 @@
 .root {
   --pa-paper: #ffffff;
-  --pa-sage: #c5d0b4;
+  --pa-sage: #adc4c2;
   --pa-sage-deep: #9aaf7c;
-  --pa-olive: #4a4538;
+  --pa-olive: #3d3429;
   --pa-ink: #1c1a16;
   --pa-muted: #6b6560;
   --pa-line: #ebe8e2;
@@ -317,15 +317,16 @@
   cursor: pointer;
 }
 
-/* ---------- hero ---------- */
+/* ---------- hero (3DEA lifestyle catalogue banner) ---------- */
 .hero {
   position: relative;
   isolation: isolate;
-  min-height: min(72dvh, 620px);
+  width: 100%;
+  min-height: min(78dvh, 720px);
   display: grid;
   align-items: center;
   overflow: hidden;
-  background: #ddd6c8;
+  background: #d8d2c6;
   color: var(--pa-olive);
 }
 
@@ -337,7 +338,7 @@
 
 .heroMedia img {
   object-fit: cover;
-  object-position: center;
+  object-position: 62% center;
 }
 
 .heroScrim {
@@ -345,10 +346,11 @@
   inset: 0;
   z-index: 1;
   background: linear-gradient(
-    105deg,
-    rgb(255 255 255 / 0.55) 0%,
-    rgb(255 255 255 / 0.18) 42%,
-    transparent 68%
+    95deg,
+    rgb(248 244 236 / 0.72) 0%,
+    rgb(248 244 236 / 0.38) 34%,
+    rgb(248 244 236 / 0.08) 58%,
+    transparent 72%
   );
   pointer-events: none;
 }
@@ -356,43 +358,47 @@
 .heroCopy {
   position: relative;
   z-index: 2;
-  width: min(100%, 34rem);
-  padding: 56px 24px;
-  margin-inline: max(0px, calc((100% - var(--pa-max)) / 2 + 4px));
+  width: min(100%, 36rem);
+  padding: clamp(48px, 8vw, 88px) clamp(20px, 4vw, 40px);
+  margin-inline: max(0px, calc((100% - var(--pa-max)) / 2));
 }
 
 .heroTitle {
   margin: 0;
   font-family: var(--font-pa-sans), system-ui, sans-serif;
-  font-size: clamp(1.65rem, 4.2vw, 2.65rem);
+  font-size: clamp(1.75rem, 4.6vw, 2.85rem);
   font-weight: 700;
-  line-height: 1.08;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--pa-olive);
-}
-
-.heroSub {
-  margin: 10px 0 0;
-  font-size: clamp(0.85rem, 1.8vw, 1.05rem);
-  font-weight: 600;
+  line-height: 1.05;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--pa-olive);
 }
 
+.heroSub {
+  margin: 14px 0 0;
+  max-width: 28rem;
+  font-family: var(--font-pa-sans), system-ui, sans-serif;
+  font-size: clamp(0.78rem, 1.6vw, 0.98rem);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pa-olive);
+}
+
 .heroCta {
-  margin-top: 22px;
+  margin-top: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 28px;
+  padding: 15px 32px;
   border-radius: 999px;
   background: var(--pa-olive);
   color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-family: var(--font-pa-sans), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   text-decoration: none;
   transition: transform 180ms ease, box-shadow 180ms ease;
@@ -400,15 +406,15 @@
 
 .heroCta:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgb(74 69 56 / 0.28);
+  box-shadow: 0 12px 28px rgb(61 52 41 / 0.28);
 }
 
 .heroEmpty {
-  min-height: min(52dvh, 420px);
+  min-height: min(58dvh, 480px);
   display: grid;
   align-items: center;
   background:
-    radial-gradient(ellipse 50% 60% at 70% 50%, rgb(197 208 180 / 0.55), transparent 70%),
+    radial-gradient(ellipse 50% 60% at 72% 48%, rgb(197 208 180 / 0.5), transparent 70%),
     linear-gradient(135deg, #f4f3ef, #e8e4d8);
 }
 
@@ -927,4 +933,210 @@
 
 .root :global(h1) {
   font-family: var(--font-pa-serif), Georgia, serif;
+}
+
+/* ---------- product detail (print atelier) ---------- */
+.pdp {
+  background: var(--pa-paper);
+  min-height: 100%;
+  padding-bottom: 48px;
+}
+
+.pdpWrap {
+  max-width: var(--pa-max);
+  margin: 0 auto;
+  padding: 20px 20px 56px;
+}
+
+.pdpBack {
+  display: inline-flex;
+  margin-bottom: 18px;
+  font-size: 13px;
+  color: var(--pa-muted);
+  text-decoration: none;
+}
+
+.pdpBack:hover {
+  color: var(--pa-ink);
+}
+
+.pdpGrid {
+  display: grid;
+  gap: 28px;
+}
+
+@media (min-width: 900px) {
+  .pdpGrid {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 48px;
+    align-items: start;
+  }
+}
+
+.pdpGallery {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pdpHero {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--pa-soft);
+}
+
+.pdpThumbs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pdpThumb {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  background: var(--pa-soft);
+}
+
+.pdpThumbActive {
+  border-color: var(--pa-ink);
+}
+
+.pdpInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pdpTitle {
+  margin: 0;
+  font-family: var(--font-pa-serif), Georgia, serif;
+  font-size: clamp(1.75rem, 3.5vw, 2.4rem);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.pdpVariant {
+  margin: 0;
+  color: var(--pa-muted);
+  font-size: 15px;
+}
+
+.pdpPriceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.pdpPrice {
+  font-family: var(--font-pa-serif), Georgia, serif !important;
+  font-size: clamp(1.5rem, 2.5vw, 1.85rem) !important;
+  font-weight: 600 !important;
+  color: var(--pa-ink) !important;
+}
+
+.pdpCompare {
+  color: var(--pa-muted);
+  text-decoration: line-through;
+  font-size: 1rem;
+}
+
+.pdpVariants {
+  margin-top: 4px;
+}
+
+.pdpCart {
+  margin-top: 8px;
+}
+
+.pdpUnavailable {
+  margin-top: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px dashed var(--pa-line);
+  background: var(--pa-soft);
+  color: var(--pa-muted);
+  font-size: 14px;
+}
+
+.pdpNote {
+  margin-top: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--pa-soft);
+}
+
+.pdpNoteTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pdpNoteHint {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  color: var(--pa-muted);
+}
+
+.pdpNoteInput {
+  width: 100%;
+  border: 1px solid var(--pa-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: 400 14px var(--font-pa-sans), system-ui, sans-serif;
+  color: var(--pa-ink);
+  background: var(--pa-paper);
+  resize: vertical;
+  min-height: 72px;
+}
+
+.pdpNoteInput:focus {
+  outline: 2px solid var(--pa-sage);
+  outline-offset: 1px;
+}
+
+.pdpNoteCount {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--pa-muted);
+  text-align: right;
+}
+
+.pdpFeatures {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--pa-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.pdpFeatures p {
+  margin: 0;
+}
+
+.pdpTrust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--pa-line);
+  font-size: 12px;
+  color: var(--pa-muted);
+}
+
+@media (min-width: 640px) {
+  .pdpTrust {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }

@@ -207,7 +207,13 @@ export async function StorefrontCatalogHome({
     tenant?.branding?.displayName ?? tenant?.tenantName ?? slug;
   const preSections =
     design && tenant?.storefrontEnabled
-      ? storefrontSectionsInRegion(design, "pre")
+      ? storefrontSectionsInRegion(design, "pre").filter((s) => {
+          // Print atelier owns announcement + first-viewport hero (3DEA craft bar).
+          if (themeId === "print-atelier") {
+            return s.id !== "announcement" && s.id !== "promo" && s.id !== "hero";
+          }
+          return true;
+        })
       : [];
   const postSections =
     design && tenant?.storefrontEnabled

@@ -19,7 +19,7 @@ export function StorefrontProductImageShell({
   itemName,
   children,
 }: {
-  href: string;
+  href?: string | null;
   ariaLabel?: string;
   className?: string;
   itemId: string;
@@ -34,6 +34,14 @@ export function StorefrontProductImageShell({
       <div className={cn("relative", className)}>
         {children}
         <StorefrontProductPhotoButton itemId={itemId} itemName={itemName} />
+      </div>
+    );
+  }
+
+  if (!href) {
+    return (
+      <div className={cn("relative", className)} aria-label={ariaLabel}>
+        {children}
       </div>
     );
   }
