@@ -27,6 +27,7 @@ const TYPE_LABELS: Record<string, string> = {
   "insights.abandoned_cart": "Abandoned carts",
   "insights.peak_hours": "Peak sales window",
   "insights.top_products": "Top products",
+  "account.welcome": "Welcome to Kiosk!",
 };
 
 function readString(value: unknown): string {
@@ -248,12 +249,16 @@ export function getNotificationPresentation(data: NotificationPayload): {
   const payload = resolvePayload(data);
   const title =
     readString(data.title) ||
+    readString(payload?.title) ||
     (notificationType
       ? TYPE_LABELS[notificationType] ?? humanizeType(notificationType)
       : "Notification");
   const body =
-    readString(data.body) || formatPayloadBody(notificationType, payload);
-  const actionUrl = readString(data.actionUrl);
+    readString(data.body) ||
+    readString(payload?.body) ||
+    formatPayloadBody(notificationType, payload);
+  const actionUrl =
+    readString(data.actionUrl) || readString(payload?.actionUrl);
 
   return { title, body, actionUrl };
 }

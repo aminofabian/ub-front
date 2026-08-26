@@ -244,9 +244,14 @@
 .card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  align-items: stretch;
+  gap: 10px;
   min-width: 0;
+}
+
+.cardStage {
+  position: relative;
+  width: 100%;
 }
 
 .cardVisual {
@@ -261,34 +266,140 @@
 .cardVisual img {
   object-fit: contain;
   object-position: center;
-  padding: 6%;
-  transition: opacity 220ms var(--bd-ease);
+  padding: 8%;
+  transition:
+    opacity 280ms var(--bd-ease),
+    transform 480ms var(--bd-ease);
 }
 
 .card:hover .cardVisual img {
-  opacity: 0.72;
+  opacity: 0.78;
+  transform: scale(0.985);
 }
 
-.cardCode {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  text-align: center;
+.cardPlus {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--bd-ink);
+  background: var(--bd-paper);
   color: var(--bd-ink);
-  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 200ms var(--bd-ease),
+    transform 200ms var(--bd-ease),
+    background 160ms ease,
+    color 160ms ease;
 }
 
-.cardCode:hover {
+.card:hover .cardPlus,
+.card:focus-within .cardPlus,
+.cardPlus:focus-visible,
+.cardPlusActive {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (hover: none) {
+  .cardPlus {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cardPlus:hover:not(:disabled) {
+  background: var(--bd-ink);
+  color: var(--bd-paper);
+}
+
+.cardPlus:disabled {
+  cursor: wait;
   opacity: 0.55;
 }
 
-.cardPrice {
-  margin: -6px 0 0;
-  font-size: 11px;
+.cardPlusMark {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.cardPlusQty {
+  font-size: 10px;
+  font-weight: 500;
   letter-spacing: 0.06em;
-  color: var(--bd-mute);
+  min-width: 1ch;
+}
+
+.cardPlusFlash {
+  background: var(--bd-ink);
+  color: var(--bd-paper);
+  animation: bd-plus-flash 700ms var(--bd-ease);
+}
+
+@keyframes bd-plus-flash {
+  0% {
+    transform: scale(0.86);
+  }
+  45% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.25rem;
+  padding: 0 2px;
+}
+
+.cardPrice {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
   text-align: center;
+  color: var(--bd-ink);
+  text-decoration: none;
+  transition: opacity 160ms ease;
+}
+
+.cardPrice:hover {
+  opacity: 0.5;
+}
+
+.cardPriceMuted {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: var(--bd-faint);
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardVisual img,
+  .cardPlus,
+  .cardPlusFlash {
+    animation: none;
+    transition: none;
+  }
 }
 
 .empty {
