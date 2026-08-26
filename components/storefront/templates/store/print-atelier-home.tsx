@@ -30,11 +30,11 @@ const DEFAULT_SUB =
 /**
  * THESIS: A clean Nairobi gift gallery — sage announce, white chrome,
  * lifestyle hero, rounded tiles — not another dark boutique grid.
- * OWN-WORLD: Paper white, sage #adc4c2, olive CTA, Jost + Cormorant, soft radii.
+ * OWN-WORLD: Paper white, mist sage #adc4c2, chocolate olive, Jost + Cormorant.
  * STORY: Land on the catalogue promise → shop new arrivals → browse collections.
  * FIRST VIEWPORT: Sage bar; logo + centered nav; full-bleed lifestyle hero + olive pill.
  * FORM: Print atelier · 3D East Africa craft bar (brief-pinned competitor look).
- * FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+ * FINISH: polished hero motion, section rhythm, card lift, desk wash, PDP calm.
  */
 export function PrintAtelierStoreHome(props: StoreHomeTemplateProps) {
   const {

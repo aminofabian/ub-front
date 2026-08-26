@@ -31,7 +31,7 @@ export function StorefrontProductImageShell({
 
   if (editing) {
     return (
-      <div className={cn("relative", className)}>
+      <div className={cn("relative block w-full", className)}>
         {children}
         <StorefrontProductPhotoButton itemId={itemId} itemName={itemName} />
       </div>
@@ -40,14 +40,18 @@ export function StorefrontProductImageShell({
 
   if (!href) {
     return (
-      <div className={cn("relative", className)} aria-label={ariaLabel}>
+      <div className={cn("relative block w-full", className)} aria-label={ariaLabel}>
         {children}
       </div>
     );
   }
 
   return (
-    <Link href={href} className={cn("relative", className)} aria-label={ariaLabel}>
+    <Link
+      href={href}
+      className={cn("relative block w-full", className)}
+      aria-label={ariaLabel}
+    >
       {children}
     </Link>
   );
