@@ -428,7 +428,7 @@ function linePayload(row: SupplyDraftRow): {
     return null;
   }
   const amountMoney = supplyLineTotal(row.qtyStr, row.unitStr, rowPack(row));
-  if (amountMoney <= 0) {
+  if (amountMoney == null || amountMoney <= 0) {
     return null;
   }
   const sku = rowSku(row);
