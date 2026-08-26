@@ -18,4 +18,20 @@ export const POS_CASHIER_CAPABILITY_FLAGS = {
   /** Auto-add scanned barcodes straight to cart (skip search) when the
    * barcode resolves to exactly one sellable product. */
   scanToCart: "pos.scan_to_cart",
+  /**
+   * Search-first hybrid POS catalog (compact list + frequent chips).
+   * Absent / false keeps the classic product grid.
+   */
+  catalogHybrid: "pos.catalog_hybrid",
 } as const;
+
+/** How the till presents the product shelf. */
+export type PosCatalogMode = "grid" | "hybrid";
+
+export function posCatalogModeFromFlags(
+  featureFlags: Record<string, boolean> | null | undefined,
+): PosCatalogMode {
+  return featureFlags?.[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true
+    ? "hybrid"
+    : "grid";
+}

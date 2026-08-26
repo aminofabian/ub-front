@@ -10,6 +10,7 @@ import type {
 } from "@/lib/marketplace-api";
 import {
   catalogPackLabel,
+  catalogPackSizeLine,
   groupCatalogProducts,
   normalizeCatalogLabel,
 } from "@/lib/marketplace-catalog-groups";
@@ -366,14 +367,16 @@ function toCards(
   return groupCatalogProducts(products).map((group) => ({
     family: group.label,
     cards: group.items.map((product) => {
-      const pack = catalogPackLabel(product, group.label);
+      const packSizes = catalogPackSizeLine(product);
+      const legacyPack = catalogPackLabel(product, group.label);
+      const pack = packSizes || legacyPack;
       const unit =
         normalizeCatalogLabel(pack) === normalizeCatalogLabel(group.label) ? "" : pack;
       return {
         id: product.id,
         family: group.label,
-        name: group.items.length === 1 ? group.label : pack,
-        unit: group.items.length === 1 ? unit : group.label,
+        name: group.items.length === 1 ? group.label : legacyPack,
+        unit: packSizes ? packSizes : group.items.length === 1 ? unit : group.label,
         price: pdfPrice(product, currency),
         flag: product.available === false ? "ASK" : null,
         imageUrl: cardImageUrl(product, group.label, group.thumbnailUrl, origin),

@@ -422,6 +422,7 @@ export function useBusinessSettingsEditor() {
             posCashierAddPhoto: cashierCapabilities.addPhoto,
             posCashierOrderPad: cashierCapabilities.orderPad,
             posCashierOrderConfirm: cashierCapabilities.orderConfirm,
+            posCatalogHybrid: cashierCapabilities.catalogHybrid,
             shiftsPrefillOpeningFromLastClose:
               shiftSettings.prefillOpeningFromLastClose,
             tillListen: {

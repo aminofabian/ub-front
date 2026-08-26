@@ -1,4 +1,7 @@
-import type { MarketplaceCatalogProductPreview } from "@/lib/marketplace-api";
+import type {
+  MarketplaceCatalogProductPreview,
+  MarketplacePackOptionPreview,
+} from "@/lib/marketplace-api";
 
 export type CatalogProductGroup = {
   id: string;
@@ -48,7 +51,45 @@ export function catalogFamilyAnchor(id: string): string {
   return `catalog-family-${id.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")}`;
 }
 
-/** Wholesale carton: units inside one supplier pack. Hidden when size is 1 or missing. */
+/**
+ * Purchasable pack shapes for a product, in backend sort order (by sortOrder).
+ * Empty array means unit-only — the current default behaviour.
+ */
+export function catalogPackOptions(
+  product: Pick<MarketplaceCatalogProductPreview, "packs">,
+): MarketplacePackOptionPreview[] {
+  if (!Array.isArray(product.packs) || product.packs.length === 0) return [];
+  return product.packs.filter(
+    (p) => p && Number.isFinite(p.unitsPerPack) && p.unitsPerPack > 1,
+  );
+}
+
+/** Resolve a saved/selected pack option by id; null when unselected or unknown. */
+export function catalogPackOptionById(
+  product: Pick<MarketplaceCatalogProductPreview, "packs">,
+  packOptionId: string | null | undefined,
+): MarketplacePackOptionPreview | null {
+  if (!packOptionId) return null;
+  return catalogPackOptions(product).find((p) => p.id === packOptionId) ?? null;
+}
+
+function formatPackUnits(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+}
+
+/** Compact available-pack line for a product, e.g. `×12 · ×18 · ×48`; empty when unit-only. */
+export function catalogPackSizeLine(
+  product: Pick<MarketplaceCatalogProductPreview, "packs">,
+): string {
+  const options = catalogPackOptions(product);
+  if (options.length === 0) return "";
+  return options.map((o) => `×${formatPackUnits(o.unitsPerPack)}`).join(" · ");
+}
+
+/**
+ * @deprecated Legacy single-pack read of the link's `packSize` scalar (still populated
+ * read-through by the backend). Prefer {@link catalogPackOptions} for pack choices.
+ */
 export function catalogWholesalePack(
   product: Pick<MarketplaceCatalogProductPreview, "packSize" | "packUnit">,
 ): { size: number; unit: string } | null {
@@ -58,6 +99,10 @@ export function catalogWholesalePack(
   return { size, unit };
 }
 
+/**
+ * @deprecated Legacy derived "each" price from the single `packSize` scalar.
+ * Prefer {@link MarketplacePackOptionPreview.eachPrice} from {@link catalogPackOptions}.
+ */
 export function catalogEachFromPack(
   product: Pick<
     MarketplaceCatalogProductPreview,

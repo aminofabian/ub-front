@@ -105,6 +105,19 @@ export type MarketplaceCatalogProductPreview = {
   variantOfItemId?: string | null;
   parentItemName?: string | null;
   parentImageUrl?: string | null;
+  /** Purchasable pack shapes; empty/absent means unit-only. */
+  packs?: MarketplacePackOptionPreview[];
+};
+
+export type MarketplacePackOptionPreview = {
+  id: string;
+  label: string | null;
+  packUnit: string;
+  unitsPerPack: number;
+  /** Price for ONE pack; null = ask. */
+  unitPrice: number | null;
+  /** Derived unitPrice / unitsPerPack for display; null when unitPrice is null. */
+  eachPrice: number | null;
 };
 
 export type MarketplaceConnectResult = {

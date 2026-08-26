@@ -5,6 +5,7 @@
  */
 
 import type {
+  ItemLinkPackOfferRecord,
   ItemSummaryRecord,
   SupplierItemLinkRecord,
   SupplierRecord,
@@ -48,6 +49,8 @@ export type SupplyDraftRowPersisted = {
   serverLineId?: string | null;
   packReceipt?: SupplyDraftPackReceipt | null;
   packMode?: SupplyPackMode | null;
+  /** Saved item pack option id when the row's pack mode came from a saved option. */
+  packOptionId?: string | null;
 };
 
 export type NewSupplyDraftPersisted = {
@@ -101,6 +104,9 @@ export type ReceiveTillCartLinePersisted = {
   seedCost: string;
   seedSell: string;
   packMode?: SupplyPackMode | null;
+  /** Saved item pack option id when pack mode came from a saved option. */
+  packOptionId?: string | null;
+  packs?: ItemLinkPackOfferRecord[] | null;
   catalogPackSize?: number | null;
   catalogPackUnit?: string | null;
 };

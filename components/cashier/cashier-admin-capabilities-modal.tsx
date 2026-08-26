@@ -27,6 +27,7 @@ type CashierAdminCapabilitiesModalProps = {
   addPhotoEnabled: boolean;
   orderPadEnabled: boolean;
   orderConfirmEnabled: boolean;
+  catalogHybridEnabled: boolean;
   onSaved: () => Promise<void> | void;
 };
 
@@ -40,6 +41,7 @@ export function CashierAdminCapabilitiesModal({
   addPhotoEnabled,
   orderPadEnabled,
   orderConfirmEnabled,
+  catalogHybridEnabled,
   onSaved,
 }: CashierAdminCapabilitiesModalProps) {
   const [priceEdit, setPriceEdit] = useState(priceEditEnabled);
@@ -48,6 +50,7 @@ export function CashierAdminCapabilitiesModal({
   const [addPhoto, setAddPhoto] = useState(addPhotoEnabled);
   const [orderPad, setOrderPad] = useState(orderPadEnabled);
   const [orderConfirm, setOrderConfirm] = useState(orderConfirmEnabled);
+  const [catalogHybrid, setCatalogHybrid] = useState(catalogHybridEnabled);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -58,6 +61,7 @@ export function CashierAdminCapabilitiesModal({
     setAddPhoto(addPhotoEnabled);
     setOrderPad(orderPadEnabled);
     setOrderConfirm(orderConfirmEnabled);
+    setCatalogHybrid(catalogHybridEnabled);
   }, [
     open,
     priceEditEnabled,
@@ -66,6 +70,7 @@ export function CashierAdminCapabilitiesModal({
     addPhotoEnabled,
     orderPadEnabled,
     orderConfirmEnabled,
+    catalogHybridEnabled,
   ]);
 
   const onSave = async () => {
@@ -79,6 +84,7 @@ export function CashierAdminCapabilitiesModal({
           posCashierAddPhoto: addPhoto,
           posCashierOrderPad: orderPad,
           posCashierOrderConfirm: orderConfirm,
+          posCatalogHybrid: catalogHybrid,
         },
       });
       await onSaved();
@@ -249,6 +255,56 @@ export function CashierAdminCapabilitiesModal({
               </span>
             </span>
           </label>
+
+          <div className="space-y-2 rounded-xl border border-border/50 bg-muted/20 px-3 py-3">
+            <p className="text-sm font-semibold text-foreground">
+              Product shelf layout
+            </p>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              Grid for visual retail. Hybrid for SKU-heavy catalogs (scan +
+              search list). Flag: {POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid}
+            </p>
+            <div
+              className="grid grid-cols-2 gap-2"
+              role="radiogroup"
+              aria-label="POS product shelf layout"
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!catalogHybrid}
+                onClick={() => setCatalogHybrid(false)}
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-left transition-colors",
+                  !catalogHybrid
+                    ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)] bg-card"
+                    : "border-border/60 bg-transparent",
+                )}
+              >
+                <span className="block text-xs font-semibold">Grid</span>
+                <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                  Picture tiles
+                </span>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={catalogHybrid}
+                onClick={() => setCatalogHybrid(true)}
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-left transition-colors",
+                  catalogHybrid
+                    ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)] bg-card"
+                    : "border-border/60 bg-transparent",
+                )}
+              >
+                <span className="block text-xs font-semibold">Hybrid</span>
+                <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                  Scan · search list
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <DialogFooter className="gap-2 border-t border-border/40 px-4 py-3">

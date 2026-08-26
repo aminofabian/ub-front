@@ -42,4 +42,28 @@ describe("marketplace order query", () => {
       { slug: "rounded", qty: 2, lineTotal: 100 },
     ]);
   });
+
+  it("round-trips pack option ids with and without a line total", () => {
+    const encoded = encodeMarketplaceOrderQuery([
+      { slug: "mandazi", qty: 2, packOptionId: "opt-12-aaaa" },
+      { slug: "mandazi", qty: 1, lineTotal: 110, packOptionId: "opt-48-bbbb" },
+    ]);
+
+    expect(encoded).toBe(
+      "mandazi*2*0*opt-12-aaaa,mandazi*1*110*opt-48-bbbb",
+    );
+    expect(parseMarketplaceOrderQuery(encoded)).toEqual([
+      { slug: "mandazi", qty: 2, packOptionId: "opt-12-aaaa" },
+      { slug: "mandazi", qty: 1, lineTotal: 110, packOptionId: "opt-48-bbbb" },
+    ]);
+  });
+
+  it("keeps legacy two-segment and three-segment entries parseable", () => {
+    expect(
+      parseMarketplaceOrderQuery("milk*4,eggs*2*90"),
+    ).toEqual([
+      { slug: "milk", qty: 4 },
+      { slug: "eggs", qty: 2, lineTotal: 90 },
+    ]);
+  });
 });

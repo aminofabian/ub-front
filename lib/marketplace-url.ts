@@ -73,11 +73,14 @@ export type MarketplaceOrderQueryLine = {
   qty: number;
   /** Optional line total override (e.g. after round-to-10). */
   lineTotal?: number;
+  /** Saved pack option id when the line was ordered as packs (null = unit). */
+  packOptionId?: string | null;
 };
 
 /**
  * Compact cart encoding for `?o=` —
- * `slug*qty` or `slug*qty*lineTotal`, comma-separated.
+ * `slug*qty`, `slug*qty*lineTotal`, or `slug*qty*lineTotal*packOptionId`
+ * (lineTotal is `0` when only the pack id is carried), comma-separated.
  */
 export function encodeMarketplaceOrderQuery(
   lines: MarketplaceOrderQueryLine[],
@@ -87,8 +90,15 @@ export function encodeMarketplaceOrderQuery(
     .map((l) => {
       const slug = l.slug.trim();
       const qty = Math.max(1, Math.round(l.qty));
-      if (l.lineTotal != null && Number.isFinite(l.lineTotal) && l.lineTotal > 0) {
-        const total = Math.round(l.lineTotal * 100) / 100;
+      const total =
+        l.lineTotal != null && Number.isFinite(l.lineTotal) && l.lineTotal > 0
+          ? String(Math.round(l.lineTotal * 100) / 100)
+          : null;
+      const packOptionId = l.packOptionId?.trim();
+      if (packOptionId) {
+        return `${slug}*${qty}*${total ?? "0"}*${packOptionId}`;
+      }
+      if (total != null) {
         return `${slug}*${qty}*${total}`;
       }
       return `${slug}*${qty}`;
@@ -106,7 +116,9 @@ export function parseMarketplaceOrderQuery(
   for (const part of text.split(",")) {
     const piece = part.trim();
     if (!piece) continue;
-    const match = piece.match(/^([^*]+)\*(\d+)(?:\*(\d+(?:\.\d+)?))?$/);
+    const match = piece.match(
+      /^([^*]+)\*(\d+)(?:\*(\d+(?:\.\d+)?))?(?:\*([a-zA-Z0-9-]+))?$/,
+    );
     if (!match) continue;
     const slug = match[1]!.trim();
     const qty = Number(match[2]);
@@ -115,6 +127,9 @@ export function parseMarketplaceOrderQuery(
     if (match[3]) {
       const total = Number(match[3]);
       if (Number.isFinite(total) && total > 0) line.lineTotal = total;
+    }
+    if (match[4]) {
+      line.packOptionId = match[4]!;
     }
     out.push(line);
   }

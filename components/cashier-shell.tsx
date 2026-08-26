@@ -329,6 +329,9 @@ export function CashierShell({ children }: CashierShellProps) {
           orderConfirmEnabled={
             featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false
           }
+          catalogHybridEnabled={
+            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true
+          }
           onSaved={() => refreshSession()}
         />
       ) : null}

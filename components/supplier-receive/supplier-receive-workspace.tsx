@@ -55,6 +55,7 @@ import {
   uploadItemImageFile,
   type SupplierItemLinkRecord,
   type SupplierRecord,
+  type ItemLinkPackOfferRecord,
 } from "@/lib/api";
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
@@ -113,6 +114,10 @@ type SupplyCartLine = {
   seedCost: string;
   seedSell: string;
   packMode?: SupplyPackMode | null;
+  /** Saved item pack option id when pack mode came from a saved option. */
+  packOptionId?: string | null;
+  /** Saved pack shapes offered on the supplier link (Unit-only when empty). */
+  packs?: ItemLinkPackOfferRecord[] | null;
   catalogPackSize?: number | null;
   catalogPackUnit?: string | null;
 };
@@ -483,10 +488,14 @@ function linkToCartSeed(link: SupplierItemLinkRecord): SupplyCartLine {
     link.lastCostPrice ?? link.defaultCostPrice ?? link.catalogBuyingPrice,
   );
   const sell = moneySeed(link.catalogShelfPrice);
-  const packSize = Number(link.packSize);
+  const packs = link.packs && link.packs.length > 0 ? link.packs : null;
+  const firstPack = packs?.[0] ?? null;
+  const rawPackSize = link.packSize ?? firstPack?.unitsPerPack ?? null;
+  const packSize = Number(rawPackSize);
   const catalogPackSize =
     Number.isFinite(packSize) && packSize > 1 ? packSize : null;
-  const catalogPackUnit = link.packUnit?.trim() || null;
+  const catalogPackUnit =
+    (link.packUnit?.trim() || firstPack?.packUnit?.trim() || null);
   return {
     itemId: link.itemId,
     name: link.itemName || link.sku || "Product",
@@ -498,6 +507,7 @@ function linkToCartSeed(link: SupplierItemLinkRecord): SupplyCartLine {
     seedCost: cost,
     seedSell: sell,
     packMode: null,
+    packs,
     catalogPackSize,
     catalogPackUnit,
   };
@@ -509,15 +519,75 @@ function applyLinePackMode(
 ): SupplyCartLine {
   const current = line.packMode;
   if (!next) {
-    if (!current) return { ...line, packMode: null };
+    if (!current) return { ...line, packMode: null, packOptionId: null };
     const converted = toUnitEntry(line.qtyStr, line.costStr, current.unitsPerPack);
-    return { ...line, ...converted, packMode: null };
+    return { ...line, ...converted, packMode: null, packOptionId: null };
   }
   if (current) {
-    return { ...line, packMode: next };
+    return { ...line, packMode: next, packOptionId: null };
   }
   const converted = toPackEntry(line.qtyStr, line.costStr, next.unitsPerPack);
-  return { ...line, ...converted, packMode: next };
+  return { ...line, ...converted, packMode: next, packOptionId: null };
+}
+
+function packSizeLabel(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+}
+
+function PackChip({
+  active,
+  onClick,
+  children,
+  title,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex h-6 min-w-7 items-center justify-center border px-1.5 font-mono text-[10px] font-bold tabular-nums transition",
+        active
+          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Pick a saved pack option (or clear to unit mode) and seed the pack price when known. */
+function selectSavedPackOption(
+  line: SupplyCartLine,
+  packOptionId: string | null,
+): SupplyCartLine {
+  if (packOptionId == null) {
+    return applyLinePackMode(line, null);
+  }
+  const option = line.packs?.find((p) => p.id === packOptionId);
+  if (!option) return line;
+  const unitsPerPack = Number(option.unitsPerPack);
+  const packMode: SupplyPackMode = {
+    unitsPerPack,
+    packUnit: option.packUnit || "pack",
+  };
+  if (line.packMode && line.packMode.unitsPerPack === unitsPerPack) {
+    return { ...line, packOptionId: option.id };
+  }
+  const converted = toPackEntry(line.qtyStr, line.costStr, unitsPerPack);
+  const price = Number(option.unitPrice);
+  const costStr =
+    option.unitPrice != null && Number.isFinite(price)
+      ? String(Math.round(price * 100) / 100)
+      : converted.unitStr;
+  return { ...line, ...converted, costStr, packMode, packOptionId: option.id };
 }
 
 function seedUnitCost(link: SupplierItemLinkRecord): number {
@@ -1323,6 +1393,7 @@ function SupplyCartPanel({
   onRemove,
   onTogglePack,
   onEditPack,
+  onSelectPack,
   onExtrasChange,
   onPost,
   onCloseMobile,
@@ -1342,6 +1413,7 @@ function SupplyCartPanel({
   onRemove: (itemId: string) => void;
   onTogglePack: (itemId: string) => void;
   onEditPack: (itemId: string) => void;
+  onSelectPack: (itemId: string, packOptionId: string | null) => void;
   onExtrasChange: (extras: ManifestExtra[]) => void;
   onPost: () => void;
   onCloseMobile?: () => void;
@@ -1579,6 +1651,31 @@ function SupplyCartPanel({
                       {qty} pack{qty === 1 ? "" : "s"} · {stockQty} pcs ·{" "}
                       {unitEach.toFixed(2)} ea · total {lineTotal.toFixed(2)}
                     </p>
+                  ) : null}
+                  {line.packs && line.packs.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1">
+                      <PackChip
+                        active={!packed}
+                        onClick={() => onSelectPack(line.itemId, null)}
+                        title="Count pieces — unit purchase"
+                      >
+                        Unit
+                      </PackChip>
+                      {line.packs.map((option) => (
+                        <PackChip
+                          key={option.id}
+                          active={packed && line.packOptionId === option.id}
+                          onClick={() => onSelectPack(line.itemId, option.id)}
+                          title={
+                            option.unitPrice != null
+                              ? `${Number(option.unitPrice).toFixed(2)} per ${option.packUnit || "pack"}`
+                              : `Pack of ${packSizeLabel(option.unitsPerPack)}`
+                          }
+                        >
+                          ×{packSizeLabel(option.unitsPerPack)}
+                        </PackChip>
+                      ))}
+                    </div>
                   ) : null}
                 </div>
               );
@@ -2114,6 +2211,15 @@ export function SupplierReceiveWorkspace({
     setPackSheetItemId(itemId);
   }, []);
 
+  /** Choose a saved pack option (or clear to unit mode) for a manifest line. */
+  const selectPack = useCallback((itemId: string, packOptionId: string | null) => {
+    setCart((prev) =>
+      prev.map((l) =>
+        l.itemId === itemId ? selectSavedPackOption(l, packOptionId) : l,
+      ),
+    );
+  }, []);
+
   const markAdded = useCallback((itemId: string) => {
     setPulseCart(true);
     setJustAddedId(itemId);
@@ -2342,7 +2448,10 @@ export function SupplierReceiveWorkspace({
           description: `${line.name}${line.sku ? ` (${line.sku})` : ""}`,
           amountMoney,
           suggestedItemId: line.itemId,
-          draftQty: qty,
+          // Saved pack option: server expands pack count → stock qty + unit cost.
+          ...(line.packOptionId
+            ? { draftQty: parsePos(line.qtyStr) ?? qty, packOptionId: line.packOptionId }
+            : { draftQty: qty }),
           draftUnitCost: cost,
         });
         synced.push({ line, serverLineId: created.id });
@@ -2627,6 +2736,7 @@ export function SupplierReceiveWorkspace({
     onRemove: removeLine,
     onTogglePack: togglePack,
     onEditPack: editPack,
+    onSelectPack: selectPack,
     onExtrasChange: setExtras,
     onPost,
   };
@@ -3049,6 +3159,7 @@ export function SupplierReceiveWorkspace({
               });
               const next: SupplyCartLine = {
                 ...withMode,
+                packOptionId: result.packOptionId ?? null,
                 qtyStr: withMode.qtyStr.trim() ? withMode.qtyStr : "1",
               };
               if (result.packPrice != null) {

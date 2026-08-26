@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FocusEvent } from "react";
 import { ArrowRight, Package } from "lucide-react";
 
 import { YmdDateInput } from "@/components/ymd-date-input";
+import type { ItemLinkPackOfferRecord } from "@/lib/api";
 import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
 import { cn } from "@/lib/utils";
 import { addYmdDays } from "@/lib/ymd-date";
@@ -165,6 +166,10 @@ type SupplyQtyCellProps = CompactProps & {
   packDefaults?: SupplyPackQtyDefaults | null;
   packMode?: SupplyPackMode | null;
   onPackModeChange?: (next: SupplyPackMode | null) => void;
+  /** Saved pack shapes offered by the supplier link — quick picks in the pack sheet. */
+  savedOptions?: ItemLinkPackOfferRecord[] | null;
+  /** Called with the saved option id (or null) whenever the pack sheet applies. */
+  onPackOptionIdChange?: (packOptionId: string | null) => void;
   /** Notify parent when pack size editor is open so nested drawers don't dismiss. */
   onPackModalOpenChange?: (open: boolean) => void;
   /** Hide under-cell hints for a denser receiving grid. */
@@ -186,6 +191,8 @@ export function SupplyQtyCell({
   packDefaults = null,
   packMode = null,
   onPackModeChange,
+  savedOptions = null,
+  onPackOptionIdChange,
   onPackModalOpenChange,
   quiet = false,
 }: SupplyQtyCellProps) {
@@ -321,7 +328,9 @@ export function SupplyQtyCell({
         onOpenChange={setPackSheet}
         defaults={packDefaults}
         initialUnitsPerPack={packed ? packSize : null}
+        savedOptions={savedOptions}
         onApply={(result) => {
+          onPackOptionIdChange?.(result.packOptionId ?? null);
           onPackModeChange?.({
             unitsPerPack: result.unitsPerPack,
             packUnit: result.packUnit || "pack",

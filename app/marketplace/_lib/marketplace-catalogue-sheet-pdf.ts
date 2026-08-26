@@ -10,6 +10,7 @@ import type {
 } from "@/lib/marketplace-api";
 import {
   catalogPackLabel,
+  catalogPackSizeLine,
   groupCatalogProducts,
   normalizeCatalogLabel,
   type CatalogProductGroup,
@@ -365,6 +366,8 @@ function displayPackLabel(
   product: MarketplaceCatalogProductPreview,
   familyLabel: string,
 ): string {
+  const packSizes = catalogPackSizeLine(product);
+  if (packSizes) return packSizes;
   const pack = catalogPackLabel(product, familyLabel);
   if (normalizeCatalogLabel(pack) === normalizeCatalogLabel(familyLabel)) return "Each";
   return pack;
@@ -372,6 +375,8 @@ function displayPackLabel(
 
 function singletonLabel(group: CatalogProductGroup): string {
   const product = group.items[0];
+  const packSizes = catalogPackSizeLine(product);
+  if (packSizes) return `${group.label} · ${packSizes}`;
   const pack = catalogPackLabel(product, group.label);
   if (normalizeCatalogLabel(pack) === normalizeCatalogLabel(group.label)) return group.label;
   return `${group.label} · ${pack}`;

@@ -66,6 +66,8 @@ import { usePosEvents } from "@/hooks/use-pos-events";
 import { type TopProductRecord } from "@/lib/top-products";
 import { useFeatureFlag } from "@/components/providers/tenant-provider";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import { PosFrequentChips } from "@/components/cashier/pos-frequent-chips";
+import { PosSearchHitList } from "@/components/cashier/pos-search-hit-list";
 import { cn } from "@/lib/utils";
 import {
   CashierProductModal,
@@ -1064,6 +1066,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const scanToCartEnabled = useFeatureFlag(
     POS_CASHIER_CAPABILITY_FLAGS.scanToCart,
   );
+  const catalogHybrid = useFeatureFlag(
+    POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid,
+  );
 
   const markAdded = useCallback(
     (itemId: string) => {
@@ -1828,7 +1833,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   ? "Search within this aisle…"
                   : typeFilterId
                     ? "Search within this type…"
-                    : "Search name, SKU, or scan barcode…"
+                    : catalogHybrid
+                      ? "Search product, SKU or scan barcode…"
+                      : "Search name, SKU, or scan barcode…"
               }
               className={cn(
                 "flex-1 bg-transparent outline-none placeholder:text-muted-foreground/55",
@@ -1958,6 +1965,21 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 />
               ) : null}
             </div>
+          ) : catalogHybrid ? (
+            <PosSearchHitList
+              hits={hits}
+              shelfPrices={Object.fromEntries(
+                hits.map((item) => [
+                  item.id,
+                  tileShelfLine(online, tileShelfPrices, item.id, uiCopy),
+                ]),
+              )}
+              cartQtyByItem={cartQtyByItem}
+              justAddedId={justAddedId}
+              currency={currency}
+              sharedCategoryLabel={sharedCategoryLabel}
+              onPick={handlePickItem}
+            />
           ) : (
             <div
               className={cn(
@@ -1999,6 +2021,30 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       ) : null}
 
       {showCatalog && (alwaysShowTopProducts || topProducts.length > 0) ? (
+        catalogHybrid ? (
+          <PosFrequentChips
+            products={topProducts}
+            loading={alwaysShowTopProducts && topProductsLoading}
+            title="Frequently sold"
+            cartQtyByItem={cartQtyByItem}
+            justAddedId={justAddedId}
+            onPick={(p) =>
+              handlePickItem({
+                id: p.id,
+                name: p.name,
+                sku: p.sku ?? "",
+                thumbnailUrl: p.thumbnailUrl ?? null,
+                variantName: p.variantName ?? undefined,
+                brand: p.brand ?? undefined,
+                size: p.size ?? undefined,
+                packageVariant: p.packageVariant,
+                packageUnitsPerSale: p.packageUnitsPerSale ?? undefined,
+                variantOfItemId: p.variantOfItemId ?? undefined,
+                stockQty: p.stockQty ?? undefined,
+              })
+            }
+          />
+        ) : (
         <section
           aria-label="Top selling products"
           className={cn(
@@ -2079,6 +2125,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             </div>
           )}
         </section>
+        )
       ) : null}
 
       {showCatalog && canBrowseCategories ? (

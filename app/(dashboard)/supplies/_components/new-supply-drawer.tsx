@@ -25,6 +25,7 @@ import {
   fetchSuppliersPage,
   postPathBSession,
   postSellingPrice,
+  type ItemLinkPackOfferRecord,
   type ItemSummaryRecord,
   type SupplierItemLinkRecord,
   type SupplierRecord,
@@ -166,6 +167,8 @@ export type SupplyDraftRow = {
   expiry: string;
   serverLineId?: string | null;
   packMode?: SupplyPackMode | null;
+  /** Saved item pack option id when pack mode came from a saved option. */
+  packOptionId?: string | null;
 };
 
 function newRowKey(): string {
@@ -362,18 +365,24 @@ function rowPack(row: SupplyDraftRow): SupplyPackMode | null {
 function applyRowPackMode(
   row: SupplyDraftRow,
   next: SupplyPackMode | null,
+  packOptionId?: string | null,
 ): SupplyDraftRow {
   const current = rowPack(row);
   if (!next) {
-    if (!current) return { ...row, packMode: null };
+    if (!current) return { ...row, packMode: null, packOptionId: null };
     const converted = toUnitEntry(row.qtyStr, row.unitStr, current.unitsPerPack);
-    return { ...row, ...converted, packMode: null };
+    return { ...row, ...converted, packMode: null, packOptionId: null };
   }
   if (current) {
-    return { ...row, packMode: next };
+    return { ...row, packMode: next, packOptionId: packOptionId ?? null };
   }
   const converted = toPackEntry(row.qtyStr, row.unitStr, next.unitsPerPack);
-  return { ...row, ...converted, packMode: next };
+  return { ...row, ...converted, packMode: next, packOptionId: packOptionId ?? null };
+}
+
+/** Saved pack shapes offered by the row's supplier link (Unit-only when empty). */
+function rowSavedPacks(row: SupplyDraftRow): ItemLinkPackOfferRecord[] | null {
+  return row.link?.packs && row.link.packs.length > 0 ? row.link.packs : null;
 }
 
 function rowCatalogPack(row: SupplyDraftRow): { size: number; unit: string } | null {
@@ -2141,8 +2150,16 @@ export function NewSupplyDrawer({
                               ),
                             )
                           }
-                          packDefaults={rowPackDefaults(row)}
-                          onPackModalOpenChange={handlePackModalOpenChange}
+                          savedOptions={rowSavedPacks(row)}
+                          onPackOptionIdChange={(packOptionId) =>
+                            setRows((prev) =>
+                              prev.map((r) =>
+                                r.key === row.key
+                                  ? { ...r, packOptionId }
+                                  : r,
+                              ),
+                            )
+                          }
                           onUnitChange={(value) =>
                             setRows((prev) =>
                               prev.map((r) =>
@@ -2393,6 +2410,16 @@ export function NewSupplyDrawer({
                                 : r,
                             ),
                           )
+                        }
+                        savedOptions={rowSavedPacks(row)}
+                        onPackOptionIdChange={(packOptionId) =>
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.key === row.key
+                                ? { ...r, packOptionId }
+                                : r,
+                              ),
+                            )
                         }
                         onPackModalOpenChange={handlePackModalOpenChange}
                         onChange={(value) =>

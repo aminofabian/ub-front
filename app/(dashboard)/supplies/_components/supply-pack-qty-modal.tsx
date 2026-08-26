@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { ItemLinkPackOfferRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { nsdInput } from "./new-supply-drawer-ui";
@@ -30,6 +31,8 @@ export type SupplyPackQtyApply = {
   amountSpent: number | null;
   packPrice: number | null;
   unitCost: number | null;
+  /** Saved item pack option id when a saved pack shape was picked; null for custom. */
+  packOptionId?: string | null;
 };
 
 type SupplyPackQtyModalProps = {
@@ -38,6 +41,8 @@ type SupplyPackQtyModalProps = {
   defaults?: SupplyPackQtyDefaults | null;
   /** When set, prefer this size over catalog defaults (edit existing pack). */
   initialUnitsPerPack?: number | null;
+  /** Saved pack shapes offered by the supplier link — rendered as quick picks. */
+  savedOptions?: ItemLinkPackOfferRecord[] | null;
   onApply: (result: SupplyPackQtyApply) => void;
 };
 
@@ -114,6 +119,7 @@ export function SupplyPackQtyModal({
   onOpenChange,
   defaults = null,
   initialUnitsPerPack = null,
+  savedOptions = null,
   onApply,
 }: SupplyPackQtyModalProps) {
   const dismissGuardRef = useRef(false);
@@ -186,6 +192,28 @@ export function SupplyPackQtyModal({
       amountSpent: packPrice,
       packPrice,
       unitCost: unit,
+      packOptionId: null,
+    });
+    window.setTimeout(() => onOpenChange(false), 0);
+  };
+
+  const savedPacks = savedOptions && savedOptions.length > 0 ? savedOptions : null;
+
+  const applySavedOption = (option: ItemLinkPackOfferRecord) => {
+    const units = Number(option.unitsPerPack);
+    const price =
+      option.unitPrice != null && Number.isFinite(Number(option.unitPrice))
+        ? Number(option.unitPrice)
+        : null;
+    onApply({
+      totalQty: units,
+      packCount: 1,
+      unitsPerPack: units,
+      packUnit: option.packUnit || "pack",
+      amountSpent: price,
+      packPrice: price,
+      unitCost: price != null ? roundMoney2(price / units) : null,
+      packOptionId: option.id,
     });
     window.setTimeout(() => onOpenChange(false), 0);
   };
@@ -236,6 +264,39 @@ export function SupplyPackQtyModal({
               <p className="border border-destructive/35 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                 {error}
               </p>
+            ) : null}
+
+            {savedPacks ? (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                  Saved packs from this supplier
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {savedPacks.map((option) => {
+                    const units = Number(option.unitsPerPack);
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className="inline-flex h-8 items-center gap-1 border border-amber-900/30 bg-amber-50 px-2 font-mono text-[11px] font-bold tabular-nums text-amber-950 transition-colors hover:border-amber-900/60 dark:border-amber-200/25 dark:bg-amber-950/50 dark:text-amber-100"
+                        title={
+                          option.unitPrice != null
+                            ? `${formatMoney(Number(option.unitPrice))} per ${option.packUnit || "pack"}`
+                            : `Pack of ${formatQty(units)}`
+                        }
+                        onClick={() => applySavedOption(option)}
+                      >
+                        ×{formatQty(units)}
+                        {option.unitPrice != null ? (
+                          <span className="font-semibold normal-case tracking-normal opacity-70">
+                            {formatMoney(Number(option.unitPrice))}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             ) : null}
 
             <div className="flex flex-col items-center gap-2 border border-amber-900/25 bg-[color-mix(in_srgb,oklch(0.86_0.08_85)_72%,var(--card))] px-4 py-5 dark:border-amber-200/20 dark:bg-amber-950/40">

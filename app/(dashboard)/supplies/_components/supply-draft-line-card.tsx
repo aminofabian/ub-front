@@ -6,6 +6,7 @@ import { ChevronDown, Trash2 } from "lucide-react";
 import { WholesalePackStamp } from "@/components/pack/wholesale-pack-stamp";
 import { Button } from "@/components/ui/button";
 import type { ItemSummaryRecord } from "@/lib/api";
+import type { ItemLinkPackOfferRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import {
@@ -75,6 +76,10 @@ type SupplyDraftLineCardProps = {
   packDefaults?: SupplyPackQtyDefaults | null;
   packMode?: SupplyPackMode | null;
   onPackModeChange?: (next: SupplyPackMode | null) => void;
+  /** Saved pack shapes offered by the supplier link — quick picks in the pack sheet. */
+  savedOptions?: ItemLinkPackOfferRecord[] | null;
+  /** Called with the saved option id (or null) whenever the pack sheet applies. */
+  onPackOptionIdChange?: (packOptionId: string | null) => void;
   onPackModalOpenChange?: (open: boolean) => void;
   /** Always show sell in the main grid; expiry can stay optional. */
   showSellExpiry?: boolean;
@@ -118,6 +123,8 @@ export function SupplyDraftLineCard({
   packDefaults = null,
   packMode = null,
   onPackModeChange,
+  savedOptions = null,
+  onPackOptionIdChange,
   onPackModalOpenChange,
   showSellExpiry = true,
   showExpiryColumn = false,
@@ -272,6 +279,8 @@ export function SupplyDraftLineCard({
           packDefaults={packDefaults}
           packMode={packMode}
           onPackModeChange={onPackModeChange}
+          savedOptions={savedOptions}
+          onPackOptionIdChange={onPackOptionIdChange}
           onPackModalOpenChange={onPackModalOpenChange}
           onEnterCost={onFocusCost}
           onEnterNext={onQtyEnterNext}

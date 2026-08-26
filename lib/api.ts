@@ -1256,6 +1256,8 @@ export type FeatureFlagsPatchPayload = {
   posCashierAddPhoto?: boolean;
   posCashierOrderPad?: boolean;
   posCashierOrderConfirm?: boolean;
+  /** Search-first hybrid POS catalog (list + chips). Absent / false = grid. */
+  posCatalogHybrid?: boolean;
   shiftsPrefillOpeningFromLastClose?: boolean;
   tillListen?: {
     checkout?: boolean;
@@ -1446,6 +1448,18 @@ export type ItemSupplierLinkRecord = {
   updatedAt?: string;
 };
 
+/** One purchasable pack shape offered on a supplier link (merged item defaults + link offers). */
+export type ItemLinkPackOfferRecord = {
+  id: string;
+  label: string | null;
+  packUnit: string;
+  unitsPerPack: number;
+  /** Price for ONE pack; null = ask. */
+  unitPrice: number | null;
+  /** Derived unitPrice / unitsPerPack for display; null when unitPrice is null. */
+  eachPrice: number | null;
+};
+
 /** Response from GET /api/v1/suppliers/{id}/item-links */
 export type SupplierItemLinkRecord = {
   id: string;
@@ -1475,6 +1489,8 @@ export type SupplierItemLinkRecord = {
   /** Variant option label (e.g. Medium, Pink). */
   variantName?: string | null;
   packageVariant?: boolean;
+  /** Offered pack shapes for this link. */
+  packs?: ItemLinkPackOfferRecord[];
   version?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -4248,6 +4264,76 @@ export async function patchItemSupplierLink(
   return request<ItemSupplierLinkRecord>(
     `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/supplier-links/${encodeURIComponent(linkId.trim())}`,
     { method: "PATCH", body },
+  );
+}
+
+// ── Item pack options (multi-pack purchase shapes on a catalog item) ────────
+
+export type ItemPackOptionRecord = {
+  id: string;
+  label: string | null;
+  packUnit: string;
+  unitsPerPack: number;
+  /** Price for ONE pack; null = ask. */
+  defaultPackPrice: number | null;
+  barcode: string | null;
+  skuSuffix: string | null;
+  sortOrder: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateItemPackOptionPayload = {
+  label?: string | null;
+  packUnit: string;
+  /** Must be > 1. */
+  unitsPerPack: number;
+  defaultPackPrice?: number | null;
+  barcode?: string | null;
+  skuSuffix?: string | null;
+  sortOrder?: number;
+  active?: boolean;
+};
+
+export type PatchItemPackOptionPayload = Partial<CreateItemPackOptionPayload>;
+
+export async function fetchItemPackOptions(
+  itemId: string,
+): Promise<ItemPackOptionRecord[]> {
+  return request<ItemPackOptionRecord[]>(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/pack-options`,
+  );
+}
+
+export async function createItemPackOption(
+  itemId: string,
+  body: CreateItemPackOptionPayload,
+): Promise<ItemPackOptionRecord> {
+  return request<ItemPackOptionRecord>(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/pack-options`,
+    { method: "POST", body },
+  );
+}
+
+export async function patchItemPackOption(
+  itemId: string,
+  optionId: string,
+  body: PatchItemPackOptionPayload,
+): Promise<ItemPackOptionRecord> {
+  return request<ItemPackOptionRecord>(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/pack-options/${encodeURIComponent(optionId.trim())}`,
+    { method: "PATCH", body },
+  );
+}
+
+export async function deleteItemPackOption(
+  itemId: string,
+  optionId: string,
+): Promise<void> {
+  await request(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/pack-options/${encodeURIComponent(optionId.trim())}`,
+    { method: "DELETE" },
   );
 }
 
@@ -8831,6 +8917,8 @@ export type PathBLineRecord = {
   draftSellPrice?: number | string | null;
   /** ISO date `YYYY-MM-DD`. */
   draftExpiryDate?: string | null;
+  /** Saved item pack option the line was received in; null = unit / custom pack. */
+  packOptionId?: string | null;
 };
 
 export type PathBSessionDetailRecord = {
@@ -8853,6 +8941,9 @@ export type AddPathBLinePayload = {
   draftSellPrice?: number | string | null;
   /** ISO date `YYYY-MM-DD`. */
   draftExpiryDate?: string | null;
+  /** Saved item pack option. When set, {@link draftQty} is the pack count and the
+   *  server expands it to stock units + unit cost authoritatively. */
+  packOptionId?: string | null;
 };
 
 export type PatchPathBSessionPayload = {

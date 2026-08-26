@@ -90,6 +90,8 @@ export type CashierCapabilitiesForm = {
   addPhoto: boolean;
   orderPad: boolean;
   orderConfirm: boolean;
+  /** Search-first list catalog on POS (vs classic product grid). */
+  catalogHybrid: boolean;
 };
 
 export type ShiftSettingsForm = {
@@ -104,6 +106,8 @@ export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
   addPhoto: false,
   orderPad: true,
   orderConfirm: true,
+  /** Default off — keep classic grid for existing grocery tills. */
+  catalogHybrid: false,
 };
 
 export const DEFAULT_SHIFT_SETTINGS: ShiftSettingsForm = {
@@ -122,6 +126,7 @@ export function cashierCapabilitiesFromRecord(
     addPhoto: ff[POS_CASHIER_CAPABILITY_FLAGS.addPhoto] === true,
     orderPad: ff[POS_CASHIER_CAPABILITY_FLAGS.orderPad] !== false,
     orderConfirm: ff[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false,
+    catalogHybrid: ff[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true,
   };
 }
 

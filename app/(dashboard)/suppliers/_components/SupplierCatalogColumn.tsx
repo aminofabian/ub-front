@@ -14,9 +14,13 @@ import {
 } from "lucide-react";
 
 import {
+  createItemPackOption,
+  deleteItemPackOption,
   fetchCategories,
   fetchItemById,
+  fetchItemPackOptions,
   fetchItemsPage,
+  patchItemPackOption,
   patchItemSupplierLink,
   type CategoryRecord,
   type CatalogListScope,
@@ -166,6 +170,30 @@ function resolveLinkPack(
   return { size, unit };
 }
 
+function fmtPackSize(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+}
+
+/** Editable pack row in the edit-link drawer; {@code id} is null for unsaved rows. */
+type PackOptionDraft = {
+  id: string | null;
+  unitsPerPack: string;
+  packUnit: string;
+  label: string;
+  defaultPackPrice: string;
+  sortOrder: number;
+};
+
+function packDraftEqual(a: PackOptionDraft, b: PackOptionDraft): boolean {
+  return (
+    a.unitsPerPack === b.unitsPerPack &&
+    a.packUnit === b.packUnit &&
+    a.label === b.label &&
+    a.defaultPackPrice === b.defaultPackPrice &&
+    a.sortOrder === b.sortOrder
+  );
+}
+
 export function SupplierCatalogColumn({
   detail,
   canReadCatalog,
@@ -225,10 +253,14 @@ export function SupplierCatalogColumn({
   const [editLinkDrawerRow, setEditLinkDrawerRow] = useState<SupplierItemLinkRecord | null>(null);
   const [editLinkDrawerSku, setEditLinkDrawerSku] = useState("");
   const [editLinkDrawerCost, setEditLinkDrawerCost] = useState("");
-  const [editLinkDrawerPackUnit, setEditLinkDrawerPackUnit] = useState("");
-  const [editLinkDrawerPackSize, setEditLinkDrawerPackSize] = useState("");
   const [editLinkDrawerBusy, setEditLinkDrawerBusy] = useState(false);
   const [editLinkDrawerError, setEditLinkDrawerError] = useState<string | null>(null);
+  /** Pack shapes being edited for the drawer's item (saved + unsaved rows). */
+  const [editLinkPacks, setEditLinkPacks] = useState<PackOptionDraft[]>([]);
+  /** Original saved drafts by option id — used to diff adds/edits/removals on save. */
+  const [editLinkPacksOriginals, setEditLinkPacksOriginals] = useState<
+    Record<string, PackOptionDraft>
+  >({});
 
   const loadGen = useRef(0);
 
@@ -528,17 +560,71 @@ export function SupplierCatalogColumn({
     }
   };
 
-  const openEditLinkDrawer = (row: SupplierItemLinkRecord) => {
+  const openEditLinkDrawer = async (row: SupplierItemLinkRecord) => {
     setEditLinkDrawerRow(row);
     setEditLinkDrawerSku(row.supplierSku ?? "");
     const cost = resolveLinkDisplayCost(row);
     setEditLinkDrawerCost(cost != null ? String(cost.value) : "");
-    setEditLinkDrawerPackUnit(row.packUnit ?? "");
-    setEditLinkDrawerPackSize(
-      row.packSize != null ? String(row.packSize) : "",
-    );
     setEditLinkDrawerError(null);
+    setEditLinkPacks([]);
+    setEditLinkPacksOriginals({});
     setEditLinkDrawerOpen(true);
+    try {
+      const options = await fetchItemPackOptions(row.itemId);
+      const drafts: PackOptionDraft[] = options.map((o, index) => ({
+        id: o.id,
+        unitsPerPack: String(o.unitsPerPack),
+        packUnit: o.packUnit,
+        label: o.label ?? "",
+        defaultPackPrice:
+          o.defaultPackPrice != null ? String(o.defaultPackPrice) : "",
+        sortOrder: index,
+      }));
+      setEditLinkPacks(drafts);
+      setEditLinkPacksOriginals(
+        Object.fromEntries(drafts.map((d) => [d.id!, d])),
+      );
+    } catch {
+      /* item has no saved packs (or fetch failed) — drawer opens with empty list */
+    }
+  };
+
+  const patchPackDraft = (index: number, patch: Partial<PackOptionDraft>) => {
+    setEditLinkPacks((prev) =>
+      prev.map((d, i) => (i === index ? { ...d, ...patch } : d)),
+    );
+  };
+
+  const movePackDraft = (index: number, delta: -1 | 1) => {
+    setEditLinkPacks((prev) => {
+      const next = [...prev];
+      const target = index + delta;
+      if (target < 0 || target >= next.length) return prev;
+      const moved = next[index]!;
+      next[index] = next[target]!;
+      next[target] = moved;
+      return next.map((d, i) => ({ ...d, sortOrder: i }));
+    });
+  };
+
+  const removePackDraft = (index: number) => {
+    setEditLinkPacks((prev) =>
+      prev.filter((_, i) => i !== index).map((d, i) => ({ ...d, sortOrder: i })),
+    );
+  };
+
+  const addPackDraft = () => {
+    setEditLinkPacks((prev) => [
+      ...prev,
+      {
+        id: null,
+        unitsPerPack: "",
+        packUnit: "pack",
+        label: "",
+        defaultPackPrice: "",
+        sortOrder: prev.length,
+      },
+    ]);
   };
 
   const saveEditLinkDrawer = async () => {
@@ -556,29 +642,77 @@ export function SupplierCatalogColumn({
         }
         defaultCostPrice = n;
       }
-      const packUnitRaw = editLinkDrawerPackUnit.trim();
-      const packSizeRaw = editLinkDrawerPackSize.trim();
-      let packSize: number | undefined;
-      if (packSizeRaw.length > 0) {
-        const n = Number(packSizeRaw);
-        if (!Number.isFinite(n) || n <= 0) {
-          setEditLinkDrawerError("Pack size must be a valid positive number.");
+      for (const d of editLinkPacks) {
+        const size = Number(d.unitsPerPack);
+        if (d.unitsPerPack.trim() === "" || !Number.isFinite(size) || size <= 1) {
+          setEditLinkDrawerError("Each pack size must be more than 1 piece.");
           return;
         }
-        packSize = n;
+        if (d.packUnit.trim() === "") {
+          setEditLinkDrawerError("Each pack needs a unit label (e.g. pack, tray).");
+          return;
+        }
+        const priceRaw = d.defaultPackPrice.trim();
+        if (priceRaw !== "" && (!Number.isFinite(Number(priceRaw)) || Number(priceRaw) < 0)) {
+          setEditLinkDrawerError("Pack price must be 0 or more.");
+          return;
+        }
       }
-      await patchItemSupplierLink(editLinkDrawerRow.itemId, editLinkDrawerRow.id, {
+
+      const originals = editLinkPacksOriginals;
+      const removed = Object.values(originals).filter(
+        (o) => !editLinkPacks.some((d) => d.id === o.id),
+      );
+      const added = editLinkPacks.filter((d) => d.id == null);
+      const changed = editLinkPacks.filter(
+        (d) => d.id != null && !packDraftEqual(originals[d.id!]!, d),
+      );
+
+      const itemId = editLinkDrawerRow.itemId;
+      await Promise.all([
+        ...added.map((d) =>
+          createItemPackOption(itemId, {
+            packUnit: d.packUnit.trim(),
+            unitsPerPack: Number(d.unitsPerPack),
+            label: d.label.trim() || null,
+            defaultPackPrice:
+              d.defaultPackPrice.trim() !== ""
+                ? Number(d.defaultPackPrice)
+                : null,
+            sortOrder: d.sortOrder,
+          }),
+        ),
+        ...changed.map((d) =>
+          patchItemPackOption(itemId, d.id!, {
+            packUnit: d.packUnit.trim(),
+            unitsPerPack: Number(d.unitsPerPack),
+            label: d.label.trim() || null,
+            defaultPackPrice:
+              d.defaultPackPrice.trim() !== ""
+                ? Number(d.defaultPackPrice)
+                : null,
+            sortOrder: d.sortOrder,
+          }),
+        ),
+        ...removed.map((o) => deleteItemPackOption(itemId, o.id!)),
+      ]);
+
+      // Legacy read-through scalars stay in sync with the smallest active pack.
+      const smallest = [...editLinkPacks].sort(
+        (a, b) => Number(a.unitsPerPack) - Number(b.unitsPerPack),
+      )[0];
+      await patchItemSupplierLink(itemId, editLinkDrawerRow.id, {
         supplierSku: editLinkDrawerSku.trim() || undefined,
         defaultCostPrice,
-        packUnit: packUnitRaw || undefined,
-        packSize,
+        packUnit: smallest ? smallest.packUnit.trim() || undefined : undefined,
+        packSize: smallest ? Number(smallest.unitsPerPack) : undefined,
       });
       setEditLinkDrawerOpen(false);
       setEditLinkDrawerRow(null);
       setEditLinkDrawerSku("");
       setEditLinkDrawerCost("");
-      setEditLinkDrawerPackUnit("");
-      setEditLinkDrawerPackSize("");
+      setEditLinkPacks([]);
+      setEditLinkPacksOriginals({});
       onRefreshLinks?.();
     } catch {
       /* feedback from page if wired */
@@ -1065,6 +1199,7 @@ export function SupplierCatalogColumn({
                   })
                   .map((row) => {
                     const pack = resolveLinkPack(row);
+                    const packs = row.packs && row.packs.length > 0 ? row.packs : null;
                     const sell = resolveLinkShelfPrice(row);
                     return (
                   <tr key={row.id} className={supTableRow}>
@@ -1077,12 +1212,19 @@ export function SupplierCatalogColumn({
                               aria-hidden
                             />
                           ) : null}
-                          {pack ? (
+                          {packs ? (
+                            <span
+                              className="inline-flex shrink-0 items-center gap-1 border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
+                              title={`Pack options: ${packs.map((p) => `${fmtPackSize(p.unitsPerPack)} ${p.packUnit}`).join(", ")}`}
+                            >
+                              {packs.map((p) => `×${fmtPackSize(p.unitsPerPack)}`).join(" · ")}
+                            </span>
+                          ) : pack ? (
                             <span
                               className="inline-flex shrink-0 items-center border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
                               title={`Sold as a pack of ${pack.size} ${pack.unit}`}
                             >
-                              ×{Number.isInteger(pack.size) ? pack.size : pack.size}
+                              ×{fmtPackSize(pack.size)}
                             </span>
                           ) : null}
                           <span
@@ -1258,13 +1400,13 @@ export function SupplierCatalogColumn({
               setEditLinkDrawerRow(null);
               setEditLinkDrawerSku("");
               setEditLinkDrawerCost("");
-              setEditLinkDrawerPackUnit("");
-              setEditLinkDrawerPackSize("");
+              setEditLinkPacks([]);
+              setEditLinkPacksOriginals({});
               setEditLinkDrawerError(null);
             }
           }}
           title="Edit supplier link"
-          description={`Update supplier SKU, cost, and pack size for ${editLinkDrawerRow?.itemName || "this product"}.`}
+          description={`Update supplier SKU, cost, and pack sizes for ${editLinkDrawerRow?.itemName || "this product"}.`}
           contextLabel="Link details"
           icon={<Pencil className="size-5 text-primary" aria-hidden />}
           banner={
@@ -1310,32 +1452,104 @@ export function SupplierCatalogColumn({
               />
             </label>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex min-w-0 flex-col gap-1.5">
-              <span className={supFieldLabel}>Pack unit</span>
-              <input
-                className={supInput}
-                value={editLinkDrawerPackUnit}
-                onChange={(e) => setEditLinkDrawerPackUnit(e.target.value)}
-                placeholder="e.g. pack, tray, crate"
-                aria-label="Pack unit"
-              />
-            </label>
-            <label className="flex min-w-0 flex-col gap-1.5">
-              <span className={supFieldLabel}>Pieces in pack</span>
-              <input
-                className={cn(supInput, "tabular-nums")}
-                inputMode="decimal"
-                value={editLinkDrawerPackSize}
-                onChange={(e) => setEditLinkDrawerPackSize(e.target.value)}
-                placeholder="e.g. 12 (leave blank if not packed)"
-                aria-label="Pieces in pack"
-              />
-            </label>
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className={supFieldLabel}>Pack sizes (optional)</span>
+              <button
+                type="button"
+                className="inline-flex h-7 items-center gap-1 border border-primary/35 bg-primary/5 px-2 text-[11px] font-semibold text-primary transition hover:bg-primary/10"
+                onClick={addPackDraft}
+              >
+                <Package className="size-3" aria-hidden />
+                Add size
+              </button>
+            </div>
+            {editLinkPacks.length === 0 ? (
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                No packs — this product sells loose only.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {editLinkPacks.map((d, index) => (
+                  <div
+                    key={d.id ?? `new-${index}`}
+                    className="flex items-center gap-1 border border-border/60 bg-muted/20 p-1"
+                  >
+                    <div className="flex shrink-0 flex-col">
+                      <button
+                        type="button"
+                        disabled={index === 0}
+                        onClick={() => movePackDraft(index, -1)}
+                        aria-label="Move pack up"
+                        className="flex size-4 items-center justify-center text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-30"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        disabled={index === editLinkPacks.length - 1}
+                        onClick={() => movePackDraft(index, 1)}
+                        aria-label="Move pack down"
+                        className="flex size-4 items-center justify-center text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-30"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                    <input
+                      className={cn(supInput, "w-14 px-1 text-center tabular-nums")}
+                      inputMode="decimal"
+                      value={d.unitsPerPack}
+                      onChange={(e) =>
+                        patchPackDraft(index, { unitsPerPack: e.target.value })
+                      }
+                      placeholder="12"
+                      aria-label="Pieces per pack"
+                    />
+                    <input
+                      className={cn(supInput, "w-16 px-1")}
+                      value={d.packUnit}
+                      onChange={(e) =>
+                        patchPackDraft(index, { packUnit: e.target.value })
+                      }
+                      placeholder="pack"
+                      aria-label="Pack unit"
+                    />
+                    <input
+                      className={cn(supInput, "min-w-0 flex-1 px-1")}
+                      value={d.label}
+                      onChange={(e) =>
+                        patchPackDraft(index, { label: e.target.value })
+                      }
+                      placeholder="Label (optional)"
+                      aria-label="Pack label"
+                    />
+                    <input
+                      className={cn(supInput, "w-16 px-1 text-right tabular-nums")}
+                      inputMode="decimal"
+                      value={d.defaultPackPrice}
+                      onChange={(e) =>
+                        patchPackDraft(index, { defaultPackPrice: e.target.value })
+                      }
+                      placeholder="Price"
+                      aria-label="Pack price"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePackDraft(index)}
+                      aria-label="Remove pack size"
+                      className="flex size-6 shrink-0 items-center justify-center text-muted-foreground transition hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            Optional. When set, cost is treated as the pack price and receiving
-            converts packs → shelf units (e.g. 2 packs × 12 = 24 stock).
+            Optional. Packs appear on the stall and in the receive till. Receiving
+            converts packs → shelf units (e.g. 2 packs × 12 = 24 stock) and stores
+            the pack price ÷ pieces as the unit cost.
           </p>
         </FormDrawer>
       ) : null}

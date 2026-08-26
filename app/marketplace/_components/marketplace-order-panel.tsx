@@ -51,12 +51,13 @@ import type {
   MarketplaceSupplierDetail,
 } from "@/lib/marketplace-api";
 import {
+  catalogEachFromPack,
   catalogFamilyAnchor,
   catalogFamilyId,
   catalogFamilyLetters,
   catalogPackLabel,
-  catalogEachFromPack,
-  catalogWholesalePack,
+  catalogPackOptionById,
+  catalogPackOptions,
   firstFamilyForLetter,
   groupCatalogProducts,
 } from "@/lib/marketplace-catalog-groups";
@@ -97,18 +98,24 @@ import {
 import { mktBtnGhost } from "./marketplace-ui";
 
 type CartQty = Record<string, number>;
-/** Buyer-opted pack size — never auto-applied from catalog alone. */
-type CartPackMeta = Record<string, { size: number; unit: string }>;
+/**
+ * Buyer-opted pack choice — never auto-applied from the catalogue alone.
+ * {@code packOptionId} is null for a custom (unsaved) pack from the qty modal.
+ */
+type CartPackSelection = {
+  packOptionId: string | null;
+  size: number;
+  unit: string;
+  /** Price for ONE pack; null when ask / custom. */
+  price: number | null;
+};
+type CartPackMeta = Record<string, CartPackSelection>;
 type OrderLayout = "default" | "shelf";
 type PdfDownloadKind = "sheet" | "list" | "chalk" | "order";
 type CatalogueStyleKind = "sheet" | "list" | "chalk";
 
-function packForProduct(
-  product: Pick<MarketplaceCatalogProductPreview, "packSize" | "packUnit">,
-  opted: { size: number; unit: string } | undefined,
-): { size: number; unit: string } | null {
-  if (opted && opted.size > 1) return opted;
-  return catalogWholesalePack(product);
+function formatPackSize(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
 }
 
 function pdfFilename(base: string, includePrices: boolean): string {
@@ -184,7 +191,11 @@ function roundMoneyTo10(value: number): number {
 function productLineTotal(
   product: MarketplaceCatalogProductPreview,
   qty: number,
+  pack: CartPackSelection | null = null,
 ): number | null {
+  if (pack && pack.size > 1) {
+    return pack.price == null ? null : pack.price * qty;
+  }
   return product.unitPrice == null ? null : product.unitPrice * qty;
 }
 
@@ -240,6 +251,35 @@ function ProductImage({
         </span>
       )}
     </div>
+  );
+}
+
+function PackChoiceChip({
+  active,
+  onClick,
+  children,
+  title,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex h-6 min-w-7 items-center justify-center border px-1.5 font-mono text-[10px] font-bold tabular-nums transition",
+        active
+          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -369,7 +409,24 @@ export function MarketplaceOrderWorkspace({
     ),
   );
   /** Opt-in pack sizes for order lines (tap Package). Not applied by default. */
-  const [packByProductId, setPackByProductId] = useState<CartPackMeta>({});
+  const [packByProductId, setPackByProductId] = useState<CartPackMeta>(() => {
+    // Rehydrate pack choices encoded in a shared `?o=` cart.
+    const next: CartPackMeta = {};
+    for (const line of sharedOrder) {
+      if (!line.packOptionId) continue;
+      const product = detail.products.find((p) => p.slug === line.slug);
+      if (!product) continue;
+      const option = catalogPackOptionById(product, line.packOptionId);
+      if (!option) continue;
+      next[product.id] = {
+        packOptionId: option.id,
+        size: option.unitsPerPack,
+        unit: option.packUnit || "pack",
+        price: option.unitPrice,
+      };
+    }
+    return next;
+  });
   const [packSheetProductId, setPackSheetProductId] = useState<string | null>(
     null,
   );
@@ -442,24 +499,44 @@ export function MarketplaceOrderWorkspace({
     });
   };
 
-  const togglePack = useCallback(
-    (productId: string) => {
-      if (packByProductId[productId]) {
-        setPackByProductId((prev) => {
-          const next = { ...prev };
-          delete next[productId];
-          return next;
-        });
-        return;
-      }
-      setPackSheetProductId(productId);
-    },
-    [packByProductId],
-  );
+  /**
+   * Custom pack entry via the qty modal. Saved pack options are chosen with
+   * {@link selectPack}; this path always yields an unsaved custom pack.
+   */
+  const togglePack = useCallback((productId: string) => {
+    setPackSheetProductId(productId);
+  }, []);
 
   const editPack = useCallback((productId: string) => {
     setPackSheetProductId(productId);
   }, []);
+
+  /** Choose a saved pack option (or clear to unit mode) for an order line. */
+  const selectPack = useCallback(
+    (productId: string, packOptionId: string | null) => {
+      setPackByProductId((prev) => {
+        const product = detail.products.find((p) => p.id === productId);
+        if (!product) return prev;
+        if (packOptionId == null) {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        }
+        const option = catalogPackOptionById(product, packOptionId);
+        if (!option) return prev;
+        return {
+          ...prev,
+          [productId]: {
+            packOptionId: option.id,
+            size: option.unitsPerPack,
+            unit: option.packUnit || "pack",
+            price: option.unitPrice,
+          },
+        };
+      });
+    },
+    [detail.products],
+  );
 
   const toggleLineRounding = (productId: string) => {
     setRoundedLineIds((prev) => ({
@@ -475,7 +552,7 @@ export function MarketplaceOrderWorkspace({
         .map((p) => ({
           product: p,
           qty: cart[p.id] ?? 0,
-          pack: packForProduct(p, packByProductId[p.id]),
+          pack: packByProductId[p.id] ?? null,
           packOptedIn: Boolean(packByProductId[p.id]),
         })),
     [cart, detail.products, packByProductId],
@@ -489,7 +566,7 @@ export function MarketplaceOrderWorkspace({
   const rawCartTotal = useMemo(
     () =>
       cartLines.reduce((sum, line) => {
-        const total = productLineTotal(line.product, line.qty);
+        const total = productLineTotal(line.product, line.qty, line.pack);
         return total == null ? sum : sum + total;
       }, 0),
     [cartLines],
@@ -498,7 +575,7 @@ export function MarketplaceOrderWorkspace({
   const cartTotal = useMemo(
     () =>
       cartLines.reduce((sum, line) => {
-        const total = productLineTotal(line.product, line.qty);
+        const total = productLineTotal(line.product, line.qty, line.pack);
         if (total == null) return sum;
         return (
           sum +
@@ -613,21 +690,23 @@ export function MarketplaceOrderWorkspace({
 
   const orderLines = useMemo(
     () =>
-      cartLines.map(({ product, qty, pack }) => ({
-        name:
-          pack != null
-            ? `${product.name} (pack of ${pack.size})`
-            : product.name,
-        sku: product.sku,
-        barcode: product.barcode,
-        qty,
-        unitPrice: product.unitPrice,
-        currency: product.currency,
-        totalOverride:
-          roundedLineIds[product.id] && product.unitPrice != null
-            ? roundMoneyTo10(product.unitPrice * qty)
-            : undefined,
-      })),
+      cartLines.map(({ product, qty, pack }) => {
+        const raw = productLineTotal(product, qty, pack);
+        return {
+          name:
+            pack != null
+              ? `${product.name} (pack of ${pack.size})`
+              : product.name,
+          sku: product.sku,
+          barcode: product.barcode,
+          qty,
+          unitPrice:
+            pack != null && pack.price != null ? pack.price : product.unitPrice,
+          currency: product.currency,
+          totalOverride:
+            roundedLineIds[product.id] && raw != null ? roundMoneyTo10(raw) : undefined,
+        };
+      }),
     [cartLines, roundedLineIds],
   );
 
@@ -635,9 +714,9 @@ export function MarketplaceOrderWorkspace({
     () =>
       marketplaceSupplierOrderPath(
         detail,
-        cartLines.flatMap(({ product, qty }) => {
+        cartLines.flatMap(({ product, qty, pack }) => {
           if (!product.slug) return [];
-          const rawTotal = productLineTotal(product, qty);
+          const rawTotal = productLineTotal(product, qty, pack);
           return [
             {
               slug: product.slug,
@@ -646,6 +725,7 @@ export function MarketplaceOrderWorkspace({
                 roundedLineIds[product.id] && rawTotal != null
                   ? roundMoneyTo10(rawTotal)
                   : undefined,
+              packOptionId: pack?.packOptionId ?? undefined,
             },
           ];
         }),
@@ -660,13 +740,13 @@ export function MarketplaceOrderWorkspace({
     () =>
       tenantOrderTicketPath({
         ticket: encodeOrderTicket(
-          cartLines.flatMap(({ product, qty }) => {
+          cartLines.flatMap(({ product, qty, pack }) => {
             const key =
               product.sku?.trim() ||
               product.barcode?.trim() ||
               product.slug?.trim();
             if (!key || qty <= 0) return [];
-            const rawTotal = productLineTotal(product, qty);
+            const rawTotal = productLineTotal(product, qty, pack);
             return [
               {
                 slug: key,
@@ -1059,8 +1139,10 @@ export function MarketplaceOrderWorkspace({
         setPackByProductId((prev) => ({
           ...prev,
           [id]: {
+            packOptionId: null,
             size: result.unitsPerPack,
             unit: result.packUnit || "pack",
+            price: null,
           },
         }));
         if ((cart[id] ?? 0) <= 0) {
@@ -1264,10 +1346,7 @@ export function MarketplaceOrderWorkspace({
                         displayName={product.name}
                         supplierSlug={detail.slug}
                         qty={cart[product.id] ?? 0}
-                        pack={packForProduct(
-                          product,
-                          packByProductId[product.id],
-                        )}
+                        pack={packByProductId[product.id] ?? null}
                         focused={focusProduct?.id === product.id}
                         onAdd={() =>
                           setQty(product.id, (cart[product.id] ?? 0) + 1, true)
@@ -1303,10 +1382,7 @@ export function MarketplaceOrderWorkspace({
                             displayName={catalogPackLabel(product, family.label)}
                             supplierSlug={detail.slug}
                             qty={cart[product.id] ?? 0}
-                            pack={packForProduct(
-                              product,
-                              packByProductId[product.id],
-                            )}
+                            pack={packByProductId[product.id] ?? null}
                             focused={focusProduct?.id === product.id}
                             onAdd={() =>
                               setQty(product.id, (cart[product.id] ?? 0) + 1, true)
@@ -1360,6 +1436,7 @@ export function MarketplaceOrderWorkspace({
               onCatalogue={requestCatalogueDownload}
               onTogglePack={togglePack}
               onEditPack={editPack}
+              onSelectPack={selectPack}
             />
           </div>
         </div>
@@ -1472,6 +1549,7 @@ export function MarketplaceOrderWorkspace({
                 onCatalogue={requestCatalogueDownload}
                 onTogglePack={togglePack}
                 onEditPack={editPack}
+                onSelectPack={selectPack}
                 onClose={() => setMobileOrderOpen(false)}
                 className="min-h-0 flex-1 border-0"
               />
@@ -1526,21 +1604,56 @@ export function MarketplaceOrderWorkspace({
                 {areaLabel ? ` · ${areaLabel}` : ""}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <div>
-                  <p className="font-heading text-xl font-semibold tabular-nums sm:text-2xl">
-                    {selected.unitPrice != null
-                      ? formatMoney(selected.unitPrice, selected.currency ?? "KES")
-                      : "Ask price"}
-                  </p>
-                  {catalogWholesalePack(selected) ? (
-                    <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
-                      Pack of {catalogWholesalePack(selected)!.size}
-                      {catalogEachFromPack(selected) != null
-                        ? ` · ${formatMoney(catalogEachFromPack(selected)!, selected.currency ?? "KES")} each`
-                        : ""}
-                    </p>
-                  ) : null}
-                </div>
+                {(() => {
+                  const selectedPack = packByProductId[selected.id] ?? null;
+                  const packs = catalogPackOptions(selected);
+                  const price = selectedPack?.price ?? selected.unitPrice;
+                  return (
+                    <div>
+                      <p className="font-heading text-xl font-semibold tabular-nums sm:text-2xl">
+                        {price != null
+                          ? formatMoney(price, selected.currency ?? "KES")
+                          : "Ask price"}
+                      </p>
+                      {selectedPack != null && selectedPack.price != null ? (
+                        <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                          {formatMoney(selectedPack.price, selected.currency ?? "KES")}{" "}
+                          per {selectedPack.unit} ·{" "}
+                          {formatMoney(
+                            Math.round((selectedPack.price / selectedPack.size) * 100) / 100,
+                            selected.currency ?? "KES",
+                          )}{" "}
+                          each
+                        </p>
+                      ) : null}
+                      {packs.length > 0 ? (
+                        <div className="mt-1 flex flex-wrap items-center gap-1">
+                          <PackChoiceChip
+                            active={selectedPack == null}
+                            onClick={() => selectPack(selected.id, null)}
+                            title="Buy loose units"
+                          >
+                            Unit
+                          </PackChoiceChip>
+                          {packs.map((option) => (
+                            <PackChoiceChip
+                              key={option.id}
+                              active={selectedPack?.packOptionId === option.id}
+                              onClick={() => selectPack(selected.id, option.id)}
+                              title={
+                                option.unitPrice != null
+                                  ? `${formatMoney(option.unitPrice, selected.currency ?? "KES")} per ${option.packUnit || "pack"}`
+                                  : `Pack of ${formatPackSize(option.unitsPerPack)}`
+                              }
+                            >
+                              ×{formatPackSize(option.unitsPerPack)}
+                            </PackChoiceChip>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })()}
                 <QtyControl
                   qty={cart[selected.id] ?? 0}
                   onChange={(qty) => setQty(selected.id, qty, true)}
@@ -1594,6 +1707,8 @@ export function MarketplaceOrderWorkspace({
                 product={product}
                 supplierSlug={detail.slug}
                 qty={cart[product.id] ?? 0}
+                pack={packByProductId[product.id] ?? null}
+                onSelectPack={(packOptionId) => selectPack(product.id, packOptionId)}
                 onSetQty={(qty) => setQty(product.id, qty, true)}
               />
             ))}
@@ -2106,6 +2221,7 @@ function OrderManifestPanel({
   onRemove,
   onTogglePack,
   onEditPack,
+  onSelectPack,
   onToggleLineRounding,
   onToggleOrderRounding,
   onSend,
@@ -2121,7 +2237,7 @@ function OrderManifestPanel({
   lines: {
     product: MarketplaceCatalogProductPreview;
     qty: number;
-    pack: { size: number; unit: string } | null;
+    pack: CartPackSelection | null;
     packOptedIn: boolean;
   }[];
   currency: string;
@@ -2137,6 +2253,7 @@ function OrderManifestPanel({
   onRemove: (productId: string) => void;
   onTogglePack: (productId: string) => void;
   onEditPack: (productId: string) => void;
+  onSelectPack: (productId: string, packOptionId: string | null) => void;
   onToggleLineRounding: (productId: string) => void;
   onToggleOrderRounding: () => void;
   onSend: () => void;
@@ -2193,7 +2310,11 @@ function OrderManifestPanel({
             </p>
           ) : (
             lines.map((line, index) => {
-              const rawLineTotal = productLineTotal(line.product, line.qty);
+              const rawLineTotal = productLineTotal(
+                line.product,
+                line.qty,
+                line.pack,
+              );
               const roundedLineTotal =
                 rawLineTotal == null ? null : roundMoneyTo10(rawLineTotal);
               const canRound =
@@ -2292,8 +2413,8 @@ function OrderManifestPanel({
                       )}
                       title={
                         line.packOptedIn
-                          ? "Ordering packs — click to clear"
-                          : "Sold as a pack"
+                          ? "Edit custom pack size"
+                          : "Custom pack size…"
                       }
                       aria-pressed={line.packOptedIn}
                       onClick={() => onTogglePack(line.product.id)}
@@ -2327,18 +2448,47 @@ function OrderManifestPanel({
                             )
                           : "Ask"}
                       </p>
-                      {packed && line.product.unitPrice != null ? (
+                      {packed ? (
                         <p className="font-mono text-[9px] tabular-nums text-muted-foreground">
-                          {formatMoney(
-                            line.product.unitPrice,
-                            line.product.currency ?? currency,
-                          )}{" "}
-                          / pack
+                          {(pack.price ?? line.product.unitPrice) != null ? (
+                            `${formatMoney(pack.price ?? line.product.unitPrice!, line.product.currency ?? currency)} / pack`
+                          ) : (
+                            "Ask / pack"
+                          )}
                         </p>
                       ) : null}
                     </div>
                   </div>
                 </div>
+                {catalogPackOptions(line.product).length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-1 pl-5">
+                    <PackChoiceChip
+                      active={!packed}
+                      onClick={() => onSelectPack(line.product.id, null)}
+                      title="Buy loose units"
+                    >
+                      Unit
+                    </PackChoiceChip>
+                    {catalogPackOptions(line.product).map((option) => {
+                      const active =
+                        packed && line.pack?.packOptionId === option.id;
+                      return (
+                        <PackChoiceChip
+                          key={option.id}
+                          active={active}
+                          onClick={() => onSelectPack(line.product.id, option.id)}
+                          title={
+                            option.unitPrice != null
+                              ? `${formatMoney(option.unitPrice, line.product.currency ?? currency)} per ${option.packUnit || "pack"}`
+                              : `Pack of ${formatPackSize(option.unitsPerPack)}`
+                          }
+                        >
+                          ×{formatPackSize(option.unitsPerPack)}
+                        </PackChoiceChip>
+                      );
+                    })}
+                  </div>
+                ) : null}
                 </div>
               );
             })
@@ -2484,15 +2634,20 @@ function CatalogueOrderRow({
   product,
   supplierSlug,
   qty,
+  pack = null,
+  onSelectPack,
   onSetQty,
 }: {
   product: MarketplaceCatalogProductPreview;
   supplierSlug: string | null;
   qty: number;
+  pack?: CartPackSelection | null;
+  onSelectPack?: (packOptionId: string | null) => void;
   onSetQty: (qty: number) => void;
 }) {
   const hue = hueFromId(product.id);
   const href = marketplacePassportProductPath(supplierSlug, product.slug);
+  const packs = catalogPackOptions(product);
 
   return (
     <div className="flex items-center gap-2.5 border border-border/50 bg-muted/10 p-2">
@@ -2527,17 +2682,46 @@ function CatalogueOrderRow({
           <p className="text-sm font-medium leading-snug">{product.name}</p>
         )}
         <p className="mt-0.5 text-sm font-semibold tabular-nums">
-          {product.unitPrice != null
-            ? formatMoney(product.unitPrice, product.currency ?? "KES")
-            : "Ask"}
+          {(pack?.price ?? product.unitPrice) != null ? (
+            formatMoney(pack?.price ?? product.unitPrice!, product.currency ?? "KES")
+          ) : (
+            "Ask"
+          )}
         </p>
-        {catalogWholesalePack(product) ? (
+        {pack != null && pack.price != null ? (
           <p className="text-[11px] font-semibold text-muted-foreground">
-            Pack of {catalogWholesalePack(product)!.size}
-            {catalogEachFromPack(product) != null
-              ? ` · ${formatMoney(catalogEachFromPack(product)!, product.currency ?? "KES")} ea`
-              : ""}
+            {formatMoney(pack.price, product.currency ?? "KES")} / {pack.unit} ·{" "}
+            {formatMoney(
+              Math.round((pack.price / pack.size) * 100) / 100,
+              product.currency ?? "KES",
+            )}{" "}
+            ea
           </p>
+        ) : null}
+        {packs.length > 0 ? (
+          <div className="mt-1 flex flex-wrap items-center gap-1">
+            <PackChoiceChip
+              active={pack == null}
+              onClick={() => onSelectPack?.(null)}
+              title="Buy loose units"
+            >
+              Unit
+            </PackChoiceChip>
+            {packs.map((option) => (
+              <PackChoiceChip
+                key={option.id}
+                active={pack?.packOptionId === option.id}
+                onClick={() => onSelectPack?.(option.id)}
+                title={
+                  option.unitPrice != null
+                    ? `${formatMoney(option.unitPrice, product.currency ?? "KES")} per ${option.packUnit || "pack"}`
+                    : `Pack of ${formatPackSize(option.unitsPerPack)}`
+                }
+              >
+                ×{formatPackSize(option.unitsPerPack)}
+              </PackChoiceChip>
+            ))}
+          </div>
         ) : null}
       </div>
       <QtyControl qty={qty} onChange={onSetQty} compact />
@@ -2559,7 +2743,7 @@ function ShelfProductTile({
   displayName?: string;
   supplierSlug: string | null;
   qty: number;
-  pack?: { size: number; unit: string } | null;
+  pack?: CartPackSelection | null;
   focused?: boolean;
   onAdd: () => void;
   onSetQty: (qty: number) => void;
@@ -2567,11 +2751,13 @@ function ShelfProductTile({
   const thumb = posTileThumbUrl(product.name, product.imageUrl);
   const href = marketplacePassportProductPath(supplierSlug, product.slug);
   const title = displayName?.trim() || product.name;
-  const wholesalePack = pack ?? catalogWholesalePack(product);
-  const eachFromPack =
-    wholesalePack && product.unitPrice != null
-      ? Math.round((product.unitPrice / wholesalePack.size) * 100) / 100
-      : catalogEachFromPack(product);
+  const wholesalePack = pack;
+  const availablePacks = catalogPackOptions(product);
+  const eachFromPack = wholesalePack
+    ? wholesalePack.price != null && wholesalePack.size > 0
+      ? Math.round((wholesalePack.price / wholesalePack.size) * 100) / 100
+      : null
+    : catalogEachFromPack(product);
 
   return (
     <div
@@ -2645,15 +2831,24 @@ function ShelfProductTile({
         )}
         {wholesalePack ? (
           <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_62%,transparent)]">
-            Pack of {Number.isInteger(wholesalePack.size) ? wholesalePack.size : wholesalePack.size}
+            Pack of {formatPackSize(wholesalePack.size)}
+          </p>
+        ) : availablePacks.length > 0 ? (
+          <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_42%,transparent)]">
+            {availablePacks.map((p) => `×${formatPackSize(p.unitsPerPack)}`).join(" · ")}
           </p>
         ) : null}
         <div className="flex items-center justify-between gap-1">
           <div className="min-w-0">
             <p className="font-mono text-[10px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
-              {product.unitPrice != null
-                ? formatMoney(product.unitPrice, product.currency ?? "KES")
-                : "Ask"}
+              {(wholesalePack?.price ?? product.unitPrice) != null ? (
+                formatMoney(
+                  wholesalePack?.price ?? product.unitPrice!,
+                  product.currency ?? "KES",
+                )
+              ) : (
+                "Ask"
+              )}
               {wholesalePack ? (
                 <span className="font-sans font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
                   {" "}/ pack

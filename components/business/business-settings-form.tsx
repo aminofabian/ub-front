@@ -1376,6 +1376,65 @@ export function BusinessSettingsForm({
                 title="Confirm orders on the till"
                 description="Show a full-screen Confirm drawer to receive Path A purchase orders from cashier."
               />
+              <div className="space-y-2 border-t border-border/60 pt-3">
+                <p className="text-sm font-medium text-foreground">
+                  Product shelf layout
+                </p>
+                <p className="text-xs leading-snug text-muted-foreground">
+                  Grid suits visual retail. Hybrid puts scan and SKU search
+                  lists first — better for hardware and many similar codes.
+                </p>
+                <div
+                  className="grid grid-cols-2 gap-2"
+                  role="radiogroup"
+                  aria-label="POS product shelf layout"
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!cashierCapabilities.catalogHybrid}
+                    onClick={() =>
+                      setCashierCapabilities((previous) => ({
+                        ...previous,
+                        catalogHybrid: false,
+                      }))
+                    }
+                    className={cn(
+                      "rounded-lg border px-3 py-2.5 text-left transition-colors",
+                      !cashierCapabilities.catalogHybrid
+                        ? "border-foreground/25 bg-card shadow-sm"
+                        : "border-border bg-transparent hover:border-foreground/20",
+                    )}
+                  >
+                    <span className="block text-sm font-semibold">Grid</span>
+                    <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                      Picture tiles
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={cashierCapabilities.catalogHybrid}
+                    onClick={() =>
+                      setCashierCapabilities((previous) => ({
+                        ...previous,
+                        catalogHybrid: true,
+                      }))
+                    }
+                    className={cn(
+                      "rounded-lg border px-3 py-2.5 text-left transition-colors",
+                      cashierCapabilities.catalogHybrid
+                        ? "border-foreground/25 bg-card shadow-sm"
+                        : "border-border bg-transparent hover:border-foreground/20",
+                    )}
+                  >
+                    <span className="block text-sm font-semibold">Hybrid</span>
+                    <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                      Scan · search list
+                    </span>
+                  </button>
+                </div>
+              </div>
             </FormDrawerFields>
           </SettingsAnchor>
 

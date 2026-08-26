@@ -877,6 +877,70 @@ export function BusinessConfigurationForm({
               description="Show a full-screen Confirm drawer to receive Path A purchase orders from cashier."
             />
           </div>
+          <div className="mt-3 space-y-2 border-t border-[color-mix(in_srgb,var(--foreground)_8%,transparent)] pt-3">
+            <p className="text-xs font-medium text-foreground">
+              Product shelf layout
+            </p>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              Grid suits visual retail (drinks, snacks). Hybrid puts search and
+              SKU lists first — better for hardware, stationery, and catalogs
+              with many similar codes.
+            </p>
+            <div
+              className="grid grid-cols-2 gap-2"
+              role="radiogroup"
+              aria-label="POS product shelf layout"
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!cashierCapabilities.catalogHybrid}
+                onClick={() =>
+                  setCashierCapabilities((previous) => ({
+                    ...previous,
+                    catalogHybrid: false,
+                  }))
+                }
+                className={cn(
+                  "rounded-lg border px-3 py-2.5 text-left transition-colors",
+                  !cashierCapabilities.catalogHybrid
+                    ? "border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-card shadow-sm"
+                    : "border-[color-mix(in_srgb,var(--foreground)_10%,transparent)] bg-transparent hover:border-[color-mix(in_srgb,var(--foreground)_16%,transparent)]",
+                )}
+              >
+                <span className="block text-sm font-semibold text-foreground">
+                  Grid
+                </span>
+                <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                  Picture tiles — tap to add
+                </span>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={cashierCapabilities.catalogHybrid}
+                onClick={() =>
+                  setCashierCapabilities((previous) => ({
+                    ...previous,
+                    catalogHybrid: true,
+                  }))
+                }
+                className={cn(
+                  "rounded-lg border px-3 py-2.5 text-left transition-colors",
+                  cashierCapabilities.catalogHybrid
+                    ? "border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-card shadow-sm"
+                    : "border-[color-mix(in_srgb,var(--foreground)_10%,transparent)] bg-transparent hover:border-[color-mix(in_srgb,var(--foreground)_16%,transparent)]",
+                )}
+              >
+                <span className="block text-sm font-semibold text-foreground">
+                  Hybrid
+                </span>
+                <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                  Scan · search list · frequent chips
+                </span>
+              </button>
+            </div>
+          </div>
         </PolicyPanel>
       ) : null}
 
