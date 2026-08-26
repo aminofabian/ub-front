@@ -196,7 +196,9 @@ export function SupplyQtyCell({
         ? "ready"
         : "active";
 
-  const packed = packMode != null && packMode.unitsPerPack > 0;
+  const packSize =
+    packMode != null && packMode.unitsPerPack > 0 ? packMode.unitsPerPack : 0;
+  const packed = packSize > 0;
   const [editingSize, setEditingSize] = useState(false);
   const [sizeDraft, setSizeDraft] = useState("");
   const sizeInputRef = useRef<HTMLInputElement | null>(null);
@@ -211,7 +213,7 @@ export function SupplyQtyCell({
     onPackModalOpenChange?.(open);
     if (open) {
       setSizeDraft(
-        packed ? formatSupplyQty(packMode.unitsPerPack) : String(suggestedSize),
+        packSize > 0 ? formatSupplyQty(packSize) : String(suggestedSize),
       );
       window.setTimeout(() => sizeInputRef.current?.focus(), 20);
     }
@@ -312,10 +314,10 @@ export function SupplyQtyCell({
             )}
             disabled={disabled}
             title="Pieces in this pack — click to change"
-            aria-label={`Pack of ${packMode.unitsPerPack}, click to change size`}
+            aria-label={`Pack of ${packSize}, click to change size`}
             onClick={() => setSizeEditorOpen(true)}
           >
-            ×{formatSupplyQty(packMode.unitsPerPack)}
+            ×{formatSupplyQty(packSize)}
           </button>
         ) : null}
         <button

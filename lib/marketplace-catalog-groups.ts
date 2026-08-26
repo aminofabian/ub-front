@@ -61,7 +61,7 @@ export function catalogWholesalePack(
 export function catalogEachFromPack(
   product: Pick<
     MarketplaceCatalogProductPreview,
-    "packSize" | "unitPrice"
+    "packSize" | "packUnit" | "unitPrice"
   >,
 ): number | null {
   const pack = catalogWholesalePack(product);
