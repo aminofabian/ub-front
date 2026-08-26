@@ -36,10 +36,12 @@ import { CashierOrderConfirmDrawer } from "@/components/cashier/cashier-order-co
 import { TenantOrderDrawer } from "@/components/order/tenant-order-drawer";
 import { Button } from "@/components/ui/button";
 import {
+  fetchItemById,
   fetchItems,
   itemListThumbnailUrl,
   uploadItemImageFile,
   type CategoryTreeNodeRecord,
+  type ItemDetailRecord,
   type ItemSummaryRecord,
   type ItemTypeRecord,
 } from "@/lib/api";
@@ -68,6 +70,7 @@ import { useFeatureFlag } from "@/components/providers/tenant-provider";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { PosFrequentChips } from "@/components/cashier/pos-frequent-chips";
 import { PosSearchHitList } from "@/components/cashier/pos-search-hit-list";
+import { PosVariantPicker } from "@/components/cashier/pos-variant-picker";
 import { cn } from "@/lib/utils";
 import {
   CashierProductModal,
@@ -1286,11 +1289,24 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     Boolean(typeFilterId?.trim());
   const showCatalog = !hasSearch;
 
-  const handlePickItem = (item: ItemSummaryRecord) => {
+  const [variantPicker, setVariantPicker] = useState<
+    | {
+        parent: ItemSummaryRecord;
+        /** Detail already fetched (chip parent check) so the picker skips its own fetch. */
+        preloaded?: ItemDetailRecord;
+      }
+    | null
+  >(null);
+  /** Session cache of "is this item a group-label parent?" from chip lookups. */
+  const parentCheckCache = useRef(new Map<string, boolean>());
+
+  const handlePickItem = (item: ItemSummaryRecord, presetShelfLine?: string) => {
     if (item.groupLabelOnly) {
+      // Non-sellable family header — open the size picker instead of a dead tap.
+      setVariantPicker({ parent: item });
       return;
     }
-    const shelfLine = tileShelfPrices[item.id];
+    const shelfLine = presetShelfLine ?? tileShelfPrices[item.id];
     const shelfAmount = shelfLine
       ? shelfPriceToInputString(splitShelfPriceDisplay(shelfLine).amount)
       : "";
@@ -1305,6 +1321,63 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     }
     setPickedItem(item);
     setModalOpen(true);
+  };
+
+  /**
+   * Pick from a top-product chip/tile. Chips never carry `groupLabelOnly`
+   * (`TopProductRecord` has no such field), so for rows without a variant
+   * parent we lazily check the catalog once per session: a group-label parent
+   * opens the size picker instead of adding a non-sellable family header.
+   */
+  const handleTopProductPick = (product: TopProductRecord) => {
+    const item: ItemSummaryRecord = {
+      id: product.id,
+      name: product.name,
+      sku: product.sku ?? "",
+      thumbnailUrl: product.thumbnailUrl ?? null,
+      variantName: product.variantName ?? undefined,
+      brand: product.brand ?? undefined,
+      size: product.size ?? undefined,
+      packageVariant: product.packageVariant,
+      packageUnitsPerSale: product.packageUnitsPerSale ?? undefined,
+      variantOfItemId: product.variantOfItemId ?? undefined,
+      stockQty: product.stockQty ?? undefined,
+    };
+    // Known variant child — add it directly (matches tile behavior).
+    if (product.variantOfItemId?.trim()) {
+      handlePickItem(item);
+      return;
+    }
+    const cached = parentCheckCache.current.get(product.id);
+    if (cached !== undefined) {
+      if (cached) {
+        setVariantPicker({ parent: item });
+      } else {
+        handlePickItem(item);
+      }
+      return;
+    }
+    // Can't verify parent status without the catalog — keep today's behavior.
+    if (!online || !branchId?.trim()) {
+      handlePickItem(item);
+      return;
+    }
+    void fetchItemById(product.id, { branchId: branchId.trim(), toast: false })
+      .then((detail) => {
+        const isParent = detail.groupLabelOnly === true;
+        parentCheckCache.current.set(product.id, isParent);
+        if (isParent) {
+          setVariantPicker({ parent: item, preloaded: detail });
+        } else {
+          handlePickItem(item);
+        }
+      })
+      .catch(() => {
+        // Lookup failed (offline / stale row). Fall back to today's direct add
+        // and don't re-check this item again this session.
+        parentCheckCache.current.set(product.id, false);
+        handlePickItem(item);
+      });
   };
 
   const handleAddFromModal = (payload: CashierProductModalSubmit) => {
@@ -2026,23 +2099,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             products={topProducts}
             loading={alwaysShowTopProducts && topProductsLoading}
             title="Frequently sold"
+            subtitle="Based on this cashier's recent sales"
             cartQtyByItem={cartQtyByItem}
             justAddedId={justAddedId}
-            onPick={(p) =>
-              handlePickItem({
-                id: p.id,
-                name: p.name,
-                sku: p.sku ?? "",
-                thumbnailUrl: p.thumbnailUrl ?? null,
-                variantName: p.variantName ?? undefined,
-                brand: p.brand ?? undefined,
-                size: p.size ?? undefined,
-                packageVariant: p.packageVariant,
-                packageUnitsPerSale: p.packageUnitsPerSale ?? undefined,
-                variantOfItemId: p.variantOfItemId ?? undefined,
-                stockQty: p.stockQty ?? undefined,
-              })
-            }
+            onPick={handleTopProductPick}
           />
         ) : (
         <section
@@ -2104,21 +2164,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   onOpenPhotoPicker={
                     allowAddPhoto ? openProductPhotoPicker : undefined
                   }
-                  onPick={() =>
-                    handlePickItem({
-                      id: p.id,
-                      name: p.name,
-                      sku: p.sku ?? "",
-                      thumbnailUrl: p.thumbnailUrl ?? null,
-                      variantName: p.variantName ?? undefined,
-                      brand: p.brand ?? undefined,
-                      size: p.size ?? undefined,
-                      packageVariant: p.packageVariant,
-                      packageUnitsPerSale: p.packageUnitsPerSale ?? undefined,
-                      variantOfItemId: p.variantOfItemId ?? undefined,
-                      stockQty: p.stockQty ?? undefined,
-                    })
-                  }
+                  onPick={() => handleTopProductPick(p)}
                 />
               );
               })}
@@ -2441,6 +2487,27 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         onSubmit={handleAddFromModal}
         allowNegativeStock={allowNegativeStock}
         allowPriceEdit={allowPriceEdit}
+      />
+
+      <PosVariantPicker
+        parent={variantPicker?.parent ?? null}
+        preloaded={variantPicker?.preloaded ?? null}
+        open={variantPicker !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setVariantPicker(null);
+            window.requestAnimationFrame(() => focusSearch(true));
+          }
+        }}
+        online={online}
+        currency={currency}
+        branchId={branchId}
+        businessId={businessId}
+        onStaleItem={onStalePosItem}
+        brandTheme={dialogBrandTheme}
+        cartQtyByItem={cartQtyByItem}
+        justAddedId={justAddedId}
+        onPick={handlePickItem}
       />
 
       <CashierCreateProductModal

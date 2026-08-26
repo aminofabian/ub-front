@@ -3982,7 +3982,7 @@ export async function fetchAuditEventSummary(
 
 export async function fetchItemById(
   itemId: string,
-  opts?: { branchId?: string | null },
+  opts?: { branchId?: string | null; toast?: boolean },
 ): Promise<ItemDetailRecord> {
   const params = new URLSearchParams();
   const branchId = opts?.branchId?.trim();
@@ -3992,6 +3992,7 @@ export async function fetchItemById(
   const qs = params.toString();
   return request<ItemDetailRecord>(
     `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}${qs ? `?${qs}` : ""}`,
+    { toast: opts?.toast },
   );
 }
 
