@@ -94,6 +94,7 @@ import {
 } from "./new-supply-drawer-ui";
 import { ProductPickCell } from "./product-pick-cell";
 import { SupplyDraftLineCard } from "./supply-draft-line-card";
+import { SupplyPackGuideHintButton } from "./supply-pack-guide-drawer";
 import {
   linkReorderLevel,
   rowReferenceCost,
@@ -523,6 +524,7 @@ export function NewSupplyDrawer({
   const linesSectionRef = useRef<HTMLDivElement | null>(null);
   const addLineOpenRef = useRef(false);
   const packModalOpenRef = useRef(false);
+  const [packGuideOpen, setPackGuideOpen] = useState(false);
   /** Ignore Post supply briefly after pack modal closes (click-through guard). */
   const suppressPostUntilRef = useRef(0);
   const didAttemptRestoreRef = useRef(false);
@@ -554,12 +556,17 @@ export function NewSupplyDrawer({
 
   const handleDrawerOpenChange = useCallback(
     (next: boolean) => {
-      if (!next && (addLineOpenRef.current || packModalOpenRef.current)) {
+      if (
+        !next &&
+        (addLineOpenRef.current ||
+          packModalOpenRef.current ||
+          packGuideOpen)
+      ) {
         return;
       }
       onOpenChange(next);
     },
-    [onOpenChange],
+    [onOpenChange, packGuideOpen],
   );
 
   const handlePackModalOpenChange = useCallback((open: boolean) => {
@@ -568,6 +575,14 @@ export function NewSupplyDrawer({
     }
     packModalOpenRef.current = open;
   }, []);
+
+  const handlePackGuideOpenChange = useCallback((open: boolean) => {
+    if (packGuideOpen && !open) {
+      suppressPostUntilRef.current = Date.now() + 400;
+    }
+    setPackGuideOpen(open);
+    packModalOpenRef.current = open;
+  }, [packGuideOpen]);
 
   useEffect(() => {
     if (!open || supplier) {
@@ -1939,34 +1954,40 @@ export function NewSupplyDrawer({
               done={lineStats.valid > 0 && duplicateIds.length === 0}
               className="overflow-visible"
               action={
-                canLinkProducts && supplier ? (
-                  <div className="flex flex-wrap items-center justify-end gap-1.5">
-                    {canCreateProduct ? (
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  <SupplyPackGuideHintButton
+                    open={packGuideOpen}
+                    onOpenChange={handlePackGuideOpenChange}
+                  />
+                  {canLinkProducts && supplier ? (
+                    <>
+                      {canCreateProduct ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
+                          onClick={openCreateProductModal}
+                          disabled={busy || !branchId.trim()}
+                        >
+                          <PackagePlus className="size-3.5" aria-hidden />
+                          Create product
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
                         className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
-                        onClick={openCreateProductModal}
-                        disabled={busy || !branchId.trim()}
+                        onClick={openLinkModal}
+                        disabled={busy}
                       >
-                        <PackagePlus className="size-3.5" aria-hidden />
-                        Create product
+                        <Plus className="size-3.5" aria-hidden />
+                        Add product
                       </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
-                      onClick={openLinkModal}
-                      disabled={busy}
-                    >
-                      <Plus className="size-3.5" aria-hidden />
-                      Add product
-                    </Button>
-                  </div>
-                ) : null
+                    </>
+                  ) : null}
+                </div>
               }
               bodyClassName="p-0"
             >
