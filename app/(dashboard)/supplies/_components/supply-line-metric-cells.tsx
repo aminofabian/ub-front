@@ -9,7 +9,10 @@ import { cn } from "@/lib/utils";
 import { addYmdDays } from "@/lib/ymd-date";
 
 import { nsdInput } from "./new-supply-drawer-ui";
-import type { SupplyPackQtyDefaults } from "./supply-pack-qty-modal";
+import {
+  SupplyPackQtyModal,
+  type SupplyPackQtyDefaults,
+} from "./supply-pack-qty-modal";
 import { supFormCellInput } from "../../suppliers/_components/supplier-ui-tokens";
 import {
   formatSupplyQty,
@@ -199,49 +202,22 @@ export function SupplyQtyCell({
   const packSize =
     packMode != null && packMode.unitsPerPack > 0 ? packMode.unitsPerPack : 0;
   const packed = packSize > 0;
-  const [editingSize, setEditingSize] = useState(false);
-  const [sizeDraft, setSizeDraft] = useState("");
-  const sizeInputRef = useRef<HTMLInputElement | null>(null);
+  const [packSheetOpen, setPackSheetOpen] = useState(false);
 
-  const suggestedSize = (() => {
-    const n = Number(packDefaults?.packSize);
-    return Number.isFinite(n) && n > 1 ? n : 12;
-  })();
-
-  const setSizeEditorOpen = (open: boolean) => {
-    setEditingSize(open);
+  const setPackSheet = (open: boolean) => {
+    setPackSheetOpen(open);
     onPackModalOpenChange?.(open);
-    if (open) {
-      setSizeDraft(
-        packSize > 0 ? formatSupplyQty(packSize) : String(suggestedSize),
-      );
-      window.setTimeout(() => sizeInputRef.current?.focus(), 20);
-    }
   };
 
-  const commitSize = () => {
-    const n = Number(String(sizeDraft).trim());
-    if (!Number.isFinite(n) || n <= 0) {
-      setSizeEditorOpen(false);
-      return;
-    }
-    onPackModeChange?.({
-      unitsPerPack: n,
-      packUnit: packMode?.packUnit || packDefaults?.packUnit?.trim() || "pack",
-    });
-    setSizeEditorOpen(false);
-  };
+  const openPackSheet = () => setPackSheet(true);
 
   const togglePack = () => {
     if (packed) {
       onPackModeChange?.(null);
-      setSizeEditorOpen(false);
+      setPackSheet(false);
       return;
     }
-    onPackModeChange?.({
-      unitsPerPack: suggestedSize,
-      packUnit: packDefaults?.packUnit?.trim() || "pack",
-    });
+    openPackSheet();
   };
 
   return (
@@ -288,24 +264,7 @@ export function SupplyQtyCell({
           aria-label={packed ? "Packs received" : "Quantity received"}
           data-nsd-qty=""
         />
-        {packed && editingSize ? (
-          <input
-            ref={sizeInputRef}
-            className="h-[calc(100%-2px)] w-9 shrink-0 border-0 bg-background text-center font-mono text-[10px] font-bold tabular-nums focus-visible:ring-1 focus-visible:ring-primary"
-            value={sizeDraft}
-            onChange={(e) => setSizeDraft(e.target.value)}
-            onBlur={commitSize}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                commitSize();
-              }
-              if (e.key === "Escape") setSizeEditorOpen(false);
-            }}
-            inputMode="decimal"
-            aria-label="Pieces in one pack"
-          />
-        ) : packed ? (
+        {packed ? (
           <button
             type="button"
             className={cn(
@@ -315,7 +274,7 @@ export function SupplyQtyCell({
             disabled={disabled}
             title="Pieces in this pack — click to change"
             aria-label={`Pack of ${packSize}, click to change size`}
-            onClick={() => setSizeEditorOpen(true)}
+            onClick={openPackSheet}
           >
             ×{formatSupplyQty(packSize)}
           </button>
@@ -334,7 +293,7 @@ export function SupplyQtyCell({
           title={
             packed
               ? "Counting packs. Click to count pieces instead."
-              : "Sold as a pack — type 1 for one carton, not 12 pieces."
+              : "Sold as a pack — set size, then type packs on the line."
           }
           aria-label={packed ? "Turn off pack counting" : "Count as packs"}
           aria-pressed={packed}
@@ -356,6 +315,28 @@ export function SupplyQtyCell({
           ) : null}
         </div>
       ) : null}
+
+      <SupplyPackQtyModal
+        open={packSheetOpen}
+        onOpenChange={setPackSheet}
+        defaults={packDefaults}
+        initialUnitsPerPack={packed ? packSize : null}
+        onApply={(result) => {
+          onPackModeChange?.({
+            unitsPerPack: result.unitsPerPack,
+            packUnit: result.packUnit || "pack",
+          });
+          if (!value.trim()) {
+            onChange?.("1");
+          }
+          if (result.packPrice != null) {
+            onUnitCostChange?.(result.packPrice.toFixed(2));
+            onEnterNext?.();
+          } else {
+            onEnterCost?.();
+          }
+        }}
+      />
     </div>
   );
 }
