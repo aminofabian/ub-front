@@ -31,7 +31,6 @@ import { CampaignsAnalytics } from "./campaigns-analytics";
 import { CampaignsComposer } from "./campaigns-composer";
 import { CampaignsLibraryNav } from "./campaigns-library-nav";
 import {
-  FILTERS,
   INTENTS,
   TEMPLATES,
   type CampaignNavId,
@@ -42,6 +41,7 @@ import {
   generateCampaign,
   interpretAsk,
   mapApiStatus,
+  resolveAudienceSegment,
   rewriteBody,
 } from "./campaigns-model";
 import { CampaignsOverview } from "./campaigns-overview";
@@ -92,6 +92,14 @@ export function CampaignsCommandCentre({
   const [body, setBody] = useState("");
   const [cta, setCta] = useState("Continue");
   const [activeFilters, setActiveFilters] = useState<string[]>(["setup"]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [selectedRecipientsById, setSelectedRecipientsById] = useState<
+    Record<string, SaEmailRecipientRow>
+  >({});
+  const [personQuery, setPersonQuery] = useState("");
+  const [directoryRecipients, setDirectoryRecipients] = useState<
+    SaEmailRecipientRow[]
+  >([]);
   const [composerTab, setComposerTab] = useState<"write" | "design" | "preview">("write");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [merchantId, setMerchantId] = useState("");
@@ -129,13 +137,33 @@ export function CampaignsCommandCentre({
   }, [reload]);
 
   useEffect(() => {
-    const segment =
-      FILTERS.find((f) => activeFilters.includes(f.id))?.segment ?? "stuck_signup";
+    const { filterId, segment } = resolveAudienceSegment(activeFilters);
     let cancelled = false;
+
+    if (filterId === "individual") {
+      void fetchSaEmailRecipients(
+        { segment: "selected_tenants", q: personQuery || undefined },
+        0,
+        500,
+      )
+        .then((r) => {
+          if (cancelled) return;
+          setDirectoryRecipients(r.rows);
+          setLiveAudience(selectedUserIds.length);
+        })
+        .catch(() => {
+          if (!cancelled) setLiveAudience(selectedUserIds.length);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
     void fetchSaEmailRecipients({ segment }, 0, 500)
       .then((r) => {
         if (cancelled) return;
         setRecipients(r.rows);
+        setDirectoryRecipients(r.rows);
         setLiveAudience(r.total);
         setMerchantId((id) => id || r.rows[0]?.userId || "");
         setSelectedPerson((prev) => prev ?? r.rows[0] ?? null);
@@ -146,7 +174,57 @@ export function CampaignsCommandCentre({
     return () => {
       cancelled = true;
     };
-  }, [activeFilters]);
+  }, [activeFilters, personQuery, selectedUserIds.length]);
+
+  const individualRecipients = useMemo(
+    () =>
+      selectedUserIds
+        .map((id) => selectedRecipientsById[id])
+        .filter(Boolean) as SaEmailRecipientRow[],
+    [selectedUserIds, selectedRecipientsById],
+  );
+
+  const audienceIsIndividual =
+    resolveAudienceSegment(activeFilters).filterId === "individual";
+
+  useEffect(() => {
+    if (!audienceIsIndividual) return;
+    setRecipients(individualRecipients);
+    setLiveAudience(selectedUserIds.length);
+    setMerchantId((id) =>
+      selectedUserIds.includes(id) ? id : selectedUserIds[0] ?? "",
+    );
+    setSelectedPerson(individualRecipients[0] ?? null);
+  }, [audienceIsIndividual, individualRecipients, selectedUserIds]);
+
+  const selectAudience = (id: string) => {
+    setActiveFilters([id]);
+    if (id !== "individual") {
+      setSelectedUserIds([]);
+      setSelectedRecipientsById({});
+      setPersonQuery("");
+    }
+  };
+
+  const toggleSelectedUser = (userId: string) => {
+    const row =
+      directoryRecipients.find((r) => r.userId === userId) ??
+      selectedRecipientsById[userId];
+    setSelectedUserIds((prev) => {
+      if (prev.includes(userId)) {
+        setSelectedRecipientsById((map) => {
+          const next = { ...map };
+          delete next[userId];
+          return next;
+        });
+        return prev.filter((x) => x !== userId);
+      }
+      if (row) {
+        setSelectedRecipientsById((map) => ({ ...map, [userId]: row }));
+      }
+      return [...prev, userId];
+    });
+  };
 
   useEffect(() => {
     if (!campaignId) return;
@@ -228,9 +306,8 @@ export function CampaignsCommandCentre({
     router.push(APP_ROUTES.superAdminCampaignNew);
   };
 
-  const segmentKey =
-    FILTERS.find((f) => activeFilters.includes(f.id) && f.segment)?.segment ??
-    "stuck_signup";
+  const { filterId: audienceFilterId, segment: segmentKey } =
+    resolveAudienceSegment(activeFilters);
 
   const payload = {
     name: campaignName.trim() || "Untitled campaign",
@@ -238,12 +315,24 @@ export function CampaignsCommandCentre({
     subject: subject.trim(),
     bodyMarkdown: body,
     ctaLabel: cta.trim() || "Continue",
+    ...(audienceFilterId === "individual" && selectedUserIds.length > 0
+      ? { userIds: selectedUserIds }
+      : {}),
   };
 
   const onPreview = async () => {
+    if (audienceFilterId === "individual" && selectedUserIds.length === 0) {
+      showThemedErrorToast("Select at least one person for an individual audience.");
+      return;
+    }
     setBusy(true);
     try {
-      setPreview(await previewSaEmailCampaign(payload));
+      setPreview(
+        await previewSaEmailCampaign({
+          ...payload,
+          userId: merchantId || selectedUserIds[0],
+        }),
+      );
       setComposerTab("preview");
     } catch (e) {
       showThemedErrorToast(e instanceof Error ? e.message : "Preview failed.");
@@ -253,6 +342,10 @@ export function CampaignsCommandCentre({
   };
 
   const performSend = async () => {
+    if (audienceFilterId === "individual" && selectedUserIds.length === 0) {
+      showThemedErrorToast("Select at least one person for an individual audience.");
+      return;
+    }
     setBusy(true);
     try {
       const draft = await createSaEmailCampaign(payload);
@@ -284,7 +377,7 @@ export function CampaignsCommandCentre({
   const runAsk = () => {
     const result = interpretAsk(ask);
     setAskResult(result);
-    setActiveFilters(result.filters);
+    selectAudience(result.filters[0] ?? "all");
     setIntent(result.intent);
     applyGenerated(generateCampaign(ask, result.intent));
     setPickingIntent(false);
@@ -327,7 +420,7 @@ export function CampaignsCommandCentre({
       liveAudience={liveAudience}
       filters={activeFilters}
       onUseSuggestion={(ids) => {
-        setActiveFilters(ids);
+        selectAudience(ids[0] ?? "all");
         setMode("compose");
         setPickingIntent(false);
       }}
@@ -437,8 +530,8 @@ export function CampaignsCommandCentre({
               onPickIntent={(id) => {
                 setIntent(id);
                 setPickingIntent(false);
-                const item = INTENTS.find((i) => i.id === id)?.defaultFilters ?? [];
-                setActiveFilters(item);
+                const item = INTENTS.find((i) => i.id === id)?.defaultFilters ?? ["all"];
+                selectAudience(item[0] ?? "all");
                 applyGenerated(generateCampaign(id, id));
                 setCampaignName(INTENTS.find((i) => i.id === id)?.title ?? "Campaign");
               }}
@@ -454,13 +547,16 @@ export function CampaignsCommandCentre({
               cta={cta}
               onCta={setCta}
               filters={activeFilters}
-              onToggleFilter={(id) =>
-                setActiveFilters((prev) =>
-                  prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-                )
-              }
+              onToggleFilter={selectAudience}
               liveAudience={liveAudience}
-              recipients={recipients}
+              recipients={
+                audienceIsIndividual ? individualRecipients : recipients
+              }
+              directoryRecipients={directoryRecipients}
+              selectedUserIds={selectedUserIds}
+              onToggleUser={toggleSelectedUser}
+              personQuery={personQuery}
+              onPersonQuery={setPersonQuery}
               tab={composerTab}
               onTab={setComposerTab}
               device={previewDevice}

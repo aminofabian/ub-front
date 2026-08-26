@@ -38,6 +38,11 @@ export function CampaignsComposer({
   onToggleFilter,
   liveAudience,
   recipients,
+  directoryRecipients,
+  selectedUserIds: selectedUserIdsProp,
+  onToggleUser,
+  personQuery = "",
+  onPersonQuery,
   tab,
   onTab,
   device,
@@ -72,6 +77,12 @@ export function CampaignsComposer({
   onToggleFilter: (id: string) => void;
   liveAudience: number | null;
   recipients: SaEmailRecipientRow[];
+  /** Searchable pool for individual audience mode. */
+  directoryRecipients?: SaEmailRecipientRow[];
+  selectedUserIds?: string[];
+  onToggleUser?: (userId: string) => void;
+  personQuery?: string;
+  onPersonQuery?: (v: string) => void;
   tab: "write" | "design" | "preview";
   onTab: (t: "write" | "design" | "preview") => void;
   device: "desktop" | "mobile";
@@ -117,8 +128,19 @@ export function CampaignsComposer({
   }
 
   const audience = estimateAudience(liveAudience);
+  const activeFilter = FILTERS.find((f) => filters.includes(f.id)) ?? null;
+  const isIndividual = activeFilter?.id === "individual";
+  const selectedUserIds = selectedUserIdsProp ?? [];
+  const directory = directoryRecipients ?? recipients;
+  const selectedPeople = directory.filter((r) =>
+    selectedUserIds.includes(r.userId),
+  );
   const merchant =
-    recipients.find((r) => r.userId === merchantId) ?? recipients[0] ?? null;
+    (isIndividual
+      ? selectedPeople.find((r) => r.userId === merchantId) ??
+        selectedPeople[0]
+      : recipients.find((r) => r.userId === merchantId) ?? recipients[0]) ??
+    null;
   const rendered = personalize(body, merchant);
   const fromLabel = `Kiosk · hello@${PLATFORM_DOMAIN}`;
 
@@ -148,13 +170,13 @@ export function CampaignsComposer({
       <section>
         <h2 className="text-sm font-semibold">Who should receive this?</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          These filters use the live recipient API (incomplete setup, unverified owners).
+          Pick one audience. Live counts come from the recipient API.
         </p>
         <div className="mt-3">
           <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Merchant
+            Audience
           </p>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Campaign audience">
             {FILTERS.map((f) => (
               <CampaignChip
                 key={f.id}
@@ -165,22 +187,106 @@ export function CampaignsComposer({
               </CampaignChip>
             ))}
           </div>
+          {activeFilter ? (
+            <p className="mt-2 text-xs text-muted-foreground">{activeFilter.hint}</p>
+          ) : null}
         </div>
+
+        {isIndividual ? (
+          <div className="mt-3 space-y-2 rounded-xl border border-border/70 bg-[#F7F7F5] p-3">
+            <p className="text-xs font-medium text-foreground">
+              Select recipients
+            </p>
+            <input
+              value={personQuery}
+              onChange={(e) => onPersonQuery?.(e.target.value)}
+              placeholder="Search name, email, or business…"
+              className={fieldClass}
+              aria-label="Search people to include"
+            />
+            <ul className="max-h-48 divide-y divide-border/60 overflow-y-auto rounded-lg border border-border/70 bg-white">
+              {directory.length === 0 ? (
+                <li className="px-3 py-4 text-center text-xs text-muted-foreground">
+                  No matching people. Try another search.
+                </li>
+              ) : (
+                directory.slice(0, 40).map((r) => {
+                  const on = selectedUserIds.includes(r.userId);
+                  return (
+                    <li key={r.userId}>
+                      <button
+                        type="button"
+                        onClick={() => onToggleUser?.(r.userId)}
+                        className={cn(
+                          "flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted/40",
+                          on && "bg-emerald-50/80",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border",
+                            on
+                              ? "border-emerald-700 bg-emerald-700 text-white"
+                              : "border-border",
+                          )}
+                          aria-hidden
+                        >
+                          {on ? <Check className="size-3" /> : null}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">
+                            {r.businessName}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {r.name} · {r.email || "no email"}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+            {selectedUserIds.length > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {selectedUserIds.length.toLocaleString()} selected
+                {selectedUserIds.length === 1 && selectedPeople[0]
+                  ? ` · ${selectedPeople[0].name || selectedPeople[0].email}`
+                  : ""}
+              </p>
+            ) : (
+              <p className="text-xs text-amber-800">
+                Select at least one person before preview or send.
+              </p>
+            )}
+          </div>
+        ) : null}
+
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-2">
           <MiniStat
             label="Audience"
-            value={audience.merchants.toLocaleString()}
-            hint={audience.modeled ? "Loading live count…" : "Live"}
+            value={
+              isIndividual
+                ? selectedUserIds.length.toLocaleString()
+                : audience.merchants.toLocaleString()
+            }
+            hint={
+              isIndividual
+                ? "Selected people"
+                : audience.modeled
+                  ? "Loading live count…"
+                  : "Live"
+            }
           />
           <MiniStat
             label="Loaded rows"
-            value={recipients.length.toLocaleString()}
+            value={(isIndividual ? selectedPeople.length || directory.length : recipients.length).toLocaleString()}
           />
         </div>
         <Button type="button" variant="outline" size="sm" className="mt-3">
           Save audience
         </Button>
-        {recipients.length > 0 ? (
+        {!isIndividual && recipients.length > 0 ? (
           <p className="mt-2 text-xs text-muted-foreground">
             Live sample: {recipients[0]?.businessName} · {recipients[0]?.email}
             {recipients.length > 1 ? ` · +${recipients.length - 1} loaded` : ""}
@@ -323,7 +429,12 @@ export function CampaignsComposer({
         <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-muted-foreground">Audience</dt>
-            <dd className="font-medium">{audience.merchants.toLocaleString()} merchants</dd>
+            <dd className="font-medium">
+              {isIndividual
+                ? `${selectedUserIds.length.toLocaleString()} ${selectedUserIds.length === 1 ? "person" : "people"}`
+                : `${audience.merchants.toLocaleString()} merchants`}
+              {activeFilter ? ` · ${activeFilter.label}` : ""}
+            </dd>
           </div>
           <div>
             <dt className="text-muted-foreground">From</dt>
