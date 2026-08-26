@@ -73,6 +73,7 @@ import {
 } from "@/lib/marketplace-url";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
+import { SupplyPackQtyModal } from "@/app/(dashboard)/supplies/_components/supply-pack-qty-modal";
 import { WholesalePackStamp } from "@/components/pack/wholesale-pack-stamp";
 import { cn, formatMoney } from "@/lib/utils";
 
@@ -96,9 +97,19 @@ import {
 import { mktBtnGhost } from "./marketplace-ui";
 
 type CartQty = Record<string, number>;
+/** Buyer-opted pack size — never auto-applied from catalog alone. */
+type CartPackMeta = Record<string, { size: number; unit: string }>;
 type OrderLayout = "default" | "shelf";
 type PdfDownloadKind = "sheet" | "list" | "chalk" | "order";
 type CatalogueStyleKind = "sheet" | "list" | "chalk";
+
+function packForProduct(
+  product: Pick<MarketplaceCatalogProductPreview, "packSize" | "packUnit">,
+  opted: { size: number; unit: string } | undefined,
+): { size: number; unit: string } | null {
+  if (opted && opted.size > 1) return opted;
+  return catalogWholesalePack(product);
+}
 
 function pdfFilename(base: string, includePrices: boolean): string {
   return includePrices ? base : base.replace(/\.pdf$/i, "-no-prices.pdf");
@@ -357,6 +368,14 @@ export function MarketplaceOrderWorkspace({
       }),
     ),
   );
+  /** Opt-in pack sizes for order lines (tap Package). Not applied by default. */
+  const [packByProductId, setPackByProductId] = useState<CartPackMeta>({});
+  const [packSheetProductId, setPackSheetProductId] = useState<string | null>(
+    null,
+  );
+  const packSheetProduct = packSheetProductId
+    ? detail.products.find((p) => p.id === packSheetProductId) ?? null
+    : null;
   const [sendingOrder, setSendingOrder] = useState(false);
   const [catalogueBusy, setCatalogueBusy] = useState(false);
   const [pdfDownloadKind, setPdfDownloadKind] = useState<PdfDownloadKind | null>(null);
@@ -408,6 +427,12 @@ export function MarketplaceOrderWorkspace({
           delete nextRounded[productId];
           return nextRounded;
         });
+        setPackByProductId((packs) => {
+          if (!packs[productId]) return packs;
+          const nextPacks = { ...packs };
+          delete nextPacks[productId];
+          return nextPacks;
+        });
       }
       else next[productId] = qty;
       if (announce && prevQty === 0 && qty > 0) {
@@ -416,6 +441,25 @@ export function MarketplaceOrderWorkspace({
       return next;
     });
   };
+
+  const togglePack = useCallback(
+    (productId: string) => {
+      if (packByProductId[productId]) {
+        setPackByProductId((prev) => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
+        return;
+      }
+      setPackSheetProductId(productId);
+    },
+    [packByProductId],
+  );
+
+  const editPack = useCallback((productId: string) => {
+    setPackSheetProductId(productId);
+  }, []);
 
   const toggleLineRounding = (productId: string) => {
     setRoundedLineIds((prev) => ({
@@ -428,8 +472,13 @@ export function MarketplaceOrderWorkspace({
     () =>
       detail.products
         .filter((p) => (cart[p.id] ?? 0) > 0)
-        .map((p) => ({ product: p, qty: cart[p.id] ?? 0 })),
-    [cart, detail.products],
+        .map((p) => ({
+          product: p,
+          qty: cart[p.id] ?? 0,
+          pack: packForProduct(p, packByProductId[p.id]),
+          packOptedIn: Boolean(packByProductId[p.id]),
+        })),
+    [cart, detail.products, packByProductId],
   );
 
   const cartUnits = useMemo(
@@ -564,8 +613,11 @@ export function MarketplaceOrderWorkspace({
 
   const orderLines = useMemo(
     () =>
-      cartLines.map(({ product, qty }) => ({
-        name: product.name,
+      cartLines.map(({ product, qty, pack }) => ({
+        name:
+          pack != null
+            ? `${product.name} (pack of ${pack.size})`
+            : product.name,
         sku: product.sku,
         barcode: product.barcode,
         qty,
@@ -976,6 +1028,51 @@ export function MarketplaceOrderWorkspace({
     </>
   );
 
+  const packQtyModal = (
+    <SupplyPackQtyModal
+      open={packSheetProduct != null}
+      onOpenChange={(open) => {
+        if (!open) setPackSheetProductId(null);
+      }}
+      defaults={
+        packSheetProduct
+          ? {
+              productLabel: packSheetProduct.name,
+              packSize:
+                packByProductId[packSheetProduct.id]?.size ??
+                packSheetProduct.packSize,
+              packUnit:
+                packByProductId[packSheetProduct.id]?.unit ??
+                packSheetProduct.packUnit ??
+                "pack",
+            }
+          : null
+      }
+      initialUnitsPerPack={
+        packSheetProduct
+          ? packByProductId[packSheetProduct.id]?.size ?? null
+          : null
+      }
+      onApply={(result) => {
+        if (!packSheetProduct) return;
+        const id = packSheetProduct.id;
+        setPackByProductId((prev) => ({
+          ...prev,
+          [id]: {
+            size: result.unitsPerPack,
+            unit: result.packUnit || "pack",
+          },
+        }));
+        if ((cart[id] ?? 0) <= 0) {
+          setQty(id, result.packCount > 0 ? result.packCount : 1, true);
+        } else if (result.packCount > 0) {
+          setQty(id, result.packCount);
+        }
+        setPackSheetProductId(null);
+      }}
+    />
+  );
+
   if (isShelf) {
     const primaryContact =
       detail.contacts.find((c) => c.primaryContact) ?? detail.contacts[0];
@@ -1167,6 +1264,10 @@ export function MarketplaceOrderWorkspace({
                         displayName={product.name}
                         supplierSlug={detail.slug}
                         qty={cart[product.id] ?? 0}
+                        pack={packForProduct(
+                          product,
+                          packByProductId[product.id],
+                        )}
                         focused={focusProduct?.id === product.id}
                         onAdd={() =>
                           setQty(product.id, (cart[product.id] ?? 0) + 1, true)
@@ -1202,6 +1303,10 @@ export function MarketplaceOrderWorkspace({
                             displayName={catalogPackLabel(product, family.label)}
                             supplierSlug={detail.slug}
                             qty={cart[product.id] ?? 0}
+                            pack={packForProduct(
+                              product,
+                              packByProductId[product.id],
+                            )}
                             focused={focusProduct?.id === product.id}
                             onAdd={() =>
                               setQty(product.id, (cart[product.id] ?? 0) + 1, true)
@@ -1253,6 +1358,8 @@ export function MarketplaceOrderWorkspace({
               onCopy={() => void copyOrderList()}
               onCopyOrderLink={() => void copyOrderLink()}
               onCatalogue={requestCatalogueDownload}
+              onTogglePack={togglePack}
+              onEditPack={editPack}
             />
           </div>
         </div>
@@ -1363,6 +1470,8 @@ export function MarketplaceOrderWorkspace({
                 onCopy={() => void copyOrderList()}
                 onCopyOrderLink={() => void copyOrderLink()}
                 onCatalogue={requestCatalogueDownload}
+                onTogglePack={togglePack}
+                onEditPack={editPack}
                 onClose={() => setMobileOrderOpen(false)}
                 className="min-h-0 flex-1 border-0"
               />
@@ -1370,6 +1479,7 @@ export function MarketplaceOrderWorkspace({
           </div>
         ) : null}
         {pdfDownloadDialog}
+        {packQtyModal}
       </div>
     );
   }
@@ -1493,6 +1603,7 @@ export function MarketplaceOrderWorkspace({
 
       {orderFooter}
       {pdfDownloadDialog}
+      {packQtyModal}
     </div>
   );
 }
@@ -1993,6 +2104,8 @@ function OrderManifestPanel({
   catalogueBusy,
   onSetQty,
   onRemove,
+  onTogglePack,
+  onEditPack,
   onToggleLineRounding,
   onToggleOrderRounding,
   onSend,
@@ -2005,7 +2118,12 @@ function OrderManifestPanel({
 }: {
   supplierName: string;
   claimPhone?: string | null;
-  lines: { product: MarketplaceCatalogProductPreview; qty: number }[];
+  lines: {
+    product: MarketplaceCatalogProductPreview;
+    qty: number;
+    pack: { size: number; unit: string } | null;
+    packOptedIn: boolean;
+  }[];
   currency: string;
   total: number;
   rawTotal: number;
@@ -2017,6 +2135,8 @@ function OrderManifestPanel({
   catalogueBusy: boolean;
   onSetQty: (productId: string, qty: number) => void;
   onRemove: (productId: string) => void;
+  onTogglePack: (productId: string) => void;
+  onEditPack: (productId: string) => void;
   onToggleLineRounding: (productId: string) => void;
   onToggleOrderRounding: () => void;
   onSend: () => void;
@@ -2068,7 +2188,8 @@ function OrderManifestPanel({
         <div className="min-h-0 flex-1 space-y-0 overflow-y-auto">
           {lines.length === 0 ? (
             <p className="mx-2.5 my-3 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-3 py-10 text-center text-[11px] leading-relaxed text-muted-foreground">
-              Tap shelf products to build this order.
+              Tap shelf products to build this order. Use the pack icon on a
+              line when the supplier sells by the pack.
             </p>
           ) : (
             lines.map((line, index) => {
@@ -2082,6 +2203,8 @@ function OrderManifestPanel({
               const displayedLineTotal = lineIsRounded
                 ? roundedLineTotal
                 : rawLineTotal;
+              const pack = line.pack;
+              const packed = pack != null && pack.size > 1;
 
               return (
                 <div
@@ -2089,7 +2212,16 @@ function OrderManifestPanel({
                   className="space-y-1.5 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-2.5 py-2 last:border-b-0"
                 >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
+                  <div className="flex min-w-0 items-start gap-1.5">
+                    {packed ? (
+                      <WholesalePackStamp
+                        units={pack.size}
+                        packCount={line.qty}
+                        packUnit={pack.unit}
+                        className="mt-0.5 shrink-0"
+                      />
+                    ) : null}
+                    <div className="min-w-0">
                     <p className="flex items-start gap-1.5 text-[12px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
                       <span className="mt-0.5 shrink-0 font-mono text-[9px] font-normal tabular-nums text-muted-foreground">
                         {String(index + 1).padStart(2, "0")}
@@ -2101,6 +2233,7 @@ function OrderManifestPanel({
                         {line.product.sku}
                       </p>
                     ) : null}
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -2112,7 +2245,14 @@ function OrderManifestPanel({
                   </button>
                 </div>
                 <div className="flex items-center justify-between gap-2 pl-5">
-                  <div className="inline-flex items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
+                  <div
+                    className={cn(
+                      "inline-flex items-center border",
+                      packed
+                        ? "border-amber-800/30 bg-amber-50/90"
+                        : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+                    )}
+                  >
                     <button
                       type="button"
                       className="flex size-7 items-center justify-center hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]"
@@ -2132,6 +2272,34 @@ function OrderManifestPanel({
                     >
                       <Plus className="size-3" />
                     </button>
+                    {packed ? (
+                      <button
+                        type="button"
+                        className="inline-flex shrink-0 items-center px-1 font-mono text-[9px] font-black tabular-nums text-amber-950"
+                        title="Change pack size"
+                        onClick={() => onEditPack(line.product.id)}
+                      >
+                        ×{pack.size}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className={cn(
+                        "inline-flex size-7 shrink-0 items-center justify-center",
+                        line.packOptedIn
+                          ? "bg-amber-200/80 text-amber-950"
+                          : "text-muted-foreground hover:bg-amber-100 hover:text-amber-950",
+                      )}
+                      title={
+                        line.packOptedIn
+                          ? "Ordering packs — click to clear"
+                          : "Sold as a pack"
+                      }
+                      aria-pressed={line.packOptedIn}
+                      onClick={() => onTogglePack(line.product.id)}
+                    >
+                      <Package className="size-3" aria-hidden />
+                    </button>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {canRound ? (
@@ -2150,14 +2318,25 @@ function OrderManifestPanel({
                         {lineIsRounded ? "Rounded" : "Round"}
                       </button>
                     ) : null}
-                    <p className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
-                      {displayedLineTotal != null
-                        ? formatMoney(
-                            displayedLineTotal,
+                    <div className="text-right">
+                      <p className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+                        {displayedLineTotal != null
+                          ? formatMoney(
+                              displayedLineTotal,
+                              line.product.currency ?? currency,
+                            )
+                          : "Ask"}
+                      </p>
+                      {packed && line.product.unitPrice != null ? (
+                        <p className="font-mono text-[9px] tabular-nums text-muted-foreground">
+                          {formatMoney(
+                            line.product.unitPrice,
                             line.product.currency ?? currency,
-                          )
-                        : "Ask"}
-                    </p>
+                          )}{" "}
+                          / pack
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
                 </div>
@@ -2371,6 +2550,7 @@ function ShelfProductTile({
   displayName,
   supplierSlug,
   qty,
+  pack = null,
   focused = false,
   onAdd,
   onSetQty,
@@ -2379,6 +2559,7 @@ function ShelfProductTile({
   displayName?: string;
   supplierSlug: string | null;
   qty: number;
+  pack?: { size: number; unit: string } | null;
   focused?: boolean;
   onAdd: () => void;
   onSetQty: (qty: number) => void;
@@ -2386,8 +2567,11 @@ function ShelfProductTile({
   const thumb = posTileThumbUrl(product.name, product.imageUrl);
   const href = marketplacePassportProductPath(supplierSlug, product.slug);
   const title = displayName?.trim() || product.name;
-  const wholesalePack = catalogWholesalePack(product);
-  const eachFromPack = catalogEachFromPack(product);
+  const wholesalePack = pack ?? catalogWholesalePack(product);
+  const eachFromPack =
+    wholesalePack && product.unitPrice != null
+      ? Math.round((product.unitPrice / wholesalePack.size) * 100) / 100
+      : catalogEachFromPack(product);
 
   return (
     <div

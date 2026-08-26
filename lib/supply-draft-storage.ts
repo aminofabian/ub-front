@@ -100,6 +100,9 @@ export type ReceiveTillCartLinePersisted = {
   sellStr: string;
   seedCost: string;
   seedSell: string;
+  packMode?: SupplyPackMode | null;
+  catalogPackSize?: number | null;
+  catalogPackUnit?: string | null;
 };
 
 export type ReceiveTillDraftPersisted = {

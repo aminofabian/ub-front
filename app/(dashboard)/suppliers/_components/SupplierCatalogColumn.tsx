@@ -148,6 +148,24 @@ function formatLinkCost(n: number): string {
   });
 }
 
+function resolveLinkShelfPrice(
+  link: SupplierItemLinkRecord,
+): number | null {
+  const raw = link.catalogShelfPrice;
+  if (raw == null || String(raw).trim() === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+function resolveLinkPack(
+  link: SupplierItemLinkRecord,
+): { size: number; unit: string } | null {
+  const size = Number(link.packSize);
+  if (!Number.isFinite(size) || size <= 1) return null;
+  const unit = (link.packUnit ?? "pcs").trim() || "pcs";
+  return { size, unit };
+}
+
 export function SupplierCatalogColumn({
   detail,
   canReadCatalog,
@@ -1019,10 +1037,16 @@ export function SupplierCatalogColumn({
                     Stock
                   </th>
                   <th
-                    className="w-20 border border-border px-1.5 py-1 text-right font-semibold"
+                    className="w-[4.5rem] border border-border px-1.5 py-1 text-right font-semibold"
                     title="Supplier default cost, else last purchase, else catalog buying price"
                   >
                     Cost
+                  </th>
+                  <th
+                    className="w-[4.5rem] border border-border px-1.5 py-1 text-right font-semibold"
+                    title="Catalog shelf / sell price"
+                  >
+                    Sell
                   </th>
                   {canLinkProducts ? (
                     <th className="w-[4.5rem] border border-border px-1.5 py-1 text-right font-semibold">
@@ -1039,7 +1063,10 @@ export function SupplierCatalogColumn({
                     if (ap !== bp) return ap.localeCompare(bp);
                     return (a.itemName || "").localeCompare(b.itemName || "");
                   })
-                  .map((row) => (
+                  .map((row) => {
+                    const pack = resolveLinkPack(row);
+                    const sell = resolveLinkShelfPrice(row);
+                    return (
                   <tr key={row.id} className={supTableRow}>
                     <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
                       <div className="flex min-w-0 flex-col gap-0.5">
@@ -1049,6 +1076,14 @@ export function SupplierCatalogColumn({
                               className="size-3 shrink-0 text-primary/70"
                               aria-hidden
                             />
+                          ) : null}
+                          {pack ? (
+                            <span
+                              className="inline-flex shrink-0 items-center border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
+                              title={`Sold as a pack of ${pack.size} ${pack.unit}`}
+                            >
+                              ×{Number.isInteger(pack.size) ? pack.size : pack.size}
+                            </span>
                           ) : null}
                           <span
                             className="truncate font-medium text-foreground"
@@ -1118,12 +1153,20 @@ export function SupplierCatalogColumn({
                         return (
                           <div
                             className="flex flex-col items-end leading-tight"
-                            title={sourceLabel}
+                            title={
+                              pack
+                                ? `${sourceLabel} · pack of ${pack.size}`
+                                : sourceLabel
+                            }
                           >
                             <span className="font-mono text-xs tabular-nums text-foreground">
                               {formatLinkCost(cost.value)}
                             </span>
-                            {cost.source !== "default" ? (
+                            {pack ? (
+                              <span className="text-[9px] font-medium uppercase tracking-wide text-amber-900/70 dark:text-amber-100/70">
+                                / pack
+                              </span>
+                            ) : cost.source !== "default" ? (
                               <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
                                 {cost.source === "last" ? "Last" : "Catalog"}
                               </span>
@@ -1131,6 +1174,28 @@ export function SupplierCatalogColumn({
                           </div>
                         );
                       })()}
+                    </td>
+                    <td className="border border-border/70 px-1.5 py-0.5 text-right align-middle">
+                      {sell != null ? (
+                        <div
+                          className="flex flex-col items-end leading-tight"
+                          title="Catalog shelf / sell price"
+                        >
+                          <span className="font-mono text-xs tabular-nums text-foreground">
+                            {formatLinkCost(sell)}
+                          </span>
+                          <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Shelf
+                          </span>
+                        </div>
+                      ) : (
+                        <span
+                          className="font-mono text-xs tabular-nums text-muted-foreground/60"
+                          title="No catalog shelf price"
+                        >
+                          —
+                        </span>
+                      )}
                     </td>
                     {canLinkProducts ? (
                       <td className="border border-border/70 px-1.5 py-0.5">
@@ -1176,7 +1241,8 @@ export function SupplierCatalogColumn({
                       </td>
                     ) : null}
                   </tr>
-                ))}
+                    );
+                  })}
               </tbody>
             </table>
           </div>
@@ -1198,7 +1264,7 @@ export function SupplierCatalogColumn({
             }
           }}
           title="Edit supplier link"
-          description={`Update supplier SKU, cost, and purchase unit for ${editLinkDrawerRow?.itemName || "this product"}.`}
+          description={`Update supplier SKU, cost, and pack size for ${editLinkDrawerRow?.itemName || "this product"}.`}
           contextLabel="Link details"
           icon={<Pencil className="size-5 text-primary" aria-hidden />}
           banner={
@@ -1246,29 +1312,30 @@ export function SupplierCatalogColumn({
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex min-w-0 flex-col gap-1.5">
-              <span className={supFieldLabel}>Purchase unit</span>
+              <span className={supFieldLabel}>Pack unit</span>
               <input
                 className={supInput}
                 value={editLinkDrawerPackUnit}
                 onChange={(e) => setEditLinkDrawerPackUnit(e.target.value)}
-                placeholder="e.g. crate, kg"
-                aria-label="Purchase unit"
+                placeholder="e.g. pack, tray, crate"
+                aria-label="Pack unit"
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1.5">
-              <span className={supFieldLabel}>Stock per unit</span>
+              <span className={supFieldLabel}>Pieces in pack</span>
               <input
                 className={cn(supInput, "tabular-nums")}
                 inputMode="decimal"
                 value={editLinkDrawerPackSize}
                 onChange={(e) => setEditLinkDrawerPackSize(e.target.value)}
-                placeholder="e.g. 25 (kg per crate)"
-                aria-label="Stock per purchase unit"
+                placeholder="e.g. 12 (leave blank if not packed)"
+                aria-label="Pieces in pack"
               />
             </label>
           </div>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            When set, receiving uses this conversion (e.g. 2 crates × 25 kg = 50 kg stock).
+            Optional. When set, cost is treated as the pack price and receiving
+            converts packs → shelf units (e.g. 2 packs × 12 = 24 stock).
           </p>
         </FormDrawer>
       ) : null}
