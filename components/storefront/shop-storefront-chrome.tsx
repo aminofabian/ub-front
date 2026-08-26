@@ -47,6 +47,10 @@ import chemLabStyles from "@/components/storefront/templates/store/chem-lab.modu
 import { ScentStoryHeader } from "@/components/storefront/templates/store/scent-story-header";
 import { scentStoryFontVariables } from "@/components/storefront/templates/store/scent-story-fonts";
 import scentStoryStyles from "@/components/storefront/templates/store/scent-story.module.css";
+import { PrintAtelierHeader } from "@/components/storefront/templates/store/print-atelier-header";
+import { printAtelierFontVariables } from "@/components/storefront/templates/store/print-atelier-fonts";
+import printAtelierStyles from "@/components/storefront/templates/store/print-atelier.module.css";
+import { PrintAtelierFlyLayer } from "@/components/storefront/templates/store/print-atelier-fly";
 import { SpiritsCellarHeader } from "@/components/storefront/templates/store/spirits-cellar-header";
 import { spiritsCellarFontVariables } from "@/components/storefront/templates/store/spirits-cellar-fonts";
 import spiritsCellarStyles from "@/components/storefront/templates/store/spirits-cellar.module.css";
@@ -173,7 +177,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier";
   storeThemeId?: string | null;
   /** D8: `ub.session` presence hint from `StorefrontShell` (label-only). */
   hasPresence: boolean;
@@ -205,7 +209,8 @@ export function ShopStorefrontChrome({
   const isScentStory = chromeVariant === "scent-story";
   const isChemLab = chromeVariant === "chem-lab";
   const isSpiritsCellar = chromeVariant === "spirits-cellar";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar;
+  const isPrintAtelier = chromeVariant === "print-atelier";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const restoreAttemptedRef = useRef(false);
@@ -299,6 +304,11 @@ export function ShopStorefrontChrome({
                       ["--sc-wax" as string]: primaryHex || "#8B2635",
                       ["--sc-spirit" as string]: accentHex || "#C4B5FD",
                     } as CSSProperties)
+                : isPrintAtelier
+                  ? ({
+                      ["--pa-ink" as string]: primaryHex || "#1C1A16",
+                      ["--pa-sage" as string]: accentHex || "#C5D0B4",
+                    } as CSSProperties)
         : undefined;
 
   return (
@@ -380,6 +390,13 @@ export function ShopStorefrontChrome({
               scentStoryFontVariables,
               "[--storefront-paper:#FCF8F0]",
             ),
+          isPrintAtelier &&
+            cn(
+              printAtelierStyles.root,
+              printAtelierStyles.body,
+              printAtelierFontVariables,
+              "[--storefront-paper:#FFFFFF]",
+            ),
           isChemLab &&
             cn(
               chemLabStyles.root,
@@ -444,6 +461,15 @@ export function ShopStorefrontChrome({
           />
         </Suspense>
       ) : null}
+      {isPrintAtelier && !compactChrome ? (
+        <Suspense fallback={null}>
+          <PrintAtelierHeader
+            slug={slug}
+            storeName={headerTitle}
+            logoUrl={logoUrl}
+          />
+        </Suspense>
+      ) : null}
       {isChemLab && !compactChrome ? (
         <Suspense fallback={null}>
           <ChemLabHeader storeName={headerTitle} logoUrl={logoUrl} />
@@ -494,6 +520,7 @@ export function ShopStorefrontChrome({
       >
         {children}
       </div>
+      {isPrintAtelier ? <PrintAtelierFlyLayer /> : null}
       <ShopCartDrawer />
       <ShopCheckoutDrawer />
       <WhatsAppCheckoutSheet />

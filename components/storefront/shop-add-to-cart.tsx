@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { useChemLabCopy } from "@/components/storefront/templates/store/chem-lab-mode";
+import { triggerPrintAtelierFly } from "@/components/storefront/templates/store/print-atelier-fly";
 import {
   cartLineQuantity,
   findCartLine,
@@ -60,6 +61,7 @@ export default function ShopAddToCart({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const addBtnRef = useRef<HTMLButtonElement>(null);
   const cartCtx = useShopCartOptional();
   const cl = useChemLabCopy();
   const addLabel = cl?.dispense?.trim() || "Add to Cart";
@@ -112,6 +114,20 @@ export default function ShopAddToCart({
     try {
       const q = inCart ? roundQty(inCartQty + addQty) : addQty;
       await cartCtx.setLineQty(id, q);
+      const isPrintAtelier = Boolean(
+        document.querySelector('[data-store-theme-id="print-atelier"]'),
+      );
+      if (isPrintAtelier) {
+        const img = document.querySelector<HTMLImageElement>(
+          'main img, [data-product-image] img, .product-image img',
+        );
+        triggerPrintAtelierFly(
+          addBtnRef.current,
+          img?.currentSrc || img?.src || null,
+          "Added",
+        );
+        window.setTimeout(() => cartCtx.openDrawer(), 780);
+      }
       cartCtx.notifyAdded(id);
       const label = unit ? `${formatCartQty(addQty)} ${unit}` : formatCartQty(addQty);
       setMessage(compact ? "Added to cart" : `Added ${label} to your cart.`);
@@ -298,6 +314,7 @@ export default function ShopAddToCart({
           ) : null}
           <Button
             type="button"
+            ref={addBtnRef}
             onClick={() => void add()}
             disabled={busy}
             className="h-11 flex-1 rounded-xl text-sm font-semibold"
@@ -356,6 +373,7 @@ export default function ShopAddToCart({
       >
         <Button
           type="button"
+          ref={addBtnRef}
           variant={inCart ? "outline" : "default"}
           onClick={() => void add()}
           disabled={busy}

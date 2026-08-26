@@ -309,6 +309,26 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
       ],
     },
   ],
+  "print-atelier": [
+    {
+      key: "sage",
+      label: "Announce sage",
+      hint: "The soft green bar and Add buttons",
+      type: "select",
+      var: "--pa-sage",
+      default: "moss",
+      values: {
+        moss: "#c5d0b4",
+        fern: "#a8bc8a",
+        mist: "#d5dcc8",
+      },
+      options: [
+        { value: "moss", label: "Moss", swatch: "#c5d0b4" },
+        { value: "fern", label: "Fern", swatch: "#a8bc8a" },
+        { value: "mist", label: "Mist", swatch: "#d5dcc8" },
+      ],
+    },
+  ],
   "butcher-board": [
     {
       key: "frame",

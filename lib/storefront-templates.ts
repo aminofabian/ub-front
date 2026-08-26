@@ -17,7 +17,8 @@ export type StoreThemeId =
   | "tint-lab"
   | "milk-run"
   | "carbon-desk"
-  | "chem-lab";
+  | "chem-lab"
+  | "print-atelier";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -63,6 +64,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "milk-run",
   "carbon-desk",
   "chem-lab",
+  "print-atelier",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -174,6 +176,15 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
     previewFrom: "#0b1116",
     previewTo: "#84CC16",
     accent: "#F59E0B",
+  },
+  {
+    id: "print-atelier",
+    kind: "store",
+    name: "Print atelier",
+    blurb: "A clean gift gallery — sage accents, serif titles, rounded product tiles, and a filament fly-to-cart.",
+    previewFrom: "#FFFFFF",
+    previewTo: "#C5D0B4",
+    accent: "#9AAF7C",
   },
 ];
 

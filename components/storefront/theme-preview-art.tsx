@@ -37,6 +37,8 @@ function ArtForId({ id }: { id: string }) {
       return <BeautyEditArt />;
     case "scent-story":
       return <ScentStoryArt />;
+    case "print-atelier":
+      return <PrintAtelierArt />;
     case "spirits-cellar":
       return <SpiritsArt />;
     case "oxide":
@@ -274,6 +276,41 @@ function ScentStoryArt() {
       <div className="grid grid-cols-3 gap-1.5 bg-[#FCF8F0] p-2">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="aspect-[4/5] border border-[#E8E0D4] bg-[#F4EFE6]" />
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+function PrintAtelierArt() {
+  return (
+    <Frame paper="#FFFFFF" ink="#1C1A16">
+      <div className="bg-[#C5D0B4] px-3 py-1 text-center text-[7px] tracking-wide text-[#1C1A16]">
+        Nairobi · Printed pieces
+      </div>
+      <div className="flex items-center justify-between border-b border-[#EBE8E2] px-3 py-2">
+        <span className="rounded border-2 border-[#2B4A8C] px-1 text-[8px] font-bold text-[#2B4A8C]">
+          3D
+        </span>
+        <span className="flex gap-2 text-[7px] text-[#1C1A16]/80">
+          <span>Decor</span>
+          <span>Toys</span>
+          <span>Gifts</span>
+        </span>
+        <span className="size-3 rounded-full border border-[#1C1A16]/50" />
+      </div>
+      <div className="relative flex flex-1 items-center bg-gradient-to-br from-[#E8E4D8] via-[#D9D2C2] to-[#C5D0B4]/40 px-3">
+        <div>
+          <div className="mb-1 h-2 w-28 rounded bg-[#4A4538]/80" />
+          <div className="mb-2 h-1.5 w-24 rounded bg-[#4A4538]/50" />
+          <div className="inline-block rounded-full bg-[#4A4538] px-3 py-1 text-[6px] font-semibold uppercase tracking-wider text-white">
+            Shop
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-4 gap-1.5 bg-white p-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="aspect-square rounded-lg bg-[#F4F3EF]" />
         ))}
       </div>
     </Frame>
