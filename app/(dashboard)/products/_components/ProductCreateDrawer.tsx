@@ -604,7 +604,7 @@ export function ProductCreateDrawer({
         )}
 
         <div className="space-y-4 px-0.5">
-          <Label label={isGroup ? "Family name" : "Name"}>
+          <Label label={isGroup ? "Family name" : "Product name"}>
             <div className="flex items-start gap-2">
               {!isGroup ? (
                 <button
@@ -703,14 +703,14 @@ export function ProductCreateDrawer({
               }}
             />
             <span>
-              This has sizes or packs
+              Product family
               <span className="mt-0.5 block text-[12px] text-foreground/45">
-                Like 500ml and 1 litre under one name
+                One name, several sizes or packs
               </span>
             </span>
           </label>
 
-          <Label label="Which aisle">
+          <Label label="Department">
             <select
               className={icClass()}
               value={m.parentDraft.itemTypeId}
@@ -726,7 +726,7 @@ export function ProductCreateDrawer({
               ))}
             </select>
           </Label>
-          <Label label="Category" hint={isGroup ? undefined : "Skip if you like"}>
+          <Label label="Category" hint={isGroup ? undefined : "Optional"}>
             <SearchableSelect
               className={icClass()}
               value={m.parentDraft.categoryId}
@@ -779,7 +779,7 @@ export function ProductCreateDrawer({
               marginInfo={marginInfo}
               isWeighed={m.parentDraft.isWeighed}
             />
-            <Label label="Barcode" hint="Scan or type if you have one">
+            <Label label="Barcode" hint="Optional">
               <div className="flex gap-px overflow-hidden border border-border bg-border">
                 <input
                   className={cn(
@@ -808,7 +808,7 @@ export function ProductCreateDrawer({
         {!isGroup ? (
           <>
             <CompactSectionToggle
-              label="Shop code"
+              label="SKU"
               expanded={codesOpen}
               onToggle={() => setCodesOpen((v) => !v)}
               badge={
@@ -821,9 +821,9 @@ export function ProductCreateDrawer({
               <div className="space-y-3 border border-t-0 border-border bg-background p-3 shadow-none">
                 <div className="flex min-w-0 flex-col gap-1">
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className={productFormLabelClass}>Shop code (SKU)</span>
+                    <span className={productFormLabelClass}>SKU</span>
                     <span className={cn(productFormHintClass, "truncate")}>
-                      Left blank, we make one
+                      Auto if empty
                     </span>
                   </span>
                   <div className="flex gap-1.5">
@@ -853,7 +853,7 @@ export function ProductCreateDrawer({
                 </div>
                 {m.parentDraft.isWeighed ? (
                   <label className="flex flex-col gap-1">
-                    <span className={productFormLabelClass}>Scale code</span>
+                    <span className={productFormLabelClass}>Scale PLU</span>
                     <span className={productFormHintClass}>
                       5-digit code on weight labels
                     </span>
@@ -934,7 +934,7 @@ export function ProductCreateDrawer({
             ) : null}
 
             <CompactSectionToggle
-              label="Also sell as a pack"
+              label="Pack sizes"
               expanded={packsOpen}
               onToggle={() => setPacksOpen((v) => !v)}
               badge={
@@ -966,7 +966,7 @@ export function ProductCreateDrawer({
         ) : null}
 
         <CompactSectionToggle
-          label="More (brand, supplier, description)"
+          label="Brand, supplier & notes"
           expanded={moreExpanded}
           onToggle={toggleMore}
           badge={

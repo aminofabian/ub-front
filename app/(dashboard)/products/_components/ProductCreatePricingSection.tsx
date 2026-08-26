@@ -31,8 +31,8 @@ export function ProductCreatePricingSection({
   marginInfo,
   isWeighed = false,
 }: Props) {
-  const cur = currencyCode ? ` ${currencyCode}` : "";
-  const sellLabel = isWeighed ? `Price per kg${cur}` : `What you sell it for${cur}`;
+  const cur = currencyCode ? ` · ${currencyCode}` : "";
+  const sellLabel = isWeighed ? `Selling price / kg${cur}` : `Selling price${cur}`;
   const valid = marginInfo?.valid;
 
   return (
@@ -43,7 +43,7 @@ export function ProductCreatePricingSection({
           type="number"
           inputMode="decimal"
           className={cn(productFormInputClass, "w-full")}
-          placeholder="0"
+          placeholder="0.00"
           value={draft.bundlePrice}
           onChange={(e) => setDraft((p) => ({ ...p, bundlePrice: e.target.value }))}
           required
@@ -51,22 +51,22 @@ export function ProductCreatePricingSection({
       </label>
       <label className={cn(productFormFieldClass, "gap-1.5")}>
         <span className="flex items-baseline justify-between gap-2">
-          <span className={productFormLabelClass}>What you paid{cur}</span>
-          <span className={productFormHintClass}>If you know it</span>
+          <span className={productFormLabelClass}>Cost price{cur}</span>
+          <span className={productFormHintClass}>Optional</span>
         </span>
         <input
           type="number"
           inputMode="decimal"
           className={cn(productFormInputClass, "w-full")}
-          placeholder="0"
+          placeholder="0.00"
           value={draft.buyingPrice}
           onChange={(e) => setDraft((p) => syncCostsFromBuyingPrice(e.target.value, p))}
         />
       </label>
       {valid ? (
         <p className={cn(productFormHintClass, "tabular-nums")} aria-live="polite">
-          You keep about {marginInfo.margin.toFixed(0)}% ({formatAmount(marginInfo.profit)}
-          {cur})
+          {marginInfo.margin.toFixed(0)}% margin · {formatAmount(marginInfo.profit)}
+          {currencyCode ? ` ${currencyCode}` : ""} profit
         </p>
       ) : null}
     </div>

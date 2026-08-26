@@ -4,7 +4,6 @@ import Link from "next/link";
 import { BookOpen, FileUp, PackagePlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { ProductGuideDrawer } from "./ProductGuideDrawer";
@@ -44,15 +43,8 @@ export function ProductHeroHeader({
   const visibleAttention = attentionStats.filter((s) => s.count > 0);
 
   return (
-    <header className="flex shrink-0 flex-col gap-2 border-b border-border bg-background px-1 py-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <div className="min-w-0">
-          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">
-            Products
-          </h1>
-          <ActiveScopeSubtitle className="text-[11px]" />
-        </div>
-
+    <header className="flex shrink-0 flex-col gap-2 border-b border-border bg-background px-1 py-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+      <div className="min-w-0 flex-1">
         {visibleAttention.length > 0 ? (
           <div
             className="flex min-w-0 flex-wrap items-center gap-1"
@@ -88,7 +80,9 @@ export function ProductHeroHeader({
               </button>
             ))}
           </div>
-        ) : null}
+        ) : (
+          <h1 className="sr-only">Products</h1>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-1">

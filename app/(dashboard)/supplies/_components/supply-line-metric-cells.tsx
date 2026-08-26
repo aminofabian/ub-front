@@ -9,13 +9,12 @@ import { cn } from "@/lib/utils";
 import { addYmdDays } from "@/lib/ymd-date";
 
 import { nsdInput } from "./new-supply-drawer-ui";
-import {
-  formatPackQtyHint,
-  SupplyPackQtyModal,
-  type SupplyPackQtyApply,
-  type SupplyPackQtyDefaults,
-} from "./supply-pack-qty-modal";
+import type { SupplyPackQtyDefaults } from "./supply-pack-qty-modal";
 import { supFormCellInput } from "../../suppliers/_components/supplier-ui-tokens";
+import {
+  formatSupplyQty,
+  type SupplyPackMode,
+} from "@/lib/supply-pack-math";
 
 function selectOnFocus(e: FocusEvent<HTMLInputElement>) {
   e.currentTarget.select();
@@ -159,11 +158,11 @@ type SupplyQtyCellProps = CompactProps & {
   onEnterNext?: () => void;
   /** When set, Enter focuses cost on the same row instead of the next empty qty. */
   onEnterCost?: () => void;
-  /** Prefill pack unit / size from supplier link or product packaging. */
+  /** Prefill pack size from supplier link or product packaging. */
   packDefaults?: SupplyPackQtyDefaults | null;
-  packReceipt?: SupplyPackQtyApply | null;
-  onPackApply?: (result: SupplyPackQtyApply | null) => void;
-  /** Notify parent when pack modal opens so nested drawers don't dismiss. */
+  packMode?: SupplyPackMode | null;
+  onPackModeChange?: (next: SupplyPackMode | null) => void;
+  /** Notify parent when pack size editor is open so nested drawers don't dismiss. */
   onPackModalOpenChange?: (open: boolean) => void;
   /** Hide under-cell hints for a denser receiving grid. */
   quiet?: boolean;
@@ -182,8 +181,8 @@ export function SupplyQtyCell({
   onEnterNext,
   onEnterCost,
   packDefaults = null,
-  packReceipt = null,
-  onPackApply,
+  packMode = null,
+  onPackModeChange,
   onPackModalOpenChange,
   quiet = false,
 }: SupplyQtyCellProps) {
@@ -197,41 +196,79 @@ export function SupplyQtyCell({
         ? "ready"
         : "active";
 
-  const [packOpen, setPackOpen] = useState(false);
+  const packed = packMode != null && packMode.unitsPerPack > 0;
+  const [editingSize, setEditingSize] = useState(false);
+  const [sizeDraft, setSizeDraft] = useState("");
+  const sizeInputRef = useRef<HTMLInputElement | null>(null);
 
-  const setPackModalOpen = (open: boolean) => {
-    setPackOpen(open);
+  const suggestedSize = (() => {
+    const n = Number(packDefaults?.packSize);
+    return Number.isFinite(n) && n > 1 ? n : 12;
+  })();
+
+  const setSizeEditorOpen = (open: boolean) => {
+    setEditingSize(open);
     onPackModalOpenChange?.(open);
+    if (open) {
+      setSizeDraft(
+        packed ? formatSupplyQty(packMode.unitsPerPack) : String(suggestedSize),
+      );
+      window.setTimeout(() => sizeInputRef.current?.focus(), 20);
+    }
   };
 
-  const packed = packReceipt != null && packReceipt.unitsPerPack > 0;
+  const commitSize = () => {
+    const n = Number(String(sizeDraft).trim());
+    if (!Number.isFinite(n) || n <= 0) {
+      setSizeEditorOpen(false);
+      return;
+    }
+    onPackModeChange?.({
+      unitsPerPack: n,
+      packUnit: packMode?.packUnit || packDefaults?.packUnit?.trim() || "pack",
+    });
+    setSizeEditorOpen(false);
+  };
+
+  const togglePack = () => {
+    if (packed) {
+      onPackModeChange?.(null);
+      setSizeEditorOpen(false);
+      return;
+    }
+    onPackModeChange?.({
+      unitsPerPack: suggestedSize,
+      packUnit: packDefaults?.packUnit?.trim() || "pack",
+    });
+  };
 
   return (
     <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
       {label ? (
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
+          {packed ? "Packs" : label}
         </span>
       ) : null}
-      <div className={cn(metricShellClass(compact, touch, tone), "gap-0.5 pr-0.5")}>
+      <div
+        className={cn(
+          metricShellClass(compact, touch, packed && hasText ? "ready" : tone),
+          "gap-0.5 pr-0.5",
+          packed && "bg-amber-50/90 ring-amber-800/30 dark:bg-amber-950/35",
+        )}
+      >
         <input
           className={cn(
             compact && !touch ? supFormCellInput : nsdInput,
-            "h-full min-w-0 flex-1 border-0 bg-transparent shadow-none",
-            compact && !touch ? "px-1.5" : "px-1.5",
-            compact && !touch ? "text-center" : "text-center",
-            "font-mono tabular-nums",
+            "h-full min-w-0 flex-1 border-0 bg-transparent shadow-none px-1.5",
+            "text-center font-mono tabular-nums",
             metricText(compact, touch),
             touch && "font-semibold tracking-tight",
             "focus-visible:ring-0 focus-visible:ring-offset-0",
-            tone === "ready" && "font-semibold text-primary",
+            (tone === "ready" || packed) && "font-semibold text-primary",
             tone === "invalid" && "text-amber-800 dark:text-amber-200",
           )}
           value={value}
-          onChange={(e) => {
-            onPackApply?.(null);
-            onChange?.(e.target.value);
-          }}
+          onChange={(e) => onChange?.(e.target.value)}
           onFocus={selectOnFocus}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -245,90 +282,78 @@ export function SupplyQtyCell({
           }}
           disabled={disabled}
           inputMode="decimal"
-          placeholder="Qty"
-          aria-label="Quantity received"
+          placeholder={packed ? "Packs" : "Qty"}
+          aria-label={packed ? "Packs received" : "Quantity received"}
           data-nsd-qty=""
         />
+        {packed && editingSize ? (
+          <input
+            ref={sizeInputRef}
+            className="h-[calc(100%-2px)] w-9 shrink-0 border-0 bg-background text-center font-mono text-[10px] font-bold tabular-nums focus-visible:ring-1 focus-visible:ring-primary"
+            value={sizeDraft}
+            onChange={(e) => setSizeDraft(e.target.value)}
+            onBlur={commitSize}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitSize();
+              }
+              if (e.key === "Escape") setSizeEditorOpen(false);
+            }}
+            inputMode="decimal"
+            aria-label="Pieces in one pack"
+          />
+        ) : packed ? (
+          <button
+            type="button"
+            className={cn(
+              "inline-flex h-full shrink-0 items-center px-0.5 font-mono text-[9px] font-black tabular-nums",
+              "text-amber-950 hover:bg-amber-200/80 dark:text-amber-100",
+            )}
+            disabled={disabled}
+            title="Pieces in this pack — click to change"
+            aria-label={`Pack of ${packMode.unitsPerPack}, click to change size`}
+            onClick={() => setSizeEditorOpen(true)}
+          >
+            ×{formatSupplyQty(packMode.unitsPerPack)}
+          </button>
+        ) : null}
         <button
           type="button"
           className={cn(
-            "inline-flex shrink-0 items-center justify-center rounded-sm font-bold uppercase tracking-wide",
+            "inline-flex shrink-0 items-center justify-center rounded-sm",
             packed
-              ? "bg-amber-100 px-1 text-[8px] text-amber-950 hover:bg-amber-200 dark:bg-amber-950/70 dark:text-amber-100"
-              : "text-muted-foreground hover:bg-primary/10 hover:text-primary",
+              ? "bg-amber-200/90 text-amber-950 dark:bg-amber-800 dark:text-amber-50"
+              : "text-muted-foreground hover:bg-amber-100 hover:text-amber-950",
             "disabled:pointer-events-none disabled:opacity-40",
-            touch ? "h-8 min-w-8 px-1" : compact ? "h-5 min-w-5" : "h-6 min-w-6",
+            touch ? "size-8" : compact ? "size-5" : "size-6",
           )}
           disabled={disabled}
           title={
             packed
-              ? formatPackQtyHint(packReceipt)
-              : "Mark as pack order — enter pieces in the pack and pack price"
+              ? "Counting packs. Click to count pieces instead."
+              : "Sold as a pack — type 1 for one carton, not 12 pieces."
           }
-          aria-label={
-            packed
-              ? `Edit pack of ${packReceipt.unitsPerPack}`
-              : "Mark as pack order"
-          }
+          aria-label={packed ? "Turn off pack counting" : "Count as packs"}
           aria-pressed={packed}
-          onClick={() => setPackModalOpen(true)}
+          onClick={togglePack}
         >
-          {packed ? (
-            <span className="font-mono tabular-nums">
-              ×{Number.isInteger(packReceipt.unitsPerPack)
-                ? packReceipt.unitsPerPack
-                : packReceipt.unitsPerPack}
-            </span>
-          ) : (
-            <Package className={touch ? "size-3.5" : "size-3"} aria-hidden />
-          )}
+          <Package className={touch ? "size-3.5" : "size-3"} aria-hidden />
         </button>
       </div>
-      {!quiet && !touch ? (
+      {!quiet && !touch && !packed ? (
         <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center gap-1 leading-none">
           {tone === "invalid" ? (
             <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
               Need qty
             </span>
-          ) : (
-            <>
-              {packed ? (
-                <span
-                  className="text-[10px] font-medium text-amber-900 dark:text-amber-200"
-                  title={formatPackQtyHint(packReceipt)}
-                >
-                  {formatPackQtyHint(packReceipt)}
-                </span>
-              ) : null}
-              {stockAfter != null && parsed != null ? (
-                <span className="text-[10px] font-medium text-primary">
-                  → {formatQty(stockAfter)}
-                </span>
-              ) : null}
-            </>
-          )}
+          ) : stockAfter != null && parsed != null ? (
+            <span className="text-[10px] font-medium text-primary">
+              → {formatQty(stockAfter)}
+            </span>
+          ) : null}
         </div>
-      ) : !quiet && packed ? (
-        <span className="text-[10px] font-medium text-amber-900 dark:text-amber-200">
-          {formatPackQtyHint(packReceipt)}
-        </span>
       ) : null}
-
-      <SupplyPackQtyModal
-        open={packOpen}
-        onOpenChange={setPackModalOpen}
-        defaults={packDefaults}
-        onApply={(result) => {
-          onPackApply?.(result);
-          onChange?.(formatQtyInput(result.totalQty));
-          if (result.unitCost != null) {
-            onUnitCostChange?.(result.unitCost.toFixed(2));
-            onEnterNext?.();
-          } else {
-            onEnterCost?.();
-          }
-        }}
-      />
     </div>
   );
 }
@@ -641,6 +666,9 @@ type SupplyCostCellProps = CompactProps & {
   onEnterNext?: () => void;
   /** Hide under-cell totals for a denser receiving grid. */
   quiet?: boolean;
+  packMode?: SupplyPackMode | null;
+  /** Derived each-price when counting packs. */
+  unitEach?: number | null;
 };
 
 export function SupplyCostCell({
@@ -654,14 +682,20 @@ export function SupplyCostCell({
   label,
   onEnterNext,
   quiet = false,
+  packMode = null,
+  unitEach = null,
 }: SupplyCostCellProps) {
+  const packed = packMode != null && packMode.unitsPerPack > 0;
   const parsed = parseNonNeg(value);
+  const unitParsed = packed
+    ? unitEach
+    : parsed;
   const hasText = value.trim().length > 0;
   const matchesRef =
-    parsed != null &&
+    unitParsed != null &&
     referenceCost != null &&
     referenceCost > 0 &&
-    moneyMatch(parsed, referenceCost);
+    moneyMatch(unitParsed, referenceCost);
 
   const tone: MetricTone = !hasText
     ? "empty"
@@ -675,10 +709,15 @@ export function SupplyCostCell({
     <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
       {label ? (
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
+          {packed ? "Pack price" : label}
         </span>
       ) : null}
-      <div className={metricShellClass(compact, touch, tone)}>
+      <div
+        className={cn(
+          metricShellClass(compact, touch, tone),
+          packed && "bg-amber-50/90 dark:bg-amber-950/35",
+        )}
+      >
         <input
           className={cn(
             compact && !touch ? supFormCellInput : nsdInput,
@@ -700,10 +739,15 @@ export function SupplyCostCell({
           }}
           disabled={disabled}
           inputMode="decimal"
-          placeholder="—"
-          aria-label="Buying price per unit"
+          placeholder={packed ? "Pack" : "—"}
+          aria-label={packed ? "Price of one pack" : "Buying price per unit"}
           data-nsd-cost=""
         />
+        {packed && unitEach != null ? (
+          <span className="pr-1 font-mono text-[8px] font-semibold tabular-nums text-amber-950/80 dark:text-amber-100/80">
+            {unitEach.toFixed(2)}ea
+          </span>
+        ) : null}
       </div>
       {!quiet && !touch ? (
         <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center justify-end gap-1 leading-none">

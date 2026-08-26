@@ -20,7 +20,8 @@ import {
   SupplyQtyCell,
   SupplyStockCell,
 } from "./supply-line-metric-cells";
-import type { SupplyPackQtyApply, SupplyPackQtyDefaults } from "./supply-pack-qty-modal";
+import type { SupplyPackQtyDefaults } from "./supply-pack-qty-modal";
+import type { SupplyPackMode } from "@/lib/supply-pack-math";
 import {
   formatSupplyMargin,
   SupplyShelfPriceCell,
@@ -36,7 +37,7 @@ type DraftLineRow = {
   sellPriceStr: string;
   sellPriceTouched: boolean;
   expiry: string;
-  packReceipt?: SupplyPackQtyApply | null;
+  packMode?: SupplyPackMode | null;
 };
 
 type SupplyDraftLineCardProps = {
@@ -72,8 +73,8 @@ type SupplyDraftLineCardProps = {
   /** Receive date YYYY-MM-DD for shelf-life chips. */
   receivedYmd: string;
   packDefaults?: SupplyPackQtyDefaults | null;
-  packReceipt?: SupplyPackQtyApply | null;
-  onPackApply?: (result: SupplyPackQtyApply | null) => void;
+  packMode?: SupplyPackMode | null;
+  onPackModeChange?: (next: SupplyPackMode | null) => void;
   onPackModalOpenChange?: (open: boolean) => void;
   /** Always show sell in the main grid; expiry can stay optional. */
   showSellExpiry?: boolean;
@@ -115,8 +116,8 @@ export function SupplyDraftLineCard({
   onFocusExpiry,
   receivedYmd,
   packDefaults = null,
-  packReceipt = null,
-  onPackApply,
+  packMode = null,
+  onPackModeChange,
   onPackModalOpenChange,
   showSellExpiry = true,
   showExpiryColumn = false,
@@ -148,11 +149,11 @@ export function SupplyDraftLineCard({
       )}
     >
       <div className="flex items-start gap-2 px-2.5 py-2">
-        {packReceipt ? (
+        {packMode ? (
           <WholesalePackStamp
-            units={packReceipt.unitsPerPack}
-            packCount={packReceipt.packCount}
-            packUnit={packReceipt.packUnit}
+            units={packMode.unitsPerPack}
+            packCount={Number(row.qtyStr) > 0 ? Number(row.qtyStr) : 1}
+            packUnit={packMode.packUnit}
             className="mt-0.5 shrink-0"
           />
         ) : packDefaults?.packSize != null &&
@@ -269,8 +270,8 @@ export function SupplyDraftLineCard({
           disabled={busy}
           isReady={isReady}
           packDefaults={packDefaults}
-          packReceipt={packReceipt}
-          onPackApply={onPackApply}
+          packMode={packMode}
+          onPackModeChange={onPackModeChange}
           onPackModalOpenChange={onPackModalOpenChange}
           onEnterCost={onFocusCost}
           onEnterNext={onQtyEnterNext}
@@ -283,6 +284,8 @@ export function SupplyDraftLineCard({
           onChange={onUnitChange}
           disabled={busy}
           referenceCost={referenceCost}
+          packMode={packMode}
+          unitEach={unitCost}
           onEnterNext={onFocusRetail}
         />
         <SupplyLineTotalCell

@@ -102,8 +102,17 @@ import {
   SupplyLineTotalCell,
   SupplyQtyCell,
 } from "./supply-line-metric-cells";
+import {
+  supplyLineTotal,
+  supplyRetailRevenue,
+  supplyStockQty,
+  supplyUnitCost,
+  toPackEntry,
+  toUnitEntry,
+  type SupplyPackMode,
+} from "@/lib/supply-pack-math";
 import { WholesalePackStamp } from "@/components/pack/wholesale-pack-stamp";
-import { resolveSupplyPackDefaults, type SupplyPackQtyApply } from "./supply-pack-qty-modal";
+import { resolveSupplyPackDefaults } from "./supply-pack-qty-modal";
 import {
   formatSupplyMargin,
   SupplyShelfPriceCell,
@@ -155,7 +164,7 @@ export type SupplyDraftRow = {
   sellPriceTouched: boolean;
   expiry: string;
   serverLineId?: string | null;
-  packReceipt?: SupplyPackQtyApply | null;
+  packMode?: SupplyPackMode | null;
 };
 
 function newRowKey(): string {
@@ -344,6 +353,28 @@ function rowStock(row: SupplyDraftRow): number | null {
   return null;
 }
 
+function rowPack(row: SupplyDraftRow): SupplyPackMode | null {
+  if (row.packMode && row.packMode.unitsPerPack > 0) return row.packMode;
+  return null;
+}
+
+function applyRowPackMode(
+  row: SupplyDraftRow,
+  next: SupplyPackMode | null,
+): SupplyDraftRow {
+  const current = rowPack(row);
+  if (!next) {
+    if (!current) return { ...row, packMode: null };
+    const converted = toUnitEntry(row.qtyStr, row.unitStr, current.unitsPerPack);
+    return { ...row, ...converted, packMode: null };
+  }
+  if (current) {
+    return { ...row, packMode: next };
+  }
+  const converted = toPackEntry(row.qtyStr, row.unitStr, next.unitsPerPack);
+  return { ...row, ...converted, packMode: next };
+}
+
 function rowCatalogPack(row: SupplyDraftRow): { size: number; unit: string } | null {
   const size = Number(row.link?.packSize ?? row.item?.packageUnitsPerSale);
   if (!Number.isFinite(size) || size <= 1) return null;
@@ -391,12 +422,12 @@ function linePayload(row: SupplyDraftRow): {
   if (!itemId) {
     return null;
   }
-  const qty = parsePositiveQty(row.qtyStr);
-  const unit = parseNonNeg(row.unitStr);
+  const qty = supplyStockQty(row.qtyStr, rowPack(row));
+  const unit = supplyUnitCost(row.unitStr, rowPack(row));
   if (qty == null || unit == null) {
     return null;
   }
-  const amountMoney = roundMoney2(qty * unit);
+  const amountMoney = supplyLineTotal(row.qtyStr, row.unitStr, rowPack(row));
   if (amountMoney <= 0) {
     return null;
   }
@@ -987,8 +1018,9 @@ export function NewSupplyDrawer({
         try {
           const syncRows: SyncableSupplyRow[] = rows.map((row) => {
             const payload = linePayload(row);
-            const qty = parsePositiveQty(row.qtyStr);
-            const unitCost = parseNonNeg(row.unitStr);
+            const pack = rowPack(row);
+            const qty = supplyStockQty(row.qtyStr, pack);
+            const unitCost = supplyUnitCost(row.unitStr, pack);
             const sell = parseRetailPrice(row.sellPriceStr);
             return {
               key: row.key,
@@ -1239,11 +1271,11 @@ export function NewSupplyDrawer({
     let cost = 0;
     let revenue = 0;
     for (const row of rows) {
-      const qty = parsePositiveQty(row.qtyStr);
-      const unit = parseNonNeg(row.unitStr);
-      const sell = parseRetailPrice(row.sellPriceStr);
-      if (qty != null && unit != null) cost += qty * unit;
-      if (qty != null && sell != null) revenue += qty * sell;
+      const pack = rowPack(row);
+      const costLine = supplyLineTotal(row.qtyStr, row.unitStr, pack);
+      const sellLine = supplyRetailRevenue(row.qtyStr, row.sellPriceStr, pack);
+      if (costLine != null) cost += costLine;
+      if (sellLine != null) revenue += sellLine;
     }
     return {
       cost: roundMoney2(cost),
@@ -1563,8 +1595,9 @@ export function NewSupplyDrawer({
     try {
       const syncRows: SyncableSupplyRow[] = rows.map((row) => {
         const payload = linePayload(row);
-        const qty = parsePositiveQty(row.qtyStr);
-        const unitCost = parseNonNeg(row.unitStr);
+        const pack = rowPack(row);
+        const qty = supplyStockQty(row.qtyStr, pack);
+        const unitCost = supplyUnitCost(row.unitStr, pack);
         const sell = parseRetailPrice(row.sellPriceStr);
         return {
           key: row.key,
@@ -1617,7 +1650,7 @@ export function NewSupplyDrawer({
       const sessionId = ensured.sessionId;
       const postBody = {
         lines: synced.map(({ row, serverLineId }) => {
-          const qty = parsePositiveQty(row.qtyStr) ?? 0;
+          const qty = supplyStockQty(row.qtyStr, rowPack(row)) ?? 0;
           const exp = row.expiry.trim();
           return {
             lineId: serverLineId,
@@ -2032,12 +2065,12 @@ export function NewSupplyDrawer({
                     {visibleRows.map((row) => {
                       const p = linePayload(row);
                       const stock = rowStock(row);
-                      const qty = parsePositiveQty(row.qtyStr);
+                      const qty = supplyStockQty(row.qtyStr, rowPack(row));
                       const stockAfter =
                         stock != null && qty != null ? stock + qty : null;
                       const iid = rowItemId(row);
                       const hint = iid ? rowPricing[iid] : undefined;
-                      const unitCost = parseNonNeg(row.unitStr);
+                      const unitCost = supplyUnitCost(row.unitStr, rowPack(row));
                       const referenceCost =
                         row.source === "linked" ? rowReferenceCost(row.link) : null;
                       const reorderLevel =
@@ -2066,7 +2099,7 @@ export function NewSupplyDrawer({
                           receivedYmd={receivedYmd}
                           showSellExpiry
                           showExpiryColumn={showExpiry}
-                          packReceipt={row.packReceipt ?? null}
+                          packMode={rowPack(row)}
                           onStockChange={(next) => {
                             if (!iid) return;
                             setRows((prev) => applyOnHandToRows(prev, iid, next));
@@ -2078,11 +2111,11 @@ export function NewSupplyDrawer({
                               ),
                             )
                           }
-                          onPackApply={(result) =>
+                          onPackModeChange={(next) =>
                             setRows((prev) =>
                               prev.map((r) =>
                                 r.key === row.key
-                                  ? { ...r, packReceipt: result }
+                                  ? applyRowPackMode(r, next)
                                   : r,
                               ),
                             )
@@ -2211,14 +2244,14 @@ export function NewSupplyDrawer({
               {visibleRows.map((row) => {
                 const p = linePayload(row);
                 const stock = rowStock(row);
-                const qty = parsePositiveQty(row.qtyStr);
+                const qty = supplyStockQty(row.qtyStr, rowPack(row));
                 const stockAfter =
                   stock != null && qty != null ? stock + qty : null;
                 const iid = rowItemId(row);
                 const hint = iid ? rowPricing[iid] : undefined;
                 const isReady = p != null;
-                const needsQty = qty == null;
-                const unitCost = parseNonNeg(row.unitStr);
+                const needsQty = parsePositiveQty(row.qtyStr) == null;
+                const unitCost = supplyUnitCost(row.unitStr, rowPack(row));
                 const sellPrice = parseNonNeg(row.sellPriceStr);
                 const marginLabel =
                   unitCost != null &&
@@ -2252,11 +2285,11 @@ export function NewSupplyDrawer({
                       )}
                     >
                       <div className="flex min-w-0 items-start gap-2 pl-0.5">
-                        {row.packReceipt ? (
+                        {rowPack(row) ? (
                           <WholesalePackStamp
-                            units={row.packReceipt.unitsPerPack}
-                            packCount={row.packReceipt.packCount}
-                            packUnit={row.packReceipt.packUnit}
+                            units={rowPack(row)!.unitsPerPack}
+                            packCount={parsePositiveQty(row.qtyStr) ?? 1}
+                            packUnit={rowPack(row)!.packUnit}
                             className="mt-0.5 shrink-0"
                           />
                         ) : catalogPack ? (
@@ -2330,12 +2363,12 @@ export function NewSupplyDrawer({
                         quiet
                         value={row.qtyStr}
                         packDefaults={rowPackDefaults(row)}
-                        packReceipt={row.packReceipt ?? null}
-                        onPackApply={(result) =>
+                        packMode={rowPack(row)}
+                        onPackModeChange={(next) =>
                           setRows((prev) =>
                             prev.map((r) =>
                               r.key === row.key
-                                ? { ...r, packReceipt: result }
+                                ? applyRowPackMode(r, next)
                                 : r,
                             ),
                           )
@@ -2382,6 +2415,8 @@ export function NewSupplyDrawer({
                         onEnterNext={() => focusNsdField(row.key, "total")}
                         disabled={busy}
                         referenceCost={referenceCost}
+                        packMode={rowPack(row)}
+                        unitEach={unitCost}
                       />
                     </td>
                     <td

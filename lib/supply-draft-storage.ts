@@ -9,6 +9,7 @@ import type {
   SupplierItemLinkRecord,
   SupplierRecord,
 } from "@/lib/api";
+import type { SupplyPackMode } from "@/lib/supply-pack-math";
 
 export const SUPPLY_DRAFT_STORAGE_PREFIX = "palmart:supplyDraft:v1:";
 export const CASHIER_SUPPLY_DRAFT_STORAGE_PREFIX =
@@ -46,6 +47,7 @@ export type SupplyDraftRowPersisted = {
   expiry: string;
   serverLineId?: string | null;
   packReceipt?: SupplyDraftPackReceipt | null;
+  packMode?: SupplyPackMode | null;
 };
 
 export type NewSupplyDraftPersisted = {

@@ -335,7 +335,7 @@ export function ProductEditDrawer({
           <ProductFormSectionToggle
             icon={FileText}
             label="Name & details"
-            hint="What you call it, barcode, category"
+            hint="Name, barcode, category"
             expanded={openSections.basics}
             onToggle={() => toggleSection("basics")}
           />
@@ -511,14 +511,14 @@ export function ProductEditDrawer({
           <ProductFormSectionToggle
             icon={CircleDollarSign}
             label="Price"
-            hint="What customers pay, and what it costs you"
+            hint="Selling price and cost"
             expanded={openSections.pricing}
             onToggle={() => toggleSection("pricing")}
           />
           {openSections.pricing ? (
             <div className={productFormSectionBodyClass}>
               <div className={productFormGrid2Class}>
-                <ProductFormField label={isWeighed ? "Price per kg" : "Shelf price"}>
+                <ProductFormField label={isWeighed ? "Selling price / kg" : "Selling price"}>
                   <input
                     className={productFormInputClass}
                     inputMode="decimal"
