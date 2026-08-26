@@ -33,8 +33,8 @@ export function BeautyEditCarousel({
   return (
     <section className={styles.carouselSection} aria-label="Our bestsellers">
       <div className={styles.sectionIntro}>
-        <p className={styles.eyebrow}>Customer favourites</p>
         <h2 className={styles.sectionTitle}>Our Bestsellers</h2>
+        <p className={styles.sectionSub}>Pieces customers return for</p>
       </div>
       <div
         ref={trackRef}

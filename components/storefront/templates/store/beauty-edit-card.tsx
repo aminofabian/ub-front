@@ -116,12 +116,16 @@ export function BeautyEditHeroPanel({
   currency,
   headline,
   cta,
+  index = 0,
+  featured = false,
   editableHeadline = false,
 }: {
   item: PublicCatalogItemCard;
   currency: string;
   headline: string;
   cta: string;
+  index?: number;
+  featured?: boolean;
   editableHeadline?: boolean;
 }) {
   const href = shopItemPathFromCard(item) || APP_ROUTES.shop;
@@ -130,7 +134,12 @@ export function BeautyEditHeroPanel({
   return (
     <StorefrontProductImageShell
       href={href}
-      className={cn(styles.heroPanel, "relative")}
+      className={cn(
+        styles.heroPanel,
+        featured && styles.heroPanelFeatured,
+        styles[`heroTone${index}` as keyof typeof styles],
+        "relative",
+      )}
       itemId={item.id}
       itemName={item.name}
       ariaLabel={`${item.name} · ${priceLabel(item, currency)}`}
@@ -140,15 +149,20 @@ export function BeautyEditHeroPanel({
           src={imageUrl}
           alt={item.name}
           fill
-          sizes="(min-width: 900px) 33vw, 100vw"
+          sizes={featured ? "(min-width: 900px) 58vw, 100vw" : "(min-width: 900px) 42vw, 100vw"}
           unoptimized
           priority
+          className={styles.heroImg}
           style={{ objectFit: "cover" }}
         />
       ) : (
         <span className={styles.heroPanelFallback} aria-hidden />
       )}
+      <span className={styles.heroGrain} aria-hidden />
       <span className={styles.heroShade} aria-hidden />
+      <span className={styles.heroIndex} aria-hidden>
+        {String(index + 1).padStart(2, "0")}
+      </span>
       <span className={styles.heroPanelCopy}>
         {editableHeadline ? (
           <StorefrontNativeHeroHeadline
@@ -159,7 +173,10 @@ export function BeautyEditHeroPanel({
         ) : (
           <span className={styles.heroPanelTitle}>{headline}</span>
         )}
-        <span className={styles.heroPanelCta}>{cta}</span>
+        <span className={styles.heroPanelCta}>
+          {cta}
+          <span className={styles.heroCtaRule} aria-hidden />
+        </span>
       </span>
       <span className={styles.srOnly}>
         {item.name} · {priceLabel(item, currency)}

@@ -66,7 +66,13 @@ export function BeautyEditCatalog({
       </div>
 
       {items.length === 0 ? (
-        <div className={styles.empty}>New arrivals coming soon.</div>
+        <div className={styles.empty}>
+          <p className={styles.emptyTitle}>The edit is being prepared</p>
+          <p className={styles.emptyCopy}>
+            New pieces land here first. Check back soon — or message us on WhatsApp
+            for what&apos;s available now.
+          </p>
+        </div>
       ) : (
         <div className={styles.grid}>
           {items.map((item) => (

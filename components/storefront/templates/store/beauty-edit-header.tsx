@@ -26,7 +26,7 @@ function SearchForm({ className }: { className?: string }) {
       <label className="sr-only" htmlFor="be-search-q">
         Search products
       </label>
-      <input id="be-search-q" name="q" type="search" defaultValue={q} placeholder="Search" />
+      <input id="be-search-q" name="q" type="search" defaultValue={q} placeholder="Search the edit" />
       {typeId ? <input type="hidden" name="typeId" value={typeId} /> : null}
       <button type="submit" aria-label="Search">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -131,7 +131,7 @@ export function BeautyEditHeader({
         <p>{announce}</p>
         {wa ? (
           <p>
-            WhatsApp:{" "}
+            WhatsApp{" "}
             <a href={`https://wa.me/${wa}`} className={styles.announceAccent}>
               +{wa}
             </a>
@@ -139,52 +139,66 @@ export function BeautyEditHeader({
         ) : null}
       </div>
 
-      <div className={styles.headerRow}>
-        <button
-          type="button"
-          className={styles.menuBtn}
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((v) => !v)}
-        >
-          <span /><span /><span />
-        </button>
-
-        <Link href={APP_ROUTES.shop} className={styles.logo}>
-          <StorefrontEditableLogoMark
-            logoUrl={logoUrl}
-            alt={storeName}
-            width={189}
-            height={36}
-            className={styles.logoImg}
-            fallback={<span className={styles.logoText}>{storeName}</span>}
-          />
-        </Link>
-
-        <div className={styles.headerActions}>
-          <StorefrontAccountLink
-            className={styles.utilLink}
-            signUpClassName={styles.utilLink}
-          />
-          <button type="button" className={styles.bagBtn} onClick={openDrawer}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M6 7h15l-1.5 9h-12L6 7Z"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinejoin="round"
-              />
-              <path d="M9 7V5a3 3 0 1 1 6 0v2" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            <span className={styles.bagLabel}>Bag · {Math.min(itemCount, 99)}</span>
+      <div className={styles.masthead}>
+        <div className={styles.headerRow}>
+          <button
+            type="button"
+            className={styles.menuBtn}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            <span /><span /><span />
           </button>
-        </div>
-      </div>
 
-      <div className={cn(styles.navWrap, menuOpen && styles.navWrapOpen)}>
-        <Suspense fallback={null}>
-          <NavLinks types={types} />
-        </Suspense>
+          <Link href={APP_ROUTES.shop} className={styles.logo}>
+            <StorefrontEditableLogoMark
+              logoUrl={logoUrl}
+              alt={storeName}
+              width={320}
+              height={72}
+              className={styles.logoImg}
+              fallback={
+                <span className={styles.logoText}>
+                  <span className={styles.logoWord}>{storeName}</span>
+                </span>
+              }
+            />
+          </Link>
+
+          <div className={styles.headerActions}>
+            <Suspense fallback={null}>
+              <SearchForm className={styles.headerSearch} />
+            </Suspense>
+            <StorefrontAccountLink
+              className={styles.utilLink}
+              signUpClassName={styles.utilLink}
+            />
+            <button type="button" className={styles.bagBtn} onClick={openDrawer}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M6 7h15l-1.5 9h-12L6 7Z"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                />
+                <path d="M9 7V5a3 3 0 1 1 6 0v2" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+              <span className={styles.bagLabel}>
+                Bag
+                <span className={styles.bagCount}>{Math.min(itemCount, 99)}</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className={cn(styles.navWrap, menuOpen && styles.navWrapOpen)}>
+          <div className={styles.navWrapInner}>
+            <Suspense fallback={null}>
+              <NavLinks types={types} />
+            </Suspense>
+          </div>
+        </div>
       </div>
     </header>
   );

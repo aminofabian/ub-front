@@ -290,7 +290,8 @@ export function ShopStorefrontChrome({
                 } as CSSProperties)
               : isBeautyEdit
                 ? ({
-                    ["--be-ink" as string]: primaryHex || "#0E0E0E",
+                    ["--be-ink" as string]: "#0E0E0E",
+                    ["--be-brand" as string]: primaryHex || "#0E0E0E",
                     ["--be-gold" as string]: accentHex || "#B5853A",
                   } as CSSProperties)
               : isScentStory

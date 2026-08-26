@@ -216,37 +216,46 @@ function BoutiqueArt() {
 function BeautyEditArt() {
   return (
     <Frame paper="#FFFFFF" ink="#0E0E0E">
-      <div className="bg-[#0E0E0E] px-3 py-1 text-center text-[7px] uppercase tracking-widest text-white/90">
+      <div className="bg-[#1A4FD6] px-3 py-1 text-center text-[7px] uppercase tracking-widest text-white/90">
         Free delivery · WhatsApp
       </div>
-      <div className="flex items-center justify-between border-b border-[#E8E4DF] px-3 py-2">
-        <span className="text-[8px] uppercase tracking-widest text-[#6B6560]">Menu</span>
-        <span className="text-[11px] font-medium uppercase tracking-[0.15em]">
-          Beyond
-        </span>
-        <span className="text-[8px] uppercase tracking-widest">Bag · 0</span>
+      <div className="border-b border-[#E6E1DB] px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-serif text-[13px] italic tracking-tight text-[#0E0E0E]">
+            Beyond
+          </span>
+          <span className="text-[7px] uppercase tracking-widest text-[#5C5752]">
+            Bag · 0
+          </span>
+        </div>
+        <div className="mt-1.5 flex justify-center gap-3 text-[6px] uppercase tracking-[0.14em] text-[#5C5752]">
+          <span className="text-[#0E0E0E]">Shop all</span>
+          <span>Beauty</span>
+          <span>New</span>
+        </div>
       </div>
-      <div className="grid flex-1 grid-cols-3 gap-0">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="relative aspect-[3/4] bg-gradient-to-b from-[#2A2A2A] to-[#0E0E0E]"
-          >
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-              <div className="font-serif text-[9px] italic text-white">
-                Collection
-              </div>
-              <div className="text-[6px] uppercase tracking-widest text-[#B5853A]">
-                Shop
-              </div>
-            </div>
+      <div className="grid flex-1 grid-cols-[1.35fr_1fr] grid-rows-2 gap-0">
+        <div className="relative row-span-2 bg-gradient-to-br from-[#3A342E] via-[#161412] to-[#0C0B0A]">
+          <div className="absolute left-1.5 top-1.5 text-[5px] tracking-[0.2em] text-white/50">
+            01
           </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-4 gap-0 border-t border-[#E8E4DF] bg-[#FAFBFB] p-1">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="aspect-[3/4] bg-[#E8E4DF]/60" />
-        ))}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2">
+            <div className="font-serif text-[10px] italic leading-tight text-white">
+              Curated for you
+            </div>
+            <div className="mt-1 h-px w-4 bg-[#B5853A]" />
+          </div>
+        </div>
+        <div className="relative bg-gradient-to-b from-[#252830] to-[#090A0C]">
+          <div className="absolute inset-x-0 bottom-0 p-1.5">
+            <div className="font-serif text-[7px] italic text-white">Beauty</div>
+          </div>
+        </div>
+        <div className="relative bg-gradient-to-b from-[#2A2422] to-[#0B0A09]">
+          <div className="absolute inset-x-0 bottom-0 p-1.5">
+            <div className="font-serif text-[7px] italic text-white">New</div>
+          </div>
+        </div>
       </div>
     </Frame>
   );

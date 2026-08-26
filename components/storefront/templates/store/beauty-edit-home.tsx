@@ -32,11 +32,12 @@ const HERO_COPY = [
 ] as const;
 
 /**
- * THESIS: Beyond Beauty KE — black/white/gold editorial cosmetics boutique.
- * OWN-WORLD: Jost UI, Cormorant italic titles, 3-up hero, hover “Add to bag”.
- * STORY: Announcement → editorial hero → bestsellers carousel → full grid.
- * FIRST VIEWPORT: Three full-bleed hero panels, zero gutter.
- * FORM: Beauty Edit · Editorial comp.
+ * THESIS: Beyond — a fashion-magazine storefront; black/white/gold editorial, never a blue UI skin.
+ * OWN-WORLD: Jost + Cormorant italic; brand stripe only on the announce bar; masthead-scale logo;
+ *   asymmetric 2-col hero (feature + stacked pair); hover “Add to bag”.
+ * STORY: Announcement → masthead → editorial hero → bestsellers → full grid → list → footer.
+ * FIRST VIEWPORT: Brand masthead + feature panel with two stacked companions, zero gutter.
+ * FORM: Beauty Edit · Editorial magazine · FINISH: surface brief + detector.
  */
 export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
   const {
@@ -64,7 +65,7 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
   const optionVars = themeOptionVars(themeId, design?.theme ?? null);
 
   const gold = accentHex?.trim() || "#b5853a";
-  const ink = primaryHex?.trim() || "#0e0e0e";
+  const brand = primaryHex?.trim() || "#0e0e0e";
   const heroSection = storefrontSectionConfig(design, "hero");
   const heroOn = heroSection?.enabled === true;
   const heroSettings = heroSection?.settings as
@@ -101,7 +102,8 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
       style={
         {
           ["--be-gold" as string]: gold,
-          ["--be-ink" as string]: ink,
+          ["--be-ink" as string]: "#0e0e0e",
+          ["--be-brand" as string]: brand,
           ...optionVars,
         } as CSSProperties
       }
@@ -138,6 +140,8 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
                   key={item.id}
                   item={item}
                   currency={currency}
+                  index={i}
+                  featured={i === 0}
                   headline={
                     i === 0
                       ? headline
@@ -149,9 +153,21 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
               ))
             ) : (
               HERO_COPY.map((copy, i) => (
-                <div key={i} className={styles.heroPanel} aria-hidden={i > 0}>
+                <div
+                  key={i}
+                  className={cn(
+                    styles.heroPanel,
+                    i === 0 && styles.heroPanelFeatured,
+                    styles[`heroTone${i}` as keyof typeof styles],
+                  )}
+                  aria-hidden={i > 0}
+                >
                   <span className={styles.heroPanelFallback} />
+                  <span className={styles.heroGrain} aria-hidden />
                   <span className={styles.heroShade} />
+                  <span className={styles.heroIndex} aria-hidden>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
                   <span className={styles.heroPanelCopy}>
                     {i === 0 ? (
                       <StorefrontNativeHeroHeadline
@@ -162,7 +178,10 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
                     ) : (
                       <span className={styles.heroPanelTitle}>{copy.headline}</span>
                     )}
-                    <span className={styles.heroPanelCta}>{copy.cta}</span>
+                    <span className={styles.heroPanelCta}>
+                      {copy.cta}
+                      <span className={styles.heroCtaRule} aria-hidden />
+                    </span>
                   </span>
                 </div>
               ))

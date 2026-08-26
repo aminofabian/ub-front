@@ -119,8 +119,8 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
   {
     id: "beauty-edit",
     kind: "store",
-    name: "Beauty edit",
-    blurb: "A fashion magazine — black, white, and gold product photos.",
+    name: "Beyond",
+    blurb: "A fashion magazine — masthead brand, black/white/gold edit, feature hero.",
     previewFrom: "#0E0E0E",
     previewTo: "#FAFBFB",
     accent: "#B5853A",
