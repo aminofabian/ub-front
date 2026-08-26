@@ -209,7 +209,7 @@ export async function StorefrontCatalogHome({
     design && tenant?.storefrontEnabled
       ? storefrontSectionsInRegion(design, "pre").filter((s) => {
           // Print atelier owns announcement + first-viewport hero (3DEA craft bar).
-          if (themeId === "print-atelier") {
+          if (themeId === "print-atelier" || themeId === "blank-drop") {
             return s.id !== "announcement" && s.id !== "promo" && s.id !== "hero";
           }
           return true;

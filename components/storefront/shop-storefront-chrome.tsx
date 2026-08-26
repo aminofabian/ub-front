@@ -51,6 +51,9 @@ import { PrintAtelierHeader } from "@/components/storefront/templates/store/prin
 import { printAtelierFontVariables } from "@/components/storefront/templates/store/print-atelier-fonts";
 import printAtelierStyles from "@/components/storefront/templates/store/print-atelier.module.css";
 import { PrintAtelierFlyLayer } from "@/components/storefront/templates/store/print-atelier-fly";
+import { BlankDropHeader } from "@/components/storefront/templates/store/blank-drop-header";
+import { blankDropFontVariables } from "@/components/storefront/templates/store/blank-drop-fonts";
+import blankDropStyles from "@/components/storefront/templates/store/blank-drop.module.css";
 import { SpiritsCellarHeader } from "@/components/storefront/templates/store/spirits-cellar-header";
 import { spiritsCellarFontVariables } from "@/components/storefront/templates/store/spirits-cellar-fonts";
 import spiritsCellarStyles from "@/components/storefront/templates/store/spirits-cellar.module.css";
@@ -178,7 +181,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop";
   storeThemeId?: string | null;
   /** D8: `ub.session` presence hint from `StorefrontShell` (label-only). */
   hasPresence: boolean;
@@ -213,7 +216,8 @@ export function ShopStorefrontChrome({
   const isChemLab = chromeVariant === "chem-lab";
   const isSpiritsCellar = chromeVariant === "spirits-cellar";
   const isPrintAtelier = chromeVariant === "print-atelier";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier;
+  const isBlankDrop = chromeVariant === "blank-drop";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const restoreAttemptedRef = useRef(false);
@@ -311,6 +315,10 @@ export function ShopStorefrontChrome({
                   ? ({
                       ["--pa-ink" as string]: primaryHex || "#1C1A16",
                     } as CSSProperties)
+                  : isBlankDrop
+                    ? ({
+                        ["--bd-ink" as string]: primaryHex || "#000000",
+                      } as CSSProperties)
         : undefined;
 
   return (
@@ -399,6 +407,13 @@ export function ShopStorefrontChrome({
               printAtelierFontVariables,
               "[--storefront-paper:#FFFFFF]",
             ),
+          isBlankDrop &&
+            cn(
+              blankDropStyles.root,
+              blankDropStyles.body,
+              blankDropFontVariables,
+              "[--storefront-paper:#FFFFFF]",
+            ),
           isChemLab &&
             cn(
               chemLabStyles.root,
@@ -471,6 +486,11 @@ export function ShopStorefrontChrome({
             logoUrl={logoUrl}
             announcement={announcement}
           />
+        </Suspense>
+      ) : null}
+      {isBlankDrop && !compactChrome ? (
+        <Suspense fallback={null}>
+          <BlankDropHeader slug={slug} storeName={headerTitle} logoUrl={logoUrl} />
         </Suspense>
       ) : null}
       {isChemLab && !compactChrome ? (

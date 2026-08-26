@@ -39,6 +39,8 @@ function ArtForId({ id }: { id: string }) {
       return <ScentStoryArt />;
     case "print-atelier":
       return <PrintAtelierArt />;
+    case "blank-drop":
+      return <BlankDropArt />;
     case "spirits-cellar":
       return <SpiritsArt />;
     case "oxide":
@@ -311,6 +313,30 @@ function PrintAtelierArt() {
       <div className="grid grid-cols-4 gap-1.5 bg-white p-2">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="aspect-square rounded-lg bg-[#F4F3EF]" />
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+function BlankDropArt() {
+  return (
+    <Frame paper="#FFFFFF" ink="#000000">
+      <div className="flex items-center justify-between px-3 py-2 font-mono">
+        <span className="text-[10px] leading-none">+</span>
+        <span className="flex gap-3 text-[6px] tracking-[0.14em] text-black/35">
+          <span className="text-black">ALL</span>
+          <span>ONE</span>
+          <span>TWO</span>
+        </span>
+        <span className="size-2.5 border border-black/70" />
+      </div>
+      <div className="grid flex-1 grid-cols-6 gap-1.5 bg-white p-2">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div key={i} className="flex flex-col items-center gap-1">
+            <div className="aspect-square w-full bg-[#F3F3F3]" />
+            <div className="h-1 w-6 bg-black/80" />
+          </div>
         ))}
       </div>
     </Frame>

@@ -18,7 +18,8 @@ export type StoreThemeId =
   | "milk-run"
   | "carbon-desk"
   | "chem-lab"
-  | "print-atelier";
+  | "print-atelier"
+  | "blank-drop";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -65,6 +66,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "carbon-desk",
   "chem-lab",
   "print-atelier",
+  "blank-drop",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -185,6 +187,15 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
     previewFrom: "#FFFFFF",
     previewTo: "#C5D0B4",
     accent: "#9AAF7C",
+  },
+  {
+    id: "blank-drop",
+    kind: "store",
+    name: "Blank drop",
+    blurb: "A stark white catalogue — mono product codes, sparse grid, utilitarian bag and checkout.",
+    previewFrom: "#FFFFFF",
+    previewTo: "#F0F0F0",
+    accent: "#000000",
   },
 ];
 

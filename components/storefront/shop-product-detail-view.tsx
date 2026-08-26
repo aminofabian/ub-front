@@ -10,6 +10,7 @@ import {
   ShopItemVariantPicker,
 } from "@/components/storefront/shop-item-variant-picker";
 import { PrintAtelierProduct } from "@/components/storefront/templates/store/print-atelier-product";
+import { BlankDropProduct } from "@/components/storefront/templates/store/blank-drop-product";
 import { APP_ROUTES } from "@/lib/config";
 import {
   formatStoreQty,
@@ -31,6 +32,9 @@ export function ShopProductDetailView({
   const theme = normalizeStoreThemeId(storeThemeId);
   if (theme === "print-atelier") {
     return <PrintAtelierProduct slug={slug} item={item} />;
+  }
+  if (theme === "blank-drop") {
+    return <BlankDropProduct slug={slug} item={item} />;
   }
 
   const variantOptions = mergeVariantOptions(item);

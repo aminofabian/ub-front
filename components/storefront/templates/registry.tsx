@@ -8,6 +8,7 @@ import { FrontWindowLanding } from "@/components/storefront/templates/landing/fr
 import { MinimartHoursLanding } from "@/components/storefront/templates/landing/minimart-hours";
 import { NeighborhoodBoardLanding } from "@/components/storefront/templates/landing/neighborhood-board";
 import { BeautyEditStoreHome } from "@/components/storefront/templates/store/beauty-edit-home";
+import { BlankDropStoreHome } from "@/components/storefront/templates/store/blank-drop-home";
 import { BoutiqueShelfStoreHome } from "@/components/storefront/templates/store/boutique-shelf-home";
 import { ButcherBoardStoreHome } from "@/components/storefront/templates/store/butcher-board-home";
 import { CarbonDeskStoreHome } from "@/components/storefront/templates/store/carbon-desk-home";
@@ -46,6 +47,7 @@ const STORE_HOMES: Record<
   "carbon-desk": CarbonDeskStoreHome,
   "chem-lab": ChemLabStoreHome,
   "print-atelier": PrintAtelierStoreHome,
+  "blank-drop": BlankDropStoreHome,
 };
 
 const LANDING_PAGES: Record<
@@ -75,7 +77,8 @@ export type StoreChromeVariant =
   | "scent-story"
   | "chem-lab"
   | "spirits-cellar"
-  | "print-atelier";
+  | "print-atelier"
+  | "blank-drop";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -115,6 +118,8 @@ export function resolveStoreChromeVariant(
       return "spirits-cellar";
     case "print-atelier":
       return "print-atelier";
+    case "blank-drop":
+      return "blank-drop";
     default:
       return "default";
   }
