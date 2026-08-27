@@ -43,7 +43,13 @@ import { CashierSuppliersModal } from "@/components/cashier/cashier-suppliers-mo
 import { CashierFirstSaleDrawer } from "@/components/cashier/cashier-first-sale-drawer";
 import { PosSaleCompletePanel } from "@/components/cashier/pos-sale-complete-panel";
 import { useFeatureFlag } from "@/components/providers/tenant-provider";
-import { fetchItems, logoutRemoteAndRedirectToLogin, type ItemSummaryRecord } from "@/lib/api";
+import {
+  fetchItemById,
+  fetchItems,
+  logoutRemoteAndRedirectToLogin,
+  type ItemSummaryRecord,
+} from "@/lib/api";
+import type { TopProductRecord } from "@/lib/top-products";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import {
@@ -58,6 +64,7 @@ import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
 import { cn } from "@/lib/utils";
 
 import type { CashierPosLayoutProps } from "../cashier-pos-layout";
+import { LedgerBestSellers } from "./ledger-best-sellers";
 import { LedgerFunctionBar } from "./ledger-function-bar";
 import { LedgerKeypad } from "./ledger-keypad";
 import {
@@ -115,6 +122,10 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     setSearch,
     hits,
     searchBanner,
+    topProducts,
+    topProductsLoading = false,
+    topProductsTitle = "Top 24 best sellers",
+    alwaysShowTopProducts = false,
     addLine,
     onAddAirtimeToCart,
     posShiftLinks,
@@ -173,6 +184,9 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const barcodeBusyRef = useRef(false);
+  const parentCheckCache = useRef(new Map<string, boolean>());
+  const topIdsKey = topProducts.map((p) => p.id).join(",");
+  const hitIdsKey = hits.map((h) => h.id).join(",");
 
   useEffect(() => {
     setTillLabel(tillDeviceDisplayName());
@@ -258,6 +272,80 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     },
     [addLine, markAdded, online, shelfPrices],
   );
+
+  const pickTopProduct = useCallback(
+    (product: TopProductRecord) => {
+      const item: ItemSummaryRecord = {
+        id: product.id,
+        name: product.name,
+        sku: product.sku ?? "",
+        thumbnailUrl: product.thumbnailUrl ?? null,
+        variantName: product.variantName ?? undefined,
+        brand: product.brand ?? undefined,
+        size: product.size ?? undefined,
+        packageVariant: product.packageVariant,
+        packageUnitsPerSale: product.packageUnitsPerSale ?? undefined,
+        variantOfItemId: product.variantOfItemId ?? undefined,
+        stockQty: product.stockQty ?? undefined,
+      };
+      if (product.variantOfItemId?.trim()) {
+        pickItem(item);
+        return;
+      }
+      const cached = parentCheckCache.current.get(product.id);
+      if (cached !== undefined) {
+        if (cached) setVariantPicker({ parent: item });
+        else pickItem(item);
+        return;
+      }
+      if (!online || !branchId?.trim()) {
+        pickItem(item);
+        return;
+      }
+      void fetchItemById(product.id, { branchId: branchId.trim(), toast: false })
+        .then((detail) => {
+          const isParent = detail.groupLabelOnly === true;
+          parentCheckCache.current.set(product.id, isParent);
+          if (isParent) setVariantPicker({ parent: item });
+          else pickItem(item);
+        })
+        .catch(() => {
+          parentCheckCache.current.set(product.id, false);
+          pickItem(item);
+        });
+    },
+    [pickItem, online, branchId],
+  );
+
+  useEffect(() => {
+    if (!online) return;
+    const ids = Array.from(
+      new Set(
+        [...topIdsKey.split(","), ...hitIdsKey.split(",")].filter(Boolean),
+      ),
+    );
+    if (ids.length === 0) return;
+    let cancelled = false;
+    const bid = branchId?.trim() || undefined;
+    const shelfCtx = { businessId, onStaleItem: onStalePosItem };
+    void Promise.all(
+      ids.map(async (id) => {
+        const r = await fetchPosShelfPrice(id, bid, shelfCtx);
+        if (!r) return [id, ""] as const;
+        return [id, formatShelfPriceLabel(r.price, currency) ?? ""] as const;
+      }),
+    ).then((pairs) => {
+      if (cancelled) return;
+      setShelfPrices((prev) => {
+        const next = { ...prev };
+        for (const [id, v] of pairs) next[id] = v;
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [online, topIdsKey, hitIdsKey, branchId, businessId, currency, onStalePosItem]);
 
   const applyBarcodeSearch = useCallback(
     (code: string) => {
@@ -610,6 +698,16 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 onEntryCommit={commitEntry}
                 onLineChange={onLineChange}
               />
+              {alwaysShowTopProducts || topProducts.length > 0 ? (
+                <LedgerBestSellers
+                  products={topProducts}
+                  loading={alwaysShowTopProducts && topProductsLoading}
+                  title={topProductsTitle}
+                  cartQtyByItem={cartQtyByItem}
+                  disabled={tillLocked}
+                  onPick={pickTopProduct}
+                />
+              ) : null}
               {sheetLines.length === 0 && !search.trim() ? (
                 <CashierFirstSaleDrawer
                   trigger={
@@ -623,7 +721,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 />
               ) : null}
               {search.trim() && hits.length > 0 ? (
-                <div className="absolute left-2 top-14 z-20 max-h-[42vh] w-[min(36rem,calc(100%-1rem))] overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg">
+                <div className="absolute left-2 top-14 z-20 max-h-[42vh] w-[min(44rem,calc(100%-1rem))] overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg">
                   {searchBanner ? (
                     <p className="px-3 py-1.5 text-[11px] text-zinc-500">{searchBanner}</p>
                   ) : null}

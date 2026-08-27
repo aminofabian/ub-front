@@ -34,7 +34,7 @@ function VariantGroupBlock({
   return (
     <div className="overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card dark:border-border/40">
       <div className="border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_65%,transparent)] px-2.5 py-1.5 dark:border-border/40 dark:bg-muted/30">
-        <p className="truncate text-sm font-semibold text-foreground">
+        <p className="whitespace-normal break-words text-sm font-semibold leading-snug text-foreground">
           {block.title}
         </p>
         <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
