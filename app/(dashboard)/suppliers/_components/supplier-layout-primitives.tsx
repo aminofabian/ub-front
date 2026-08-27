@@ -12,6 +12,9 @@ import {
   supEmptyIconWrap,
   supEmptyState,
   supKicker,
+  supKvLabel,
+  supKvTable,
+  supKvValue,
   supSectionHint,
   supSectionTitle,
 } from "./supplier-ui-tokens";
@@ -36,7 +39,7 @@ export function SupSection({
   return (
     <section
       className={cn(
-        "overflow-hidden border border-border bg-card",
+        "overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white",
         className,
       )}
     >
@@ -223,8 +226,8 @@ export function SupFormSection({
   className?: string;
 }) {
   return (
-    <section className={cn("bg-card", className)}>
-      <div className="border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
+    <section className={cn("overflow-hidden bg-white", className)}>
+      <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)] px-2.5 py-1.5">
         <h3 className={supSectionTitle}>{title}</h3>
         {hint ? <p className={supSectionHint}>{hint}</p> : null}
       </div>
@@ -269,10 +272,7 @@ export function SupFormRow({
     <tr>
       <th
         scope="row"
-        className={cn(
-          "w-[38%] border border-border bg-[#eef2f7] px-2 py-1.5 text-left align-top font-medium text-muted-foreground dark:bg-muted/35",
-          labelClassName,
-        )}
+        className={cn(supKvLabel, "w-[38%] align-top", labelClassName)}
       >
         <span className={supKicker}>
           {label}
@@ -284,7 +284,7 @@ export function SupFormRow({
           </p>
         ) : null}
       </th>
-      <td className="border border-border bg-background p-0 align-top">{children}</td>
+      <td className={cn(supKvValue, "p-0 align-top")}>{children}</td>
     </tr>
   );
 }
@@ -298,19 +298,14 @@ export function SupFieldTable({
   className?: string;
 }) {
   return (
-    <table className={cn("w-full border-collapse border border-border text-left text-xs", className)}>
+    <table className={cn(supKvTable, "text-xs", className)}>
       <tbody>
         {rows.map(({ label, value }) => (
           <tr key={label}>
-            <th
-              scope="row"
-              className="w-[36%] border border-border bg-[#eef2f7] px-2 py-1 text-left font-medium text-muted-foreground dark:bg-muted/35"
-            >
+            <th scope="row" className={cn(supKvLabel, "w-[36%]")}>
               {label}
             </th>
-            <td className="border border-border bg-background px-2 py-1 text-foreground">
-              {value ?? "—"}
-            </td>
+            <td className={supKvValue}>{value ?? "—"}</td>
           </tr>
         ))}
       </tbody>

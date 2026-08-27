@@ -52,8 +52,8 @@ export function ProductsPageLayout({
                 Add products
               </h1>
               <p className="mt-1 hidden max-w-2xl text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--catalog-ink)_58%,transparent)] sm:block sm:text-sm">
-                Your sellable catalog — families, packs, prices, barcodes, and
-                stock in one workspace.
+                Name it, set a buying and selling price, add how many you have.
+                That is enough to sell at the till.
               </p>
             </div>
             {headerActions ? (

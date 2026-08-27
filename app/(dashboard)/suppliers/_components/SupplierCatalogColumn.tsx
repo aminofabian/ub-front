@@ -1144,7 +1144,7 @@ export function SupplierCatalogColumn({
             <Button
               type="button"
               size="sm"
-              className="h-6 gap-0.5 rounded-md px-1.5 text-xs font-semibold"
+              className="h-6 gap-0.5 rounded-md bg-[var(--order-ink,#15231f)] px-1.5 text-xs font-semibold text-white shadow-none hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
               onClick={() => setCatalogBrowserOpen(true)}
             >
               <Link2 className="size-2.5" aria-hidden />
@@ -1346,7 +1346,7 @@ export function SupplierCatalogColumn({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="size-6 rounded-none p-0 text-muted-foreground"
+                            className="size-6 rounded-md p-0 text-muted-foreground"
                             title="Edit link"
                             onClick={() => openEditLinkDrawer(row)}
                           >
@@ -1358,7 +1358,7 @@ export function SupplierCatalogColumn({
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="size-6 rounded-none p-0 text-muted-foreground"
+                              className="size-6 rounded-md p-0 text-muted-foreground"
                               title="Set as primary supplier"
                               disabled={linksBusy || !row.active}
                               onClick={() => void onSetPrimaryLink(row)}
@@ -1371,7 +1371,7 @@ export function SupplierCatalogColumn({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="size-6 rounded-none p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            className="size-6 rounded-md p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             title="Remove link"
                             disabled={linksBusy}
                             onClick={() => void onRemoveLink(row)}

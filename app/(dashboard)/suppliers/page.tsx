@@ -1159,7 +1159,7 @@ export default function SuppliersPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-7 shrink-0 gap-1 rounded-none px-2 text-[11px]"
+                          className="h-7 shrink-0 gap-1 rounded-lg px-2 text-[11px]"
                           onClick={() => setCatalogDrawerOpen(true)}
                         >
                           <Link2 className="size-3" aria-hidden />

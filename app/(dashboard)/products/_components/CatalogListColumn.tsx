@@ -98,6 +98,11 @@ export function CatalogListColumn({
       ? `${catalog.listRows.length} loaded`
       : null;
 
+  const catalogEmpty =
+    catalog.listTotalElements === 0 &&
+    !catalog.listLoadingInitial &&
+    !filtersActive;
+
   const scrollToPending = useCallback(() => {
     const index = pendingScrollIndexRef.current;
     if (index == null) return;
@@ -230,7 +235,7 @@ export function CatalogListColumn({
             </Button>
           </div>
         </div>
-      ) : (
+      ) : catalogEmpty ? null : (
         <div className={cn(catalogListToolbarClass, "hidden lg:flex")}>
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <p className={catalogListToolbarMetaClass}>
@@ -287,11 +292,7 @@ export function CatalogListColumn({
           hasMore={!catalog.listLast}
           onLoadMore={catalog.loadMoreCatalog}
           initialLoading={catalog.listLoadingInitial}
-          catalogEmpty={
-            catalog.listTotalElements === 0 &&
-            !catalog.listLoadingInitial &&
-            !filtersActive
-          }
+          catalogEmpty={catalogEmpty}
           onAddFromCatalog={onAddFromCatalog}
           canAddFromCatalog={canAddFromCatalog}
           onCreateNew={onCreateNew}

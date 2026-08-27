@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, MousePointerClick } from "lucide-react";
 
@@ -26,7 +26,7 @@ import { ProductAttentionBar } from "./_components/ProductHeroHeader";
 import { ProductHeaderActions } from "./_components/ProductHeaderActions";
 import { ProductsPageLayout } from "./_components/products-page-layout";
 import { ProductMobileChrome } from "./_components/ProductMobileChrome";
-import { ProductCreateDrawer } from "./_components/ProductCreateDrawer";
+import { ProductCreateModal } from "./_components/ProductCreateModal";
 import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
 import { VariantParentPickDrawer } from "./_components/VariantParentPickDrawer";
 import { AddPackageModal } from "./_components/AddPackageModal";
@@ -106,6 +106,7 @@ export function ProductsWorkspace() {
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [variantParentPickBusy, setVariantParentPickBusy] = useState(false);
   const [bulkStockOpen, setBulkStockOpen] = useState(false);
+  const didAutoOpenCreate = useRef(false);
 
   const openBaseStock = useCallback(async () => {
     const pid = detail.detail?.variantOfItemId?.trim();
@@ -429,6 +430,29 @@ export function ProductsWorkspace() {
     },
   ];
 
+  const catalogEmpty =
+    catalog.listTotalElements === 0 &&
+    !catalog.listLoadingInitial &&
+    !catalog.debouncedSearch.trim() &&
+    !catalog.filterCategoryId.trim() &&
+    catalog.catalogScope === "ALL" &&
+    !catalog.barcodeExact.trim() &&
+    !catalog.attentionFiltersActive;
+
+  useEffect(() => {
+    if (didAutoOpenCreate.current) return;
+    if (!catalogEmpty) return;
+    if (!canCatalogWrite || catalog.itemTypes.length === 0) return;
+    didAutoOpenCreate.current = true;
+    try {
+      if (sessionStorage.getItem("kiosk.autoOpenAddProduct") === "1") return;
+      sessionStorage.setItem("kiosk.autoOpenAddProduct", "1");
+    } catch {
+      /* private mode: still open once this visit */
+    }
+    setActiveDrawer("create-parent");
+  }, [catalogEmpty, canCatalogWrite, catalog.itemTypes.length]);
+
   const onAttentionToggle = (id: (typeof attentionStats)[number]["id"]) => {
     if (id === "missingBarcode") {
       catalog.setFilterNoBarcode((v) => !v);
@@ -447,7 +471,12 @@ export function ProductsWorkspace() {
     <>
       <ProductsPageLayout
         headerActions={
-          <div className="hidden lg:flex lg:items-center lg:gap-1.5">
+          <div
+            className={cn(
+              "flex items-center gap-1.5",
+              !catalogEmpty && "hidden lg:flex",
+            )}
+          >
             <ProductHeaderActions
               canCreate={catalog.itemTypes.length > 0}
               onCreateNew={() => setActiveDrawer("create-parent")}
@@ -455,16 +484,19 @@ export function ProductsWorkspace() {
           </div>
         }
         headerExtra={
+          catalogEmpty ? undefined : (
           <div className="hidden lg:block">
             <ProductAttentionBar
               attentionStats={attentionStats}
               onAttentionToggle={onAttentionToggle}
             />
           </div>
+          )
         }
       >
         <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0 overflow-x-hidden lg:min-h-[min(72dvh,40rem)]">
         <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0">
+          {catalogEmpty ? null : (
           <ProductMobileChrome
             catalog={catalog}
             canCreate={catalog.itemTypes.length > 0}
@@ -476,6 +508,7 @@ export function ProductsWorkspace() {
             }
             canAddFromCatalog={canGlobalCatalog}
           />
+          )}
           <section
             className={cn(
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
@@ -484,9 +517,15 @@ export function ProductsWorkspace() {
               "border-0 bg-transparent",
             )}
           >
-            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-0 overflow-x-hidden p-0 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,min(24rem,30vw))] lg:items-stretch 2xl:grid-cols-[minmax(0,1fr)_minmax(19rem,min(28rem,32vw))]">
+            <div
+              className={cn(
+                "grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-0 overflow-x-hidden p-0",
+                !catalogEmpty &&
+                  "lg:grid-cols-[minmax(0,1fr)_minmax(18rem,min(24rem,30vw))] lg:items-stretch 2xl:grid-cols-[minmax(0,1fr)_minmax(19rem,min(28rem,32vw))]",
+              )}
+            >
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex-row lg:items-stretch">
-                <ProductFilterSidebar catalog={catalog} />
+                {catalogEmpty ? null : <ProductFilterSidebar catalog={catalog} />}
                 <CatalogListColumn
                 catalog={catalog}
                 selectedId={detail.selectedId}
@@ -529,13 +568,12 @@ export function ProductsWorkspace() {
                 canCreateNew={canCatalogWrite && catalog.itemTypes.length > 0}
                 />
               </div>
+              {catalogEmpty ? null : (
               <div
                 ref={setDockRoot}
                 className="relative hidden min-h-0 min-w-0 max-w-full overflow-hidden lg:flex lg:flex-col lg:border-l lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)]"
               >
-                {isLg &&
-                (activeDrawer === "create-parent" ||
-                  (activeDrawer === "edit-product" && D)) ? null : D ? (
+                {isLg && activeDrawer === "edit-product" && D ? null : D ? (
                   <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pb-24 p-0">
                     <ProductDetailPanel {...p} />
                   </div>
@@ -550,6 +588,7 @@ export function ProductsWorkspace() {
                   </div>
                 )}
               </div>
+              )}
             </div>
           </section>
           {catalog.message && !catalogMessageInDrawer ? (
@@ -570,10 +609,8 @@ export function ProductsWorkspace() {
         onParentSelected={handleVariantParentPicked}
       />
 
-      <ProductCreateDrawer
+      <ProductCreateModal
         open={activeDrawer === "create-parent"}
-        docked={isLg}
-        dockRoot={dockRoot}
         onClose={() => setActiveDrawer(null)}
         banner={
           activeDrawer === "create-parent" && catalog.message.trim() ? (

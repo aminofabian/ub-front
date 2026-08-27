@@ -29,6 +29,8 @@ import {
   supKvLabel,
   supKvTable,
   supKvValue,
+  supTableHead,
+  supTableRow,
 } from "./supplier-ui-tokens";
 
 export function SupplierEditColumn({
@@ -163,12 +165,12 @@ export function SupplierEditColumn({
             ]}
           />
           {canWrite && onEditProfile && onAddContact ? (
-            <div className="grid grid-cols-3 border-x border-b border-border">
+            <div className="flex flex-wrap gap-1 border-x border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1.5">
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
-                className="h-7 gap-1 rounded-none border-r border-border text-xs font-semibold"
+                variant="outline"
+                className="h-7 min-w-0 flex-1 gap-1 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2 text-[11px] font-semibold shadow-none"
                 onClick={onEditProfile}
               >
                 <PencilLine className="size-3" aria-hidden />
@@ -177,8 +179,8 @@ export function SupplierEditColumn({
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
-                className="h-7 gap-1 rounded-none border-r border-border text-xs font-semibold"
+                variant="outline"
+                className="h-7 min-w-0 flex-1 gap-1 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2 text-[11px] font-semibold shadow-none"
                 onClick={onAddContact}
               >
                 <UserPlus className="size-3" aria-hidden />
@@ -187,8 +189,8 @@ export function SupplierEditColumn({
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
-                className="h-7 gap-1 rounded-none text-xs font-semibold"
+                variant="outline"
+                className="h-7 min-w-0 flex-1 gap-1 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2 text-[11px] font-semibold shadow-none"
                 disabled={inviteBusy}
                 onClick={() => void onInvite()}
               >
@@ -198,19 +200,19 @@ export function SupplierEditColumn({
             </div>
           ) : null}
           {canDeposit && onDeposit ? (
-            <div className="flex items-center justify-between gap-2 border-x border-b border-border bg-primary/[0.04] px-2.5 py-2">
+            <div className="flex items-center justify-between gap-2 border-x border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)] px-2.5 py-2">
               <div className="min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
                   Wallet credit
                 </p>
-                <p className="font-mono text-[13px] font-semibold tabular-nums text-foreground">
+                <p className="font-mono text-[13px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
                   {formatSupplyMoney(walletCredit, currency)}
                 </p>
               </div>
               <Button
                 type="button"
                 size="sm"
-                className="h-7 gap-1 rounded-none px-2 text-[11px] font-semibold"
+                className="h-7 gap-1 rounded-md bg-[var(--order-ink,#15231f)] px-2.5 text-[11px] font-semibold text-white shadow-none hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
                 onClick={onDeposit}
               >
                 <Wallet className="size-3" aria-hidden />
@@ -308,12 +310,12 @@ export function SupplierEditColumn({
             </tbody>
           </table>
           {canWrite && onEditProfile && onAddContact ? (
-            <div className="grid grid-cols-3 border-t border-border">
+            <div className="flex flex-wrap gap-1 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1.5">
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
-                className="h-8 gap-1.5 rounded-none border-r border-border text-sm font-semibold"
+                variant="outline"
+                className="h-8 min-w-0 flex-1 gap-1.5 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
                 onClick={onEditProfile}
               >
                 <PencilLine className="size-3.5" aria-hidden />
@@ -322,8 +324,8 @@ export function SupplierEditColumn({
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
-                className="h-8 gap-1.5 rounded-none border-r border-border text-sm font-semibold"
+                variant="outline"
+                className="h-8 min-w-0 flex-1 gap-1.5 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
                 onClick={onAddContact}
               >
                 <UserPlus className="size-3.5" aria-hidden />
@@ -332,8 +334,8 @@ export function SupplierEditColumn({
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
-                className="h-8 gap-1.5 rounded-none text-sm font-semibold"
+                variant="outline"
+                className="h-8 min-w-0 flex-1 gap-1.5 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-sm font-semibold shadow-none"
                 disabled={inviteBusy}
                 onClick={() => void onInvite()}
               >
@@ -343,22 +345,22 @@ export function SupplierEditColumn({
             </div>
           ) : null}
           {canDeposit && onDeposit ? (
-            <div className="flex items-center justify-between gap-3 border-t border-border bg-primary/[0.04] px-3 py-2.5">
+            <div className="flex items-center justify-between gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)] px-3 py-2.5">
               <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
                   Wallet credit
                 </p>
-                <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">
+                <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
                   {formatSupplyMoney(walletCredit, currency)}
                 </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                   Applied automatically on the next supply
                 </p>
               </div>
               <Button
                 type="button"
                 size="sm"
-                className="h-8 gap-1.5 rounded-none px-3 text-xs font-semibold"
+                className="h-8 gap-1.5 rounded-md bg-[var(--order-ink,#15231f)] px-3 text-xs font-semibold text-white shadow-none hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
                 onClick={onDeposit}
               >
                 <Wallet className="size-3.5" aria-hidden />
@@ -459,14 +461,14 @@ export function SupplierEditColumn({
           </p>
         ) : (
           <table className="w-full border-collapse text-left text-xs">
-            <thead className="bg-[#dce6f0] dark:bg-muted/50">
+            <thead className={supTableHead}>
               <tr>
-                <th className="border border-border px-2 py-1 font-semibold">Name</th>
-                <th className="border border-border px-2 py-1 font-semibold">Role</th>
-                <th className="border border-border px-2 py-1 font-semibold">Phone</th>
-                <th className="border border-border px-2 py-1 font-semibold">Email</th>
+                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">Name</th>
+                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">Role</th>
+                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">Phone</th>
+                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">Email</th>
                 {canWrite && (onEditContact || onDeleteContact) ? (
-                  <th className="border border-border px-2 py-1 font-semibold">
+                  <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-2 py-1 font-semibold">
                     <span className="sr-only">Actions</span>
                   </th>
                 ) : null}
@@ -474,7 +476,7 @@ export function SupplierEditColumn({
             </thead>
             <tbody>
               {contacts.map((c) => (
-                <tr key={c.id} className="hover:bg-[#e8f0fe] dark:hover:bg-muted/30">
+                <tr key={c.id} className={supTableRow}>
                   <td className="border border-border/70 px-2 py-1 font-medium">
                     {c.name?.trim() || "Unnamed"}
                     {c.primaryContact ? (
@@ -607,49 +609,50 @@ function SupplierSidebarContactsDock({
   const showActions = canWrite && Boolean(onEditContact || onDeleteContact);
 
   return (
-    <section className="shrink-0 border-t border-border bg-card">
-      <div className="flex items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-2 py-1 dark:bg-muted/40">
-        <h3 className="text-[11px] font-semibold tracking-tight text-foreground">
-          Contacts
-        </h3>
+    <SupSection
+      compact
+      title="Contacts"
+      action={
         <div className="flex items-center gap-1.5">
           {contacts.length > 0 ? (
-            <span className="text-[10px] tabular-nums text-muted-foreground">
+            <span className="text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
               {contacts.length}
             </span>
           ) : null}
           {canWrite && onAddContact ? (
             <button
               type="button"
-              className="text-[10px] font-semibold text-primary underline-offset-2 hover:underline"
+              className="text-[10px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
               onClick={onAddContact}
             >
               + Add
             </button>
           ) : null}
         </div>
-      </div>
-
+      }
+      className="shrink-0 border-x-0 border-b-0"
+      bodyClassName="p-0"
+    >
       {sorted.length === 0 ? (
-        <p className="px-2 py-2 text-center text-[11px] text-muted-foreground">
+        <p className="px-2 py-2 text-center text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
           No contacts on file.
         </p>
       ) : (
         <div className="max-h-[min(9rem,26vh)] overflow-y-auto overscroll-contain">
           <table className="w-full border-collapse text-left text-[11px]">
-            <thead className="sticky top-0 bg-[#dce6f0] dark:bg-muted/50">
+            <thead className={cn("sticky top-0 z-10", supTableHead)}>
               <tr>
-                <th className="border border-border px-1.5 py-0.5 font-semibold">
+                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-0.5 font-semibold">
                   Name
                 </th>
-                <th className="border border-border px-1.5 py-0.5 font-semibold">
+                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-0.5 font-semibold">
                   Phone
                 </th>
-                <th className="border border-border px-1.5 py-0.5 font-semibold">
+                <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-0.5 font-semibold">
                   Email
                 </th>
                 {showActions ? (
-                  <th className="border border-border px-1.5 py-0.5 font-semibold">
+                  <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-0.5 font-semibold">
                     <span className="sr-only">Actions</span>
                   </th>
                 ) : null}
@@ -661,29 +664,29 @@ function SupplierSidebarContactsDock({
                 const email = c.email?.trim();
                 const name = c.name?.trim() || "Unnamed";
                 return (
-                  <tr key={c.id} className="hover:bg-[#e8f0fe] dark:hover:bg-muted/30">
-                    <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
+                  <tr key={c.id} className={supTableRow}>
+                    <td className="max-w-0 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-1.5 py-0.5">
                       <span className="block truncate font-medium">
                         {name}
                         {c.primaryContact ? (
-                          <span className="ml-1 text-[9px] font-bold text-primary">
+                          <span className="ml-1 text-[9px] font-bold text-[var(--pos-primary,#0f766e)]">
                             *
                           </span>
                         ) : null}
                       </span>
                     </td>
-                    <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
+                    <td className="max-w-0 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-1.5 py-0.5">
                       {phone ? (
                         <TelLink phone={phone} className="block truncate" />
                       ) : (
                         "—"
                       )}
                     </td>
-                    <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
+                    <td className="max-w-0 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-1.5 py-0.5">
                       {email ? (
                         <a
                           href={`mailto:${email}`}
-                          className="block truncate text-primary hover:underline"
+                          className="block truncate text-[var(--pos-primary,#0f766e)] hover:underline"
                         >
                           {email}
                         </a>
@@ -692,7 +695,7 @@ function SupplierSidebarContactsDock({
                       )}
                     </td>
                     {showActions ? (
-                      <td className="border border-border/70 px-0.5 py-0">
+                      <td className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-0.5 py-0">
                         <ContactRowActions
                           contact={c}
                           onEditContact={onEditContact}
@@ -709,7 +712,7 @@ function SupplierSidebarContactsDock({
           </table>
         </div>
       )}
-    </section>
+    </SupSection>
   );
 }
 
@@ -849,20 +852,19 @@ function SupplierSidebarPaymentSection({
           : null;
 
   return (
-    <section className="space-y-0">
-      <div className="border border-b-0 border-border bg-[#e8eef5] px-2 py-1 dark:bg-muted/40">
-        <h3 className="text-[11px] font-semibold tracking-tight text-foreground">
-          Payment
-        </h3>
-      </div>
-
-      <div className="space-y-2.5 border border-border bg-card px-2.5 py-2.5">
+    <SupSection
+      compact
+      title="Payment"
+      hint="KopoKopo Send Money payout destination"
+      className="border-x-0"
+      bodyClassName="space-y-2.5 px-2.5 py-2.5"
+    >
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
             KopoKopo Send Money
           </span>
           <select
-            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+            className="h-8 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs"
             value={payoutType}
             disabled={!canWrite || !onSavePayout || savingPayout}
             onChange={(e) => setPayoutType(e.target.value as PayoutType)}
@@ -884,7 +886,7 @@ function SupplierSidebarPaymentSection({
               M-Pesa payout phone
             </span>
             <input
-              className="h-8 rounded-md border border-input bg-background px-2 font-mono text-xs"
+              className="h-8 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
               value={payoutPhone}
               onChange={(e) => setPayoutPhone(e.target.value)}
               placeholder="0710514157 or 2547…"
@@ -900,7 +902,7 @@ function SupplierSidebarPaymentSection({
               Till number
             </span>
             <input
-              className="h-8 rounded-md border border-input bg-background px-2 font-mono text-xs"
+              className="h-8 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
               value={payoutTillNumber}
               onChange={(e) => setPayoutTillNumber(e.target.value)}
               placeholder="e.g. 567890"
@@ -917,7 +919,7 @@ function SupplierSidebarPaymentSection({
                 Paybill number
               </span>
               <input
-                className="h-8 rounded-md border border-input bg-background px-2 font-mono text-xs"
+                className="h-8 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
                 value={payoutPaybillNumber}
                 onChange={(e) => setPayoutPaybillNumber(e.target.value)}
                 placeholder="e.g. 247247"
@@ -930,7 +932,7 @@ function SupplierSidebarPaymentSection({
                 Account number
               </span>
               <input
-                className="h-8 rounded-md border border-input bg-background px-2 font-mono text-xs"
+                className="h-8 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 font-mono text-xs"
                 value={payoutPaybillAccount}
                 onChange={(e) => setPayoutPaybillAccount(e.target.value)}
                 placeholder="Account or reference"
@@ -955,23 +957,27 @@ function SupplierSidebarPaymentSection({
           <Button
             type="button"
             size="sm"
-            className="h-7 w-full text-xs"
+            className={cn(
+              "h-8 w-full rounded-md text-xs font-semibold shadow-none",
+              dirty
+                ? "bg-[var(--order-ink,#15231f)] text-white hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,#000)]"
+                : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]",
+            )}
             disabled={savingPayout || !dirty}
             onClick={() => void savePayout()}
           >
             {savingPayout ? "Saving…" : dirty ? "Save payment settings" : "Saved"}
           </Button>
         ) : savedType === "manual" ? (
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
             Open Edit profile to enable KopoKopo payout if you have write access.
           </p>
         ) : (
-          <p className="font-mono text-xs text-foreground">{destinationSummary}</p>
+          <p className="font-mono text-xs text-[var(--order-ink,#15231f)]">{destinationSummary}</p>
         )}
-      </div>
 
       {rows.length > 0 ? <SupFieldTable rows={rows} /> : null}
-    </section>
+    </SupSection>
   );
 }
 

@@ -16,6 +16,9 @@ import { cn } from "@/lib/utils";
 import { SupLoadingBlock, SupSection } from "./supplier-layout-primitives";
 import {
   paymentStatusBadgeClass,
+  supKvLabel,
+  supKvTable,
+  supKvValue,
   supTableHead,
   supTableRow,
   supTableRowActive,
@@ -168,6 +171,7 @@ export function SupplierPurchaseHistorySection({
       compact={compact}
       title={compact ? "Purchases" : "Purchase history"}
       hint="Posted invoices and what you still owe this vendor."
+      className={compact ? "border-x-0" : undefined}
       action={
         totalCount > 0 ? (
           <span className="inline-flex items-center gap-0.5 rounded-md bg-muted/50 px-1.5 py-px text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
@@ -337,19 +341,17 @@ export function SupplierPurchaseHistorySection({
 
 function SidebarSummaryGrid({ rows }: { rows: SummaryRow[] }) {
   return (
-    <table className="w-full border-collapse border border-border text-left text-[11px]">
+    <table className={cn(supKvTable, "text-[11px]")}>
       <tbody>
         {rows.map(({ label, value, valueClassName, mono = true }) => (
           <tr key={label}>
-            <th
-              scope="row"
-              className="w-[40%] border border-border bg-[#eef2f7] px-1.5 py-0.5 font-medium text-muted-foreground dark:bg-muted/35"
-            >
+            <th scope="row" className={cn(supKvLabel, "w-[40%]")}>
               {label}
             </th>
             <td
               className={cn(
-                "border border-border bg-background px-1.5 py-0.5 tabular-nums text-foreground",
+                supKvValue,
+                "tabular-nums",
                 mono && "font-mono",
                 valueClassName,
               )}
@@ -380,7 +382,7 @@ function SidebarInvoiceList({
   return (
     <div
       className={cn(
-        "border border-border",
+        "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
         scrollable &&
           orders.length > 10 &&
           "max-h-[min(20rem,50vh)] overflow-y-auto overscroll-contain",
@@ -389,12 +391,12 @@ function SidebarInvoiceList({
       <table className="w-full border-collapse text-left text-[11px]">
         <thead className={cn("sticky top-0 z-10", supTableHead)}>
           <tr>
-            <th className="border border-border px-1.5 py-1 font-semibold">Date</th>
-            <th className="border border-border px-1.5 py-1 font-semibold">Invoice</th>
-            <th className="border border-border px-1.5 py-1 text-right font-semibold">
+            <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-1 font-semibold">Date</th>
+            <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-1 font-semibold">Invoice</th>
+            <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-1 text-right font-semibold">
               Total
             </th>
-            <th className="border border-border px-1.5 py-1 text-right font-semibold">
+            <th className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-1.5 py-1 text-right font-semibold">
               Due
             </th>
           </tr>
