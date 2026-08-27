@@ -4,15 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  BarChart3,
   Package,
+  Palette,
   ShoppingCart,
+  Store,
   Users,
 } from "lucide-react";
 
-import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
-import { isCatalogEligibleBusiness } from "@/lib/business-store-type";
 import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { getOnboardingQuestionnaireState } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
@@ -28,9 +27,7 @@ type PostSetupChecklistProps = {
 export function PostSetupChecklist({
   catalogueCount = null,
 }: PostSetupChecklistProps) {
-  const { business } = useDashboard();
   const [show, setShow] = useState(false);
-  const catalogEligible = isCatalogEligibleBusiness(business);
 
   useEffect(() => {
     const state = getOnboardingQuestionnaireState();
@@ -54,34 +51,27 @@ export function PostSetupChecklist({
   const stocked = catalogueCount != null && catalogueCount > 0;
 
   const items = [
-    ...(catalogEligible
-      ? [
-          {
-            href: `${APP_ROUTES.productsCatalog}?from=onboarding`,
-            label: stocked ? "Starter pack imported" : "Import a starter pack",
-            desc: stocked
-              ? "Your catalog has products — you’re ready to sell."
-              : "Stock shelves from the shared catalog in minutes.",
-            icon: Package,
-            done: stocked,
-          },
-        ]
-      : [
-          {
-            href: APP_ROUTES.products,
-            label: stocked ? "Products added" : "Add your first products",
-            desc: stocked
-              ? "Your catalog has products — you’re ready to sell."
-              : "Create products manually for your shop.",
-            icon: Package,
-            done: stocked,
-          },
-        ]),
     {
-      href: APP_ROUTES.sales,
-      label: "Record your first sale",
-      desc: "Use the cashier or quick sale to process a transaction.",
-      icon: ShoppingCart,
+      href: APP_ROUTES.products,
+      label: stocked ? "Products on the shelf" : "Add your first products",
+      desc: stocked
+        ? "Your catalog has products. You can sell from the till."
+        : "Name them, set a price, say how many you have.",
+      icon: Package,
+      done: stocked,
+    },
+    {
+      href: APP_ROUTES.businessSettings,
+      label: "Set up the storefront",
+      desc: "Turn on the public shop so customers can browse on a phone.",
+      icon: Store,
+      done: false,
+    },
+    {
+      href: APP_ROUTES.businessThemes,
+      label: "Choose a look",
+      desc: "Pick a theme so the shop feels like yours.",
+      icon: Palette,
       done: false,
     },
     {
@@ -91,19 +81,23 @@ export function PostSetupChecklist({
       icon: Users,
       done: false,
     },
-    {
-      href: APP_ROUTES.analytics,
-      label: "Check your reports",
-      desc: "See sales trends, profit margins, and top products.",
-      icon: BarChart3,
-      done: false,
-    },
+    ...(stocked
+      ? [
+          {
+            href: APP_ROUTES.cashier,
+            label: "Open the till",
+            desc: "Sell when you are ready. The pulse fills in as money moves.",
+            icon: ShoppingCart,
+            done: false,
+          },
+        ]
+      : []),
   ];
 
   return (
     <section className="hub-rise hub-rise-delay-5 space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <HubSectionLabel index="07" title="Getting started" />
+        <HubSectionLabel title="Getting started" />
         <button
           type="button"
           onClick={() => {

@@ -68,9 +68,11 @@ const HUB_TABS: HubTab[] = [
 export function BusinessHubNav({
   className,
   columns = 4,
+  setupHome = false,
 }: {
   className?: string;
   columns?: 2 | 4;
+  setupHome?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -84,6 +86,11 @@ export function BusinessHubNav({
       aria-label="Your shop pages"
     >
       {HUB_TABS.map((tab) => {
+        const isHome = tab.href === APP_ROUTES.business;
+        const label =
+          isHome && setupHome ? "Shop" : tab.label;
+        const hint =
+          isHome && setupHome ? "Open the floor" : tab.hint;
         const active = tab.match(pathname);
         const Icon = tab.icon;
         return (
@@ -106,7 +113,7 @@ export function BusinessHubNav({
                 aria-hidden
               />
               <span className="text-[13px] font-semibold tracking-[-0.01em] sm:text-sm">
-                {tab.label}
+                {label}
               </span>
             </span>
             <span
@@ -117,7 +124,7 @@ export function BusinessHubNav({
                   : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_42%,transparent)]",
               )}
             >
-              {tab.hint}
+              {hint}
             </span>
           </Link>
         );

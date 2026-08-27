@@ -23,6 +23,7 @@ import { ActionItemsStrip } from "@/components/business-hub/action-items-strip";
 import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-empty-state";
 import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skeleton";
 import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
+import { ShopOpenBoard } from "@/components/business-hub/shop-open-board";
 import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
 import { CommandGrid, type CommandLink } from "@/components/business-hub/command-grid";
@@ -43,7 +44,7 @@ import { useBusinessHubRealtime } from "@/hooks/use-business-hub-realtime";
 import { useOptionalRealtime } from "@/components/realtime-provider";
 import { playCashierChime } from "@/lib/cashier-chime";
 import { hubAlertsFromBusiness } from "@/lib/hub-alert-settings";
-import { APP_ROUTES } from "@/lib/config";
+import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
 import { isButcherPosEnabled } from "@/lib/butcher-feature";
 import {
   buildActionItems,
@@ -684,6 +685,7 @@ export function BusinessHubWorkspace() {
 
   const chartRevenue = chartPoints.map((p) => p.value);
   const salesEmpty = isHubSalesEmpty(revenue, orders, chartRevenue);
+  const shopNotReady = catalogueCount === 0;
 
   const headline = buildPulseHeadline({
     period,
@@ -1002,7 +1004,7 @@ export function BusinessHubWorkspace() {
   }, [recentTicks, recentDrawouts, selectedCashiers]);
   const dualLanes = tickLanes.length === 2;
   const galleryOpen = selectedCashiers.length >= 3;
-  const showTillStage = canViewSalesIntelligence;
+  const showTillStage = canViewSalesIntelligence && !shopNotReady;
 
   useEffect(() => {
     setSelectedCashiers((prev) => {
@@ -1039,6 +1041,13 @@ export function BusinessHubWorkspace() {
 
   return (
     <BusinessPageLayout
+      title={shopNotReady ? "Open the shop" : "Business pulse"}
+      description={
+        shopNotReady
+          ? "Stock the shelves, dress the window, then invite the people who will sell. The till waits until there is something to sell."
+          : "Live revenue, till tape, payables, and stock health. Everything that moves your shop today in one board."
+      }
+      setupHome={shopNotReady}
       headerActions={
         <>
           <button
@@ -1058,7 +1067,9 @@ export function BusinessHubWorkspace() {
               aria-hidden
             />
           </button>
-          <PeriodToggle value={period} onChange={setPeriod} />
+          {shopNotReady ? null : (
+            <PeriodToggle value={period} onChange={setPeriod} />
+          )}
           {canManageBusinessSettings ? (
             <Link
               href={APP_ROUTES.businessSettings}
@@ -1114,10 +1125,28 @@ export function BusinessHubWorkspace() {
                   "xl:border-r xl:border-[#E6E1D8]/70 xl:pr-4",
               )}
             >
-              {salesEmpty ? (
+              {shopNotReady ? (
+                <ShopOpenBoard
+                  shopName={business?.name?.trim() || "the shop"}
+                  shopHost={
+                    business?.primaryDomain?.trim() ||
+                    (business?.slug?.trim()
+                      ? `${business.slug.trim()}.${PLATFORM_DOMAIN}`
+                      : null)
+                  }
+                  storefrontEnabled={Boolean(business?.storefront?.enabled)}
+                  themeId={business?.storefront?.storeThemeId}
+                  shopEnabled={shopEnabled}
+                  canManageStorefront={canManageBusinessSettings}
+                  canListUsers={canListUsers}
+                />
+              ) : salesEmpty ? (
                 <BusinessHubEmptyState
                   period={period}
-                  showStorefrontLink={canManageBusinessSettings}
+                  showStorefrontLink={canManageBusinessSettings && shopEnabled}
+                  showThemeLink={canManageBusinessSettings && shopEnabled}
+                  showUsersLink={canListUsers}
+                  storefrontEnabled={Boolean(business?.storefront?.enabled)}
                 />
               ) : null}
 
@@ -1148,6 +1177,8 @@ export function BusinessHubWorkspace() {
                 </div>
               ) : null}
 
+              {shopNotReady ? null : (
+                <>
               <PulseHero
                 eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
                 revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
@@ -1221,13 +1252,17 @@ export function BusinessHubWorkspace() {
                   {showMovers ? <TopMoversPanel movers={topMovers} /> : null}
                 </div>
               ) : null}
+                </>
+              )}
 
-              <CommandGrid links={commandLinks} />
+              {shopNotReady ? null : <CommandGrid links={commandLinks} />}
 
+              {shopNotReady ? null : (
               <div className="space-y-2 xl:hidden">
                 <StockShelvesBanner catalogueCount={catalogueCount} />
                 <PostSetupChecklist catalogueCount={catalogueCount} />
               </div>
+              )}
             </div>
 
             {showTillStage && !galleryOpen

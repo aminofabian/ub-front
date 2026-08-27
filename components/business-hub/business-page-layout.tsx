@@ -22,6 +22,7 @@ export function BusinessPageLayout({
   title = "Business pulse",
   description = "Live revenue, till tape, payables, and stock health — everything that moves your shop today in one board.",
   showNav = true,
+  setupHome = false,
 }: {
   children: ReactNode;
   headerActions?: ReactNode;
@@ -30,6 +31,8 @@ export function BusinessPageLayout({
   title?: string;
   description?: string;
   showNav?: boolean;
+  /** First-run: the home tab is the shop, not the sales pulse. */
+  setupHome?: boolean;
 }) {
   return (
     <div
@@ -47,7 +50,7 @@ export function BusinessPageLayout({
       <div className="relative flex min-h-0 flex-1 flex-col gap-4">
         {showNav ? (
           <div className="rounded-xl border border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--hub-slip)_92%,transparent)] p-1 shadow-[0_1px_0_color-mix(in_srgb,var(--hub-ink)_6%,transparent),0_12px_40px_-24px_color-mix(in_srgb,var(--hub-ink)_18%,transparent)] backdrop-blur-sm">
-            <BusinessHubNav />
+            <BusinessHubNav setupHome={setupHome} />
           </div>
         ) : null}
 
