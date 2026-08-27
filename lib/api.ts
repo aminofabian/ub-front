@@ -10709,6 +10709,21 @@ export async function testOpsAlertSend(opts?: {
   });
 }
 
+export type OnboardingSequenceStatusRecord = {
+  enrolled: boolean;
+  muted: boolean;
+};
+
+export async function fetchOnboardingSequenceStatus(): Promise<OnboardingSequenceStatusRecord> {
+  return request<OnboardingSequenceStatusRecord>("/api/v1/me/onboarding-sequence");
+}
+
+export async function muteOnboardingSequenceTips(): Promise<OnboardingSequenceStatusRecord> {
+  return request<OnboardingSequenceStatusRecord>("/api/v1/me/onboarding-sequence/mute", {
+    method: "POST",
+  });
+}
+
 // ─── Phase 9 Sync Conflicts ─────────────────────────────────────────────
 
 export type SyncConflictRecord = {

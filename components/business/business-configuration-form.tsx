@@ -22,6 +22,7 @@ import {
 
 import { TrustedTillsPanel } from "@/components/business/trusted-tills-panel";
 import { WhatsAppOpsAlertsPanel } from "@/components/business/whatsapp-ops-alerts-panel";
+import { OnboardingTipsMutePanel } from "@/components/business/onboarding-tips-mute-panel";
 import {
   BUSINESS_CONFIGURATION_NAV,
   type ConfigurationWorkspace,
@@ -312,6 +313,7 @@ export function BusinessConfigurationForm({
     >
       {/* Always visible on this page — Inventory and Till workspaces */}
       <WhatsAppOpsAlertsPanel canEdit={canEditWhatsAppAlerts} />
+      <OnboardingTipsMutePanel canEdit={canEditWhatsAppAlerts} />
 
       {visibleIds.has("settings-stock-take") ? (
         <PolicyPanel
