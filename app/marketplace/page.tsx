@@ -52,7 +52,10 @@ export default function PublicMarketplacePage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        <div
+          className="flex min-h-dvh items-center justify-center bg-[radial-gradient(120%_80%_at_50%_-10%,color-mix(in_srgb,#0f766e_12%,#f7f4ef),#efeae2_42%,#e7e1d6)] text-sm text-muted-foreground"
+          style={{ ["--pos-primary" as string]: "#0f766e" }}
+        >
           <Loader2 className="mr-2 size-4 animate-spin" />
           Loading marketplace…
         </div>
@@ -382,14 +385,14 @@ function PublicMarketplacePageInner() {
             {signedIn ? (
               <Link
                 href={APP_ROUTES.suppliers}
-                className="inline-flex h-7 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]"
+                className="inline-flex h-8 items-center rounded-lg border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground transition-colors hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] hover:text-[var(--pos-ink,#1c1915)]"
               >
                 My suppliers
               </Link>
             ) : (
               <Link
                 href={APP_ROUTES.login}
-                className="inline-flex h-7 items-center bg-[var(--pos-primary,#0f766e)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--pos-primary-ink,#fff)]"
+                className="inline-flex h-8 items-center rounded-lg bg-[var(--pos-primary,#0f766e)] px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--pos-primary-ink,#fff)] shadow-[0_1px_0_color-mix(in_srgb,#000_8%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]"
               >
                 Sign in
               </Link>
@@ -406,17 +409,21 @@ function PublicMarketplacePageInner() {
       >
         <div
           className={cn(
-            "mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-0.5",
+            "mb-2 flex flex-wrap items-end justify-between gap-x-3 gap-y-1 px-0.5",
             ordering && "max-lg:hidden",
           )}
         >
-          <p className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
-            marketplace
-            <span className="font-sans text-muted-foreground/80">
-              {" "}
-              · area → supplier → shelf
-            </span>
-          </p>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+              Browse
+            </p>
+            <h1 className="mt-0.5 font-heading text-xl font-semibold tracking-[-0.03em] text-[var(--pos-ink,#1c1915)] sm:text-2xl">
+              Supplier marketplace
+            </h1>
+            <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+              area → supplier → shelf
+            </p>
+          </div>
           {hasQuery && !loading ? (
             <button
               type="button"
@@ -432,8 +439,7 @@ function PublicMarketplacePageInner() {
           className={cn(
             mktPosShell,
             "relative flex min-h-0 flex-col",
-            // Phone: fill the viewport like a till. Desktop: capped workspace.
-            "h-[calc(100dvh-3.25rem)] max-lg:rounded-none max-lg:border-x-0",
+            "h-[calc(100dvh-3.25rem)] max-lg:rounded-none max-lg:border-x-0 max-lg:shadow-none",
             "lg:h-[min(82dvh,58rem)] lg:min-h-[32rem]",
           )}
         >
@@ -475,10 +481,10 @@ function PublicMarketplacePageInner() {
                     <button
                       type="button"
                       className={cn(
-                        "inline-flex h-8 items-center gap-1 border px-2 text-[10px] font-semibold uppercase tracking-[0.08em] lg:hidden",
+                        "inline-flex h-8 items-center gap-1 rounded-lg border px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] lg:hidden",
                         filtersOpen
                           ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
-                          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] text-muted-foreground",
+                          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
                       )}
                       onClick={() => setFiltersOpen((v) => !v)}
                       aria-expanded={filtersOpen}
@@ -494,7 +500,7 @@ function PublicMarketplacePageInner() {
                     role="tablist"
                     aria-label="Marketplace view"
                     className={cn(
-                      "flex rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]",
+                      "flex overflow-hidden rounded-lg border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] p-0.5",
                       ordering && "max-lg:hidden",
                     )}
                   >
@@ -523,9 +529,9 @@ function PublicMarketplacePageInner() {
                           role="tab"
                           aria-selected={active}
                           className={cn(
-                            "inline-flex h-8 items-center gap-1.5 rounded-none px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] transition sm:px-3",
+                            "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] transition sm:px-3",
                             active
-                              ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
+                              ? "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)] shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_12%,transparent)]"
                               : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-[var(--pos-ink,#1c1915)]",
                           )}
                           onClick={() => {
@@ -546,7 +552,7 @@ function PublicMarketplacePageInner() {
 
               <div
                 className={cn(
-                  "relative rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_82%,transparent)]",
+                  "relative rounded-lg border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_82%,transparent)]",
                   ordering && "max-lg:hidden",
                 )}
               >

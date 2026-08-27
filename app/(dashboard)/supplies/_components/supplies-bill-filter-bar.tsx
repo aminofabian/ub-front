@@ -25,7 +25,7 @@ export function SuppliesBillFilterBar({
 
   return (
     <div
-      className="flex flex-col gap-1.5 border-b border-border bg-[#eef2f7] px-3 py-1.5 dark:bg-muted/25 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1 sm:px-4"
+      className="flex flex-col gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)] px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:px-4"
       role="toolbar"
       aria-label="Filter supply receipts"
     >
@@ -37,7 +37,7 @@ export function SuppliesBillFilterBar({
         disabled={disabled}
         onChange={onChange}
       />
-      <span className="hidden h-4 w-px bg-border sm:block" aria-hidden />
+      <span className="hidden h-4 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] sm:block" aria-hidden />
       <FilterGroup
         label="Period"
         filters={periodFilters}
@@ -66,11 +66,11 @@ function FilterGroup({
   onChange: (filter: SupplyBillFilterId) => void;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-1.5">
-      <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
         {label}
       </span>
-      <div className="-mx-0.5 flex min-w-0 gap-0.5 overflow-x-auto px-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-0.5 flex min-w-0 gap-1 overflow-x-auto px-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {filters.map((f) => {
           const active = value === f.id;
           const count = counts[f.id];
@@ -82,11 +82,11 @@ function FilterGroup({
               aria-pressed={active}
               onClick={() => onChange(f.id)}
               className={cn(
-                "inline-flex h-6 shrink-0 items-center gap-1 border px-1.5 text-[11px] font-medium tabular-nums transition-colors",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40",
+                "inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-[11px] font-medium tabular-nums transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_30%,transparent)]",
                 active
-                  ? "border-primary/45 bg-primary/12 text-primary"
-                  : "border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-foreground",
+                  ? "bg-[var(--order-ink,#15231f)] text-white shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_12%,transparent)]"
+                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:bg-white hover:text-[var(--order-ink,#15231f)]",
                 disabled && "pointer-events-none opacity-50",
               )}
             >
@@ -95,7 +95,9 @@ function FilterGroup({
                 <span
                   className={cn(
                     "font-mono text-[10px]",
-                    active ? "text-primary" : "text-muted-foreground/80",
+                    active
+                      ? "text-[color-mix(in_srgb,#fff_70%,transparent)]"
+                      : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]",
                   )}
                 >
                   {count}

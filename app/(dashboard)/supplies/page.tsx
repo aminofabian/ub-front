@@ -6,7 +6,6 @@ import { CreditCard, FileEdit, Package, Receipt, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
-  DASHBOARD_MAX,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
@@ -39,7 +38,11 @@ import {
   supplyBillFilterLabel,
   type SupplyBillFilterId,
 } from "./_components/supplies-bill-filters";
-import { SuppliesPageHeader } from "./_components/SuppliesPageHeader";
+import { SuppliesHeaderActions } from "./_components/supplies-header-actions";
+import {
+  SUPPLIES_SURFACE,
+  SuppliesPageLayout,
+} from "./_components/supplies-page-layout";
 import {
   formatSupplyMoney,
   supplyN,
@@ -50,8 +53,11 @@ import {
   SupLoadingBlock,
 } from "../suppliers/_components/supplier-layout-primitives";
 import {
+  supSectionHeader,
+  supStatTile,
   supTableHead,
   supTableRow,
+  supWorkspaceShell,
 } from "../suppliers/_components/supplier-ui-tokens";
 
 export default function SuppliesPage() {
@@ -253,48 +259,52 @@ export default function SuppliesPage() {
   const canShowProcurementLinks = !isStockManager;
 
   return (
-    <div className={cn(DASHBOARD_MAX, "relative flex min-h-0 min-w-0 max-w-full flex-col overflow-x-hidden")}>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-16 sm:pb-0">
-        <SuppliesPageHeader
-          canViewApAging={canViewApAging}
-          canShowProcurementLinks={canShowProcurementLinks}
-          canOpenNewSupply={canOpenNewSupply}
-          canPayAdvance={canPay}
-          listLoading={listLoading}
-          branchScopeLabel={headerBranchName || undefined}
-          onRefresh={() => void refresh()}
-          onNewSupply={() => setNewOpen(true)}
-          onPayAdvance={() => setAdvanceOpen(true)}
-        />
-
+    <>
+      <SuppliesPageLayout
+        branchScope={headerBranchName || undefined}
+        headerActions={
+          <SuppliesHeaderActions
+            canViewApAging={canViewApAging}
+            canShowProcurementLinks={canShowProcurementLinks}
+            canOpenNewSupply={canOpenNewSupply}
+            canPayAdvance={canPay}
+            listLoading={listLoading}
+            onRefresh={() => void refresh()}
+            onNewSupply={() => setNewOpen(true)}
+            onPayAdvance={() => setAdvanceOpen(true)}
+          />
+        }
+      >
         {listError ? (
-          <div className="px-3 pt-2 sm:px-4">
-            <DashboardFeedback kind="error" text={listError} />
-          </div>
+          <DashboardFeedback kind="error" text={listError} />
         ) : null}
 
         {canPay ? (
           <button
             type="button"
             onClick={() => setAdvanceOpen(true)}
-            className="flex w-full items-center justify-between gap-3 border-b border-border bg-primary/[0.05] px-3 py-2 text-left transition-colors hover:bg-primary/[0.08] sm:px-4"
+            className={cn(
+              SUPPLIES_SURFACE,
+              "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
+              "hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)]",
+            )}
           >
             <span className="min-w-0">
-              <span className="block text-[11px] font-semibold text-foreground">
+              <span className="block text-[12px] font-semibold text-[var(--order-ink,#15231f)]">
                 Deposit to a supplier wallet
               </span>
-              <span className="mt-0.5 block text-[10px] text-muted-foreground">
+              <span className="mt-0.5 block text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 Prepay now — credit applies automatically when they bring supplies.
               </span>
             </span>
-            <span className="shrink-0 border border-primary/35 bg-card px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-primary">
+            <span className="shrink-0 rounded-md border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--pos-primary,#0f766e)]">
               Deposit
             </span>
           </button>
         ) : null}
 
         <div
-          className="grid grid-cols-2 border-b border-border sm:grid-cols-4"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
           role="group"
           aria-label="Supply summary"
         >
@@ -302,22 +312,24 @@ export default function SuppliesPage() {
             type="button"
             onClick={() => setBillFilter("all")}
             className={cn(
-              "border-r border-border px-3 py-1.5 text-left transition-colors",
-              billFilter === "all" ? "bg-primary/[0.07]" : "bg-card hover:bg-muted/25",
+              supStatTile,
+              "text-left transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]",
+              billFilter === "all" &&
+                "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]",
             )}
           >
-            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
               Total
             </span>
-            <span className="mt-0.5 block text-base font-bold tabular-nums leading-none text-foreground">
+            <span className="mt-1 block text-lg font-bold tabular-nums leading-none text-[var(--order-ink,#15231f)]">
               {summary.count}
             </span>
           </button>
-          <div className="border-r border-border bg-card px-3 py-1.5">
-            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+          <div className={supStatTile}>
+            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
               Invoiced
             </span>
-            <span className="mt-0.5 block font-mono text-[13px] font-semibold tabular-nums leading-none">
+            <span className="mt-1 block font-mono text-[13px] font-semibold tabular-nums leading-none text-[var(--order-ink,#15231f)]">
               {formatSupplyMoney(
                 billFilter === "all" ? summary.totalInvoiced : filteredSummary.totalInvoiced,
                 currency,
@@ -328,14 +340,16 @@ export default function SuppliesPage() {
             type="button"
             onClick={() => setBillFilter("paid")}
             className={cn(
-              "border-r border-border border-t px-3 py-1.5 text-left transition-colors sm:border-t-0",
-              billFilter === "paid" ? "bg-primary/[0.07]" : "bg-card hover:bg-muted/25",
+              supStatTile,
+              "text-left transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]",
+              billFilter === "paid" &&
+                "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]",
             )}
           >
-            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
               Paid
             </span>
-            <span className="mt-0.5 block font-mono text-[13px] font-semibold tabular-nums leading-none text-emerald-700 dark:text-emerald-300">
+            <span className="mt-1 block font-mono text-[13px] font-semibold tabular-nums leading-none text-emerald-700 dark:text-emerald-300">
               {formatSupplyMoney(summary.totalPaid, currency)}
             </span>
           </button>
@@ -343,19 +357,21 @@ export default function SuppliesPage() {
             type="button"
             onClick={() => setBillFilter("unpaid")}
             className={cn(
-              "border-t border-border px-3 py-1.5 text-left transition-colors sm:border-t-0",
-              billFilter === "unpaid" ? "bg-primary/[0.07]" : "bg-card hover:bg-muted/25",
+              supStatTile,
+              "text-left transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]",
+              billFilter === "unpaid" &&
+                "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]",
             )}
           >
-            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
               Unpaid · {summary.unpaidCount}
             </span>
             <span
               className={cn(
-                "mt-0.5 block font-mono text-[13px] font-semibold tabular-nums leading-none",
+                "mt-1 block font-mono text-[13px] font-semibold tabular-nums leading-none",
                 summary.openBalance > 0.009
                   ? "text-amber-800 dark:text-amber-200"
-                  : "text-foreground",
+                  : "text-[var(--order-ink,#15231f)]",
               )}
             >
               {formatSupplyMoney(summary.openBalance, currency)}
@@ -363,16 +379,16 @@ export default function SuppliesPage() {
           </button>
         </div>
 
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-b border-border bg-card">
-          <div className="flex items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-3 py-1 dark:bg-muted/40 sm:px-4">
-            <h2 className="truncate text-[11px] font-semibold uppercase tracking-[0.06em] text-foreground/80">
+        <section className={cn(supWorkspaceShell, "flex min-h-[20rem] flex-1 flex-col")}>
+          <div className={supSectionHeader}>
+            <h2 className="truncate text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--order-ink,#15231f)]">
               {billFilter === "all" ? "All receipts" : supplyBillFilterLabel(billFilter)}
-              <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">
+              <span className="ml-2 font-normal normal-case tracking-normal text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 unpaid first · newest after
               </span>
             </h2>
             {!listLoading ? (
-              <span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
+              <span className="shrink-0 font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
                 {displayRows.length}
                 {billFilter !== "all" && rows.length !== displayRows.length
                   ? ` / ${rows.length}`
@@ -414,7 +430,7 @@ export default function SuppliesPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7 rounded-none text-xs"
+                      className="h-7 rounded-lg text-xs"
                       onClick={() => setBillFilter("all")}
                     >
                       Show all
@@ -423,7 +439,7 @@ export default function SuppliesPage() {
                     <Button
                       type="button"
                       size="sm"
-                      className="h-7 gap-1 rounded-none text-xs font-semibold"
+                      className="h-7 gap-1 rounded-lg text-xs font-semibold"
                       onClick={() => setNewOpen(true)}
                     >
                       <Package className="size-3" aria-hidden />
@@ -618,7 +634,7 @@ export default function SuppliesPage() {
             )}
           </div>
         </section>
-      </div>
+      </SuppliesPageLayout>
 
       <NewSupplyDrawer open={newOpen} onOpenChange={setNewOpen} onPosted={() => void refresh()} />
 
@@ -661,8 +677,8 @@ export default function SuppliesPage() {
           onClick={() => setNewOpen(true)}
           aria-label="Receive new supply"
           className={cn(
-            "fixed z-40 flex items-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-semibold text-primary-foreground",
-            "shadow-[0_12px_32px_-8px_color-mix(in_srgb,var(--primary)_65%,transparent)]",
+            "fixed z-40 flex items-center gap-2 rounded-full bg-[var(--order-ink,#15231f)] px-5 py-3.5 text-sm font-semibold text-white",
+            "shadow-[0_12px_32px_-8px_color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]",
             "right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))]",
             "active:scale-95 touch-manipulation sm:hidden",
           )}
@@ -671,6 +687,6 @@ export default function SuppliesPage() {
           Receive
         </button>
       ) : null}
-    </div>
+    </>
   );
 }
