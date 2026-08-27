@@ -23,6 +23,8 @@ export type MarketplaceOrderPdfInput = {
    * line total (e.g. the total rounded to the nearest 10).
    */
   totalOverride?: number;
+  /** When set, used for the date shown on the PDF instead of today. */
+  orderDate?: Date | string;
 };
 
 const PAGE_W = 595;
@@ -458,13 +460,18 @@ function drawFooter(
 
 /** Minimal single/multi-page PDF — Githurai price-list colours, no extra dependencies. */
 export function buildMarketplaceOrderPdf(input: MarketplaceOrderPdfInput): Blob {
-  const now = new Date();
-  const dateShort = now.toLocaleDateString("en-KE", {
+  const orderDate =
+    input.orderDate != null
+      ? input.orderDate instanceof Date
+        ? input.orderDate
+        : new Date(input.orderDate)
+      : new Date();
+  const dateShort = orderDate.toLocaleDateString("en-KE", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
-  const dateLong = now.toLocaleDateString("en-KE", {
+  const dateLong = orderDate.toLocaleDateString("en-KE", {
     day: "numeric",
     month: "long",
     year: "numeric",

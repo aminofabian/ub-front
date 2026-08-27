@@ -9010,6 +9010,7 @@ export type PathAPurchaseOrderDetailRecord = {
   expectedDate: string;
   status: string;
   notes: string | null;
+  createdAt?: string | null;
   lines: PathAPurchaseOrderLineRecord[];
 };
 
@@ -9023,6 +9024,7 @@ export type PathAPurchaseOrderListRowRecord = {
   lineCount: number;
   totalOrdered: number | string;
   totalReceived: number | string;
+  createdAt?: string | null;
 };
 
 export async function fetchPathBSessions(opts?: {
@@ -9089,6 +9091,20 @@ export async function postPathAPurchaseOrderLine(
   return request<PathAPurchaseOrderLineRecord>(
     `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/lines`,
     { method: "POST", body },
+  );
+}
+
+export async function patchPathAPurchaseOrderLine(
+  purchaseOrderId: string,
+  lineId: string,
+  body: {
+    qtyOrdered?: number | string;
+    unitEstimatedCost?: number | string;
+  },
+): Promise<PathAPurchaseOrderLineRecord> {
+  return request<PathAPurchaseOrderLineRecord>(
+    `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/lines/${encodeURIComponent(lineId.trim())}`,
+    { method: "PATCH", body },
   );
 }
 

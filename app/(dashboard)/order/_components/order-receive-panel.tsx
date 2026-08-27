@@ -13,6 +13,7 @@ import {
   Minus,
   Package,
   Plus,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,11 +34,14 @@ import {
   fetchSupplierContacts,
   fetchSupplierItemLinks,
   fetchSuppliers,
+  patchPathAPurchaseOrderLine,
   postPathAGoodsReceipt,
   postPathAGrnSupplierInvoice,
+  postPathAPurchaseOrderLine,
   type PathAPurchaseOrderDetailRecord,
   type PathAPurchaseOrderListRowRecord,
   type SupplierContactRecord,
+  type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
@@ -59,6 +63,7 @@ function todayIsoDate(): string {
 }
 
 type ReceiveQty = Record<string, number>;
+type ReceivePrice = Record<string, number>;
 type ItemMeta = {
   name: string;
   thumbnailUrl: string | null;
@@ -73,6 +78,34 @@ function slugForFilename(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
+}
+
+function formatOrderCreatedAt(iso: string | null | undefined): string {
+  if (!iso?.trim()) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-KE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function orderCreatedDate(iso: string | null | undefined): Date | undefined {
+  if (!iso?.trim()) return undefined;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function linkUnitCost(link: SupplierItemLinkRecord): number {
+  return (
+    toNum(link.lastCostPrice) ||
+    toNum(link.defaultCostPrice) ||
+    toNum(link.catalogBuyingPrice) ||
+    0
+  );
 }
 
 async function copyText(value: string, label: string) {
@@ -105,9 +138,17 @@ export function OrderReceivePanel({
   const [itemMeta, setItemMeta] = useState<Record<string, ItemMeta>>({});
   const [contacts, setContacts] = useState<SupplierContactRecord[]>([]);
   const [qtyByLine, setQtyByLine] = useState<ReceiveQty>({});
+  const [priceByLine, setPriceByLine] = useState<ReceivePrice>({});
   const [selectedLines, setSelectedLines] = useState<Record<string, boolean>>(
     {},
   );
+  const [supplierLinks, setSupplierLinks] = useState<SupplierItemLinkRecord[]>(
+    [],
+  );
+  const [addItemOpen, setAddItemOpen] = useState(false);
+  const [addItemQuery, setAddItemQuery] = useState("");
+  const [addingItemId, setAddingItemId] = useState<string | null>(null);
+  const [savingLineId, setSavingLineId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [sharing, setSharing] = useState<"whatsapp" | "pdf" | "copy" | null>(
@@ -127,7 +168,12 @@ export function OrderReceivePanel({
         const received = toNum(o.totalReceived);
         return ordered > received;
       });
-      merged.sort((a, b) => b.poNumber.localeCompare(a.poNumber));
+      merged.sort((a, b) => {
+        const aTime = a.createdAt ? Date.parse(a.createdAt) : 0;
+        const bTime = b.createdAt ? Date.parse(b.createdAt) : 0;
+        if (aTime !== bTime) return bTime - aTime;
+        return b.poNumber.localeCompare(a.poNumber);
+      });
       setOrders(merged);
       setSuppliers(supplierRows);
       if (selectedId && !merged.some((o) => o.id === selectedId)) {
@@ -164,20 +210,26 @@ export function OrderReceivePanel({
           (l) => toNum(l.qtyOrdered) > toNum(l.qtyReceived),
         );
         const nextQty: ReceiveQty = {};
+        const nextPrice: ReceivePrice = {};
         const nextSel: Record<string, boolean> = {};
         for (const line of openLines) {
           const remaining = toNum(line.qtyOrdered) - toNum(line.qtyReceived);
           nextQty[line.id] = remaining;
+          nextPrice[line.id] = toNum(line.unitEstimatedCost);
           nextSel[line.id] = true;
         }
         setQtyByLine(nextQty);
+        setPriceByLine(nextPrice);
         setSelectedLines(nextSel);
+        setAddItemOpen(false);
+        setAddItemQuery("");
 
         try {
           const links = await fetchSupplierItemLinks(po.supplierId, {
             branchId: po.branchId || branchId || undefined,
           });
           if (cancelled) return;
+          setSupplierLinks(links.filter((l) => l.active));
           const map: Record<string, ItemMeta> = {};
           for (const link of links) {
             map[link.itemId] = {
@@ -211,7 +263,10 @@ export function OrderReceivePanel({
           }
           setItemMeta(map);
         } catch {
-          if (!cancelled) setItemMeta({});
+          if (!cancelled) {
+            setItemMeta({});
+            setSupplierLinks([]);
+          }
         }
       })
       .catch((error) => {
@@ -268,10 +323,11 @@ export function OrderReceivePanel({
     for (const line of openLines) {
       if (!selectedLines[line.id]) continue;
       const qty = Math.max(0, qtyByLine[line.id] ?? 0);
-      sum += qty * toNum(line.unitEstimatedCost);
+      const unit = priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
+      sum += qty * unit;
     }
     return sum;
-  }, [openLines, selectedLines, qtyByLine]);
+  }, [openLines, selectedLines, qtyByLine, priceByLine]);
 
   const selectedUnits = useMemo(() => {
     let sum = 0;
@@ -297,16 +353,43 @@ export function OrderReceivePanel({
     if (!detail) return [];
     return detail.lines.map((line) => {
       const meta = itemMeta[line.itemId];
+      const unit = priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
       return {
         name: meta?.name ?? line.itemId.slice(0, 8),
         sku: meta?.sku,
         barcode: meta?.barcode,
         qty: toNum(line.qtyOrdered),
-        unitPrice: toNum(line.unitEstimatedCost) || null,
+        unitPrice: unit || null,
         currency: ORDER_CURRENCY,
       };
     });
-  }, [detail, itemMeta]);
+  }, [detail, itemMeta, priceByLine]);
+
+  const selectedOrderCreatedAt = useMemo(() => {
+    if (detail?.createdAt) return detail.createdAt;
+    const row = orders.find((o) => o.id === selectedId);
+    return row?.createdAt ?? null;
+  }, [detail, orders, selectedId]);
+
+  const addableLinks = useMemo(() => {
+    const onOrder = new Set((detail?.lines ?? []).map((l) => l.itemId));
+    const q = addItemQuery.trim().toLowerCase();
+    return supplierLinks
+      .filter((link) => !onOrder.has(link.itemId))
+      .filter((link) => {
+        if (!q) return true;
+        const hay = [
+          link.itemName,
+          link.sku,
+          link.barcode ?? "",
+          link.supplierSku ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      })
+      .slice(0, 12);
+  }, [supplierLinks, detail, addItemQuery]);
 
   const orderFilename = useMemo(() => {
     if (!detail) return "order.pdf";
@@ -332,7 +415,73 @@ export function OrderReceivePanel({
       listedBy: `Purchase order ${detail.poNumber}`,
       lines: shareLines,
       note: note || undefined,
+      orderDate: orderCreatedDate(selectedOrderCreatedAt),
     };
+  };
+
+  const persistLinePrice = async (lineId: string, unitCost: number) => {
+    if (!detail || unitCost <= 0) return;
+    setSavingLineId(lineId);
+    try {
+      await patchPathAPurchaseOrderLine(detail.id, lineId, {
+        unitEstimatedCost: unitCost,
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not save price",
+      );
+    } finally {
+      setSavingLineId(null);
+    }
+  };
+
+  const addItemToOrder = async (link: SupplierItemLinkRecord) => {
+    if (!detail) return;
+    setAddingItemId(link.itemId);
+    try {
+      const unitCost = linkUnitCost(link) || 1;
+      await postPathAPurchaseOrderLine(detail.id, {
+        itemId: link.itemId,
+        qtyOrdered: 1,
+        unitEstimatedCost: unitCost,
+      });
+      toast.success(`Added ${link.itemName}`);
+      setAddItemQuery("");
+      const po = await fetchPathAPurchaseOrder(detail.id);
+      setDetail(po);
+      const open = po.lines.filter(
+        (l) => toNum(l.qtyOrdered) > toNum(l.qtyReceived),
+      );
+      const nextQty = { ...qtyByLine };
+      const nextPrice = { ...priceByLine };
+      const nextSel = { ...selectedLines };
+      for (const line of open) {
+        if (!(line.id in nextQty)) {
+          nextQty[line.id] =
+            toNum(line.qtyOrdered) - toNum(line.qtyReceived);
+          nextPrice[line.id] = toNum(line.unitEstimatedCost);
+          nextSel[line.id] = true;
+        }
+      }
+      setQtyByLine(nextQty);
+      setPriceByLine(nextPrice);
+      setSelectedLines(nextSel);
+      setItemMeta((prev) => ({
+        ...prev,
+        [link.itemId]: {
+          name: link.itemName,
+          thumbnailUrl: link.thumbnailUrl?.trim() || null,
+          sku: link.sku,
+          barcode: link.barcode,
+        },
+      }));
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not add item",
+      );
+    } finally {
+      setAddingItemId(null);
+    }
   };
 
   const sendOrderWhatsApp = async () => {
@@ -422,7 +571,7 @@ export function OrderReceivePanel({
         purchaseOrderLineId: l.id,
         qtyReceived: Math.max(0, qtyByLine[l.id] ?? 0),
         itemId: l.itemId,
-        unitCost: toNum(l.unitEstimatedCost),
+        unitCost: priceByLine[l.id] ?? toNum(l.unitEstimatedCost),
       }))
       .filter((l) => l.qtyReceived > 0);
 
@@ -542,6 +691,9 @@ export function OrderReceivePanel({
                   <span className="font-mono text-[10px] text-muted-foreground">
                     {o.lineCount} lines · ordered {toNum(o.totalOrdered)}
                   </span>
+                  <span className="font-mono text-[9px] text-muted-foreground/80">
+                    {formatOrderCreatedAt(o.createdAt)}
+                  </span>
                 </button>
               );
             })
@@ -558,6 +710,11 @@ export function OrderReceivePanel({
             <h2 className="truncate text-[15px] font-semibold">
               {detail ? `${detail.poNumber} · ${supplierName}` : "Select an order"}
             </h2>
+            {detail ? (
+              <p className="font-mono text-[10px] text-muted-foreground">
+                Created {formatOrderCreatedAt(selectedOrderCreatedAt)}
+              </p>
+            ) : null}
           </div>
           <Link
             href={APP_ROUTES.order}
@@ -588,7 +745,7 @@ export function OrderReceivePanel({
                   toNum(line.qtyOrdered) - toNum(line.qtyReceived);
                 const checked = Boolean(selectedLines[line.id]);
                 const qty = qtyByLine[line.id] ?? remaining;
-                const unit = toNum(line.unitEstimatedCost);
+                const unit = priceByLine[line.id] ?? toNum(line.unitEstimatedCost);
                 const amount = qty * unit;
                 const meta = itemMeta[line.itemId];
                 const name = meta?.name ?? line.itemId.slice(0, 8);
@@ -635,12 +792,37 @@ export function OrderReceivePanel({
                       </p>
                       <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                         Ordered {toNum(line.qtyOrdered)} · received{" "}
-                        {toNum(line.qtyReceived)} ·{" "}
-                        {formatMoney(unit, ORDER_CURRENCY)} ea
+                        {toNum(line.qtyReceived)}
                       </p>
-                      <p className="mt-1 font-mono text-[12px] font-semibold tabular-nums">
-                        {formatMoney(amount, ORDER_CURRENCY)}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <label className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+                          <span>Unit</span>
+                          <input
+                            className="w-16 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-1 py-0.5 text-center text-[11px] font-semibold text-foreground outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                            disabled={!checked || savingLineId === line.id}
+                            value={unit}
+                            onChange={(e) => {
+                              const n = Number.parseFloat(e.target.value);
+                              setPriceByLine((prev) => ({
+                                ...prev,
+                                [line.id]: Number.isFinite(n)
+                                  ? Math.max(0, n)
+                                  : 0,
+                              }));
+                            }}
+                            onBlur={(e) => {
+                              const n = Number.parseFloat(e.target.value);
+                              if (Number.isFinite(n) && n > 0) {
+                                void persistLinePrice(line.id, n);
+                              }
+                            }}
+                          />
+                          <span>/ ea</span>
+                        </label>
+                        <p className="font-mono text-[12px] font-semibold tabular-nums">
+                          {formatMoney(amount, ORDER_CURRENCY)}
+                        </p>
+                      </div>
                     </div>
                     <div className="inline-flex shrink-0 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
                       <button
@@ -687,6 +869,62 @@ export function OrderReceivePanel({
               })}
             </ul>
           )}
+          {detail && !detailLoading ? (
+            <div className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-3 py-3">
+              <button
+                type="button"
+                onClick={() => setAddItemOpen((v) => !v)}
+                className="inline-flex h-9 items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-3 text-[11px] font-semibold"
+              >
+                <Plus className="size-3.5" />
+                {addItemOpen ? "Hide add item" : "Add item"}
+              </button>
+              {addItemOpen ? (
+                <div className="mt-2 space-y-2">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      className="h-9 w-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background pl-8 pr-2 text-[12px] outline-none focus:border-[var(--pos-primary,#0f766e)]"
+                      placeholder="Search supplier catalog…"
+                      value={addItemQuery}
+                      onChange={(e) => setAddItemQuery(e.target.value)}
+                    />
+                  </div>
+                  {addableLinks.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      {supplierLinks.length === 0
+                        ? "No supplier catalog loaded."
+                        : "No matching items, or all catalog items are already on this order."}
+                    </p>
+                  ) : (
+                    <ul className="max-h-48 divide-y divide-dashed divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] overflow-y-auto border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+                      {addableLinks.map((link) => (
+                        <li key={link.id}>
+                          <button
+                            type="button"
+                            disabled={addingItemId === link.itemId}
+                            onClick={() => void addItemToOrder(link)}
+                            className="flex w-full items-center justify-between gap-2 px-2 py-2 text-left text-[12px] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] disabled:opacity-50"
+                          >
+                            <span className="min-w-0 truncate font-medium">
+                              {link.itemName}
+                            </span>
+                            <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                              {addingItemId === link.itemId ? (
+                                <Loader2 className="size-3 animate-spin" />
+                              ) : (
+                                formatMoney(linkUnitCost(link), ORDER_CURRENCY)
+                              )}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="shrink-0 space-y-2 border-t-2 border-[var(--pos-ink,#1c1915)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-3">

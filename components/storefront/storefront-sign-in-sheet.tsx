@@ -331,17 +331,22 @@ function StorefrontSignInSheet({
       <DialogContent
         side="bottom"
         className={cn(
-          "z-[90] gap-0 overflow-hidden p-0",
+          "z-[90] gap-0 overflow-hidden !rounded-none p-0",
           "sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-none",
           "sm:w-full sm:max-w-[420px] sm:-translate-x-1/2 sm:-translate-y-1/2",
-          "sm:rounded-2xl sm:border-b sm:pb-0",
+          "sm:rounded-none sm:border-b sm:pb-0",
         )}
         overlayClassName="z-[89]"
       >
         <div className="border-b border-border/60 px-5 pb-4 pt-5 sm:px-6">
           <DialogHeader className="space-y-1.5 text-left">
-            <DialogTitle className="text-xl tracking-tight">
-              {displayName ? `Sign in to ${displayName}` : "Sign in"}
+            {displayName ? (
+              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                {displayName.split("|")[0]?.trim() || displayName}
+              </p>
+            ) : null}
+            <DialogTitle className="font-heading text-xl tracking-tight">
+              Sign in
             </DialogTitle>
             <DialogDescription className="text-[14px] leading-relaxed">
               Email or phone, then your PIN or password. That&apos;s it.
@@ -581,10 +586,10 @@ export function UnifiedSignInForm({
   };
 
   const fieldClass =
-    "h-11 w-full rounded-xl border border-border bg-background px-3 text-[16px] outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
-  const labelClass = "text-[13px] font-medium text-foreground";
+    "h-11 w-full rounded-none border border-border bg-background px-3 text-[16px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/25";
+  const labelClass = "text-[13px] font-semibold text-foreground";
   const ctaClass =
-    "inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-primary-foreground disabled:opacity-50";
+    "inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-primary-foreground transition hover:opacity-95 disabled:opacity-50";
 
   if (phase === "code") {
     return (
@@ -807,18 +812,20 @@ export function UnifiedSignInForm({
       </button>
 
       {door === "shopper" ? (
-        <button
-          type="button"
-          className="block w-full text-center text-[13px] font-medium text-muted-foreground underline-offset-2 hover:underline"
-          onClick={() => {
-            setPhase("signup");
-            setErrorMessage("");
-            if (!identity.includes("@")) setIdentity("");
-            setSecret("");
-          }}
-        >
-          New here? Create an account
-        </button>
+        <div className="border-t border-border/60 pt-4">
+          <button
+            type="button"
+            className="block w-full text-center text-[13px] font-medium text-muted-foreground underline-offset-2 hover:underline"
+            onClick={() => {
+              setPhase("signup");
+              setErrorMessage("");
+              if (!identity.includes("@")) setIdentity("");
+              setSecret("");
+            }}
+          >
+            New here? Create an account
+          </button>
+        </div>
       ) : null}
     </form>
   );
@@ -827,7 +834,7 @@ export function UnifiedSignInForm({
 function ErrorBanner({ message }: { message: string }) {
   return (
     <p
-      className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive"
+      className="rounded-none border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive"
       role="alert"
     >
       {message}

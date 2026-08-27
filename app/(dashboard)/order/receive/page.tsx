@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { OrderReceivePanel } from "../_components/order-receive-panel";
+import { OrderSubNav } from "../_components/order-sub-nav";
 
 export const metadata: Metadata = {
   title: "Confirm orders · Procurement · Kiosk",
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export default function OrderReceivePage() {
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-3 px-3 py-4 sm:px-5">
+      <OrderSubNav />
       <div>
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
           Receiving

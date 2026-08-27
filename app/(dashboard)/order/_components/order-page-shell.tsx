@@ -19,13 +19,11 @@ export function OrderPageShell() {
   const ticket = sp.get("ticket") ?? sp.get("o");
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-0 sm:px-4 sm:py-3 lg:px-5">
-      <TenantOrderWorkspace
-        initialTicket={ticket}
-        initialSupplierId={sp.get("sid")}
-        initialMarketplaceSupplierId={sp.get("msid")}
-        initialRoundTo10={sp.get("r") === "10"}
-      />
-    </div>
+    <TenantOrderWorkspace
+      initialTicket={ticket}
+      initialSupplierId={sp.get("sid")}
+      initialMarketplaceSupplierId={sp.get("msid")}
+      initialRoundTo10={sp.get("r") === "10"}
+    />
   );
 }

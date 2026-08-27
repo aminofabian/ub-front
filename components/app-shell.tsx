@@ -212,6 +212,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: APP_ROUTES.suppliers, label: "Suppliers", group: "Suppliers" },
       { href: APP_ROUTES.order, label: "New order", group: "Suppliers" },
+      {
+        href: APP_ROUTES.orderReceive,
+        label: "Confirm orders",
+        group: "Suppliers",
+      },
       { href: APP_ROUTES.marketplace, label: "Find suppliers", group: "Suppliers" },
       {
         href: APP_ROUTES.purchasingIntelligence,
