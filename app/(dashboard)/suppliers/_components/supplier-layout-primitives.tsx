@@ -42,8 +42,8 @@ export function SupSection({
     >
       <div
         className={cn(
-          "flex flex-wrap items-center justify-between gap-2 border-b border-border bg-[#e8eef5] dark:bg-muted/40",
-          compact ? "px-2 py-1" : "px-2.5 py-1.5",
+          "flex flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)]",
+          compact ? "px-2 py-1.5" : "px-3 py-2",
         )}
       >
         <div className="min-w-0">
@@ -196,16 +196,16 @@ export function SupMobileSelectionBar({
   children: React.ReactNode;
 }) {
   return (
-    <div className="shrink-0 overflow-hidden border border-border bg-card">
-      <div className="border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+    <div className="shrink-0 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white shadow-sm">
+      <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)] px-3 py-2">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
           Selected
         </p>
-        <p className="truncate text-sm font-semibold tracking-tight text-foreground">
+        <p className="truncate text-sm font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
           {name}
         </p>
       </div>
-      <div className="flex flex-wrap gap-1.5 p-2">{children}</div>
+      <div className="flex flex-wrap gap-2 p-2.5">{children}</div>
     </div>
   );
 }

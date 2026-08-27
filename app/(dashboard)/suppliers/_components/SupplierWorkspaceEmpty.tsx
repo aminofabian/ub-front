@@ -55,7 +55,6 @@ export function SupplierWorkspaceEmpty({
   onSelectSupplier: (id: string) => void;
   onNewSupplier: () => void;
   onNewSupply: () => void;
-  /** Tighter layout for stacking under the directory on small screens. */
   compact?: boolean;
   className?: string;
 }) {
@@ -64,25 +63,25 @@ export function SupplierWorkspaceEmpty({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain",
-        "bg-[color-mix(in_srgb,var(--muted)_35%,var(--card))]",
+        "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-width:thin]",
+        "bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_45%,transparent)]",
         className,
       )}
     >
       <div
         className={cn(
-          "mx-auto flex w-full max-w-2xl flex-col gap-4",
-          compact ? "p-3 sm:p-4" : "p-4 sm:p-6 lg:p-8",
+          "mx-auto flex w-full max-w-2xl flex-col gap-5",
+          compact ? "p-4 sm:p-5" : "p-5 sm:p-8",
         )}
       >
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
             Workspace
           </p>
-          <h2 className="font-heading text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          <h2 className="font-heading text-xl font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)] sm:text-2xl">
             {totalCount > 0 ? "Select a supplier" : "Start with a supplier"}
           </h2>
-          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+          <p className="max-w-md text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             {totalCount > 0
               ? "Choose a vendor from the directory to open profile, contacts, catalog links, and purchase history in one place."
               : "Add your first vendor to track purchases, link products, and receive stock."}
@@ -98,7 +97,7 @@ export function SupplierWorkspaceEmpty({
           {canWrite ? (
             <Button
               type="button"
-              className="h-10 justify-start gap-2 rounded-none px-3 font-semibold"
+              className="h-10 justify-start gap-2 rounded-lg bg-[var(--pos-primary,#0f766e)] px-3 font-semibold hover:bg-[#0d6b63]"
               onClick={onNewSupplier}
             >
               <Plus className="size-3.5" aria-hidden />
@@ -109,7 +108,7 @@ export function SupplierWorkspaceEmpty({
             <Button
               type="button"
               variant="outline"
-              className="h-10 justify-start gap-2 rounded-none px-3 font-medium"
+              className="h-10 justify-start gap-2 rounded-lg border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
               onClick={onNewSupply}
             >
               <PackagePlus className="size-3.5" aria-hidden />
@@ -119,21 +118,21 @@ export function SupplierWorkspaceEmpty({
           <Button
             type="button"
             variant="outline"
-            className="h-10 justify-start gap-2 rounded-none px-3 font-medium"
+            className="h-10 justify-start gap-2 rounded-lg border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
             onClick={() =>
               document.getElementById("supplier-directory-search")?.focus()
             }
           >
             <Search className="size-3.5" aria-hidden />
             Search directory
-            <kbd className="ml-auto hidden rounded border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
+            <kbd className="ml-auto hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_50%,transparent)] px-1.5 py-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] sm:inline">
               /
             </kbd>
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="h-10 justify-start gap-2 rounded-none px-3 font-medium"
+            className="h-10 justify-start gap-2 rounded-lg border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium"
             asChild
           >
             <Link href={APP_ROUTES.supplierDirectory}>
@@ -144,31 +143,31 @@ export function SupplierWorkspaceEmpty({
         </div>
 
         {picks.length > 0 ? (
-          <section className="overflow-hidden border border-border bg-card">
-            <div className="flex items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
+          <section className="overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_55%,transparent)] px-3 py-2">
               <div className="flex items-center gap-1.5">
                 <BookUser
-                  className="size-3.5 text-muted-foreground"
+                  className="size-3.5 text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]"
                   aria-hidden
                 />
-                <h3 className="text-xs font-semibold tracking-tight text-foreground">
+                <h3 className="text-xs font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
                   Jump to a vendor
                 </h3>
               </div>
-              <span className="text-[10px] tabular-nums text-muted-foreground">
+              <span className="text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                 {totalCount.toLocaleString()} total
               </span>
             </div>
-            <ul className="divide-y divide-border/70">
+            <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]">
               {picks.map((row) => (
                 <li key={row.id}>
                   <button
                     type="button"
                     onClick={() => onSelectSupplier(row.id)}
                     className={cn(
-                      "flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors",
-                      "hover:bg-[#e8f0fe] dark:hover:bg-muted/30",
-                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/40",
+                      "flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors",
+                      "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]",
                     )}
                   >
                     <span
@@ -178,17 +177,17 @@ export function SupplierWorkspaceEmpty({
                       )}
                       aria-hidden
                     />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--order-ink,#15231f)]">
                       {row.name}
                     </span>
                     {row.code ? (
-                      <span className="hidden shrink-0 font-mono text-[10px] text-muted-foreground sm:inline">
+                      <span className="hidden shrink-0 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] sm:inline">
                         {row.code}
                       </span>
                     ) : null}
                     <span
                       className={cn(
-                        "shrink-0 rounded-none px-1.5 py-0.5 text-[10px] font-medium capitalize",
+                        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize",
                         statusBadgeClass(row.status),
                       )}
                     >
@@ -210,15 +209,15 @@ export function SupplierWorkspaceEmpty({
           {STEPS.map((step) => (
             <li
               key={step.n}
-              className="border border-border bg-card px-2.5 py-2.5"
+              className="rounded-lg border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white px-3 py-3 shadow-sm"
             >
-              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                <span className="flex size-4 items-center justify-center bg-primary text-[9px] font-bold text-primary-foreground">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+                <span className="flex size-5 items-center justify-center rounded-full bg-[var(--order-ink,#15231f)] text-[9px] font-bold text-white">
                   {step.n}
                 </span>
                 {step.title}
               </p>
-              <p className="mt-1 text-xs leading-snug text-muted-foreground">
+              <p className="mt-1.5 text-xs leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
                 {step.body}
               </p>
             </li>
@@ -226,7 +225,7 @@ export function SupplierWorkspaceEmpty({
         </ol>
 
         {canReadCatalog ? (
-          <p className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
+          <p className="flex items-start gap-1.5 text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
             <Link2 className="mt-0.5 size-3 shrink-0 opacity-70" aria-hidden />
             After you select a supplier, use Catalog to link products and set
             primary vendors.

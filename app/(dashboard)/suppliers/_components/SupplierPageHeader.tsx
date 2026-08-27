@@ -23,13 +23,7 @@ const RELATED_LINKS: {
   href: string;
   label: string;
   icon: LucideIcon;
-  external?: boolean;
 }[] = [
-  {
-    href: APP_ROUTES.purchasingAddSupplies,
-    label: "Supplies",
-    icon: PackagePlus,
-  },
   {
     href: APP_ROUTES.products,
     label: "Products",
@@ -42,7 +36,7 @@ const RELATED_LINKS: {
   },
   {
     href: APP_ROUTES.purchasingIntelligence,
-    label: "Intelligence",
+    label: "Compare",
     icon: CircleDollarSign,
   },
 ];
@@ -60,90 +54,70 @@ export function SupplierPageHeader({
   canOpenNewSupply: boolean;
   listLoadingInitial: boolean;
   totalCount?: number;
+  receiveTillHref?: string | null;
   onNewSupplier: () => void;
   onNewSupply: () => void;
-  /** Cashier-style receive till for the selected supplier. */
-  receiveTillHref?: string | null;
 }) {
   return (
-    <header
-      className={cn(
-        "flex shrink-0 flex-col gap-1.5 border border-border bg-card px-2.5 py-2",
-        "sm:flex-row sm:items-center sm:justify-between sm:gap-3",
-      )}
-    >
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1">
+    <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/90 px-3 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4">
         <div className="min-w-0">
-          {/* Desktop sidebar chrome has no large title — show it only at 2xl+. */}
-          <h1 className="hidden font-heading text-xl font-semibold leading-tight tracking-tight text-foreground 2xl:block sm:text-2xl">
-            Suppliers
-          </h1>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <ActiveScopeSubtitle className="text-[11px]" />
             {totalCount != null && totalCount > 0 ? (
-              <p className="text-xs text-muted-foreground">
-                <span className="tabular-nums font-semibold text-foreground">
+              <p className="text-xs text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                <span className="tabular-nums font-semibold text-[var(--order-ink,#15231f)]">
                   {totalCount.toLocaleString()}
                 </span>{" "}
-                vendors
+                vendors in directory
               </p>
             ) : null}
           </div>
         </div>
 
         <nav
-          aria-label="Related purchasing pages"
-          className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1"
+          aria-label="Related pages"
+          className="flex min-w-0 flex-wrap items-center gap-1.5"
         >
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Related
-          </span>
-          <ul className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5">
-            {RELATED_LINKS.map(({ href, label, icon: Icon }) => (
-              <li key={href}>
-                <Link
-                  href={href}
-                  className={cn(
-                    "inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground",
-                    "transition-colors hover:text-foreground",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  )}
-                >
-                  <Icon className="size-3 shrink-0 opacity-70" aria-hidden />
-                  {label}
-                </Link>
-              </li>
-            ))}
-            <li>
-              <SupplierGuideDrawer
-                trigger={
-                  <button
-                    type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground",
-                      "transition-colors hover:text-foreground",
-                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                    )}
-                    title="The complete supplier flow — summary + full guide"
-                  >
-                    <BookOpen className="size-3 shrink-0 opacity-70" aria-hidden />
-                    Guide
-                  </button>
-                }
-              />
-            </li>
-          </ul>
+          {RELATED_LINKS.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_40%,transparent)] px-2.5 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+                "transition hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+              )}
+            >
+              <Icon className="size-3 shrink-0 opacity-70" aria-hidden />
+              {label}
+            </Link>
+          ))}
+          <SupplierGuideDrawer
+            trigger={
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex h-8 items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_40%,transparent)] px-2.5 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+                  "transition hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                )}
+                title="The complete supplier flow — summary + full guide"
+              >
+                <BookOpen className="size-3 shrink-0 opacity-70" aria-hidden />
+                Guide
+              </button>
+            }
+          />
         </nav>
       </div>
 
       {(canWrite || canOpenNewSupply) && (
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {canOpenNewSupply && receiveTillHref ? (
             <Button
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 rounded-none px-3 text-sm font-medium"
+              className="h-9 gap-1.5 rounded-md px-3 text-sm font-medium"
               asChild
             >
               <Link href={receiveTillHref}>
@@ -157,7 +131,7 @@ export function SupplierPageHeader({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 rounded-none px-3 text-sm font-medium"
+              className="h-9 gap-1.5 rounded-md px-3 text-sm font-medium"
               onClick={onNewSupply}
             >
               <PackagePlus className="size-4" aria-hidden />
@@ -168,7 +142,7 @@ export function SupplierPageHeader({
             <Button
               type="button"
               size="sm"
-              className={cn(supBtnPrimary, "h-9")}
+              className={cn(supBtnPrimary, "h-9 bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]")}
               disabled={listLoadingInitial}
               onClick={onNewSupplier}
             >
@@ -178,6 +152,6 @@ export function SupplierPageHeader({
           ) : null}
         </div>
       )}
-    </header>
+    </div>
   );
 }

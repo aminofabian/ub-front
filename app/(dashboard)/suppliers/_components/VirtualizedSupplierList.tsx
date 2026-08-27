@@ -14,13 +14,14 @@ import {
   statusBadgeClass,
   supDirectoryShell,
   supDirectoryToolbar,
+  supRowHover,
   supTableCell,
   supTableHead,
   supTableRowActive,
 } from "./supplier-ui-tokens";
 
-const ROW_PX_DEFAULT = 32;
-const ROW_PX_COMPACT = 30;
+const ROW_PX_DEFAULT = 36;
+const ROW_PX_COMPACT = 34;
 
 const COLS_DEFAULT =
   "grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(4.25rem,auto)]";
@@ -107,17 +108,17 @@ export function VirtualizedSupplierList({
           compact ? "px-2 py-1" : "px-2.5 py-1",
         )}
       >
-        <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
           Directory
         </span>
         {totalElements > 0 ? (
-          <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-            <span className="font-semibold text-foreground">{totalLoaded}</span>
+          <span className="shrink-0 text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+            <span className="font-semibold text-[var(--order-ink,#15231f)]">{totalLoaded}</span>
             {totalElements > totalLoaded ? (
               <>
                 {" "}
                 /{" "}
-                <span className="font-semibold text-foreground">
+                <span className="font-semibold text-[var(--order-ink,#15231f)]">
                   {totalElements}
                 </span>
               </>
@@ -188,16 +189,20 @@ export function VirtualizedSupplierList({
                   aria-label={`Supplier ${row.name}`}
                   aria-selected={active}
                   className={cn(
-                    "absolute left-0 top-0 grid w-full min-w-0 items-stretch border-b border-border/70 text-left",
+                    "absolute left-0 top-0 grid w-full min-w-0 items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] text-left",
                     cols,
-                    compact ? "h-[30px] text-[12px]" : "h-8 text-[13px]",
+                    compact ? "h-[34px] text-[12px]" : "h-9 text-[13px]",
                     "cursor-pointer",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/40",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]",
                     active
-                      ? supTableRowActive
+                      ? cn(
+                          supTableRowActive,
+                          "shadow-[inset_3px_0_0_0_var(--pos-primary,#0f766e)]",
+                        )
                       : cn(
-                          "hover:bg-[#e8f0fe] dark:hover:bg-muted/30",
-                          vi.index % 2 === 1 && "bg-[#fafbfd] dark:bg-muted/[0.08]",
+                          supRowHover,
+                          vi.index % 2 === 1 &&
+                            "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,transparent)]",
                         ),
                   )}
                   style={{ transform: `translateY(${vi.start}px)` }}

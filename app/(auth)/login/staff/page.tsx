@@ -9,7 +9,9 @@ import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
 import {
   authInputClassName,
+  authPrimaryCtaClass,
   AuthSplitShell,
+  shortBrandName,
 } from "@/components/auth/auth-split-shell";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
@@ -40,11 +42,10 @@ import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import { cn } from "@/lib/utils";
 
-const primaryCtaClass =
-  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60";
+const primaryCtaClass = authPrimaryCtaClass;
 
 const fieldLabelClass =
-  "mb-1.5 block text-[13px] font-semibold text-foreground";
+  "mb-1.5 block text-[13px] font-medium text-foreground";
 
 const LOGIN_BRIDGE = "/api/auth/login-bridge";
 
@@ -297,8 +298,8 @@ function LoginPageContent() {
         title="Staff sign-in"
         description={
           tenantGreeting
-            ? `Email plus your PIN or password — same form either way. Branch for ${tenantGreeting} applies automatically.`
-            : "Email plus your PIN or password — same form either way. Your branch is applied automatically."
+            ? `Sign in with email and your till PIN or office password. Your branch at ${shortBrandName(tenantGreeting)} is applied automatically.`
+            : "Sign in with email and your till PIN or office password. Your branch is applied automatically."
         }
       />
 
@@ -308,7 +309,7 @@ function LoginPageContent() {
       {!tenant && !showOnboarding && !IS_DESKTOP ? (
         <button
           type="button"
-          className="mt-4 flex w-full items-center gap-3 rounded-xl border border-[var(--auth-accent)]/40 bg-[color-mix(in_srgb,var(--auth-accent)_8%,white)] px-4 py-3.5 text-left transition hover:bg-[color-mix(in_srgb,var(--auth-accent)_14%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_12%,#18181b)] dark:hover:bg-[color-mix(in_srgb,var(--auth-accent)_20%,#18181b)]"
+          className="mt-5 flex w-full items-center gap-3 rounded-lg border border-[var(--auth-accent)]/35 bg-[color-mix(in_srgb,var(--auth-accent)_6%,white)] px-4 py-3.5 text-left transition-[background-color,border-color] duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--auth-accent)_11%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_10%,#18181b)] dark:hover:bg-[color-mix(in_srgb,var(--auth-accent)_16%,#18181b)]"
           onClick={() => {
             setShowOnboarding(true);
             setErrorMessage("");
@@ -461,7 +462,7 @@ function LoginPageContent() {
       ) : (
         <>
           <form
-            className="mt-6 space-y-4"
+            className="mt-6 space-y-5"
             action={LOGIN_BRIDGE}
             method="POST"
             noValidate
@@ -529,7 +530,7 @@ function LoginPageContent() {
                 />
                 <button
                   type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/10"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-[color,background-color] duration-200 ease-out hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/10"
                   onClick={() => setShowSecret((s) => !s)}
                   aria-label={showSecret ? "Hide secret" : "Show secret"}
                 >
@@ -566,12 +567,12 @@ function LoginPageContent() {
             </button>
           </form>
 
-          <div className="mt-8 space-y-2 border-t border-black/[0.08] pt-5 text-center dark:border-white/10">
-            <p className="text-sm text-muted-foreground">
+          <div className="mt-10 space-y-2.5 border-t border-black/[0.06] pt-6 text-center dark:border-white/10">
+            <p className="text-[13px] text-muted-foreground">
               Shopping online?{" "}
               <Link
                 href={APP_ROUTES.login}
-                className="font-medium text-foreground underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
+                className="font-medium text-foreground underline decoration-[var(--auth-accent)] decoration-2 underline-offset-[3px] transition-opacity duration-200 ease-out hover:opacity-80"
               >
                 Customer sign-in
               </Link>

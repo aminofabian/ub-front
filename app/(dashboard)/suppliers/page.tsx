@@ -72,6 +72,7 @@ import {
 import { NewSupplierForm } from "./_components/NewSupplierForm";
 import { SupDrawerFooter, SupMobileSelectionBar } from "./_components/supplier-layout-primitives";
 import { SupplierPageHeader } from "./_components/SupplierPageHeader";
+import { SupplierPageLayout } from "./_components/supplier-page-layout";
 import { SupplierWorkspaceEmpty } from "./_components/SupplierWorkspaceEmpty";
 import { AdvanceDepositDrawer } from "../supplies/_components/advance-deposit-drawer";
 import { NewSupplyDrawer } from "../supplies/_components/new-supply-drawer";
@@ -904,12 +905,13 @@ export default function SuppliersPage() {
   ] as const;
 
   return (
-    <div
-      className={cn(
-        "relative mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-2.5 pb-20",
-        isLg && "h-full min-h-0 max-w-none gap-2 overflow-hidden pb-0",
-      )}
-    >
+    <SupplierPageLayout>
+      <div
+        className={cn(
+          "relative flex min-h-0 w-full min-w-0 flex-col gap-3 pb-20",
+          isLg && "h-full min-h-0 flex-1 overflow-hidden pb-0",
+        )}
+      >
       <SupplierPageHeader
         canWrite={canWrite}
         canOpenNewSupply={canOpenNewSupply}
@@ -950,29 +952,25 @@ export default function SuppliersPage() {
             className={cn(
               "flex min-h-0 min-w-0 flex-col",
               isLg
-                ? cn(
-                    "overflow-hidden border-r-2 border-[color-mix(in_srgb,var(--border)_80%,#94a3b8)]",
-                    "bg-[color-mix(in_srgb,#eef2f7_55%,var(--card))] dark:border-border dark:bg-muted/20",
-                  )
+                ? "overflow-hidden border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_35%,transparent)]"
                 : "max-h-[min(70dvh,32rem)] sm:max-h-[calc(100dvh-12rem)]",
             )}
           >
-              <div
+            <div
               className={cn(
-                "flex shrink-0 flex-col gap-1.5 border-b border-border bg-[#eef2f7]/80] px-2 py-1.5 dark:bg-muted/25",
-                isLg && "gap-1 px-2 py-1.5",
+                "flex shrink-0 flex-col gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-shelf,#f3f6f5)_50%,transparent)] px-3 py-2.5",
               )}
             >
               <div className="relative">
                 <Search
-                  className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70"
+                  className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
                   aria-hidden
                 />
                 <input
                   id="supplier-directory-search"
                   className={cn(
                     dashboardInputClass(listLoadingInitial),
-                    "h-8 rounded-none border-border bg-background pl-8 text-sm focus-visible:ring-1 focus-visible:ring-primary/30",
+                    "h-9 rounded-md border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]",
                   )}
                   placeholder="Search name or code…"
                   value={listSearch}
@@ -980,13 +978,13 @@ export default function SuppliersPage() {
                   aria-label="Search suppliers"
                 />
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <div
-                  className="flex min-w-0 flex-1 flex-wrap"
+                  className="flex min-w-0 flex-1 flex-wrap gap-1"
                   role="group"
                   aria-label="Filter by status"
                 >
-                  {statusOptions.map((opt, i) => {
+                  {statusOptions.map((opt) => {
                     const active = statusFilter === opt.value;
                     return (
                       <button
@@ -995,11 +993,10 @@ export default function SuppliersPage() {
                         disabled={listLoadingInitial}
                         onClick={() => setStatusFilter(opt.value)}
                         className={cn(
-                          "border border-border px-2 py-0.5 text-[11px] font-semibold transition-colors",
-                          i > 0 && "-ml-px",
+                          "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
                           active
-                            ? "relative z-[1] border-primary/40 bg-primary text-primary-foreground"
-                            : "bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                            ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_30%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white"
+                            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                         )}
                       >
                         {opt.label}
@@ -1012,8 +1009,8 @@ export default function SuppliersPage() {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "shrink-0 rounded-none border border-border bg-background px-1.5 text-muted-foreground hover:text-foreground",
-                    isLg ? "size-7" : "h-7 gap-1 px-2 text-xs",
+                    "shrink-0 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                    isLg ? "size-8" : "h-8 gap-1 px-2.5 text-xs",
                   )}
                   disabled={listLoadingInitial}
                   onClick={() => void refreshFullDirectory()}
@@ -1121,7 +1118,7 @@ export default function SuppliersPage() {
 
           {isLg ? (
             !detail ? (
-              <aside className="flex min-h-0 flex-col overflow-hidden border-l border-border/60 bg-card">
+              <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/70">
                 <SupplierWorkspaceEmpty
                   canWrite={canWrite}
                   canOpenNewSupply={canOpenNewSupply}
@@ -1141,7 +1138,7 @@ export default function SuppliersPage() {
                 <aside
                   className={cn(
                     "flex min-h-0 flex-col overflow-hidden bg-card",
-                    !isXl && "border-l border-border/60",
+                    !isXl && "border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
                   )}
                 >
                   <div className={cn(supPanelHeader)}>
@@ -1205,7 +1202,7 @@ export default function SuppliersPage() {
                   </div>
                 </aside>
                 {isXl ? (
-                  <aside className="flex min-h-0 flex-col overflow-hidden border-l border-border/60 bg-card">
+                  <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/70">
                     <div className={cn(supPanelHeader)}>
                       <div className="flex min-w-0 flex-1 items-center gap-2">
                         {selectedInvoice ? (
@@ -1280,7 +1277,7 @@ export default function SuppliersPage() {
       </div>
 
       {!isLg && !detail ? (
-        <div className="overflow-hidden border border-border bg-card">
+        <div className="overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/80 shadow-sm">
           <SupplierWorkspaceEmpty
             compact
             canWrite={canWrite}
@@ -1658,6 +1655,7 @@ export default function SuppliersPage() {
           initialSupplierId={detail?.id ?? selectedId}
         />
       ) : null}
-    </div>
+      </div>
+    </SupplierPageLayout>
   );
 }

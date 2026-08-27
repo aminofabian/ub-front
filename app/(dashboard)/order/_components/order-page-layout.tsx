@@ -2,16 +2,11 @@
 
 import type { ReactNode } from "react";
 
-import { OrderSubNav } from "./order-sub-nav";
+import {
+  PROCUREMENT_VARS,
+  ProcurementHubNav,
+} from "@/components/procurement/procurement-hub-nav";
 import { cn } from "@/lib/utils";
-
-const ORDER_VARS = {
-  ["--pos-primary" as string]: "#0f766e",
-  ["--order-ink" as string]: "#15231f",
-  ["--order-shelf" as string]: "#f3f6f5",
-  ["--order-slip" as string]: "#ffffff",
-  ["--order-accent" as string]: "#0d9488",
-} as const;
 
 export function OrderPageLayout({
   children,
@@ -32,7 +27,7 @@ export function OrderPageLayout({
         "relative mx-auto w-full max-w-[1400px] px-3 pb-6 pt-3 sm:px-5 sm:pb-8 sm:pt-4",
         className,
       )}
-      style={ORDER_VARS}
+      style={PROCUREMENT_VARS}
     >
       <div
         aria-hidden
@@ -41,7 +36,7 @@ export function OrderPageLayout({
 
       <div className="relative space-y-4">
         <div className="rounded-xl border border-[color-mix(in_srgb,var(--order-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip)_92%,transparent)] p-1 shadow-[0_1px_0_color-mix(in_srgb,var(--order-ink)_6%,transparent),0_12px_40px_-24px_color-mix(in_srgb,var(--order-ink)_18%,transparent)] backdrop-blur-sm">
-          <OrderSubNav />
+          <ProcurementHubNav columns={2} />
         </div>
 
         {showHeader && title ? (
@@ -66,4 +61,4 @@ export function OrderPageLayout({
   );
 }
 
-export { ORDER_VARS };
+export { PROCUREMENT_VARS as ORDER_VARS };
