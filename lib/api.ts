@@ -47,9 +47,11 @@ import type {
   MobilePublishStatus,
   MyMobileConfigResponse,
 } from "@/lib/public-mobile-config";
+import { notifyBranchRequired } from "@/lib/branch-guidance";
 import {
   parseProblem,
   formatApiProblemMessage,
+  getBranchGuidanceKind,
   isSessionRelatedProblem,
 } from "@/lib/problem";
 import { toast } from "sonner";
@@ -116,6 +118,11 @@ function notifyHttpErrorToast(message: string) {
   }
   if (isOpsInfraMessage(message)) {
     recordOpsClientError({ message, kind: "api_config" });
+    return;
+  }
+  const branchKind = getBranchGuidanceKind(message);
+  if (branchKind) {
+    notifyBranchRequired(branchKind);
     return;
   }
   const lines = message.split("\n");

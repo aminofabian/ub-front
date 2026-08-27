@@ -1,11 +1,13 @@
 "use client";
 
 import { apiRequest, ApiRequestError } from "@/lib/api";
+import { notifyBranchRequired } from "@/lib/branch-guidance";
 import {
   isOpsInfraError,
   isOpsInfraMessage,
   USER_API_UNREACHABLE_MESSAGE,
 } from "@/lib/ops-client-log";
+import { getBranchGuidanceKind } from "@/lib/problem";
 import { toast } from "sonner";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -172,6 +174,11 @@ export function toastCaughtGroceryError(error: unknown, fallback: string): void 
         ? error.message
         : fallback;
   if (!msg.trim() || isOpsInfraMessage(msg)) return;
+  const branchKind = getBranchGuidanceKind(msg);
+  if (branchKind) {
+    notifyBranchRequired(branchKind);
+    return;
+  }
   toast.error(msg);
 }
 
@@ -215,7 +222,12 @@ async function groceryRequest<T>(
         ? e.message
         : USER_API_UNREACHABLE_MESSAGE;
     if (options.suppressToast !== true && msg.trim() && !isOpsInfraMessage(msg)) {
-      toast.error(msg, { duration: 10_000 });
+      const branchKind = getBranchGuidanceKind(msg);
+      if (branchKind) {
+        notifyBranchRequired(branchKind);
+      } else {
+        toast.error(msg, { duration: 10_000 });
+      }
     }
     throw new GroceryApiError(msg, 0, null, {
       silent: isOpsInfraMessage(msg),

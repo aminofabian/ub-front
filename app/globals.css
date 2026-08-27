@@ -340,6 +340,28 @@
     animation: tablet-header-lip-draw 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
 }
 
+/* Point at the branch picker while the missing-location banner is up. */
+html[data-branch-nudge="pick"] select[data-shell-branch-select] {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 38%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html[data-branch-nudge="pick"] select[data-shell-branch-select] {
+        animation: branch-select-nudge 1.6s ease-in-out 2;
+    }
+}
+
+@keyframes branch-select-nudge {
+    0%,
+    100% {
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 38%, transparent);
+    }
+    50% {
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 18%, transparent);
+    }
+}
+
 @keyframes tablet-header-stamp-in {
     from {
         opacity: 0;

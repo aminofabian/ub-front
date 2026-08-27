@@ -555,6 +555,8 @@ function MoreWorkspaceConsole({
                 value={branchId}
                 onChange={(e) => onBranchChange(e.target.value)}
                 disabled={branchesLoading || branches.length === 0}
+                aria-label="Select branch"
+                data-shell-branch-select=""
               >
                 {branches.length === 0 ? (
                   <option value="">

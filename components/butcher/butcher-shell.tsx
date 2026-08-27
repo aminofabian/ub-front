@@ -19,6 +19,7 @@ import {
   useButcherTheme,
 } from "@/components/butcher/butcher-theme-provider";
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { logoutRemoteAndRedirectToLogin } from "@/lib/api";
@@ -202,6 +203,8 @@ function ButcherShellFrame({ children }: ButcherShellProps) {
           </div>
         </div>
       </header>
+
+      <BranchRequiredBanner />
 
       <ButcherNav />
 

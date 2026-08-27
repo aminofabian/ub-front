@@ -25,6 +25,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
@@ -54,6 +55,7 @@ import {
 } from "@/lib/supplier-access";
 import { BUTCHER_POS_FEATURE_FLAG, isButcherPosEnabled } from "@/lib/butcher-feature";
 import { logoutRemoteAndRedirectToLogin } from "@/lib/api";
+import { OPEN_SHELL_MORE_EVENT } from "@/lib/branch-guidance";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
@@ -1022,6 +1024,12 @@ export function AppShell({ children }: AppShellProps) {
 
   const [moreOpen, setMoreOpen] = useState(false);
 
+  useEffect(() => {
+    const onOpenMore = () => setMoreOpen(true);
+    window.addEventListener(OPEN_SHELL_MORE_EVENT, onOpenMore);
+    return () => window.removeEventListener(OPEN_SHELL_MORE_EVENT, onOpenMore);
+  }, []);
+
   const onLogout = async () => {
     await logoutRemoteAndRedirectToLogin();
   };
@@ -1399,6 +1407,7 @@ export function AppShell({ children }: AppShellProps) {
                 onChange={(e) => setBranchId(e.target.value)}
                 disabled={branchesLoading || branches.length === 0}
                 aria-label="Select branch"
+                data-shell-branch-select=""
               >
                 {branches.length === 0 ? (
                   <option value="">
@@ -1491,6 +1500,7 @@ export function AppShell({ children }: AppShellProps) {
 
         {IS_DESKTOP ? <DesktopLicenseBanner /> : null}
         <ImpersonationBanner />
+        <BranchRequiredBanner />
 
         {/* ── Main content ───────────────────────────────────────────────────── */}
         <main

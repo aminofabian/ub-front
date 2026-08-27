@@ -8,6 +8,7 @@ import { Lock, LockKeyhole, MapPin, Settings2 } from "lucide-react";
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
 import { RegisterTillControl } from "@/components/auth/register-till-control";
 import { CashierAdminCapabilitiesModal } from "@/components/cashier/cashier-admin-capabilities-modal";
+import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import { PushNotificationsEnable } from "@/components/push-notifications-enable";
 import { RealtimeConnectionIndicator } from "@/components/realtime-connection-indicator";
 import { Button } from "@/components/ui/button";
@@ -197,6 +198,7 @@ export function CashierShell({ children }: CashierShellProps) {
                   onChange={(e) => setBranchId(e.target.value)}
                   disabled={branchesLoading || branches.length === 0}
                   aria-label="Select branch"
+                  data-shell-branch-select=""
                 >
                   {branches.length === 0 ? (
                     <option value="">
@@ -312,6 +314,7 @@ export function CashierShell({ children }: CashierShellProps) {
           </div>
         </div>
       </header>
+      <BranchRequiredBanner />
       <main
         className={cn(
           "mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden",

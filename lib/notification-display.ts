@@ -85,6 +85,58 @@ function resolvePayload(data: NotificationPayload): NotificationPayload | null {
   return parseJsonObject(data.payloadJson);
 }
 
+/** Fallback destinations when payload omits actionUrl (or welcome still points at hub). */
+function defaultActionUrl(notificationType: string): string {
+  switch (notificationType) {
+    case "account.welcome":
+      return "/support";
+    case "onboarding.fill_shelf":
+      return "/products/catalog";
+    case "onboarding.sizes_right":
+    case "onboarding.lookalike":
+      return "/products";
+    case "onboarding.money_loop":
+      return "/suppliers";
+    case "onboarding.first_sale":
+      return "/cashier";
+    case "onboarding.go_live":
+      return "/business/settings";
+    case "onboarding.team_rhythm":
+      return "/business/team";
+    case "onboarding.week_checkin":
+    case "onboarding.reengage":
+      return "/business";
+    case "onboarding.close_shift":
+      return "/shifts";
+    case "onboarding.web_order":
+      return "/storefront/web-orders";
+    default:
+      return "";
+  }
+}
+
+function resolveActionUrl(
+  notificationType: string,
+  data: NotificationPayload,
+  payload: NotificationPayload | null,
+): string {
+  const raw =
+    readString(data.actionUrl) ||
+    readString(payload?.actionUrl) ||
+    readString(data.action_url) ||
+    readString(payload?.action_url) ||
+    defaultActionUrl(notificationType);
+  // Legacy welcome payloads used /business — after signup that route is already open,
+  // so the bell looked broken. Send them to Support instead.
+  if (
+    notificationType === "account.welcome" &&
+    (raw === "" || raw === "/business" || raw === "/")
+  ) {
+    return "/support";
+  }
+  return raw;
+}
+
 function formatMoney(value: string, currency = "KES"): string {
   const amount = Number(value);
   if (!Number.isFinite(amount)) {
@@ -268,8 +320,7 @@ export function getNotificationPresentation(data: NotificationPayload): {
     readString(data.body) ||
     readString(payload?.body) ||
     formatPayloadBody(notificationType, payload);
-  const actionUrl =
-    readString(data.actionUrl) || readString(payload?.actionUrl);
+  const actionUrl = resolveActionUrl(notificationType, data, payload);
 
   return { title, body, actionUrl };
 }

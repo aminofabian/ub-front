@@ -49,6 +49,7 @@ import {
 
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlag, useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
@@ -1536,6 +1537,8 @@ export function GroceryWorkspace() {
           </div>
         </div>
       </header>
+
+      <BranchRequiredBanner />
 
       {/* ── Error Toast ── */}
       {error && (

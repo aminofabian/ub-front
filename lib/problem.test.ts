@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   formatApiProblemMessage,
+  getBranchGuidanceKind,
   isItemNotFoundProblem,
   isSessionRelatedProblem,
   isTenantContextMissingProblem,
@@ -250,5 +251,38 @@ describe("isUnmappedTenantHostProblem", () => {
         detail: "Item not found",
       }),
     ).toBe(false);
+  });
+});
+
+describe("getBranchGuidanceKind", () => {
+  it("matches the top-bar shop-location coaching copy", () => {
+    expect(
+      getBranchGuidanceKind(
+        "Choose a shop location first — pick a branch in the top bar, then try again.",
+      ),
+    ).toBe("pick");
+  });
+
+  it("matches grocery filter copy", () => {
+    expect(
+      getBranchGuidanceKind(
+        "Choose a shop location first — pick a branch in the filter, then try again.",
+      ),
+    ).toBe("pick");
+  });
+
+  it("matches locked-role assignment copy", () => {
+    expect(
+      getBranchGuidanceKind(
+        "Your account needs a shop location. Ask an owner to assign you a branch, then try again.",
+      ),
+    ).toBe("assign");
+  });
+
+  it("ignores unrelated branch errors", () => {
+    expect(
+      getBranchGuidanceKind("Branch not found or not in this business"),
+    ).toBe(null);
+    expect(getBranchGuidanceKind("Branch is required to confirm")).toBe(null);
   });
 });

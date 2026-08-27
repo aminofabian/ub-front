@@ -29,6 +29,7 @@ import {
 import Link from "next/link";
 
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
+import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import {
   GroceryAppBottomNav,
   GROCERY_TAB_BAR_CLEARANCE,
@@ -452,6 +453,7 @@ export default function GroceryInvoicesPage() {
         className="grocery-app-stage relative mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col overflow-hidden bg-background"
         style={{ paddingBottom: GROCERY_TAB_BAR_CLEARANCE }}
       >
+        <BranchRequiredBanner />
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-3 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:gap-5 sm:px-5 sm:pt-4">
       {/* ── Compact app header ───────────────────────────────────────── */}
       <section className="relative shrink-0 border-b border-border/60 pb-3">

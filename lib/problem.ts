@@ -292,6 +292,10 @@ export function getProblemTitle(payload: unknown): string {
     if (friendlyOtp) {
       return friendlyOtp;
     }
+    const friendlyBranch = friendlyBranchRequiredMessage(problem.title);
+    if (friendlyBranch) {
+      return friendlyBranch;
+    }
     return problem.title;
   }
 
@@ -317,20 +321,53 @@ function friendlyOtpDeliveryMessage(text: string): string | null {
   return null;
 }
 
-/** Soften harsh branch-resolution copy into actionable guidance. */
-function friendlyBranchRequiredMessage(detail: string): string | null {
-  const normalized = detail.trim().toLowerCase();
-  if (!normalized.includes("branch is required")) {
+/**
+ * Branch-resolution coaching — missing location, not a hard failure.
+ * Shown as a shell banner instead of an error toast.
+ */
+export type BranchGuidanceKind = "pick" | "assign";
+
+export function getBranchGuidanceKind(
+  text: string,
+): BranchGuidanceKind | null {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) {
     return null;
   }
-  if (normalized.includes("assign you a branch")) {
-    return "Your account needs a shop location. Ask an owner to assign you a branch, then try again.";
+  if (
+    normalized.includes("assign you a branch") ||
+    normalized.includes("not assigned to a branch") ||
+    normalized.includes("needs a shop location")
+  ) {
+    return "assign";
   }
   if (
-    normalized.includes("select a branch") ||
-    normalized.includes("contact your administrator")
+    normalized.includes("choose a shop location first") ||
+    normalized.includes("pick a branch in the top bar") ||
+    normalized.includes("pick a branch in the filter") ||
+    normalized.includes("select a branch before adding") ||
+    (normalized.includes("branch is required") &&
+      (normalized.includes("select a branch") ||
+        normalized.includes("contact your administrator") ||
+        normalized.includes("try again")))
   ) {
+    return "pick";
+  }
+  return null;
+}
+
+export function isBranchGuidanceMessage(text: string): boolean {
+  return getBranchGuidanceKind(text) != null;
+}
+
+/** Soften harsh branch-resolution copy into actionable guidance. */
+function friendlyBranchRequiredMessage(detail: string): string | null {
+  const kind = getBranchGuidanceKind(detail);
+  if (kind === "assign") {
+    return "Your account needs a shop location. Ask an owner to assign you a branch, then try again.";
+  }
+  if (kind === "pick") {
     return "Choose a shop location first — pick a branch in the top bar, then try again.";
   }
-  return "Choose a shop location first, then try again.";
+  return null;
 }

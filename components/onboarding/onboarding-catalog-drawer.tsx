@@ -449,7 +449,7 @@ export function OnboardingCatalogDrawer({
       setErrorMessage(
         error instanceof Error
           ? error.message.toLowerCase().includes("branch")
-            ? "Choose a shop location first — pick a branch in the top bar, then import again."
+            ? "Choose a shop location first. Pick a branch, then import again."
             : error.message
           : "Could not import products. Try again.",
       );
