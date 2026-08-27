@@ -1190,7 +1190,7 @@ export function TenantOrderWorkspace({
         "relative flex w-full flex-col overflow-hidden font-sans text-[var(--order-ink,#15231f)]",
         embedded
           ? "h-full min-h-0 flex-1 border-0"
-          : "h-[calc(100dvh-12.25rem)] min-h-[20rem] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] sm:h-[min(68dvh,46rem)]",
+          : "h-[calc(100dvh-15.5rem)] min-h-[28rem] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] shadow-[0_1px_0_color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent),0_16px_48px_-28px_color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] sm:h-[min(68dvh,46rem)] sm:rounded-xl",
       )}
       style={{
         ["--pos-primary" as string]: "#0f766e",

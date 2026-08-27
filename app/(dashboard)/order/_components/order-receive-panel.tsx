@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Check,
+  ClipboardList,
   Copy,
   FileDown,
   Loader2,
@@ -640,106 +641,184 @@ export function OrderReceivePanel({
   return (
     <div
       className={cn(
-        "flex min-h-[28rem] flex-col overflow-hidden bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] lg:flex-row",
+        "relative flex min-h-[28rem] flex-col overflow-hidden font-sans text-[var(--order-ink,#15231f)] lg:flex-row",
         embedded
-          ? "h-[min(82dvh,52rem)] border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]"
-          : "h-[min(78dvh,56rem)] border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+          ? "h-[min(82dvh,52rem)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
+          : "h-[calc(100dvh-16rem)] min-h-[32rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] shadow-[0_1px_0_color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent),0_16px_48px_-28px_color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] sm:h-[min(72dvh,54rem)]",
       )}
-      style={{ ["--pos-primary" as string]: "#0f766e" }}
+      style={{
+        ["--pos-primary" as string]: "#0f766e",
+        ["--order-ink" as string]: "#15231f",
+        ["--order-shelf" as string]: "#f3f6f5",
+        ["--order-slip" as string]: "#ffffff",
+      }}
     >
-      <aside className="flex max-h-[35%] w-full shrink-0 flex-col overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] lg:max-h-none lg:w-[16rem] lg:border-b-0 lg:border-r">
-        <div className="flex h-8 items-center justify-between bg-[var(--pos-primary,#0f766e)] px-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
-          <span>Open orders</span>
-          <span className="font-mono tabular-nums opacity-80">{orders.length}</span>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_20%_-10%,color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,transparent),transparent_55%),linear-gradient(180deg,var(--order-shelf,#f3f6f5),color-mix(in_srgb,var(--order-shelf,#f3f6f5)_70%,#fff))]"
+      />
+
+      <aside className="relative z-[1] flex max-h-[38%] w-full shrink-0 flex-col overflow-hidden border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_72%,transparent)] backdrop-blur-[2px] lg:max-h-none lg:w-[19rem] lg:border-b-0 lg:border-r xl:w-[21rem]">
+        <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] px-3 py-2.5">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
+              Open orders
+            </p>
+            <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+              Awaiting delivery
+            </p>
+          </div>
+          <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-[var(--order-ink,#15231f)] px-2 font-mono text-[11px] font-bold tabular-nums text-white">
+            {orders.length}
+          </span>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-1">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-width:thin]">
           {loading ? (
-            <p className="px-2 py-6 text-center text-[11px] text-muted-foreground">
-              <Loader2 className="mr-1 inline size-3 animate-spin" />
-              Loading…
+            <p className="flex items-center justify-center gap-2 px-2 py-10 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
+              <Loader2 className="size-4 animate-spin" />
+              Loading orders…
             </p>
           ) : orders.length === 0 ? (
-            <div className="px-2 py-8 text-center text-[11px] text-muted-foreground">
-              <p>No open orders.</p>
+            <div className="mx-1 rounded-lg border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white/50 px-4 py-10 text-center">
+              <Package className="mx-auto size-8 text-[color-mix(in_srgb,var(--order-ink,#15231f)_20%,transparent)]" />
+              <p className="mt-3 text-[13px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+                No open orders yet
+              </p>
               <Link
                 href={APP_ROUTES.order}
-                className="mt-2 inline-block text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                className="mt-3 inline-flex h-9 items-center rounded-md bg-[var(--pos-primary,#0f766e)] px-4 text-[12px] font-semibold text-white transition hover:bg-[#0d6b63]"
               >
                 Place an order
               </Link>
             </div>
           ) : (
-            orders.map((o) => {
-              const name =
-                suppliers.find((s) => s.id === o.supplierId)?.name ?? "Supplier";
-              return (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => setSelectedId(o.id)}
-                  className={cn(
-                    "mb-0.5 flex w-full flex-col items-start gap-0.5 border px-2 py-2 text-left",
-                    selectedId === o.id
-                      ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)]"
-                      : "border-transparent hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]",
-                  )}
-                >
-                  <span className="font-mono text-[10px] text-muted-foreground">
-                    {o.poNumber} · {o.status}
-                  </span>
-                  <span className="text-[12px] font-semibold">{name}</span>
-                  <span className="font-mono text-[10px] text-muted-foreground">
-                    {o.lineCount} lines · ordered {toNum(o.totalOrdered)}
-                  </span>
-                  <span className="font-mono text-[9px] text-muted-foreground/80">
-                    {formatOrderCreatedAt(o.createdAt)}
-                  </span>
-                </button>
-              );
-            })
+            <ul className="space-y-1.5">
+              {orders.map((o) => {
+                const name =
+                  suppliers.find((s) => s.id === o.supplierId)?.name ??
+                  "Supplier";
+                const active = selectedId === o.id;
+                const isSent = o.status === "sent";
+                return (
+                  <li key={o.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(o.id)}
+                      className={cn(
+                        "group relative flex w-full flex-col gap-1.5 overflow-hidden rounded-lg border px-3 py-2.5 text-left transition-[border-color,background-color,box-shadow] duration-200",
+                        active
+                          ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-white shadow-[0_8px_24px_-16px_color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)]"
+                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white/60 hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] hover:bg-white",
+                      )}
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "absolute inset-y-2 left-0 w-1 rounded-r-full transition-colors",
+                          active
+                            ? "bg-[var(--pos-primary,#0f766e)]"
+                            : "bg-transparent group-hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+                        )}
+                      />
+                      <div className="flex items-start justify-between gap-2 pl-1.5">
+                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                          {o.poNumber}
+                        </span>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em]",
+                            isSent
+                              ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)]"
+                              : "bg-amber-100 text-amber-900",
+                          )}
+                        >
+                          {o.status}
+                        </span>
+                      </div>
+                      <span className="pl-1.5 text-[13px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
+                        {name}
+                      </span>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-1.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                        <span>
+                          {o.lineCount} lines · {toNum(o.totalOrdered)} ordered
+                        </span>
+                      </div>
+                      <span className="pl-1.5 font-mono text-[9px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
+                        {formatOrderCreatedAt(o.createdAt)}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-3 py-2">
+      <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_78%,transparent)] px-4 py-3 backdrop-blur-[2px] sm:items-center">
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]">
               Confirm → supply
             </p>
-            <h2 className="truncate text-[15px] font-semibold">
+            <h2 className="mt-0.5 truncate font-heading text-[17px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
               {detail ? `${detail.poNumber} · ${supplierName}` : "Select an order"}
             </h2>
             {detail ? (
-              <p className="font-mono text-[10px] text-muted-foreground">
+              <p className="mt-1 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                 Created {formatOrderCreatedAt(selectedOrderCreatedAt)}
               </p>
-            ) : null}
+            ) : (
+              <p className="mt-1 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                Pick an order from the list to review lines.
+              </p>
+            )}
           </div>
-          <Link
-            href={APP_ROUTES.order}
-            className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--pos-primary,#0f766e)] hover:underline"
-          >
-            New order
-          </Link>
+          {!embedded ? (
+            <Link
+              href={APP_ROUTES.order}
+              className="inline-flex h-9 shrink-0 items-center rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]"
+            >
+              New order
+            </Link>
+          ) : null}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
           {detailLoading ? (
-            <p className="flex items-center justify-center gap-2 py-16 text-[12px] text-muted-foreground">
+            <p className="flex items-center justify-center gap-2 py-20 text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
               <Loader2 className="size-4 animate-spin" />
               Loading lines…
             </p>
           ) : !detail ? (
-            <p className="py-16 text-center text-[12px] text-muted-foreground">
-              Pick an open order to confirm lines.
-            </p>
+            <div className="flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 px-6 text-center">
+              <ClipboardList
+                className="size-9 text-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]"
+                strokeWidth={1.25}
+              />
+              <p className="max-w-xs text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
+                Select an open order to adjust prices, quantities, and confirm delivery.
+              </p>
+            </div>
           ) : openLines.length === 0 ? (
-            <p className="py-16 text-center text-[12px] text-muted-foreground">
-              All lines on this order are already received.
-            </p>
+            <div className="flex h-full min-h-[14rem] flex-col items-center justify-center gap-2 px-6 text-center">
+              <Check className="size-8 text-[var(--pos-primary,#0f766e)]/50" />
+              <p className="text-[13px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+                All lines received
+              </p>
+              <p className="text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                This purchase order is fully received.
+              </p>
+            </div>
           ) : (
-            <ul className="divide-y divide-dashed divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
+            <>
+              <div className="sticky top-0 z-[2] hidden grid-cols-[minmax(0,1fr)_7rem_6.5rem_5.5rem] gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_88%,transparent)] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] backdrop-blur-sm lg:grid">
+                <span>Item</span>
+                <span className="text-center">Unit price</span>
+                <span className="text-center">Receive qty</span>
+                <span className="text-right">Line total</span>
+              </div>
+              <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]">
               {openLines.map((line) => {
                 const remaining =
                   toNum(line.qtyOrdered) - toNum(line.qtyReceived);
@@ -751,167 +830,182 @@ export function OrderReceivePanel({
                 const name = meta?.name ?? line.itemId.slice(0, 8);
                 const thumb = posTileThumbUrl(name, meta?.thumbnailUrl);
                 return (
-                  <li key={line.id} className="flex items-start gap-3 px-3 py-3">
-                    <button
-                      type="button"
-                      aria-pressed={checked}
-                      onClick={() =>
-                        setSelectedLines((prev) => ({
-                          ...prev,
-                          [line.id]: !prev[line.id],
-                        }))
-                      }
-                      className={cn(
-                        "mt-0.5 flex size-5 shrink-0 items-center justify-center border",
-                        checked
-                          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_20%,transparent)]",
-                      )}
-                    >
-                      {checked ? <Check className="size-3" /> : null}
-                    </button>
-                    <div className="relative size-12 shrink-0 overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]">
-                      {thumb ? (
-                        <Image
-                          src={thumb}
-                          alt=""
-                          fill
-                          sizes="48px"
-                          className="object-contain p-0.5"
-                          unoptimized
-                        />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center">
-                          <Package className="size-4 opacity-40" />
-                        </span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold leading-snug">
-                        {name}
-                      </p>
-                      <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                        Ordered {toNum(line.qtyOrdered)} · received{" "}
-                        {toNum(line.qtyReceived)}
-                      </p>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <label className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
-                          <span>Unit</span>
-                          <input
-                            className="w-16 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-1 py-0.5 text-center text-[11px] font-semibold text-foreground outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
-                            disabled={!checked || savingLineId === line.id}
-                            value={unit}
-                            onChange={(e) => {
-                              const n = Number.parseFloat(e.target.value);
-                              setPriceByLine((prev) => ({
-                                ...prev,
-                                [line.id]: Number.isFinite(n)
-                                  ? Math.max(0, n)
-                                  : 0,
-                              }));
-                            }}
-                            onBlur={(e) => {
-                              const n = Number.parseFloat(e.target.value);
-                              if (Number.isFinite(n) && n > 0) {
-                                void persistLinePrice(line.id, n);
-                              }
-                            }}
+                  <li
+                    key={line.id}
+                    className={cn(
+                      "grid gap-3 px-3 py-3 transition-colors sm:px-4 lg:grid-cols-[minmax(0,1fr)_7rem_6.5rem_5.5rem] lg:items-center lg:gap-3 lg:py-2.5",
+                      checked
+                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)]"
+                        : "bg-transparent",
+                    )}
+                  >
+                    <div className="flex min-w-0 items-start gap-3 lg:col-span-1">
+                      <button
+                        type="button"
+                        aria-pressed={checked}
+                        onClick={() =>
+                          setSelectedLines((prev) => ({
+                            ...prev,
+                            [line.id]: !prev[line.id],
+                          }))
+                        }
+                        className={cn(
+                          "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-[4px] border transition-colors",
+                          checked
+                            ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white",
+                        )}
+                      >
+                        {checked ? <Check className="size-3" /> : null}
+                      </button>
+                      <div className="relative size-11 shrink-0 overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white">
+                        {thumb ? (
+                          <Image
+                            src={thumb}
+                            alt=""
+                            fill
+                            sizes="44px"
+                            className="object-contain p-0.5"
+                            unoptimized
                           />
-                          <span>/ ea</span>
-                        </label>
-                        <p className="font-mono text-[12px] font-semibold tabular-nums">
-                          {formatMoney(amount, ORDER_CURRENCY)}
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center">
+                            <Package className="size-4 opacity-35" />
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
+                          {name}
+                        </p>
+                        <p className="mt-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                          Ordered {toNum(line.qtyOrdered)} · received{" "}
+                          {toNum(line.qtyReceived)}
                         </p>
                       </div>
                     </div>
-                    <div className="inline-flex shrink-0 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]">
-                      <button
-                        type="button"
-                        className="flex size-8 items-center justify-center"
-                        disabled={!checked}
-                        onClick={() =>
-                          setQtyByLine((prev) => ({
-                            ...prev,
-                            [line.id]: Math.max(0, qty - 1),
-                          }))
-                        }
-                      >
-                        <Minus className="size-3.5" />
-                      </button>
-                      <input
-                        className="w-12 border-0 bg-transparent text-center font-mono text-[13px] outline-none disabled:opacity-40"
-                        disabled={!checked}
-                        value={qty}
-                        onChange={(e) => {
-                          const n = Number.parseFloat(e.target.value);
-                          setQtyByLine((prev) => ({
-                            ...prev,
-                            [line.id]: Number.isFinite(n) ? Math.max(0, n) : 0,
-                          }));
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="flex size-8 items-center justify-center"
-                        disabled={!checked}
-                        onClick={() =>
-                          setQtyByLine((prev) => ({
-                            ...prev,
-                            [line.id]: qty + 1,
-                          }))
-                        }
-                      >
-                        <Plus className="size-3.5" />
-                      </button>
+
+                    <div className="flex items-center justify-between gap-2 pl-8 lg:contents">
+                      <label className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] lg:justify-center">
+                        <span className="lg:hidden">Unit</span>
+                        <input
+                          className="h-8 w-[4.5rem] rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)] disabled:opacity-40"
+                          disabled={!checked || savingLineId === line.id}
+                          value={unit}
+                          onChange={(e) => {
+                            const n = Number.parseFloat(e.target.value);
+                            setPriceByLine((prev) => ({
+                              ...prev,
+                              [line.id]: Number.isFinite(n)
+                                ? Math.max(0, n)
+                                : 0,
+                            }));
+                          }}
+                          onBlur={(e) => {
+                            const n = Number.parseFloat(e.target.value);
+                            if (Number.isFinite(n) && n > 0) {
+                              void persistLinePrice(line.id, n);
+                            }
+                          }}
+                        />
+                      </label>
+
+                      <div className="inline-flex items-center overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white lg:justify-self-center">
+                        <button
+                          type="button"
+                          className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
+                          disabled={!checked}
+                          onClick={() =>
+                            setQtyByLine((prev) => ({
+                              ...prev,
+                              [line.id]: Math.max(0, qty - 1),
+                            }))
+                          }
+                        >
+                          <Minus className="size-3.5" />
+                        </button>
+                        <input
+                          className="w-11 border-x border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-transparent text-center font-mono text-[13px] tabular-nums outline-none disabled:opacity-40"
+                          disabled={!checked}
+                          value={qty}
+                          onChange={(e) => {
+                            const n = Number.parseFloat(e.target.value);
+                            setQtyByLine((prev) => ({
+                              ...prev,
+                              [line.id]: Number.isFinite(n)
+                                ? Math.max(0, n)
+                                : 0,
+                            }));
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="flex size-8 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
+                          disabled={!checked}
+                          onClick={() =>
+                            setQtyByLine((prev) => ({
+                              ...prev,
+                              [line.id]: qty + 1,
+                            }))
+                          }
+                        >
+                          <Plus className="size-3.5" />
+                        </button>
+                      </div>
+
+                      <p className="pl-8 text-right font-mono text-[13px] font-bold tabular-nums text-[var(--order-ink,#15231f)] lg:pl-0">
+                        {formatMoney(amount, ORDER_CURRENCY)}
+                      </p>
                     </div>
                   </li>
                 );
               })}
-            </ul>
+              </ul>
+            </>
           )}
           {detail && !detailLoading ? (
-            <div className="border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] px-3 py-3">
+            <div className="mx-3 mb-3 mt-1 rounded-lg border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white/55 p-3 sm:mx-4">
               <button
                 type="button"
                 onClick={() => setAddItemOpen((v) => !v)}
-                className="inline-flex h-9 items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-3 text-[11px] font-semibold"
+                className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white text-[12px] font-semibold text-[var(--order-ink,#15231f)] transition hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] hover:text-[var(--pos-primary,#0f766e)] sm:w-auto sm:px-4"
               >
                 <Plus className="size-3.5" />
-                {addItemOpen ? "Hide add item" : "Add item"}
+                {addItemOpen ? "Hide catalog" : "Add item from catalog"}
               </button>
               {addItemOpen ? (
-                <div className="mt-2 space-y-2">
+                <div className="mt-3 space-y-2">
                   <div className="relative">
-                    <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
                     <input
-                      className="h-9 w-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background pl-8 pr-2 text-[12px] outline-none focus:border-[var(--pos-primary,#0f766e)]"
+                      className="h-10 w-full rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white pl-9 pr-3 text-[13px] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_15%,transparent)]"
                       placeholder="Search supplier catalog…"
                       value={addItemQuery}
                       onChange={(e) => setAddItemQuery(e.target.value)}
                     />
                   </div>
                   {addableLinks.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                       {supplierLinks.length === 0
                         ? "No supplier catalog loaded."
                         : "No matching items, or all catalog items are already on this order."}
                     </p>
                   ) : (
-                    <ul className="max-h-48 divide-y divide-dashed divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] overflow-y-auto border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]">
+                    <ul className="max-h-52 divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] overflow-y-auto rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white [scrollbar-width:thin]">
                       {addableLinks.map((link) => (
                         <li key={link.id}>
                           <button
                             type="button"
                             disabled={addingItemId === link.itemId}
                             onClick={() => void addItemToOrder(link)}
-                            className="flex w-full items-center justify-between gap-2 px-2 py-2 text-left text-[12px] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)] disabled:opacity-50"
+                            className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] disabled:opacity-50"
                           >
-                            <span className="min-w-0 truncate font-medium">
+                            <span className="min-w-0 truncate text-[13px] font-medium text-[var(--order-ink,#15231f)]">
                               {link.itemName}
                             </span>
-                            <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                            <span className="shrink-0 font-mono text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                               {addingItemId === link.itemId ? (
-                                <Loader2 className="size-3 animate-spin" />
+                                <Loader2 className="size-3.5 animate-spin" />
                               ) : (
                                 formatMoney(linkUnitCost(link), ORDER_CURRENCY)
                               )}
@@ -927,108 +1021,115 @@ export function OrderReceivePanel({
           ) : null}
         </div>
 
-        <div className="shrink-0 space-y-2 border-t-2 border-[var(--pos-ink,#1c1915)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] px-3 py-3">
-          <div className="flex items-end justify-between gap-2 px-0.5">
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                Selected total
-              </p>
-              <p className="font-mono text-[10px] text-muted-foreground">
-                {selectedUnits} unit{selectedUnits === 1 ? "" : "s"}
+        <div className="relative z-[1] shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-slip,#fff)_82%,transparent)] backdrop-blur-[2px]">
+          <div className="grid gap-4 p-4 lg:grid-cols-[1fr_17.5rem] lg:items-start">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="inline-flex h-9 items-center rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]"
+                  onClick={() => {
+                    const next: Record<string, boolean> = {};
+                    for (const l of openLines) next[l.id] = true;
+                    setSelectedLines(next);
+                  }}
+                >
+                  Select all
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex h-9 items-center rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]"
+                  onClick={() => setSelectedLines({})}
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <button
+                  type="button"
+                  disabled={shareBusy || shareLines.length === 0}
+                  onClick={() => void downloadOrderPdf()}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] disabled:opacity-40"
+                >
+                  {sharing === "pdf" ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <FileDown className="size-3.5" />
+                  )}
+                  PDF
+                </button>
+                <button
+                  type="button"
+                  disabled={shareBusy || shareLines.length === 0}
+                  onClick={() => void copyOrderList()}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] disabled:opacity-40"
+                >
+                  {sharing === "copy" ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Copy className="size-3.5" />
+                  )}
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  disabled={shareBusy || shareLines.length === 0}
+                  onClick={() => void sendOrderWhatsApp()}
+                  className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#128c4a] px-3 text-[12px] font-semibold text-white transition hover:bg-[#0f7a3f] disabled:opacity-50 sm:col-span-1"
+                >
+                  {sharing === "whatsapp" ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Opening…
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="size-3.5" />
+                      WhatsApp
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-[10px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                Share the order list or PDF with your supplier. Confirm posts a
+                goods receipt and supplier bill.
               </p>
             </div>
-            <p className="font-mono text-[18px] font-bold tabular-nums">
-              {formatMoney(selectedTotal, ORDER_CURRENCY)}
-            </p>
+
+            <div className="rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[var(--order-ink,#15231f)] p-3.5 text-white shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_10%,transparent)]">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color-mix(in_srgb,#fff_55%,transparent)]">
+                    Selected total
+                  </p>
+                  <p className="mt-1 font-mono text-[11px] text-[color-mix(in_srgb,#fff_62%,transparent)]">
+                    {selectedUnits} unit{selectedUnits === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <p className="font-mono text-[22px] font-bold tabular-nums leading-none">
+                  {formatMoney(selectedTotal, ORDER_CURRENCY)}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={confirming || openLines.length === 0}
+                onClick={() => void confirmSelected()}
+                className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--pos-primary,#0f766e)] text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
+              >
+                {confirming ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Posting supply…
+                  </>
+                ) : (
+                  <>
+                    <Check className="size-4" />
+                    Confirm → supply
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="inline-flex h-9 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-3 text-[11px] font-semibold"
-              onClick={() => {
-                const next: Record<string, boolean> = {};
-                for (const l of openLines) next[l.id] = true;
-                setSelectedLines(next);
-              }}
-            >
-              Select all
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-9 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-3 text-[11px] font-semibold"
-              onClick={() => setSelectedLines({})}
-            >
-              Clear
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={shareBusy || shareLines.length === 0}
-              onClick={() => void downloadOrderPdf()}
-              className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-3 text-[11px] font-semibold transition hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] disabled:opacity-40"
-            >
-              {sharing === "pdf" ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <FileDown className="size-3.5" />
-              )}
-              Download PDF
-            </button>
-            <button
-              type="button"
-              disabled={shareBusy || shareLines.length === 0}
-              onClick={() => void copyOrderList()}
-              className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-background px-3 text-[11px] font-semibold transition hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] disabled:opacity-40"
-            >
-              {sharing === "copy" ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Copy className="size-3.5" />
-              )}
-              Copy list
-            </button>
-          </div>
-          <button
-            type="button"
-            disabled={shareBusy || shareLines.length === 0}
-            onClick={() => void sendOrderWhatsApp()}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[#128c4a] px-4 text-sm font-semibold text-white transition hover:bg-[#0f7a3f] disabled:opacity-50"
-          >
-            {sharing === "whatsapp" ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Opening WhatsApp…
-              </>
-            ) : (
-              <>
-                <MessageCircle className="size-4" />
-                Send order on WhatsApp
-              </>
-            )}
-          </button>
-          <button
-            type="button"
-            disabled={confirming || openLines.length === 0}
-            onClick={() => void confirmSelected()}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[var(--pos-primary,#0f766e)] px-4 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {confirming ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Posting supply…
-              </>
-            ) : (
-              <>
-                <Check className="size-4" />
-                Confirm selected → supply
-              </>
-            )}
-          </button>
-          <p className="text-center text-[10px] text-muted-foreground">
-            WhatsApp opens with the order list; download the PDF to attach.
-            Confirm posts a goods receipt and supplier bill.
-          </p>
         </div>
       </div>
     </div>

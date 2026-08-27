@@ -11,11 +11,13 @@ const TABS = [
   {
     href: APP_ROUTES.order,
     label: "New order",
+    hint: "Build & send POs",
     icon: ShoppingCart,
   },
   {
     href: APP_ROUTES.orderReceive,
     label: "Confirm orders",
+    hint: "Receive & post supply",
     icon: ClipboardCheck,
   },
 ] as const;
@@ -25,10 +27,7 @@ export function OrderSubNav({ className }: { className?: string }) {
 
   return (
     <nav
-      className={cn(
-        "flex flex-wrap gap-1 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pb-2",
-        className,
-      )}
+      className={cn("grid grid-cols-2 gap-1 p-1", className)}
       aria-label="Order pages"
     >
       {TABS.map((tab) => {
@@ -42,14 +41,34 @@ export function OrderSubNav({ className }: { className?: string }) {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-semibold transition-colors",
+              "group relative flex min-h-[3.25rem] flex-col justify-center rounded-lg px-3 py-2.5 transition-[background-color,box-shadow,color] duration-200 sm:min-h-[3.5rem] sm:flex-row sm:items-center sm:gap-3 sm:px-4",
               active
-                ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)]"
-                : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] hover:text-foreground",
+                ? "bg-[var(--order-ink,#15231f)] text-white shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_12%,transparent)]"
+                : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] hover:text-[var(--order-ink,#15231f)]",
             )}
           >
-            <Icon className="size-3.5" aria-hidden />
-            {tab.label}
+            <span className="flex items-center gap-2">
+              <Icon
+                className={cn(
+                  "size-4 shrink-0 transition-transform duration-200 group-hover:scale-105",
+                  active ? "text-[color-mix(in_srgb,#fff_88%,transparent)]" : "",
+                )}
+                aria-hidden
+              />
+              <span className="text-[13px] font-semibold tracking-[-0.01em] sm:text-sm">
+                {tab.label}
+              </span>
+            </span>
+            <span
+              className={cn(
+                "mt-0.5 hidden text-[11px] sm:ml-auto sm:mt-0 sm:block",
+                active
+                  ? "text-[color-mix(in_srgb,#fff_62%,transparent)]"
+                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]",
+              )}
+            >
+              {tab.hint}
+            </span>
           </Link>
         );
       })}
