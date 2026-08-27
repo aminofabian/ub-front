@@ -74,11 +74,18 @@ import {
   fetchBusiness,
   getCloudinarySignature,
   updateBusiness,
+  updateMyBranding,
   uploadMyBrandingLogo,
+  clearMyBrandingLogo,
   uploadToCloudinary,
   type BusinessRecord,
   type StorefrontAiSuggestResponse,
 } from "@/lib/api";
+import { BRAND_ACCENT, BRAND_PRIMARY } from "@/lib/brand-colors";
+import {
+  BRANDING_COLOR_PRESETS,
+  brandingPresetMatches,
+} from "@/lib/branding-color-presets";
 import { APP_ROUTES, PLATFORM_DOMAIN, slugDerivedShopUrl } from "@/lib/config";
 import { trackStorefrontEditEvent } from "@/lib/storefront-staff-edit";
 import {
@@ -137,6 +144,221 @@ import {
 import { cn } from "@/lib/utils";
 
 const HEX_REGEX = /^#[0-9a-fA-F]{6}$/;
+const ACCEPTED_LOGO_TYPES = "image/png,image/jpeg,image/webp,image/svg+xml";
+const MAX_LOGO_BYTES = 4 * 1024 * 1024;
+
+function brandHexOrDefault(raw: string | null | undefined, fallback: string) {
+  const value = raw?.trim() ?? "";
+  return HEX_REGEX.test(value) ? value.toUpperCase() : fallback;
+}
+
+function StudioIdentityFields({
+  logoUrl,
+  logoBusy,
+  primary,
+  accent,
+  onPrimary,
+  onAccent,
+  onLogoFile,
+  onClearLogo,
+  disabled,
+}: {
+  logoUrl: string | null;
+  logoBusy: boolean;
+  primary: string;
+  accent: string;
+  onPrimary: (hex: string) => void;
+  onAccent: (hex: string) => void;
+  onLogoFile: (file: File) => void;
+  onClearLogo: () => void;
+  disabled?: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const primaryValid = HEX_REGEX.test(primary);
+  const accentValid = HEX_REGEX.test(accent);
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <span className={dashboardLabelClass()}>Logo</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={disabled || logoBusy}
+            onClick={() => inputRef.current?.click()}
+            className={cn(
+              "flex size-[4.75rem] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-dashed",
+              "border-border/80 bg-muted/30 transition-colors hover:border-foreground/30",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+            )}
+            aria-label={logoUrl ? "Replace logo" : "Upload logo"}
+          >
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt=""
+                className="size-full object-contain p-1.5"
+              />
+            ) : (
+              <ImagePlus className="size-5 text-muted-foreground" aria-hidden />
+            )}
+          </button>
+          <div className="min-w-0">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={disabled || logoBusy}
+                onClick={() => inputRef.current?.click()}
+              >
+                {logoBusy ? "Uploading…" : logoUrl ? "Replace logo" : "Upload logo"}
+              </Button>
+              {logoUrl ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={disabled || logoBusy}
+                  onClick={onClearLogo}
+                >
+                  Remove
+                </Button>
+              ) : null}
+            </div>
+            <p className={cn(dashboardHintClass(), "mt-1.5")}>
+              PNG, JPEG, WEBP, or SVG. Shows in the shop header.
+            </p>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACCEPTED_LOGO_TYPES}
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              onLogoFile(file);
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <label className={dashboardLabelClass()} htmlFor="studio-brand-primary">
+            Shop colour
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="studio-brand-primary"
+              type="color"
+              value={primaryValid ? primary : BRAND_PRIMARY}
+              disabled={disabled}
+              onChange={(e) => onPrimary(e.target.value.toUpperCase())}
+              className="h-10 w-14 cursor-pointer rounded-lg border border-input bg-background shadow-sm"
+            />
+            <input
+              aria-label="Shop colour hex"
+              className={cn(
+                dashboardInputClass(),
+                "w-32 max-w-full font-mono text-sm uppercase",
+                !primaryValid && "border-destructive/60",
+              )}
+              value={primary}
+              maxLength={7}
+              disabled={disabled}
+              onChange={(e) => onPrimary(e.target.value)}
+              placeholder={BRAND_PRIMARY}
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className={dashboardLabelClass()} htmlFor="studio-brand-accent">
+            Button colour
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="studio-brand-accent"
+              type="color"
+              value={accentValid ? accent : BRAND_ACCENT}
+              disabled={disabled}
+              onChange={(e) => onAccent(e.target.value.toUpperCase())}
+              className="h-10 w-14 cursor-pointer rounded-lg border border-input bg-background shadow-sm"
+            />
+            <input
+              aria-label="Button colour hex"
+              className={cn(
+                dashboardInputClass(),
+                "w-32 max-w-full font-mono text-sm uppercase",
+                !accentValid && "border-destructive/60",
+              )}
+              value={accent}
+              maxLength={7}
+              disabled={disabled}
+              onChange={(e) => onAccent(e.target.value)}
+              placeholder={BRAND_ACCENT}
+            />
+          </div>
+        </div>
+      </div>
+      {!primaryValid || !accentValid ? (
+        <p className="text-xs font-medium text-destructive">Use #RRGGBB</p>
+      ) : (
+        <p className={dashboardHintClass()}>
+          Shop colour paints the header. Button colour is for links and actions.
+        </p>
+      )}
+
+      <div className="space-y-2">
+        <span className={dashboardLabelClass()}>Ready-made pairs</span>
+        <div className="flex flex-wrap gap-1.5" role="list">
+          {BRANDING_COLOR_PRESETS.map((preset) => {
+            const selected = brandingPresetMatches(preset, primary, accent);
+            return (
+              <button
+                key={preset.name}
+                type="button"
+                role="listitem"
+                disabled={disabled}
+                title={preset.name}
+                aria-label={preset.name}
+                aria-pressed={selected}
+                onClick={() => {
+                  onPrimary(preset.primary);
+                  onAccent(preset.accent);
+                }}
+                className={cn(
+                  "h-8 w-11 overflow-hidden rounded-md border transition-transform",
+                  selected
+                    ? "border-foreground ring-1 ring-foreground/30"
+                    : "border-border/70 hover:border-foreground/30",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                <span className="flex h-full">
+                  <span
+                    className="w-1/2"
+                    style={{ background: preset.primary }}
+                    aria-hidden
+                  />
+                  <span
+                    className="w-1/2"
+                    style={{ background: preset.accent }}
+                    aria-hidden
+                  />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const RADIUS_OPTIONS: {
   value: StorefrontDesignRadius;
@@ -626,9 +848,27 @@ export function StorefrontDesignEditor({
   const [previewLogoUrl, setPreviewLogoUrl] = useState<string | null>(
     business?.branding?.logoUrl?.trim() || null,
   );
+  const [brandPrimary, setBrandPrimary] = useState(
+    brandHexOrDefault(business?.branding?.primaryColor, BRAND_PRIMARY),
+  );
+  const [brandAccent, setBrandAccent] = useState(
+    brandHexOrDefault(business?.branding?.accentColor, BRAND_ACCENT),
+  );
+  const [logoBusy, setLogoBusy] = useState(false);
   const heroInputRef = useRef<HTMLInputElement>(null);
 
-  const dirty = JSON.stringify(form) !== JSON.stringify(snapshot);
+  const formDirty = JSON.stringify(form) !== JSON.stringify(snapshot);
+  const savedPrimary = brandHexOrDefault(
+    business?.branding?.primaryColor,
+    BRAND_PRIMARY,
+  );
+  const savedAccent = brandHexOrDefault(
+    business?.branding?.accentColor,
+    BRAND_ACCENT,
+  );
+  const brandingDirty =
+    brandPrimary !== savedPrimary || brandAccent !== savedAccent;
+  const dirty = formDirty || brandingDirty;
 
   const set = useCallback(
     <K extends keyof DesignForm>(key: K, value: DesignForm[K]) => {
@@ -761,7 +1001,7 @@ export function StorefrontDesignEditor({
     return {
       storeName: business?.branding?.displayName?.trim() || business?.name || "Your shop",
       logoUrl: previewLogoUrl,
-      primaryHex: business?.branding?.primaryColor ?? null,
+      primaryHex: brandPrimary,
       surface: form.surface || "#FAFAF8",
       radius: form.radius,
       buttons: form.buttons,
@@ -784,7 +1024,53 @@ export function StorefrontDesignEditor({
       socialEnabled: form.sections.find((s) => s.id === "social")?.enabled === true,
       contactEnabled: form.sections.find((s) => s.id === "contact")?.enabled === true,
     };
-  }, [form, business, previewLogoUrl]);
+  }, [form, business, previewLogoUrl, brandPrimary]);
+
+  const persistLogoFile = useCallback(
+    async (file: File) => {
+      const bid = business?.id?.trim();
+      if (!bid) {
+        setError("Could not resolve business for logo upload.");
+        return;
+      }
+      if (file.size > MAX_LOGO_BYTES) {
+        setError("Logo must be 4 MB or smaller.");
+        return;
+      }
+      setLogoBusy(true);
+      setError(null);
+      try {
+        const next = await uploadMyBrandingLogo(file, bid);
+        const url = next.branding?.logoUrl?.trim() || null;
+        setPreviewLogoUrl(url);
+        onSaved?.(next);
+        trackStorefrontEditEvent("storefront_logo_uploaded", {
+          surface: "design_studio",
+        });
+        setFeedback("Logo updated.");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not upload logo");
+      } finally {
+        setLogoBusy(false);
+      }
+    },
+    [business?.id, onSaved],
+  );
+
+  const persistClearLogo = useCallback(async () => {
+    setLogoBusy(true);
+    setError(null);
+    try {
+      const next = await clearMyBrandingLogo();
+      setPreviewLogoUrl(next.branding?.logoUrl?.trim() || null);
+      onSaved?.(next);
+      setFeedback("Logo removed.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove logo");
+    } finally {
+      setLogoBusy(false);
+    }
+  }, [onSaved]);
 
   const previewEditHandlers = useMemo<MiniPreviewEditHandlers>(() => {
     const heroSettings = () => {
@@ -839,32 +1125,15 @@ export function StorefrontDesignEditor({
         }
         scrollToStep("business");
       },
-      onLogoFile: async (file) => {
-        const bid = business?.id?.trim();
-        if (!bid) {
-          setError("Could not resolve business for logo upload.");
-          return;
-        }
-        try {
-          const next = await uploadMyBrandingLogo(file, bid);
-          const url = next.branding?.logoUrl?.trim() || null;
-          setPreviewLogoUrl(url);
-          onSaved?.(next);
-          trackStorefrontEditEvent("storefront_logo_uploaded", {
-            surface: "design_studio",
-          });
-          setFeedback("Logo updated.");
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Could not upload logo");
-        }
+      onLogoFile: (file) => {
+        void persistLogoFile(file);
       },
     };
   }, [
     form.sections,
     patchSection,
     patchSectionSettings,
-    business?.id,
-    onSaved,
+    persistLogoFile,
   ]);
 
   const changes = useMemo(() => {
@@ -908,8 +1177,11 @@ export function StorefrontDesignEditor({
       business: JSON.stringify(snapshot.business),
       sections: JSON.stringify(snapshot.sections),
     };
-    return Object.keys(groups).filter((key) => groups[key] !== base[key]).length;
-  }, [form, snapshot]);
+    return (
+      Object.keys(groups).filter((key) => groups[key] !== base[key]).length +
+      (brandingDirty ? 1 : 0)
+    );
+  }, [form, snapshot, brandingDirty]);
 
   const themeOptionDefaults = useMemo(
     () => storefrontThemeOptionDefaults(themeId),
@@ -924,6 +1196,8 @@ export function StorefrontDesignEditor({
         form.density !== "cozy" ||
         form.surface.trim() !== "" ||
         form.fontPairing !== "default" ||
+        Boolean(previewLogoUrl) ||
+        brandPrimary !== BRAND_PRIMARY ||
         Object.keys(form.themeOptions).some(
           (key) => form.themeOptions[key] !== themeOptionDefaults[key],
         ),
@@ -947,7 +1221,7 @@ export function StorefrontDesignEditor({
         ].some((v) => v.trim() !== "") || form.business.hoursEnabled,
       sections: form.sections.some((s) => s.enabled),
     }),
-    [form, themeOptionDefaults],
+    [form, themeOptionDefaults, previewLogoUrl, brandPrimary],
   );
 
   useEffect(() => {
@@ -989,19 +1263,40 @@ export function StorefrontDesignEditor({
 
   const revert = () => {
     setForm(snapshot);
+    setBrandPrimary(savedPrimary);
+    setBrandAccent(savedAccent);
     setFeedback(null);
     setError(null);
   };
 
   const save = async () => {
+    if (
+      brandingDirty &&
+      (!HEX_REGEX.test(brandPrimary) || !HEX_REGEX.test(brandAccent))
+    ) {
+      setError("Use #RRGGBB for shop colours.");
+      return;
+    }
     setSaving(true);
     setError(null);
     setFeedback(null);
     try {
+      if (brandingDirty) {
+        await updateMyBranding({
+          primaryColor: brandPrimary,
+          accentColor: brandAccent,
+        });
+      }
       const designJson = serializeStorefrontDesign(buildDesign(form, themeId)) ?? "";
       await updateBusiness({ storefront: { designJson } });
       const next = await fetchBusiness();
       onSaved?.(next);
+      setBrandPrimary(
+        brandHexOrDefault(next.branding?.primaryColor, BRAND_PRIMARY),
+      );
+      setBrandAccent(
+        brandHexOrDefault(next.branding?.accentColor, BRAND_ACCENT),
+      );
       setFeedback(
         "Saved — the shop front now uses your design. Open it live to take a look.",
       );
@@ -1268,11 +1563,24 @@ export function StorefrontDesignEditor({
               Look &amp; feel
             </h2>
             <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
-              These choices are <em>your</em> identity — they stay when you
-              switch themes later. The theme only fills in what you leave
-              alone.
+              Logo, shop colour, and how the window feels. These stay when you
+              switch themes later.
             </p>
           </div>
+        </div>
+
+        <div className="mt-5">
+          <StudioIdentityFields
+            logoUrl={previewLogoUrl}
+            logoBusy={logoBusy}
+            primary={brandPrimary}
+            accent={brandAccent}
+            onPrimary={setBrandPrimary}
+            onAccent={setBrandAccent}
+            onLogoFile={(file) => void persistLogoFile(file)}
+            onClearLogo={() => void persistClearLogo()}
+            disabled={saving}
+          />
         </div>
 
         <div className="mt-5 space-y-2">
@@ -2064,7 +2372,7 @@ export function StorefrontDesignEditor({
             <div className="text-center">
               <p className="text-xs font-semibold text-foreground">Live preview</p>
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Click headlines to type · click the logo to upload.
+                Logo, colour, and headlines update here.
               </p>
               {draftPreviewUrl ? (
                 <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5">

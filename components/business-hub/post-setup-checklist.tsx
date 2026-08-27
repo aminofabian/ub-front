@@ -68,9 +68,9 @@ export function PostSetupChecklist({
       done: false,
     },
     {
-      href: APP_ROUTES.businessThemes,
-      label: "Choose a look",
-      desc: "Pick a theme so the shop feels like yours.",
+      href: APP_ROUTES.businessDesign,
+      label: "Logo, colour, and look",
+      desc: "Put your mark on the shop window. Change it and watch it update.",
       icon: Palette,
       done: false,
     },

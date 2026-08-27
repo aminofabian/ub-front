@@ -28,7 +28,6 @@ export function ShopOpenBoard({
   canListUsers,
 }: Props) {
   const theme = storeThemeMeta(themeId);
-  const themePicked = Boolean(themeId?.trim()) && themeId !== "mart";
   const displayName = shopName.trim() || "Your shop";
 
   return (
@@ -149,7 +148,7 @@ export function ShopOpenBoard({
           </Link>
 
           <Link
-            href={APP_ROUTES.businessThemes}
+            href={APP_ROUTES.businessDesign}
             className={cn(
               HUB_SURFACE,
               "group flex flex-col overflow-hidden transition-colors hover:border-[#B08D48]/50",
@@ -175,15 +174,14 @@ export function ShopOpenBoard({
             </span>
             <span className="flex flex-1 flex-col p-4">
               <span className="text-[13px] font-semibold text-[#141414]">
-                {themePicked ? theme.name : "Choose a look"}
+                Logo, colour, look
               </span>
               <span className={cn("mt-0.5 text-[12px] leading-relaxed", HUB_MUTED)}>
-                {themePicked
-                  ? "Change the look so the shop feels like yours."
-                  : "Pick a theme. Takes a few taps."}
+                Put your mark on the window. Change it and watch the shop
+                update.
               </span>
               <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-medium text-[#8A6B2E]">
-                {themePicked ? "Change theme" : "Browse themes"}
+                Open design studio
                 <ArrowRight
                   className="size-3.5 transition-transform group-hover:translate-x-0.5"
                   aria-hidden

@@ -29,7 +29,7 @@ export function BusinessHubEmptyState({
     });
   }
   if (showThemeLink) {
-    extras.push({ href: APP_ROUTES.businessThemes, text: "Choose a look" });
+    extras.push({ href: APP_ROUTES.businessDesign, text: "Logo and colours" });
   }
   if (showUsersLink) {
     extras.push({ href: APP_ROUTES.users, text: "Add staff" });
