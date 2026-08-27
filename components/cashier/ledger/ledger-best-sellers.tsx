@@ -2,12 +2,14 @@
 
 import type { TopProductRecord } from "@/lib/top-products";
 import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
+import { splitShelfPriceDisplay } from "@/lib/cashier-shelf-price";
 import { cn } from "@/lib/utils";
 
 type LedgerBestSellersProps = {
   products: TopProductRecord[];
   loading: boolean;
   title: string;
+  shelfPrices: Record<string, string>;
   cartQtyByItem: Map<string, number>;
   disabled?: boolean;
   onPick: (product: TopProductRecord) => void;
@@ -29,6 +31,7 @@ export function LedgerBestSellers({
   products,
   loading,
   title,
+  shelfPrices,
   cartQtyByItem,
   disabled = false,
   onPick,
@@ -59,6 +62,8 @@ export function LedgerBestSellers({
           <div className="grid grid-cols-2 gap-1 xl:grid-cols-3">
             {products.map((product) => {
               const qty = cartQtyByItem.get(product.id) ?? 0;
+              const shelfLine = shelfPrices[product.id] ?? "";
+              const { amount, code } = splitShelfPriceDisplay(shelfLine);
               return (
                 <button
                   key={product.id}
@@ -66,7 +71,7 @@ export function LedgerBestSellers({
                   disabled={disabled}
                   onClick={() => onPick(product)}
                   className={cn(
-                    "flex min-h-8 items-start justify-between gap-1.5 px-2 py-1.5 text-left",
+                    "flex min-h-8 flex-col items-start gap-0.5 px-2 py-1.5 text-left",
                     "border border-zinc-200 bg-zinc-50",
                     "hover:bg-white hover:border-zinc-300",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)]",
@@ -75,12 +80,28 @@ export function LedgerBestSellers({
                       "border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,white)]",
                   )}
                 >
-                  <span className="min-w-0 whitespace-normal break-words text-[12px] font-medium leading-snug text-zinc-900">
-                    {productLabel(product)}
+                  <span className="flex w-full items-start justify-between gap-1.5">
+                    <span className="min-w-0 whitespace-normal break-words text-[12px] font-medium leading-snug text-zinc-900">
+                      {productLabel(product)}
+                    </span>
+                    {qty > 0 ? (
+                      <span className="shrink-0 tabular-nums text-[10px] font-semibold text-zinc-600">
+                        ×{qty}
+                      </span>
+                    ) : null}
                   </span>
-                  {qty > 0 ? (
-                    <span className="shrink-0 tabular-nums text-[10px] font-semibold text-zinc-600">
-                      ×{qty}
+                  {amount ? (
+                    <span className="font-mono text-[12px] font-semibold tabular-nums leading-none text-zinc-800">
+                      {amount}
+                      {code ? (
+                        <span className="ml-1 text-[10px] font-medium tracking-wide text-zinc-500">
+                          {code}
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : shelfLine ? (
+                    <span className="font-mono text-[12px] font-semibold tabular-nums leading-none text-zinc-800">
+                      {shelfLine}
                     </span>
                   ) : null}
                 </button>

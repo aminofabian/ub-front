@@ -703,6 +703,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   products={topProducts}
                   loading={alwaysShowTopProducts && topProductsLoading}
                   title={topProductsTitle}
+                  shelfPrices={shelfPrices}
                   cartQtyByItem={cartQtyByItem}
                   disabled={tillLocked}
                   onPick={pickTopProduct}
