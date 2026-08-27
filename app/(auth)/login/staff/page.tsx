@@ -41,10 +41,10 @@ import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass =
-  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60";
+  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60";
 
 const fieldLabelClass =
-  "mb-1.5 block text-[13px] font-medium text-foreground";
+  "mb-1.5 block text-[13px] font-semibold text-foreground";
 
 const LOGIN_BRIDGE = "/api/auth/login-bridge";
 
@@ -294,12 +294,12 @@ function LoginPageContent() {
   return (
     <AuthSplitShell tenant={tenant}>
       <AuthPageHeader
-        title={
+        title="Staff sign-in"
+        description={
           tenantGreeting
-            ? `Staff sign-in · ${tenantGreeting}`
-            : "Staff sign-in"
+            ? `Email plus your PIN or password — same form either way. Branch for ${tenantGreeting} applies automatically.`
+            : "Email plus your PIN or password — same form either way. Your branch is applied automatically."
         }
-        description="Email plus your PIN or password — same form either way. Your branch is applied automatically."
       />
 
       {/* Onboarding CTA — only on landing page. */}
@@ -308,7 +308,7 @@ function LoginPageContent() {
       {!tenant && !showOnboarding && !IS_DESKTOP ? (
         <button
           type="button"
-          className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-[var(--auth-accent)]/40 bg-[color-mix(in_srgb,var(--auth-accent)_8%,white)] px-4 py-3.5 text-left transition hover:bg-[color-mix(in_srgb,var(--auth-accent)_14%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_12%,#18181b)] dark:hover:bg-[color-mix(in_srgb,var(--auth-accent)_20%,#18181b)]"
+          className="mt-4 flex w-full items-center gap-3 rounded-xl border border-[var(--auth-accent)]/40 bg-[color-mix(in_srgb,var(--auth-accent)_8%,white)] px-4 py-3.5 text-left transition hover:bg-[color-mix(in_srgb,var(--auth-accent)_14%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_12%,#18181b)] dark:hover:bg-[color-mix(in_srgb,var(--auth-accent)_20%,#18181b)]"
           onClick={() => {
             setShowOnboarding(true);
             setErrorMessage("");
@@ -529,7 +529,7 @@ function LoginPageContent() {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground transition hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/10"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/10"
                   onClick={() => setShowSecret((s) => !s)}
                   aria-label={showSecret ? "Hide secret" : "Show secret"}
                 >
@@ -566,35 +566,37 @@ function LoginPageContent() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Shopping online?{" "}
-            <Link
-              href={APP_ROUTES.login}
-              className="font-medium text-foreground underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
-            >
-              Customer sign-in
-            </Link>
-          </p>
-          {tenant ? (
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              Invited to join the team?{" "}
+          <div className="mt-8 space-y-2 border-t border-black/[0.08] pt-5 text-center dark:border-white/10">
+            <p className="text-sm text-muted-foreground">
+              Shopping online?{" "}
               <Link
-                href={APP_ROUTES.signupStaff}
-                className="font-medium text-[var(--auth-accent)] hover:underline"
+                href={APP_ROUTES.login}
+                className="font-medium text-foreground underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
               >
-                Staff signup
+                Customer sign-in
               </Link>
             </p>
-          ) : (
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              <Link
-                href={APP_ROUTES.verifyEmail}
-                className="hover:text-foreground"
-              >
-                Verify email
-              </Link>
-            </p>
-          )}
+            {tenant ? (
+              <p className="text-xs text-muted-foreground">
+                Invited to join the team?{" "}
+                <Link
+                  href={APP_ROUTES.signupStaff}
+                  className="font-medium text-[var(--auth-accent)] hover:underline"
+                >
+                  Staff signup
+                </Link>
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                <Link
+                  href={APP_ROUTES.verifyEmail}
+                  className="hover:text-foreground"
+                >
+                  Verify email
+                </Link>
+              </p>
+            )}
+          </div>
         </>
       )}
     </AuthSplitShell>

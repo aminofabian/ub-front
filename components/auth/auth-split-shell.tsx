@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { Sparkles } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { useMemo, type CSSProperties, type ReactNode } from "react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
+import { TenantMonogramMark } from "@/components/brand/tenant-monogram";
 
 import {
   BRAND_ACCENT,
@@ -13,12 +15,12 @@ import {
 import type { TenantContext } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
-/** Shared input chrome for auth split + simple auth pages. */
+/** Shared input chrome for auth split + simple auth pages. Sharp edges — CTAs alone keep radius. */
 export const authInputClassName = cn(
-  "w-full rounded-2xl border px-4 py-3 text-base shadow-sm outline-none transition",
-  "border-black/[0.06] bg-white/85 text-foreground backdrop-blur-md placeholder:text-muted-foreground/70",
-  "focus-visible:border-[var(--auth-primary)] focus-visible:ring-2 focus-visible:ring-[var(--auth-primary)]/30",
-  "dark:border-white/10 dark:bg-white/[0.07]",
+  "w-full rounded-none border px-4 py-3 text-base outline-none transition",
+  "border-black/[0.12] bg-white text-foreground placeholder:text-muted-foreground/70",
+  "focus-visible:border-[var(--auth-primary)] focus-visible:ring-1 focus-visible:ring-[var(--auth-primary)]",
+  "dark:border-white/15 dark:bg-white/[0.06]",
 );
 
 function normalizeHex(color: string | null | undefined): string | null {
@@ -127,6 +129,140 @@ type AuthSplitShellProps = {
   children: ReactNode;
 };
 
+/** Crop-mark frame around the brand mark — one identity, not two logos. */
+function AuthMarkFrame({ children }: { children: ReactNode }) {
+  return (
+    <span className="relative inline-flex size-12 shrink-0 items-center justify-center bg-white dark:bg-zinc-900">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 border border-black/15 dark:border-white/20"
+      />
+      {/* Registration corners */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -left-px -top-px h-2.5 w-2.5 border-l-2 border-t-2"
+        style={{ borderColor: "var(--auth-primary)" }}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-px -top-px h-2.5 w-2.5 border-r-2 border-t-2"
+        style={{ borderColor: "var(--auth-primary)" }}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -bottom-px -left-px h-2.5 w-2.5 border-b-2 border-l-2"
+        style={{ borderColor: "var(--auth-primary)" }}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -bottom-px -right-px h-2.5 w-2.5 border-b-2 border-r-2"
+        style={{ borderColor: "var(--auth-primary)" }}
+      />
+      <span className="relative z-[1] flex size-9 items-center justify-center overflow-hidden">
+        {children}
+      </span>
+    </span>
+  );
+}
+
+function AuthMasthead({
+  brand,
+  logoUrl,
+  faviconUrl,
+  primaryColor,
+  tagline,
+  kioskFallback,
+}: {
+  brand: string;
+  logoUrl: string | null;
+  faviconUrl: string | null;
+  primaryColor: string | null;
+  tagline: string;
+  kioskFallback?: {
+    wordmark: string;
+    tagline: string;
+  };
+}) {
+  /**
+   * One identity. Prefer a framed seal (favicon) + shop name; fall back to the
+   * uploaded wordmark alone. Never favicon beside the full logo — that reads
+   * as two logos. The wordmark still appears as the page watermark.
+   */
+  const sealSrc = faviconUrl;
+  const showWordmarkAlone = !sealSrc && Boolean(logoUrl);
+
+  return (
+    <header className="relative z-[1] mb-9 flex items-start gap-4 border-b border-black/[0.08] pb-6 dark:border-white/10">
+      {showWordmarkAlone ? (
+        <div className="min-w-0 flex-1">
+          {/* eslint-disable-next-line @next/next/no-img-element -- tenant CDN */}
+          <img
+            src={logoUrl!}
+            alt={brand}
+            className="max-h-11 w-auto max-w-[min(260px,68vw)] object-contain object-left"
+          />
+          <p className="mt-2 truncate text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            {tagline}
+          </p>
+        </div>
+      ) : (
+        <>
+          <AuthMarkFrame>
+            {sealSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element -- tenant CDN
+              <img
+                src={sealSrc}
+                alt=""
+                className="size-full object-contain"
+              />
+            ) : kioskFallback ? (
+              <KioskLogoMark size={36} variant="auth" plain className="!rounded-none" />
+            ) : (
+              <TenantMonogramMark
+                brand={brand}
+                primaryColor={primaryColor}
+                size="sm"
+              />
+            )}
+          </AuthMarkFrame>
+
+          <div className="min-w-0 flex-1 pt-0.5">
+            <p className="truncate font-heading text-lg font-semibold leading-tight tracking-tight text-foreground">
+              {kioskFallback?.wordmark ??
+                (brand.split("|")[0]?.trim() || brand)}
+            </p>
+            <p className="mt-1 truncate text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              {tagline}
+            </p>
+          </div>
+        </>
+      )}
+
+      <span
+        className="mt-1 hidden shrink-0 items-center gap-2 border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] sm:inline-flex"
+        style={{
+          borderColor: "color-mix(in srgb, var(--auth-primary) 45%, transparent)",
+          color: "var(--auth-primary)",
+          background:
+            "color-mix(in srgb, var(--auth-primary) 10%, transparent)",
+        }}
+      >
+        <span className="relative flex size-1.5">
+          <span
+            className="absolute inset-0 animate-ping opacity-50"
+            style={{ background: "var(--auth-primary)" }}
+          />
+          <span
+            className="relative size-1.5"
+            style={{ background: "var(--auth-primary)" }}
+          />
+        </span>
+        Live
+      </span>
+    </header>
+  );
+}
+
 export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
   const style = useMemo(() => authThemeStyle(tenant), [tenant]);
   const brand =
@@ -152,109 +288,64 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
       {/* Ambient brand field */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div
-          className="absolute -left-[20%] top-[10%] h-[min(90vw,520px)] w-[min(90vw,520px)] rounded-full opacity-[0.22] blur-[100px]"
+          className="absolute -left-[20%] top-[10%] h-[min(90vw,520px)] w-[min(90vw,520px)] rounded-full opacity-[0.18] blur-[100px]"
           style={{ background: "var(--auth-primary)" }}
         />
         <div
-          className="absolute -right-[15%] bottom-[5%] h-[min(85vw,480px)] w-[min(85vw,480px)] rounded-full opacity-[0.18] blur-[110px]"
+          className="absolute -right-[15%] bottom-[5%] h-[min(85vw,480px)] w-[min(85vw,480px)] rounded-full opacity-[0.14] blur-[110px]"
           style={{ background: "var(--auth-secondary)" }}
         />
         <div
-          className="absolute left-1/2 top-1/3 h-[40vh] w-[40vh] -translate-x-1/2 rounded-full opacity-[0.08] blur-[80px]"
-          style={{ background: "var(--auth-primary)" }}
-        />
-        {/* Subtle mesh */}
-        <div
-          className="absolute inset-0 opacity-[0.45]"
-          style={{
-            backgroundImage: `radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--auth-primary) 12%, transparent) 0%, transparent 42%),
-              radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--auth-secondary) 14%, transparent) 0%, transparent 38%)`,
-          }}
-        />
-        {/* Fine grid */}
-        <div
-          className="absolute inset-0 opacity-[0.35]"
+          className="absolute inset-0 opacity-[0.4]"
           style={{
             backgroundImage: `
-              linear-gradient(color-mix(in srgb, var(--auth-primary) 16%, transparent) 1px, transparent 1px),
-              linear-gradient(90deg, color-mix(in srgb, var(--auth-primary) 14%, transparent) 1px, transparent 1px)`,
-            backgroundSize: "48px 48px",
-            maskImage: "radial-gradient(ellipse 75% 65% at 50% 50%, black 15%, transparent 70%)",
+              linear-gradient(color-mix(in srgb, var(--auth-primary) 12%, transparent) 1px, transparent 1px),
+              linear-gradient(90deg, color-mix(in srgb, var(--auth-primary) 10%, transparent) 1px, transparent 1px)`,
+            backgroundSize: "40px 40px",
+            maskImage:
+              "radial-gradient(ellipse 70% 60% at 50% 45%, black 10%, transparent 72%)",
           }}
         />
       </div>
 
       <div
         className={cn(
-          "relative z-10 my-auto grid w-full max-w-[1000px] rounded-[2rem] border border-black/10 shadow-2xl backdrop-blur-xl",
-          "border-[color-mix(in_srgb,var(--auth-primary)_22%,white)]",
-          "bg-white/95 bg-[linear-gradient(165deg,#ffffffef_0%,#ffffffd9_40%,#ffffff_100%)]",
-          "bg-[linear-gradient(165deg,#ffffffef_0%,#ffffffd9_40%,color-mix(in_srgb,var(--auth-primary)_6%,white)_100%)]",
-          "dark:border-white/15 dark:bg-zinc-900/95",
-          "dark:border-[color-mix(in_srgb,var(--auth-primary)_35%,transparent)]",
-          "dark:bg-[linear-gradient(165deg,#18181bee_0%,#18181bcc_45%,#18181b_100%)]",
-          "dark:bg-[linear-gradient(165deg,#18181bee_0%,#18181bcc_45%,color-mix(in_srgb,var(--auth-primary)_12%,#18181b)_100%)]",
+          "relative z-10 my-auto grid w-full max-w-[1000px] overflow-hidden border border-black/10",
+          "border-[color-mix(in_srgb,var(--auth-primary)_20%,white)]",
+          "bg-white dark:border-white/15 dark:bg-zinc-900",
           "min-h-0 sm:min-h-[min(100dvh-2.5rem,760px)] lg:min-h-[640px] lg:grid-cols-2",
-          "shadow-[0_32px_64px_-20px_rgba(0,0,0,0.18)]",
-          "shadow-[0_0_0_1px_color-mix(in_srgb,var(--auth-primary)_12%,transparent),0_32px_64px_-20px_color-mix(in_srgb,var(--auth-primary)_35%,#00000055)]",
+          "shadow-[0_28px_56px_-24px_rgba(0,0,0,0.22)]",
         )}
         style={style}
       >
         {/* Left — form rail */}
-        <div
-          className={cn(
-            "relative flex min-h-0 flex-col justify-start px-6 py-10 sm:justify-center sm:px-11 sm:py-12",
-            "before:pointer-events-none before:absolute before:inset-0 before:bg-gradient-to-br before:from-transparent before:to-black/[0.03]",
-            "before:bg-[linear-gradient(135deg,transparent_40%,color-mix(in_srgb,var(--auth-primary)_8%,transparent)_100%)]",
-          )}
-        >
-          <TenantLogo
-            brand={brand}
-            logoUrl={logoUrl}
-            variant="auth-watermark"
-            primaryColor={primaryColor}
-          />
-
-          <div className="relative z-[1] mb-8 flex flex-wrap items-center gap-3">
+        <div className="relative flex min-h-0 flex-col justify-start px-6 py-9 sm:justify-center sm:px-11 sm:py-12">
+          {/* Wordmark-only watermark — skip when the masthead already uses a seal mark. */}
+          {logoUrl ? (
             <TenantLogo
               brand={brand}
               logoUrl={logoUrl}
-              faviconUrl={faviconUrl}
+              variant="auth-watermark"
               primaryColor={primaryColor}
-              variant="auth-badge"
-              size="sm"
-              showTagline={!logoUrl}
-              tagline={logoTagline}
-              kioskFallback={
-                tenant
-                  ? undefined
-                  : {
-                      wordmark: logoWordmark,
-                      tagline: logoTagline,
-                      size: "sm",
-                    }
-              }
+              className="!top-auto !bottom-10 !right-2 !opacity-[0.05]"
             />
+          ) : null}
 
-            <span
-              className="ml-auto hidden items-center gap-1.5 rounded-full bg-black/[0.06] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--auth-primary)] sm:inline-flex"
-              style={{
-                background: "color-mix(in srgb, var(--auth-primary) 14%, transparent)",
-              }}
-            >
-              <span className="relative flex h-2 w-2">
-                <span
-                  className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
-                  style={{ background: "var(--auth-primary)" }}
-                />
-                <span
-                  className="relative inline-flex h-2 w-2 rounded-full"
-                  style={{ background: "var(--auth-primary)" }}
-                />
-              </span>
-              Live
-            </span>
-          </div>
+          <AuthMasthead
+            brand={brand}
+            logoUrl={logoUrl}
+            faviconUrl={faviconUrl}
+            primaryColor={primaryColor}
+            tagline={logoTagline}
+            kioskFallback={
+              tenant
+                ? undefined
+                : {
+                    wordmark: logoWordmark,
+                    tagline: logoTagline,
+                  }
+            }
+          />
 
           <div className="relative z-[2]">{children}</div>
         </div>
@@ -270,17 +361,16 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
             priority
           />
 
-          {/* Brand wash */}
           <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(135deg,
-                color-mix(in srgb, var(--auth-primary) 42%, transparent) 0%,
-                transparent 45%,
-                color-mix(in srgb, var(--auth-secondary) 38%, transparent) 100%)`,
+              background: `linear-gradient(160deg,
+                color-mix(in srgb, var(--auth-primary) 55%, #0a0a0a) 0%,
+                transparent 48%,
+                color-mix(in srgb, var(--auth-secondary) 40%, #0a0a0a) 100%)`,
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/20" />
 
           <TenantLogo
             brand={brand}
@@ -289,57 +379,57 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
             primaryColor={primaryColor}
           />
 
-          <div className="absolute left-5 right-5 top-6 flex justify-center">
-            <div className="flex max-w-[90%] flex-col items-center gap-2">
-              <div
-                className="inline-flex items-center gap-2 rounded-full border border-white/25 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-md"
-                style={{
-                  background:
-                    "linear-gradient(120deg, color-mix(in srgb, var(--auth-primary) 88%, #00000033), color-mix(in srgb, var(--auth-secondary) 55%, #00000055))",
-                  boxShadow:
-                    "0 8px 32px color-mix(in srgb, var(--auth-primary) 45%, transparent), inset 0 1px 0 rgba(255,255,255,0.25)",
-                }}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span className="max-w-[240px] truncate">{brand}</span>
-                <span className="rounded-full bg-black/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide dark:bg-white/20">
-                  Secure
-                </span>
-              </div>
+          {/* Secure strip — flush to top edge */}
+          <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 border-b border-white/15 bg-black/45 px-5 py-3 backdrop-blur-sm">
+            <div className="flex min-w-0 items-center gap-2.5 text-white">
+              <ShieldCheck className="size-4 shrink-0 opacity-90" aria-hidden />
+              <span className="truncate text-xs font-semibold tracking-wide">
+                {brand}
+              </span>
             </div>
-          </div>
-
-          <div className="absolute bottom-6 left-5 right-5 flex justify-center">
-            <div
-              className="w-full max-w-[300px] rounded-2xl border border-white/30 bg-white/92 p-4 text-sm shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/92"
+            <span
+              className="shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
               style={{
-                boxShadow:
-                  "0 12px 40px color-mix(in srgb, var(--auth-primary) 18%, #00000044), 0 0 0 1px color-mix(in srgb, var(--auth-primary) 12%, transparent)",
+                background: "var(--auth-secondary)",
+                color: "var(--auth-secondary-ink)",
               }}
             >
-              <p className="font-bold text-foreground">Your operations hub</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Branded for <span className="font-semibold text-foreground">{brand}</span>
-                {slug ? (
-                  <>
-                    {" "}
-                    · <span className="font-mono text-[11px]">{slug}</span>
-                  </>
-                ) : null}
-              </p>
-              <div className="mt-4 flex items-center gap-2">
-                {[0.95, 0.75, 0.85, 0.65].map((opacity, i) => (
-                  <div
-                    key={i}
-                    className="h-9 w-9 rounded-full border-2 border-white shadow-md dark:border-zinc-800"
-                    style={{
-                      opacity,
-                      background: i % 2 === 0 ? "var(--auth-primary)" : "var(--auth-secondary)",
-                    }}
-                  />
-                ))}
-                <span className="ml-1 text-[11px] font-medium text-muted-foreground">Team ready</span>
-              </div>
+              Secure
+            </span>
+          </div>
+
+          {/* Ops panel — flush bottom, sharp */}
+          <div className="absolute inset-x-0 bottom-0 border-t border-white/20 bg-white/95 px-5 py-4 backdrop-blur-md dark:bg-zinc-950/92">
+            <p className="text-sm font-semibold text-foreground">
+              Your operations hub
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Branded for{" "}
+              <span className="font-medium text-foreground">{brand}</span>
+              {slug ? (
+                <>
+                  {" "}
+                  · <span className="font-mono text-[11px]">{slug}</span>
+                </>
+              ) : null}
+            </p>
+            <div className="mt-3.5 flex items-center gap-2">
+              {[0.95, 0.75, 0.85, 0.65].map((opacity, i) => (
+                <div
+                  key={i}
+                  className="size-8 border border-black/10 dark:border-white/15"
+                  style={{
+                    opacity,
+                    background:
+                      i % 2 === 0
+                        ? "var(--auth-primary)"
+                        : "var(--auth-secondary)",
+                  }}
+                />
+              ))}
+              <span className="ml-1.5 text-[11px] font-medium text-muted-foreground">
+                Team ready
+              </span>
             </div>
           </div>
         </div>

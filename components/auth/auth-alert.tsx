@@ -12,7 +12,7 @@ export function AuthAlert({ variant, children }: AuthAlertProps) {
       : "border-destructive/25 bg-destructive/10 text-destructive";
 
   return (
-    <p role="status" className={`rounded-md border px-3 py-2 text-sm ${styles}`}>
+    <p role="status" className={`rounded-none border px-3 py-2 text-sm ${styles}`}>
       {children}
     </p>
   );
