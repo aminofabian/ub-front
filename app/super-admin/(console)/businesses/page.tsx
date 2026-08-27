@@ -21,7 +21,11 @@ import {
   showThemedSuccessToast,
 } from "@/components/super-admin/themed-confirm-toast";
 import { SuperAdminDrawer } from "@/components/super-admin/super-admin-drawer";
-import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import {
+  SA_SURFACE,
+  SuperAdminPageLayout,
+} from "@/components/super-admin/super-admin-page-layout";
+import { SaStatusSegment } from "@/components/super-admin/sa-status-segment";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,8 +47,16 @@ const CHECK_CLASS =
   "size-4 shrink-0 rounded-[4px] border border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
 
 const SELECT_CLASS = cn(
-  "h-9 min-w-[8.5rem] rounded-lg border border-input bg-background px-2.5 text-sm shadow-sm outline-none",
-  "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/35",
+  "h-9 min-w-[8.5rem] rounded-lg border border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_12%,transparent)] bg-white px-2.5 text-sm shadow-none outline-none",
+  "focus-visible:border-[var(--sa-accent,#6366f1)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sa-accent,#6366f1)_25%,transparent)]",
+);
+
+const headerBtnOutline = cn(
+  "h-9 gap-1.5 rounded-lg border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_12%,transparent)] px-3 text-[13px] shadow-none",
+);
+
+const headerBtnPrimary = cn(
+  "h-9 gap-1.5 rounded-lg bg-[var(--sa-ink,#0f172a)] px-3.5 text-[13px] text-white shadow-none hover:bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_88%,#000)]",
 );
 
 function slugifyName(name: string) {
@@ -448,29 +460,40 @@ export default function SuperAdminBusinessesPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <SuperAdminPageHeader
-        title="Tenants"
-        description="Find a business, open it to manage domains and users, or provision a new tenant."
-        actions={
-          <>
-            {stuckIds.size > 0 ? (
-              <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
-                <Link href={`${APP_ROUTES.superAdminCampaignNew}?segment=stuck_signup`}>
-                  <Mail className="size-3.5" />
-                  Email stuck
-                  <span className="tabular-nums">({stuckIds.size})</span>
-                </Link>
-              </Button>
-            ) : null}
-            <Button type="button" size="sm" className="gap-1.5 shadow-sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="size-3.5" />
-              New tenant
+    <SuperAdminPageLayout
+      title="Tenants"
+      description="Find a business, open it to manage domains and users, or provision a new tenant."
+      headerActions={
+        <>
+          <button
+            type="button"
+            disabled={refreshing}
+            onClick={() => void reload()}
+            className={cn(
+              "inline-flex size-9 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_58%,transparent)]",
+              "transition-colors hover:border-[var(--sa-accent,#6366f1)] hover:text-[var(--sa-ink,#0f172a)]",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+            )}
+            aria-label="Refresh tenants"
+          >
+            <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} aria-hidden />
+          </button>
+          {stuckIds.size > 0 ? (
+            <Button type="button" variant="outline" size="sm" className={headerBtnOutline} asChild>
+              <Link href={`${APP_ROUTES.superAdminCampaignNew}?segment=stuck_signup`}>
+                <Mail className="size-3.5" />
+                Email stuck
+                <span className="tabular-nums">({stuckIds.size})</span>
+              </Link>
             </Button>
-          </>
-        }
-      />
-
+          ) : null}
+          <Button type="button" size="sm" className={headerBtnPrimary} onClick={() => setCreateOpen(true)}>
+            <Plus className="size-3.5" />
+            New tenant
+          </Button>
+        </>
+      }
+    >
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
       {deleteError ? <AuthAlert variant="error">{deleteError}</AuthAlert> : null}
       <p className="sr-only" aria-live="polite">
@@ -493,12 +516,39 @@ export default function SuperAdminBusinessesPage() {
         {createForm}
       </SuperAdminDrawer>
 
-      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-border/60 px-4 py-3 sm:px-5">
+      <dl className={cn(SA_SURFACE, "grid gap-px bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] sm:grid-cols-4")}>
+        {[
+          { label: "Total", value: loading ? "—" : counts.all },
+          { label: "Active", value: loading ? "—" : counts.active, tone: "text-emerald-700" },
+          { label: "Inactive", value: loading ? "—" : counts.inactive },
+          {
+            label: "Stuck",
+            value: loading ? "—" : counts.stuck,
+            tone: counts.stuck > 0 ? "text-amber-700" : undefined,
+          },
+        ].map(({ label, value, tone }) => (
+          <div key={label} className="bg-white px-4 py-3">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_42%,transparent)]">
+              {label}
+            </dt>
+            <dd
+              className={cn(
+                "mt-1 font-mono text-lg font-semibold tabular-nums text-[var(--sa-ink,#0f172a)]",
+                tone,
+              )}
+            >
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <section className={SA_SURFACE}>
+        <div className="flex flex-col gap-3 border-b border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] bg-[color-mix(in_srgb,var(--sa-shelf,#f1f5f9)_55%,transparent)] px-4 py-3 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative min-w-0 flex-1">
               <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_42%,transparent)]"
                 aria-hidden
               />
               <Input
@@ -507,7 +557,10 @@ export default function SuperAdminBusinessesPage() {
                 value={search}
                 onChange={(ev) => setSearch(ev.target.value)}
                 placeholder="Search name, slug, or tenant ID"
-                className={cn("h-9 pl-8", search ? "pr-9" : "sm:pr-12")}
+                className={cn(
+                  "h-9 rounded-lg border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_12%,transparent)] bg-white pl-8 shadow-none",
+                  search ? "pr-9" : "sm:pr-12",
+                )}
                 aria-label="Search tenants"
               />
               {search ? (
@@ -526,29 +579,12 @@ export default function SuperAdminBusinessesPage() {
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div
-                className="inline-flex max-w-full flex-nowrap overflow-x-auto rounded-lg border border-border/80 bg-muted/25 p-0.5"
-                role="group"
-                aria-label="Filter by status"
-              >
-                {statusOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    aria-pressed={filterActive === option.value}
-                    className={cn(
-                      "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[0.8rem] font-medium whitespace-nowrap transition-colors",
-                      filterActive === option.value
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                    onClick={() => setFilterActive(option.value)}
-                  >
-                    {option.label}
-                    <span className="tabular-nums text-muted-foreground">{option.count}</span>
-                  </button>
-                ))}
-              </div>
+              <SaStatusSegment
+                ariaLabel="Filter by status"
+                options={statusOptions}
+                value={filterActive}
+                onChange={(value) => setFilterActive(value as StatusFilter)}
+              />
               {tiers.length > 0 ? (
                 <select
                   aria-label="Filter by subscription tier"
@@ -564,20 +600,9 @@ export default function SuperAdminBusinessesPage() {
                   ))}
                 </select>
               ) : null}
-              <Button
-                variant="outline"
-                size="icon-sm"
-                type="button"
-                aria-label="Refresh tenants"
-                title="Refresh"
-                disabled={refreshing}
-                onClick={() => void reload()}
-              >
-                <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
-              </Button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_58%,transparent)]">
             <div className="flex flex-wrap items-center gap-3">
               {!loading && filteredRows.length > 0 ? (
                 <label className="inline-flex items-center gap-2 lg:hidden">
@@ -596,7 +621,7 @@ export default function SuperAdminBusinessesPage() {
                   "Loading tenants…"
                 ) : (
                   <>
-                    <span className="font-medium text-foreground tabular-nums">{filteredRows.length}</span>
+                    <span className="font-medium text-[var(--sa-ink,#0f172a)] tabular-nums">{filteredRows.length}</span>
                     {filtersOn ? (
                       <>
                         {" "}
@@ -618,8 +643,8 @@ export default function SuperAdminBusinessesPage() {
         </div>
 
         {selectedIds.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/30 px-4 py-2.5 sm:px-5">
-            <p className="mr-auto text-sm font-medium text-foreground">
+          <div className="flex flex-wrap items-center gap-2 border-b border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] bg-[color-mix(in_srgb,var(--sa-accent,#6366f1)_6%,transparent)] px-4 py-2.5 sm:px-5">
+            <p className="mr-auto text-sm font-medium text-[var(--sa-ink,#0f172a)]">
               <span className="tabular-nums">{selectedIds.length}</span> selected
             </p>
             <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
@@ -645,18 +670,20 @@ export default function SuperAdminBusinessesPage() {
           <TenantListSkeleton />
         ) : filteredRows.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-            <Building2 className="mb-3 size-8 text-muted-foreground/45" aria-hidden />
-            <p className="text-sm font-medium text-foreground">
+            <span className="mb-3 flex size-12 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--sa-accent,#6366f1)_10%,transparent)] text-[var(--sa-accent,#6366f1)]">
+              <Building2 className="size-6" aria-hidden />
+            </span>
+            <p className="text-sm font-medium text-[var(--sa-ink,#0f172a)]">
               {rows.length === 0 ? "No tenants yet" : "No tenants match"}
             </p>
-            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+            <p className="mt-1 max-w-sm text-sm text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_58%,transparent)]">
               {rows.length === 0
                 ? "Provision the first business to start managing domains, users, and campaigns from this list."
                 : "Try a different name, status, or tier — or reset filters to see the full fleet."}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {rows.length === 0 ? (
-                <Button type="button" size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
+                <Button type="button" size="sm" className={headerBtnPrimary} onClick={() => setCreateOpen(true)}>
                   <Plus className="size-3.5" />
                   New tenant
                 </Button>
@@ -669,13 +696,16 @@ export default function SuperAdminBusinessesPage() {
           </div>
         ) : (
           <>
-            <ul className="divide-y divide-border/50 lg:hidden">
+            <ul className="divide-y divide-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] lg:hidden">
               {filteredRows.map((b) => {
                 const selected = selectedIds.includes(b.id);
                 return (
                   <li
                     key={b.id}
-                    className={cn("flex gap-3 px-4 py-3.5 sm:px-5", selected && "bg-primary/[0.04]")}
+                    className={cn(
+                      "flex gap-3 px-4 py-3.5 sm:px-5",
+                      selected && "bg-[color-mix(in_srgb,var(--sa-accent,#6366f1)_6%,transparent)]",
+                    )}
                   >
                     <label className="flex size-9 shrink-0 items-center justify-center">
                       <input
@@ -691,7 +721,7 @@ export default function SuperAdminBusinessesPage() {
                         <div className="min-w-0">
                           <Link
                             href={tenantManageHref(b)}
-                            className="block truncate font-medium text-foreground hover:text-primary"
+                            className="block truncate font-medium text-[var(--sa-ink,#0f172a)] hover:text-[var(--sa-accent,#6366f1)]"
                           >
                             {b.name}
                           </Link>
@@ -725,7 +755,7 @@ export default function SuperAdminBusinessesPage() {
 
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="border-b border-border bg-muted/35 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <thead className="border-b border-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_4%,transparent)] text-[11px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--sa-ink,#0f172a)_42%,transparent)]">
                   <tr>
                     <th className="w-12 px-4 py-3">
                       <SelectAllCheckbox
@@ -745,15 +775,16 @@ export default function SuperAdminBusinessesPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/50">
+                <tbody className="divide-y divide-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)]">
                   {filteredRows.map((b) => {
                     const selected = selectedIds.includes(b.id);
                     return (
                       <tr
                         key={b.id}
                         className={cn(
-                          "transition-colors hover:bg-muted/35",
-                          selected && "bg-primary/[0.04] hover:bg-primary/[0.06]",
+                          "transition-colors hover:bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_3%,transparent)]",
+                          selected &&
+                            "bg-[color-mix(in_srgb,var(--sa-accent,#6366f1)_6%,transparent)] hover:bg-[color-mix(in_srgb,var(--sa-accent,#6366f1)_8%,transparent)]",
                         )}
                       >
                         <td className="px-4 py-2.5">
@@ -772,7 +803,7 @@ export default function SuperAdminBusinessesPage() {
                             <div className="min-w-0">
                               <Link
                                 href={tenantManageHref(b)}
-                                className="block truncate font-medium text-foreground hover:text-primary"
+                                className="block truncate font-medium text-[var(--sa-ink,#0f172a)] hover:text-[var(--sa-accent,#6366f1)]"
                               >
                                 {b.name}
                               </Link>
@@ -810,23 +841,23 @@ export default function SuperAdminBusinessesPage() {
           </>
         )}
       </section>
-    </div>
+    </SuperAdminPageLayout>
   );
 }
 
 function TenantListSkeleton() {
   return (
-    <div className="divide-y divide-border/50" aria-hidden>
+    <div className="divide-y divide-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)]" aria-hidden>
       {Array.from({ length: 8 }, (_, i) => (
         <div key={i} className="flex items-center gap-4 px-4 py-4 sm:px-5">
-          <div className="size-4 animate-pulse rounded-[4px] bg-muted" />
+          <div className="size-4 animate-pulse rounded bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)]" />
           <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-3.5 w-40 max-w-full animate-pulse rounded bg-muted" />
-            <div className="h-2.5 w-24 max-w-[50%] animate-pulse rounded bg-muted/80" />
+            <div className="h-3.5 w-40 max-w-full animate-pulse rounded bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)]" />
+            <div className="h-2.5 w-24 max-w-[50%] animate-pulse rounded bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_6%,transparent)]" />
           </div>
-          <div className="hidden h-5 w-14 animate-pulse rounded-md bg-muted sm:block" />
-          <div className="hidden h-5 w-16 animate-pulse rounded-md bg-muted md:block" />
-          <div className="hidden h-3 w-20 animate-pulse rounded bg-muted lg:block" />
+          <div className="hidden h-5 w-14 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] sm:block" />
+          <div className="hidden h-5 w-16 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_8%,transparent)] md:block" />
+          <div className="hidden h-3 w-20 animate-pulse rounded bg-[color-mix(in_srgb,var(--sa-ink,#0f172a)_6%,transparent)] lg:block" />
         </div>
       ))}
     </div>
