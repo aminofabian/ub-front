@@ -20,6 +20,7 @@ import {
 import {
   BRANCH_COUNT_OPTIONS,
   ONLINE_STORE_OPTIONS,
+  PRODUCT_SOURCE_OPTIONS,
   QUESTIONNAIRE_STEP_COUNT,
   STORE_TYPE_OPTIONS,
   branchCountToNumber,
@@ -32,6 +33,7 @@ import {
   type OnboardingQuestionnaireAnswers,
   type OnboardingQuestionnaireFinishExtras,
   type OnlineStoreChoice,
+  type ProductSourceChoice,
   type StoreTypeChoice,
 } from "@/lib/onboarding-questionnaire";
 import {
@@ -63,6 +65,10 @@ type Props = {
   onOpenCatalogDrawer?: () => void;
   onAddProductsManually?: () => void;
   onFinishLater?: () => void;
+  /** Persist product-source choice on the stock step (powers M1 persona). */
+  onProductSourceChange?: (source: ProductSourceChoice) => void;
+  /** Open spreadsheet import after choosing migrating path. */
+  onOpenImport?: () => void;
   /** ISO country for locality placeholders (defaults to KE examples). */
   countryCode?: string | null;
   currency?: string | null;
@@ -215,6 +221,8 @@ export function OnboardingQuestionnaire({
   onOpenCatalogDrawer,
   onAddProductsManually,
   onFinishLater,
+  onProductSourceChange,
+  onOpenImport,
   countryCode = null,
   currency = null,
   catalogShellEmpty = false,
@@ -275,6 +283,9 @@ export function OnboardingQuestionnaire({
   );
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoError, setLogoError] = useState("");
+  const [productSource, setProductSource] = useState<ProductSourceChoice | "">(
+    initialAnswers.productSource ?? "",
+  );
   const logoInputRef = useRef<HTMLInputElement>(null);
   /** When true, skip auto-select-all so Clear stays empty. */
   const departmentsClearedRef = useRef(false);
@@ -1075,10 +1086,38 @@ export function OnboardingQuestionnaire({
                         ? `${catalogLabel} has no starter pack yet. You can add products yourself anytime.`
                         : "No starter pack for your country yet. You can add products yourself anytime."
                     ) : (
-                      "Import ready-made products for shops like yours — with barcodes already filled in."
+                      "How do you want to stock? Pick one — we’ll match the tips that follow."
                     )
                   }
                 />
+                {!catalogShellEmpty ? (
+                  <div className="space-y-2">
+                    {PRODUCT_SOURCE_OPTIONS.map((opt) => {
+                      const selected = productSource === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setProductSource(opt.value);
+                            onProductSourceChange?.(opt.value);
+                          }}
+                          className={cn(
+                            "flex w-full flex-col items-start gap-0.5 rounded-none border px-4 py-3 text-left transition",
+                            selected
+                              ? "border-[#0D9488] bg-[#F0FDFA]"
+                              : "border-[#E8E4DC] bg-white/90 hover:border-[#99F6E4]",
+                          )}
+                        >
+                          <span className="text-sm font-semibold text-[#134E4A]">
+                            {opt.label}
+                          </span>
+                          <span className="text-xs text-[#6B7280]">{opt.hint}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
                 {catalogShellEmpty ? (
                   <div className="space-y-3 rounded-none border border-[#E8E4DC] bg-white/90 p-4">
                     <div className="flex size-12 items-center justify-center rounded-none bg-[#F3F4F6] text-[#9CA3AF]">
@@ -1100,6 +1139,18 @@ export function OnboardingQuestionnaire({
                         Check back when packs arrive for your region
                       </li>
                     </ul>
+                  </div>
+                ) : productSource === "spreadsheet" ||
+                  productSource === "other_pos" ? (
+                  <div className="flex flex-col items-start gap-3 rounded-none border border-[#E8E4DC] bg-white/90 p-4">
+                    <div className="flex size-12 items-center justify-center rounded-none bg-[#F0FDFA] text-[#0D9488]">
+                      <Package className="size-6" aria-hidden />
+                    </div>
+                    <p className="text-sm text-[#6B7280]">
+                      Import your list first. After that, use the Global catalog
+                      only for gaps — and group sizes as families so stock stays
+                      honest.
+                    </p>
                   </div>
                 ) : packLoading ? (
                   <div className="rounded-none border border-[#E5E7EB] bg-white/90 px-4 py-10 text-center text-sm text-[#6B7280]">
@@ -1177,7 +1228,7 @@ export function OnboardingQuestionnaire({
                       </ul>
                     </div>
                   </div>
-                ) : (
+                ) : productSource === "new" || !productSource ? (
                   <div className="flex flex-col items-start gap-3 rounded-none border border-[#E8E4DC] bg-white/90 p-4">
                     <div className="flex size-12 items-center justify-center rounded-none bg-[#F0FDFA] text-[#0D9488]">
                       <Package className="size-6" aria-hidden />
@@ -1186,7 +1237,7 @@ export function OnboardingQuestionnaire({
                       Browse the catalogue and choose products to import.
                     </p>
                   </div>
-                )}
+                ) : null}
               </>
             ) : null}
           </div>
@@ -1206,10 +1257,37 @@ export function OnboardingQuestionnaire({
         <div className="mx-auto w-full max-w-lg space-y-2.5">
           {step === QUESTIONNAIRE_STEP_COUNT ? (
             <>
-              {canBrowseGlobalCatalog && !catalogShellEmpty ? (
+              {!catalogShellEmpty &&
+              (productSource === "spreadsheet" ||
+                productSource === "other_pos") ? (
                 <button
                   type="button"
-                  onClick={onOpenCatalogDrawer}
+                  onClick={() => {
+                    const source =
+                      productSource === "other_pos" ? "other_pos" : "spreadsheet";
+                    onProductSourceChange?.(source);
+                    onOpenImport?.();
+                  }}
+                  className={cn(
+                    primaryCtaClass,
+                    "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]",
+                  )}
+                >
+                  Import spreadsheet
+                </button>
+              ) : null}
+              {canBrowseGlobalCatalog &&
+              !catalogShellEmpty &&
+              productSource !== "spreadsheet" &&
+              productSource !== "other_pos" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!productSource) {
+                      onProductSourceChange?.("new");
+                    }
+                    onOpenCatalogDrawer?.();
+                  }}
                   className={cn(
                     primaryCtaClass,
                     "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]",
@@ -1234,15 +1312,26 @@ export function OnboardingQuestionnaire({
               ) : null}
               <button
                 type="button"
-                onClick={onFinishLater}
+                onClick={() => {
+                  if (!productSource && !catalogShellEmpty) {
+                    onProductSourceChange?.("new");
+                  }
+                  onFinishLater?.();
+                }}
                 className={cn(
                   primaryCtaClass,
-                  canBrowseGlobalCatalog || catalogShellEmpty
+                  canBrowseGlobalCatalog ||
+                    catalogShellEmpty ||
+                    productSource === "spreadsheet" ||
+                    productSource === "other_pos"
                     ? "border border-transparent bg-transparent text-[#6B7280] hover:text-[#1F2937]"
                     : "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]",
                 )}
               >
-                {canBrowseGlobalCatalog || catalogShellEmpty
+                {canBrowseGlobalCatalog ||
+                catalogShellEmpty ||
+                productSource === "spreadsheet" ||
+                productSource === "other_pos"
                   ? "Skip for now"
                   : "Continue to dashboard"}
               </button>

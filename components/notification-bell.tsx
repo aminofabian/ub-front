@@ -20,6 +20,7 @@ export function NotificationBell() {
   const unreadCount = notificationUnread + supportUnread;
   const notifications = rt?.notifications ?? [];
   const markAllRead = rt?.markAllRead;
+  const markRead = rt?.markRead;
 
   return (
     <div className="relative">
@@ -108,6 +109,10 @@ export function NotificationBell() {
                         key={n.eventId}
                         onClick={() => {
                           setOpen(false);
+                          const id = String(
+                            (data as { id?: string }).id ?? n.eventId ?? "",
+                          );
+                          if (id) markRead?.(id);
                           if (actionUrl) router.push(actionUrl);
                         }}
                         className={cn(

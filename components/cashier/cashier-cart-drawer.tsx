@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   Banknote,
   Check,
@@ -109,13 +109,8 @@ export type CashierCartDrawerProps = {
 
   lines: CartLineLike[];
   grandTotal: number;
-  /** Amount to collect when round-to-10 is on (>= grandTotal; equals it otherwise). */
+  /** Amount to collect (equals the cart total). */
   payableTotal: number;
-  /** Round-to-10 toggle (default on). */
-  roundTo10: boolean;
-  setRoundTo10: (b: boolean) => void;
-  /** True when rounding may apply to this cart (cash/mpesa, no split/airtime/grocery). */
-  roundingEligible: boolean;
   removeLine: (key: string) => void;
   updateLine: (
     key: string,
@@ -291,9 +286,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     lines,
     grandTotal,
     payableTotal,
-    roundTo10,
-    setRoundTo10,
-    roundingEligible,
     removeLine,
     updateLine,
     allowWeighedToggle = false,
@@ -416,11 +408,29 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
   const changeDueAmount =
     cashReady && cashChange != null ? Number(cashChange) : 0;
 
+  const cashTenderStrRef = useRef(cashTenderStr);
+  cashTenderStrRef.current = cashTenderStr;
+  const lastAutoTenderRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!open || saleComplete) return;
+    if (!open || saleComplete) {
+      lastAutoTenderRef.current = null;
+      return;
+    }
     if (splitPay || payMethod !== "cash") return;
     if (payableTotal <= 0) return;
-    setCashTenderStr(payableTotal.toFixed(2));
+
+    const next = payableTotal.toFixed(2);
+    const current = cashTenderStrRef.current.trim();
+    const lastAuto = lastAutoTenderRef.current;
+    // Keep a cashier-typed tender (e.g. 200) — do not snap back to the bill.
+    if (current !== "" && lastAuto != null && current !== lastAuto) {
+      return;
+    }
+    lastAutoTenderRef.current = next;
+    if (current !== next) {
+      setCashTenderStr(next);
+    }
     setCreditChangeToWallet(false);
   }, [
     open,
@@ -428,7 +438,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     splitPay,
     payMethod,
     payableTotal,
-    roundTo10,
     setCashTenderStr,
     setCreditChangeToWallet,
   ]);
@@ -772,28 +781,14 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           Cash received
                         </p>
                         <div className="flex items-center gap-1">
-                          {roundingEligible ? (
-                            <button
-                              type="button"
-                              className={cn(
-                                "rounded-lg px-2 py-1 text-[11px] font-semibold transition",
-                                roundTo10
-                                  ? "bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-[var(--pos-primary)]"
-                                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                              )}
-                              onClick={() => setRoundTo10(!roundTo10)}
-                              aria-pressed={roundTo10}
-                              title="Round the amount to the nearest 10"
-                            >
-                              {roundTo10 ? "Round to 10 · on" : "Round to 10"}
-                            </button>
-                          ) : null}
                           <button
                             type="button"
                             className="rounded-lg px-2 py-1 text-[11px] font-semibold text-[var(--pos-primary)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)]"
-                            onClick={() =>
-                              setCashTenderStr(payableTotal.toFixed(2))
-                            }
+                            onClick={() => {
+                              const next = payableTotal.toFixed(2);
+                              lastAutoTenderRef.current = next;
+                              setCashTenderStr(next);
+                            }}
                           >
                             Exact total
                           </button>
@@ -810,14 +805,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         onChange={(e) => setCashTenderStr(e.target.value)}
                         placeholder="0.00"
                       />
-                      {roundingEligible &&
-                      roundTo10 &&
-                      payableTotal > grandTotal + 0.001 ? (
-                        <p className="rounded-lg bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--pos-primary)]">
-                          Rounded up from {grandTotal.toFixed(2)} — ask for{" "}
-                          {payableTotal.toFixed(2)}
-                        </p>
-                      ) : null}
                       <div className="flex flex-wrap gap-1.5">
                         {CASH_QUICK_AMOUNTS.map((n) => (
                           <button

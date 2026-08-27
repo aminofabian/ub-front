@@ -44,6 +44,7 @@ import {
   shouldStartOnboardingQuestionnaire,
   type OnboardingQuestionnaireAnswers,
   type OnboardingQuestionnaireFinishExtras,
+  type ProductSourceChoice,
 } from "@/lib/onboarding-questionnaire";
 
 type OnboardingQuestionnaireContextValue = {
@@ -258,6 +259,29 @@ export function OnboardingQuestionnaireProvider({
     finish();
   }, [finish]);
 
+  const handleProductSourceChange = useCallback(
+    (source: ProductSourceChoice) => {
+      const merged = { ...answers, productSource: source };
+      setAnswers(merged);
+      saveQuestionnaireProgress(7, merged);
+    },
+    [answers],
+  );
+
+  const handleOpenImport = useCallback(() => {
+    const source = answers.productSource;
+    const merged =
+      source === "spreadsheet" || source === "other_pos"
+        ? answers
+        : { ...answers, productSource: "spreadsheet" as const };
+    if (merged !== answers) {
+      setAnswers(merged);
+      saveQuestionnaireProgress(7, merged);
+    }
+    setActive(false);
+    router.replace(APP_ROUTES.businessImport);
+  }, [answers, router]);
+
   const handleCatalogImportSuccess = useCallback(() => {
     setCatalogDrawerOpen(false);
     finish();
@@ -390,6 +414,8 @@ export function OnboardingQuestionnaireProvider({
               onOpenCatalogDrawer={handleOpenCatalogDrawer}
               onAddProductsManually={handleAddProductsManually}
               onFinishLater={handleFinishLater}
+              onProductSourceChange={handleProductSourceChange}
+              onOpenImport={handleOpenImport}
             />
             <OnboardingCatalogDrawer
               open={catalogDrawerOpen}

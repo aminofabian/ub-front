@@ -28,6 +28,17 @@ const TYPE_LABELS: Record<string, string> = {
   "insights.peak_hours": "Peak sales window",
   "insights.top_products": "Top products",
   "account.welcome": "Welcome to Kiosk!",
+  "onboarding.fill_shelf": "Fill your shelf in 10 minutes",
+  "onboarding.sizes_right": "Sizes done right",
+  "onboarding.money_loop": "Suppliers → supply → first sale",
+  "onboarding.first_sale": "First sale",
+  "onboarding.go_live": "Put your shop online",
+  "onboarding.team_rhythm": "Team + rhythm",
+  "onboarding.week_checkin": "Your week 1",
+  "onboarding.reengage": "10 minutes gets you selling",
+  "onboarding.lookalike": "Sizes done right?",
+  "onboarding.close_shift": "Remember to close tonight",
+  "onboarding.web_order": "Someone ordered online!",
 };
 
 function readString(value: unknown): string {

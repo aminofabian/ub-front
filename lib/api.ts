@@ -2856,6 +2856,27 @@ export async function markAllShopperNotificationsRead(): Promise<void> {
   });
 }
 
+export type StaffNotificationRow = {
+  id: string;
+  type: string;
+  payloadJson: string;
+  readAt?: string | null;
+  createdAt?: string;
+};
+
+export async function fetchStaffNotifications(): Promise<StaffNotificationRow[]> {
+  return request<StaffNotificationRow[]>(API_ROUTES.notifications, {
+    requiresAuth: true,
+  });
+}
+
+export async function markStaffNotificationRead(id: string): Promise<void> {
+  await request(`${API_ROUTES.notifications}/${encodeURIComponent(id)}/read`, {
+    method: "POST",
+    requiresAuth: true,
+  });
+}
+
 export type NotificationPreferencesProfile = {
   quietHoursEnabled?: boolean;
   quietHoursStart?: string;
@@ -3052,6 +3073,8 @@ export type OnboardingAnswersRecord = {
   displayName?: string;
   primaryColor?: string;
   accentColor?: string;
+  /** new | spreadsheet | other_pos */
+  productSource?: string;
 };
 
 export type OnboardingStateRecord = {

@@ -23,6 +23,8 @@ export type StoreTypeChoice =
 
 export type OnlineStoreChoice = "yes" | "no";
 
+export type ProductSourceChoice = "new" | "spreadsheet" | "other_pos";
+
 export type OnboardingQuestionnaireAnswers = {
   branchCount: BranchCountChoice;
   /** Area/locality only — formatted as "{name} branch" when saved. */
@@ -41,6 +43,13 @@ export type OnboardingQuestionnaireAnswers = {
   displayName: string;
   primaryColor: string;
   accentColor: string;
+  /**
+   * How they plan to stock the shelf.
+   * - new: Global catalog / starter pack
+   * - spreadsheet: import file first
+   * - other_pos: migrating from another system
+   */
+  productSource?: ProductSourceChoice;
 };
 
 /** In-memory only (not persisted to localStorage). */
@@ -169,6 +178,28 @@ export const ONLINE_STORE_OPTIONS: readonly {
   {
     value: "no",
     label: "Not right now — in-store only",
+  },
+];
+
+export const PRODUCT_SOURCE_OPTIONS: readonly {
+  value: ProductSourceChoice;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: "new",
+    label: "Start from Global catalog",
+    hint: "Starter packs with barcodes — fastest for a new shop",
+  },
+  {
+    value: "spreadsheet",
+    label: "I have a spreadsheet",
+    hint: "Import your file, then fill gaps from the catalog",
+  },
+  {
+    value: "other_pos",
+    label: "I’m moving from another POS",
+    hint: "Import your list first — don’t retype products",
   },
 ];
 

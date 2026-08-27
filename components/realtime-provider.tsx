@@ -13,8 +13,14 @@ import { usePathname } from "next/navigation";
 
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { useClientHasAccessTokens } from "@/hooks/use-client-session";
+import {
+  fetchStaffNotifications,
+  markStaffNotificationRead,
+  type StaffNotificationRow,
+} from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { showPriceChangedToast } from "@/components/price-changed-toast";
+import { getNotificationPresentation } from "@/lib/notification-display";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   getRealtimeClient,
@@ -36,6 +42,46 @@ type RealtimeContextValue = {
 };
 
 const RealtimeContext = createContext<RealtimeContextValue | null>(null);
+
+function staffRowToFrame(row: StaffNotificationRow): RealtimeFrame {
+  let parsed: Record<string, unknown> = {};
+  try {
+    parsed = JSON.parse(row.payloadJson || "{}") as Record<string, unknown>;
+  } catch {
+    parsed = {};
+  }
+  const data = getNotificationPresentation({
+    id: row.id,
+    type: row.type,
+    notificationType: row.type,
+    payloadJson: row.payloadJson,
+    payload: parsed,
+    ...parsed,
+    createdAt: row.createdAt,
+    readAt: row.readAt,
+  });
+  return {
+    v: 1,
+    type: "notification.created",
+    eventId: row.id,
+    at: row.createdAt ?? "",
+    priority: "MEDIUM",
+    delivery: "poll",
+    data: {
+      id: row.id,
+      type: row.type,
+      notificationType: row.type,
+      payloadJson: row.payloadJson,
+      payload: parsed,
+      ...parsed,
+      title: data.title,
+      body: data.body,
+      actionUrl: data.actionUrl,
+      createdAt: row.createdAt,
+      readAt: row.readAt,
+    },
+  };
+}
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -101,11 +147,61 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     };
   }, [canReadNotifications, hasAccessTokens, pathname]);
 
+  // Hydrate tenant staff inbox from REST — welcome (and other offline inserts)
+  // are created before any WS session exists, and poll baselines without emitting history.
+  useEffect(() => {
+    if (!hasAccessTokens || !canReadNotifications) return;
+    if (pathname.startsWith(APP_ROUTES.login)) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchStaffNotifications();
+        if (cancelled || !Array.isArray(rows)) return;
+        const unread = rows
+          .filter((row) => !row.readAt)
+          .slice(0, 50)
+          .map(staffRowToFrame);
+        setNotifications((prev) => {
+          const byId = new Map<string, RealtimeFrame>();
+          for (const frame of unread) {
+            byId.set(frame.eventId, frame);
+          }
+          for (const frame of prev) {
+            if (!byId.has(frame.eventId)) {
+              byId.set(frame.eventId, frame);
+            }
+          }
+          return Array.from(byId.values())
+            .sort((a, b) => String(b.at).localeCompare(String(a.at)))
+            .slice(0, 50);
+        });
+      } catch {
+        // Bell stays live-only if hydrate fails
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canReadNotifications, hasAccessTokens, pathname]);
+
   const markAllRead = useCallback(() => {
-    setNotifications([]);
+    setNotifications((prev) => {
+      for (const frame of prev) {
+        const id = String(
+          (frame.data as { id?: string }).id ?? frame.eventId ?? "",
+        );
+        if (id) {
+          void markStaffNotificationRead(id).catch(() => {});
+        }
+      }
+      return [];
+    });
   }, []);
 
   const markRead = useCallback((notificationId: string) => {
+    void markStaffNotificationRead(notificationId).catch(() => {});
     setNotifications((prev) =>
       prev.filter((n) => (n.data as { id?: string }).id !== notificationId),
     );

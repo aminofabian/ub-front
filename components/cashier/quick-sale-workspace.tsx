@@ -2283,20 +2283,9 @@ export function QuickSaleWorkspace({
     return roundMoney2(t);
   }, [lines]);
 
-  // Round the amount collected to the nearest 10 (default on; toggle in the
-  // checkout drawer). Never rounds below the true total so the sale always
-  // records full payment — e.g. 99.99 → 100, 347.50 → 350, 342 → 342.
-  const [roundTo10, setRoundTo10] = useState(true);
-  const roundingEligible =
-    !splitPay &&
-    !activeCart.groceryInvoiceId &&
-    (payMethod === "cash" || isStkTender(payMethod)) &&
-    !lines.some(isAirtimeCartLine);
-  const payableTotal = useMemo(() => {
-    if (!roundTo10 || !roundingEligible) return grandTotal;
-    const rounded = Math.round(grandTotal / 10) * 10;
-    return roundMoney2(Math.max(rounded, grandTotal));
-  }, [grandTotal, roundTo10, roundingEligible]);
+  // Collect the cart total as-is. Do not round cash/STK to the nearest 10 —
+  // a 165 bill stays 165, and tendering 200 gives 35 change.
+  const payableTotal = grandTotal;
 
   const canCompleteSale = useMemo(() => {
     if (lines.length === 0 || grandTotal <= 0) {
@@ -4516,9 +4505,6 @@ export function QuickSaleWorkspace({
           cashTenderStr,
           setCashTenderStr,
           payableTotal,
-          roundTo10,
-          setRoundTo10,
-          roundingEligible,
           creditChangeToWallet,
           setCreditChangeToWallet,
           stkAreaCode,

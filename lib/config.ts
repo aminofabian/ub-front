@@ -208,6 +208,7 @@ export const API_ROUTES = {
   me: "/api/v1/me",
   shopperHub: "/api/v1/me/shopper",
   shopperNotifications: "/api/v1/me/shopper/notifications",
+  notifications: "/api/v1/notifications",
   notificationPreferences: "/api/v1/me/notification-preferences",
   shopperNotificationSubscriptions:
     "/api/v1/me/shopper/notification-subscriptions",
