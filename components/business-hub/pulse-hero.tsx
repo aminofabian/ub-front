@@ -50,7 +50,7 @@ export function PulseHero({
       />
 
       <div className="relative grid gap-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <div className="flex flex-col justify-center gap-2 border-b border-[#E6E1D8] px-4 py-3.5 lg:border-b-0 lg:border-r">
+        <div className="flex flex-col justify-center gap-1.5 border-b border-[#E6E1D8] px-3 py-2.5 lg:border-b-0 lg:border-r">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className={cn("text-[10px] font-semibold uppercase tracking-[0.1em]", HUB_MUTED)}>
               {eyebrow}
@@ -138,7 +138,7 @@ export function PulseHero({
         <div className="grid grid-cols-2 bg-[#E6E1D8] sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
           {metrics.map((metric) => {
             const body = (
-              <div className="bg-white px-3 py-3 transition-colors hover:bg-[#FCFAF6]">
+              <div className="bg-white px-3 py-2 transition-colors hover:bg-[#FCFAF6]">
                 <p className={cn("text-[10px] font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
                   {metric.label}
                 </p>

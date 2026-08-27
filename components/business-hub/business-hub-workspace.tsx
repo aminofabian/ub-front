@@ -1037,16 +1037,16 @@ export function BusinessHubWorkspace() {
   const showMovers = canViewOwnerSummary && topMovers.length > 0;
 
   return (
-    <div className="hub-paper -mx-3 min-h-full px-3 py-4 sm:-mx-4 sm:px-4 sm:py-5 lg:mx-0 lg:px-0 lg:py-4">
+    <div className="hub-paper -mx-3 min-h-full px-3 py-2 sm:-mx-4 sm:px-4 sm:py-3 lg:mx-0 lg:px-0 lg:py-2">
       <div
         className={cn(
-          "mx-auto w-full max-w-5xl border border-[#E6E1D8] bg-white/70 p-3 shadow-[0_1px_0_rgba(20,20,20,0.03)] sm:p-4",
-          "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-4",
+          "mx-auto w-full max-w-5xl p-2 sm:p-3",
+          "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-3",
           showTillStage && "max-w-6xl xl:max-w-7xl",
           dualLanes && "max-w-7xl",
         )}
       >
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {showTillStage ? (
             <CashierStageTabs
               cashiers={cashierNames}
@@ -1071,10 +1071,10 @@ export function BusinessHubWorkspace() {
           >
             <div
               className={cn(
-                "flex flex-col gap-3",
+                "flex flex-col gap-2",
                 showTillStage &&
                   !galleryOpen &&
-                  "xl:border-r xl:border-[#E6E1D8] xl:pr-4",
+                  "xl:border-r xl:border-[#E6E1D8]/70 xl:pr-3",
               )}
             >
               <div className="flex items-center justify-end gap-1.5">
@@ -1121,7 +1121,7 @@ export function BusinessHubWorkspace() {
               {showTillStage && !galleryOpen ? (
                 <div
                   className={cn(
-                    "grid gap-3 xl:hidden",
+                    "grid gap-2 xl:hidden",
                     dualLanes && "sm:grid-cols-2",
                   )}
                 >
@@ -1208,7 +1208,7 @@ export function BusinessHubWorkspace() {
               {(stockItems.length > 0 || showMovers) ? (
                 <div
                   className={cn(
-                    "grid gap-3 lg:items-start",
+                    "grid gap-2 lg:items-start",
                     stockItems.length > 0 &&
                       showMovers &&
                       "lg:grid-cols-[1.15fr_0.85fr]",
@@ -1221,7 +1221,7 @@ export function BusinessHubWorkspace() {
 
               <CommandGrid links={commandLinks} />
 
-              <div className="space-y-3 xl:hidden">
+              <div className="space-y-2 xl:hidden">
                 <StockShelvesBanner catalogueCount={catalogueCount} />
                 <PostSetupChecklist catalogueCount={catalogueCount} />
               </div>

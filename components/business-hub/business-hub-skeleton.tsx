@@ -4,8 +4,8 @@ import { HUB_SURFACE } from "@/lib/business-hub/constants";
 
 export function BusinessHubSkeleton() {
   return (
-    <div className="hub-paper mx-auto w-full max-w-6xl border border-[#E6E1D8] bg-white/70 p-3 sm:p-4 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] xl:gap-0">
-      <div className="flex flex-col gap-3 xl:border-r xl:border-[#E6E1D8] xl:pr-4">
+    <div className="hub-paper mx-auto w-full max-w-6xl p-2 sm:p-3 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] xl:gap-0">
+      <div className="flex flex-col gap-2 xl:border-r xl:border-[#E6E1D8]/70 xl:pr-3">
         <div className={`${HUB_SURFACE} h-12 animate-pulse bg-[#F7F5F1]`} />
         <div className="flex justify-end">
           <div className="h-8 w-36 animate-pulse bg-[#EDE8DF]" />

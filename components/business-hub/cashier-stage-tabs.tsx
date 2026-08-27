@@ -50,7 +50,7 @@ export function CashierStageTabs({
 
   return (
     <div className={cn("bg-transparent", className)}>
-      <div className="mb-2 flex items-baseline justify-between gap-3">
+      <div className="mb-1.5 flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-2">
           <p
             className="text-[10px] font-semibold uppercase tracking-[0.16em]"
@@ -69,7 +69,7 @@ export function CashierStageTabs({
       </div>
 
       <div
-        className="grid gap-2"
+        className="grid gap-1.5"
         style={{
           gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
         }}
@@ -82,7 +82,7 @@ export function CashierStageTabs({
           aria-selected={viewingAll}
           onClick={selectAll}
           className={cn(
-            "group relative flex items-center justify-between gap-2 border bg-white px-3.5 py-3 text-left transition-colors",
+            "group relative flex items-center justify-between gap-2 border bg-white px-3 py-2.5 text-left transition-colors",
             viewingAll
               ? "border-[#B08D48] text-[#141414]"
               : "border-[#E6E1D8] text-[#141414] hover:border-[#D4C4A0]",
@@ -132,7 +132,7 @@ export function CashierStageTabs({
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                "relative flex items-center gap-2.5 border bg-white px-3.5 py-3 text-left transition-colors",
+                "relative flex items-center gap-2.5 border bg-white px-3 py-2.5 text-left transition-colors",
                 active
                   ? "border-[#B08D48] text-[#141414]"
                   : "border-[#E6E1D8] text-[#141414] hover:border-[#D4C4A0]",
