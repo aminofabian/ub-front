@@ -11,7 +11,7 @@ export function PeriodToggle({
   onChange: (p: Period) => void;
 }) {
   return (
-    <div className="inline-flex shrink-0 items-stretch gap-1.5 bg-transparent">
+    <div className="inline-flex shrink-0 items-stretch gap-0.5 rounded-lg border border-[#E6E1D8]/90 bg-white p-0.5 shadow-[0_1px_0_rgba(20,20,20,0.04)]">
       {(
         [
           { id: "week" as const, label: "Week" },
@@ -25,19 +25,13 @@ export function PeriodToggle({
             type="button"
             onClick={() => onChange(id)}
             className={cn(
-              "relative min-w-[3.75rem] border bg-white px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors",
+              "relative min-w-[3.75rem] rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors",
               active
-                ? "border-[#B08D48] text-[#8A6B2E]"
-                : "border-[#E6E1D8] text-[#666666] hover:border-[#D4C4A0] hover:text-[#141414]",
+                ? "bg-[#141414] text-[#F5E6C8] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+                : "text-[#666666] hover:bg-[#F7F5F1] hover:text-[#141414]",
             )}
           >
             {label}
-            {active ? (
-              <span
-                className="pointer-events-none absolute inset-x-2 bottom-0 h-0.5 bg-[#B08D48]"
-                aria-hidden
-              />
-            ) : null}
           </button>
         );
       })}

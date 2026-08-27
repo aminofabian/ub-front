@@ -38,14 +38,14 @@ export function BusinessHubEmptyState({
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           <Link
             href={APP_ROUTES.salesQuick}
-            className="inline-flex items-center gap-2 bg-[#141414] px-3.5 py-2 text-sm font-medium text-[#F5E6C8] transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#141414] px-3.5 py-2 text-sm font-medium text-[#F5E6C8] transition-opacity hover:opacity-90"
           >
             <ShoppingCart className="size-3.5" aria-hidden />
             Record a sale
           </Link>
           <Link
             href={APP_ROUTES.products}
-            className="inline-flex items-center gap-2 border border-[#E6E1D8] bg-white px-3.5 py-2 text-sm font-medium text-[#141414] transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]"
+            className="inline-flex items-center gap-2 rounded-lg border border-[#E6E1D8] bg-white px-3.5 py-2 text-sm font-medium text-[#141414] transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]"
           >
             <Package className="size-3.5 text-[#888888]" aria-hidden />
             Add products
@@ -53,7 +53,7 @@ export function BusinessHubEmptyState({
           {showStorefrontLink ? (
             <Link
               href={APP_ROUTES.businessSettings}
-              className="inline-flex items-center gap-2 border border-[#E6E1D8] bg-white px-3.5 py-2 text-sm font-medium text-[#141414] transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#E6E1D8] bg-white px-3.5 py-2 text-sm font-medium text-[#141414] transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]"
             >
               <Store className="size-3.5 text-[#888888]" aria-hidden />
               Storefront setup

@@ -11,6 +11,7 @@ import {
   totalDrawoutAmount,
   type HubDrawout,
 } from "@/lib/business-hub/drawouts-for-hub";
+import { HUB_RAIL } from "@/lib/business-hub/constants";
 import type { RecentTick } from "@/lib/business-hub/ticks-from-transactions";
 import { cn } from "@/lib/utils";
 
@@ -95,7 +96,8 @@ export function RecentTicksRail({
   return (
     <aside
       className={cn(
-        "hub-rise relative flex h-full min-h-[16rem] flex-col border border-[#E6E1D8] bg-white text-[#141414]",
+        HUB_RAIL,
+        "flex h-full min-h-[16rem] flex-col",
         fillViewport && "xl:min-h-[100dvh] xl:h-[100dvh]",
         justUpdated && "hub-scan-sweep border-[#B08D48]/55",
         className,
@@ -104,7 +106,7 @@ export function RecentTicksRail({
     >
       <div
         className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 w-0.5",
+          "pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full",
           accent === "ink" ? "bg-[#141414]" : "bg-[#B08D48]",
         )}
         aria-hidden

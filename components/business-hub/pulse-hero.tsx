@@ -45,7 +45,7 @@ export function PulseHero({
       )}
     >
       <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-[#141414]"
+        className="pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-[#B08D48]"
         aria-hidden
       />
 
@@ -135,10 +135,10 @@ export function PulseHero({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 bg-[#E6E1D8] sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px bg-[#E6E1D8]/80 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
           {metrics.map((metric) => {
             const body = (
-              <div className="bg-white px-3 py-2 transition-colors hover:bg-[#FCFAF6]">
+              <div className="bg-white px-3 py-2.5 transition-colors hover:bg-[#FCFAF6]">
                 <p className={cn("text-[10px] font-medium uppercase tracking-[0.08em]", HUB_MUTED)}>
                   {metric.label}
                 </p>

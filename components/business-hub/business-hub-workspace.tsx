@@ -22,6 +22,7 @@ import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { ActionItemsStrip } from "@/components/business-hub/action-items-strip";
 import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-empty-state";
 import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skeleton";
+import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
 import { CashierStageTabs } from "@/components/business-hub/cashier-stage-tabs";
 import { CashierTillDrawer } from "@/components/business-hub/cashier-till-drawer";
 import { CommandGrid, type CommandLink } from "@/components/business-hub/command-grid";
@@ -1037,16 +1038,52 @@ export function BusinessHubWorkspace() {
   const showMovers = canViewOwnerSummary && topMovers.length > 0;
 
   return (
-    <div className="hub-paper -mx-3 min-h-full px-3 py-2 sm:-mx-4 sm:px-4 sm:py-3 lg:mx-0 lg:px-0 lg:py-2">
+    <BusinessPageLayout
+      headerActions={
+        <>
+          <button
+            type="button"
+            onClick={() => void load()}
+            disabled={refreshing}
+            className={cn(
+              "inline-flex size-9 items-center justify-center rounded-lg border border-[#E6E1D8] bg-white text-[#666666]",
+              "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+            )}
+            aria-label="Refresh business hub"
+          >
+            <RefreshCw
+              className={cn("size-3.5", refreshing && "animate-spin")}
+              aria-hidden
+            />
+          </button>
+          <PeriodToggle value={period} onChange={setPeriod} />
+          {canManageBusinessSettings ? (
+            <Link
+              href={APP_ROUTES.businessSettings}
+              className={cn(
+                "inline-flex size-9 items-center justify-center rounded-lg border border-[#E6E1D8] bg-white text-[#666666]",
+                "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+              )}
+              aria-label="Business settings"
+            >
+              <Settings className="size-3.5" aria-hidden />
+            </Link>
+          ) : null}
+        </>
+      }
+    >
       <div
         className={cn(
-          "mx-auto w-full max-w-5xl p-2 sm:p-3",
-          "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-3",
+          "mx-auto w-full max-w-5xl",
+          "pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:pb-0",
           showTillStage && "max-w-6xl xl:max-w-7xl",
           dualLanes && "max-w-7xl",
         )}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {showTillStage ? (
             <CashierStageTabs
               cashiers={cashierNames}
@@ -1071,46 +1108,12 @@ export function BusinessHubWorkspace() {
           >
             <div
               className={cn(
-                "flex flex-col gap-2",
+                "flex flex-col gap-3",
                 showTillStage &&
                   !galleryOpen &&
-                  "xl:border-r xl:border-[#E6E1D8]/70 xl:pr-3",
+                  "xl:border-r xl:border-[#E6E1D8]/70 xl:pr-4",
               )}
             >
-              <div className="flex items-center justify-end gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => void load()}
-                  disabled={refreshing}
-                  className={cn(
-                    "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-                    "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
-                    "disabled:cursor-not-allowed disabled:opacity-60",
-                  )}
-                  aria-label="Refresh business hub"
-                >
-                  <RefreshCw
-                    className={cn("size-3.5", refreshing && "animate-spin")}
-                    aria-hidden
-                  />
-                </button>
-                <PeriodToggle value={period} onChange={setPeriod} />
-                {canManageBusinessSettings ? (
-                  <Link
-                    href={APP_ROUTES.businessSettings}
-                    className={cn(
-                      "inline-flex size-8 items-center justify-center border border-[#E6E1D8] bg-white text-[#666666]",
-                      "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
-                    )}
-                    aria-label="Business settings"
-                  >
-                    <Settings className="size-3.5" aria-hidden />
-                  </Link>
-                ) : null}
-              </div>
-
               {salesEmpty ? (
                 <BusinessHubEmptyState
                   period={period}
@@ -1250,7 +1253,7 @@ export function BusinessHubWorkspace() {
                       accent={lane.accent}
                       laneIndex={dualLanes ? index : undefined}
                       fillViewport={false}
-                      className="h-full max-h-[min(40rem,72dvh)] border-0 border-l border-[#E6E1D8]"
+                      className="h-full max-h-[min(40rem,72dvh)] border-0 xl:rounded-xl xl:border xl:border-[#E6E1D8]/90"
                     />
                   </div>
                 ))
@@ -1303,6 +1306,6 @@ export function BusinessHubWorkspace() {
           }}
         />
       ) : null}
-    </div>
+    </BusinessPageLayout>
   );
 }

@@ -82,10 +82,10 @@ export function CashierStageTabs({
           aria-selected={viewingAll}
           onClick={selectAll}
           className={cn(
-            "group relative flex items-center justify-between gap-2 border bg-white px-3 py-2.5 text-left transition-colors",
+            "group relative flex items-center justify-between gap-2 rounded-xl border bg-white px-3 py-2.5 text-left transition-colors",
             viewingAll
-              ? "border-[#B08D48] text-[#141414]"
-              : "border-[#E6E1D8] text-[#141414] hover:border-[#D4C4A0]",
+              ? "border-[#B08D48] bg-[#FCFAF6] text-[#141414] shadow-[0_1px_0_rgba(20,20,20,0.04)]"
+              : "border-[#E6E1D8]/90 text-[#141414] hover:border-[#D4C4A0]",
           )}
         >
           <span className="min-w-0">
@@ -132,10 +132,10 @@ export function CashierStageTabs({
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                "relative flex items-center gap-2.5 border bg-white px-3 py-2.5 text-left transition-colors",
+                "relative flex items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 text-left transition-colors",
                 active
-                  ? "border-[#B08D48] text-[#141414]"
-                  : "border-[#E6E1D8] text-[#141414] hover:border-[#D4C4A0]",
+                  ? "border-[#B08D48] bg-[#FCFAF6] text-[#141414] shadow-[0_1px_0_rgba(20,20,20,0.04)]"
+                  : "border-[#E6E1D8]/90 text-[#141414] hover:border-[#D4C4A0]",
               )}
             >
               <span

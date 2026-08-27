@@ -5,6 +5,7 @@ import Link from "next/link";
 import { APP_ROUTES } from "@/lib/config";
 import { fmtMoney } from "@/lib/business-hub/formatters";
 import type { WebOrderSummary } from "@/lib/api";
+import { HUB_RAIL } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 function formatClock(iso: string): string {
@@ -62,14 +63,14 @@ export function WebOrdersRail({
   return (
     <section
       className={cn(
-        "hub-rise relative border border-[#E6E1D8] bg-white text-[#141414]",
+        HUB_RAIL,
         justUpdated && "hub-scan-sweep border-[#B08D48]/55",
         className,
       )}
       aria-label="Web pickup orders"
     >
       <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-[#B08D48]"
+        className="pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-[#B08D48]"
         aria-hidden
       />
 

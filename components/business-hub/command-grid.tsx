@@ -29,7 +29,7 @@ export function CommandGrid({ links }: { links: CommandLink[] }) {
             title={link.hint}
             className={cn(
               HUB_SURFACE,
-              "group inline-flex items-center gap-2 border border-[#E6E1D8] bg-white px-3 py-2 transition-colors hover:border-[#B08D48]",
+              "group inline-flex items-center gap-2 rounded-full px-3.5 py-2 transition-colors hover:border-[#B08D48]",
             )}
           >
             <link.icon
