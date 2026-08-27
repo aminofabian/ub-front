@@ -314,6 +314,20 @@ export async function deleteSaBusiness(businessId: string): Promise<void> {
   });
 }
 
+/** Push welcome + teaching tips into support chat, in-app, and email. */
+export async function sendSaOnboardingSequence(businessId: string): Promise<{
+  welcomePosted: boolean;
+  chatTipsPosted: string[];
+  inAppSent: string[];
+  emailsSent: string[];
+  skipped: string[];
+}> {
+  return saRequest(
+    `${API_ROUTES.superAdminBusinesses}/${encodeURIComponent(businessId.trim())}/onboarding-sequence/send-all`,
+    { method: "POST" },
+  );
+}
+
 // ─── Platform Payment Gateways ──────────────────────────────────────
 
 export type PlatformGatewayRecord = {

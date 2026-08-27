@@ -28,6 +28,7 @@ import {
   ensureSaTenantSupportThread,
   ensureSaTenantWelcomeCard,
   fetchSaBusiness,
+  sendSaOnboardingSequence,
   fetchSaBusinessStats,
   fetchSaBusinessUsers,
   fetchSaDomains,
@@ -155,6 +156,7 @@ function BusinessDetailInner() {
   const [bizLoaded, setBizLoaded] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
   const [postingWelcome, setPostingWelcome] = useState(false);
+  const [sendingOnboarding, setSendingOnboarding] = useState(false);
   const [stats, setStats] = useState<SaBusinessStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const copyTimer = useRef<number | null>(null);
@@ -421,17 +423,48 @@ function BusinessDetailInner() {
     try {
       const result = await ensureSaTenantWelcomeCard(businessId);
       if (result.posted) {
-        showThemedSuccessToast("Welcome card posted to their support chat.");
+        showThemedSuccessToast("Welcome posted to their support chat.");
       } else {
-        showThemedSuccessToast("Welcome card already in their support chat.");
+        showThemedSuccessToast("Welcome already in their support chat.");
       }
     } catch (err) {
       showThemedErrorToast(
-        err instanceof Error ? err.message : "Could not post welcome card.",
+        err instanceof Error ? err.message : "Could not post welcome.",
       );
     } finally {
       setPostingWelcome(false);
     }
+  }
+
+  async function onSendOnboardingSequence() {
+    if (!businessId || sendingOnboarding) return;
+    showThemedConfirmToast({
+      id: `sa-onboarding-send-${businessId}`,
+      title: "Send onboarding to this tenant?",
+      description:
+        "Posts the welcome message and teaching tips into their support chat, inbox, and owner email (no WhatsApp).",
+      confirmLabel: "Send all",
+      onConfirm: () => {
+        void (async () => {
+          setSendingOnboarding(true);
+          setError("");
+          try {
+            const result = await sendSaOnboardingSequence(businessId);
+            const tips = result.chatTipsPosted?.length ?? 0;
+            const mail = result.emailsSent?.length ?? 0;
+            showThemedSuccessToast(
+              `Sent: welcome${result.welcomePosted ? "" : " (kept)"}, ${tips} chat tip${tips === 1 ? "" : "s"}, ${mail} email${mail === 1 ? "" : "s"}.`,
+            );
+          } catch (err) {
+            showThemedErrorToast(
+              err instanceof Error ? err.message : "Could not send onboarding.",
+            );
+          } finally {
+            setSendingOnboarding(false);
+          }
+        })();
+      },
+    });
   }
 
   const onChangeUserStatus = (userId: string, nextStatus: string) => {
@@ -474,7 +507,8 @@ function BusinessDetailInner() {
   }
 
   const activeUsers = users.filter((u) => u.status.toLowerCase() === "active");
-  const locked = busy || impersonating || startingChat || postingWelcome;
+  const locked =
+    busy || impersonating || startingChat || postingWelcome || sendingOnboarding;
 
   return (
     <div className="space-y-6">
@@ -515,7 +549,18 @@ function BusinessDetailInner() {
               onClick={() => void onPostWelcomeCard()}
             >
               <Mail className="size-3.5" />
-              {postingWelcome ? "Posting…" : "Post welcome card"}
+              {postingWelcome ? "Posting…" : "Post welcome"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={locked}
+              onClick={() => onSendOnboardingSequence()}
+            >
+              <Users className="size-3.5" />
+              {sendingOnboarding ? "Sending…" : "Send onboarding"}
             </Button>
             <Button
               type="button"

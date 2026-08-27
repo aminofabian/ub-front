@@ -5,10 +5,7 @@ import {
   Check,
   CheckCheck,
   FileText,
-  Headset,
-  Mail,
   Paperclip,
-  Phone,
   Send,
   ShoppingBag,
   Smile,
@@ -249,7 +246,7 @@ export function MessageBubble({
         ) : (
           <span className="mb-5 size-7 shrink-0" aria-hidden />
         )}
-        <div className="flex max-w-[min(92%,24rem)] flex-col items-start">
+        <div className="flex max-w-[min(88%,22.5rem)] flex-col items-start">
           {message.senderName ? (
             <p className="mb-1 px-1 text-[11px] font-semibold tracking-wide text-primary/90">
               {message.senderName}
@@ -259,6 +256,7 @@ export function MessageBubble({
             card={message.welcomeCard!}
             createdAt={message.createdAt}
             pending={isPending}
+            readAt={message.readAt}
           />
         </div>
       </div>
@@ -367,14 +365,16 @@ function WelcomeCardBubble({
   card,
   createdAt,
   pending,
+  readAt,
 }: {
   card: ChatWelcomeCardShape;
   createdAt: string;
   pending?: boolean;
+  readAt?: string | null;
 }) {
   const name = (card.recipientName ?? "").trim() || "there";
-  const business = (card.businessName ?? "").trim() || "your business";
-  const helpItems = (card.helpItems ?? []).filter((item) => item.trim().length > 0);
+  const business = (card.businessName ?? "").trim() || "your shop";
+  const helpItems = (card.helpItems ?? []).filter((item) => item.trim().length > 0).slice(0, 6);
   const phone = (card.supportPhone ?? "").trim();
   const email = (card.supportEmail ?? "").trim();
   const phoneHref = phone.replace(/\s+/g, "");
@@ -382,73 +382,78 @@ function WelcomeCardBubble({
   return (
     <div
       className={cn(
-        "w-full overflow-hidden rounded-2xl border border-primary/20 bg-[linear-gradient(165deg,rgba(40,167,69,0.14),rgba(255,255,255,0.94)_38%)] shadow-[0_10px_28px_-18px_rgba(15,23,42,0.45)]",
+        "relative rounded-[1.2rem] rounded-bl-md border border-border/60 bg-card px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.06)]",
         pending && "opacity-70",
       )}
     >
-      <div className="flex items-start gap-2.5 border-b border-primary/15 px-3.5 py-3">
-        <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_rgba(40,167,69,0.9)]">
-          <Headset className="size-4" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800/80 dark:text-emerald-300/90">
-            Welcome
-          </p>
-          <p className="mt-0.5 font-[family-name:var(--font-heading)] text-base font-semibold tracking-tight text-foreground">
-            You&rsquo;re in
-          </p>
-          <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
-            Hi {name} — excited to have <span className="font-medium text-foreground">{business}</span> on board.
-          </p>
-        </div>
-        <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-          {chatTime(createdAt)}
-        </span>
-      </div>
+      <p className="text-foreground/95">
+        Hi {name} —
+      </p>
+      <p className="mt-2 text-foreground/95">
+        Karibu. <span className="font-medium text-foreground">{business}</span> is on
+        Kiosk now, and this chat is yours whenever something feels sticky.
+      </p>
+      <p className="mt-2 text-foreground/90">
+        Setup, themes, your domain, M-Pesa, custom bits — a real human helps with
+        all of it, free. No ticket queue.
+      </p>
 
-      <div className="space-y-2 px-3.5 py-3">
-        <p className="text-[12px] leading-relaxed text-foreground/90">
-          Setup, themes, your domain, M-Pesa, and custom work are free help from a real human.
-          Reply here anytime.
-        </p>
-        {helpItems.length > 0 ? (
-          <ul className="space-y-1.5 rounded-xl border border-border/50 bg-background/70 px-3 py-2.5">
+      {helpItems.length > 0 ? (
+        <div className="mt-3 space-y-1.5">
+          <p className="text-[12px] font-medium text-foreground/80">
+            Shops usually ping us about:
+          </p>
+          <ul className="space-y-1">
             {helpItems.map((item) => (
               <li
                 key={item}
-                className="flex items-start gap-2 text-[12px] leading-snug text-foreground/85"
+                className="flex items-baseline gap-2 text-[12.5px] text-foreground/85"
               >
-                <span
-                  className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary"
-                  aria-hidden
-                />
+                <span className="select-none text-primary/70" aria-hidden>
+                  ·
+                </span>
                 <span>{item}</span>
               </li>
             ))}
           </ul>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-dashed border-primary/20 bg-primary/[0.06] px-3.5 py-3">
+      <p className="mt-3 text-foreground/90">
+        Reply here anytime
         {phone ? (
-          <a
-            href={`tel:${phoneHref}`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-medium text-foreground shadow-sm ring-1 ring-border/60 transition-colors hover:bg-background"
-          >
-            <Phone className="size-3 text-primary" aria-hidden />
-            {phone}
-          </a>
+          <>
+            , call{" "}
+            <a
+              href={`tel:${phoneHref}`}
+              className="font-medium text-primary underline-offset-2 hover:underline"
+            >
+              {phone}
+            </a>
+          </>
         ) : null}
         {email ? (
-          <a
-            href={`mailto:${email}`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-medium text-foreground shadow-sm ring-1 ring-border/60 transition-colors hover:bg-background"
-          >
-            <Mail className="size-3 text-primary" aria-hidden />
-            {email}
-          </a>
+          <>
+            , or email{" "}
+            <a
+              href={`mailto:${email}`}
+              className="font-medium text-primary underline-offset-2 hover:underline"
+            >
+              {email}
+            </a>
+          </>
         ) : null}
-      </div>
+        .
+      </p>
+
+      <p className="mt-2 text-[12.5px] text-foreground/75">— Kiosk</p>
+
+      <span className="mt-1.5 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums text-muted-foreground">
+        <span>{chatTime(createdAt)}</span>
+        {readAt ? (
+          <CheckCheck className="size-3.5 opacity-90" aria-label="Read" />
+        ) : null}
+      </span>
     </div>
   );
 }
