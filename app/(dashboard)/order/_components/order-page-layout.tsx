@@ -36,7 +36,7 @@ export function OrderPageLayout({
 
       <div className="relative space-y-4">
         <div className="rounded-xl border border-[color-mix(in_srgb,var(--order-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--order-slip)_92%,transparent)] p-1 shadow-[0_1px_0_color-mix(in_srgb,var(--order-ink)_6%,transparent),0_12px_40px_-24px_color-mix(in_srgb,var(--order-ink)_18%,transparent)] backdrop-blur-sm">
-          <ProcurementHubNav columns={2} />
+          <ProcurementHubNav />
         </div>
 
         {showHeader && title ? (

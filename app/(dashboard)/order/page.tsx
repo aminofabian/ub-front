@@ -13,7 +13,11 @@ export const metadata: Metadata = {
 export default function TenantOrderPage() {
   return (
     <Suspense fallback={null}>
-      <OrderPageLayout>
+      <OrderPageLayout
+        showHeader
+        title="New order"
+        description="Pick a supplier, add products from their shelf, then save and send the purchase order on WhatsApp."
+      >
         <OrderPageShell />
       </OrderPageLayout>
     </Suspense>
