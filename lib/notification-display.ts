@@ -39,6 +39,8 @@ const TYPE_LABELS: Record<string, string> = {
   "onboarding.lookalike": "Sizes done right?",
   "onboarding.close_shift": "Remember to close tonight",
   "onboarding.web_order": "Someone ordered online!",
+  "drawout.approval_requested": "Cash drawout needs approval",
+  "drawout.recorded": "Cash drawout recorded",
 };
 
 function readString(value: unknown): string {
@@ -107,6 +109,9 @@ function defaultActionUrl(notificationType: string): string {
     case "onboarding.reengage":
       return "/business";
     case "onboarding.close_shift":
+      return "/shifts";
+    case "drawout.approval_requested":
+    case "drawout.recorded":
       return "/shifts";
     case "onboarding.web_order":
       return "/storefront/web-orders";

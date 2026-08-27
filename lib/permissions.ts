@@ -43,6 +43,8 @@ export const Permission = {
   ShiftsRead: "shifts.read",
   /** Owner/admin correction of opening float on an open shift. */
   ShiftsUpdate: "shifts.update",
+  /** Approve or reject cash drawouts. */
+  ShiftsDrawoutsApprove: "shifts.drawouts.approve",
   SalesSell: "sales.sell",
   SalesVoidOwn: "sales.void.own",
   SalesVoidAny: "sales.void.any",

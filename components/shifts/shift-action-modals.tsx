@@ -24,6 +24,8 @@ import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
   fetchLastClosedShiftFloat,
+  fetchShiftDetail,
+  fetchShiftDrawouts,
   initiateDrawout,
   patchShiftOpening,
   postCloseShift,
@@ -31,8 +33,11 @@ import {
   type BranchRecord,
   type DenominationEntry,
   type DenominationRecord,
+  type DrawoutRecord,
   type ShiftRecord,
 } from "@/lib/api";
+import { hasPermission, Permission } from "@/lib/permissions";
+import { DrawoutApprovalActions } from "@/components/shifts/drawout-approval-actions";
 import {
   clearCloseShiftDraft,
   clearOpenShiftDraft,
@@ -1102,6 +1107,21 @@ export function CloseShiftModal({
   const [varianceReason, setVarianceReason] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [liveShift, setLiveShift] = useState<ShiftRecord | null>(shift);
+  const [drawouts, setDrawouts] = useState<DrawoutRecord[]>([]);
+  const canApproveDrawouts = hasPermission(
+    dashboard?.me?.permissions,
+    Permission.ShiftsDrawoutsApprove,
+  );
+
+  const reloadTill = useCallback(async (shiftId: string) => {
+    const [fresh, list] = await Promise.all([
+      fetchShiftDetail(shiftId),
+      fetchShiftDrawouts(shiftId).catch(() => [] as DrawoutRecord[]),
+    ]);
+    setLiveShift(fresh);
+    setDrawouts(list);
+  }, []);
 
   const setQuantitiesEdited = useCallback(
     (next: Record<number, number>) => {
@@ -1160,12 +1180,15 @@ export function CloseShiftModal({
 
     setError("");
     setLoading(false);
+    setLiveShift(shift);
+    setDrawouts([]);
+    void reloadTill(shift.id).catch(() => undefined);
 
     const t = window.setTimeout(() => {
       skipPersistRef.current = false;
     }, 0);
     return () => window.clearTimeout(t);
-  }, [open, shift, useDenomBreakdown, businessId, userId]);
+  }, [open, shift, useDenomBreakdown, businessId, userId, reloadTill]);
 
   // Persist unfinished closing count while the modal is open.
   useEffect(() => {
@@ -1222,11 +1245,26 @@ export function CloseShiftModal({
     );
   }, [useDenomBreakdown, cashTotalStr, quantities]);
 
-  const expected = shift
-    ? typeof shift.expectedClosingCash === "number"
-      ? shift.expectedClosingCash
-      : Number(shift.expectedClosingCash)
+  const till = liveShift ?? shift;
+  const expected = till
+    ? typeof till.expectedClosingCash === "number"
+      ? till.expectedClosingCash
+      : Number(till.expectedClosingCash)
     : 0;
+  const openingCash = till
+    ? typeof till.openingCash === "number"
+      ? till.openingCash
+      : Number(till.openingCash ?? 0)
+    : 0;
+  const activeDrawouts = drawouts.filter(
+    (d) => d.status === "APPROVED" || d.status === "PENDING_APPROVAL",
+  );
+  const drawoutTotal = activeDrawouts.reduce((sum, d) => {
+    const n = typeof d.amount === "number" ? d.amount : Number(d.amount);
+    return sum + (Number.isFinite(n) ? n : 0);
+  }, 0);
+  const pendingDrawouts = drawouts.filter((d) => d.status === "PENDING_APPROVAL");
+  const cashIn = expected - openingCash + drawoutTotal;
   const variance = totalCash - expected;
   const absVariance = Math.abs(variance);
   const balanceMismatch = absVariance >= VARIANCE_THRESHOLD_AMBER;
@@ -1315,7 +1353,8 @@ export function CloseShiftModal({
           <div className={SHIFT_MODAL_BODY}>
             <div className="space-y-2">
               {canSeeCashVarianceDetail ? (
-                <div className="grid grid-cols-3 gap-px overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
+                <div className="space-y-2">
+                  <div className="grid grid-cols-3 gap-px overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
                   {(
                     [
                       {
@@ -1352,6 +1391,64 @@ export function CloseShiftModal({
                       </p>
                     </div>
                   ))}
+                </div>
+                  {activeDrawouts.length > 0 ? (
+                    <div className="border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_88%,var(--pos-paper,#f1ece3))] px-2.5 py-2 text-[11px]">
+                      <p className="font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_45%,transparent)]">
+                        Expected till
+                      </p>
+                      <dl className="mt-1.5 space-y-0.5 tabular-nums">
+                        <div className="flex justify-between gap-3">
+                          <dt>Opening</dt>
+                          <dd>{moneyStr(openingCash, currency)}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt>Cash sales</dt>
+                          <dd>
+                            {cashIn >= 0 ? "+" : ""}
+                            {moneyStr(cashIn, currency)}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt>
+                            Drawouts
+                            {pendingDrawouts.length > 0
+                              ? ` (${pendingDrawouts.length} pending)`
+                              : ""}
+                          </dt>
+                          <dd>−{moneyStr(drawoutTotal, currency)}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3 border-t border-black/10 pt-0.5 font-semibold">
+                          <dt>Expected</dt>
+                          <dd>{moneyStr(expected, currency)}</dd>
+                        </div>
+                      </dl>
+                      <ul className="mt-2 space-y-2 border-t border-black/10 pt-2">
+                        {activeDrawouts.map((row) => (
+                          <li key={row.id} className="space-y-1">
+                            <div className="flex justify-between gap-3">
+                              <span>
+                                {DRAWOUT_CATEGORIES[row.category] || row.category}
+                                {row.status === "PENDING_APPROVAL"
+                                  ? " · pending"
+                                  : ""}
+                                {row.description ? ` — ${row.description}` : ""}
+                              </span>
+                              <span className="shrink-0 tabular-nums">
+                                −{moneyStr(row.amount, currency)}
+                              </span>
+                            </div>
+                            {canApproveDrawouts && till ? (
+                              <DrawoutApprovalActions
+                                drawout={row}
+                                onChanged={() => void reloadTill(till.id)}
+                              />
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                 </div>
               ) : balanceMismatch ? (
                 <p

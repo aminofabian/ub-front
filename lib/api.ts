@@ -8386,6 +8386,60 @@ export async function fetchPendingDrawouts(): Promise<DrawoutRecord[]> {
   return Array.isArray(result) ? result : [];
 }
 
+export async function fetchDrawout(drawoutId: string): Promise<DrawoutRecord> {
+  return request<DrawoutRecord>(
+    `/api/v1/drawouts/${encodeURIComponent(drawoutId)}`,
+  );
+}
+
+export type PublicDrawoutReview = {
+  drawoutId: string;
+  shiftId: string;
+  status: string;
+  category: string;
+  amount: number | string;
+  currency: string;
+  description: string;
+  recipientName: string;
+  initiatedByName: string;
+  shopName: string;
+  createdAt: string;
+  expiresAt: string | null;
+  canApprove: boolean;
+};
+
+export async function fetchPublicDrawoutReview(
+  token: string,
+): Promise<PublicDrawoutReview> {
+  return request<PublicDrawoutReview>(
+    `/api/v1/public/drawouts/review?token=${encodeURIComponent(token)}`,
+    { requiresAuth: false },
+  );
+}
+
+export async function postPublicDrawoutApprove(
+  token: string,
+): Promise<DrawoutRecord> {
+  return request<DrawoutRecord>(
+    `/api/v1/public/drawouts/approve?token=${encodeURIComponent(token)}`,
+    { method: "POST", requiresAuth: false },
+  );
+}
+
+export async function postPublicDrawoutReject(
+  token: string,
+  reason?: string,
+): Promise<DrawoutRecord> {
+  return request<DrawoutRecord>(
+    `/api/v1/public/drawouts/reject?token=${encodeURIComponent(token)}`,
+    {
+      method: "POST",
+      requiresAuth: false,
+      body: { reason: reason?.trim() || null },
+    },
+  );
+}
+
 export type SalePaymentMethod =
   | "cash"
   | "mpesa_manual"

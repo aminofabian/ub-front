@@ -4600,7 +4600,9 @@ export function QuickSaleWorkspace({
               shiftId={branchOpenShift.id}
               onCreated={() => {
                 setDrawoutModal(false);
-                setNotice("Drawout submitted.");
+                setNotice(
+                  "Drawout recorded. It is already deducted from the expected till.",
+                );
                 refetchBranchOpenShift();
               }}
             />

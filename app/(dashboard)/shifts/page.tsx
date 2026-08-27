@@ -46,6 +46,8 @@ import {
   fetchShiftDetail,
   fetchShiftDrawouts,
   fetchShifts,
+  fetchDrawout,
+  fetchPendingDrawouts,
   type BranchRecord,
   type DenominationRecord,
   type DrawerBalanceRecord,
@@ -70,6 +72,7 @@ import {
   DrawoutModal,
   DRAWOUT_CATEGORIES,
 } from "@/components/shifts/shift-action-modals";
+import { DrawoutApprovalActions } from "@/components/shifts/drawout-approval-actions";
 import {
   mktChip,
   mktChipActive,
@@ -1051,7 +1054,17 @@ function ExpectedDrawerCard({ balances }: { balances: DrawerBalanceRecord }) {
 
 // ─── Drawouts ──────────────────────────────────────────────────────────────
 
-function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
+function DrawoutList({
+  drawouts,
+  canApprove,
+  onChanged,
+  highlightId,
+}: {
+  drawouts: DrawoutRecord[];
+  canApprove?: boolean;
+  onChanged?: () => void;
+  highlightId?: string | null;
+}) {
   if (drawouts.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -1119,21 +1132,31 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
                 >
                   Amount
                 </th>
-                <th
-                  scope="col"
-                  className="px-3 py-2.5 text-center font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
-                >
-                  Status
-                </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-2.5 text-center font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                  >
+                    Status
+                  </th>
+                  {canApprove ? (
+                    <th
+                      scope="col"
+                      className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                    >
+                      Action
+                    </th>
+                  ) : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
               {drawouts.map((d) => (
                 <tr
                   key={d.id}
+                  id={`drawout-${d.id}`}
                   className={cn(
                     "transition-colors hover:bg-muted/25",
                     d.status === "VOIDED" && "opacity-60",
+                    highlightId === d.id && "bg-amber-50 dark:bg-amber-950/30",
                   )}
                 >
                   <td className="whitespace-nowrap px-3 py-2 font-mono tabular-nums sm:px-4">
@@ -1170,6 +1193,14 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
                               : d.status}
                     </span>
                   </td>
+                  {canApprove ? (
+                    <td className="px-3 py-2 text-right sm:px-4">
+                      <DrawoutApprovalActions
+                        drawout={d}
+                        onChanged={() => onChanged?.()}
+                      />
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -1210,11 +1241,19 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
 function ShiftDetail({
   shiftId,
   canUpdateOpening,
+  canApproveDrawouts,
+  highlightDrawoutId,
+  refreshKey,
   onOpeningUpdated,
+  onDrawoutsChanged,
 }: {
   shiftId: string | null;
   canUpdateOpening?: boolean;
+  canApproveDrawouts?: boolean;
+  highlightDrawoutId?: string | null;
+  refreshKey?: number;
   onOpeningUpdated?: () => void;
+  onDrawoutsChanged?: () => void;
 }) {
   const [detail, setDetail] = useState<ShiftRecord | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -1272,7 +1311,19 @@ function ShiftDetail({
     return () => {
       cancelled = true;
     };
-  }, [shiftId, reloadToken]);
+  }, [shiftId, reloadToken, refreshKey]);
+
+  useEffect(() => {
+    if (highlightDrawoutId) {
+      setActiveTab("drawouts");
+    }
+  }, [highlightDrawoutId, shiftId]);
+
+  useEffect(() => {
+    if (!highlightDrawoutId || drawoutsLoading) return;
+    const el = document.getElementById(`drawout-${highlightDrawoutId}`);
+    el?.scrollIntoView({ block: "nearest" });
+  }, [highlightDrawoutId, drawoutsLoading, drawouts]);
 
   if (!shiftId) {
     return (
@@ -1507,7 +1558,15 @@ function ShiftDetail({
             {drawoutsLoading ? (
               <DashboardLoading label="Loading drawouts..." />
             ) : (
-              <DrawoutList drawouts={drawouts} />
+              <DrawoutList
+                drawouts={drawouts}
+                canApprove={canApproveDrawouts}
+                highlightId={highlightDrawoutId}
+                onChanged={() => {
+                  setReloadToken((n) => n + 1);
+                  onDrawoutsChanged?.();
+                }}
+              />
             )}
           </div>
         )}
@@ -1537,6 +1596,10 @@ export default function ShiftsPage() {
     me?.permissions,
     Permission.ShiftsUpdate,
   );
+  const canApproveDrawouts = hasPermission(
+    me?.permissions,
+    Permission.ShiftsDrawoutsApprove,
+  );
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const allowed = canOpen || canClose || canRead;
 
@@ -1550,6 +1613,10 @@ export default function ShiftsPage() {
   // Selection
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [detailRefreshKey, setDetailRefreshKey] = useState(0);
+  const [highlightDrawoutId, setHighlightDrawoutId] = useState<string | null>(
+    null,
+  );
+  const [pendingDrawouts, setPendingDrawouts] = useState<DrawoutRecord[]>([]);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -1722,6 +1789,50 @@ export default function ShiftsPage() {
     refreshOpenShift().catch(() => undefined);
   }, [refreshOpenShift]);
 
+  useEffect(() => {
+    if (!canApproveDrawouts) {
+      setPendingDrawouts([]);
+      return;
+    }
+    let cancelled = false;
+    fetchPendingDrawouts()
+      .then((list) => {
+        if (!cancelled) setPendingDrawouts(list);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingDrawouts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canApproveDrawouts, detailRefreshKey]);
+
+  useEffect(() => {
+    const drawoutId = searchParams.get("drawout")?.trim();
+    if (!drawoutId || !allowed) return;
+    let cancelled = false;
+    fetchDrawout(drawoutId)
+      .then((row) => {
+        if (cancelled) return;
+        setSelectedShiftId(row.shiftId);
+        setHighlightDrawoutId(row.id);
+      })
+      .catch(() => {
+        if (cancelled || !canApproveDrawouts) return;
+        fetchPendingDrawouts()
+          .then((list) => {
+            const found = list.find((row) => row.id === drawoutId);
+            if (!found || cancelled) return;
+            setSelectedShiftId(found.shiftId);
+            setHighlightDrawoutId(found.id);
+          })
+          .catch(() => undefined);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowed, canApproveDrawouts, searchParams]);
+
   /** Deep links from cashier POS (`?action=&branchId=`). */
   useEffect(() => {
     if (!allowed) return;
@@ -1865,10 +1976,34 @@ export default function ShiftsPage() {
         ) : null}
       </div>
 
-      {(notice || error) ? (
+      {(notice || error || (canApproveDrawouts && pendingDrawouts.length > 0)) ? (
         <div className="flex flex-col gap-2">
           {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
           {error ? <DashboardFeedback kind="error" text={error} /> : null}
+          {canApproveDrawouts && pendingDrawouts.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 border border-amber-700/20 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-400/25 dark:bg-amber-950/35 dark:text-amber-100">
+              <p>
+                {pendingDrawouts.length === 1
+                  ? "1 drawout is waiting for your approval."
+                  : `${pendingDrawouts.length} drawouts are waiting for your approval.`}{" "}
+                They are already deducted from the expected till.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 rounded-none"
+                onClick={() => {
+                  const first = pendingDrawouts[0];
+                  if (!first) return;
+                  setSelectedShiftId(first.shiftId);
+                  setHighlightDrawoutId(first.id);
+                }}
+              >
+                Review
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -2223,6 +2358,14 @@ export default function ShiftsPage() {
               <ShiftDetail
                 shiftId={selectedShiftId}
                 canUpdateOpening={canUpdateOpening}
+                canApproveDrawouts={canApproveDrawouts}
+                highlightDrawoutId={highlightDrawoutId}
+                refreshKey={detailRefreshKey}
+                onDrawoutsChanged={() => {
+                  setDetailRefreshKey((n) => n + 1);
+                  void refreshOpenShift();
+                  void loadShifts(page, false);
+                }}
                 onOpeningUpdated={() => {
                   setNotice("Opening count updated.");
                   setDetailRefreshKey((n) => n + 1);
@@ -2252,6 +2395,14 @@ export default function ShiftsPage() {
             <ShiftDetail
               shiftId={selectedShiftId}
               canUpdateOpening={canUpdateOpening}
+              canApproveDrawouts={canApproveDrawouts}
+              highlightDrawoutId={highlightDrawoutId}
+              refreshKey={detailRefreshKey}
+              onDrawoutsChanged={() => {
+                setDetailRefreshKey((n) => n + 1);
+                void refreshOpenShift();
+                void loadShifts(page, false);
+              }}
               onOpeningUpdated={() => {
                 setNotice("Opening count updated.");
                 setDetailRefreshKey((n) => n + 1);
@@ -2286,8 +2437,13 @@ export default function ShiftsPage() {
           onClose={() => setDrawoutModal(false)}
           shiftId={currentOpenShift.id}
           onCreated={() => {
-            setNotice("Drawout submitted.");
+            setNotice(
+              "Drawout recorded. It is already deducted from the expected till.",
+            );
             setDrawoutModal(false);
+            setDetailRefreshKey((n) => n + 1);
+            void refreshOpenShift();
+            void loadShifts(page, false);
           }}
         />
       )}
