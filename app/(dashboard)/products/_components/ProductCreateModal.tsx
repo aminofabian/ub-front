@@ -181,6 +181,58 @@ function QtyStepper({
   );
 }
 
+function FamilyModeSwitch({
+  checked,
+  onCheckedChange,
+  disabled,
+}: {
+  checked: boolean;
+  onCheckedChange: (next: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label="Product family. One name, several sizes or packs."
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-2.5",
+        "transition-[background-color,color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_40%,transparent)]",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        checked
+          ? "bg-[var(--catalog-ink,#15231f)] text-white shadow-[0_1px_0_color-mix(in_srgb,#fff_12%,transparent)]"
+          : "bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_88%,white)] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_68%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)]",
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "relative inline-flex h-[1.375rem] w-[2.25rem] items-center rounded-full p-0.5 transition-colors duration-200",
+          checked
+            ? "bg-white/20"
+            : "bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_16%,transparent)]",
+        )}
+      >
+        <span
+          className={cn(
+            "size-4 rounded-full shadow-[0_1px_2px_rgba(21,35,31,0.28)] transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
+            checked
+              ? "translate-x-[0.875rem] bg-white"
+              : "translate-x-0 bg-white",
+          )}
+        />
+      </span>
+      <span className="pr-0.5 text-[12px] font-semibold tracking-[-0.01em]">
+        Family
+      </span>
+    </button>
+  );
+}
+
 export function ProductCreateModal({
   open,
   onClose,
@@ -213,6 +265,28 @@ export function ProductCreateModal({
     setDescGenError("");
     setLinkedGlobalLabel(null);
   }, [open]);
+
+  const setFamilyMode = useCallback(
+    (next: boolean) => {
+      if (next) {
+        m.setParentDraft((p) => ({
+          ...p,
+          productStructure: "group",
+          isSellable: false,
+          globalProductSourceId: null,
+        }));
+        setLinkedGlobalLabel(null);
+        setMoreOpen(true);
+        return;
+      }
+      m.setParentDraft((p) => ({
+        ...p,
+        productStructure: "standalone",
+        isSellable: true,
+      }));
+    },
+    [m],
+  );
 
   const applyDerivedOpeningUnitCost = useCallback((prev: ParentDraft) => {
     const buy = toNumber(prev.buyingPrice);
@@ -402,11 +476,18 @@ export function ProductCreateModal({
         >
           <header className="shrink-0 border-b border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] px-5 pb-3 pt-5">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 pr-2">
-                <DialogTitle className="font-heading text-[1.35rem] font-semibold tracking-[-0.03em] text-[var(--catalog-ink,#15231f)]">
-                  {isGroup ? "New family" : "Add a product"}
-                </DialogTitle>
-                <DialogDescription className="mt-1 text-[13px] leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]">
+              <div className="min-w-0 flex-1 pr-1">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <DialogTitle className="font-heading text-[1.35rem] font-semibold tracking-[-0.03em] text-[var(--catalog-ink,#15231f)]">
+                    {isGroup ? "New family" : "Add a product"}
+                  </DialogTitle>
+                  <FamilyModeSwitch
+                    checked={isGroup}
+                    disabled={m.parentCreateBusy}
+                    onCheckedChange={setFamilyMode}
+                  />
+                </div>
+                <DialogDescription className="mt-1.5 text-[13px] leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]">
                   {isGroup
                     ? "One name, then add sizes or packs after you save."
                     : "Name, buying price, selling price, barcode, how many you have, and a photo."}
@@ -682,38 +763,6 @@ export function ProductCreateModal({
 
               {moreOpen ? (
                 <div className="space-y-3 rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_45%,white)] p-3">
-                  <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-[var(--catalog-ink,#15231f)]">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 size-4 rounded border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_25%,transparent)]"
-                      checked={isGroup}
-                      onChange={(e) => {
-                        const next = e.target.checked;
-                        if (next) {
-                          m.setParentDraft((p) => ({
-                            ...p,
-                            productStructure: "group",
-                            isSellable: false,
-                            globalProductSourceId: null,
-                          }));
-                          setLinkedGlobalLabel(null);
-                        } else {
-                          m.setParentDraft((p) => ({
-                            ...p,
-                            productStructure: "standalone",
-                            isSellable: true,
-                          }));
-                        }
-                      }}
-                    />
-                    <span>
-                      Product family
-                      <span className="mt-0.5 block text-[12px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
-                        One name, several sizes or packs
-                      </span>
-                    </span>
-                  </label>
-
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <span className={labelClass}>Department</span>
