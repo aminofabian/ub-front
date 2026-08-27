@@ -22,7 +22,9 @@ import { useProductMutations } from "./_hooks/useProductMutations";
 import { useStorefrontFeatured } from "./_hooks/useStorefrontFeatured";
 import { CatalogListColumn } from "./_components/CatalogListColumn";
 import { ProductDetailPanel } from "./_components/ProductDetailPanel";
-import { ProductHeroHeader } from "./_components/ProductHeroHeader";
+import { ProductAttentionBar } from "./_components/ProductHeroHeader";
+import { ProductHeaderActions } from "./_components/ProductHeaderActions";
+import { ProductsPageLayout } from "./_components/products-page-layout";
 import { ProductMobileChrome } from "./_components/ProductMobileChrome";
 import { ProductCreateDrawer } from "./_components/ProductCreateDrawer";
 import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
@@ -394,73 +396,75 @@ export function ProductsWorkspace() {
     },
   };
 
+  const attentionStats = [
+    {
+      id: "missingBarcode" as const,
+      count: catalog.catalogStats.missingBarcode,
+      label: "missing barcode",
+      active: catalog.filterNoBarcode,
+    },
+    {
+      id: "noPrice" as const,
+      count: catalog.catalogStats.missingPrice,
+      label: "no price",
+      active: catalog.filterNoPrice,
+    },
+    {
+      id: "zeroStock" as const,
+      count: catalog.catalogStats.zeroStock,
+      label: "zero stock",
+      active: catalog.filterZeroStock,
+    },
+    {
+      id: "lowStock" as const,
+      count: catalog.catalogStats.lowStock,
+      label: "low stock",
+      active: catalog.filterLowStock,
+    },
+    {
+      id: "inactive" as const,
+      count: catalog.catalogStats.inactive,
+      label: "inactive",
+      active: catalog.filterInactiveOnly,
+    },
+  ];
+
+  const onAttentionToggle = (id: (typeof attentionStats)[number]["id"]) => {
+    if (id === "missingBarcode") {
+      catalog.setFilterNoBarcode((v) => !v);
+    } else if (id === "noPrice") {
+      catalog.setFilterNoPrice((v) => !v);
+    } else if (id === "zeroStock") {
+      catalog.setFilterZeroStock((v) => !v);
+    } else if (id === "lowStock") {
+      catalog.setFilterLowStock((v) => !v);
+    } else {
+      catalog.setFilterInactiveOnly((v) => !v);
+    }
+  };
+
   return (
     <>
-      <div className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col gap-0 overflow-x-hidden lg:gap-1 lg:px-2 lg:pb-3">
-        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0 lg:gap-1">
-          <div className="hidden lg:block">
-            <ProductHeroHeader
-              itemTypeCount={catalog.itemTypes.length}
-              attentionStats={[
-                {
-                  id: "missingBarcode",
-                  count: catalog.catalogStats.missingBarcode,
-                  label: "missing barcode",
-                  active: catalog.filterNoBarcode,
-                },
-                {
-                  id: "noPrice",
-                  count: catalog.catalogStats.missingPrice,
-                  label: "no price",
-                  active: catalog.filterNoPrice,
-                },
-                {
-                  id: "zeroStock",
-                  count: catalog.catalogStats.zeroStock,
-                  label: "zero stock",
-                  active: catalog.filterZeroStock,
-                },
-                {
-                  id: "lowStock",
-                  count: catalog.catalogStats.lowStock,
-                  label: "low stock",
-                  active: catalog.filterLowStock,
-                },
-                {
-                  id: "inactive",
-                  count: catalog.catalogStats.inactive,
-                  label: "inactive",
-                  active: catalog.filterInactiveOnly,
-                },
-              ]}
-              onAttentionToggle={(id) => {
-                if (id === "missingBarcode") {
-                  catalog.setFilterNoBarcode((v) => !v);
-                } else if (id === "noPrice") {
-                  catalog.setFilterNoPrice((v) => !v);
-                } else if (id === "zeroStock") {
-                  catalog.setFilterZeroStock((v) => !v);
-                } else if (id === "lowStock") {
-                  catalog.setFilterLowStock((v) => !v);
-                } else {
-                  catalog.setFilterInactiveOnly((v) => !v);
-                }
-              }}
+      <ProductsPageLayout
+        headerActions={
+          <div className="hidden lg:flex lg:items-center lg:gap-1.5">
+            <ProductHeaderActions
+              canCreate={catalog.itemTypes.length > 0}
               onCreateNew={() => setActiveDrawer("create-parent")}
-              onAddVariant={
-                canCatalogWrite
-                  ? () => setActiveDrawer("pick-variant-parent")
-                  : undefined
-              }
-              onAddFromCatalog={
-                canGlobalCatalog
-                  ? () => router.push(APP_ROUTES.productsCatalog)
-                  : undefined
-              }
-              canAddFromCatalog={canGlobalCatalog}
-              canAddVariant={canCatalogWrite}
             />
           </div>
+        }
+        headerExtra={
+          <div className="hidden lg:block">
+            <ProductAttentionBar
+              attentionStats={attentionStats}
+              onAttentionToggle={onAttentionToggle}
+            />
+          </div>
+        }
+      >
+        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0 overflow-x-hidden lg:min-h-[min(72dvh,40rem)]">
+        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0">
           <ProductMobileChrome
             catalog={catalog}
             canCreate={catalog.itemTypes.length > 0}
@@ -475,7 +479,8 @@ export function ProductsWorkspace() {
           <section
             className={cn(
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
-              "lg:rounded-lg lg:border lg:border-border lg:bg-card",
+              "lg:rounded-xl lg:border lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] lg:bg-white",
+              "lg:shadow-[0_1px_0_color-mix(in_srgb,var(--catalog-ink,#15231f)_6%,transparent),0_16px_48px_-28px_color-mix(in_srgb,var(--catalog-ink,#15231f)_20%,transparent)]",
               "border-0 bg-transparent",
             )}
           >
@@ -526,7 +531,7 @@ export function ProductsWorkspace() {
               </div>
               <div
                 ref={setDockRoot}
-                className="relative hidden min-h-0 min-w-0 max-w-full overflow-hidden lg:flex lg:flex-col lg:border-l lg:border-border"
+                className="relative hidden min-h-0 min-w-0 max-w-full overflow-hidden lg:flex lg:flex-col lg:border-l lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)]"
               >
                 {isLg &&
                 (activeDrawer === "create-parent" ||
@@ -535,11 +540,11 @@ export function ProductsWorkspace() {
                     <ProductDetailPanel {...p} />
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center gap-1.5 px-3 py-8 text-center">
-                    <div className="flex size-8 items-center justify-center rounded-none border border-dashed border-border bg-muted/40">
-                      <MousePointerClick className="size-3.5 text-foreground/35" />
+                  <div className="flex flex-col items-center justify-center gap-2 px-3 py-8 text-center">
+                    <div className="flex size-10 items-center justify-center rounded-xl border border-dashed border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_60%,transparent)]">
+                      <MousePointerClick className="size-4 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_35%,transparent)]" />
                     </div>
-                    <p className="text-[11px] font-medium tracking-tight text-foreground/45">
+                    <p className="text-[12px] font-medium tracking-tight text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]">
                       Select a product from the list
                     </p>
                   </div>
@@ -553,7 +558,8 @@ export function ProductsWorkspace() {
             </div>
           ) : null}
         </div>
-      </div>
+        </div>
+      </ProductsPageLayout>
 
       <VariantParentPickDrawer
         open={activeDrawer === "pick-variant-parent"}

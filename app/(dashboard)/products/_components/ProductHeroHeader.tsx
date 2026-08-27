@@ -1,12 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { BookOpen, FileUp, PackagePlus } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
-import { ProductGuideDrawer } from "./ProductGuideDrawer";
 
 export type AttentionFilterId =
   | "missingBarcode"
@@ -23,105 +17,78 @@ type AttentionStat = {
 };
 
 type Props = {
-  itemTypeCount: number;
   attentionStats?: AttentionStat[];
   onAttentionToggle?: (id: AttentionFilterId) => void;
-  onCreateNew: () => void;
+  className?: string;
+};
+
+export function ProductAttentionBar({
+  attentionStats = [],
+  onAttentionToggle,
+  className,
+}: Props) {
+  const visibleAttention = attentionStats.filter((s) => s.count > 0);
+  if (visibleAttention.length === 0) return null;
+
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 flex-wrap items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_70%,transparent)] px-2 py-1.5",
+        className,
+      )}
+      role="group"
+      aria-label="Needs a look"
+    >
+      <span className="pr-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]">
+        Needs a look
+      </span>
+      {visibleAttention.map((stat) => (
+        <button
+          key={stat.id}
+          type="button"
+          onClick={() => onAttentionToggle?.(stat.id)}
+          aria-pressed={stat.active}
+          title={
+            stat.active
+              ? `Clear “${stat.label}” filter`
+              : `Show products with ${stat.label}`
+          }
+          className={cn(
+            "inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_30%,transparent)]",
+            stat.active
+              ? "border-[var(--catalog-ink,#15231f)] bg-[var(--catalog-ink,#15231f)] text-white"
+              : "border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_62%,transparent)] hover:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_20%,transparent)] hover:text-[var(--catalog-ink,#15231f)]",
+          )}
+        >
+          <span className="font-semibold tabular-nums">
+            {stat.count.toLocaleString()}
+          </span>
+          <span>{stat.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** @deprecated Use ProductAttentionBar + ProductHeaderActions */
+export function ProductHeroHeader({
+  attentionStats = [],
+  onAttentionToggle,
+}: Pick<Props, "attentionStats" | "onAttentionToggle"> & {
+  itemTypeCount?: number;
+  onCreateNew?: () => void;
   onAddVariant?: () => void;
   canAddVariant?: boolean;
   onAddFromCatalog?: () => void;
   canAddFromCatalog?: boolean;
-};
-
-export function ProductHeroHeader({
-  itemTypeCount,
-  attentionStats = [],
-  onAttentionToggle,
-  onCreateNew,
-}: Props) {
-  const canCreate = itemTypeCount > 0;
-  const visibleAttention = attentionStats.filter((s) => s.count > 0);
-
+}) {
   return (
-    <header className="flex shrink-0 flex-col gap-2 border-b border-border bg-background px-1 py-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-      <div className="min-w-0 flex-1">
-        {visibleAttention.length > 0 ? (
-          <div
-            className="flex min-w-0 flex-wrap items-center gap-1"
-            role="group"
-            aria-label="Needs a look"
-          >
-            <span className="pr-1 text-[11px] text-muted-foreground">
-              Needs a look
-            </span>
-            {visibleAttention.map((stat) => (
-              <button
-                key={stat.id}
-                type="button"
-                onClick={() => onAttentionToggle?.(stat.id)}
-                aria-pressed={stat.active}
-                title={
-                  stat.active
-                    ? `Clear “${stat.label}” filter`
-                    : `Show products with ${stat.label}`
-                }
-                className={cn(
-                  "inline-flex h-7 items-center gap-1 border px-2 text-[11px] transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  stat.active
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border bg-background text-foreground/70 hover:border-foreground/40 hover:text-foreground",
-                )}
-              >
-                <span className="tabular-nums font-semibold">
-                  {stat.count.toLocaleString()}
-                </span>
-                <span>{stat.label}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <h1 className="sr-only">Products</h1>
-        )}
-      </div>
-
-      <div className="flex shrink-0 items-center gap-1">
-        <ProductGuideDrawer
-          trigger={
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1 rounded-none px-2 text-[12px] text-muted-foreground shadow-none hover:text-foreground"
-              title="How to add products"
-            >
-              <BookOpen className="size-3.5" aria-hidden />
-              <span className="hidden sm:inline">Help</span>
-            </Button>
-          }
-        />
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1 rounded-none px-2.5 text-[12px] shadow-none"
-        >
-          <Link href={APP_ROUTES.businessImport} title="Add many products from a spreadsheet">
-            <FileUp className="size-3.5" aria-hidden />
-            Import
-          </Link>
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          disabled={!canCreate}
-          onClick={onCreateNew}
-          className="h-8 gap-1.5 rounded-none px-3 text-[12px] shadow-none"
-        >
-          <PackagePlus className="size-3.5" aria-hidden />
-          Add product
-        </Button>
-      </div>
-    </header>
+    <ProductAttentionBar
+      attentionStats={attentionStats}
+      onAttentionToggle={onAttentionToggle}
+    />
   );
 }
+
+export type { AttentionStat };

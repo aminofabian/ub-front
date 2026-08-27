@@ -33,47 +33,46 @@ export const CATALOG_VARIANT_GROUP_END_GAP_PX = {
 
 export const catalogListShellClass = cn(
   "flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden",
-  "bg-background",
-  "lg:border lg:border-border lg:bg-card",
+  "bg-transparent",
 );
 
 export const catalogListToolbarClass = cn(
   "flex flex-wrap items-center justify-between gap-1",
-  "bg-muted/20 px-2 py-1 lg:border-b lg:border-border lg:bg-muted/30 lg:px-2 lg:py-0.5",
+  "bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_55%,transparent)] px-2 py-1 lg:border-b lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] lg:px-2.5 lg:py-1",
 );
 
 export const catalogListToolbarMetaClass =
-  "text-[10px] text-muted-foreground";
+  "text-[10px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]";
 
 /** Left filter rail — same sheet language as the list + detail panel. */
 export const catalogFilterColumnClass =
-  "hidden min-h-0 w-[14.25rem] shrink-0 flex-col border-r border-border bg-background lg:flex";
+  "hidden min-h-0 w-[14.25rem] shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_40%,transparent)] lg:flex";
 
 export const catalogFilterToolbarClass = cn(
   "flex shrink-0 items-center justify-between gap-1",
-  "border-b border-border bg-muted/20",
+  "border-b border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_65%,transparent)]",
   "px-2 py-1.5",
 );
 
 export const catalogFilterToolbarTitleClass =
-  "text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40";
+  "text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]";
 
 export const catalogFilterBodyClass = cn(
   "flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto overflow-x-hidden",
-  "divide-y divide-border bg-background",
+  "divide-y divide-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-transparent",
 );
 
 export const catalogFilterSectionClass =
   "flex min-w-0 flex-col gap-1.5 px-2 py-2";
 
 export const catalogFilterLabelClass =
-  "text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/40";
+  "text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]";
 
 export const catalogFilterInputClass = cn(
-  "h-7 w-full min-w-0 rounded-none border border-border bg-background px-2 text-[11px] text-foreground shadow-none",
-  "placeholder:text-foreground/35",
-  "focus-visible:border-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/25",
-  "disabled:cursor-not-allowed disabled:bg-muted/40 disabled:text-foreground/40",
+  "h-7 w-full min-w-0 rounded-md border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] text-[var(--catalog-ink,#15231f)] shadow-none",
+  "placeholder:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]",
+  "focus-visible:border-[var(--catalog-primary,#0f766e)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_20%,transparent)]",
+  "disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_80%,transparent)] disabled:text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_40%,transparent)]",
 );
 
 export const catalogFilterSelectClass = cn(
@@ -107,7 +106,7 @@ export const catalogFilterToggleActiveClass = cn(
 
 /** Needs list — bordered sheet block matching detail metric/field rows. */
 export const catalogFilterNeedsSheetClass = cn(
-  "overflow-hidden rounded-none border border-border bg-background",
+  "overflow-hidden rounded-lg border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-white",
 );
 
 export const catalogFilterNeedsRowClass = cn(
@@ -126,7 +125,7 @@ export const catalogFilterNeedsCountClass =
 
 /** Scope tabs as a 2×2 sheet grid. */
 export const catalogFilterScopeGridClass =
-  "grid grid-cols-2 gap-px overflow-hidden rounded-none border border-border bg-border";
+  "grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)]";
 
 export const catalogFilterScopeCellClass = cn(
   "flex h-7 items-center justify-center bg-background text-[10px] font-medium tracking-tight text-foreground/55 transition-colors",
@@ -139,8 +138,8 @@ export const catalogFilterScopeCellActiveClass = cn(
 
 export const catalogListHeaderRowClass = cn(
   "sticky top-0 z-10 shrink-0",
-  "bg-muted/50 text-[9px] font-semibold uppercase tracking-[0.1em] text-foreground/40",
-  "border-b border-border",
+  "bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_4%,transparent)] text-[9px] font-semibold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]",
+  "border-b border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)]",
 );
 
 /**
@@ -200,7 +199,7 @@ export function catalogRowAccentClass(
   active: boolean,
 ): string {
   return cn(
-    "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-[1] before:w-[2px] before:bg-primary before:opacity-0",
+    "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-[1] before:w-[2px] before:rounded-r before:bg-[var(--catalog-primary,#0f766e)] before:opacity-0",
     active && "before:opacity-100",
   );
 }
@@ -423,10 +422,10 @@ export function catalogRowInteractionClasses(
     !isDetailActive &&
       !showBulk &&
       !showChecked &&
-      "hover:bg-[#e8f0fe] dark:hover:bg-primary/10",
-    showChecked && "bg-[#e8f0fe] dark:bg-primary/15",
-    showBulk && "bg-[#cfe2ff] dark:bg-primary/20",
-    isDetailActive && "z-[2] bg-[#cfe2ff] dark:bg-primary/25",
+      "hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_6%,transparent)]",
+    showChecked && "bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_10%,transparent)]",
+    showBulk && "bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_14%,transparent)]",
+    isDetailActive && "z-[2] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_16%,transparent)]",
   );
 }
 
