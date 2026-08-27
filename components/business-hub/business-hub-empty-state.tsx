@@ -21,18 +21,19 @@ export function BusinessHubEmptyState({
   storefrontEnabled?: boolean;
 }) {
   const label = period === "today" ? "today" : "this week";
-  const extras = [
-    showStorefrontLink
-      ? {
-          href: APP_ROUTES.businessSettings,
-          text: storefrontEnabled ? "Storefront" : "Set up storefront",
-        }
-      : null,
-    showThemeLink
-      ? { href: APP_ROUTES.businessThemes, text: "Choose a look" }
-      : null,
-    showUsersLink ? { href: APP_ROUTES.users, text: "Add staff" } : null,
-  ].filter((item): item is { href: string; text: string } => item != null);
+  const extras: { href: string; text: string }[] = [];
+  if (showStorefrontLink) {
+    extras.push({
+      href: APP_ROUTES.businessSettings,
+      text: storefrontEnabled ? "Storefront" : "Set up storefront",
+    });
+  }
+  if (showThemeLink) {
+    extras.push({ href: APP_ROUTES.businessThemes, text: "Choose a look" });
+  }
+  if (showUsersLink) {
+    extras.push({ href: APP_ROUTES.users, text: "Add staff" });
+  }
 
   return (
     <section
