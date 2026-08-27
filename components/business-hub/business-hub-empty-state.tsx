@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Palette, ShoppingCart, Store, Users } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
@@ -21,6 +21,18 @@ export function BusinessHubEmptyState({
   storefrontEnabled?: boolean;
 }) {
   const label = period === "today" ? "today" : "this week";
+  const extras = [
+    showStorefrontLink
+      ? {
+          href: APP_ROUTES.businessSettings,
+          text: storefrontEnabled ? "Storefront" : "Set up storefront",
+        }
+      : null,
+    showThemeLink
+      ? { href: APP_ROUTES.businessThemes, text: "Choose a look" }
+      : null,
+    showUsersLink ? { href: APP_ROUTES.users, text: "Add staff" } : null,
+  ].filter((item): item is { href: string; text: string } => item != null);
 
   return (
     <section
@@ -37,7 +49,7 @@ export function BusinessHubEmptyState({
         Nothing through the till {label}. Open the cashier when you are ready
         to sell. The pulse fills in as money moves.
       </p>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <Link
           href={APP_ROUTES.cashier}
           className="inline-flex items-center gap-2 rounded-lg bg-[#141414] px-3.5 py-2 text-sm font-medium text-[#F5E6C8] transition-opacity hover:opacity-90"
@@ -45,33 +57,15 @@ export function BusinessHubEmptyState({
           <ShoppingCart className="size-3.5" aria-hidden />
           Open the till
         </Link>
-        {showStorefrontLink ? (
+        {extras.map((item) => (
           <Link
-            href={APP_ROUTES.businessSettings}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E6E1D8] bg-white px-3.5 py-2 text-sm font-medium text-[#141414] transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]"
+            key={item.href}
+            href={item.href}
+            className="text-[13px] font-medium text-[#8A6B2E] underline-offset-4 hover:underline"
           >
-            <Store className="size-3.5 text-[#888888]" aria-hidden />
-            {storefrontEnabled ? "Storefront" : "Set up storefront"}
+            {item.text}
           </Link>
-        ) : null}
-        {showThemeLink ? (
-          <Link
-            href={APP_ROUTES.businessThemes}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E6E1D8] bg-white px-3.5 py-2 text-sm font-medium text-[#141414] transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]"
-          >
-            <Palette className="size-3.5 text-[#888888]" aria-hidden />
-            Choose a look
-          </Link>
-        ) : null}
-        {showUsersLink ? (
-          <Link
-            href={APP_ROUTES.users}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E6E1D8] bg-white px-3.5 py-2 text-sm font-medium text-[#141414] transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]"
-          >
-            <Users className="size-3.5 text-[#888888]" aria-hidden />
-            Add staff
-          </Link>
-        ) : null}
+        ))}
       </div>
     </section>
   );

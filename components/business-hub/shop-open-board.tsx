@@ -104,7 +104,7 @@ export function ShopOpenBoard({
             href={APP_ROUTES.businessSettings}
             className={cn(
               HUB_SURFACE,
-              "group flex flex-col overflow-hidden",
+              "group flex flex-col overflow-hidden transition-colors hover:border-[#B08D48]/50",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
             )}
           >
@@ -113,7 +113,7 @@ export function ShopOpenBoard({
                 <span className="block truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[#F5E6C8]">
                   {displayName}
                 </span>
-                <span className="mt-0.5 block truncate text-[11px] text-[#F5E6C8]/55">
+                <span className="mt-0.5 block truncate text-[11px] text-[#F5E6C8]/75">
                   {shopHost ?? "your-shop.kiosk.ke"}
                 </span>
               </span>
@@ -152,7 +152,7 @@ export function ShopOpenBoard({
             href={APP_ROUTES.businessThemes}
             className={cn(
               HUB_SURFACE,
-              "group flex flex-col overflow-hidden",
+              "group flex flex-col overflow-hidden transition-colors hover:border-[#B08D48]/50",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
             )}
           >
@@ -179,7 +179,7 @@ export function ShopOpenBoard({
               </span>
               <span className={cn("mt-0.5 text-[12px] leading-relaxed", HUB_MUTED)}>
                 {themePicked
-                  ? "Change the colours so the shop feels like yours."
+                  ? "Change the look so the shop feels like yours."
                   : "Pick a theme. Takes a few taps."}
               </span>
               <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-medium text-[#8A6B2E]">
@@ -197,11 +197,11 @@ export function ShopOpenBoard({
       {canListUsers ? (
         <Link
           href={APP_ROUTES.users}
-          className={cn(
-            HUB_SURFACE,
-            "group flex items-center gap-3 px-4 py-3.5",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
-          )}
+            className={cn(
+              HUB_SURFACE,
+              "group flex items-center gap-3 px-4 py-3.5 transition-colors hover:border-[#B08D48]/50",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/40",
+            )}
         >
           <span className="flex -space-x-1.5" aria-hidden>
             <span className="flex size-9 items-center justify-center rounded-full border border-dashed border-[#E6E1D8] bg-[#FCFAF6] text-[#8A6B2E]">

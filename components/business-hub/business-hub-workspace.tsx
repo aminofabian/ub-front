@@ -1004,7 +1004,8 @@ export function BusinessHubWorkspace() {
   }, [recentTicks, recentDrawouts, selectedCashiers]);
   const dualLanes = tickLanes.length === 2;
   const galleryOpen = selectedCashiers.length >= 3;
-  const showTillStage = canViewSalesIntelligence && !shopNotReady;
+  const showTillStage =
+    canViewSalesIntelligence && !shopNotReady && !salesEmpty;
 
   useEffect(() => {
     setSelectedCashiers((prev) => {
@@ -1127,7 +1128,7 @@ export function BusinessHubWorkspace() {
             >
               {shopNotReady ? (
                 <ShopOpenBoard
-                  shopName={business?.name?.trim() || "the shop"}
+                  shopName={business?.name?.trim() || ""}
                   shopHost={
                     business?.primaryDomain?.trim() ||
                     (business?.slug?.trim()
@@ -1179,6 +1180,7 @@ export function BusinessHubWorkspace() {
 
               {shopNotReady ? null : (
                 <>
+              {salesEmpty ? null : (
               <PulseHero
                 eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
                 revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
@@ -1191,8 +1193,10 @@ export function BusinessHubWorkspace() {
                 live={pulseLive}
                 justUpdated={justUpdated}
               />
+              )}
 
-              {canViewSupplyBills ? (
+              {canViewSupplyBills &&
+              !(salesEmpty && todaySupplies.length === 0) ? (
                 <SupplyBillsRail
                   bills={todaySupplies}
                   currency={currency}
@@ -1202,7 +1206,8 @@ export function BusinessHubWorkspace() {
                 />
               ) : null}
 
-              {canViewCreditTabs ? (
+              {canViewCreditTabs &&
+              !(salesEmpty && openCreditTabs.length === 0) ? (
                 <CreditTabsRail
                   tabs={openCreditTabs}
                   currency={currency}
@@ -1215,7 +1220,8 @@ export function BusinessHubWorkspace() {
                 />
               ) : null}
 
-              {canShowWebOrders ? (
+              {canShowWebOrders &&
+              !(salesEmpty && openWebOrders.length === 0) ? (
                 <WebOrdersRail
                   orders={openWebOrders}
                   currency={currency}
@@ -1224,17 +1230,19 @@ export function BusinessHubWorkspace() {
                 />
               ) : null}
 
+              {salesEmpty ? null : (
               <RevenueBarChart
                 points={chartPoints}
                 ariaLabel={chartAriaLabel}
                 caption={chartCaption}
                 title={isToday ? "Twelve-day runway" : "Seven-day runway"}
               />
+              )}
 
               {showAttentionSection ? (
                 actionItems.length > 0 ? (
                   <ActionItemsStrip items={actionItems} />
-                ) : (
+                ) : salesEmpty ? null : (
                   <HubAllClear />
                 )
               ) : null}
