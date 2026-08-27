@@ -477,33 +477,25 @@ export function ProductCreateModal({
                       unoptimized
                       className="h-full w-full object-cover"
                     />
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    className={cn(
-                      "absolute inset-0 flex flex-col items-center justify-center transition-colors",
-                      previewUrl
-                        ? "bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_0%,transparent)] hover:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_18%,transparent)]"
-                        : "hover:bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_40%,white)]",
-                    )}
-                    aria-label={previewUrl ? "Change photo" : "Add a photo"}
-                  >
-                    {previewUrl ? null : (
-                      <>
-                        <ImagePlus
-                          className="size-6 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]"
-                          aria-hidden
-                        />
-                        <span className="mt-1.5 text-[13px] font-medium text-[var(--catalog-ink,#15231f)]">
-                          Add a photo
-                        </span>
-                        <span className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
-                          Optional. Drop one here or click to choose.
-                        </span>
-                      </>
-                    )}
-                  </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      className="flex h-full w-full flex-col items-center justify-center hover:bg-[color-mix(in_srgb,var(--catalog-shelf,#f3f6f5)_40%,white)]"
+                      aria-label="Add a photo"
+                    >
+                      <ImagePlus
+                        className="size-6 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]"
+                        aria-hidden
+                      />
+                      <span className="mt-1.5 text-[13px] font-medium text-[var(--catalog-ink,#15231f)]">
+                        Add a photo
+                      </span>
+                      <span className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_48%,transparent)]">
+                        Optional. Drop one here or click to choose.
+                      </span>
+                    </button>
+                  )}
                   {previewUrl ? (
                     <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1 bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_62%,transparent)] py-1">
                       <button

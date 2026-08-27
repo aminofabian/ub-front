@@ -512,9 +512,13 @@ export function ProductsWorkspace() {
           <section
             className={cn(
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
-              "lg:rounded-xl lg:border lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] lg:bg-white",
-              "lg:shadow-[0_1px_0_color-mix(in_srgb,var(--catalog-ink,#15231f)_6%,transparent),0_16px_48px_-28px_color-mix(in_srgb,var(--catalog-ink,#15231f)_20%,transparent)]",
-              "border-0 bg-transparent",
+              catalogEmpty
+                ? "bg-transparent"
+                : [
+                    "lg:rounded-xl lg:border lg:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] lg:bg-white",
+                    "lg:shadow-[0_1px_0_color-mix(in_srgb,var(--catalog-ink,#15231f)_6%,transparent),0_16px_48px_-28px_color-mix(in_srgb,var(--catalog-ink,#15231f)_20%,transparent)]",
+                    "border-0 bg-transparent",
+                  ],
             )}
           >
             <div
