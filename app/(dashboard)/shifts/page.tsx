@@ -177,6 +177,18 @@ function varianceBgColor(v: number | string | null | undefined): string {
   return "bg-red-500/10 border-red-500/20";
 }
 
+function liveDrawoutTotals(drawouts: DrawoutRecord[]) {
+  let approved = 0;
+  let pending = 0;
+  for (const d of drawouts) {
+    const n = typeof d.amount === "number" ? d.amount : Number(d.amount);
+    if (!Number.isFinite(n)) continue;
+    if (d.status === "APPROVED") approved += n;
+    else if (d.status === "PENDING_APPROVAL") pending += n;
+  }
+  return { approved, pending, live: approved + pending };
+}
+
 function toNum(v: number | string | null | undefined): number | null {
   if (v == null) return null;
   const n = typeof v === "number" ? v : Number(v);
@@ -1345,8 +1357,14 @@ function ShiftDetail({
   const expected = toNum(detail.expectedClosingCash);
   const counted = toNum(detail.countedClosingCash);
   const variance = toNum(detail.closingVariance);
+  const drawoutTotals = liveDrawoutTotals(drawouts);
+  const cashIn =
+    opening != null && expected != null
+      ? expected - opening + drawoutTotals.live
+      : null;
   const cashMovement =
     opening != null && expected != null ? expected - opening : null;
+  const showTillWalk = !drawoutsLoading && drawoutTotals.live > 0;
   const isOpenShift = detail.status === "open";
   const showEditOpening = Boolean(canUpdateOpening && isOpenShift);
 
@@ -1425,7 +1443,63 @@ function ShiftDetail({
             </div>
 
             {/* Cash movement */}
-            {cashMovement != null ? (
+            {showTillWalk ? (
+              <div className={cn(CARD, "space-y-2 p-3.5")}>
+                <SectionLabel icon={HandCoins} text="Till walk" />
+                <dl className="space-y-1.5 text-xs">
+                  <LeaderRow
+                    label="Opening float"
+                    value={opening != null ? moneyStr(opening) : "—"}
+                  />
+                  <LeaderRow
+                    label="Cash in"
+                    value={cashIn != null ? signedMoney(cashIn) : "—"}
+                    valueClassName={changeColor(cashIn)}
+                  />
+                  <LeaderRow
+                    label={
+                      drawoutTotals.pending > 0 && drawoutTotals.approved > 0
+                        ? "Drawouts (incl. pending)"
+                        : drawoutTotals.pending > 0
+                          ? "Drawouts (pending)"
+                          : "Drawouts"
+                    }
+                    value={signedMoney(-drawoutTotals.live)}
+                    valueClassName="text-orange-700 dark:text-orange-400"
+                  />
+                  <LeaderRow
+                    label="Expected cash"
+                    value={expected != null ? moneyStr(expected) : "—"}
+                    strong
+                  />
+                  {counted != null ? (
+                    <LeaderRow
+                      label="Counted cash"
+                      value={moneyStr(counted)}
+                    />
+                  ) : null}
+                  {variance != null ? (
+                    <LeaderRow
+                      label="Variance"
+                      value={signedMoney(variance)}
+                      valueClassName={varianceColor(variance)}
+                      strong
+                    />
+                  ) : null}
+                </dl>
+                <p className="pt-1 text-[10px] leading-relaxed text-muted-foreground">
+                  Drawouts leave the till when they are recorded, including
+                  amounts still waiting for approval.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("drawouts")}
+                  className="text-[11px] font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  View drawouts
+                </button>
+              </div>
+            ) : cashMovement != null ? (
               <div className="flex items-center justify-between gap-2 border border-border/60 bg-muted/20 px-3.5 py-2.5">
                 <div className="min-w-0">
                   <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
