@@ -1,10 +1,11 @@
-import { DASHBOARD_MAX } from "@/components/dashboard-page-ui";
+import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 function SkeletonBar({ className }: { className?: string }) {
   return (
     <span
-      className={cn("block animate-pulse rounded-md bg-muted", className)}
+      className={cn("block animate-pulse rounded-md bg-[#EDE8DF]", className)}
       aria-hidden
     />
   );
@@ -12,43 +13,18 @@ function SkeletonBar({ className }: { className?: string }) {
 
 export function BusinessSettingsSkeleton() {
   return (
-    <div
-      className={cn(
-        DASHBOARD_MAX,
-        "animate-in fade-in duration-300 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-20",
-      )}
-      aria-busy="true"
-      aria-label="Loading business settings"
+    <BusinessPageLayout
+      title="Business settings"
+      description="Profile, storefront, and delivery — inventory and till policies live under Configuration."
     >
-      <div className="space-y-4 2xl:space-y-5">
-        <div className="flex flex-wrap items-center gap-2 2xl:hidden">
-          <SkeletonBar className="h-8 w-24 rounded-lg" />
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <SkeletonBar key={i} className="h-7 w-20 rounded-lg" />
-            ))}
-          </div>
-        </div>
-
-        <div className="hidden 2xl:block">
-          <header className="space-y-3">
-            <div className="flex items-center gap-3">
-              <SkeletonBar className="size-10 rounded-xl" />
-              <div className="space-y-2">
-                <SkeletonBar className="h-3 w-20" />
-                <SkeletonBar className="h-7 w-56 max-w-full" />
-              </div>
-            </div>
-            <SkeletonBar className="h-4 w-full max-w-md" />
-          </header>
-        </div>
-
-        <div className="hidden gap-2 2xl:grid 2xl:grid-cols-4">
+      <div
+        className="space-y-4 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-2"
+        aria-busy="true"
+        aria-label="Loading business settings"
+      >
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 rounded-xl border border-border/80 bg-card p-3 shadow-sm"
-            >
+            <div key={i} className={cn(HUB_SURFACE, "flex items-start gap-3 p-3.5")}>
               <SkeletonBar className="size-9 shrink-0 rounded-lg" />
               <div className="min-w-0 flex-1 space-y-2">
                 <SkeletonBar className="h-4 w-24" />
@@ -58,35 +34,26 @@ export function BusinessSettingsSkeleton() {
           ))}
         </div>
 
-        <section className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm 2xl:rounded-2xl">
-          <div className="flex items-center gap-3 border-b border-border/60 bg-muted/20 px-3 py-2.5 sm:px-4 2xl:px-5 2xl:py-3">
-            <SkeletonBar className="size-4 shrink-0 rounded" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <SkeletonBar className="h-4 w-40" />
-              <SkeletonBar className="h-3 w-28" />
-            </div>
+        <section className={HUB_SURFACE}>
+          <div className="flex items-center gap-3 border-b border-[#E6E1D8]/80 bg-[#FCFAF6] px-4 py-3">
+            <SkeletonBar className="h-4 w-40" />
             <SkeletonBar className="h-5 w-12 rounded-full" />
           </div>
-          <div className="p-3 sm:p-4 2xl:p-5">
-            <dl className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex flex-col gap-1 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-2.5 sm:gap-2 sm:rounded-xl sm:px-3 sm:py-3"
-                >
-                  <SkeletonBar className="h-2.5 w-16" />
-                  <SkeletonBar className="h-4 w-20" />
-                </div>
-              ))}
-            </dl>
+          <div className="grid grid-cols-2 gap-px bg-[#E6E1D8]/80 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2 bg-white px-3 py-3">
+                <SkeletonBar className="h-2.5 w-16" />
+                <SkeletonBar className="h-4 w-20" />
+              </div>
+            ))}
           </div>
         </section>
 
-        <section className="space-y-4 rounded-xl border border-border/80 bg-card/50 p-3 shadow-sm sm:p-4 2xl:rounded-2xl 2xl:p-5">
+        <section className={cn(HUB_SURFACE, "space-y-4 p-4")}>
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="space-y-3 rounded-xl border border-border/50 bg-card/80 p-4"
+              className="space-y-3 rounded-xl border border-[#E6E1D8]/60 bg-[#FCFAF6]/80 p-4"
             >
               <SkeletonBar className="h-3 w-32" />
               <SkeletonBar className="h-10 w-full rounded-lg" />
@@ -99,6 +66,6 @@ export function BusinessSettingsSkeleton() {
           </div>
         </section>
       </div>
-    </div>
+    </BusinessPageLayout>
   );
 }

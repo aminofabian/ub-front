@@ -18,10 +18,18 @@ export function BusinessPageLayout({
   children,
   headerActions,
   className,
+  eyebrow = "Your shop",
+  title = "Business pulse",
+  description = "Live revenue, till tape, payables, and stock health — everything that moves your shop today in one board.",
+  showNav = true,
 }: {
   children: ReactNode;
   headerActions?: ReactNode;
   className?: string;
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  showNav?: boolean;
 }) {
   return (
     <div
@@ -37,21 +45,22 @@ export function BusinessPageLayout({
       />
 
       <div className="relative flex min-h-0 flex-1 flex-col gap-4">
-        <div className="rounded-xl border border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--hub-slip)_92%,transparent)] p-1 shadow-[0_1px_0_color-mix(in_srgb,var(--hub-ink)_6%,transparent),0_12px_40px_-24px_color-mix(in_srgb,var(--hub-ink)_18%,transparent)] backdrop-blur-sm">
-          <BusinessHubNav />
-        </div>
+        {showNav ? (
+          <div className="rounded-xl border border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--hub-slip)_92%,transparent)] p-1 shadow-[0_1px_0_color-mix(in_srgb,var(--hub-ink)_6%,transparent),0_12px_40px_-24px_color-mix(in_srgb,var(--hub-ink)_18%,transparent)] backdrop-blur-sm">
+            <BusinessHubNav />
+          </div>
+        ) : null}
 
         <header className="flex flex-wrap items-start justify-between gap-3 px-0.5 sm:px-1">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--hub-ink)_42%,transparent)]">
-              Your shop
+              {eyebrow}
             </p>
             <h1 className="mt-1 font-heading text-2xl font-semibold tracking-[-0.03em] text-[var(--hub-ink)] sm:text-[1.65rem]">
-              Business pulse
+              {title}
             </h1>
             <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--hub-ink)_58%,transparent)] sm:text-sm">
-              Live revenue, till tape, payables, and stock health — everything
-              that moves your shop today in one board.
+              {description}
             </p>
           </div>
           {headerActions ? (

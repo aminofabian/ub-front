@@ -16,8 +16,9 @@ import {
 import { toast } from "sonner";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
+import { HubSettingsSectionNav } from "@/components/business-hub/hub-settings-section-nav";
 import {
-  DASHBOARD_MAX,
   DashboardFeedback,
 } from "@/components/dashboard-page-ui";
 import { FormDrawer } from "@/components/form-drawer";
@@ -50,6 +51,7 @@ import {
   type GatewayCredentialSettingsRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 type DrawerState =
@@ -491,124 +493,97 @@ export default function PaymentGatewaySettingsPage() {
 
   if (!canRead) {
     return (
-      <div className={cn(DASHBOARD_MAX, "relative")}>
-        <header className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Payments
-          </h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Configure M-Pesa, card, and manual payment methods for your storefront
-            and POS.
-          </p>
-        </header>
+      <BusinessPageLayout
+        title="Payments"
+        description="Configure M-Pesa, card, and manual payment methods for your storefront and POS."
+      >
         <DashboardFeedback
           kind="warning"
           text="You do not have permission to view payment gateway settings."
         />
-      </div>
+      </BusinessPageLayout>
     );
   }
 
   return (
-    <div
-      className={cn(
-        DASHBOARD_MAX,
-        "relative before:pointer-events-none before:absolute before:-inset-x-6 before:-top-6 before:h-56 before:bg-[radial-gradient(ellipse_at_top,_rgba(15,118,110,0.09),_transparent_60%)] before:content-[''] dark:before:bg-[radial-gradient(ellipse_at_top,_rgba(45,212,191,0.07),_transparent_60%)]",
-      )}
-    >
-      <header className="relative space-y-4 border-b border-border/60 pb-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 max-w-2xl space-y-1.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
-              Payments
-            </h1>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Connect checkout providers, show till instructions to customers, and
-              control how you pay suppliers with M-Pesa.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
+    <BusinessPageLayout
+      title="Payments"
+      description="Connect checkout providers, show till instructions to customers, and control how you pay suppliers with M-Pesa."
+      headerActions={
+        <>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => void reload()}
+            className={cn(
+              "inline-flex size-9 items-center justify-center rounded-lg border border-[#E6E1D8] bg-white text-[#666666]",
+              "transition-colors hover:border-[#B08D48] hover:text-[#8A6B2E]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B08D48]/30",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+            )}
+            aria-label="Refresh payment methods"
+          >
+            <RefreshCw
+              className={cn("size-3.5", loading && "animate-spin")}
+              aria-hidden
+            />
+          </button>
+          {canWrite ? (
             <Button
               type="button"
-              variant="outline"
               size="sm"
-              className="gap-1.5"
-              disabled={loading}
-              onClick={() => void reload()}
+              className="h-9 gap-1.5 rounded-lg bg-[#141414] px-3.5 text-[#F5E6C8] hover:bg-[#141414]/90"
+              onClick={() => setDrawer({ kind: "pick" })}
             >
-              <RefreshCw
-                className={cn("size-3.5", loading && "animate-spin")}
-                aria-hidden
-              />
-              Refresh
+              <Plus className="size-4" aria-hidden />
+              Add method
             </Button>
-            {canWrite ? (
-              <Button
-                type="button"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setDrawer({ kind: "pick" })}
-              >
-                <Plus className="size-4" aria-hidden />
-                Add method
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        <nav
-          aria-label="Payment settings sections"
-          className="flex flex-wrap gap-1"
-        >
-          {[
+          ) : null}
+        </>
+      }
+    >
+      <div className="space-y-6 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:pb-2">
+        <HubSettingsSectionNav
+          ariaLabel="Payment settings sections"
+          items={[
             { id: "accept-payments", label: "Accept payments" },
             { id: "kiosk-pay", label: "Kiosk Pay" },
             { id: "supplier-payouts", label: "Pay suppliers" },
-          ].map((item) => (
-            <a
-              key={item.id}
-              href={`#${item.id}`}
-              className="border border-border/70 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-teal-700/35 hover:bg-teal-50/50 hover:text-foreground dark:hover:bg-teal-950/30"
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
+            { id: "airtime", label: "Airtime" },
+          ]}
+        />
 
-        <dl className="grid gap-px overflow-hidden border border-border/70 bg-border/70 sm:grid-cols-3">
-          <div className="bg-card px-4 py-3">
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <dl className={cn(HUB_SURFACE, "grid gap-px bg-[#E6E1D8]/80 sm:grid-cols-3")}>
+          <div className="bg-white px-4 py-3">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]">
               Methods
             </dt>
-            <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">
+            <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-[#141414]">
               {loading ? "—" : configs.length}
             </dd>
           </div>
-          <div className="bg-card px-4 py-3">
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <div className="bg-white px-4 py-3">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]">
               Active
             </dt>
-            <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-teal-800 dark:text-teal-200">
+            <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-emerald-700">
               {loading ? "—" : activeCount}
             </dd>
           </div>
-          <div className="bg-card px-4 py-3">
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <div className="bg-white px-4 py-3">
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A8A8A]">
               Needs attention
             </dt>
             <dd
               className={cn(
                 "mt-1 font-mono text-lg font-semibold tabular-nums",
-                draftOrErrorCount > 0
-                  ? "text-amber-800 dark:text-amber-200"
-                  : "text-foreground",
+                draftOrErrorCount > 0 ? "text-amber-700" : "text-[#141414]",
               )}
             >
               {loading ? "—" : draftOrErrorCount}
             </dd>
           </div>
         </dl>
-      </header>
 
       {loadError ? (
         <DashboardFeedback kind="error" text={loadError} />
@@ -617,10 +592,10 @@ export default function PaymentGatewaySettingsPage() {
       <section id="accept-payments" className="relative scroll-mt-24 space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0 max-w-2xl">
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+            <h2 className="font-heading text-lg font-semibold tracking-tight text-[#141414]">
               Accept payments
             </h2>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-1 text-sm leading-relaxed text-[#666666]">
               API gateways need a successful connection test before activation.
               Manual till / paybill methods go live immediately.
             </p>
@@ -630,7 +605,7 @@ export default function PaymentGatewaySettingsPage() {
         {kopokopoNeedsAttention ? (
           <div
             role="status"
-            className="border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+            className="rounded-xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-950"
           >
             <p className="font-semibold">KopoKopo is not active yet</p>
             <p className="mt-1 text-xs leading-relaxed opacity-90">
@@ -643,19 +618,19 @@ export default function PaymentGatewaySettingsPage() {
         ) : null}
 
         {loading ? (
-          <div className="flex items-center gap-2 border border-border/70 bg-card px-4 py-10 text-sm text-muted-foreground">
+          <div className={cn(HUB_SURFACE, "flex items-center gap-2 px-4 py-10 text-sm text-[#666666]")}>
             <Loader2 className="size-4 animate-spin" aria-hidden />
             Loading payment methods…
           </div>
         ) : configs.length === 0 ? (
-          <div className="border border-dashed border-border bg-card px-5 py-12 text-center">
-            <span className="mx-auto flex size-12 items-center justify-center bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-100">
+          <div className={cn(HUB_SURFACE, "border-dashed px-5 py-12 text-center")}>
+            <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-[#F9F6F0] text-[#8A6B2E]">
               <CreditCard className="size-6" aria-hidden />
             </span>
-            <p className="mt-4 text-sm font-semibold text-foreground">
+            <p className="mt-4 text-sm font-semibold text-[#141414]">
               No payment methods yet
             </p>
-            <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+            <p className="mx-auto mt-1 max-w-md text-sm text-[#666666]">
               {canWrite
                 ? "Add KopoKopo for M-Pesa STK and supplier Send Money, or a manual till / paybill for receipt instructions."
                 : "Ask an admin to connect a payment gateway."}
@@ -664,7 +639,7 @@ export default function PaymentGatewaySettingsPage() {
               <Button
                 type="button"
                 size="sm"
-                className="mt-5 gap-1.5"
+                className="mt-5 gap-1.5 rounded-lg bg-[#141414] text-[#F5E6C8] hover:bg-[#141414]/90"
                 onClick={() => setDrawer({ kind: "pick" })}
               >
                 <Plus className="size-4" aria-hidden />
@@ -673,7 +648,7 @@ export default function PaymentGatewaySettingsPage() {
             ) : null}
           </div>
         ) : (
-          <ul className="divide-y divide-border/70 border border-border/80 bg-card">
+          <ul className={cn(HUB_SURFACE, "divide-y divide-[#E6E1D8]/80")}>
             {configs.map((config) => {
               const busy = rowBusyId === config.id;
               const name = gatewayDisplayName(config, available);
@@ -685,12 +660,12 @@ export default function PaymentGatewaySettingsPage() {
                   <div className="flex min-w-0 items-start gap-3">
                     <span
                       className={cn(
-                        "mt-0.5 flex size-10 shrink-0 items-center justify-center font-mono text-sm font-bold",
+                        "mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-bold",
                         config.status === "ACTIVE"
-                          ? "bg-teal-700 text-white"
+                          ? "bg-[#141414] text-[#F5E6C8]"
                           : config.status === "ERROR"
                             ? "bg-destructive/15 text-destructive"
-                            : "bg-muted text-muted-foreground",
+                            : "bg-[#F0EBE3] text-[#666666]",
                       )}
                       aria-hidden
                     >
@@ -754,6 +729,7 @@ export default function PaymentGatewaySettingsPage() {
       <SupplierPayoutSettingsSection canWrite={canWrite} />
       <KioskPaySettingsSection canWrite={canWrite} />
       <AirtimeSettingsSection />
+      </div>
 
       {/* Pick provider */}
       <FormDrawer
@@ -776,7 +752,7 @@ export default function PaymentGatewaySettingsPage() {
             <li>
               <button
                 type="button"
-                className="flex w-full items-center justify-between border border-border/80 bg-card px-4 py-3.5 text-left transition-colors hover:border-teal-700/35 hover:bg-teal-50/40 dark:hover:bg-teal-950/20"
+                className="flex w-full items-center justify-between rounded-xl border border-[#E6E1D8]/90 bg-white px-4 py-3.5 text-left transition-colors hover:border-[#B08D48]/55 hover:bg-[#FCFAF6]"
                 onClick={() => setDrawer({ kind: "manual-create" })}
               >
                 <span>
@@ -795,7 +771,7 @@ export default function PaymentGatewaySettingsPage() {
             <li key={gw.gatewayType}>
               <button
                 type="button"
-                className="flex w-full items-center justify-between border border-border/80 bg-card px-4 py-3.5 text-left transition-colors hover:border-teal-700/35 hover:bg-teal-50/40 dark:hover:bg-teal-950/20"
+                className="flex w-full items-center justify-between rounded-xl border border-[#E6E1D8]/90 bg-white px-4 py-3.5 text-left transition-colors hover:border-[#B08D48]/55 hover:bg-[#FCFAF6]"
                 onClick={() =>
                   setDrawer({
                     kind: "api-create",
@@ -1178,6 +1154,6 @@ export default function PaymentGatewaySettingsPage() {
           />
         ) : null}
       </FormDrawer>
-    </div>
+    </BusinessPageLayout>
   );
 }

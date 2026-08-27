@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  CreditCard,
   Settings,
   SlidersHorizontal,
   Users,
@@ -35,6 +36,13 @@ const HUB_TABS: HubTab[] = [
     hint: "Profile & storefront",
     icon: Settings,
     match: (p) => p.startsWith(APP_ROUTES.businessSettings),
+  },
+  {
+    href: APP_ROUTES.paymentsSettings,
+    label: "Payments",
+    hint: "Gateways & payouts",
+    icon: CreditCard,
+    match: (p) => p.startsWith("/payments"),
   },
   {
     href: APP_ROUTES.businessConfiguration,
@@ -70,7 +78,7 @@ export function BusinessHubNav({
     <nav
       className={cn(
         "grid gap-1 p-1",
-        columns === 2 ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4",
+        columns === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
         className,
       )}
       aria-label="Your shop pages"

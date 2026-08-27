@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
-  ArrowLeft,
   ArrowRight,
   Building2,
   Clock,
@@ -17,7 +16,6 @@ import {
   MessageCircle,
   Palette,
   RefreshCw,
-  Shield,
   ShoppingCart,
   SlidersHorizontal,
   Smartphone,
@@ -29,17 +27,16 @@ import {
   BUSINESS_OPS_ALERT_NAV,
   BUSINESS_PROFILE_NAV,
 } from "@/components/business/business-settings-nav";
+import { BusinessSettingsQuickLinks } from "@/components/business-hub/business-settings-quick-links";
+import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
 import {
-  DASHBOARD_MAX,
-  DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
-  DashboardPageHero,
-  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { BusinessSettingsSkeleton } from "@/components/dashboard/business-settings-skeleton";
 import { Button } from "@/components/ui/button";
 import { useBusinessSettingsEditor } from "@/hooks/use-business-settings-editor";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
@@ -169,34 +166,12 @@ export default function BusinessSettingsPage() {
   }
 
   return (
-    <div
-      className={cn(
-        DASHBOARD_MAX,
-        "space-y-5 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-16",
-      )}
+    <BusinessPageLayout
+      title="Business settings"
+      description="Profile, storefront, and delivery — inventory and till policies live under Configuration."
     >
-      <header className="space-y-4 border-b border-border/50 pb-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 gap-1.5 px-2 text-xs"
-            asChild
-          >
-            <Link href={APP_ROUTES.business}>
-              <ArrowLeft className="size-3.5" aria-hidden />
-              Business
-            </Link>
-          </Button>
-        </div>
-        <DashboardPageHero
-          compact
-          icon={Shield}
-          eyebrow="Account"
-          title="Business settings"
-          description="Profile and storefront. Inventory and till policies live under Configuration."
-        />
-        <DashboardQuickLinks
+      <div className="space-y-4 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-2">
+        <BusinessSettingsQuickLinks
           links={[
             {
               href: APP_ROUTES.paymentsSettings,
@@ -248,214 +223,212 @@ export default function BusinessSettingsPage() {
             },
           ]}
         />
-      </header>
 
-      {editor.feedback && !editor.loadFailed ? (
-        <DashboardFeedback
-          kind={editor.feedback.kind === "error" ? "error" : "success"}
-          text={editor.feedback.text}
-        />
-      ) : null}
+        {editor.feedback && !editor.loadFailed ? (
+          <DashboardFeedback
+            kind={editor.feedback.kind === "error" ? "error" : "success"}
+            text={editor.feedback.text}
+          />
+        ) : null}
 
-      {editor.effectiveSnapshot ? (
-        <section className={DASHBOARD_TABLE_SURFACE}>
-          <div className="flex flex-wrap items-center gap-2 border-b border-border/50 bg-muted/30 px-4 py-2.5 sm:px-5">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="truncate text-sm font-semibold tracking-tight">
-                  {editor.effectiveSnapshot.name ?? "—"}
-                </h2>
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                    editor.effectiveSnapshot.active
-                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                      : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {editor.effectiveSnapshot.active ? "Live" : "Paused"}
-                </span>
-                <span className="text-[11px] capitalize text-muted-foreground">
-                  {editor.effectiveSnapshot.subscriptionTier ?? "starter"}
-                </span>
+        {editor.effectiveSnapshot ? (
+          <section className={HUB_SURFACE}>
+            <div className="flex flex-wrap items-center gap-2 border-b border-[#E6E1D8]/80 bg-[#FCFAF6] px-4 py-2.5 sm:px-5">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="truncate font-heading text-sm font-semibold tracking-tight text-[#141414]">
+                    {editor.effectiveSnapshot.name ?? "—"}
+                  </h2>
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                      editor.effectiveSnapshot.active
+                        ? "bg-emerald-500/10 text-emerald-700"
+                        : "bg-[#F0EBE3] text-[#7A7A7A]",
+                    )}
+                  >
+                    {editor.effectiveSnapshot.active ? "Live" : "Paused"}
+                  </span>
+                  <span className="text-[11px] capitalize text-[#8A8A8A]">
+                    {editor.effectiveSnapshot.subscriptionTier ?? "starter"}
+                  </span>
+                </div>
               </div>
-            </div>
-            <Link
-              href={`${APP_ROUTES.businessConfiguration}#settings-stock-levels`}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors",
-                editor.inventory.allowNegativeStock
-                  ? "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                  : "border-border/60 bg-background text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <ShoppingCart className="size-3 shrink-0" aria-hidden />
-              Oversell {editor.inventory.allowNegativeStock ? "on" : "off"}
-              <ArrowRight className="size-3" aria-hidden />
-            </Link>
-          </div>
-          <dl className="grid grid-cols-2 gap-px bg-border/40 sm:grid-cols-4">
-            {[
-              {
-                label: "Slug",
-                value: editor.effectiveSnapshot.slug ?? "—",
-                icon: Globe,
-              },
-              {
-                label: "Country",
-                value: editor.effectiveSnapshot.countryCode ?? "—",
-                icon: MapPin,
-              },
-              {
-                label: "Currency",
-                value: editor.effectiveSnapshot.currency ?? "—",
-                icon: Coins,
-              },
-              {
-                label: "Timezone",
-                value: editor.effectiveSnapshot.timezone ?? "—",
-                icon: Clock,
-              },
-            ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="bg-card px-3 py-2.5 sm:px-4">
-                <dt className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <Icon className="size-3 shrink-0" aria-hidden />
-                  {label}
-                </dt>
-                <dd className="mt-0.5 truncate font-mono text-xs font-semibold">
-                  {value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      ) : null}
-
-      <nav
-        aria-label="Settings sections"
-        className="sticky top-[3.75rem] z-20 -mx-1 overflow-x-auto bg-background/90 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden"
-      >
-        <div className="flex w-max gap-1 pb-0.5">
-          {BUSINESS_PROFILE_NAV.map(({ id, label, icon: Icon }) => {
-            const active = activeSection === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  setActiveSection(id);
-                  scrollToSection(id);
-                }}
+              <Link
+                href={`${APP_ROUTES.businessConfiguration}#settings-stock-levels`}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors",
-                  active
-                    ? "border-primary/35 bg-primary/10 text-foreground"
-                    : "border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+                  "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                  editor.inventory.allowNegativeStock
+                    ? "border-amber-500/30 bg-amber-500/10 text-amber-800"
+                    : "border-[#E6E1D8] bg-white text-[#666666] hover:border-[#B08D48] hover:text-[#8A6B2E]",
                 )}
               >
-                <Icon className="size-3 shrink-0" aria-hidden />
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      <div
-        className="grid gap-4 lg:grid-cols-[11.5rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[12.5rem_minmax(0,1fr)]"
-        data-onboarding-target={ONBOARDING_TARGETS.settingsDrawer}
-      >
-        <aside className="hidden lg:block">
-          <div className="sticky top-4 space-y-3 rounded-xl border border-border/60 bg-card p-2.5 shadow-sm">
-            <p className="px-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              On this page
-            </p>
-            {navByGroup.map(({ group, items }) => (
-              <div key={group} className="space-y-0.5">
-                <p className="px-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
-                  {group}
-                </p>
-                <ul className="space-y-0.5">
-                  {items.map(({ id, label, icon: Icon }) => {
-                    const active = activeSection === id;
-                    return (
-                      <li key={id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveSection(id);
-                            scrollToSection(id);
-                          }}
-                          className={cn(
-                            "flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-xs transition-colors",
-                            active
-                              ? "bg-primary/10 font-medium text-foreground"
-                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                          )}
-                        >
-                          <Icon
-                            className={cn(
-                              "size-3 shrink-0",
-                              active ? "text-primary" : "text-muted-foreground",
-                            )}
-                            aria-hidden
-                          />
-                          <span className="truncate">{label}</span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-            <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-2 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Policies
-              </p>
-              <Link
-                href={APP_ROUTES.businessConfiguration}
-                className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                Open Configuration
+                <ShoppingCart className="size-3 shrink-0" aria-hidden />
+                Oversell {editor.inventory.allowNegativeStock ? "on" : "off"}
                 <ArrowRight className="size-3" aria-hidden />
               </Link>
             </div>
-          </div>
-        </aside>
+            <dl className="grid grid-cols-2 gap-px bg-[#E6E1D8]/80 sm:grid-cols-4">
+              {[
+                {
+                  label: "Slug",
+                  value: editor.effectiveSnapshot.slug ?? "—",
+                  icon: Globe,
+                },
+                {
+                  label: "Country",
+                  value: editor.effectiveSnapshot.countryCode ?? "—",
+                  icon: MapPin,
+                },
+                {
+                  label: "Currency",
+                  value: editor.effectiveSnapshot.currency ?? "—",
+                  icon: Coins,
+                },
+                {
+                  label: "Timezone",
+                  value: editor.effectiveSnapshot.timezone ?? "—",
+                  icon: Clock,
+                },
+              ].map(({ label, value, icon: Icon }) => (
+                <div key={label} className="bg-white px-3 py-2.5 sm:px-4">
+                  <dt className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[#8A8A8A]">
+                    <Icon className="size-3 shrink-0 text-[#B08D48]" aria-hidden />
+                    {label}
+                  </dt>
+                  <dd className="mt-0.5 truncate font-mono text-xs font-semibold text-[#141414]">
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ) : null}
 
-        <section
-          className={cn(DASHBOARD_TABLE_SURFACE, "min-w-0 p-3 sm:p-4")}
+        <nav
+          aria-label="Settings sections"
+          className="sticky top-[3.75rem] z-20 -mx-0.5 overflow-x-auto rounded-lg border border-[#E6E1D8]/90 bg-white/95 px-1 py-1 backdrop-blur lg:hidden"
         >
-          <BusinessSettingsForm
-            variant="profile"
-            editable={editor.editable}
-            setEditable={editor.setEditable}
-            storefront={editor.storefront}
-            setStorefront={editor.setStorefront}
-            inventory={editor.inventory}
-            setInventory={editor.setInventory}
-            posDrafts={editor.posDrafts}
-            setPosDrafts={editor.setPosDrafts}
-            cashierCapabilities={editor.cashierCapabilities}
-            setCashierCapabilities={editor.setCashierCapabilities}
-            shiftSettings={editor.shiftSettings}
-            setShiftSettings={editor.setShiftSettings}
-            activeBranches={editor.activeBranches}
-            canManageBusinessSettings={editor.canManageBusinessSettings}
-            isSaving={editor.isSaving}
-            storefrontNeedsBranch={editor.storefrontNeedsBranch}
-            focusStorefrontOnMount={focusStorefront}
-            storefrontPreviewUrl={
-              editor.effectiveSnapshot?.slug
-                ? `https://${editor.effectiveSnapshot.slug}.${PLATFORM_DOMAIN}/`
-                : null
-            }
-            onSubmit={onSave}
-            onCancel={onCancel}
-            onRemoveDeliveryArea={editor.removeDeliveryArea}
-          />
-        </section>
+          <div className="flex w-max gap-1 pb-0.5">
+            {BUSINESS_PROFILE_NAV.map(({ id, label, icon: Icon }) => {
+              const active = activeSection === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    setActiveSection(id);
+                    scrollToSection(id);
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                    active
+                      ? "bg-[#141414] text-[#F5E6C8]"
+                      : "text-[#666666] hover:bg-[#F7F5F1] hover:text-[#141414]",
+                  )}
+                >
+                  <Icon className="size-3 shrink-0" aria-hidden />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        <div
+          className="grid gap-4 lg:grid-cols-[11.5rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[12.5rem_minmax(0,1fr)]"
+          data-onboarding-target={ONBOARDING_TARGETS.settingsDrawer}
+        >
+          <aside className="hidden lg:block">
+            <div className="sticky top-4 space-y-3 rounded-xl border border-[#E6E1D8]/90 bg-white p-2.5 shadow-[0_1px_0_rgba(20,20,20,0.04),0_10px_32px_-20px_rgba(20,20,20,0.12)]">
+              <p className="px-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#8A8A8A]">
+                On this page
+              </p>
+              {navByGroup.map(({ group, items }) => (
+                <div key={group} className="space-y-0.5">
+                  <p className="px-1.5 text-[10px] font-medium uppercase tracking-wider text-[#AAAAAA]">
+                    {group}
+                  </p>
+                  <ul className="space-y-0.5">
+                    {items.map(({ id, label, icon: Icon }) => {
+                      const active = activeSection === id;
+                      return (
+                        <li key={id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveSection(id);
+                              scrollToSection(id);
+                            }}
+                            className={cn(
+                              "flex w-full items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left text-xs transition-colors",
+                              active
+                                ? "bg-[#F9F6F0] font-medium text-[#141414]"
+                                : "text-[#666666] hover:bg-[#F7F5F1] hover:text-[#141414]",
+                            )}
+                          >
+                            <Icon
+                              className={cn(
+                                "size-3 shrink-0",
+                                active ? "text-[#B08D48]" : "text-[#AAAAAA]",
+                              )}
+                              aria-hidden
+                            />
+                            <span className="truncate">{label}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+              <div className="rounded-lg border border-dashed border-[#E6E1D8] bg-[#FCFAF6] px-2 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8A8A8A]">
+                  Policies
+                </p>
+                <Link
+                  href={APP_ROUTES.businessConfiguration}
+                  className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[#8A6B2E] hover:text-[#141414]"
+                >
+                  Open Configuration
+                  <ArrowRight className="size-3" aria-hidden />
+                </Link>
+              </div>
+            </div>
+          </aside>
+
+          <section className={cn(HUB_SURFACE, "min-w-0 p-3 sm:p-4")}>
+            <BusinessSettingsForm
+              variant="profile"
+              editable={editor.editable}
+              setEditable={editor.setEditable}
+              storefront={editor.storefront}
+              setStorefront={editor.setStorefront}
+              inventory={editor.inventory}
+              setInventory={editor.setInventory}
+              posDrafts={editor.posDrafts}
+              setPosDrafts={editor.setPosDrafts}
+              cashierCapabilities={editor.cashierCapabilities}
+              setCashierCapabilities={editor.setCashierCapabilities}
+              shiftSettings={editor.shiftSettings}
+              setShiftSettings={editor.setShiftSettings}
+              activeBranches={editor.activeBranches}
+              canManageBusinessSettings={editor.canManageBusinessSettings}
+              isSaving={editor.isSaving}
+              storefrontNeedsBranch={editor.storefrontNeedsBranch}
+              focusStorefrontOnMount={focusStorefront}
+              storefrontPreviewUrl={
+                editor.effectiveSnapshot?.slug
+                  ? `https://${editor.effectiveSnapshot.slug}.${PLATFORM_DOMAIN}/`
+                  : null
+              }
+              onSubmit={onSave}
+              onCancel={onCancel}
+              onRemoveDeliveryArea={editor.removeDeliveryArea}
+            />
+          </section>
+        </div>
       </div>
-    </div>
+    </BusinessPageLayout>
   );
 }

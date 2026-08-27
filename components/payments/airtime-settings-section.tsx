@@ -14,7 +14,9 @@ import {
   type AirtimeSettingsRecord,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { cn } from "@/lib/utils";
 
 function money(n: number | null | undefined, currency = "KES") {
   const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
@@ -113,11 +115,11 @@ export function AirtimeSettingsSection() {
     <section id="airtime" className="scroll-mt-24 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight text-foreground">
-            <Signal className="size-4 text-muted-foreground" aria-hidden />
+          <h2 className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight text-[#141414]">
+            <Signal className="size-4 text-[#B08D48]" aria-hidden />
             Sell airtime
           </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          <p className="mt-1 max-w-2xl text-sm text-[#666666]">
             Turn your Kiosk Pay balance into an extra earner. Every top-up you sell
             debits the airtime face value from your wallet and credits your commission
             straight back — no separate float to manage.
@@ -143,12 +145,12 @@ export function AirtimeSettingsSection() {
       </div>
 
       {loading && !settings ? (
-        <div className="flex items-center gap-2 border border-border/70 bg-card px-4 py-8 text-sm text-muted-foreground">
+        <div className={cn(HUB_SURFACE, "flex items-center gap-2 px-4 py-8 text-sm text-[#666666]")}>
           <Loader2 className="size-4 animate-spin" aria-hidden />
           Loading airtime…
         </div>
       ) : (
-        <div className="space-y-4 border border-border/70 bg-card p-4 shadow-sm">
+        <div className={cn(HUB_SURFACE, "space-y-4 p-4")}>
           {!platformReady ? (
             <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
               Airtime is not switched on for this platform yet. Ask your platform admin

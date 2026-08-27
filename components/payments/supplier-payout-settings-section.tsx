@@ -21,6 +21,7 @@ import {
   type SupplierPayoutSettingsRecord,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 
 type SupplierPayoutSettingsSectionProps = {
   canWrite: boolean;
@@ -179,10 +180,10 @@ export function SupplierPayoutSettingsSection({
     <section id="supplier-payouts" className="scroll-mt-24 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0 max-w-2xl">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+          <h2 className="font-heading text-lg font-semibold tracking-tight text-[#141414]">
             Pay suppliers
           </h2>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-1 text-sm leading-relaxed text-[#666666]">
             Send Money to vendor M-Pesa from Supplies. Turn this on after an active
             KopoKopo gateway is ready, then set phones on each supplier.
           </p>
@@ -201,7 +202,7 @@ export function SupplierPayoutSettingsSection({
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 border border-border/70 bg-card px-4 py-8 text-sm text-muted-foreground">
+        <div className={cn(HUB_SURFACE, "flex items-center gap-2 px-4 py-8 text-sm text-[#666666]")}>
           <Loader2 className="size-4 animate-spin" aria-hidden />
           Loading supplier payout settings…
         </div>
@@ -211,8 +212,9 @@ export function SupplierPayoutSettingsSection({
           onClick={canWrite ? openConfigure : undefined}
           disabled={!canWrite}
           className={cn(
-            "group w-full border border-border/80 bg-card text-left transition-colors",
-            canWrite && "hover:border-teal-700/30 hover:bg-teal-50/40 dark:hover:bg-teal-950/20",
+            HUB_SURFACE,
+            "group w-full text-left transition-colors",
+            canWrite && "hover:border-[#B08D48]/55 hover:bg-[#FCFAF6]",
             !canWrite && "cursor-default",
           )}
         >

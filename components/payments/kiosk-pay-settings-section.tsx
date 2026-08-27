@@ -15,6 +15,7 @@ import {
   type KioskPayAccountRecord,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -124,10 +125,10 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
     <section id="kiosk-pay" className="scroll-mt-24 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-heading text-lg font-semibold tracking-tight text-foreground">
+          <h2 className="font-heading text-lg font-semibold tracking-tight text-[#141414]">
             Kiosk Pay
           </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          <p className="mt-1 max-w-2xl text-sm text-[#666666]">
             Collect online via Kiosk&apos;s Paystack, or at the cashier via Kiosk Pay
             STK — funds land in your Kiosk Pay balance. Withdraw to M-Pesa anytime
             (about KES 50 Safaricom / KopoKopo fee per payout — not a Kiosk charge).
@@ -151,12 +152,12 @@ export function KioskPaySettingsSection({ canWrite }: Props) {
       </div>
 
       {loading && !account ? (
-        <div className="flex items-center gap-2 border border-border/70 bg-card px-4 py-8 text-sm text-muted-foreground">
+        <div className={cn(HUB_SURFACE, "flex items-center gap-2 px-4 py-8 text-sm text-[#666666]")}>
           <Loader2 className="size-4 animate-spin" aria-hidden />
           Loading Kiosk Pay…
         </div>
       ) : (
-        <div className="space-y-4 border border-border/70 bg-card p-4 shadow-sm">
+        <div className={cn(HUB_SURFACE, "space-y-4 p-4")}>
           {!platformOn ? (
             <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
               Kiosk Pay is not enabled on this platform yet. Ask your platform admin to
