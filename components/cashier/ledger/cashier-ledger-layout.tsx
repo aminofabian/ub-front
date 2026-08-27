@@ -189,7 +189,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     () =>
       cart.lines.map((line) => ({
         key: line.key,
-        code: line.item.barcode?.trim() || line.item.sku || "",
+        code: (line.item.sku || line.item.barcode || "").trim(),
         item: line.label,
         quantity: line.quantity,
         unitPrice: line.unitPrice,

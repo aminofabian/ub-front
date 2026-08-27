@@ -32,12 +32,12 @@ type LedgerSheetProps = {
 };
 
 const COLS = [
-  { id: "A", label: "Code", width: "w-[7.5rem]" },
-  { id: "B", label: "Item", width: "min-w-0 flex-1" },
-  { id: "C", label: "Qty", width: "w-[4.5rem]" },
-  { id: "D", label: "Price", width: "w-[6rem]" },
-  { id: "E", label: "Disc %", width: "w-[4.75rem]" },
-  { id: "F", label: "Total", width: "w-[7rem]" },
+  { id: "A", label: "Item", width: "min-w-0 flex-1" },
+  { id: "B", label: "Qty", width: "w-[4.5rem] shrink-0" },
+  { id: "C", label: "Price", width: "w-[6rem] shrink-0" },
+  { id: "D", label: "Disc %", width: "w-[4.75rem] shrink-0" },
+  { id: "E", label: "Total", width: "w-[7rem] shrink-0" },
+  { id: "F", label: "SKU", width: "w-[8.5rem] shrink-0" },
 ] as const;
 
 function CellFrame({
@@ -52,7 +52,7 @@ function CellFrame({
   return (
     <div
       className={cn(
-        "flex h-8 items-center border-r border-zinc-200 px-1.5",
+        "flex min-h-8 items-start border-r border-zinc-200 px-1.5 py-1.5 last:border-r-0",
         active && "ring-2 ring-inset ring-[var(--pos-primary)]",
         className,
       )}
@@ -94,41 +94,48 @@ export function LedgerSheet({
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        {lines.map((line, index) => {
+        {lines.map((line) => {
           const selected = selectedKey === line.key;
           return (
             <div
               key={line.key}
               className={cn(
                 "flex border-b border-zinc-100 text-[13px]",
-                selected ? "bg-[color-mix(in_srgb,var(--pos-primary)_7%,white)]" : "bg-white",
+                selected
+                  ? "bg-[color-mix(in_srgb,var(--pos-primary)_7%,white)]"
+                  : "bg-white",
               )}
             >
               <CellFrame
                 active={selected && activeField === "code"}
-                className="w-[7.5rem] cursor-default tabular-nums text-zinc-500"
+                className="min-w-0 flex-1"
               >
                 <button
                   type="button"
-                  className="w-full truncate text-left"
+                  className="w-full whitespace-normal break-words text-left font-medium leading-snug text-zinc-900"
                   onClick={() => onSelect(line.key, "code")}
                 >
-                  {line.code || `R${index + 2}`}
+                  {line.item}
                 </button>
               </CellFrame>
-              <CellFrame active={false} className="min-w-0 flex-1">
-                <span className="truncate font-medium text-zinc-900">{line.item}</span>
-              </CellFrame>
-              <CellFrame active={selected && activeField === "qty"} className="w-[4.5rem]">
+              <CellFrame
+                active={selected && activeField === "qty"}
+                className="w-[4.5rem] shrink-0"
+              >
                 <input
                   value={line.quantity}
                   onFocus={() => onSelect(line.key, "qty")}
-                  onChange={(e) => onLineChange(line.key, "quantity", e.target.value)}
-                  className="w-full bg-transparent text-right tabular-nums outline-none"
+                  onChange={(e) =>
+                    onLineChange(line.key, "quantity", e.target.value)
+                  }
+                  className="w-full bg-transparent text-right leading-snug tabular-nums outline-none"
                   inputMode="decimal"
                 />
               </CellFrame>
-              <CellFrame active={selected && activeField === "price"} className="w-[6rem]">
+              <CellFrame
+                active={selected && activeField === "price"}
+                className="w-[6rem] shrink-0"
+              >
                 <input
                   value={line.unitPrice}
                   readOnly={!allowPriceEdit}
@@ -138,22 +145,26 @@ export function LedgerSheet({
                     onLineChange(line.key, "unitPrice", e.target.value)
                   }
                   className={cn(
-                    "w-full bg-transparent text-right tabular-nums outline-none",
+                    "w-full bg-transparent text-right leading-snug tabular-nums outline-none",
                     !allowPriceEdit && "text-zinc-500",
                   )}
                   inputMode="decimal"
                 />
               </CellFrame>
-              <CellFrame active={selected && activeField === "disc"} className="w-[4.75rem]">
+              <CellFrame
+                active={selected && activeField === "disc"}
+                className="w-[4.75rem] shrink-0"
+              >
                 <input
                   value={line.discPct}
                   readOnly={!allowPriceEdit}
                   onFocus={() => onSelect(line.key, "disc")}
                   onChange={(e) =>
-                    allowPriceEdit && onLineChange(line.key, "disc", e.target.value)
+                    allowPriceEdit &&
+                    onLineChange(line.key, "disc", e.target.value)
                   }
                   className={cn(
-                    "w-full bg-transparent text-right tabular-nums outline-none",
+                    "w-full bg-transparent text-right leading-snug tabular-nums outline-none",
                     !allowPriceEdit && "text-zinc-500",
                   )}
                   inputMode="decimal"
@@ -161,9 +172,17 @@ export function LedgerSheet({
               </CellFrame>
               <CellFrame
                 active={false}
-                className="w-[7rem] justify-end font-semibold tabular-nums"
+                className="w-[7rem] shrink-0 justify-end font-semibold leading-snug tabular-nums"
               >
                 {line.total.toFixed(2)}
+              </CellFrame>
+              <CellFrame
+                active={false}
+                className="w-[8.5rem] shrink-0 font-mono text-[12px] leading-snug text-zinc-500"
+              >
+                <span className="w-full whitespace-normal break-all">
+                  {line.code}
+                </span>
               </CellFrame>
             </div>
           );
@@ -172,7 +191,7 @@ export function LedgerSheet({
         <div className="flex border-b border-zinc-200 bg-white text-[13px]">
           <CellFrame
             active={selectedKey == null && activeField === "code"}
-            className="w-[7.5rem]"
+            className="min-w-0 flex-1"
           >
             <input
               value={entryCode}
@@ -188,19 +207,22 @@ export function LedgerSheet({
               className="w-full bg-transparent text-zinc-800 outline-none placeholder:text-zinc-400"
             />
           </CellFrame>
-          <CellFrame active={false} className="min-w-0 flex-1 text-zinc-400">
+          <CellFrame active={false} className="w-[4.5rem] shrink-0" />
+          <CellFrame active={false} className="w-[6rem] shrink-0" />
+          <CellFrame active={false} className="w-[4.75rem] shrink-0" />
+          <CellFrame active={false} className="w-[7rem] shrink-0 text-zinc-400">
             {entryCode ? "Enter to add" : ""}
           </CellFrame>
-          <CellFrame active={false} className="w-[4.5rem]" />
-          <CellFrame active={false} className="w-[6rem]" />
-          <CellFrame active={false} className="w-[4.75rem]" />
-          <CellFrame active={false} className="w-[7rem]" />
+          <CellFrame active={false} className="w-[8.5rem] shrink-0" />
         </div>
       </div>
 
       <div className="flex items-center gap-4 border-t border-zinc-200 bg-zinc-50 px-3 py-1.5 text-[11px] text-zinc-600">
         <span>
-          Items <span className="font-semibold tabular-nums text-zinc-900">{lines.length}</span>
+          Items{" "}
+          <span className="font-semibold tabular-nums text-zinc-900">
+            {lines.length}
+          </span>
         </span>
         <span>
           SUM(Qty){" "}
