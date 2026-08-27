@@ -1,6 +1,8 @@
-# Interim onboarding email shots
+# Onboarding email shots
 
 Served at `/help/onboarding/*`.
 
-These are copies of existing help SVGs until Njeri Fresh Mart PNG
-storyboards replace them. See `docs/onboarding-sequence/SHOTS.md`.
+- `*.png` / `m2-*.jpg` — what tip emails embed today
+- `*.svg` — source masters for the non-photo illustrations
+
+See `docs/onboarding-sequence/SHOTS.md`.
