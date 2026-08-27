@@ -1,4 +1,8 @@
 import { apiRequest, ApiRequestError } from "@/lib/api";
+import {
+  parseCashierTemplateId,
+  type CashierTemplateId,
+} from "@/lib/cashier-templates";
 import { getOrCreateTillDeviceId } from "@/lib/till-device";
 
 export type TillDeviceRecord = {
@@ -6,6 +10,7 @@ export type TillDeviceRecord = {
   branchId: string;
   deviceKey: string;
   label: string;
+  cashierTemplate: CashierTemplateId;
   registeredBy: string;
   registeredAt: string;
   revokedAt: string | null;
@@ -14,6 +19,13 @@ export type TillDeviceRecord = {
 export type TillDeviceListResponse = {
   devices: TillDeviceRecord[];
 };
+
+function normalizeTillDevice(row: TillDeviceRecord): TillDeviceRecord {
+  return {
+    ...row,
+    cashierTemplate: parseCashierTemplateId(row.cashierTemplate),
+  };
+}
 
 export async function listTillDevices(opts: {
   branchId: string;
@@ -26,24 +38,68 @@ export async function listTillDevices(opts: {
   const payload = await apiRequest<TillDeviceListResponse>(
     `/api/v1/till-devices?${sp.toString()}`,
   );
-  return Array.isArray(payload?.devices) ? payload.devices : [];
+  return Array.isArray(payload?.devices)
+    ? payload.devices.map(normalizeTillDevice)
+    : [];
 }
 
 export async function registerTillDevice(opts: {
   branchId: string;
   deviceKey?: string;
   label?: string;
+  cashierTemplate?: CashierTemplateId;
 }): Promise<TillDeviceRecord> {
   const deviceKey =
     opts.deviceKey?.trim() || getOrCreateTillDeviceId() || undefined;
-  return apiRequest<TillDeviceRecord>("/api/v1/till-devices", {
+  const row = await apiRequest<TillDeviceRecord>("/api/v1/till-devices", {
     method: "POST",
     body: {
       branchId: opts.branchId,
       deviceKey,
       label: opts.label?.trim() || undefined,
+      cashierTemplate: opts.cashierTemplate,
     },
   });
+  return normalizeTillDevice(row);
+}
+
+export async function fetchTillDeviceMe(opts: {
+  branchId: string;
+}): Promise<TillDeviceRecord> {
+  const sp = new URLSearchParams({ branchId: opts.branchId });
+  const row = await apiRequest<TillDeviceRecord>(
+    `/api/v1/till-devices/me?${sp.toString()}`,
+  );
+  return normalizeTillDevice(row);
+}
+
+export async function patchTillDevice(
+  id: string,
+  body: { cashierTemplate: CashierTemplateId },
+): Promise<TillDeviceRecord> {
+  const row = await apiRequest<TillDeviceRecord>(
+    `/api/v1/till-devices/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      body,
+    },
+  );
+  return normalizeTillDevice(row);
+}
+
+export async function patchTillDeviceMe(opts: {
+  branchId: string;
+  cashierTemplate: CashierTemplateId;
+}): Promise<TillDeviceRecord> {
+  const sp = new URLSearchParams({ branchId: opts.branchId });
+  const row = await apiRequest<TillDeviceRecord>(
+    `/api/v1/till-devices/me?${sp.toString()}`,
+    {
+      method: "PATCH",
+      body: { cashierTemplate: opts.cashierTemplate },
+    },
+  );
+  return normalizeTillDevice(row);
 }
 
 export async function revokeTillDevice(id: string): Promise<void> {

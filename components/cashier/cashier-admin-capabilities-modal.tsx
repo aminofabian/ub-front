@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { updateBusiness } from "@/lib/api";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import { CASHIER_TEMPLATES, type CashierTemplateId } from "@/lib/cashier-templates";
+import { useCashierTemplate } from "@/hooks/use-cashier-template";
 import { cn } from "@/lib/utils";
 
 type CashierAdminCapabilitiesModalProps = {
@@ -28,6 +30,7 @@ type CashierAdminCapabilitiesModalProps = {
   orderPadEnabled: boolean;
   orderConfirmEnabled: boolean;
   catalogHybridEnabled: boolean;
+  branchId?: string | null;
   onSaved: () => Promise<void> | void;
 };
 
@@ -42,6 +45,7 @@ export function CashierAdminCapabilitiesModal({
   orderPadEnabled,
   orderConfirmEnabled,
   catalogHybridEnabled,
+  branchId = null,
   onSaved,
 }: CashierAdminCapabilitiesModalProps) {
   const [priceEdit, setPriceEdit] = useState(priceEditEnabled);
@@ -52,6 +56,7 @@ export function CashierAdminCapabilitiesModal({
   const [orderConfirm, setOrderConfirm] = useState(orderConfirmEnabled);
   const [catalogHybrid, setCatalogHybrid] = useState(catalogHybridEnabled);
   const [saving, setSaving] = useState(false);
+  const { preferred, setTemplate } = useCashierTemplate(branchId);
 
   useEffect(() => {
     if (!open) return;
@@ -303,6 +308,42 @@ export function CashierAdminCapabilitiesModal({
                   Scan · search list
                 </span>
               </button>
+            </div>
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-border/50 bg-muted/20 px-3 py-3">
+            <p className="text-sm font-semibold text-foreground">
+              This till’s layout
+            </p>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              Shelf keeps picture tiles. Ledger is the spreadsheet till with a
+              keypad. Ledger needs a wide screen; phones stay on Shelf.
+            </p>
+            <div
+              className="grid grid-cols-2 gap-2"
+              role="radiogroup"
+              aria-label="This till cashier layout"
+            >
+              {CASHIER_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={preferred === t.id}
+                  onClick={() => void setTemplate(t.id as CashierTemplateId)}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-left transition-colors",
+                    preferred === t.id
+                      ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)] bg-card"
+                      : "border-border/60 bg-transparent",
+                  )}
+                >
+                  <span className="block text-xs font-semibold">{t.name}</span>
+                  <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                    {t.blurb}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
         </div>

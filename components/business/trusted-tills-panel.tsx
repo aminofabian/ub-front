@@ -14,11 +14,19 @@ import {
 } from "@/lib/till-device";
 import {
   listTillDevices,
+  patchTillDevice,
   registerTillDevice,
   revokeTillDevice,
   tillDeviceErrorMessage,
   type TillDeviceRecord,
 } from "@/lib/till-devices-api";
+import {
+  CASHIER_TEMPLATES,
+  parseCashierTemplateId,
+  readLocalCashierTemplate,
+  writeLocalCashierTemplate,
+  type CashierTemplateId,
+} from "@/lib/cashier-templates";
 import { cn } from "@/lib/utils";
 
 type TrustedTillsPanelProps = {
@@ -78,6 +86,7 @@ export function TrustedTillsPanel({
       const row = await registerTillDevice({
         branchId,
         label: label.trim() || undefined,
+        cashierTemplate: readLocalCashierTemplate(),
       });
       setTillDeviceLabel(row.label);
       toast.success(`Registered as “${row.label}”`);
@@ -103,10 +112,32 @@ export function TrustedTillsPanel({
     }
   };
 
+  const onTemplateChange = async (id: string, next: CashierTemplateId) => {
+    setBusyId(id);
+    try {
+      const row = await patchTillDevice(id, { cashierTemplate: next });
+      setDevices((prev) =>
+        prev.map((d) => (d.id === id ? { ...d, cashierTemplate: row.cashierTemplate } : d)),
+      );
+      if (localDeviceKey && row.deviceKey === localDeviceKey) {
+        writeLocalCashierTemplate(row.cashierTemplate);
+      }
+      toast.success(
+        row.cashierTemplate === "ledger"
+          ? "This till will use Ledger"
+          : "This till will use Shelf",
+      );
+    } catch (error) {
+      toast.error(tillDeviceErrorMessage(error));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <FormDrawerFields
       legend="Trusted tills"
-      hint="Once a branch has at least one registered till, PIN login on that branch only works from registered browsers. Revoking a till blocks it immediately."
+      hint="Once a branch has at least one registered till, PIN login on that branch only works from registered browsers. Pick Shelf or Ledger per till. Revoking a till blocks it immediately."
     >
       <div className="space-y-3">
         <label className="block space-y-1.5 text-sm">
@@ -201,7 +232,29 @@ export function TrustedTillsPanel({
                         {formatWhen(d.registeredAt)}
                       </p>
                     </div>
-                    <Button
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <select
+                        className={cn(
+                          "h-8 rounded-md border border-input bg-background px-2 text-xs",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+                        )}
+                        value={parseCashierTemplateId(d.cashierTemplate)}
+                        disabled={busyId === d.id}
+                        aria-label={`Layout for ${d.label}`}
+                        onChange={(e) =>
+                          void onTemplateChange(
+                            d.id,
+                            parseCashierTemplateId(e.target.value),
+                          )
+                        }
+                      >
+                        {CASHIER_TEMPLATES.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
                       type="button"
                       variant="ghost"
                       size="sm"
@@ -216,6 +269,7 @@ export function TrustedTillsPanel({
                       )}
                       Revoke
                     </Button>
+                    </div>
                   </li>
                 );
               })}

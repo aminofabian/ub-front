@@ -25,6 +25,7 @@ import {
   getOrCreateTillDeviceId,
   tillDeviceDisplayName,
 } from "@/lib/till-device";
+import { useCashierTemplate } from "@/hooks/use-cashier-template";
 import { cn } from "@/lib/utils";
 
 type CashierShellProps = {
@@ -50,6 +51,7 @@ export function CashierShell({ children }: CashierShellProps) {
     refreshSession,
   } = useDashboard();
   const { lock: lockTill, locked: tillLocked } = usePosTillLock();
+  const { isLedger: tillWantsLedger } = useCashierTemplate(branchId);
   const featureFlags = useFeatureFlags();
   const [capsOpen, setCapsOpen] = useState(false);
   const [tillLabel, setTillLabel] = useState("");
@@ -57,6 +59,7 @@ export function CashierShell({ children }: CashierShellProps) {
   const onSupplierReceiveTill =
     pathname === APP_ROUTES.supplierDirectory ||
     pathname.startsWith(`${APP_ROUTES.supplierDirectory}/`);
+  const isLedger = tillWantsLedger && !onSupplierReceiveTill;
 
   useEffect(() => {
     getOrCreateTillDeviceId();
@@ -114,6 +117,12 @@ export function CashierShell({ children }: CashierShellProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const onOpen = () => setCapsOpen(true);
+    window.addEventListener("ub:open-till-settings", onOpen);
+    return () => window.removeEventListener("ub:open-till-settings", onOpen);
+  }, []);
+
   return (
     <div
       className="flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden pos-market-paper"
@@ -125,6 +134,7 @@ export function CashierShell({ children }: CashierShellProps) {
           "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_82%,transparent)] backdrop-blur-md",
           "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_72%,transparent)]",
           "dark:border-border/50 dark:bg-background/90",
+          isLedger && "hidden",
         )}
       >
         <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2 sm:px-4 xl:flex-nowrap">
@@ -302,7 +312,14 @@ export function CashierShell({ children }: CashierShellProps) {
           </div>
         </div>
       </header>
-      <main className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden px-3 py-1.5 sm:px-4 sm:py-2">
+      <main
+        className={cn(
+          "mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden",
+          isLedger
+            ? "max-w-none p-0"
+            : "max-w-[1600px] px-3 py-1.5 sm:px-4 sm:py-2",
+        )}
+      >
         {children}
       </main>
 
@@ -332,6 +349,7 @@ export function CashierShell({ children }: CashierShellProps) {
           catalogHybridEnabled={
             featureFlags[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true
           }
+          branchId={branchId}
           onSaved={() => refreshSession()}
         />
       ) : null}

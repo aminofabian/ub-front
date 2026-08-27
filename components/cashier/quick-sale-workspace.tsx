@@ -137,6 +137,8 @@ import {
   type PosReceiptSnapshot,
 } from "@/lib/pos-receipt";
 import { CashierPosLayout } from "./cashier-pos-layout";
+import { CashierLedgerLayout } from "./ledger/cashier-ledger-layout";
+import { useCashierTemplate } from "@/hooks/use-cashier-template";
 import {
   formatCartQtyValue,
   WEIGHTED_QTY_DECIMALS,
@@ -289,6 +291,8 @@ export function QuickSaleWorkspace({
     canPathBWrite,
     canViewSuppliers,
   } = useDashboard();
+  const { isLedger: tillWantsLedger } = useCashierTemplate(branchId);
+  const isLedger = variant === "cashier" && tillWantsLedger;
   const online = useOnlineStatus();
   const posDraftsEnabled = useFeatureFlag(POS_DRAFT_FLAGS.enabled);
   const posDraftsUi = useFeatureFlag(POS_DRAFT_FLAGS.uiVisible);
@@ -4287,6 +4291,7 @@ export function QuickSaleWorkspace({
   const branchSelected = Boolean(
     branchId && branches.some((b) => b.id === branchId),
   );
+  const PosChrome = isLedger ? CashierLedgerLayout : CashierPosLayout;
 
   if (!canSell) {
     if (!isCashier) {
@@ -4329,6 +4334,7 @@ export function QuickSaleWorkspace({
         className={cn(
           "flex items-center justify-between px-1",
           isCashier ? "shrink-0 pb-0.5" : "pb-2",
+          isLedger && "hidden",
         )}
       >
         {!isCashier ? (
@@ -4361,7 +4367,7 @@ export function QuickSaleWorkspace({
           />
         </div>
       </div>
-      <CashierPosLayout
+      <PosChrome
         checkoutDrawerOpen={checkoutDrawerOpen}
         onCheckoutDrawerOpenChange={setCheckoutDrawerOpen}
         pageTitle={heading}
