@@ -29,7 +29,7 @@ export type SupportMessage = {
   senderUserId: string;
   senderName: string | null;
   body: string;
-  messageKind?: "TEXT" | "ORDER_CARD" | string | null;
+  messageKind?: "TEXT" | "ORDER_CARD" | "WELCOME_CARD" | string | null;
   orderCard?: {
     orderId: string;
     orderCode: string;
@@ -47,6 +47,13 @@ export type SupportMessage = {
       lineTotal: number | string;
     }>;
     lineCount: number;
+  } | null;
+  welcomeCard?: {
+    recipientName: string | null;
+    businessName: string | null;
+    supportPhone: string | null;
+    supportEmail: string | null;
+    helpItems: string[];
   } | null;
   attachment?: {
     url: string;

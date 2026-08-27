@@ -44,7 +44,7 @@ function outcomeMessage(
   if (res.outcome === "skipped") {
     return {
       ok: false,
-      text: res.detail?.trim() || "Reminder skipped — check messaging setup.",
+        text: res.detail?.trim() || "Reminder skipped. Check messaging setup.",
     };
   }
   return {
@@ -78,12 +78,12 @@ export function RemindPaymentButtons({
   };
 
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div className="inline-flex shrink-0 overflow-hidden rounded-lg border border-border/70 bg-background">
       <Button
         type="button"
         size="sm"
-        variant="outline"
-        className="h-8 gap-1 rounded-none px-2"
+        variant="ghost"
+        className="h-8 gap-1 rounded-none px-2.5"
         disabled={disabled || busy != null}
         title="Remind via WhatsApp, falling back to SMS (max once every 3 days)"
         onClick={() => void send("auto")}
@@ -100,8 +100,8 @@ export function RemindPaymentButtons({
         size="sm"
         variant="ghost"
         className={cn(
-          "h-8 rounded-none px-2 text-muted-foreground",
-          "hover:text-emerald-700 dark:hover:text-emerald-300",
+          "h-8 rounded-none border-l border-border/60 px-2 text-muted-foreground",
+          "hover:text-foreground",
         )}
         disabled={disabled || busy != null}
         title="WhatsApp only"
@@ -119,8 +119,8 @@ export function RemindPaymentButtons({
         size="sm"
         variant="ghost"
         className={cn(
-          "h-8 rounded-none px-2 text-muted-foreground",
-          "hover:text-sky-700 dark:hover:text-sky-300",
+          "h-8 rounded-none border-l border-border/60 px-2 text-muted-foreground",
+          "hover:text-foreground",
         )}
         disabled={disabled || busy != null}
         title="SMS only"

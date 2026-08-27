@@ -6,8 +6,11 @@ import { Bell, MessageCircle } from "lucide-react";
 
 import { useOptionalRealtime } from "@/components/realtime-provider";
 import { useSupportUnread } from "@/hooks/use-support-unread";
-import { APP_ROUTES } from "@/lib/config";
 import { getNotificationPresentation } from "@/lib/notification-display";
+import {
+  isSupportChatAction,
+  requestOpenSupportChat,
+} from "@/lib/support-open";
 import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
@@ -21,6 +24,14 @@ export function NotificationBell() {
   const notifications = rt?.notifications ?? [];
   const markAllRead = rt?.markAllRead;
   const markRead = rt?.markRead;
+
+  function openDestination(actionUrl: string) {
+    if (isSupportChatAction(actionUrl)) {
+      requestOpenSupportChat();
+      return;
+    }
+    if (actionUrl) router.push(actionUrl);
+  }
 
   return (
     <div className="relative">
@@ -61,7 +72,7 @@ export function NotificationBell() {
                   type="button"
                   onClick={() => {
                     setOpen(false);
-                    router.push(APP_ROUTES.support);
+                    requestOpenSupportChat();
                   }}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/20 bg-primary/5"
                 >
@@ -79,7 +90,7 @@ export function NotificationBell() {
                         </span>
                       </div>
                       <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
-                        Open Inbox to reply to Kiosk or storefront buyers
+                        Open chat to reply to Kiosk
                       </p>
                     </div>
                   </div>
@@ -113,7 +124,7 @@ export function NotificationBell() {
                             (data as { id?: string }).id ?? n.eventId ?? "",
                           );
                           if (id) markRead?.(id);
-                          if (actionUrl) router.push(actionUrl);
+                          openDestination(actionUrl);
                         }}
                         className={cn(
                           "w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/20 last:border-0",

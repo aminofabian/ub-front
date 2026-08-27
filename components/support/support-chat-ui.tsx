@@ -5,7 +5,10 @@ import {
   Check,
   CheckCheck,
   FileText,
+  Headset,
+  Mail,
   Paperclip,
+  Phone,
   Send,
   ShoppingBag,
   Smile,
@@ -57,6 +60,14 @@ export type ChatOrderCardShape = {
   lineCount: number;
 };
 
+export type ChatWelcomeCardShape = {
+  recipientName: string | null;
+  businessName: string | null;
+  supportPhone: string | null;
+  supportEmail: string | null;
+  helpItems: string[];
+};
+
 export type ChatMessageShape = {
   id: string;
   conversationId: string;
@@ -64,8 +75,9 @@ export type ChatMessageShape = {
   senderUserId: string;
   senderName: string | null;
   body: string;
-  messageKind?: "TEXT" | "ORDER_CARD" | string | null;
+  messageKind?: "TEXT" | "ORDER_CARD" | "WELCOME_CARD" | string | null;
   orderCard?: ChatOrderCardShape | null;
+  welcomeCard?: ChatWelcomeCardShape | null;
   attachment?: ChatAttachmentShape | null;
   readAt: string | null;
   createdAt: string;
@@ -221,6 +233,37 @@ export function MessageBubble({
   const isPending = message.pending === true;
   const isOrderCard =
     message.messageKind === "ORDER_CARD" && message.orderCard != null;
+  const isWelcomeCard =
+    message.messageKind === "WELCOME_CARD" && message.welcomeCard != null;
+
+  if (isWelcomeCard) {
+    return (
+      <div
+        className={cn(
+          "group flex w-full items-end gap-2 justify-start",
+          "animate-in fade-in slide-in-from-bottom-1 duration-200",
+        )}
+      >
+        {showAvatar ? (
+          <PlatformAvatar className="mb-5 size-7" />
+        ) : (
+          <span className="mb-5 size-7 shrink-0" aria-hidden />
+        )}
+        <div className="flex max-w-[min(92%,24rem)] flex-col items-start">
+          {message.senderName ? (
+            <p className="mb-1 px-1 text-[11px] font-semibold tracking-wide text-primary/90">
+              {message.senderName}
+            </p>
+          ) : null}
+          <WelcomeCardBubble
+            card={message.welcomeCard!}
+            createdAt={message.createdAt}
+            pending={isPending}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (isOrderCard) {
     return (
@@ -314,6 +357,96 @@ export function MessageBubble({
           >
             Tap to retry
           </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function WelcomeCardBubble({
+  card,
+  createdAt,
+  pending,
+}: {
+  card: ChatWelcomeCardShape;
+  createdAt: string;
+  pending?: boolean;
+}) {
+  const name = (card.recipientName ?? "").trim() || "there";
+  const business = (card.businessName ?? "").trim() || "your business";
+  const helpItems = (card.helpItems ?? []).filter((item) => item.trim().length > 0);
+  const phone = (card.supportPhone ?? "").trim();
+  const email = (card.supportEmail ?? "").trim();
+  const phoneHref = phone.replace(/\s+/g, "");
+
+  return (
+    <div
+      className={cn(
+        "w-full overflow-hidden rounded-2xl border border-primary/20 bg-[linear-gradient(165deg,rgba(40,167,69,0.14),rgba(255,255,255,0.94)_38%)] shadow-[0_10px_28px_-18px_rgba(15,23,42,0.45)]",
+        pending && "opacity-70",
+      )}
+    >
+      <div className="flex items-start gap-2.5 border-b border-primary/15 px-3.5 py-3">
+        <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_rgba(40,167,69,0.9)]">
+          <Headset className="size-4" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800/80 dark:text-emerald-300/90">
+            Welcome
+          </p>
+          <p className="mt-0.5 font-[family-name:var(--font-heading)] text-base font-semibold tracking-tight text-foreground">
+            You&rsquo;re in
+          </p>
+          <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+            Hi {name} — excited to have <span className="font-medium text-foreground">{business}</span> on board.
+          </p>
+        </div>
+        <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+          {chatTime(createdAt)}
+        </span>
+      </div>
+
+      <div className="space-y-2 px-3.5 py-3">
+        <p className="text-[12px] leading-relaxed text-foreground/90">
+          Setup, themes, your domain, M-Pesa, and custom work are free help from a real human.
+          Reply here anytime.
+        </p>
+        {helpItems.length > 0 ? (
+          <ul className="space-y-1.5 rounded-xl border border-border/50 bg-background/70 px-3 py-2.5">
+            {helpItems.map((item) => (
+              <li
+                key={item}
+                className="flex items-start gap-2 text-[12px] leading-snug text-foreground/85"
+              >
+                <span
+                  className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary"
+                  aria-hidden
+                />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-t border-dashed border-primary/20 bg-primary/[0.06] px-3.5 py-3">
+        {phone ? (
+          <a
+            href={`tel:${phoneHref}`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-medium text-foreground shadow-sm ring-1 ring-border/60 transition-colors hover:bg-background"
+          >
+            <Phone className="size-3 text-primary" aria-hidden />
+            {phone}
+          </a>
+        ) : null}
+        {email ? (
+          <a
+            href={`mailto:${email}`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-medium text-foreground shadow-sm ring-1 ring-border/60 transition-colors hover:bg-background"
+          >
+            <Mail className="size-3 text-primary" aria-hidden />
+            {email}
+          </a>
         ) : null}
       </div>
     </div>

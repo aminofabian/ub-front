@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   CreditCard,
-  Loader2,
+  IdCard,
   RefreshCw,
   Search,
   Users,
@@ -15,17 +15,13 @@ import {
   DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardFeedback,
-  DashboardLoading,
   DashboardPageHero,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { CustomerPhoneFlag } from "@/components/credits/customer-phone-flag";
 import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
 import { RemindPaymentButtons } from "@/components/credits/remind-payment-buttons";
-import {
-  LoyaltyCardLink,
-  LoyaltyCardPreview,
-} from "@/components/credits/loyalty-card-preview";
+import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
 import { isUsableStoredCustomerPhone } from "@/lib/customer-phone";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -56,10 +52,10 @@ type CreditPeriod = Extract<
 const PERIOD_OPTIONS: { id: CreditPeriod; label: string; hint: string }[] = [
   { id: "today", label: "Today", hint: "Live" },
   { id: "yesterday", label: "Yesterday", hint: "Full day" },
-  { id: "last3", label: "3 days", hint: "Incl. today" },
+  { id: "last3", label: "3 days", hint: "Including today" },
   { id: "last7", label: "1 week", hint: "7 days" },
-  { id: "last30", label: "30 days", hint: "Month-ish" },
-  { id: "thisMonth", label: "Month", hint: "Calendar" },
+  { id: "last30", label: "30 days", hint: "Rolling month" },
+  { id: "thisMonth", label: "Month", hint: "Calendar month" },
 ];
 
 function toNum(n: number | string | null | undefined): number {
@@ -70,7 +66,7 @@ function toNum(n: number | string | null | undefined): number {
 
 function fmtTime(iso: string): string {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleTimeString("en-KE", {
     hour: "numeric",
     minute: "2-digit",
@@ -79,7 +75,7 @@ function fmtTime(iso: string): string {
 
 function fmtDayTime(iso: string, singleDay: boolean): string {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "";
   if (singleDay) return fmtTime(iso);
   return d.toLocaleString("en-KE", {
     weekday: "short",
@@ -94,6 +90,17 @@ function isCreditMethod(method: string): boolean {
   return method.trim().toLowerCase() === "customer_credit";
 }
 
+function nameKey(name: string | null | undefined): string {
+  return (name ?? "").trim().toLowerCase() || "walk-in / unnamed";
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return `${parts[0]![0]!}${parts[1]![0]!}`.toUpperCase();
+}
+
 type CustomerRank = {
   name: string;
   total: number;
@@ -105,7 +112,7 @@ function rankCustomers(rows: PaymentLedgerRow[]): CustomerRank[] {
   const map = new Map<string, CustomerRank>();
   for (const row of rows) {
     const name = row.customerName?.trim() || "Walk-in / unnamed";
-    const key = name.toLowerCase();
+    const key = nameKey(name);
     const amount = toNum(row.amount);
     const existing = map.get(key);
     if (!existing) {
@@ -126,7 +133,6 @@ function rankCustomers(rows: PaymentLedgerRow[]): CustomerRank[] {
   return [...map.values()].sort((a, b) => b.total - a.total);
 }
 
-/** 24 hour buckets of credit totals for a sparkline feel. */
 function hourBuckets(rows: PaymentLedgerRow[]): number[] {
   const buckets = Array.from({ length: 24 }, () => 0);
   for (const row of rows) {
@@ -135,6 +141,26 @@ function hourBuckets(rows: PaymentLedgerRow[]): number[] {
     buckets[d.getHours()] += toNum(row.amount);
   }
   return buckets;
+}
+
+function LedgerSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className="divide-y divide-border/40" aria-hidden>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3">
+          <div className="size-8 shrink-0 animate-pulse rounded-md bg-muted" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div
+              className="h-3 max-w-[11rem] animate-pulse rounded-sm bg-muted"
+              style={{ width: `${56 + (i % 4) * 10}%` }}
+            />
+            <div className="h-2.5 w-24 animate-pulse rounded-sm bg-muted/70" />
+          </div>
+          <div className="h-3 w-14 shrink-0 animate-pulse rounded-sm bg-muted" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function CreditActivityPage() {
@@ -163,6 +189,7 @@ export function CreditActivityPage() {
     kind: "success" | "error";
   } | null>(null);
   const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [payTarget, setPayTarget] = useState<OutstandingTabRowRecord | null>(
     null,
   );
@@ -170,6 +197,7 @@ export function CreditActivityPage() {
     useState<LoyaltyCardCustomerInput | null>(null);
 
   const canRemind = canManageCreditSettings || canReviewPaymentClaims;
+  const busy = listLoading || refreshing || tabsLoading || summaryLoading;
 
   const dateRange = useMemo(() => presetRange(period)!, [period]);
   const singleDay = dateRange.from === dateRange.to;
@@ -272,37 +300,70 @@ export function CreditActivityPage() {
     if (summary != null) return toNum(summary.totalOwed);
     return openTabs.reduce((sum, row) => sum + toNum(row.balanceOwed), 0);
   }, [summary, openTabs]);
-  const openTabCount =
-    summary?.openTabCount ?? openTabs.length;
+  const openTabCount = summary?.openTabCount ?? openTabs.length;
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return rows;
+  const query = search.trim().toLowerCase();
+
+  const filteredCharges = useMemo(() => {
+    if (!query) return rows;
     return rows.filter((r) => {
       const name = (r.customerName ?? "").toLowerCase();
       const cashier = (r.cashierName ?? "").toLowerCase();
       const receipt = r.receiptNo != null ? String(r.receiptNo) : "";
-      return name.includes(q) || cashier.includes(q) || receipt.includes(q);
+      return name.includes(query) || cashier.includes(query) || receipt.includes(query);
     });
-  }, [rows, search]);
+  }, [rows, query]);
 
-  const sorted = useMemo(
+  const sortedCharges = useMemo(
     () =>
-      [...filtered].sort(
+      [...filteredCharges].sort(
         (a, b) => new Date(b.soldAt).getTime() - new Date(a.soldAt).getTime(),
       ),
-    [filtered],
+    [filteredCharges],
+  );
+
+  const sortedTabs = useMemo(
+    () =>
+      [...openTabs].sort(
+        (a, b) => toNum(b.balanceOwed) - toNum(a.balanceOwed),
+      ),
+    [openTabs],
+  );
+
+  const filteredTabs = useMemo(() => {
+    if (!query) return sortedTabs;
+    return sortedTabs.filter((tab) => {
+      const name = tab.name.toLowerCase();
+      const phone = (tab.primaryPhone ?? "").toLowerCase();
+      return name.includes(query) || phone.includes(query);
+    });
+  }, [sortedTabs, query]);
+
+  useEffect(() => {
+    if (!canViewCustomers) {
+      setSelectedId(null);
+      return;
+    }
+    setSelectedId((prev) => {
+      if (prev && openTabs.some((tab) => tab.customerId === prev)) return prev;
+      return openTabs[0]?.customerId ?? null;
+    });
+  }, [openTabs, canViewCustomers]);
+
+  const selectedTab = useMemo(
+    () => openTabs.find((tab) => tab.customerId === selectedId) ?? null,
+    [openTabs, selectedId],
   );
 
   const totalCredit = useMemo(
-    () => filtered.reduce((sum, r) => sum + toNum(r.amount), 0),
-    [filtered],
+    () => filteredCharges.reduce((sum, r) => sum + toNum(r.amount), 0),
+    [filteredCharges],
   );
-  const tabCount = filtered.length;
-  const ranked = useMemo(() => rankCustomers(filtered), [filtered]);
+  const tabCount = filteredCharges.length;
+  const ranked = useMemo(() => rankCustomers(filteredCharges), [filteredCharges]);
   const peopleCount = ranked.length;
   const avgTab = tabCount > 0 ? totalCredit / tabCount : 0;
-  const hours = useMemo(() => hourBuckets(filtered), [filtered]);
+  const hours = useMemo(() => hourBuckets(filteredCharges), [filteredCharges]);
   const maxHour = useMemo(() => Math.max(1, ...hours), [hours]);
   const peakHour = useMemo(() => {
     let best = 0;
@@ -316,8 +377,37 @@ export function CreditActivityPage() {
     return { hour: best, label, amount: hours[best]! };
   }, [hours]);
 
+  const phoneIssues = useMemo(
+    () =>
+      openTabs.filter(
+        (tab) => !isUsableStoredCustomerPhone(tab.primaryPhone),
+      ).length,
+    [openTabs],
+  );
+
+  const selectedCharges = useMemo(() => {
+    if (!selectedTab) return [];
+    const key = nameKey(selectedTab.name);
+    return sortedCharges.filter((row) => nameKey(row.customerName) === key);
+  }, [selectedTab, sortedCharges]);
+
+  const selectTabByName = useCallback(
+    (name: string) => {
+      const key = nameKey(name);
+      const match = openTabs.find((tab) => nameKey(tab.name) === key);
+      if (match) setSelectedId(match.customerId);
+    },
+    [openTabs],
+  );
+
   if (sessionLoading) {
-    return <DashboardLoading label="Loading session…" />;
+    return (
+      <div className={cn(DASHBOARD_MAX_WIDE, "space-y-6 pb-16")}>
+        <div className="h-10 w-48 animate-pulse rounded-md bg-muted" />
+        <div className="h-36 animate-pulse rounded-2xl bg-muted/60" />
+        <div className="h-80 animate-pulse rounded-2xl bg-muted/40" />
+      </div>
+    );
   }
 
   if (!canViewSalesIntelligence) {
@@ -334,17 +424,32 @@ export function CreditActivityPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-6 pb-16")}>
+      {/*
+        THESIS: a working tab book, not a three-metric poster. Outstanding is the job; collect and remind live beside the name you pick.
+        OWN-WORLD: Palmart paper (cream masthead, rounded-2xl boards) with terracotta for what is still out and green only on collect.
+        STORY: scan who owes, pick a person, remind or mark paid, then audit what was charged this period.
+        FIRST VIEWPORT: title + period chips, owed masthead, open-tab list with a workspace.
+        FORM: operate / tab-book board inside the existing dashboard world.
+        FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+      */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <DashboardPageHero
           compact
           icon={CreditCard}
           title="On tab"
-          description="Charged this period, collected payments, and what’s still owed."
+          description="Who still owes, what was charged, and what you collected."
         />
         <div className="flex flex-wrap items-center gap-2">
+          {canReviewPaymentClaims ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={APP_ROUTES.creditsPaymentClaims}>
+                They say they paid
+              </Link>
+            </Button>
+          ) : null}
           {canViewCustomers ? (
-            <Button asChild size="sm" variant="outline" className="rounded-none">
+            <Button asChild size="sm" variant="outline">
               <Link href={APP_ROUTES.customers}>
                 <Users className="size-3.5" aria-hidden />
                 Directory
@@ -355,17 +460,13 @@ export function CreditActivityPage() {
             type="button"
             size="sm"
             variant="outline"
-            className="rounded-none"
-            disabled={
-              listLoading || refreshing || tabsLoading || summaryLoading
-            }
+            disabled={busy}
             onClick={() => void refreshAll()}
           >
-            {refreshing || tabsLoading || summaryLoading ? (
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
-            ) : (
-              <RefreshCw className="size-3.5" aria-hidden />
-            )}
+            <RefreshCw
+              className={cn("size-3.5", refreshing && "animate-spin")}
+              aria-hidden
+            />
             Refresh
           </Button>
         </div>
@@ -376,128 +477,120 @@ export function CreditActivityPage() {
         <DashboardFeedback kind={feedback.kind} text={feedback.text} />
       ) : null}
 
-      <div
-        className="flex flex-wrap items-center gap-1.5"
-        role="group"
-        aria-label="Credit period"
-      >
-        {PERIOD_OPTIONS.map(({ id, label, hint }) => {
-          const active = period === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              title={hint}
-              onClick={() => setPeriod(id)}
-              className={cn(
-                "inline-flex flex-col items-start px-3 py-1.5 text-left transition-colors",
-                active
-                  ? "bg-foreground text-background"
-                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              <span className="text-xs font-semibold leading-none">{label}</span>
-              <span
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          className="inline-flex max-w-full flex-wrap rounded-lg border border-border/70 bg-muted/40 p-0.5"
+          role="group"
+          aria-label="Credit period"
+        >
+          {PERIOD_OPTIONS.map(({ id, label, hint }) => {
+            const active = period === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                title={hint}
+                onClick={() => setPeriod(id)}
                 className={cn(
-                  "mt-0.5 text-[10px] leading-none",
-                  active ? "text-background/70" : "text-muted-foreground/80",
+                  "rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                  active
+                    ? "bg-[#F9F6F0] text-[#8B6F3A] shadow-sm dark:bg-muted dark:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {hint}
-              </span>
-            </button>
-          );
-        })}
-        <span className="ml-1 text-[11px] text-muted-foreground sm:ml-2">
-          {periodLabel}
-        </span>
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-muted-foreground">{periodLabel}</p>
       </div>
 
-      <section className="relative overflow-hidden border border-stone-800/60 bg-gradient-to-br from-[#1c1917] via-[#292524] to-[#1c1917] px-5 py-6 text-[#fafaf9] shadow-sm sm:px-7 sm:py-7">
-        <div className="relative space-y-6">
-          <div className="grid gap-5 sm:grid-cols-3 sm:gap-6">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
-                Put on tab
+      <section className="overflow-hidden rounded-2xl border border-[#E6E1D8]/90 bg-[#F9F6F0] shadow-sm dark:border-border dark:bg-card">
+        <div className="flex flex-col gap-5 px-5 py-5 sm:px-6 sm:py-6">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[#6B5344] dark:text-muted-foreground">
+                Still owed
               </p>
-              <p className="mt-2 font-serif text-3xl tracking-tight sm:text-4xl">
-                {listLoading ? "…" : fmtKes(totalCredit)}
-              </p>
-              <p className="mt-1.5 text-xs text-stone-400">
-                {listLoading
-                  ? "Loading…"
-                  : tabCount === 0
-                    ? "Nothing charged this period"
-                    : `${tabCount} tab${tabCount === 1 ? "" : "s"} · ${peopleCount} ${peopleCount === 1 ? "person" : "people"}`}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400/80">
-                Paid
-              </p>
-              <p className="mt-2 font-serif text-3xl tracking-tight text-emerald-200 sm:text-4xl">
-                {summaryLoading && summary == null ? "…" : fmtKes(totalPaid)}
-              </p>
-              <p className="mt-1.5 text-xs text-stone-400">
-                {summaryLoading && summary == null
-                  ? "Loading…"
-                  : paymentCount === 0
-                    ? "No collections this period"
-                    : `${paymentCount} payment${paymentCount === 1 ? "" : "s"} collected`}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-400/80">
-                Total owed
-              </p>
-              <p className="mt-2 font-serif text-3xl tracking-tight text-amber-200 sm:text-4xl">
+              <p className="mt-1 font-serif text-[2.35rem] leading-[1.1] tracking-tight text-[#2C1810] tabular-nums dark:text-foreground sm:text-5xl">
                 {summaryLoading && summary == null && tabsLoading
-                  ? "…"
+                  ? " "
                   : fmtKes(totalOwed)}
               </p>
-              <p className="mt-1.5 text-xs text-stone-400">
+              <p className="mt-2 text-sm text-[#7A6A5C] dark:text-muted-foreground">
                 {summaryLoading && summary == null && tabsLoading
-                  ? "Loading…"
+                  ? "Loading balances"
                   : openTabCount === 0
                     ? "All tabs settled"
-                    : `${openTabCount} open tab${openTabCount === 1 ? "" : "s"} right now`}
+                    : `${openTabCount} open tab${openTabCount === 1 ? "" : "s"}${
+                        phoneIssues > 0
+                          ? ` · ${phoneIssues} need a usable phone`
+                          : ""
+                      }`}
               </p>
             </div>
+            <dl className="grid min-w-[12rem] flex-1 grid-cols-2 gap-x-8 gap-y-3 sm:max-w-md">
+              <div>
+                <dt className="text-xs text-[#7A6A5C] dark:text-muted-foreground">
+                  Charged
+                </dt>
+                <dd className="mt-0.5 font-serif text-2xl tabular-nums tracking-tight text-[#2C1810] dark:text-foreground">
+                  {listLoading ? " " : fmtKes(totalCredit)}
+                </dd>
+                <p className="mt-0.5 text-[11px] text-[#8A7A6C] dark:text-muted-foreground">
+                  {listLoading
+                    ? "Loading"
+                    : tabCount === 0
+                      ? "Nothing this period"
+                      : `${tabCount} sale${tabCount === 1 ? "" : "s"} · ${peopleCount} ${peopleCount === 1 ? "person" : "people"}`}
+                </p>
+              </div>
+              <div>
+                <dt className="text-xs text-[#7A6A5C] dark:text-muted-foreground">
+                  Collected
+                </dt>
+                <dd className="mt-0.5 font-serif text-2xl tabular-nums tracking-tight text-[#1F6B3A] dark:text-emerald-300">
+                  {summaryLoading && summary == null ? " " : fmtKes(totalPaid)}
+                </dd>
+                <p className="mt-0.5 text-[11px] text-[#8A7A6C] dark:text-muted-foreground">
+                  {summaryLoading && summary == null
+                    ? "Loading"
+                    : paymentCount === 0
+                      ? "No collections this period"
+                      : `${paymentCount} payment${paymentCount === 1 ? "" : "s"}`}
+                </p>
+              </div>
+            </dl>
           </div>
 
-          {listLoading ? null : tabCount === 0 ? (
-            <p className="text-sm text-stone-300">
-              Nothing put on credit in this period.
-            </p>
-          ) : (
-            <p className="text-sm text-stone-300">
-              Avg tab {fmtKes(avgTab)}
-              {peakHour && singleDay
-                ? ` · peak around ${peakHour.label}`
-                : null}
+          {listLoading || tabCount === 0 ? null : (
+            <p className="text-xs text-[#7A6A5C] dark:text-muted-foreground">
+              Average tab {fmtKes(avgTab)}
+              {peakHour && singleDay ? ` · peak around ${peakHour.label}` : null}
             </p>
           )}
 
           {singleDay && tabCount > 0 ? (
             <div>
               <div
-                className="flex h-10 items-end gap-0.5"
+                className="flex h-9 items-end gap-px"
                 role="img"
-                aria-label="Credit by hour of day"
+                aria-label="Credit charged by hour of day"
               >
                 {hours.map((value, hour) => (
                   <div
                     key={hour}
-                    className="flex-1 bg-amber-400/80 transition-[height]"
+                    className="min-w-0 flex-1 rounded-sm bg-[#C47A5A] transition-[height,opacity] duration-200"
                     style={{
-                      height: `${Math.max(8, (value / maxHour) * 100)}%`,
-                      opacity: value > 0 ? 0.35 + (value / maxHour) * 0.65 : 0.12,
+                      height: `${Math.max(10, (value / maxHour) * 100)}%`,
+                      opacity: value > 0 ? 0.28 + (value / maxHour) * 0.72 : 0.1,
                     }}
-                    title={`${hour}:00 — ${fmtKes(value)}`}
+                    title={`${hour}:00  ${fmtKes(value)}`}
                   />
                 ))}
               </div>
-              <div className="mt-1.5 flex justify-between text-[10px] text-stone-500">
+              <div className="mt-1.5 flex justify-between text-[10px] text-[#A09080] dark:text-muted-foreground">
                 <span>12a</span>
                 <span>6a</span>
                 <span>12p</span>
@@ -510,177 +603,234 @@ export function CreditActivityPage() {
       </section>
 
       {canViewCustomers ? (
-        <section className="overflow-hidden border border-border/80 bg-card shadow-sm">
-            <div className="flex flex-wrap items-end justify-between gap-2 border-b border-border/60 bg-muted/25 px-4 py-3 sm:px-5">
-            <div>
+        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3 sm:px-5">
+            <div className="min-w-0">
               <h2 className="text-sm font-semibold text-foreground">
                 Open tabs
               </h2>
               <p className="text-[11px] text-muted-foreground">
                 {tabsLoading
-                  ? "Loading balances…"
-                  : openTabs.length === 0
-                    ? "No outstanding balances"
-                    : `${openTabs.length} open · ${fmtKes(totalOwed)} owed`}
+                  ? "Loading balances"
+                  : filteredTabs.length === 0
+                    ? query
+                      ? "No open tabs match that search"
+                      : "No outstanding balances"
+                    : `Biggest balances first · ${fmtKes(totalOwed)}`}
               </p>
             </div>
-            {!canReviewPaymentClaims && !canRemind ? (
-              <p className="text-[11px] text-muted-foreground">
-                Need claims review or messaging permission to clear or remind.
-              </p>
-            ) : null}
-          </div>
-          {tabsLoading ? (
-            <div className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-              Loading open tabs…
-            </div>
-          ) : openTabs.length === 0 ? (
-            <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-              Everyone is settled — no open tab balances.
-            </p>
-          ) : (
-            <ul className="divide-y divide-border/50">
-              {openTabs.map((tab) => {
-                const owed = toNum(tab.balanceOwed);
-                return (
-                  <li
-                    key={tab.customerId}
-                    className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-5"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        href={`${APP_ROUTES.customers}/${encodeURIComponent(tab.customerId)}`}
-                        className="truncate text-sm font-medium text-primary hover:underline"
-                      >
-                        {tab.name}
-                      </Link>
-                      <p
-                        className={
-                          tab.primaryPhone?.trim() &&
-                          !isUsableStoredCustomerPhone(tab.primaryPhone)
-                            ? "truncate text-xs font-medium text-destructive"
-                            : "truncate text-xs text-muted-foreground"
-                        }
-                      >
-                        {tab.primaryPhone?.trim() || "No phone"}
-                      </p>
-                      <CustomerPhoneFlag phone={tab.primaryPhone} />
-                      <div className="mt-1">
-                        <LoyaltyCardLink
-                          onClick={() =>
-                            setCardCustomer({
-                              id: tab.customerId,
-                              name: tab.name,
-                              phone: tab.primaryPhone,
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <p className="shrink-0 text-sm font-semibold tabular-nums text-amber-800 dark:text-amber-300">
-                      {fmtKes(owed)}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {canRemind ? (
-                        <RemindPaymentButtons
-                          customerId={tab.customerId}
-                          disabled={!isUsableStoredCustomerPhone(tab.primaryPhone)}
-                          onResult={({ ok, text }) =>
-                            setFeedback({
-                              kind: ok ? "success" : "error",
-                              text,
-                            })
-                          }
-                        />
-                      ) : null}
-                      {canReviewPaymentClaims ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="shrink-0 rounded-none"
-                          onClick={() => {
-                            setFeedback(null);
-                            setPayTarget(tab);
-                          }}
-                        >
-                          Mark paid
-                        </Button>
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-      ) : null}
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(16rem,1fr)]">
-        <section className="overflow-hidden border border-border/80 bg-card shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/25 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
-            <div className="relative min-w-0 flex-1">
+            <div className="relative min-w-0 w-full sm:w-64">
               <Search
                 className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
                 aria-hidden
               />
               <input
-                className={cn(dashboardInputClass(), "rounded-none pl-9")}
-                placeholder="Find name, till, or receipt…"
+                className={cn(dashboardInputClass(), "h-9 pl-9")}
+                placeholder="Find name, phone, till, or receipt"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                aria-label="Search credit sales"
+                aria-label="Search open tabs and credit sales"
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              {listLoading ? "Loading…" : `${sorted.length} sale${sorted.length === 1 ? "" : "s"}`}
-            </p>
+          </div>
+
+          {tabsLoading ? (
+            <LedgerSkeleton rows={5} />
+          ) : openTabs.length === 0 ? (
+            <div className="px-5 py-14 text-center">
+              <p className="text-sm font-medium text-foreground">
+                Everyone is settled
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                No open tab balances right now.
+              </p>
+            </div>
+          ) : (
+            <div className="grid lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
+              <ul
+                className="max-h-[22rem] overflow-y-auto border-b border-border/60 lg:max-h-[min(34rem,calc(100dvh-18rem))] lg:border-r lg:border-b-0"
+                aria-label="Open tabs"
+              >
+                {filteredTabs.length === 0 ? (
+                  <li className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    No names match that search.
+                  </li>
+                ) : (
+                  filteredTabs.map((tab) => {
+                    const owed = toNum(tab.balanceOwed);
+                    const active = tab.customerId === selectedId;
+                    const phoneOk = isUsableStoredCustomerPhone(tab.primaryPhone);
+                    return (
+                      <li key={tab.customerId}>
+                        <button
+                          type="button"
+                          aria-current={active ? "true" : undefined}
+                          onClick={() => setSelectedId(tab.customerId)}
+                          className={cn(
+                            "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
+                            active
+                              ? "bg-[#F9F6F0] dark:bg-muted/50"
+                              : "hover:bg-muted/40",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex size-8 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold tracking-wide",
+                              active
+                                ? "bg-[#C47A5A] text-white"
+                                : "bg-muted text-muted-foreground",
+                            )}
+                            aria-hidden
+                          >
+                            {initials(tab.name)}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-foreground">
+                              {tab.name}
+                            </span>
+                            <span
+                              className={cn(
+                                "block truncate text-[11px]",
+                                phoneOk
+                                  ? "text-muted-foreground"
+                                  : "font-medium text-destructive",
+                              )}
+                            >
+                              {tab.primaryPhone?.trim() || "No phone"}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-sm font-semibold tabular-nums text-[#9A5A40] dark:text-[#E8B89A]">
+                            {fmtKes(owed)}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+
+              <div className="flex min-h-[16rem] flex-col px-5 py-5 sm:px-6">
+                {selectedTab ? (
+                  <SelectedTabWorkspace
+                    tab={selectedTab}
+                    fmtKes={fmtKes}
+                    canRemind={canRemind}
+                    canReviewPaymentClaims={canReviewPaymentClaims}
+                    selectedCharges={selectedCharges}
+                    singleDay={singleDay}
+                    onRemindResult={({ ok, text }) =>
+                      setFeedback({ kind: ok ? "success" : "error", text })
+                    }
+                    onMarkPaid={() => {
+                      setFeedback(null);
+                      setPayTarget(selectedTab);
+                    }}
+                    onPrintCard={() =>
+                      setCardCustomer({
+                        id: selectedTab.customerId,
+                        name: selectedTab.name,
+                        phone: selectedTab.primaryPhone,
+                      })
+                    }
+                  />
+                ) : (
+                  <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
+                    <p className="text-sm font-medium text-foreground">
+                      Pick a tab
+                    </p>
+                    <p className="mt-1 max-w-[28ch] text-sm text-muted-foreground">
+                      Remind, mark paid, or print a card from here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(16rem,1fr)]">
+        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3 sm:px-5">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">
+                Charged this period
+              </h2>
+              <p className="text-[11px] text-muted-foreground">
+                {listLoading
+                  ? "Loading sales"
+                  : `${sortedCharges.length} sale${sortedCharges.length === 1 ? "" : "s"}`}
+              </p>
+            </div>
+            {canViewCustomers ? null : (
+              <div className="relative min-w-0 w-full sm:w-56">
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <input
+                  className={cn(dashboardInputClass(), "h-9 pl-9")}
+                  placeholder="Find name, till, or receipt"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Search credit sales"
+                />
+              </div>
+            )}
           </div>
 
           {listLoading ? (
-            <div className="flex items-center justify-center gap-2 px-5 py-16 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-              Loading credit sales…
-            </div>
-          ) : sorted.length === 0 ? (
+            <LedgerSkeleton rows={7} />
+          ) : sortedCharges.length === 0 ? (
             <p className="px-5 py-14 text-center text-sm text-muted-foreground">
-              {search.trim()
+              {query
                 ? "No credit sales match that search."
                 : `No credit sales for ${periodLabel.toLowerCase()}.`}
             </p>
           ) : (
-            <ul className="divide-y divide-border/50">
-              {sorted.map((row) => {
+            <ul className="divide-y divide-border/40">
+              {sortedCharges.map((row) => {
                 const amount = toNum(row.amount);
                 const name = row.customerName?.trim() || "Walk-in / unnamed";
+                const linked = Boolean(
+                  selectedTab && nameKey(name) === nameKey(selectedTab.name),
+                );
                 return (
-                  <li
-                    key={row.paymentId || `${row.saleId}-${row.sortOrder}`}
-                    className="flex items-start gap-3 px-4 py-3 sm:px-5"
-                  >
-                    <div className="w-16 shrink-0 pt-0.5 text-right sm:w-24">
-                      <p className="text-xs font-medium tabular-nums text-foreground">
+                  <li key={row.paymentId || `${row.saleId}-${row.sortOrder}`}>
+                    <button
+                      type="button"
+                      onClick={() => selectTabByName(name)}
+                      className={cn(
+                        "flex w-full items-start gap-3 px-4 py-3 text-left sm:px-5",
+                        linked
+                          ? "bg-[#F9F6F0]/80 dark:bg-muted/40"
+                          : "hover:bg-muted/30",
+                      )}
+                    >
+                      <p className="w-16 shrink-0 pt-0.5 text-right text-xs font-medium tabular-nums text-muted-foreground sm:w-24">
                         {fmtDayTime(row.soldAt, singleDay)}
                       </p>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {name}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {name}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {[
+                            row.cashierName?.trim() || "Till",
+                            row.receiptNo != null ? `#${row.receiptNo}` : null,
+                            toNum(row.saleGrandTotal) > amount
+                              ? `sale ${fmtKes(toNum(row.saleGrandTotal))}`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm font-semibold tabular-nums text-[#9A5A40] dark:text-[#E8B89A]">
+                        {fmtKes(amount)}
                       </p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {row.cashierName?.trim() || "Till"}
-                        {row.receiptNo != null
-                          ? ` · #${row.receiptNo}`
-                          : null}
-                        {toNum(row.saleGrandTotal) > amount
-                          ? ` · sale ${fmtKes(toNum(row.saleGrandTotal))}`
-                          : null}
-                      </p>
-                    </div>
-                    <p className="shrink-0 text-sm font-semibold tabular-nums text-amber-800 dark:text-amber-300">
-                      {fmtKes(amount)}
-                    </p>
+                    </button>
                   </li>
                 );
               })}
@@ -689,80 +839,88 @@ export function CreditActivityPage() {
         </section>
 
         <aside className="space-y-4">
-          <section className="overflow-hidden border border-border/80 bg-card shadow-sm">
-            <div className="border-b border-border/60 bg-muted/25 px-4 py-3 sm:px-5">
+          <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+            <div className="border-b border-border/60 px-4 py-3 sm:px-5">
               <h2 className="text-sm font-semibold text-foreground">
                 Who charged
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                Ranked by credit in this period
+                Ranked by credit this period
               </p>
             </div>
             {listLoading ? (
-              <p className="px-4 py-10 text-center text-xs text-muted-foreground">
-                …
-              </p>
+              <LedgerSkeleton rows={4} />
             ) : ranked.length === 0 ? (
               <p className="px-4 py-10 text-center text-xs text-muted-foreground">
                 No names yet.
               </p>
             ) : (
-              <ol className="divide-y divide-border/50">
-                {ranked.slice(0, 12).map((person, index) => (
-                  <li
-                    key={person.name}
-                    className="flex items-center gap-3 px-4 py-2.5 sm:px-5"
-                  >
-                    <span className="w-5 shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">
-                        {person.name}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {person.tabs} tab{person.tabs === 1 ? "" : "s"}
-                        {singleDay
-                          ? ` · last ${fmtTime(person.lastAt)}`
-                          : null}
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-sm font-semibold tabular-nums">
-                      {fmtKes(person.total)}
-                    </span>
-                  </li>
-                ))}
+              <ol>
+                {ranked.slice(0, 10).map((person, index) => {
+                  const linked = Boolean(
+                    selectedTab &&
+                      nameKey(person.name) === nameKey(selectedTab.name),
+                  );
+                  return (
+                    <li key={person.name}>
+                      <button
+                        type="button"
+                        onClick={() => selectTabByName(person.name)}
+                        className={cn(
+                          "flex w-full items-center gap-3 px-4 py-2.5 text-left sm:px-5",
+                          linked
+                            ? "bg-[#F9F6F0] dark:bg-muted/40"
+                            : "hover:bg-muted/30",
+                        )}
+                      >
+                        <span className="w-5 shrink-0 text-xs tabular-nums text-muted-foreground">
+                          {index + 1}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">
+                            {person.name}
+                          </span>
+                          <span className="block text-[11px] text-muted-foreground">
+                            {person.tabs} tab{person.tabs === 1 ? "" : "s"}
+                            {singleDay && fmtTime(person.lastAt)
+                              ? `, last ${fmtTime(person.lastAt)}`
+                              : null}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums">
+                          {fmtKes(person.total)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ol>
             )}
           </section>
 
-          <section className="border border-dashed border-border/70 bg-muted/20 px-4 py-4 sm:px-5">
-            <p className="text-sm font-medium text-foreground">
-              Clearing debt
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Use <span className="font-medium text-foreground">Remind</span> for
-              WhatsApp/SMS (with a pay link), and{" "}
-              <span className="font-medium text-foreground">Mark paid</span> when
-              cash or M-Pesa lands. Till proposals still go under Payment claims.
-            </p>
+          <p className="px-1 text-xs leading-relaxed text-muted-foreground">
+            Remind sends WhatsApp or SMS with a pay link. Mark paid when cash or
+            M-Pesa lands.
             {canReviewPaymentClaims ? (
-              <Link
-                href={APP_ROUTES.creditsPaymentClaims}
-                className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                Review pending claims
-                <ArrowRight className="size-3" aria-hidden />
-              </Link>
-            ) : null}
+              <>
+                {" "}
+                <Link
+                  href={APP_ROUTES.creditsPaymentClaims}
+                  className="font-medium text-foreground underline-offset-2 hover:underline"
+                >
+                  Review pending claims
+                </Link>
+                .
+              </>
+            ) : null}{" "}
             <Link
               href={APP_ROUTES.paymentsDayLedger}
-              className="mt-2 flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+              className="inline-flex items-center gap-0.5 font-medium text-foreground underline-offset-2 hover:underline"
             >
-              Full day payment ledger
+              Day ledger
               <ArrowRight className="size-3" aria-hidden />
             </Link>
-          </section>
+          </p>
         </aside>
       </div>
 
@@ -788,7 +946,7 @@ export function CreditActivityPage() {
             kind: "success",
             text:
               balanceOwed <= 0.001
-                ? "Tab cleared — marked as paid in full."
+                ? "Tab cleared. Marked as paid in full."
                 : `Partial payment recorded. ${fmtKes(balanceOwed)} still owed.`,
           });
         }}
@@ -801,6 +959,115 @@ export function CreditActivityPage() {
           if (!next) setCardCustomer(null);
         }}
       />
+    </div>
+  );
+}
+
+function SelectedTabWorkspace({
+  tab,
+  fmtKes,
+  canRemind,
+  canReviewPaymentClaims,
+  selectedCharges,
+  singleDay,
+  onRemindResult,
+  onMarkPaid,
+  onPrintCard,
+}: {
+  tab: OutstandingTabRowRecord;
+  fmtKes: (n: number) => string;
+  canRemind: boolean;
+  canReviewPaymentClaims: boolean;
+  selectedCharges: PaymentLedgerRow[];
+  singleDay: boolean;
+  onRemindResult: (result: { ok: boolean; text: string }) => void;
+  onMarkPaid: () => void;
+  onPrintCard: () => void;
+}) {
+  const owed = toNum(tab.balanceOwed);
+  const phoneOk = isUsableStoredCustomerPhone(tab.primaryPhone);
+  const chargeTotal = selectedCharges.reduce(
+    (sum, row) => sum + toNum(row.amount),
+    0,
+  );
+
+  return (
+    <div className="flex h-full flex-col gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <Link
+            href={`${APP_ROUTES.customers}/${encodeURIComponent(tab.customerId)}`}
+            className="font-serif text-2xl leading-[1.15] tracking-tight text-foreground hover:underline"
+          >
+            {tab.name}
+          </Link>
+          <p
+            className={cn(
+              "mt-1 text-sm",
+              phoneOk ? "text-muted-foreground" : "font-medium text-destructive",
+            )}
+          >
+            {tab.primaryPhone?.trim() || "No phone on file"}
+          </p>
+          <CustomerPhoneFlag phone={tab.primaryPhone} />
+        </div>
+        <p className="font-serif text-3xl tabular-nums tracking-tight text-[#9A5A40] dark:text-[#E8B89A]">
+          {fmtKes(owed)}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {canReviewPaymentClaims ? (
+          <Button type="button" size="sm" onClick={onMarkPaid}>
+            Mark paid
+          </Button>
+        ) : null}
+        {canRemind ? (
+          <RemindPaymentButtons
+            customerId={tab.customerId}
+            disabled={!phoneOk}
+            onResult={onRemindResult}
+          />
+        ) : null}
+        <Button type="button" size="sm" variant="ghost" onClick={onPrintCard}>
+          <IdCard className="size-3.5" aria-hidden />
+          Print card
+        </Button>
+        {!canReviewPaymentClaims && !canRemind ? (
+          <p className="text-xs text-muted-foreground">
+            Need claims review or messaging permission to clear or remind.
+          </p>
+        ) : null}
+      </div>
+
+      {selectedCharges.length > 0 ? (
+        <div className="mt-auto border-t border-border/50 pt-4">
+          <p className="text-xs text-muted-foreground">
+            This period: {selectedCharges.length} sale
+            {selectedCharges.length === 1 ? "" : "s"}, {fmtKes(chargeTotal)}
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {selectedCharges.slice(0, 5).map((row) => (
+              <li
+                key={row.paymentId || `${row.saleId}-${row.sortOrder}`}
+                className="flex items-baseline justify-between gap-3 text-sm"
+              >
+                <span className="min-w-0 truncate text-muted-foreground">
+                  {fmtDayTime(row.soldAt, singleDay)}
+                  {row.receiptNo != null ? `, #${row.receiptNo}` : ""}
+                </span>
+                <span className="shrink-0 tabular-nums text-foreground">
+                  {fmtKes(toNum(row.amount))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="mt-auto border-t border-border/50 pt-4 text-xs text-muted-foreground">
+          No charges in this period for this name.
+        </p>
+      )}
     </div>
   );
 }

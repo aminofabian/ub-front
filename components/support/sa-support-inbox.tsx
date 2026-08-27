@@ -63,6 +63,9 @@ function toLocalMessage(message: SaSupportMessage): ChatMessageShape {
     senderUserId: message.senderUserId,
     senderName: message.senderName,
     body: message.body,
+    messageKind: message.messageKind ?? "TEXT",
+    orderCard: message.orderCard ?? null,
+    welcomeCard: message.welcomeCard ?? null,
     attachment: message.attachment ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
@@ -82,6 +85,33 @@ function attachmentFromRealtime(data: Record<string, unknown>): ChatMessageShape
     contentType: typeof a.contentType === "string" ? a.contentType : null,
     bytes: typeof a.bytes === "number" ? a.bytes : null,
   };
+}
+
+function welcomeCardFromRealtime(
+  data: Record<string, unknown>,
+): ChatMessageShape["welcomeCard"] {
+  const raw = data.welcomeCard;
+  if (!raw || typeof raw !== "object") return null;
+  const w = raw as Record<string, unknown>;
+  const helpRaw = w.helpItems;
+  const helpItems = Array.isArray(helpRaw)
+    ? helpRaw.filter((item): item is string => typeof item === "string")
+    : [];
+  return {
+    recipientName: typeof w.recipientName === "string" ? w.recipientName : null,
+    businessName: typeof w.businessName === "string" ? w.businessName : null,
+    supportPhone: typeof w.supportPhone === "string" ? w.supportPhone : null,
+    supportEmail: typeof w.supportEmail === "string" ? w.supportEmail : null,
+    helpItems,
+  };
+}
+
+function orderCardFromRealtime(
+  data: Record<string, unknown>,
+): ChatMessageShape["orderCard"] {
+  const raw = data.orderCard;
+  if (!raw || typeof raw !== "object") return null;
+  return raw as ChatMessageShape["orderCard"];
 }
 
 /** Human "last seen" label for an offline tenant, or null when unknown. */
@@ -591,6 +621,9 @@ export function SaSupportInbox() {
           senderUserId: String(data.senderUserId ?? ""),
           senderName: String(data.senderName ?? "") || null,
           body: String(data.body ?? ""),
+          messageKind: String(data.messageKind ?? "TEXT"),
+          orderCard: orderCardFromRealtime(data),
+          welcomeCard: welcomeCardFromRealtime(data),
           attachment: attachmentFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),

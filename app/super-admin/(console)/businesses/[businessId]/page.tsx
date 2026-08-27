@@ -26,6 +26,7 @@ import {
   type SaDomainRow,
   addSaDomain,
   ensureSaTenantSupportThread,
+  ensureSaTenantWelcomeCard,
   fetchSaBusiness,
   fetchSaBusinessStats,
   fetchSaBusinessUsers,
@@ -153,6 +154,7 @@ function BusinessDetailInner() {
   const [copied, setCopied] = useState(false);
   const [bizLoaded, setBizLoaded] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
+  const [postingWelcome, setPostingWelcome] = useState(false);
   const [stats, setStats] = useState<SaBusinessStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const copyTimer = useRef<number | null>(null);
@@ -412,6 +414,26 @@ function BusinessDetailInner() {
     }
   }
 
+  async function onPostWelcomeCard() {
+    if (!businessId || postingWelcome) return;
+    setPostingWelcome(true);
+    setError("");
+    try {
+      const result = await ensureSaTenantWelcomeCard(businessId);
+      if (result.posted) {
+        showThemedSuccessToast("Welcome card posted to their support chat.");
+      } else {
+        showThemedSuccessToast("Welcome card already in their support chat.");
+      }
+    } catch (err) {
+      showThemedErrorToast(
+        err instanceof Error ? err.message : "Could not post welcome card.",
+      );
+    } finally {
+      setPostingWelcome(false);
+    }
+  }
+
   const onChangeUserStatus = (userId: string, nextStatus: string) => {
     const user = users.find((u) => u.id === userId);
     if (!user || user.status === nextStatus || locked) return;
@@ -452,7 +474,7 @@ function BusinessDetailInner() {
   }
 
   const activeUsers = users.filter((u) => u.status.toLowerCase() === "active");
-  const locked = busy || impersonating || startingChat;
+  const locked = busy || impersonating || startingChat || postingWelcome;
 
   return (
     <div className="space-y-6">
@@ -483,6 +505,17 @@ function BusinessDetailInner() {
             >
               <MessageCircle className="size-3.5" />
               {startingChat ? "Opening…" : "Message tenant"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={locked}
+              onClick={() => void onPostWelcomeCard()}
+            >
+              <Mail className="size-3.5" />
+              {postingWelcome ? "Posting…" : "Post welcome card"}
             </Button>
             <Button
               type="button"

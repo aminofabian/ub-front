@@ -2963,6 +2963,32 @@ export type SaSupportMessage = {
   senderUserId: string;
   senderName: string | null;
   body: string;
+  messageKind?: "TEXT" | "ORDER_CARD" | "WELCOME_CARD" | string | null;
+  orderCard?: {
+    orderId: string;
+    orderCode: string;
+    status: string;
+    currency: string | null;
+    grandTotal: number | string | null;
+    customerName: string | null;
+    customerPhone: string | null;
+    branchName: string | null;
+    channel: string | null;
+    lines: Array<{
+      itemName: string;
+      variantName?: string | null;
+      quantity: number | string;
+      lineTotal: number | string;
+    }>;
+    lineCount: number;
+  } | null;
+  welcomeCard?: {
+    recipientName: string | null;
+    businessName: string | null;
+    supportPhone: string | null;
+    supportEmail: string | null;
+    helpItems: string[];
+  } | null;
   attachment?: {
     url: string;
     publicId?: string | null;
@@ -3051,6 +3077,16 @@ export async function ensureSaTenantSupportThread(
 ): Promise<SaSupportConversationDetail> {
   return saRequest<SaSupportConversationDetail>(
     `${API_ROUTES.superAdminSupport}/tenants/${encodeURIComponent(businessId.trim())}/thread`,
+    { method: "POST" },
+  );
+}
+
+/** Backfill the signup welcome card into a tenant support thread when missing. */
+export async function ensureSaTenantWelcomeCard(
+  businessId: string,
+): Promise<{ posted: boolean; businessId: string }> {
+  return saRequest<{ posted: boolean; businessId: string }>(
+    `${API_ROUTES.superAdminSupport}/tenants/${encodeURIComponent(businessId.trim())}/welcome`,
     { method: "POST" },
   );
 }

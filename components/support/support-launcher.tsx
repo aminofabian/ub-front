@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useSupportUnread } from "@/hooks/use-support-unread";
 import { APP_ROUTES } from "@/lib/config";
+import { OPEN_SUPPORT_CHAT_EVENT } from "@/lib/support-open";
 import { cn } from "@/lib/utils";
 
 /**
@@ -31,6 +32,13 @@ export function SupportLauncher() {
   React.useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  // Notification bell / deep links open the drawer in place.
+  React.useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_SUPPORT_CHAT_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_SUPPORT_CHAT_EVENT, onOpen);
+  }, []);
 
   // The full chat page is already open — the launcher would be redundant.
   if (pathname === APP_ROUTES.support) {

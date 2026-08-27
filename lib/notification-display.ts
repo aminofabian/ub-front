@@ -89,7 +89,7 @@ function resolvePayload(data: NotificationPayload): NotificationPayload | null {
 function defaultActionUrl(notificationType: string): string {
   switch (notificationType) {
     case "account.welcome":
-      return "/support";
+      return "kiosk:support-chat";
     case "onboarding.fill_shelf":
       return "/products/catalog";
     case "onboarding.sizes_right":
@@ -126,13 +126,16 @@ function resolveActionUrl(
     readString(data.action_url) ||
     readString(payload?.action_url) ||
     defaultActionUrl(notificationType);
-  // Legacy welcome payloads used /business — after signup that route is already open,
-  // so the bell looked broken. Send them to Support instead.
+  // Legacy welcome payloads used /business or /support — open the chat drawer instead.
   if (
     notificationType === "account.welcome" &&
-    (raw === "" || raw === "/business" || raw === "/")
+    (raw === "" ||
+      raw === "/business" ||
+      raw === "/" ||
+      raw === "/support" ||
+      raw.startsWith("/support?"))
   ) {
-    return "/support";
+    return "kiosk:support-chat";
   }
   return raw;
 }

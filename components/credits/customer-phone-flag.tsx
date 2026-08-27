@@ -46,7 +46,7 @@ export function CustomerPhoneFlag({
       role="status"
     >
       <AlertTriangle className="mt-0.5 size-3 shrink-0" aria-hidden />
-      <span className="min-w-0">{issue} — edit customer to fix</span>
+      <span className="min-w-0">{issue}. Edit the customer to fix.</span>
     </span>
   );
 }
