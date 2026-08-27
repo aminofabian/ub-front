@@ -9,33 +9,26 @@ import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import {
   AlertCircle,
   ArrowRight,
-  Building2,
-  ChevronDown,
-  ChevronUp,
   Brush,
   Globe,
   LayoutTemplate,
   Loader2,
-  Lock,
-  MapPin,
-  Palette,
-  Pencil,
   RefreshCw,
   Save,
-  SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
+import { HubSettingsSectionNav } from "@/components/business-hub/hub-settings-section-nav";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
-  DASHBOARD_MAX,
+  DashboardAccessDenied,
   DashboardFeedback,
-  DashboardPageHero,
 } from "@/components/dashboard-page-ui";
-import { FormDrawer, FormDrawerFields, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
+import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { BRAND_ACCENT, BRAND_PRIMARY } from "@/lib/brand-colors";
 import {
   BRANDING_COLOR_PRESETS,
@@ -149,6 +142,66 @@ function buildPatch(next: FormState): BrandingPatchPayload {
   };
 }
 
+function keepUnsavedFields(
+  prev: FormState,
+  branding: BrandingRecord | undefined | null,
+  previousSaved: FormState,
+): FormState {
+  const next = formFromBranding(branding);
+  return {
+    displayName: prev.displayName,
+    primaryColor: prev.primaryColor,
+    accentColor: prev.accentColor,
+    metaTitle: prev.metaTitle,
+    metaDescription: prev.metaDescription,
+    metaKeywords: prev.metaKeywords,
+    faviconUrl:
+      next.faviconUrl !== previousSaved.faviconUrl
+        ? next.faviconUrl
+        : prev.faviconUrl,
+    ogImage:
+      next.ogImage !== previousSaved.ogImage ? next.ogImage : prev.ogImage,
+    heroBannerUrls: next.heroBannerUrls,
+  };
+}
+
+function isFormDirty(form: FormState, saved: FormState): boolean {
+  return (
+    form.displayName !== saved.displayName ||
+    form.faviconUrl !== saved.faviconUrl ||
+    form.primaryColor !== saved.primaryColor ||
+    form.accentColor !== saved.accentColor ||
+    form.metaTitle !== saved.metaTitle ||
+    form.metaDescription !== saved.metaDescription ||
+    form.ogImage !== saved.ogImage ||
+    form.metaKeywords !== saved.metaKeywords
+  );
+}
+
+function BrandingSection({
+  id,
+  title,
+  hint,
+  children,
+}: {
+  id: string;
+  title: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className={cn(HUB_SURFACE, "scroll-mt-24 p-4 sm:p-5")}>
+      <div className="border-b border-[#E6E1D8]/80 pb-3">
+        <h2 className="font-heading text-sm font-semibold tracking-tight text-[#141414]">
+          {title}
+        </h2>
+        <p className="mt-1 text-[12px] leading-relaxed text-[#7A7A7A]">{hint}</p>
+      </div>
+      <div className="mt-4 space-y-4">{children}</div>
+    </section>
+  );
+}
+
 function messageFor(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim()
     ? error.message
@@ -187,27 +240,28 @@ function BrandingColorPresetCard({
         role="option"
         aria-selected={selected}
         onClick={onSelect}
+        title={preset.name}
         className={cn(
-          "flex w-full flex-col gap-2 rounded-xl border bg-card p-2.5 text-left shadow-sm transition-all",
-          "hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+          "flex w-full flex-col gap-1 rounded-lg border bg-card p-1.5 text-left transition-colors",
+          "hover:border-[#B08D48]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
           selected
-            ? "border-primary ring-2 ring-primary/20"
-            : "border-border/80",
+            ? "border-[#B08D48] ring-2 ring-[#B08D48]/20"
+            : "border-[#E6E1D8]",
         )}
       >
-        <span className="flex gap-1">
+        <span className="flex gap-0.5">
           <span
-            className="h-7 flex-1 rounded-md border border-black/10 shadow-inner"
+            className="h-5 flex-1 rounded-sm border border-black/10"
             style={{ backgroundColor: preset.primary }}
             aria-hidden
           />
           <span
-            className="h-7 flex-1 rounded-md border border-black/10 shadow-inner"
+            className="h-5 flex-1 rounded-sm border border-black/10"
             style={{ backgroundColor: preset.accent }}
             aria-hidden
           />
         </span>
-        <span className="truncate text-xs font-medium leading-tight text-foreground">
+        <span className="truncate text-[10px] font-medium leading-tight text-[#141414]">
           {preset.name}
         </span>
       </button>
@@ -224,7 +278,6 @@ function BrandingColorPresetPicker({
   accentColor: string;
   onSelect: (preset: BrandingColorPreset) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const activePreset = BRANDING_COLOR_PRESETS.find((preset) =>
     brandingPresetMatches(preset, primaryColor, accentColor),
   );
@@ -234,73 +287,30 @@ function BrandingColorPresetPicker({
       <div>
         <p className={labelClass()}>Color themes</p>
         <p className={cn(hintClass(), "mt-1")}>
-          Pick a ready-made primary and accent pair, or fine-tune with the
-          controls below.
+          {activePreset
+            ? `Using ${activePreset.name}. Click another pair, or edit the hex values above.`
+            : "Pick a ready-made pair, or set your own hex values above."}
         </p>
       </div>
 
-      {activePreset && !expanded ? (
-        <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-muted/30 px-3 py-2">
-          <span className="flex gap-1">
-            <span
-              className="size-5 rounded border border-black/10 shadow-inner"
-              style={{ backgroundColor: activePreset.primary }}
-              aria-hidden
-            />
-            <span
-              className="size-5 rounded border border-black/10 shadow-inner"
-              style={{ backgroundColor: activePreset.accent }}
-              aria-hidden
-            />
-          </span>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium">
-            {activePreset.name}
-          </span>
-        </div>
-      ) : null}
-
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full justify-between gap-2"
-        aria-expanded={expanded}
-        onClick={() => setExpanded((open) => !open)}
+      <ul
+        role="listbox"
+        aria-label="Branding color themes"
+        className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-5"
       >
-        <span className="flex min-w-0 items-center gap-2">
-          <Palette className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <span className="truncate">
-            {expanded
-              ? "Hide color themes"
-              : `Browse ${BRANDING_COLOR_PRESETS.length} color themes`}
-          </span>
-        </span>
-        {expanded ? (
-          <ChevronUp className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        ) : (
-          <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        )}
-      </Button>
-
-      {expanded ? (
-        <ul
-          role="listbox"
-          aria-label="Branding color themes"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
-        >
-          {BRANDING_COLOR_PRESETS.map((preset) => (
-            <BrandingColorPresetCard
-              key={preset.name}
-              preset={preset}
-              selected={brandingPresetMatches(
-                preset,
-                primaryColor,
-                accentColor,
-              )}
-              onSelect={() => onSelect(preset)}
-            />
-          ))}
-        </ul>
-      ) : null}
+        {BRANDING_COLOR_PRESETS.map((preset) => (
+          <BrandingColorPresetCard
+            key={preset.name}
+            preset={preset}
+            selected={brandingPresetMatches(
+              preset,
+              primaryColor,
+              accentColor,
+            )}
+            onSelect={() => onSelect(preset)}
+          />
+        ))}
+      </ul>
     </div>
   );
 }
@@ -801,49 +811,8 @@ function BannerSection({
   );
 }
 
-function LockedNotice() {
-  return (
-    <div className="mx-auto max-w-lg py-16">
-      <div className="rounded-2xl border border-border/80 bg-card p-8 text-center shadow-sm">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <Lock className="size-6" aria-hidden />
-        </div>
-        <h1 className="mt-4 text-lg font-semibold tracking-tight">
-          Branding is restricted
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Ask an owner or admin with{" "}
-          <span className="font-mono text-xs">business.manage_settings</span> to
-          update storefront branding, or open another area you have access to.
-        </p>
-        <Button asChild className="mt-6" variant="outline">
-          <Link href={APP_ROUTES.business}>Back to business</Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 function RelatedLinks() {
   const links = [
-    {
-      href: APP_ROUTES.business,
-      label: "Business",
-      desc: "Business hub",
-      icon: Building2,
-    },
-    {
-      href: APP_ROUTES.businessSettings,
-      label: "Settings",
-      desc: "Profile & storefront",
-      icon: Building2,
-    },
-    {
-      href: APP_ROUTES.businessConfiguration,
-      label: "Operations",
-      desc: "Inventory & till",
-      icon: SlidersHorizontal,
-    },
     {
       href: APP_ROUTES.businessThemes,
       label: "Themes",
@@ -857,44 +826,26 @@ function RelatedLinks() {
       icon: Brush,
     },
     {
-      href: APP_ROUTES.businessDomains,
-      label: "Domains",
-      desc: "Custom hostnames",
+      href: APP_ROUTES.businessSettings,
+      label: "Settings",
+      desc: "Profile & storefront",
       icon: Globe,
-    },
-    {
-      href: APP_ROUTES.branches,
-      label: "Branches",
-      desc: "Locations",
-      icon: MapPin,
     },
   ] as const;
   return (
-    <div className="grid gap-2 sm:grid-cols-3">
+    <div className="flex flex-wrap gap-2">
       {links.map(({ href, label, desc, icon: Icon }) => (
         <Link
           key={href}
           href={href}
-          className={cn(
-            "group flex items-start gap-3 rounded-xl border border-border/80 bg-card p-3 shadow-sm transition-all",
-            "hover:border-primary/25 hover:bg-accent/40 hover:shadow-md",
-          )}
+          className="inline-flex items-center gap-2 rounded-lg border border-[#E6E1D8]/90 bg-white px-3 py-2 text-sm transition-colors hover:border-[#B08D48]/50 hover:bg-[#FCFAF6]"
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-            <Icon className="size-4" aria-hidden />
+          <Icon className="size-3.5 text-[#B08D48]" aria-hidden />
+          <span className="font-medium text-[#141414]">{label}</span>
+          <span className="hidden text-[11px] text-[#7A7A7A] sm:inline">
+            {desc}
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1 text-sm font-semibold">
-              {label}
-              <ArrowRight
-                className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100"
-                aria-hidden
-              />
-            </span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              {desc}
-            </span>
-          </span>
+          <ArrowRight className="size-3 text-[#DDDDDD]" aria-hidden />
         </Link>
       ))}
     </div>
@@ -914,8 +865,7 @@ export default function BrandingPage() {
   const [faviconBusy, setFaviconBusy] = useState(false);
   const [ogImageBusy, setOgImageBusy] = useState(false);
   const [bannerBusy, setBannerBusy] = useState(false);
-  const [brandingDrawerOpen, setBrandingDrawerOpen] = useState(false);
-  const skipDrawerResetAfterSave = useRef(false);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(() => {
     return Promise.all([fetchBusiness(), fetchBranches().catch(() => [])])
@@ -945,11 +895,14 @@ export default function BrandingPage() {
   }, [canManageBusinessSettings, load]);
 
   useEffect(() => {
-    if (searchParams.get("onboarding") === "branding") {
-      skipDrawerResetAfterSave.current = false;
-      setBrandingDrawerOpen(true);
-    }
-  }, [searchParams]);
+    if (searchParams.get("onboarding") !== "branding") return;
+    if (!snapshot) return;
+    nameInputRef.current?.focus();
+    document.getElementById("branding-identity")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [searchParams, snapshot]);
 
   const resetFormFromSnapshot = useCallback(() => {
     if (!snapshot) {
@@ -958,19 +911,22 @@ export default function BrandingPage() {
     setForm(formFromBranding(snapshot.branding));
   }, [snapshot]);
 
-  const onBrandingDrawerOpenChange = (open: boolean) => {
-    if (!open) {
-      if (skipDrawerResetAfterSave.current) {
-        skipDrawerResetAfterSave.current = false;
-      } else {
-        resetFormFromSnapshot();
-      }
-    }
-    setBrandingDrawerOpen(open);
-  };
-
   if (!canManageBusinessSettings) {
-    return <LockedNotice />;
+    return (
+      <DashboardAccessDenied
+        title="Branding is restricted"
+        description={
+          <>
+            Ask an owner or admin with{" "}
+            <span className="font-mono text-xs">business.manage_settings</span>{" "}
+            to update storefront branding, or open another area you have access
+            to.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Back to business"
+      />
+    );
   }
 
   const isLoading = snapshot === null && !loadFailed;
@@ -991,17 +947,21 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await updateMyBranding(buildPatch(form));
-      skipDrawerResetAfterSave.current = true;
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
       setDocumentFavicon(resolveBusinessFaviconHref(next));
-      setBrandingDrawerOpen(false);
       setFeedback({ kind: "success", text: "Branding saved." });
     } catch (error) {
       setFeedback({ kind: "error", text: messageFor(error, "Save failed.") });
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const applyAssetSnapshot = (next: BusinessRecord) => {
+    const previousSaved = formFromBranding(snapshot?.branding);
+    setSnapshot(next);
+    setForm((prev) => keepUnsavedFields(prev, next.branding, previousSaved));
   };
 
   const onLogoUpload = async (file: File) => {
@@ -1017,8 +977,7 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await uploadMyBrandingLogo(file, snapshot.id);
-      setSnapshot(next);
-      setForm(formFromBranding(next.branding));
+      applyAssetSnapshot(next);
       setFeedback({ kind: "success", text: "Logo updated." });
     } catch (error) {
       setFeedback({ kind: "error", text: messageFor(error, "Upload failed.") });
@@ -1032,8 +991,7 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await clearMyBrandingLogo();
-      setSnapshot(next);
-      setForm(formFromBranding(next.branding));
+      applyAssetSnapshot(next);
       setFeedback({ kind: "success", text: "Logo removed." });
     } catch (error) {
       setFeedback({
@@ -1058,8 +1016,7 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await uploadMyBrandingFavicon(file, snapshot.id);
-      setSnapshot(next);
-      setForm(formFromBranding(next.branding));
+      applyAssetSnapshot(next);
       setDocumentFavicon(resolveBusinessFaviconHref(next));
       setFeedback({ kind: "success", text: "Favicon updated." });
     } catch (error) {
@@ -1088,8 +1045,7 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await uploadMyBrandingOgImage(file, snapshot.id);
-      setSnapshot(next);
-      setForm(formFromBranding(next.branding));
+      applyAssetSnapshot(next);
       setFeedback({ kind: "success", text: "Social preview image updated." });
     } catch (error) {
       setFeedback({
@@ -1106,8 +1062,7 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await clearMyBrandingOgImage();
-      setSnapshot(next);
-      setForm(formFromBranding(next.branding));
+      applyAssetSnapshot(next);
       setFeedback({
         kind: "success",
         text: "Social preview image removed.",
@@ -1127,8 +1082,7 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await clearMyBrandingFavicon();
-      setSnapshot(next);
-      setForm(formFromBranding(next.branding));
+      applyAssetSnapshot(next);
       setDocumentFavicon(resolveBusinessFaviconHref(next));
       setFeedback({ kind: "success", text: "Favicon removed." });
     } catch (error) {
@@ -1154,8 +1108,7 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await uploadMyBrandingBanner(file, snapshot.id);
-      setSnapshot(next);
-      setForm(formFromBranding(next.branding));
+      applyAssetSnapshot(next);
       setFeedback({ kind: "success", text: "Banner added." });
     } catch (error) {
       setFeedback({
@@ -1172,8 +1125,7 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await deleteMyBrandingBanner(index);
-      setSnapshot(next);
-      setForm(formFromBranding(next.branding));
+      applyAssetSnapshot(next);
       setFeedback({ kind: "success", text: "Banner removed." });
     } catch (error) {
       setFeedback({
@@ -1190,8 +1142,7 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await reorderMyBrandingBanners(orderedUrls);
-      setSnapshot(next);
-      setForm(formFromBranding(next.branding));
+      applyAssetSnapshot(next);
       setFeedback({ kind: "success", text: "Banners reordered." });
     } catch (error) {
       setFeedback({
@@ -1210,43 +1161,53 @@ export default function BrandingPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-4 py-24">
-        <Loader2 className="size-10 animate-spin text-primary" aria-hidden />
-        <p className="text-sm text-muted-foreground">Loading branding…</p>
-      </div>
+      <BusinessPageLayout
+        title="Branding"
+        description="Logo, colours, and the name shoppers see on your storefront."
+      >
+        <div className="flex flex-col items-center justify-center gap-4 py-24">
+          <Loader2 className="size-10 animate-spin text-[#B08D48]" aria-hidden />
+          <p className="text-sm text-[#7A7A7A]">Loading branding…</p>
+        </div>
+      </BusinessPageLayout>
     );
   }
 
   if (loadFailed && !snapshot) {
     return (
-      <div className="mx-auto max-w-lg py-16">
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-sm">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
-            <AlertCircle className="size-6" aria-hidden />
+      <BusinessPageLayout
+        title="Branding"
+        description="Logo, colours, and the name shoppers see on your storefront."
+      >
+        <div className="mx-auto max-w-lg py-8">
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-sm">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+              <AlertCircle className="size-6" aria-hidden />
+            </div>
+            <h2 className="mt-4 text-lg font-semibold tracking-tight">
+              Could not load branding
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">{feedback?.text}</p>
+            <Button
+              className="mt-6 gap-2"
+              variant="outline"
+              onClick={() => {
+                setLoadFailed(false);
+                setFeedback(null);
+                void load();
+              }}
+            >
+              <RefreshCw className="size-4" aria-hidden />
+              Try again
+            </Button>
           </div>
-          <h2 className="mt-4 text-lg font-semibold tracking-tight">
-            Could not load branding
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">{feedback?.text}</p>
-          <Button
-            className="mt-6 gap-2"
-            variant="outline"
-            onClick={() => {
-              setLoadFailed(false);
-              setFeedback(null);
-              void load();
-            }}
-          >
-            <RefreshCw className="size-4" aria-hidden />
-            Try again
-          </Button>
         </div>
-      </div>
+      </BusinessPageLayout>
     );
   }
 
-  const drawerBusy =
-    isSaving || logoBusy || faviconBusy || ogImageBusy || bannerBusy;
+  const assetBusy = logoBusy || faviconBusy || ogImageBusy || bannerBusy;
+  const dirty = isFormDirty(form, formFromBranding(snapshot?.branding));
 
   const onboardingLocalitiesRaw =
     snapshot?.onboarding?.answers?.branchLocalities;
@@ -1264,388 +1225,347 @@ export default function BrandingPage() {
   const seoDisplayName =
     form.displayName.trim() || snapshot?.name?.trim() || "Your store";
 
-  return (
-    <>
-      <div className={DASHBOARD_MAX}>
-        <div className="space-y-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <DashboardPageHero
-              icon={Palette}
-              eyebrow="Appearance"
-              title="Branding"
-              description={
-                <>
-                  Logo, colors, display name, and search appearance for your
-                  storefront. Logo and favicon uploads apply immediately;
-                  display name, colors, and SEO fields save from the drawer with{" "}
-                  <span className="font-medium text-foreground">
-                    Save branding
-                  </span>
-                  .
-                </>
-              }
-            />
-            <Button
-              type="button"
-              size="lg"
-              className="gap-2 self-start shadow-md lg:shrink-0"
-              disabled={!snapshot || drawerBusy}
-              onClick={() => {
-                skipDrawerResetAfterSave.current = false;
-                setBrandingDrawerOpen(true);
-              }}
-            >
-              <Pencil className="size-4" aria-hidden />
-              Edit branding
-            </Button>
-          </div>
-
-          <RelatedLinks />
-
-          {feedback ? (
-            <DashboardFeedback
-              kind={feedback.kind === "error" ? "error" : "success"}
-              text={feedback.text}
-            />
-          ) : null}
-
-          <BrandingPreview
-            form={form}
-            logoUrl={logoUrl}
-            business={snapshot}
-            location={seoLocation}
-          />
-
-          <Link
-            href={APP_ROUTES.businessThemes}
-            className={cn(
-              "group flex items-start gap-4 rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card to-muted/40 p-4 shadow-sm transition-all",
-              "hover:border-primary/30 hover:shadow-md",
-            )}
-          >
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <LayoutTemplate className="size-5" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-1.5 text-sm font-semibold">
-                How the customer website looks
-                <ArrowRight
-                  className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100"
-                  aria-hidden
-                />
-              </span>
-              <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                Each picture is a website style. The one you save is what
-                people see when they open your shop on their phone.
-              </span>
-            </span>
-          </Link>
-        </div>
+  const saveBar = (
+    <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E6E1D8]/90 bg-white/95 p-2.5 shadow-md backdrop-blur supports-[backdrop-filter]:bg-white/80 lg:static lg:bottom-auto lg:mx-0 lg:justify-end lg:shadow-none">
+      <p className="hidden text-[11px] text-[#7A7A7A] sm:block lg:mr-auto">
+        Logo, favicon, and banners apply immediately. Name, colours, and search
+        fields save here.
+      </p>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8"
+          disabled={isSaving || !dirty}
+          onClick={resetFormFromSnapshot}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          form="branding-edit-form"
+          size="sm"
+          className="h-8 gap-1.5"
+          disabled={isSaving || assetBusy || !dirty}
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Saving…
+            </>
+          ) : (
+            <>
+              <Save className="size-4" aria-hidden />
+              Save branding
+            </>
+          )}
+        </Button>
       </div>
+    </div>
+  );
 
-      <FormDrawer
-        open={brandingDrawerOpen}
-        onOpenChange={onBrandingDrawerOpenChange}
-        onboardingTarget={ONBOARDING_TARGETS.brandingDrawer}
-        title="Edit branding"
-        description={
-          <>
-            Logo and favicon files upload right away. Display name, colors,
-            search title/description, and favicon URL save together when you
-            click Save branding.
-          </>
-        }
-        contextLabel="Appearance"
-        banner={feedback ? (feedback.kind === "error" ? <FormDrawerMessageBanner text={feedback.text} /> : <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-gradient-to-br from-green-50 via-green-50/50 to-transparent px-3.5 py-3 text-sm text-green-700 shadow-sm dark:border-green-800 dark:from-green-950/30 dark:text-green-400">{feedback.text}</div>) : undefined}
-        icon={<Palette className="size-5 text-primary" aria-hidden />}
-        width="wide"
-        footer={
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={drawerBusy}
-              onClick={() => onBrandingDrawerOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="branding-edit-form"
-              disabled={isSaving || logoBusy || faviconBusy || bannerBusy}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Saving…
-                </>
-              ) : (
-                <>
-                  <Save className="size-4" aria-hidden />
-                  Save branding
-                </>
-              )}
-            </Button>
-          </div>
-        }
+  return (
+    <BusinessPageLayout
+      title="Branding"
+      description="Upload a logo, pick colours, and set the name shoppers see. Logo and favicon apply immediately; name, colours, and search fields save with the button below."
+      headerActions={
+        dirty ? (
+          <Button
+            type="submit"
+            form="branding-edit-form"
+            size="sm"
+            className="gap-1.5"
+            disabled={isSaving || assetBusy}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Saving…
+              </>
+            ) : (
+              <>
+                <Save className="size-4" aria-hidden />
+                Save
+              </>
+            )}
+          </Button>
+        ) : null
+      }
+    >
+      <div
+        className="space-y-4 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-2"
+        data-onboarding-target={ONBOARDING_TARGETS.brandingDrawer}
       >
-        <form id="branding-edit-form" className="space-y-6" onSubmit={onSave}>
-          <FormDrawerFields
-            legend="Logo"
-            hint="Shown in the shop header and emails. Square assets look sharpest."
+        <HubSettingsSectionNav
+          items={[
+            { id: "branding-identity", label: "Name & logo" },
+            { id: "branding-colors", label: "Colours" },
+            { id: "branding-favicon", label: "Favicon" },
+            { id: "branding-banners", label: "Banners" },
+            { id: "branding-search", label: "Search" },
+          ]}
+        />
+
+        {feedback ? (
+          <DashboardFeedback
+            kind={feedback.kind === "error" ? "error" : "success"}
+            text={feedback.text}
+          />
+        ) : null}
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <form
+            id="branding-edit-form"
+            className="space-y-4"
+            onSubmit={onSave}
           >
-            <LogoSection
-              logoUrl={logoUrl}
-              primaryColor={form.primaryColor}
-              busy={logoBusy}
-              onUpload={onLogoUpload}
-              onClear={onLogoClear}
-            />
-          </FormDrawerFields>
-
-          <FormDrawerFields
-            legend="Text & colors"
-            hint="Display name, palette, and optional favicon URL — saved together when you click Save branding."
-          >
-            <div className="space-y-2">
-              <label className={labelClass()} htmlFor="branding-name">
-                Display name
-              </label>
-              <input
-                id="branding-name"
-                className={inputClass()}
-                value={form.displayName}
-                maxLength={255}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, displayName: e.target.value }))
-                }
-                placeholder={snapshot?.name ?? "Your storefront name"}
-              />
-              <p className={hintClass()}>
-                Shown in the shop header and login. Falls back to your legal
-                business name when empty.
-              </p>
-            </div>
-
-            <BrandingColorPresetPicker
-              primaryColor={form.primaryColor}
-              accentColor={form.accentColor}
-              onSelect={(preset) =>
-                setForm((s) => ({
-                  ...s,
-                  primaryColor: preset.primary.toUpperCase(),
-                  accentColor: preset.accent.toUpperCase(),
-                }))
-              }
-            />
-
-            <div className="grid gap-6 sm:grid-cols-2">
-              <ColorField
-                label="Primary color"
-                htmlId="branding-primary"
-                value={form.primaryColor}
-                onChange={(v) => setForm((s) => ({ ...s, primaryColor: v }))}
-              />
-              <ColorField
-                label="Accent color"
-                htmlId="branding-accent"
-                value={form.accentColor}
-                onChange={(v) => setForm((s) => ({ ...s, accentColor: v }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className={labelClass()} htmlFor="branding-favicon">
-                Favicon URL{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </label>
-              <input
-                id="branding-favicon"
-                className={inputClass()}
-                value={form.faviconUrl}
-                maxLength={1024}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, faviconUrl: e.target.value }))
-                }
-                placeholder="https://cdn.example.com/favicon.png"
-              />
-              <p className={hintClass()}>
-                Use the upload section above for hosted files, or paste an
-                external HTTPS URL here.
-              </p>
-            </div>
-          </FormDrawerFields>
-
-          <FormDrawerFields
-            legend="Hero Banners"
-            hint="Images that rotate in the storefront hero area. Drag to reorder is not available — use the arrow buttons."
-          >
-            <BannerSection
-              banners={bannerUrls}
-              busy={bannerBusy}
-              onUpload={onBannerUpload}
-              onDelete={onBannerDelete}
-              onReorder={onBannerReorder}
-            />
-          </FormDrawerFields>
-
-          <FormDrawerFields
-            legend="Favicon file"
-            hint="Browser tab icon. Prefer 32×32 or 48×48. Upload applies immediately."
-          >
-            <FaviconSection
-              faviconUrl={faviconUrl}
-              busy={faviconBusy}
-              onUpload={onFaviconUpload}
-              onClear={onFaviconClear}
-            />
-          </FormDrawerFields>
-
-          <FormDrawerFields
-            legend="Search & social"
-            hint="Customise how Google and social apps see your neighborhood shop. Empty fields use the groceries defaults with your branch area. Use [Area] and [Country] to keep location dynamic."
-          >
-            <SerpPreview
-              form={form}
-              business={snapshot}
-              location={seoLocation}
-              compact
-            />
-
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <label className={labelClass()} htmlFor="branding-meta-title">
-                  Search title{" "}
-                  <span className="font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </label>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {form.metaTitle.length}/255
-                </span>
-              </div>
-              <input
-                id="branding-meta-title"
-                className={inputClass()}
-                value={form.metaTitle}
-                maxLength={255}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, metaTitle: e.target.value }))
-                }
-                placeholder={defaultStorefrontMetaTitle(
-                  seoDisplayName,
-                  seoLocation,
-                )}
-              />
-              <p className={hintClass()}>
-                Blue link text in search results. Aim for about 50–60
-                characters. Example:{" "}
-                <span className="font-mono text-[11px]">
-                  [Name] | Groceries &amp; Essentials in [Area], [Country]
-                </span>
-                .
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <label
-                  className={labelClass()}
-                  htmlFor="branding-meta-description"
-                >
-                  Search description{" "}
-                  <span className="font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </label>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {form.metaDescription.length}/320
-                </span>
-              </div>
-              <textarea
-                id="branding-meta-description"
-                className={cn(inputClass(), "min-h-[96px] resize-y")}
-                value={form.metaDescription}
-                maxLength={320}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, metaDescription: e.target.value }))
-                }
-                placeholder={defaultStorefrontMetaDescription(
-                  seoDisplayName,
-                  seoLocation,
-                )}
-              />
-              <p className={hintClass()}>
-                Grey snippet under the title. Aim for about 140–160 characters.
-                Placeholders:{" "}
-                <span className="font-mono text-[11px]">[Area]</span>,{" "}
-                <span className="font-mono text-[11px]">[Country]</span>,{" "}
-                <span className="font-mono text-[11px]">[Name]</span>.
-              </p>
-            </div>
-
-            <FormDrawerFields
-              legend="Social preview image"
-              hint="Upload an image or paste a URL. Shown when your storefront is shared on social media and messaging apps. Falls back to your business logo when empty."
+            <BrandingSection
+              id="branding-identity"
+              title="Name & logo"
+              hint="The name and mark shoppers see in the shop header, login, and emails. Square logos look sharpest."
             >
-              <OgImageSection
-                ogImageUrl={ogImageUrl}
-                busy={ogImageBusy}
-                onUpload={onOgImageUpload}
-                onClear={onOgImageClear}
+              <div className="space-y-2">
+                <label className={labelClass()} htmlFor="branding-name">
+                  Display name
+                </label>
+                <input
+                  ref={nameInputRef}
+                  id="branding-name"
+                  className={inputClass()}
+                  value={form.displayName}
+                  maxLength={255}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, displayName: e.target.value }))
+                  }
+                  placeholder={snapshot?.name ?? "Your storefront name"}
+                />
+                <p className={hintClass()}>
+                  Falls back to your legal business name when empty.
+                </p>
+              </div>
+              <LogoSection
+                logoUrl={logoUrl}
+                primaryColor={form.primaryColor}
+                busy={logoBusy}
+                onUpload={onLogoUpload}
+                onClear={onLogoClear}
               />
+            </BrandingSection>
 
-              <div className="space-y-2 pt-2">
-                <label className={labelClass()} htmlFor="branding-og-image">
-                  Or paste an image URL{" "}
+            <BrandingSection
+              id="branding-colors"
+              title="Colours"
+              hint="Primary is headers and navigation. Accent is badges and highlights. Pick a theme or set hex values."
+            >
+              <div className="grid gap-6 sm:grid-cols-2">
+                <ColorField
+                  label="Primary color"
+                  htmlId="branding-primary"
+                  value={form.primaryColor}
+                  onChange={(v) => setForm((s) => ({ ...s, primaryColor: v }))}
+                />
+                <ColorField
+                  label="Accent color"
+                  htmlId="branding-accent"
+                  value={form.accentColor}
+                  onChange={(v) => setForm((s) => ({ ...s, accentColor: v }))}
+                />
+              </div>
+              <BrandingColorPresetPicker
+                primaryColor={form.primaryColor}
+                accentColor={form.accentColor}
+                onSelect={(preset) =>
+                  setForm((s) => ({
+                    ...s,
+                    primaryColor: preset.primary.toUpperCase(),
+                    accentColor: preset.accent.toUpperCase(),
+                  }))
+                }
+              />
+            </BrandingSection>
+
+            <BrandingSection
+              id="branding-favicon"
+              title="Favicon"
+              hint="Browser tab icon. Prefer 32×32 or 48×48. Upload applies immediately, or paste an HTTPS URL and save."
+            >
+              <FaviconSection
+                faviconUrl={faviconUrl}
+                busy={faviconBusy}
+                onUpload={onFaviconUpload}
+                onClear={onFaviconClear}
+              />
+              <div className="space-y-2">
+                <label className={labelClass()} htmlFor="branding-favicon-url">
+                  Favicon URL{" "}
                   <span className="font-normal text-muted-foreground">
                     (optional)
                   </span>
                 </label>
                 <input
-                  id="branding-og-image"
+                  id="branding-favicon-url"
                   className={inputClass()}
-                  value={form.ogImage}
+                  value={form.faviconUrl}
                   maxLength={1024}
                   onChange={(e) =>
-                    setForm((s) => ({ ...s, ogImage: e.target.value }))
+                    setForm((s) => ({ ...s, faviconUrl: e.target.value }))
                   }
-                  placeholder="https://cdn.example.com/social-preview.png"
+                  placeholder="https://cdn.example.com/favicon.png"
+                />
+              </div>
+            </BrandingSection>
+
+            <BrandingSection
+              id="branding-banners"
+              title="Hero banners"
+              hint="Images that rotate on the storefront. Use the arrows to reorder. Uploads apply immediately."
+            >
+              <BannerSection
+                banners={bannerUrls}
+                busy={bannerBusy}
+                onUpload={onBannerUpload}
+                onDelete={onBannerDelete}
+                onReorder={onBannerReorder}
+              />
+            </BrandingSection>
+
+            <BrandingSection
+              id="branding-search"
+              title="Search & social"
+              hint="How Google and social apps see your shop. Empty fields use groceries defaults with your branch area. Use [Area] and [Country] to keep location dynamic."
+            >
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between gap-3">
+                  <label className={labelClass()} htmlFor="branding-meta-title">
+                    Search title{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  </label>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {form.metaTitle.length}/255
+                  </span>
+                </div>
+                <input
+                  id="branding-meta-title"
+                  className={inputClass()}
+                  value={form.metaTitle}
+                  maxLength={255}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, metaTitle: e.target.value }))
+                  }
+                  placeholder={defaultStorefrontMetaTitle(
+                    seoDisplayName,
+                    seoLocation,
+                  )}
                 />
                 <p className={hintClass()}>
-                  Prefer 1200×630 px. Cleared when you upload a file above.
+                  Blue link text in search results. Aim for about 50–60
+                  characters.
                 </p>
               </div>
-            </FormDrawerFields>
 
-            <div className="space-y-2">
-              <label className={labelClass()} htmlFor="branding-meta-keywords">
-                Meta keywords{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </label>
-              <input
-                id="branding-meta-keywords"
-                className={inputClass()}
-                value={form.metaKeywords}
-                maxLength={500}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, metaKeywords: e.target.value }))
-                }
-                placeholder="grocery, fresh produce, delivery, Nairobi"
-              />
-              <p className={hintClass()}>
-                Comma-separated list of keywords describing your business.
-                Modern search engines give less weight to these, but they can
-                still help with discovery.
-              </p>
-            </div>
-          </FormDrawerFields>
-        </form>
-      </FormDrawer>
-    </>
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between gap-3">
+                  <label
+                    className={labelClass()}
+                    htmlFor="branding-meta-description"
+                  >
+                    Search description{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  </label>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {form.metaDescription.length}/320
+                  </span>
+                </div>
+                <textarea
+                  id="branding-meta-description"
+                  className={cn(inputClass(), "min-h-[96px] resize-y")}
+                  value={form.metaDescription}
+                  maxLength={320}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, metaDescription: e.target.value }))
+                  }
+                  placeholder={defaultStorefrontMetaDescription(
+                    seoDisplayName,
+                    seoLocation,
+                  )}
+                />
+                <p className={hintClass()}>
+                  Grey snippet under the title. Placeholders:{" "}
+                  <span className="font-mono text-[11px]">[Area]</span>,{" "}
+                  <span className="font-mono text-[11px]">[Country]</span>,{" "}
+                  <span className="font-mono text-[11px]">[Name]</span>.
+                </p>
+              </div>
+
+              <div className="space-y-3 rounded-xl border border-[#E6E1D8]/80 bg-[#FCFAF6] p-3.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#8A8A8A]">
+                  Social preview image
+                </p>
+                <OgImageSection
+                  ogImageUrl={ogImageUrl}
+                  busy={ogImageBusy}
+                  onUpload={onOgImageUpload}
+                  onClear={onOgImageClear}
+                />
+                <div className="space-y-2">
+                  <label className={labelClass()} htmlFor="branding-og-image">
+                    Or paste an image URL{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  </label>
+                  <input
+                    id="branding-og-image"
+                    className={inputClass()}
+                    value={form.ogImage}
+                    maxLength={1024}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, ogImage: e.target.value }))
+                    }
+                    placeholder="https://cdn.example.com/social-preview.png"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className={labelClass()} htmlFor="branding-meta-keywords">
+                  Meta keywords{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </label>
+                <input
+                  id="branding-meta-keywords"
+                  className={inputClass()}
+                  value={form.metaKeywords}
+                  maxLength={500}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, metaKeywords: e.target.value }))
+                  }
+                  placeholder="grocery, fresh produce, delivery, Nairobi"
+                />
+              </div>
+            </BrandingSection>
+
+            {saveBar}
+          </form>
+
+          <aside className="space-y-4 lg:sticky lg:top-4">
+            <BrandingPreview
+              form={form}
+              logoUrl={logoUrl}
+              business={snapshot}
+              location={seoLocation}
+            />
+            <RelatedLinks />
+          </aside>
+        </div>
+      </div>
+    </BusinessPageLayout>
   );
 }
