@@ -101,6 +101,7 @@ function localTenantFallback(hostname: string): TenantContext | null {
       ogImage: null,
       metaKeywords: null,
       heroBannerUrls: null,
+      logoScale: null,
     },
     authConfig: {
       methods: ["password"],

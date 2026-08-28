@@ -132,9 +132,9 @@
 .logoImg {
   display: block;
   height: auto;
-  max-height: 40px;
+  max-height: calc(40px * var(--storefront-logo-scale, 1));
   width: auto;
-  max-width: min(180px, 48vw);
+  max-width: calc(min(180px, 48vw) * var(--storefront-logo-scale, 1));
   object-fit: contain;
   margin: 0 auto;
 }

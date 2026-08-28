@@ -105,8 +105,8 @@
 }
 
 .letterheadImg {
-  width: 32px;
-  height: 32px;
+  width: calc(32px * var(--storefront-logo-scale, 1));
+  height: calc(32px * var(--storefront-logo-scale, 1));
   object-fit: contain;
   margin-bottom: 2px;
 }

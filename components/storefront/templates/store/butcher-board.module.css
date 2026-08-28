@@ -95,8 +95,8 @@
 }
 
 .wordmarkImg {
-  width: 36px;
-  height: 36px;
+  width: calc(36px * var(--storefront-logo-scale, 1));
+  height: calc(36px * var(--storefront-logo-scale, 1));
   object-fit: contain;
   background: var(--bb-ink);
   border: 1px solid var(--bb-gold-dim);

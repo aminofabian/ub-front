@@ -15,6 +15,7 @@ import {
   parseStorefrontDesignJson,
   type StorefrontDesign,
 } from "@/lib/storefront-design";
+import { clampBrandingLogoScale } from "@/lib/branding-logo-scale";
 
 export type PublicCatalogItemCard = {
   id: string;
@@ -204,6 +205,8 @@ export type TenantBranding = {
   metaKeywords: string | null;
   /** Hero banner image URLs for the storefront carousel */
   heroBannerUrls: string[] | null;
+  /** Header logo size vs theme default (0.5–2.5). */
+  logoScale: number | null;
 };
 
 export type TenantPasswordPolicy = {
@@ -684,6 +687,10 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
           (u: unknown) => typeof u === "string" && u.trim(),
         )
       : null,
+    logoScale:
+      typeof b?.logoScale === "number" && Number.isFinite(b.logoScale)
+        ? clampBrandingLogoScale(b.logoScale)
+        : null,
   };
 
   const a = asObject(o.authConfig);

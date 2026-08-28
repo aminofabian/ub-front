@@ -16,6 +16,7 @@ function brandingFromRecord(
     ogImage: branding?.ogImage ?? null,
     metaKeywords: branding?.metaKeywords ?? null,
     heroBannerUrls: branding?.heroBannerUrls ?? null,
+    logoScale: branding?.logoScale ?? null,
   };
 }
 

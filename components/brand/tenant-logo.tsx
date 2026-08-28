@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { storefrontLogoImageStyle } from "@/lib/branding-logo-scale";
 
 import { KioskLogo } from "./kiosk-logo";
 import {
@@ -120,10 +121,12 @@ function TenantLogoImage({
   src,
   alt,
   className,
+  style,
 }: {
   src: string;
   alt: string;
   className?: string;
+  style?: CSSProperties;
 }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element -- tenant CDN URLs
@@ -131,6 +134,7 @@ function TenantLogoImage({
       src={src}
       alt={alt}
       className={cn("w-auto object-contain object-left", className)}
+      style={style}
     />
   );
 }
@@ -316,11 +320,8 @@ export function TenantLogo({
       <TenantLogoImage
         src={logo}
         alt={`${brand} logo`}
-        className={cn(
-          "w-auto object-contain brightness-0 invert",
-          SIZES[s].logoMaxH,
-          SIZES[s].logoMaxW,
-        )}
+        className="w-auto object-contain brightness-0 invert"
+        style={storefrontLogoImageStyle(s)}
       />
     ) : (
       <MonogramFallback
@@ -341,15 +342,8 @@ export function TenantLogo({
       <TenantLogoImage
         src={logo}
         alt={`${brand} logo`}
-        className={cn(
-          "w-auto object-contain",
-          SIZES[s].logoMaxH,
-          SIZES[s].logoMaxW,
-          s === "sm" && "h-10",
-          s === "md" && "h-12",
-          s === "lg" && "h-14",
-          s === "lg" && "sm:max-h-16 sm:max-w-[16rem]",
-        )}
+        className="w-auto object-contain"
+        style={storefrontLogoImageStyle(s)}
       />
     ) : (
       <MonogramFallback
@@ -378,10 +372,8 @@ export function TenantLogo({
         <TenantLogoImage
           src={logo}
           alt={brand}
-          className={cn(
-            "max-h-14 w-auto max-w-[11rem] object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)]",
-            className,
-          )}
+          className={cn("w-auto object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)]", className)}
+          style={storefrontLogoImageStyle("lg")}
         />
       );
     }

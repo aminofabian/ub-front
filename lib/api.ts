@@ -973,6 +973,8 @@ export type BrandingRecord = {
   metaKeywords?: string | null;
   /** Hero banner image URLs for the storefront carousel */
   heroBannerUrls?: string[] | null;
+  /** Header logo size vs theme default (0.5–2.5). `1` is unchanged. */
+  logoScale?: number | null;
 };
 
 export type StocktakeSettingsRecord = {
@@ -1308,6 +1310,7 @@ export type BrandingPatchPayload = {
   ogImagePublicId?: string | null;
   metaKeywords?: string | null;
   heroBannerUrls?: string[] | null;
+  logoScale?: number | null;
 };
 
 export type CreateUserPayload = {

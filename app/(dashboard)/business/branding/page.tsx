@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
@@ -12,6 +12,8 @@ import {
   Brush,
   Globe,
   Loader2,
+  Minus,
+  Plus,
   RefreshCw,
   Save,
   Sparkles,
@@ -30,6 +32,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { BRAND_ACCENT, BRAND_PRIMARY } from "@/lib/brand-colors";
+import {
+  BRANDING_LOGO_SCALE_DEFAULT,
+  BRANDING_LOGO_SCALE_MAX,
+  BRANDING_LOGO_SCALE_MIN,
+  BRANDING_LOGO_SCALE_STEP,
+  clampBrandingLogoScale,
+  storefrontLogoScaleVarStyle,
+} from "@/lib/branding-logo-scale";
 import {
   BRANDING_COLOR_PRESETS,
   brandingPresetMatches,
@@ -89,6 +99,7 @@ type FormState = {
   ogImage: string;
   metaKeywords: string;
   heroBannerUrls: string[];
+  logoScale: number;
 };
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
@@ -104,6 +115,7 @@ function emptyForm(): FormState {
     ogImage: "",
     metaKeywords: "",
     heroBannerUrls: [],
+    logoScale: BRANDING_LOGO_SCALE_DEFAULT,
   };
 }
 
@@ -118,6 +130,7 @@ function formFromBranding(b: BrandingRecord | undefined | null): FormState {
     ogImage: String(b?.ogImage ?? ""),
     metaKeywords: String(b?.metaKeywords ?? ""),
     heroBannerUrls: b?.heroBannerUrls ?? [],
+    logoScale: clampBrandingLogoScale(b?.logoScale),
   };
 }
 
@@ -139,6 +152,7 @@ function buildPatch(next: FormState): BrandingPatchPayload {
     metaDescription: next.metaDescription.trim() || null,
     ogImage: next.ogImage.trim() || null,
     metaKeywords: next.metaKeywords.trim() || null,
+    logoScale: clampBrandingLogoScale(next.logoScale),
   };
 }
 
@@ -162,6 +176,7 @@ function keepUnsavedFields(
     ogImage:
       next.ogImage !== previousSaved.ogImage ? next.ogImage : prev.ogImage,
     heroBannerUrls: next.heroBannerUrls,
+    logoScale: prev.logoScale,
   };
 }
 
@@ -174,7 +189,8 @@ function isFormDirty(form: FormState, saved: FormState): boolean {
     form.metaTitle !== saved.metaTitle ||
     form.metaDescription !== saved.metaDescription ||
     form.ogImage !== saved.ogImage ||
-    form.metaKeywords !== saved.metaKeywords
+    form.metaKeywords !== saved.metaKeywords ||
+    form.logoScale !== saved.logoScale
   );
 }
 
@@ -444,16 +460,106 @@ function SerpPreview({
   );
 }
 
+const LOGO_CHECKERBOARD: CSSProperties = {
+  backgroundColor: "#ececec",
+  backgroundImage:
+    "linear-gradient(45deg, #d4d4d4 25%, transparent 25%), linear-gradient(-45deg, #d4d4d4 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #d4d4d4 75%), linear-gradient(-45deg, transparent 75%, #d4d4d4 75%)",
+  backgroundSize: "12px 12px",
+  backgroundPosition: "0 0, 0 6px, 6px -6px, -6px 0",
+};
+
+function LogoSizeControls({
+  scale,
+  accent,
+  onChange,
+}: {
+  scale: number;
+  accent: string;
+  onChange: (next: number) => void;
+}) {
+  const clamped = clampBrandingLogoScale(scale);
+  const pct = Math.round(clamped * 100);
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <label htmlFor="branding-logo-scale" className={labelClass()}>
+          Logo size
+        </label>
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {pct}%
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-8 shrink-0"
+          disabled={clamped <= BRANDING_LOGO_SCALE_MIN}
+          aria-label="Make logo smaller"
+          onClick={() =>
+            onChange(clampBrandingLogoScale(clamped - BRANDING_LOGO_SCALE_STEP))
+          }
+        >
+          <Minus className="size-3.5" aria-hidden />
+        </Button>
+        <input
+          id="branding-logo-scale"
+          type="range"
+          min={BRANDING_LOGO_SCALE_MIN}
+          max={BRANDING_LOGO_SCALE_MAX}
+          step={BRANDING_LOGO_SCALE_STEP}
+          value={clamped}
+          onChange={(e) =>
+            onChange(clampBrandingLogoScale(Number(e.target.value)))
+          }
+          className="h-2 min-w-0 flex-1 cursor-pointer"
+          style={{ accentColor: accent }}
+          aria-valuetext={`${pct} percent`}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-8 shrink-0"
+          disabled={clamped >= BRANDING_LOGO_SCALE_MAX}
+          aria-label="Make logo larger"
+          onClick={() =>
+            onChange(clampBrandingLogoScale(clamped + BRANDING_LOGO_SCALE_STEP))
+          }
+        >
+          <Plus className="size-3.5" aria-hidden />
+        </Button>
+      </div>
+      <p className={hintClass()}>
+        Drag until the mark sits right in the header. A white box around it
+        fights the bar — cut the background at{" "}
+        <a
+          href="https://www.remove.bg/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
+        >
+          remove.bg
+        </a>
+        , then upload the PNG.
+      </p>
+    </div>
+  );
+}
+
 function BrandingPreview({
   form,
   logoUrl,
   business,
   location,
+  onLogoScaleChange,
 }: {
   form: FormState;
   logoUrl: string | null | undefined;
   business: BusinessRecord | null;
   location: StorefrontSeoLocation;
+  onLogoScaleChange: (next: number) => void;
 }) {
   const display = form.displayName.trim() || "Your storefront";
   const primary = HEX_REGEX.test(form.primaryColor)
@@ -463,6 +569,7 @@ function BrandingPreview({
     ? form.accentColor
     : DEFAULT_ACCENT;
   const faviconPreview = form.faviconUrl.trim() || null;
+  const hasLogo = Boolean(logoUrl?.trim());
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/20 p-5 shadow-sm sm:p-6">
@@ -476,26 +583,51 @@ function BrandingPreview({
           Approximates your public shop header.
         </p>
         <div
-          className="mt-4 rounded-xl border-2 bg-background/80 p-4 shadow-inner backdrop-blur-sm"
-          style={{ borderColor: `${primary}55` }}
+          className="mt-4 overflow-visible rounded-xl border-2 bg-background/80 p-4 shadow-inner backdrop-blur-sm"
+          style={{
+            borderColor: `${primary}55`,
+            ...storefrontLogoScaleVarStyle(form.logoScale),
+          }}
         >
           <div className="flex flex-wrap items-center gap-3">
-            <TenantLogo
-              brand={display}
-              logoUrl={logoUrl}
-              faviconUrl={faviconPreview}
-              primaryColor={primary}
-              variant="preview"
-              tagline="Header + favicon as shoppers see them"
-              className="flex-1 min-w-0"
-            />
+            {hasLogo ? (
+              <div
+                className="inline-flex max-w-full items-center justify-center rounded-md px-2 py-1.5"
+                style={LOGO_CHECKERBOARD}
+              >
+                <TenantLogo
+                  brand={display}
+                  logoUrl={logoUrl}
+                  primaryColor={primary}
+                  variant="storefront"
+                  size="md"
+                />
+              </div>
+            ) : (
+              <TenantLogo
+                brand={display}
+                logoUrl={logoUrl}
+                faviconUrl={faviconPreview}
+                primaryColor={primary}
+                variant="preview"
+                tagline="Header + favicon as shoppers see them"
+                className="min-w-0 flex-1"
+              />
+            )}
             <span
-              className="rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm shrink-0"
+              className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
               style={{ backgroundColor: accent }}
             >
               Sale
             </span>
           </div>
+          {hasLogo ? (
+            <LogoSizeControls
+              scale={form.logoScale}
+              accent={accent}
+              onChange={onLogoScaleChange}
+            />
+          ) : null}
         </div>
       </div>
       <SerpPreview form={form} business={business} location={location} />
@@ -1561,6 +1693,9 @@ export default function BrandingPage() {
               logoUrl={logoUrl}
               business={snapshot}
               location={seoLocation}
+              onLogoScaleChange={(logoScale) =>
+                setForm((s) => ({ ...s, logoScale }))
+              }
             />
             <RelatedLinks />
           </aside>

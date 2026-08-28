@@ -130,9 +130,9 @@
 .logoImg {
   display: block;
   height: auto;
-  max-height: 64px;
+  max-height: calc(64px * var(--storefront-logo-scale, 1));
   width: auto;
-  max-width: min(280px, 58vw);
+  max-width: calc(min(280px, 58vw) * var(--storefront-logo-scale, 1));
   object-fit: contain;
 }
 
@@ -327,8 +327,8 @@
   }
 
   .logoImg {
-    max-height: 72px;
-    max-width: min(340px, 42vw);
+    max-height: calc(72px * var(--storefront-logo-scale, 1));
+    max-width: calc(min(340px, 42vw) * var(--storefront-logo-scale, 1));
   }
 
   .headerActions {

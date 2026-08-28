@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
 
 import {
+  brandingLogoScaleCss,
+  STOREFRONT_LOGO_SCALE_VAR,
+} from "@/lib/branding-logo-scale";
+import {
   STOREFRONT_DENSITY_SCALE,
   STOREFRONT_RADIUS_TOKENS,
   resolveStorefrontDesign,
@@ -66,6 +70,7 @@ const THEME_VAR_KEYS = [
   "--sf-button-radius",
   "--sf-control-radius",
   "--sf-density",
+  STOREFRONT_LOGO_SCALE_VAR,
 ] as const;
 
 /**
@@ -76,8 +81,14 @@ export function applyStorefrontThemeToDocument(
   primaryHex?: string | null,
   accentHex?: string | null,
   design?: StorefrontDesign | null,
+  logoScale?: number | null,
 ): () => void {
-  const vars = buildStorefrontThemeVars(primaryHex, accentHex, design);
+  const vars = buildStorefrontThemeVars(
+    primaryHex,
+    accentHex,
+    design,
+    logoScale,
+  );
   if (!vars) {
     return () => {};
   }
@@ -110,6 +121,7 @@ export function buildStorefrontThemeVars(
   primaryHex?: string | null,
   accentHex?: string | null,
   design?: StorefrontDesign | null,
+  logoScale?: number | null,
 ): CSSProperties | undefined {
   const primary = parseStorefrontHex(primaryHex);
   const resolved = resolveStorefrontDesign(design);
@@ -151,6 +163,7 @@ export function buildStorefrontThemeVars(
   vars["--sf-button-radius"] = STOREFRONT_RADIUS_TOKENS[resolved.radius].button;
   vars["--sf-control-radius"] = STOREFRONT_RADIUS_TOKENS[resolved.radius].control;
   vars["--sf-density"] = String(STOREFRONT_DENSITY_SCALE[resolved.density]);
+  vars[STOREFRONT_LOGO_SCALE_VAR] = brandingLogoScaleCss(logoScale);
 
   if (Object.keys(vars).length === 0) {
     return undefined;

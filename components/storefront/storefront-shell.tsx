@@ -135,6 +135,7 @@ export async function StorefrontShell({
       primaryHex={primary}
       accentHex={accent}
       design={designOverride ?? tenant?.design ?? null}
+      logoScale={tenant?.branding?.logoScale}
       className={cn(
         "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[oklch(0.985_0.002_90)] dark:bg-background",
         chromeVariant === "dark" && "bg-stone-950 dark:bg-stone-950",
