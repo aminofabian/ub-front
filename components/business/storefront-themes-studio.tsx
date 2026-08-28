@@ -96,6 +96,7 @@ export function StorefrontThemesStudio({
   const [catalogTokens, setCatalogTokens] = useState<string[]>([]);
   const [tryOnScreen, setTryOnScreen] = useState<ThemeTryOnScreen>("home");
   const openedAtRef = useRef(Date.now());
+  const shortlistCandidateRef = useRef<string | null>(null);
 
   const landingWhatsapp =
     business?.storefront?.landingContent?.whatsapp?.trim() || "";
@@ -265,9 +266,7 @@ export function StorefrontThemesStudio({
         setLandingTemplateId(normalizeLandingTemplateId(id));
       }
       trackStorefrontEditEvent("themes_try_on", { id, source, mode });
-      if (source === "shortlist") {
-        trackStorefrontEditEvent("themes_shortlist_accepted", { id, mode });
-      }
+      shortlistCandidateRef.current = source === "shortlist" ? id : null;
     },
     [landingWhatsapp, mode],
   );
@@ -313,6 +312,12 @@ export function StorefrontThemesStudio({
         elapsed_ms: Date.now() - openedAtRef.current,
         mode,
       });
+      if (shortlistCandidateRef.current === selectedId) {
+        trackStorefrontEditEvent("themes_shortlist_accepted", {
+          id: selectedId,
+          mode,
+        });
+      }
       setFeedback(
         mode === "store"
           ? `Customers now see ${selected.name} when they open your shop.`

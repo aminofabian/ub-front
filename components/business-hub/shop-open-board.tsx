@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, ImagePlus, Plus, User } from "lucide-react";
 
 import { ThemeTryOnPhone } from "@/components/business/theme-try-on-phone";
+import { useThemeTryOnProducts } from "@/hooks/use-theme-try-on-products";
 import { APP_ROUTES } from "@/lib/config";
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
 import {
@@ -24,6 +25,7 @@ type Props = {
   brandPrimary?: string | null;
   hours?: string | null;
   address?: string | null;
+  currency?: string | null;
   shopEnabled: boolean;
   canManageStorefront: boolean;
   canListUsers: boolean;
@@ -39,6 +41,7 @@ export function ShopOpenBoard({
   brandPrimary,
   hours,
   address,
+  currency,
   shopEnabled,
   canManageStorefront,
   canListUsers,
@@ -47,6 +50,10 @@ export function ShopOpenBoard({
     ? storeThemeMeta(normalizeStoreThemeId(themeId))
     : landingTemplateMeta(normalizeLandingTemplateId(landingTemplateId));
   const displayName = shopName.trim() || "Your shop";
+  const products = useThemeTryOnProducts({
+    currency,
+    enabled: canManageStorefront && shopEnabled,
+  });
 
   return (
     <section aria-label="Open the shop" className="space-y-3">
@@ -185,6 +192,8 @@ export function ShopOpenBoard({
                   logoUrl={logoUrl}
                   brandPrimary={brandPrimary}
                   landingContent={{ hours, address }}
+                  products={products}
+                  currency={currency}
                   size="sm"
                   frame="card"
                 />

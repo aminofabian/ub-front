@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { ThemeTryOnPhone } from "@/components/business/theme-try-on-phone";
+import { useThemeTryOnProducts } from "@/hooks/use-theme-try-on-products";
 import type { BusinessRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -27,6 +28,7 @@ export function CurrentLookLink({
   brandPrimary,
   hours,
   address,
+  currency,
   className,
 }: {
   enabled: boolean;
@@ -37,8 +39,10 @@ export function CurrentLookLink({
   brandPrimary?: string | null;
   hours?: string | null;
   address?: string | null;
+  currency?: string | null;
   className?: string;
 }) {
+  const products = useThemeTryOnProducts({ currency });
   const meta = enabled
     ? storeThemeMeta(normalizeStoreThemeId(storeThemeId))
     : landingTemplateMeta(normalizeLandingTemplateId(landingTemplateId));
@@ -64,6 +68,8 @@ export function CurrentLookLink({
           logoUrl={logoUrl}
           brandPrimary={brandPrimary}
           landingContent={{ hours, address }}
+          products={products}
+          currency={currency}
           size="sm"
           frame="card"
         />
@@ -106,6 +112,7 @@ export function BrandingTemplateSection({
       brandPrimary={brandPrimary ?? business?.branding?.primaryColor}
       hours={business?.storefront?.landingContent?.hours}
       address={business?.storefront?.landingContent?.address}
+      currency={business?.currency}
     />
   );
 }

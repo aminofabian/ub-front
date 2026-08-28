@@ -419,6 +419,7 @@ export default function BusinessSettingsPage() {
               focusStorefrontOnMount={focusStorefront}
               logoUrl={editor.effectiveSnapshot?.branding?.logoUrl}
               brandPrimary={editor.effectiveSnapshot?.branding?.primaryColor}
+              currency={editor.effectiveSnapshot?.currency}
               onSubmit={onSave}
               onCancel={onCancel}
               onRemoveDeliveryArea={editor.removeDeliveryArea}

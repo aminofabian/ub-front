@@ -1146,6 +1146,7 @@ export function BusinessHubWorkspace() {
                   brandPrimary={business?.branding?.primaryColor}
                   hours={business?.storefront?.landingContent?.hours}
                   address={business?.storefront?.landingContent?.address}
+                  currency={business?.currency}
                   shopEnabled={shopEnabled}
                   canManageStorefront={canManageBusinessSettings}
                   canListUsers={canListUsers}

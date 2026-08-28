@@ -144,6 +144,7 @@ export function BusinessSettingsForm({
   variant = "all",
   logoUrl,
   brandPrimary,
+  currency,
   onSubmit,
   onCancel,
   onRemoveDeliveryArea,
@@ -170,6 +171,7 @@ export function BusinessSettingsForm({
   variant?: "profile" | "all";
   logoUrl?: string | null;
   brandPrimary?: string | null;
+  currency?: string | null;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   onRemoveDeliveryArea?: (areaId: string) => void | Promise<void>;
@@ -373,6 +375,7 @@ export function BusinessSettingsForm({
                   brandPrimary={brandPrimary}
                   hours={storefront.landingHours}
                   address={storefront.landingAddress}
+                  currency={currency}
                 />
               </div>
 
