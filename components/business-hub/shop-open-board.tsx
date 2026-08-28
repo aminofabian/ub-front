@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { ArrowRight, ImagePlus, Plus, User } from "lucide-react";
 
+import { ThemeTryOnPhone } from "@/components/business/theme-try-on-phone";
 import { APP_ROUTES } from "@/lib/config";
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
-import { storeThemeMeta } from "@/lib/storefront-templates";
+import {
+  landingTemplateMeta,
+  normalizeLandingTemplateId,
+  normalizeStoreThemeId,
+  storeThemeMeta,
+} from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -13,6 +19,11 @@ type Props = {
   shopHost?: string | null;
   storefrontEnabled: boolean;
   themeId?: string | null;
+  landingTemplateId?: string | null;
+  logoUrl?: string | null;
+  brandPrimary?: string | null;
+  hours?: string | null;
+  address?: string | null;
   shopEnabled: boolean;
   canManageStorefront: boolean;
   canListUsers: boolean;
@@ -23,11 +34,18 @@ export function ShopOpenBoard({
   shopHost,
   storefrontEnabled,
   themeId,
+  landingTemplateId,
+  logoUrl,
+  brandPrimary,
+  hours,
+  address,
   shopEnabled,
   canManageStorefront,
   canListUsers,
 }: Props) {
-  const theme = storeThemeMeta(themeId);
+  const look = storefrontEnabled
+    ? storeThemeMeta(normalizeStoreThemeId(themeId))
+    : landingTemplateMeta(normalizeLandingTemplateId(landingTemplateId));
   const displayName = shopName.trim() || "Your shop";
 
   return (
@@ -148,7 +166,7 @@ export function ShopOpenBoard({
           </Link>
 
           <Link
-            href={APP_ROUTES.businessDesign}
+            href={APP_ROUTES.businessThemes}
             className={cn(
               HUB_SURFACE,
               "group flex flex-col overflow-hidden transition-colors hover:border-[#B08D48]/50",
@@ -156,32 +174,31 @@ export function ShopOpenBoard({
             )}
           >
             <span
-              className="relative flex h-[4.75rem] items-end gap-1.5 overflow-hidden px-4 pb-3 pt-4"
-              style={{
-                background: `linear-gradient(135deg, ${theme.previewFrom}, ${theme.previewTo})`,
-              }}
+              className="flex justify-center bg-[#FCFAF6] px-4 py-3"
               aria-hidden
             >
-              <span
-                className="h-8 w-7 rounded-sm opacity-90"
-                style={{ background: theme.accent }}
-              />
-              <span className="h-11 w-8 rounded-sm bg-white/70" />
-              <span
-                className="h-7 w-6 rounded-sm opacity-80"
-                style={{ background: theme.accent }}
-              />
+              <span className="w-[5.25rem] pointer-events-none sm:w-24">
+                <ThemeTryOnPhone
+                  item={look}
+                  kind={storefrontEnabled ? "store" : "landing"}
+                  storeName={displayName}
+                  logoUrl={logoUrl}
+                  brandPrimary={brandPrimary}
+                  landingContent={{ hours, address }}
+                  size="sm"
+                  frame="card"
+                />
+              </span>
             </span>
             <span className="flex flex-1 flex-col p-4">
               <span className="text-[13px] font-semibold text-[#141414]">
-                Logo, colour, look
+                {look.name}
               </span>
               <span className={cn("mt-0.5 text-[12px] leading-relaxed", HUB_MUTED)}>
-                Put your mark on the window. Change it and watch the shop
-                update.
+                This is the look on a customer&apos;s phone.
               </span>
               <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-medium text-[#8A6B2E]">
-                Open design studio
+                Change look
                 <ArrowRight
                   className="size-3.5 transition-transform group-hover:translate-x-0.5"
                   aria-hidden

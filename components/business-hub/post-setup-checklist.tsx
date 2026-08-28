@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  LayoutTemplate,
   Package,
-  Palette,
   ShoppingCart,
   Store,
   Users,
@@ -68,10 +68,10 @@ export function PostSetupChecklist({
       done: false,
     },
     {
-      href: APP_ROUTES.businessDesign,
-      label: "Logo, colour, and look",
-      desc: "Put your mark on the shop window. Change it and watch it update.",
-      icon: Palette,
+      href: APP_ROUTES.businessThemes,
+      label: "Change the look",
+      desc: "See your shop on a phone. Pick a layout that fits what you sell.",
+      icon: LayoutTemplate,
       done: false,
     },
     {

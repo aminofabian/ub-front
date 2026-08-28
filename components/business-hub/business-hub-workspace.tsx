@@ -1128,7 +1128,11 @@ export function BusinessHubWorkspace() {
             >
               {shopNotReady ? (
                 <ShopOpenBoard
-                  shopName={business?.name?.trim() || ""}
+                  shopName={
+                    business?.branding?.displayName?.trim() ||
+                    business?.name?.trim() ||
+                    ""
+                  }
                   shopHost={
                     business?.primaryDomain?.trim() ||
                     (business?.slug?.trim()
@@ -1137,6 +1141,11 @@ export function BusinessHubWorkspace() {
                   }
                   storefrontEnabled={Boolean(business?.storefront?.enabled)}
                   themeId={business?.storefront?.storeThemeId}
+                  landingTemplateId={business?.storefront?.landingTemplateId}
+                  logoUrl={business?.branding?.logoUrl}
+                  brandPrimary={business?.branding?.primaryColor}
+                  hours={business?.storefront?.landingContent?.hours}
+                  address={business?.storefront?.landingContent?.address}
                   shopEnabled={shopEnabled}
                   canManageStorefront={canManageBusinessSettings}
                   canListUsers={canListUsers}
