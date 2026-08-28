@@ -884,32 +884,41 @@ function LandingBody({
   }
 
   // coming-soon editorial
+  const peek = products.slice(0, 4);
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[0.75em] px-[1.5em] pb-[1em] pt-[0.5em] text-center">
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[0.55em] px-[1.2em] pb-[1em] pt-[0.5em] text-center">
       <p
         className="text-[0.62em] font-bold uppercase tracking-[0.2em]"
         style={{ color: skin.muted }}
       >
         Opening soon
       </p>
-      <p className="max-w-full text-[1.35em] font-bold leading-tight">
+      <p className="max-w-full text-[1.25em] font-bold leading-tight">
         {storeName || "Your shop"}
       </p>
-      <p className="max-w-full text-[0.72em] leading-snug" style={{ color: skin.muted }}>
-        A few promises on the door, and a way to reach us.
-      </p>
-      <div
-        className={cn("mt-[0.4em] w-full px-[0.9em] py-[0.7em]", card)}
-        style={{
-          backgroundColor: `color-mix(in srgb, ${skin.accent} 10%, transparent)`,
-        }}
-      >
-        <span className="text-[0.68em] font-semibold leading-none">{hoursText}</span>
-      </div>
-      <Cta skin={skin}>Message us on WhatsApp</Cta>
-      <p className="text-[0.62em] font-medium" style={{ color: skin.muted }}>
-        {addressText}
-      </p>
+      {peek.length > 0 ? (
+        <div className="mt-[0.2em] grid w-full grid-cols-2 gap-[0.28em]">
+          {peek.map((product, i) => (
+            <div
+              key={`${product.name}-${i}`}
+              className={cn("aspect-[4/3] overflow-hidden", card)}
+              style={{ backgroundColor: skin.card }}
+            >
+              <Face
+                product={product}
+                skin={skin}
+                index={i}
+                className="h-full w-full"
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="max-w-full text-[0.72em] leading-snug" style={{ color: skin.muted }}>
+          Your products will fill this door.
+        </p>
+      )}
+      <Cta skin={skin}>Notify me</Cta>
     </div>
   );
 }

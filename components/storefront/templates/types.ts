@@ -45,4 +45,15 @@ export type LandingTemplateProps = {
   accentHex?: string | null;
   landingContent?: LandingContent | null;
   templateId: string;
+  catalogItems?: PublicCatalogItemCard[];
+  featured?: PublicCatalogItemCard[];
+  categories?: PublicCategory[];
+  types?: PublicDepartment[];
+  currency?: string | null;
+  totalCount?: number | null;
+  areaLabel?: string | null;
+  announcement?: string | null;
+  deliveryAreaNames?: string[];
+  countryCode?: string | null;
+  heroFallbackUrl?: string | null;
 };

@@ -479,3 +479,32 @@
 .decoRing {
   border-color: color-mix(in srgb, var(--cs-on-dark) 14%, transparent);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .heroCell,
+  .heroEyebrow,
+  .heroTitle,
+  .heroSubtitle,
+  .heroDesc,
+  .heroChips,
+  .heroActions,
+  .heroCountdown,
+  .visualGrid,
+  .floatingTag,
+  .nav,
+  .promiseCard {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .marqueeTrack,
+  .categoriesStrip {
+    animation: none !important;
+  }
+
+  .countdownValue {
+    animation: none !important;
+  }
+}
+

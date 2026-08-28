@@ -720,14 +720,14 @@ export const LANDING_TEMPLATE_META: readonly StorefrontTemplateMeta[] = [
     id: "coming-soon-editorial",
     kind: "landing",
     name: "Coming soon editorial",
-    blurb: "A teaser on the door — we're opening, a few promises, and a button.",
+    blurb: "A teaser on the door, dressed with your products and your place.",
     previewFrom: "#FBF9F5",
     previewTo: "#E7E5E4",
     accent: "#0F766E",
     vibes: [],
     matches: ["coming", "soon", "opening", "teaser", "launch", "preview"],
     points: [
-      "A teaser on the door — we're opening, a few promises, and a button.",
+      "A teaser on the door, dressed with your products and your place.",
       "Lets you collect attention before the shop opens.",
     ],
     phone: {

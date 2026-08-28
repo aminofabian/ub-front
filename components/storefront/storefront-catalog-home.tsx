@@ -130,11 +130,44 @@ export async function StorefrontCatalogHome({
     preview.themeId ?? tenant?.storeThemeId,
   );
 
-  if (!list || preview.landingId) {
-    const storeName =
-      tenant?.branding?.displayName ?? tenant?.tenantName ?? slug;
-    const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
-    const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
+  const storeName =
+    tenant?.branding?.displayName ?? tenant?.tenantName ?? slug;
+  const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
+  const primary = isHexColor(primaryRaw) ? primaryRaw : null;
+  const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
+  const accentHex = isHexColor(accentRaw) ? accentRaw : null;
+  const logoUrl = tenant?.branding?.logoUrl ?? null;
+  const heroBannerUrls = tenant?.branding?.heroBannerUrls ?? null;
+  const categories = categoriesPayload?.categories ?? [];
+  const types =
+    storefront?.types?.length
+      ? storefront.types
+      : (typesPayload?.types ?? []);
+  const deliveryAreaNames = (storefront?.deliveryAreas ?? [])
+    .filter((area) => area.active && area.name.trim())
+    .map((area) => area.name);
+  const areaLabel = primaryStorefrontArea(tenant?.branchLocalities)
+    ?? resolveStorefrontDeliveryHint({
+      envHint: process.env.NEXT_PUBLIC_STOREFRONT_LOCATION_HINT,
+      branchLocalities: tenant?.branchLocalities,
+      deliveryAreaNames,
+      catalogBranchName: storefront?.catalogBranchName,
+    });
+  const announcement = storefront?.announcement?.trim() || null;
+  const featured: PublicCatalogItemCard[] =
+    storefront?.featured?.length && storefront.featured.length > 0
+      ? storefront.featured
+      : (list?.items.slice(0, 4) ?? []);
+  const designOverride = preview.designJson
+    ? parseStorefrontDesignJson(preview.designJson)
+    : null;
+  const design = designOverride ?? tenant?.design ?? null;
+  const showLanding =
+    tenant?.storefrontEnabled === false ||
+    Boolean(preview.landingId) ||
+    !list;
+
+  if (showLanding) {
     const Landing = resolveLandingPage(landingTemplateId);
     return (
       <>
@@ -147,49 +180,43 @@ export async function StorefrontCatalogHome({
         <Landing
           templateId={landingTemplateId}
           storeName={storeName}
-          logoUrl={tenant?.branding?.logoUrl ?? null}
-          primaryHex={isHexColor(primaryRaw) ? primaryRaw : null}
-          accentHex={isHexColor(accentRaw) ? accentRaw : null}
+          logoUrl={logoUrl}
+          primaryHex={primary}
+          accentHex={accentHex}
           landingContent={tenant?.landingContent ?? null}
+          catalogItems={list?.items ?? []}
+          featured={featured}
+          categories={categories}
+          types={types}
+          currency={list?.currency ?? storefront?.currency ?? null}
+          totalCount={list?.totalCount ?? list?.items.length ?? null}
+          areaLabel={areaLabel}
+          announcement={announcement}
+          deliveryAreaNames={deliveryAreaNames}
+          countryCode={tenant?.countryCode ?? null}
+          heroFallbackUrl={
+            design?.photos?.hero?.url?.trim() ||
+            heroBannerUrls?.[0]?.trim() ||
+            featured[0]?.imageUrl?.trim() ||
+            null
+          }
         />
         <WhatsAppLandingCta slug={slug} storeName={storeName} />
       </>
     );
   }
 
-  const categories = categoriesPayload?.categories ?? [];
-  const types =
-    storefront?.types?.length
-      ? storefront.types
-      : (typesPayload?.types ?? []);
+  if (!list) {
+    return null;
+  }
+
   const typeHeading =
     resolvedTypeId && !categoryHeading
       ? types.find((t) => t.id === resolvedTypeId)?.label?.trim()
       : undefined;
   const branchHint = storefront?.catalogBranchName;
-  const areaLabel = primaryStorefrontArea(tenant?.branchLocalities)
-    ?? resolveStorefrontDeliveryHint({
-      envHint: process.env.NEXT_PUBLIC_STOREFRONT_LOCATION_HINT,
-      branchLocalities: tenant?.branchLocalities,
-      deliveryAreaNames: (storefront?.deliveryAreas ?? [])
-        .filter((area) => area.active && area.name.trim())
-        .map((area) => area.name),
-      catalogBranchName: storefront?.catalogBranchName,
-    });
   const heroTitle =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? "Browse products";
-  const announcement = storefront?.announcement?.trim() || null;
-  const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
-  const primary = isHexColor(primaryRaw) ? primaryRaw : null;
-  const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
-  const accentHex = isHexColor(accentRaw) ? accentRaw : null;
-  const logoUrl = tenant?.branding?.logoUrl ?? null;
-  const heroBannerUrls = tenant?.branding?.heroBannerUrls ?? null;
-
-  const featured: PublicCatalogItemCard[] =
-    storefront?.featured?.length && storefront.featured.length > 0
-      ? storefront.featured
-      : list.items.slice(0, 4);
 
   const catalogItems = orderCatalogLead(list.items, featured);
 
@@ -198,13 +225,6 @@ export async function StorefrontCatalogHome({
 
   const StoreHome = resolveStoreHome(themeId);
 
-  // Unsaved draft (previewDesign) wins over the saved design.
-  const designOverride = preview.designJson
-    ? parseStorefrontDesignJson(preview.designJson)
-    : null;
-  const design = designOverride ?? tenant?.design ?? null;
-  const storeName =
-    tenant?.branding?.displayName ?? tenant?.tenantName ?? slug;
   const preSections =
     design && tenant?.storefrontEnabled
       ? storefrontSectionsInRegion(design, "pre").filter((s) => {
