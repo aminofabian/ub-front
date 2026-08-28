@@ -74,10 +74,19 @@ function splitDeliveryDetail(detail: string): {
 
 function explainMetaDetail(detail: string): string | null {
   const d = detail.toLowerCase();
+  if (
+    /api access blocked|permissions error|\[code=200\b/i.test(detail)
+  ) {
+    return "Meta blocked this app or System User from the WhatsApp Cloud API (Graph code 200). The token is not expired — it is not allowed to use this number. In Business Settings → System Users, assign full control on the WhatsApp Business Account and phone number, generate a new token with whatsapp_business_messaging and whatsapp_business_management, then paste it in Super Admin → Platform integrations. Also check developers.facebook.com: app Live (or recipient is a tester), WhatsApp permissions on Advanced Access, and App Quality / Account Quality not restricted.";
+  }
   if (/object with id|does not exist|missing permissions/i.test(detail)) {
     return "Meta phone number ID is wrong for this token, or the app lacks WhatsApp permissions. Fix Meta phone number ID / access token — this is not a RapidAPI or SMS issue.";
   }
-  if (/http_401|http_403|oauth|access token/i.test(d)) {
+  if (
+    /http_401|http_403|\[code=190\b|invalid oauth|access token has expired|expired.*access token/i.test(
+      d,
+    )
+  ) {
     return "Meta rejected the access token. Clear any tenant Meta token on Credit tab reminders, re-save a permanent System User token in Super Admin → Platform integrations, and remove a stale WHATSAPP_META_ACCESS_TOKEN from server env if present.";
   }
   if (/http_400/i.test(d) && /graph/i.test(d)) {
@@ -335,6 +344,9 @@ export function messagingTestHeadline(
     return `SMS ${r.outcome}. See details below.`;
   }
   if (variant === "whatsapp") {
+    if (/api access blocked|\[code=200\b/i.test(r.detail)) {
+      return "Meta blocked API access (permissions / app restriction). See details below.";
+    }
     if (/object with id|does not exist/i.test(r.detail)) {
       return "Meta WhatsApp send failed (phone number ID / permissions). See details below.";
     }
@@ -342,6 +354,12 @@ export function messagingTestHeadline(
   }
   if (/whatsapp_failed/i.test(r.detail) && !r.smsConfigured) {
     return "WhatsApp failed and SMS fallback is not configured. See details below.";
+  }
+  if (
+    r.channel === "whatsapp" &&
+    /api access blocked|\[code=200\b/i.test(r.detail)
+  ) {
+    return "Meta blocked API access (permissions / app restriction). See details below.";
   }
   if (r.channel === "whatsapp" && /object with id|does not exist/i.test(r.detail)) {
     return "Meta WhatsApp send failed (phone number ID / permissions). See details below.";

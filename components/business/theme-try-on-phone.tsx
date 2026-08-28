@@ -408,6 +408,65 @@ function StoreBody({
     );
   }
 
+  if (layout === "pastry") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <p
+          className="px-[0.8em] py-[0.38em] text-center text-[0.48em] font-semibold tracking-wide"
+          style={{ backgroundColor: brand, color: skin.onAccent }}
+        >
+          Call / WhatsApp
+        </p>
+        <div
+          className={cn(
+            "relative mx-[0.65em] mt-[0.35em] min-h-[7.4em] flex-1 overflow-hidden",
+            card,
+          )}
+          style={
+            heroUrl
+              ? {
+                  backgroundImage: `url(${heroUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : undefined
+          }
+        >
+          {heroUrl ? null : (
+            <Face
+              product={p0}
+              skin={skin}
+              index={0}
+              className="h-full w-full"
+            />
+          )}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to bottom, rgba(43,21,32,0.48) 0%, transparent 46%)",
+            }}
+            aria-hidden
+          />
+          <p className="absolute inset-x-[0.55em] top-[0.5em] truncate text-center text-[0.78em] font-bold leading-tight text-white">
+            {storeName || "The case"}
+          </p>
+        </div>
+        <div className="mt-[0.45em] flex justify-center gap-[0.4em] px-[0.7em] pb-[0.7em]">
+          {[p0, p1, p2].map((product, i) => (
+            <Face
+              key={i}
+              product={product}
+              skin={skin}
+              index={i}
+              className={cn("size-[2.35em] shrink-0", card)}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (layout === "shelf-row") {
     return (
       <div className="flex min-h-0 flex-1 flex-col justify-end gap-[0.5em] px-[0.7em] pb-[0.9em] pt-[0.4em]">
@@ -926,6 +985,7 @@ function productCta(layout: ThemePhoneLayout): string {
   if (layout === "hero-cut") return "Add";
   if (layout === "console") return "Dispense";
   if (layout === "poster") return "Enquire";
+  if (layout === "pastry") return "Add to bag";
   return "Add";
 }
 
@@ -936,6 +996,7 @@ function cartCta(layout: ThemePhoneLayout): string {
   if (layout === "warehouse" || layout === "slips") return "Request";
   if (layout === "editorial" || layout === "scent") return "Request";
   if (layout === "poster") return "Enquire";
+  if (layout === "pastry") return "Order";
   return "Pay";
 }
 
@@ -1039,6 +1100,32 @@ function ProductBody({
         </p>
         {price}
         <Cta skin={skin}>{cta}</Cta>
+      </div>
+    );
+  }
+
+  if (layout === "pastry") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col px-[0.85em] pb-[0.75em] pt-[0.25em]">
+        <Face
+          product={product}
+          skin={skin}
+          index={0}
+          className={cn("min-h-0 flex-1", card)}
+        />
+        <p className="mt-[0.5em] truncate text-center text-[0.78em] font-bold">
+          {name}
+        </p>
+        <div className="mt-[0.2em] flex justify-center">{price}</div>
+        <span
+          className={cn(
+            "mt-[0.45em] flex h-[1.65em] items-center justify-center text-[0.62em] font-bold",
+            RADIUS_PILL[skin.radius],
+          )}
+          style={{ backgroundColor: skin.accent, color: skin.onAccent }}
+        >
+          {cta}
+        </span>
       </div>
     );
   }
@@ -1422,6 +1509,44 @@ function CartBody({
     );
   }
 
+  if (layout === "pastry") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col px-[0.85em] pb-[0.75em] pt-[0.3em]">
+        <p
+          className="text-[0.5em] font-bold uppercase tracking-[0.16em]"
+          style={{ color: skin.accent }}
+        >
+          Your bag
+        </p>
+        {lines.map((product, i) => (
+          <div
+            key={i}
+            className="mt-[0.4em] flex items-center gap-[0.45em]"
+          >
+            <Face
+              product={product}
+              skin={skin}
+              index={i}
+              className={cn("size-[2.1em] shrink-0", card)}
+            />
+            <span className="min-w-0 flex-1 truncate text-[0.58em] font-semibold">
+              {product?.name || "A cake from the case"}
+            </span>
+          </div>
+        ))}
+        <span
+          className={cn(
+            "mt-auto flex h-[1.65em] items-center justify-center text-[0.62em] font-bold",
+            RADIUS_PILL[skin.radius],
+          )}
+          style={{ backgroundColor: skin.accent, color: skin.onAccent }}
+        >
+          {cta}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col px-[0.9em] pb-[0.75em] pt-[0.3em]">
       {lines.map((product, i) => (
@@ -1537,20 +1662,32 @@ export function ThemeTryOnPhone({
         <StatusBar />
         {kind === "store" ? (
           <>
-            <ShopHeader
-              skin={skin}
-              storeName={storeName}
-              logoUrl={logoUrl}
-              brand={brand}
-              cartLabel={
-                page === "cart"
-                  ? String(cartCount)
-                  : skin.layout === "console"
-                    ? "+"
-                    : "Cart"
-              }
-              cartActive={page === "cart"}
-            />
+            {skin.layout === "pastry" && page !== "home" ? (
+              <p
+                className="px-[0.8em] py-[0.32em] text-center text-[0.48em] font-semibold tracking-wide"
+                style={{ backgroundColor: brand, color: skin.onAccent }}
+              >
+                Call / WhatsApp
+              </p>
+            ) : null}
+            {!(skin.layout === "pastry" && page === "home") ? (
+              <ShopHeader
+                skin={skin}
+                storeName={storeName}
+                logoUrl={logoUrl}
+                brand={brand}
+                cartLabel={
+                  page === "cart"
+                    ? String(cartCount)
+                    : skin.layout === "console"
+                      ? "+"
+                      : skin.layout === "pastry"
+                        ? "Bag"
+                        : "Cart"
+                }
+                cartActive={page === "cart"}
+              />
+            ) : null}
             {page === "product" ? (
               <ProductBody
                 skin={skin}

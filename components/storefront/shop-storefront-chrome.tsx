@@ -54,6 +54,9 @@ import { PrintAtelierFlyLayer } from "@/components/storefront/templates/store/pr
 import { BlankDropHeader } from "@/components/storefront/templates/store/blank-drop-header";
 import { blankDropFontVariables } from "@/components/storefront/templates/store/blank-drop-fonts";
 import blankDropStyles from "@/components/storefront/templates/store/blank-drop.module.css";
+import { PastryCaseHeader } from "@/components/storefront/templates/store/pastry-case-header";
+import { pastryCaseFontVariables } from "@/components/storefront/templates/store/pastry-case-fonts";
+import pastryCaseStyles from "@/components/storefront/templates/store/pastry-case.module.css";
 import { SpiritsCellarHeader } from "@/components/storefront/templates/store/spirits-cellar-header";
 import { spiritsCellarFontVariables } from "@/components/storefront/templates/store/spirits-cellar-fonts";
 import spiritsCellarStyles from "@/components/storefront/templates/store/spirits-cellar.module.css";
@@ -181,7 +184,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case";
   storeThemeId?: string | null;
   /** D8: `ub.session` presence hint from `StorefrontShell` (label-only). */
   hasPresence: boolean;
@@ -217,7 +220,8 @@ export function ShopStorefrontChrome({
   const isSpiritsCellar = chromeVariant === "spirits-cellar";
   const isPrintAtelier = chromeVariant === "print-atelier";
   const isBlankDrop = chromeVariant === "blank-drop";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop;
+  const isPastryCase = chromeVariant === "pastry-case";
+  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   const restoreAttemptedRef = useRef(false);
@@ -320,6 +324,11 @@ export function ShopStorefrontChrome({
                     ? ({
                         ["--bd-ink" as string]: primaryHex || "#000000",
                       } as CSSProperties)
+                    : isPastryCase
+                      ? ({
+                          ["--pc-frost" as string]: primaryHex || "#E56BA4",
+                          ["--pc-ink" as string]: "#2B1520",
+                        } as CSSProperties)
         : undefined;
 
   return (
@@ -415,6 +424,13 @@ export function ShopStorefrontChrome({
               blankDropFontVariables,
               "[--storefront-paper:#FFFFFF]",
             ),
+          isPastryCase &&
+            cn(
+              pastryCaseStyles.root,
+              pastryCaseStyles.body,
+              pastryCaseFontVariables,
+              "[--storefront-paper:#FFFBFC]",
+            ),
           isChemLab &&
             cn(
               chemLabStyles.root,
@@ -492,6 +508,17 @@ export function ShopStorefrontChrome({
       {isBlankDrop && !compactChrome ? (
         <Suspense fallback={null}>
           <BlankDropHeader slug={slug} storeName={headerTitle} logoUrl={logoUrl} />
+        </Suspense>
+      ) : null}
+      {isPastryCase && !compactChrome ? (
+        <Suspense fallback={null}>
+          <PastryCaseHeader
+            slug={slug}
+            storeName={headerTitle}
+            logoUrl={logoUrl}
+            announcement={announcement}
+            whatsapp={whatsappNumber}
+          />
         </Suspense>
       ) : null}
       {isChemLab && !compactChrome ? (

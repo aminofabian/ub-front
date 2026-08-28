@@ -17,6 +17,7 @@ import { MartStoreHome } from "@/components/storefront/templates/store/mart-home
 import { MilkRunStoreHome } from "@/components/storefront/templates/store/milk-run-home";
 import { OxideStoreHome } from "@/components/storefront/templates/store/oxide-home";
 import { PrintAtelierStoreHome } from "@/components/storefront/templates/store/print-atelier-home";
+import { PastryCaseStoreHome } from "@/components/storefront/templates/store/pastry-case-home";
 import { ScentStoryStoreHome } from "@/components/storefront/templates/store/scent-story-home";
 import { SpiritsCellarStoreHome } from "@/components/storefront/templates/store/spirits-cellar-home";
 import { TintLabStoreHome } from "@/components/storefront/templates/store/tint-lab-home";
@@ -48,6 +49,7 @@ const STORE_HOMES: Record<
   "chem-lab": ChemLabStoreHome,
   "print-atelier": PrintAtelierStoreHome,
   "blank-drop": BlankDropStoreHome,
+  "pastry-case": PastryCaseStoreHome,
 };
 
 const LANDING_PAGES: Record<
@@ -78,7 +80,8 @@ export type StoreChromeVariant =
   | "chem-lab"
   | "spirits-cellar"
   | "print-atelier"
-  | "blank-drop";
+  | "blank-drop"
+  | "pastry-case";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -120,6 +123,8 @@ export function resolveStoreChromeVariant(
       return "print-atelier";
     case "blank-drop":
       return "blank-drop";
+    case "pastry-case":
+      return "pastry-case";
     default:
       return "default";
   }

@@ -11,6 +11,7 @@ import {
 } from "@/components/storefront/shop-item-variant-picker";
 import { PrintAtelierProduct } from "@/components/storefront/templates/store/print-atelier-product";
 import { BlankDropProduct } from "@/components/storefront/templates/store/blank-drop-product";
+import { PastryCaseProduct } from "@/components/storefront/templates/store/pastry-case-product";
 import { APP_ROUTES } from "@/lib/config";
 import {
   formatStoreQty,
@@ -35,6 +36,9 @@ export function ShopProductDetailView({
   }
   if (theme === "blank-drop") {
     return <BlankDropProduct slug={slug} item={item} />;
+  }
+  if (theme === "pastry-case") {
+    return <PastryCaseProduct slug={slug} item={item} />;
   }
 
   const variantOptions = mergeVariantOptions(item);

@@ -329,6 +329,26 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
       ],
     },
   ],
+  "pastry-case": [
+    {
+      key: "icing",
+      label: "Icing tone",
+      hint: "The frosting bar when you have not set a brand colour",
+      type: "select",
+      var: "--pc-frost",
+      default: "rose",
+      values: {
+        rose: "#e56ba4",
+        blush: "#f3a0c2",
+        berry: "#c23d7a",
+      },
+      options: [
+        { value: "rose", label: "Rose", swatch: "#e56ba4" },
+        { value: "blush", label: "Blush", swatch: "#f3a0c2" },
+        { value: "berry", label: "Berry", swatch: "#c23d7a" },
+      ],
+    },
+  ],
   "butcher-board": [
     {
       key: "frame",

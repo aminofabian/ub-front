@@ -19,7 +19,8 @@ export type StoreThemeId =
   | "carbon-desk"
   | "chem-lab"
   | "print-atelier"
-  | "blank-drop";
+  | "blank-drop"
+  | "pastry-case";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -55,6 +56,7 @@ export type ThemePhoneLayout =
   | "console"
   | "poster"
   | "sparse"
+  | "pastry"
   | "coming-soon"
   | "noticeboard"
   | "market-stall"
@@ -133,6 +135,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "chem-lab",
   "print-atelier",
   "blank-drop",
+  "pastry-case",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -154,6 +157,7 @@ export const STORE_THEME_VIBES = [
   "Spirits",
   "Pharmacy",
   "Industrial & office",
+  "Bakery",
   "Minimal",
 ] as const;
 
@@ -664,6 +668,49 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
       onAccent: "#FFFFFF",
       radius: "sharp",
       font: "mono",
+    },
+  },
+  {
+    id: "pastry-case",
+    kind: "store",
+    name: "Pastry case",
+    blurb:
+      "A cake-shop window — frosting bar, photo hero, collections, then cakes in a grid.",
+    previewFrom: "#FFFBFC",
+    previewTo: "#E56BA4",
+    accent: "#E56BA4",
+    vibes: ["Bakery"],
+    matches: [
+      "bakery",
+      "baker",
+      "pastry",
+      "cakes",
+      "cupcake",
+      "birthday",
+      "icing",
+      "frosting",
+      "dessert",
+      "confection",
+      "patisserie",
+      "bento",
+      "wedding cake",
+      "cake shop",
+    ],
+    points: [
+      "A cake-shop window — frosting bar, a photo hero, then collections.",
+      "Your brand colour becomes the icing on the bar and buttons.",
+      "Built for bakeries, birthday cakes, and same-day orders.",
+    ],
+    phone: {
+      layout: "pastry",
+      surface: "#FFFBFC",
+      ink: "#2B1520",
+      muted: "#6B4A58",
+      card: "#FFFFFF",
+      accent: "#E56BA4",
+      onAccent: "#FFFFFF",
+      radius: "round",
+      font: "sans",
     },
   },
 ];

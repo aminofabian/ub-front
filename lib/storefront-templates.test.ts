@@ -40,13 +40,19 @@ describe("theme recommendation", () => {
     ).toBe("butcher-board");
   });
 
-  test("perfume in the catalogue ranks scent story", () => {
-    expect(
-      recommendStoreThemeId({
-        name: "House",
-        catalog: ["Perfume"],
-      }),
-    ).toBe("scent-story");
+  test("bakery and cake shop names pick pastry case", () => {
+    expect(recommendStoreThemeId({ name: "Mama Njeri Bakery" })).toBe(
+      "pastry-case",
+    );
+    expect(recommendStoreThemeId({ name: "Ruaka Cake Shop" })).toBe(
+      "pastry-case",
+    );
+  });
+
+  test("pancake stall is not pastry case", () => {
+    expect(recommendStoreThemeId({ name: "Pancake Stall" })).not.toBe(
+      "pastry-case",
+    );
   });
 
   test("landing scorer picks a butcher closed-sign", () => {
