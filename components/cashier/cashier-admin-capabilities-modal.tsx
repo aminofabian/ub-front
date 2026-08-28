@@ -113,11 +113,12 @@ export function CashierAdminCapabilitiesModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        side="center"
-        className="max-w-md gap-0 overflow-hidden p-0"
+        side="right"
+        overlayClassName="bg-black/45 backdrop-blur-[3px] dark:bg-black/55"
+        className="gap-0 overflow-hidden p-0"
         style={brandTheme}
       >
-        <div className="border-b border-border/40 px-4 py-4">
+        <div className="shrink-0 border-b border-border/40 px-4 py-4 pr-12">
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Settings2 className="size-4 text-[var(--pos-primary)]" />
@@ -133,7 +134,7 @@ export function CashierAdminCapabilitiesModal({
           </DialogHeader>
         </div>
 
-        <div className="max-h-[min(70dvh,28rem)] space-y-3 overflow-y-auto px-4 py-4">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
           <label
             className={cn(
               "flex cursor-pointer items-start gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-3",
@@ -377,7 +378,7 @@ export function CashierAdminCapabilitiesModal({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border/40 px-4 py-3">
+        <DialogFooter className="shrink-0 flex-row justify-end gap-2 border-t border-border/40 px-4 py-3">
           <Button
             type="button"
             variant="ghost"

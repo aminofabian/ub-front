@@ -1623,25 +1623,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             ) : null}
             {posShiftLinks?.branchSelected && !posShiftLinks.shiftLoading ? (
               <div className="ml-1 flex flex-wrap items-center gap-1 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] pl-2.5 dark:border-border/50">
-                {posShiftLinks.hasOpenShift &&
-                (posShiftLinks.openedByLabel || posShiftLinks.tillLabel) ? (
-                  <span
-                    className="max-w-[11rem] truncate px-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground"
-                    title={[posShiftLinks.tillLabel, posShiftLinks.openedByLabel]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  >
-                    {posShiftLinks.tillLabel
-                      ? `${posShiftLinks.tillLabel}`
-                      : null}
-                    {posShiftLinks.tillLabel && posShiftLinks.openedByLabel
-                      ? " · "
-                      : null}
-                    {posShiftLinks.openedByLabel
-                      ? `Opened by ${posShiftLinks.openedByLabel}`
-                      : null}
-                  </span>
-                ) : null}
                 {posShiftLinks.canDrawout && posShiftLinks.hasOpenShift ? (
                   <button
                     type="button"
