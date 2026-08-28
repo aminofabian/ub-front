@@ -29,6 +29,7 @@ type CashierAdminCapabilitiesModalProps = {
   addPhotoEnabled: boolean;
   orderPadEnabled: boolean;
   orderConfirmEnabled: boolean;
+  drawoutEnabled: boolean;
   catalogHybridEnabled: boolean;
   branchId?: string | null;
   onSaved: () => Promise<void> | void;
@@ -44,6 +45,7 @@ export function CashierAdminCapabilitiesModal({
   addPhotoEnabled,
   orderPadEnabled,
   orderConfirmEnabled,
+  drawoutEnabled,
   catalogHybridEnabled,
   branchId = null,
   onSaved,
@@ -54,6 +56,7 @@ export function CashierAdminCapabilitiesModal({
   const [addPhoto, setAddPhoto] = useState(addPhotoEnabled);
   const [orderPad, setOrderPad] = useState(orderPadEnabled);
   const [orderConfirm, setOrderConfirm] = useState(orderConfirmEnabled);
+  const [drawout, setDrawout] = useState(drawoutEnabled);
   const [catalogHybrid, setCatalogHybrid] = useState(catalogHybridEnabled);
   const [saving, setSaving] = useState(false);
   const { preferred, setTemplate } = useCashierTemplate(branchId);
@@ -66,6 +69,7 @@ export function CashierAdminCapabilitiesModal({
     setAddPhoto(addPhotoEnabled);
     setOrderPad(orderPadEnabled);
     setOrderConfirm(orderConfirmEnabled);
+    setDrawout(drawoutEnabled);
     setCatalogHybrid(catalogHybridEnabled);
   }, [
     open,
@@ -75,6 +79,7 @@ export function CashierAdminCapabilitiesModal({
     addPhotoEnabled,
     orderPadEnabled,
     orderConfirmEnabled,
+    drawoutEnabled,
     catalogHybridEnabled,
   ]);
 
@@ -89,6 +94,7 @@ export function CashierAdminCapabilitiesModal({
           posCashierAddPhoto: addPhoto,
           posCashierOrderPad: orderPad,
           posCashierOrderConfirm: orderConfirm,
+          posCashierDrawout: drawout,
           posCatalogHybrid: catalogHybrid,
         },
       });
@@ -118,11 +124,11 @@ export function CashierAdminCapabilitiesModal({
               Till settings
             </DialogTitle>
             <DialogDescription className="text-xs leading-relaxed">
-              Allow cashiers on this business to edit prices, add products, or
-              mark items as weighted from the POS. Photo upload is for owners
-              and admins only. Managers with pricing/catalog permissions always
-              can use the cashier tools that match their permissions. Order pad
-              and Confirm still require the matching permissions.
+              Allow cashiers on this business to edit prices, add products, record
+              drawouts, or mark items as weighted from the POS. Photo upload is for
+              owners and admins only. Managers with pricing/catalog permissions
+              always can use the cashier tools that match their permissions. Order
+              pad and Confirm still require the matching permissions.
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -257,6 +263,29 @@ export function CashierAdminCapabilitiesModal({
               <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
                 Full-screen drawer to receive Path A purchase orders. Flag:{" "}
                 {POS_CASHIER_CAPABILITY_FLAGS.orderConfirm}
+              </span>
+            </span>
+          </label>
+
+          <label
+            className={cn(
+              "flex cursor-pointer items-start gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-3",
+            )}
+          >
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 accent-[var(--pos-primary)]"
+              checked={drawout}
+              onChange={(e) => setDrawout(e.target.checked)}
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground">
+                Allow cashiers to record drawouts
+              </span>
+              <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                Cashiers can pull cash from an open till. Larger amounts still
+                need manager approval. Flag:{" "}
+                {POS_CASHIER_CAPABILITY_FLAGS.drawout}
               </span>
             </span>
           </label>

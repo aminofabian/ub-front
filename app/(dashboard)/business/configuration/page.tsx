@@ -161,6 +161,7 @@ export default function BusinessConfigurationPage() {
       editor.cashierCapabilities.addPhoto,
       editor.cashierCapabilities.orderPad,
       editor.cashierCapabilities.orderConfirm,
+      editor.cashierCapabilities.drawout,
       editor.cashierCapabilities.catalogHybrid,
       editor.posDrafts.enabled,
       editor.posDrafts.uiVisible,

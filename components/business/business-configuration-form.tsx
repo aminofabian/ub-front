@@ -878,6 +878,17 @@ export function BusinessConfigurationForm({
               title="Confirm orders on the till"
               description="Show a full-screen Confirm drawer to receive Path A purchase orders from cashier."
             />
+            <PolicySwitch
+              checked={cashierCapabilities.drawout}
+              onChange={(checked) =>
+                setCashierCapabilities((previous) => ({
+                  ...previous,
+                  drawout: checked,
+                }))
+              }
+              title="Allow cashiers to record drawouts"
+              description="Cashiers can pull cash from an open till. Larger amounts still need manager approval."
+            />
           </div>
           <div className="mt-3 space-y-2 border-t border-[color-mix(in_srgb,var(--foreground)_8%,transparent)] pt-3">
             <p className="text-xs font-medium text-foreground">

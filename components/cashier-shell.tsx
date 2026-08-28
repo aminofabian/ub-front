@@ -349,6 +349,9 @@ export function CashierShell({ children }: CashierShellProps) {
           orderConfirmEnabled={
             featureFlags[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false
           }
+          drawoutEnabled={
+            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.drawout] === true
+          }
           catalogHybridEnabled={
             featureFlags[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true
           }

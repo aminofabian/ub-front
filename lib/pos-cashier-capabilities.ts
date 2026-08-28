@@ -15,6 +15,11 @@ export const POS_CASHIER_CAPABILITY_FLAGS = {
    * even when the user has Path A purchasing permission.
    */
   orderConfirm: "pos.cashier_order_confirm",
+  /**
+   * Allow cashiers to record cash drawouts from an open till.
+   * Absent / false keeps drawout for owners, admins, and managers only.
+   */
+  drawout: "pos.cashier_drawout",
   /** Auto-add scanned barcodes straight to cart (skip search) when the
    * barcode resolves to exactly one sellable product. */
   scanToCart: "pos.scan_to_cart",
@@ -34,4 +39,22 @@ export function posCatalogModeFromFlags(
   return featureFlags?.[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true
     ? "hybrid"
     : "grid";
+}
+
+/** Roles that sell from the till as a cashier (not owner / admin / manager). */
+export function isTillCashierRole(roleKey: string | null | undefined): boolean {
+  const key = roleKey?.trim().toLowerCase() ?? "";
+  return key === "cashier" || key === "butcher_cashier";
+}
+
+/**
+ * Owners, admins, and managers may always record drawouts.
+ * Cashiers need `pos.cashier_drawout` enabled in till settings.
+ */
+export function cashierMayRecordDrawout(
+  featureFlags: Record<string, boolean> | null | undefined,
+  roleKey: string | null | undefined,
+): boolean {
+  if (!isTillCashierRole(roleKey)) return true;
+  return featureFlags?.[POS_CASHIER_CAPABILITY_FLAGS.drawout] === true;
 }

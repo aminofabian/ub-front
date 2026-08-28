@@ -146,6 +146,7 @@ export type CashierPosShiftLinksProps = {
   shiftLoading: boolean;
   canOpenShift: boolean;
   canCloseShift: boolean;
+  canDrawout: boolean;
   /** Who opened the live till shift (for chip label). */
   openedByLabel?: string | null;
   tillLabel?: string | null;
@@ -1641,7 +1642,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       : null}
                   </span>
                 ) : null}
-                {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
+                {posShiftLinks.canDrawout && posShiftLinks.hasOpenShift ? (
                   <button
                     type="button"
                     onClick={() => posShiftLinks.onShortcut("new-drawout")}

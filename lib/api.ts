@@ -1265,6 +1265,8 @@ export type FeatureFlagsPatchPayload = {
   posCashierAddPhoto?: boolean;
   posCashierOrderPad?: boolean;
   posCashierOrderConfirm?: boolean;
+  /** Allow cashiers to record cash drawouts from an open till. */
+  posCashierDrawout?: boolean;
   /** Search-first hybrid POS catalog (list + chips). Absent / false = grid. */
   posCatalogHybrid?: boolean;
   shiftsPrefillOpeningFromLastClose?: boolean;

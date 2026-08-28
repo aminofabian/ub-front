@@ -56,7 +56,10 @@ import {
   stkPhoneLookupVariants,
 } from "@/lib/stk-phone";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import {
+  cashierMayRecordDrawout,
+  POS_CASHIER_CAPABILITY_FLAGS,
+} from "@/lib/pos-cashier-capabilities";
 import {
   shouldListenOnPos,
   tillListenFromFlags,
@@ -4218,6 +4221,9 @@ export function QuickSaleWorkspace({
     (!branchOpenShift ||
       shiftOpenedByMe ||
       !isBranchLockedRole(me?.role?.key));
+  const canDrawout =
+    canCloseThisShift &&
+    cashierMayRecordDrawout(featureFlags, me?.role?.key);
 
   const refetchBranchOpenShift = useCallback(() => {
     if (!branchId?.trim() || !online) {
@@ -4269,11 +4275,11 @@ export function QuickSaleWorkspace({
       }
       if (action === "close-shift") {
         setCloseShiftModal(true);
-      } else {
+      } else if (canDrawout) {
         setDrawoutModal(true);
       }
     },
-    [branchOpenShift],
+    [branchOpenShift, canDrawout],
   );
 
   const currency = business?.currency?.trim() ?? "";
@@ -4415,6 +4421,7 @@ export function QuickSaleWorkspace({
                 shiftLoading: branchShiftLoading,
                 canOpenShift,
                 canCloseShift: canCloseThisShift,
+                canDrawout,
                 openedByLabel: branchOpenShift
                   ? branchOpenShift.openedByName ||
                     (shiftOpenedByMe ? "You" : null)

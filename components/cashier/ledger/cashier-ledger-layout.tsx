@@ -938,16 +938,18 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               ) : null}
               {posShiftLinks?.canCloseShift && posShiftLinks.hasOpenShift ? (
                 <>
-                  <button
-                    type="button"
-                    className={MORE_CHIP}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      posShiftLinks.onShortcut("new-drawout");
-                    }}
-                  >
-                    <Wallet className="size-3.5" aria-hidden /> Drawout
-                  </button>
+                  {posShiftLinks.canDrawout ? (
+                    <button
+                      type="button"
+                      className={MORE_CHIP}
+                      onClick={() => {
+                        setMoreOpen(false);
+                        posShiftLinks.onShortcut("new-drawout");
+                      }}
+                    >
+                      <Wallet className="size-3.5" aria-hidden /> Drawout
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className={MORE_CHIP}

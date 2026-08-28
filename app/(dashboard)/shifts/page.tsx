@@ -57,7 +57,9 @@ import {
   type ShiftRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { cashierMayRecordDrawout } from "@/lib/pos-cashier-capabilities";
 import { cn } from "@/lib/utils";
+import { useFeatureFlags } from "@/components/providers/tenant-provider";
 
 import {
   KES_DENOMINATIONS,
@@ -1663,6 +1665,7 @@ function ShiftDetail({
 
 export default function ShiftsPage() {
   const { me } = useDashboard();
+  const featureFlags = useFeatureFlags();
   const canOpen = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canClose = hasPermission(me?.permissions, Permission.ShiftsClose);
   const canRead = hasPermission(me?.permissions, Permission.ShiftsRead);
@@ -1675,6 +1678,8 @@ export default function ShiftsPage() {
     Permission.ShiftsDrawoutsApprove,
   );
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const canRecordDrawout =
+    canClose && cashierMayRecordDrawout(featureFlags, roleKey);
   const allowed = canOpen || canClose || canRead;
 
   // Data
@@ -1965,7 +1970,7 @@ export default function ShiftsPage() {
         setCurrentOpenShift(s);
         if (action === "close-shift") {
           setCloseModal(true);
-        } else if (action === "new-drawout") {
+        } else if (action === "new-drawout" && canRecordDrawout) {
           setDrawoutModal(true);
         }
       } catch {
@@ -1974,7 +1979,7 @@ export default function ShiftsPage() {
         clearQuery();
       }
     })();
-  }, [allowed, searchParams, canOpen, canClose, router, isBranchLockedRole, me?.branchId]);
+  }, [allowed, searchParams, canOpen, canClose, canRecordDrawout, router, isBranchLockedRole, me?.branchId]);
 
   const handleShiftOpened = useCallback(
     (shift: ShiftRecord) => {
@@ -2117,7 +2122,7 @@ export default function ShiftsPage() {
             </span>
           </p>
           <div className="ml-auto flex items-center gap-2">
-            {canClose ? (
+            {canRecordDrawout ? (
               <>
                 <Button
                   type="button"
@@ -2138,6 +2143,16 @@ export default function ShiftsPage() {
                   Close shift
                 </Button>
               </>
+            ) : canClose ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                className="rounded-none"
+                onClick={() => setCloseModal(true)}
+              >
+                Close shift
+              </Button>
             ) : null}
           </div>
         </section>
@@ -2186,7 +2201,7 @@ export default function ShiftsPage() {
                     Open shift
                   </Button>
                 ) : null}
-                {currentOpenShift && canClose ? (
+                {currentOpenShift && canRecordDrawout ? (
                   <Button
                     type="button"
                     size="sm"

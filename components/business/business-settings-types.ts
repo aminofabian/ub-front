@@ -90,6 +90,8 @@ export type CashierCapabilitiesForm = {
   addPhoto: boolean;
   orderPad: boolean;
   orderConfirm: boolean;
+  /** Cashiers may record cash drawouts from an open till. */
+  drawout: boolean;
   /** Search-first list catalog on POS (vs classic product grid). */
   catalogHybrid: boolean;
 };
@@ -106,6 +108,8 @@ export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
   addPhoto: false,
   orderPad: true,
   orderConfirm: true,
+  /** Default off — cash leaving the till is opt-in for cashiers. */
+  drawout: false,
   /** Default off — keep classic grid for existing grocery tills. */
   catalogHybrid: false,
 };
@@ -126,6 +130,7 @@ export function cashierCapabilitiesFromRecord(
     addPhoto: ff[POS_CASHIER_CAPABILITY_FLAGS.addPhoto] === true,
     orderPad: ff[POS_CASHIER_CAPABILITY_FLAGS.orderPad] !== false,
     orderConfirm: ff[POS_CASHIER_CAPABILITY_FLAGS.orderConfirm] !== false,
+    drawout: ff[POS_CASHIER_CAPABILITY_FLAGS.drawout] === true,
     catalogHybrid: ff[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true,
   };
 }
