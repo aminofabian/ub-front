@@ -4,6 +4,8 @@ import {
   formatTillDeviceShortId,
   getOrCreateTillDeviceId,
   getTillDeviceLabel,
+  humanTillLabel,
+  isRawTillDeviceId,
   peekTillDeviceId,
   setTillDeviceLabel,
   tillDeviceDisplayName,
@@ -68,5 +70,19 @@ describe("till-device", () => {
     expect(getTillDeviceLabel()).toBe("Front counter");
     expect(tillDeviceDisplayName()).toBe("Front counter");
     expect(localStorage.getItem(TILL_DEVICE_LABEL_KEY)).toBe("Front counter");
+  });
+
+  it("never treats a device UUID as a till name", () => {
+    expect(
+      isRawTillDeviceId("04dd48d2-575f-4bb6-ad01-3a21efeb2260"),
+    ).toBe(true);
+    expect(humanTillLabel("04dd48d2-575f-4bb6-ad01-3a21efeb2260")).toBe(null);
+    expect(humanTillLabel("Front counter")).toBe("Front counter");
+    localStorage.setItem(
+      TILL_DEVICE_STORAGE_KEY,
+      "04dd48d2-575f-4bb6-ad01-3a21efeb2260",
+    );
+    setTillDeviceLabel("04dd48d2-575f-4bb6-ad01-3a21efeb2260");
+    expect(tillDeviceDisplayName()).toBe("Till 04dd48d2");
   });
 });

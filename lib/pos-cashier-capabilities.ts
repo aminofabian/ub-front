@@ -47,14 +47,52 @@ export function isTillCashierRole(roleKey: string | null | undefined): boolean {
   return key === "cashier" || key === "butcher_cashier";
 }
 
+export type CashierDrawoutAccess = {
+  scope?: string | null;
+  userIds?: string[] | null;
+};
+
+export type CashierDrawoutScope = "all" | "selected";
+
+export function cashierDrawoutScopeFromAccess(
+  access: CashierDrawoutAccess | null | undefined,
+): CashierDrawoutScope {
+  return access?.scope?.trim().toLowerCase() === "selected" ? "selected" : "all";
+}
+
+export function cashierDrawoutUserIdsFromAccess(
+  access: CashierDrawoutAccess | null | undefined,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of access?.userIds ?? []) {
+    const id = raw.trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
 /**
  * Owners, admins, and managers may always record drawouts.
  * Cashiers need `pos.cashier_drawout` enabled in till settings.
+ * When the allow list is "selected", only those user IDs.
  */
 export function cashierMayRecordDrawout(
   featureFlags: Record<string, boolean> | null | undefined,
   roleKey: string | null | undefined,
+  options?: {
+    userId?: string | null;
+    access?: CashierDrawoutAccess | null;
+  },
 ): boolean {
   if (!isTillCashierRole(roleKey)) return true;
-  return featureFlags?.[POS_CASHIER_CAPABILITY_FLAGS.drawout] === true;
+  if (featureFlags?.[POS_CASHIER_CAPABILITY_FLAGS.drawout] !== true) return false;
+  if (cashierDrawoutScopeFromAccess(options?.access) !== "selected") return true;
+  const userId = options?.userId?.trim() ?? "";
+  if (!userId) return false;
+  return cashierDrawoutUserIdsFromAccess(options?.access).some(
+    (id) => id.toLowerCase() === userId.toLowerCase(),
+  );
 }

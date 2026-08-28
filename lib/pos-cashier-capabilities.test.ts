@@ -37,4 +37,30 @@ describe("cashierMayRecordDrawout", () => {
       ),
     ).toBe(true);
   });
+
+  it("limits selected cashiers to the allow list", () => {
+    const flags = { [POS_CASHIER_CAPABILITY_FLAGS.drawout]: true };
+    const access = {
+      scope: "selected" as const,
+      userIds: ["agnes-id"],
+    };
+    expect(
+      cashierMayRecordDrawout(flags, "cashier", {
+        userId: "agnes-id",
+        access,
+      }),
+    ).toBe(true);
+    expect(
+      cashierMayRecordDrawout(flags, "cashier", {
+        userId: "other-id",
+        access,
+      }),
+    ).toBe(false);
+    expect(
+      cashierMayRecordDrawout(flags, "owner", {
+        userId: "owner-id",
+        access,
+      }),
+    ).toBe(true);
+  });
 });

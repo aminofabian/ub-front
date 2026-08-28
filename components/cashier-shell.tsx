@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Lock, LockKeyhole, MapPin, Settings2 } from "lucide-react";
 
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
@@ -55,6 +55,7 @@ export function CashierShell({ children }: CashierShellProps) {
   const { isLedger: tillWantsLedger } = useCashierTemplate(branchId);
   const featureFlags = useFeatureFlags();
   const [capsOpen, setCapsOpen] = useState(false);
+  const lastFlagRefreshAt = useRef(0);
   const [tillLabel, setTillLabel] = useState("");
   const cashierName = me?.name?.trim() || me?.email?.trim() || "";
   const onSupplierReceiveTill =
@@ -100,6 +101,23 @@ export function CashierShell({ children }: CashierShellProps) {
       router.replace(APP_ROUTES.butcher);
     }
   }, [roleKey, router, onSupplierReceiveTill]);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      if (capsOpen) return;
+      const now = Date.now();
+      if (now - lastFlagRefreshAt.current < 15_000) return;
+      lastFlagRefreshAt.current = now;
+      void refreshSession();
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [refreshSession, capsOpen]);
 
   // Lock document scroll for the life of the till — nested panes scroll instead.
   useEffect(() => {
@@ -352,6 +370,7 @@ export function CashierShell({ children }: CashierShellProps) {
           drawoutEnabled={
             featureFlags[POS_CASHIER_CAPABILITY_FLAGS.drawout] === true
           }
+          drawoutAccess={business?.cashierDrawout}
           catalogHybridEnabled={
             featureFlags[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true
           }

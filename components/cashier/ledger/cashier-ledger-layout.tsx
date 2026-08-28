@@ -936,31 +936,29 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   <PlusCircle className="size-3.5" aria-hidden /> Open shift
                 </button>
               ) : null}
+              {posShiftLinks?.canDrawout && posShiftLinks.hasOpenShift ? (
+                <button
+                  type="button"
+                  className={MORE_CHIP}
+                  onClick={() => {
+                    setMoreOpen(false);
+                    posShiftLinks.onShortcut("new-drawout");
+                  }}
+                >
+                  <Wallet className="size-3.5" aria-hidden /> Drawout
+                </button>
+              ) : null}
               {posShiftLinks?.canCloseShift && posShiftLinks.hasOpenShift ? (
-                <>
-                  {posShiftLinks.canDrawout ? (
-                    <button
-                      type="button"
-                      className={MORE_CHIP}
-                      onClick={() => {
-                        setMoreOpen(false);
-                        posShiftLinks.onShortcut("new-drawout");
-                      }}
-                    >
-                      <Wallet className="size-3.5" aria-hidden /> Drawout
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className={MORE_CHIP}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      posShiftLinks.onShortcut("close-shift");
-                    }}
-                  >
-                    Close shift
-                  </button>
-                </>
+                <button
+                  type="button"
+                  className={MORE_CHIP}
+                  onClick={() => {
+                    setMoreOpen(false);
+                    posShiftLinks.onShortcut("close-shift");
+                  }}
+                >
+                  Close shift
+                </button>
               ) : null}
               {allowCreditTabs ? (
                 <button

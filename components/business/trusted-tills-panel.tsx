@@ -10,6 +10,7 @@ import type { BranchRecord } from "@/lib/api";
 import {
   formatTillDeviceShortId,
   getOrCreateTillDeviceId,
+  humanTillLabel,
   setTillDeviceLabel,
 } from "@/lib/till-device";
 import {
@@ -88,8 +89,10 @@ export function TrustedTillsPanel({
         label: label.trim() || undefined,
         cashierTemplate: readLocalCashierTemplate(),
       });
-      setTillDeviceLabel(row.label);
-      toast.success(`Registered as “${row.label}”`);
+      setTillDeviceLabel(humanTillLabel(row.label) ?? "");
+      toast.success(
+        `Registered as “${humanTillLabel(row.label) ?? row.label}”`,
+      );
       setLabel("");
       await reload(branchId);
     } catch (error) {

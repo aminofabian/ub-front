@@ -1058,6 +1058,11 @@ export type BusinessRecord = {
     volume?: number;
   };
   featureFlags?: Record<string, boolean>;
+  /** Who among till cashiers may record drawouts when the flag is on. */
+  cashierDrawout?: {
+    scope?: string;
+    userIds?: string[];
+  };
   profile?: {
     storeType?: string | null;
     storeTypes?: string[] | null;
@@ -1267,6 +1272,11 @@ export type FeatureFlagsPatchPayload = {
   posCashierOrderConfirm?: boolean;
   /** Allow cashiers to record cash drawouts from an open till. */
   posCashierDrawout?: boolean;
+  /** Which cashiers may draw out when the flag is on. */
+  posCashierDrawoutAccess?: {
+    scope?: "all" | "selected" | string;
+    userIds?: string[];
+  };
   /** Search-first hybrid POS catalog (list + chips). Absent / false = grid. */
   posCatalogHybrid?: boolean;
   shiftsPrefillOpeningFromLastClose?: boolean;

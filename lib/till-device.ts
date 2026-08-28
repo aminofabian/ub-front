@@ -72,6 +72,17 @@ export function setTillDeviceLabel(label: string): void {
   }
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const COMPACT_UUID_RE = /^[0-9a-f]{32}$/i;
+
+/** True when the value is a raw device UUID, not a human till name. */
+export function isRawTillDeviceId(value: string | null | undefined): boolean {
+  const t = value?.trim() ?? "";
+  if (!t) return false;
+  return UUID_RE.test(t) || COMPACT_UUID_RE.test(t);
+}
+
 /** Short display form for till chrome (e.g. a1b2c3d4). */
 export function formatTillDeviceShortId(deviceId: string): string {
   const id = deviceId.trim();
@@ -82,8 +93,20 @@ export function formatTillDeviceShortId(deviceId: string): string {
   return compact.slice(0, 8);
 }
 
+/**
+ * Friendly till name for chrome. Raw device UUIDs are never shown —
+ * they crowd the cashier action row and mean nothing on the till.
+ */
+export function humanTillLabel(
+  label: string | null | undefined,
+): string | null {
+  const t = label?.trim() ?? "";
+  if (!t || isRawTillDeviceId(t)) return null;
+  return t;
+}
+
 export function tillDeviceDisplayName(): string {
-  const label = getTillDeviceLabel();
+  const label = humanTillLabel(getTillDeviceLabel());
   if (label) {
     return label;
   }

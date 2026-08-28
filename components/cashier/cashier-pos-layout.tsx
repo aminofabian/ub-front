@@ -147,9 +147,6 @@ export type CashierPosShiftLinksProps = {
   canOpenShift: boolean;
   canCloseShift: boolean;
   canDrawout: boolean;
-  /** Who opened the live till shift (for chip label). */
-  openedByLabel?: string | null;
-  tillLabel?: string | null;
   /** Open shift / drawout / close flows in-place (no redirect to Shifts). */
   onShortcut: (action: "new-drawout" | "open-shift" | "close-shift") => void;
 };
@@ -1621,8 +1618,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 {uiCopy.offlinePill}
               </span>
             ) : null}
-            {posShiftLinks?.branchSelected && !posShiftLinks.shiftLoading ? (
-              <div className="ml-1 flex flex-wrap items-center gap-1 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] pl-2.5 dark:border-border/50">
+            {posShiftLinks?.branchSelected ? (
+              <div className="ml-1 flex shrink-0 flex-wrap items-center gap-1 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] pl-2.5 dark:border-border/50">
                 {posShiftLinks.canDrawout && posShiftLinks.hasOpenShift ? (
                   <button
                     type="button"

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   getOrCreateTillDeviceId,
+  humanTillLabel,
   setTillDeviceLabel,
   tillDeviceDisplayName,
 } from "@/lib/till-device";
@@ -64,9 +65,10 @@ export function RegisterTillControl({
         branchId: bid,
         label: label.trim() || undefined,
       });
-      setTillDeviceLabel(row.label);
-      onRegistered?.(row.label);
-      toast.success(`Registered as “${row.label}”`);
+      const friendly = humanTillLabel(row.label);
+      setTillDeviceLabel(friendly ?? "");
+      onRegistered?.(friendly ?? tillDeviceDisplayName());
+      toast.success(`Registered as “${friendly ?? tillDeviceDisplayName()}”`);
       setOpen(false);
     } catch (error) {
       toast.error(tillDeviceErrorMessage(error));

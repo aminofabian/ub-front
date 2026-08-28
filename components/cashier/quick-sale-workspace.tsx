@@ -12,7 +12,6 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { APP_ROUTES } from "@/lib/config";
-import { isBranchLockedRole } from "@/lib/branch-access";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { usePosDraftEvents } from "@/hooks/use-pos-draft-events";
 import { usePosEvents } from "@/hooks/use-pos-events";
@@ -4202,7 +4201,11 @@ export function QuickSaleWorkspace({
 
   const canOpenShift = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canCloseShiftPerm = hasPermission(me?.permissions, Permission.ShiftsClose);
-  const showPosShiftLinks = isCashier && (canOpenShift || canCloseShiftPerm);
+  const canReadShift = hasPermission(me?.permissions, Permission.ShiftsRead);
+  const showPosShiftLinks =
+    isCashier && (canOpenShift || canCloseShiftPerm);
+  const shouldFetchOpenShift =
+    isCashier && (canOpenShift || canCloseShiftPerm || canReadShift);
 
   const [branchOpenShift, setBranchOpenShift] = useState<ShiftRecord | null>(
     null,
@@ -4212,18 +4215,13 @@ export function QuickSaleWorkspace({
   const [closeShiftModal, setCloseShiftModal] = useState(false);
   const [drawoutModal, setDrawoutModal] = useState(false);
 
-  const shiftOpenedByMe =
-    branchOpenShift != null &&
-    !!me?.id &&
-    branchOpenShift.openedBy === me.id;
-  const canCloseThisShift =
-    canCloseShiftPerm &&
-    (!branchOpenShift ||
-      shiftOpenedByMe ||
-      !isBranchLockedRole(me?.role?.key));
+  const canCloseThisShift = canCloseShiftPerm;
   const canDrawout =
-    canCloseThisShift &&
-    cashierMayRecordDrawout(featureFlags, me?.role?.key);
+    (canOpenShift || canCloseShiftPerm) &&
+    cashierMayRecordDrawout(featureFlags, me?.role?.key, {
+      userId: me?.id,
+      access: business?.cashierDrawout,
+    });
 
   const refetchBranchOpenShift = useCallback(() => {
     if (!branchId?.trim() || !online) {
@@ -4245,7 +4243,7 @@ export function QuickSaleWorkspace({
   }, [branchId, online]);
 
   useEffect(() => {
-    if (!showPosShiftLinks || !branchId?.trim()) {
+    if (!shouldFetchOpenShift || !branchId?.trim()) {
       setBranchOpenShift(null);
       setBranchShiftLoading(false);
       return;
@@ -4255,7 +4253,7 @@ export function QuickSaleWorkspace({
       return;
     }
     refetchBranchOpenShift();
-  }, [showPosShiftLinks, branchId, online, refetchBranchOpenShift]);
+  }, [shouldFetchOpenShift, branchId, online, refetchBranchOpenShift]);
 
   const dialogBrandTheme = useMemo(
     () => posBrandThemeStyle(business?.branding ?? null),
@@ -4422,11 +4420,6 @@ export function QuickSaleWorkspace({
                 canOpenShift,
                 canCloseShift: canCloseThisShift,
                 canDrawout,
-                openedByLabel: branchOpenShift
-                  ? branchOpenShift.openedByName ||
-                    (shiftOpenedByMe ? "You" : null)
-                  : null,
-                tillLabel: branchOpenShift?.tillLabel ?? null,
                 onShortcut: onPosShiftShortcut,
               }
             : null

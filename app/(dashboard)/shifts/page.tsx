@@ -58,6 +58,7 @@ import {
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cashierMayRecordDrawout } from "@/lib/pos-cashier-capabilities";
+import { humanTillLabel } from "@/lib/till-device";
 import { cn } from "@/lib/utils";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 
@@ -1664,7 +1665,7 @@ function ShiftDetail({
 // ─── Main page ─────────────────────────────────────────────────────────────
 
 export default function ShiftsPage() {
-  const { me } = useDashboard();
+  const { me, business } = useDashboard();
   const featureFlags = useFeatureFlags();
   const canOpen = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canClose = hasPermission(me?.permissions, Permission.ShiftsClose);
@@ -1679,7 +1680,11 @@ export default function ShiftsPage() {
   );
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const canRecordDrawout =
-    canClose && cashierMayRecordDrawout(featureFlags, roleKey);
+    (canOpen || canClose) &&
+    cashierMayRecordDrawout(featureFlags, roleKey, {
+      userId: me?.id,
+      access: business?.cashierDrawout,
+    });
   const allowed = canOpen || canClose || canRead;
 
   // Data
@@ -2107,7 +2112,8 @@ export default function ShiftsPage() {
             <p className="text-sm font-semibold text-[var(--pos-ink,#1c1915)]">
               {currentOpenShift.openedByName || "Cashier"}
               <span className="font-normal text-muted-foreground"> at </span>
-              {currentOpenShift.tillLabel || currentOpenShift.branchName}
+              {humanTillLabel(currentOpenShift.tillLabel) ||
+                currentOpenShift.branchName}
             </p>
           </span>
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
