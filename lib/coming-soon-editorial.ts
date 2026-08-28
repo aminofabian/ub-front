@@ -107,6 +107,7 @@ export function buildComingSoonEditorial(
   const displayName = input.storeName.trim() || "Our shop";
   const firstWord = displayName.split(/\s+/).find(Boolean) ?? displayName;
   const currency = input.currency ?? null;
+  const countryCode = input.countryCode ?? null;
   const items = pickShelfItems(input.featured, input.catalogItems);
   const categories = pickCategories(input.categories);
   const types = pickTypes(input.types);
@@ -144,7 +145,7 @@ export function buildComingSoonEditorial(
     place,
     hours,
     currency,
-    countryCode: input.countryCode,
+    countryCode,
     deliveryAreas,
   });
   const promises = buildPromises({
@@ -152,7 +153,7 @@ export function buildComingSoonEditorial(
     place,
     hours,
     currency,
-    countryCode: input.countryCode,
+    countryCode,
     displayName,
   });
 
