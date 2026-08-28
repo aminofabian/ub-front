@@ -265,6 +265,9 @@ export function StorefrontThemesStudio({
         setLandingTemplateId(normalizeLandingTemplateId(id));
       }
       trackStorefrontEditEvent("themes_try_on", { id, source, mode });
+      if (source === "shortlist") {
+        trackStorefrontEditEvent("themes_shortlist_accepted", { id, mode });
+      }
     },
     [landingWhatsapp, mode],
   );

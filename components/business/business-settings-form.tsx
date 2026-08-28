@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import {
   AlertCircle,
-  ArrowRight,
   Banknote,
   ClipboardList,
   Loader2,
@@ -45,12 +44,9 @@ import {
   type ShiftSettingsForm,
   type StorefrontForm,
 } from "@/components/business/business-settings-types";
+import { CurrentLookLink } from "@/components/business/branding-template-section";
 import type { BranchRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
-import {
-  landingTemplateMeta,
-  storeThemeMeta,
-} from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 
 function inputClass(disabled?: boolean) {
@@ -146,7 +142,8 @@ export function BusinessSettingsForm({
   focusStorefrontOnMount,
   /** Profile page only shows identity + storefront. */
   variant = "all",
-  storefrontPreviewUrl,
+  logoUrl,
+  brandPrimary,
   onSubmit,
   onCancel,
   onRemoveDeliveryArea,
@@ -171,7 +168,8 @@ export function BusinessSettingsForm({
   storefrontNeedsBranch: boolean;
   focusStorefrontOnMount?: boolean;
   variant?: "profile" | "all";
-  storefrontPreviewUrl?: string | null;
+  logoUrl?: string | null;
+  brandPrimary?: string | null;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   onRemoveDeliveryArea?: (areaId: string) => void | Promise<void>;
@@ -366,46 +364,16 @@ export function BusinessSettingsForm({
                   This is the style customers see on your website. Open Themes
                   to try another look.
                 </p>
-                <Link
-                  href={APP_ROUTES.businessThemes}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-xl border border-border/70 bg-background px-3 py-2.5 transition",
-                    "hover:border-primary/35 hover:bg-muted/40",
-                  )}
-                >
-                  <span
-                    className="h-10 w-14 shrink-0 rounded-lg shadow-inner"
-                    style={{
-                      background: `linear-gradient(135deg, ${
-                        storefront.enabled
-                          ? storeThemeMeta(storefront.storeThemeId).previewFrom
-                          : landingTemplateMeta(storefront.landingTemplateId)
-                              .previewFrom
-                      }, ${
-                        storefront.enabled
-                          ? storeThemeMeta(storefront.storeThemeId).previewTo
-                          : landingTemplateMeta(storefront.landingTemplateId)
-                              .previewTo
-                      })`,
-                    }}
-                    aria-hidden
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">
-                      {storefront.enabled
-                        ? storeThemeMeta(storefront.storeThemeId).name
-                        : landingTemplateMeta(storefront.landingTemplateId)
-                            .name}
-                    </span>
-                    <span className="block text-[11px] text-muted-foreground">
-                      Change how the customer website looks
-                    </span>
-                  </span>
-                  <ArrowRight
-                    className="size-4 shrink-0 text-muted-foreground transition group-hover:text-foreground"
-                    aria-hidden
-                  />
-                </Link>
+                <CurrentLookLink
+                  enabled={storefront.enabled}
+                  storeThemeId={storefront.storeThemeId}
+                  landingTemplateId={storefront.landingTemplateId}
+                  storeName={editable.name}
+                  logoUrl={logoUrl}
+                  brandPrimary={brandPrimary}
+                  hours={storefront.landingHours}
+                  address={storefront.landingAddress}
+                />
               </div>
 
               {storefront.enabled ? (

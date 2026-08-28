@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { ThemeTryOnPhone } from "@/components/business/theme-try-on-phone";
-import { Button } from "@/components/ui/button";
 import type { BusinessRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -13,67 +12,100 @@ import {
   normalizeStoreThemeId,
   storeThemeMeta,
 } from "@/lib/storefront-templates";
+import { cn } from "@/lib/utils";
 
 /**
- * Settings-side "current look" — not a second editor. Theme IDs are saved
- * only on `/business/themes` (and onboarding submit).
+ * Current-look thumbnail that opens Themes. Not a second picker — IDs are
+ * saved only on `/business/themes` (and onboarding submit).
  */
-export function BrandingTemplateSection({
-  business,
+export function CurrentLookLink({
+  enabled,
+  storeThemeId,
+  landingTemplateId,
+  storeName,
+  logoUrl,
+  brandPrimary,
+  hours,
+  address,
+  className,
 }: {
-  business: BusinessRecord | null;
-  onSaved?: (business: BusinessRecord) => void;
+  enabled: boolean;
+  storeThemeId?: string | null;
+  landingTemplateId?: string | null;
+  storeName: string;
+  logoUrl?: string | null;
+  brandPrimary?: string | null;
+  hours?: string | null;
+  address?: string | null;
+  className?: string;
 }) {
-  const enabled = Boolean(business?.storefront?.enabled);
-  const storeThemeId = normalizeStoreThemeId(business?.storefront?.storeThemeId);
-  const landingTemplateId = normalizeLandingTemplateId(
-    business?.storefront?.landingTemplateId,
-  );
   const meta = enabled
-    ? storeThemeMeta(storeThemeId)
-    : landingTemplateMeta(landingTemplateId);
-  const storeName = business?.name?.trim() || "Your shop";
+    ? storeThemeMeta(normalizeStoreThemeId(storeThemeId))
+    : landingTemplateMeta(normalizeLandingTemplateId(landingTemplateId));
 
   return (
-    <section className="space-y-4 rounded-xl border border-border/60 bg-card p-4 sm:p-5">
-      <div>
-        <h2 className="text-base font-semibold tracking-tight">
-          {enabled ? "Store theme" : "Closed-sign page"}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {enabled
-            ? "The layout customers see on your shop. Change it in Themes."
-            : "The page visitors see while selling is off. Change it in Themes."}
-        </p>
+    <Link
+      href={APP_ROUTES.businessThemes}
+      className={cn(
+        "group flex items-start gap-3 rounded-xl border border-border/70 bg-background px-3 py-2.5 text-left transition",
+        "hover:border-foreground/25 hover:bg-muted/40",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2",
+        className,
+      )}
+    >
+      <div
+        className="w-[4.75rem] shrink-0 pointer-events-none sm:w-24"
+        aria-hidden
+      >
+        <ThemeTryOnPhone
+          item={meta}
+          kind={enabled ? "store" : "landing"}
+          storeName={storeName}
+          logoUrl={logoUrl}
+          brandPrimary={brandPrimary}
+          landingContent={{ hours, address }}
+          size="sm"
+          frame="card"
+        />
       </div>
-      <div className="flex items-start gap-4">
-        <div className="w-28 shrink-0">
-          <ThemeTryOnPhone
-            item={meta}
-            kind={enabled ? "store" : "landing"}
-            storeName={storeName}
-            logoUrl={business?.branding?.logoUrl}
-            brandPrimary={business?.branding?.primaryColor}
-            landingContent={business?.storefront?.landingContent}
-            size="sm"
-            frame="card"
-          />
-        </div>
-        <div className="min-w-0 flex-1 space-y-3">
-          <div>
-            <p className="text-sm font-semibold">{meta.name}</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              {meta.blurb}
-            </p>
-          </div>
-          <Button asChild size="sm" variant="outline" className="gap-1.5">
-            <Link href={APP_ROUTES.businessThemes}>
-              Change look
-              <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </section>
+      <span className="min-w-0 flex-1 pt-0.5">
+        <span className="block text-sm font-semibold text-foreground">
+          {meta.name}
+        </span>
+        <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+          Change look
+        </span>
+      </span>
+      <ArrowRight
+        className="mt-1 size-4 shrink-0 text-muted-foreground transition group-hover:text-foreground"
+        aria-hidden
+      />
+    </Link>
+  );
+}
+
+export function BrandingTemplateSection({
+  business,
+  storeName,
+  logoUrl,
+  brandPrimary,
+}: {
+  business: BusinessRecord | null;
+  storeName?: string;
+  logoUrl?: string | null;
+  brandPrimary?: string | null;
+}) {
+  const enabled = Boolean(business?.storefront?.enabled);
+  return (
+    <CurrentLookLink
+      enabled={enabled}
+      storeThemeId={business?.storefront?.storeThemeId}
+      landingTemplateId={business?.storefront?.landingTemplateId}
+      storeName={storeName?.trim() || business?.name?.trim() || "Your shop"}
+      logoUrl={logoUrl ?? business?.branding?.logoUrl}
+      brandPrimary={brandPrimary ?? business?.branding?.primaryColor}
+      hours={business?.storefront?.landingContent?.hours}
+      address={business?.storefront?.landingContent?.address}
+    />
   );
 }

@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Brush,
   Globe,
-  LayoutTemplate,
   Loader2,
   RefreshCw,
   Save,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { BrandingTemplateSection } from "@/components/business/branding-template-section";
 import { BusinessPageLayout } from "@/components/business-hub/business-page-layout";
 import { HubSettingsSectionNav } from "@/components/business-hub/hub-settings-section-nav";
 
@@ -814,12 +814,6 @@ function BannerSection({
 function RelatedLinks() {
   const links = [
     {
-      href: APP_ROUTES.businessThemes,
-      label: "Themes",
-      desc: "How the customer website looks",
-      icon: LayoutTemplate,
-    },
-    {
       href: APP_ROUTES.businessDesign,
       label: "Design",
       desc: "Photos, colors & focal points",
@@ -1556,6 +1550,12 @@ export default function BrandingPage() {
           </form>
 
           <aside className="space-y-4 lg:sticky lg:top-4">
+            <BrandingTemplateSection
+              business={snapshot}
+              storeName={form.displayName}
+              logoUrl={logoUrl}
+              brandPrimary={form.primaryColor}
+            />
             <BrandingPreview
               form={form}
               logoUrl={logoUrl}

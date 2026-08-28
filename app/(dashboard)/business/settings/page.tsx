@@ -37,7 +37,7 @@ import { BusinessSettingsSkeleton } from "@/components/dashboard/business-settin
 import { Button } from "@/components/ui/button";
 import { useBusinessSettingsEditor } from "@/hooks/use-business-settings-editor";
 import { HUB_SURFACE } from "@/lib/business-hub/constants";
-import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
+import { APP_ROUTES } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
 
@@ -417,11 +417,8 @@ export default function BusinessSettingsPage() {
               isSaving={editor.isSaving}
               storefrontNeedsBranch={editor.storefrontNeedsBranch}
               focusStorefrontOnMount={focusStorefront}
-              storefrontPreviewUrl={
-                editor.effectiveSnapshot?.slug
-                  ? `https://${editor.effectiveSnapshot.slug}.${PLATFORM_DOMAIN}/`
-                  : null
-              }
+              logoUrl={editor.effectiveSnapshot?.branding?.logoUrl}
+              brandPrimary={editor.effectiveSnapshot?.branding?.primaryColor}
               onSubmit={onSave}
               onCancel={onCancel}
               onRemoveDeliveryArea={editor.removeDeliveryArea}
