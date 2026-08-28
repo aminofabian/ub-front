@@ -11,7 +11,6 @@ import {
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
-  DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardLoadError,
   DashboardPageHero,
@@ -20,6 +19,9 @@ import { StorefrontThemesStudio } from "@/components/business/storefront-themes-
 import { Button } from "@/components/ui/button";
 import { fetchBusiness, type BusinessRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+
+/** The try-it-on atelier needs more width than the standard dashboard column. */
+const STUDIO_WRAPPER = "mx-auto w-full max-w-[1400px] space-y-10 pb-20";
 
 export default function BusinessThemesPage() {
   const { canManageBusinessSettings } = useDashboard();
@@ -63,7 +65,7 @@ export default function BusinessThemesPage() {
 
   if (!business && !loadFailed) {
     return (
-      <div className={DASHBOARD_MAX_WIDE}>
+      <div className={STUDIO_WRAPPER}>
         <ThemesPageHeader />
         <ThemesStudioSkeleton />
       </div>
@@ -81,7 +83,7 @@ export default function BusinessThemesPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX_WIDE}>
+    <div className={STUDIO_WRAPPER}>
       <div className="space-y-8">
         <ThemesPageHeader />
         <StorefrontThemesStudio
@@ -100,7 +102,7 @@ function ThemesPageHeader() {
         compact
         icon={LayoutTemplate}
         title="How your shop looks online"
-        description="Each picture is the customer website — the page people open on their phone. This back office stays private. Pick a style, then save to hang it on the shop front."
+        description="Each picture is your shop in that layout — name, logo, and products. Pick a look, then save to hang it on the shop front."
       />
       <div className="flex flex-wrap gap-2 sm:pt-1">
         <Button asChild variant="outline" size="sm" className="gap-1.5">

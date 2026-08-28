@@ -12,7 +12,7 @@ import {
 } from "@/lib/branding-color-presets";
 import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
 import { TenantLogo } from "@/components/brand/tenant-logo";
-import { TemplatePicker } from "@/components/storefront/template-picker";
+import { ThemeTryOnPhone } from "@/components/business/theme-try-on-phone";
 import {
   MilkRunWhatsAppDialog,
   milkRunNeedsWhatsApp,
@@ -39,6 +39,12 @@ import {
 import {
   DEFAULT_LANDING_TEMPLATE_ID,
   DEFAULT_STORE_THEME_ID,
+  LANDING_TEMPLATE_META,
+  STORE_THEME_META,
+  landingTemplateMeta,
+  shortlistLandingTemplateIds,
+  shortlistStoreThemeIds,
+  storeThemeMeta,
 } from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 import type { OnboardingSuggestedPackPreview } from "@/lib/onboarding-suggested-pack";
@@ -260,6 +266,7 @@ export function OnboardingQuestionnaire({
     initialAnswers.landingWhatsapp ?? "",
   );
   const [milkRunWaPromptOpen, setMilkRunWaPromptOpen] = useState(false);
+  const [seeAllThemes, setSeeAllThemes] = useState(false);
   const [displayName, setDisplayName] = useState(() => {
     const saved = initialAnswers.displayName?.trim();
     if (saved) {
@@ -575,6 +582,36 @@ export function OnboardingQuestionnaire({
   };
 
   const storeTypesLabel = formatStoreTypesLabel(storeTypes);
+
+  const themeKind = onlineStore === "yes" ? "store" : "landing";
+  const selectedThemeId =
+    themeKind === "store" ? storeThemeId : landingTemplateId;
+  const selectedThemeMeta =
+    themeKind === "store"
+      ? storeThemeMeta(selectedThemeId)
+      : landingTemplateMeta(selectedThemeId);
+  const themeRecommendInput = {
+    name: displayName || businessName,
+    profile: {
+      storeTypes: storeTypes.flatMap((value) => {
+        const label = STORE_TYPE_OPTIONS.find((o) => o.value === value)?.label;
+        return label ? [value, label] : [value];
+      }),
+    },
+  };
+  const onboardingThemeItems =
+    themeKind === "store" ? STORE_THEME_META : LANDING_TEMPLATE_META;
+  const onboardingShortlistIds =
+    themeKind === "store"
+      ? shortlistStoreThemeIds(themeRecommendInput)
+      : shortlistLandingTemplateIds(themeRecommendInput);
+  const onboardingVisibleThemes = seeAllThemes
+    ? onboardingThemeItems
+    : onboardingShortlistIds
+        .map((id) => onboardingThemeItems.find((item) => item.id === id))
+        .filter((item): item is (typeof onboardingThemeItems)[number] =>
+          Boolean(item),
+        );
 
   const scrollRef = useRef<HTMLElement | null>(null);
 
@@ -910,26 +947,81 @@ export function OnboardingQuestionnaire({
                   }
                   description={
                     onlineStore === "yes"
-                      ? "Pick how your online shop looks. You can switch themes later in Settings."
-                      : "Pick a public page for your shop link while you stay in-store only. You can change this later."
+                      ? "Start with one of these. You can change it later."
+                      : "Pick a public page for your shop link. You can change it later."
                   }
                 />
-                <TemplatePicker
-                  kind={onlineStore === "yes" ? "store" : "landing"}
-                  value={
-                    onlineStore === "yes" ? storeThemeId : landingTemplateId
-                  }
-                  onChange={(id) => {
-                    if (onlineStore === "yes") {
-                      setStoreThemeId(id);
-                      if (milkRunNeedsWhatsApp(id, landingWhatsapp)) {
-                        setMilkRunWaPromptOpen(true);
-                      }
-                    } else {
-                      setLandingTemplateId(id);
-                    }
-                  }}
-                />
+                <div className="mx-auto w-40">
+                  <ThemeTryOnPhone
+                    item={selectedThemeMeta}
+                    kind={themeKind}
+                    storeName={displayName || businessName || "Your shop"}
+                    brandPrimary={primaryColor}
+                    size="sm"
+                    frame="card"
+                  />
+                </div>
+                <p className="text-center text-sm font-semibold text-[#1F2937]">
+                  {selectedThemeMeta.name}
+                </p>
+                <div
+                  className={cn(
+                    "grid gap-2",
+                    seeAllThemes ? "grid-cols-2" : "grid-cols-3",
+                  )}
+                >
+                  {onboardingVisibleThemes.map((item) => {
+                    const selected = item.id === selectedThemeId;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          if (themeKind === "store") {
+                            setStoreThemeId(item.id);
+                            if (milkRunNeedsWhatsApp(item.id, landingWhatsapp)) {
+                              setMilkRunWaPromptOpen(true);
+                            }
+                          } else {
+                            setLandingTemplateId(item.id);
+                          }
+                        }}
+                        className={cn(
+                          "overflow-hidden rounded-xl border text-left transition",
+                          selected
+                            ? "border-[#1F2937] ring-1 ring-[#1F2937]"
+                            : "border-[#E5E7EB] hover:border-[#9CA3AF]",
+                        )}
+                      >
+                        <ThemeTryOnPhone
+                          item={item}
+                          kind={themeKind}
+                          storeName={displayName || businessName || "Your shop"}
+                          brandPrimary={primaryColor}
+                          size="sm"
+                          frame="card"
+                        />
+                        <span className="flex items-center justify-between gap-1 px-2 py-1.5">
+                          <span className="truncate text-[11px] font-semibold text-[#1F2937]">
+                            {item.name}
+                          </span>
+                          {selected ? (
+                            <Check className="size-3 shrink-0" aria-hidden />
+                          ) : null}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {!seeAllThemes ? (
+                  <button
+                    type="button"
+                    onClick={() => setSeeAllThemes(true)}
+                    className="text-sm font-medium text-[#1F2937] underline underline-offset-2"
+                  >
+                    See all {onboardingThemeItems.length} looks
+                  </button>
+                ) : null}
                 <MilkRunWhatsAppDialog
                   open={milkRunWaPromptOpen}
                   onOpenChange={setMilkRunWaPromptOpen}

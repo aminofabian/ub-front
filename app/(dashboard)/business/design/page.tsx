@@ -90,12 +90,32 @@ export default function BusinessDesignPage() {
         <Suspense fallback={<DesignPageHeaderFallback />}>
           <DesignPageHeader businessSlug={business?.slug ?? null} />
         </Suspense>
-        <StorefrontDesignEditor
-          business={business}
-          onSaved={(next) => setBusiness(next)}
-        />
+        <Suspense fallback={null}>
+          <DesignStudio
+            business={business}
+            onSaved={(next) => setBusiness(next)}
+          />
+        </Suspense>
       </div>
     </div>
+  );
+}
+
+function DesignStudio({
+  business,
+  onSaved,
+}: {
+  business: BusinessRecord | null;
+  onSaved: (business: BusinessRecord) => void;
+}) {
+  const searchParams = useSearchParams();
+  return (
+    <StorefrontDesignEditor
+      business={business}
+      onSaved={onSaved}
+      tryThemeId={searchParams.get("tryTheme")}
+      tryLandingId={searchParams.get("tryLanding")}
+    />
   );
 }
 

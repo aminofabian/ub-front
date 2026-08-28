@@ -61,6 +61,7 @@ import { ImageFocalPointPicker } from "@/components/business/image-focal-point-p
 import { StorefrontDesignAiCard } from "@/components/business/storefront-design-ai";
 import { CloudinaryTransformRow } from "@/components/business/cloudinary-transform-row";
 import { StorefrontMiniPreview, type MiniPreviewData, type MiniPreviewEditHandlers } from "@/components/business/storefront-mini-preview";
+import { ThemeTryOnPhone } from "@/components/business/theme-try-on-phone";
 import {
   DashboardFeedback,
   DASHBOARD_SECTION_SURFACE,
@@ -96,6 +97,7 @@ import {
   STOREFRONT_SECTION_IDS,
   formatBusinessHours,
   isValidHoursTime,
+  applyBusinessProfileToLandingContent,
   parseStorefrontDesignJson,
   serializeStorefrontDesign,
   storefrontSectionDefaultSettings,
@@ -123,6 +125,10 @@ import {
 } from "@/lib/storefront-design";
 import { storefrontPreviewUrl } from "@/lib/storefront-preview";
 import {
+  isLandingTemplateId,
+  isStoreThemeId,
+  landingTemplateMeta,
+  normalizeLandingTemplateId,
   normalizeStoreThemeId,
   storeThemeMeta,
 } from "@/lib/storefront-templates";
@@ -826,15 +832,23 @@ function buildDesign(
 export function StorefrontDesignEditor({
   business,
   onSaved,
+  tryThemeId,
+  tryLandingId,
 }: {
   business: BusinessRecord | null;
   onSaved?: (business: BusinessRecord) => void;
+  /** Preview a theme without writing storeThemeId. */
+  tryThemeId?: string | null;
+  /** Preview a closed-sign look without writing landingTemplateId. */
+  tryLandingId?: string | null;
 }) {
   const liveDesign = useMemo(
     () => parseStorefrontDesignJson(business?.storefront?.designJson),
     [business?.storefront?.designJson],
   );
-  const themeId = normalizeStoreThemeId(business?.storefront?.storeThemeId);
+  const liveThemeId = normalizeStoreThemeId(business?.storefront?.storeThemeId);
+  const themeId = isStoreThemeId(tryThemeId) ? tryThemeId : liveThemeId;
+  const isTryOn = isStoreThemeId(tryThemeId) && tryThemeId !== liveThemeId;
   const snapshot = useMemo(
     () => formFromDesign(liveDesign, themeId),
     [liveDesign, themeId],
@@ -856,6 +870,12 @@ export function StorefrontDesignEditor({
   );
   const [logoBusy, setLogoBusy] = useState(false);
   const heroInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setForm(formFromDesign(liveDesign, themeId));
+    // Only when the try-on theme changes — not on every design blob tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [themeId]);
 
   const formDirty = JSON.stringify(form) !== JSON.stringify(snapshot);
   const savedPrimary = brandHexOrDefault(
@@ -962,6 +982,18 @@ export function StorefrontDesignEditor({
     "brand" | "photos" | "business" | "sections" | null
   >(null);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const [previewKind, setPreviewKind] = useState<"shop" | "closed-sign">(() => {
+    if (isLandingTemplateId(tryLandingId)) return "closed-sign";
+    if (isStoreThemeId(tryThemeId)) return "shop";
+    return business?.storefront?.enabled ? "shop" : "closed-sign";
+  });
+  useEffect(() => {
+    if (isLandingTemplateId(tryLandingId)) {
+      setPreviewKind("closed-sign");
+    } else if (isStoreThemeId(tryThemeId)) {
+      setPreviewKind("shop");
+    }
+  }, [tryLandingId, tryThemeId]);
   const stepRefs = {
     brand: useRef<HTMLDivElement>(null),
     photos: useRef<HTMLDivElement>(null),
@@ -976,16 +1008,40 @@ export function StorefrontDesignEditor({
     ? slugDerivedShopUrl(business.slug) ||
       `https://${business.slug}.${PLATFORM_DOMAIN}`
     : "";
+  const storeName =
+    business?.branding?.displayName?.trim() || business?.name || "Your shop";
+  const liveLandingId = normalizeLandingTemplateId(
+    business?.storefront?.landingTemplateId,
+  );
+  const landingTemplateId = isLandingTemplateId(tryLandingId)
+    ? tryLandingId
+    : liveLandingId;
+  const isLandingTryOn =
+    isLandingTemplateId(tryLandingId) && tryLandingId !== liveLandingId;
+  const landingMeta = landingTemplateMeta(landingTemplateId);
+  const closedSignContent = useMemo(
+    () =>
+      applyBusinessProfileToLandingContent(
+        business?.storefront?.landingContent ?? null,
+        buildBusinessFromForm(form),
+      ),
+    [business?.storefront?.landingContent, form],
+  );
   const liveUrl = shopBase ? storefrontPreviewUrl(shopBase, "store", themeId) : null;
   const draftJson = useMemo(
     () => serializeStorefrontDesign(buildDesign(form, themeId)) ?? null,
     [form, themeId],
   );
+  const draftTooLarge = Boolean(draftJson && draftJson.length > 8000);
+  const landingPreviewUrl = shopBase
+    ? storefrontPreviewUrl(shopBase, "landing", landingTemplateId, {
+        designJson: draftTooLarge ? null : draftJson,
+      })
+    : null;
   const draftPreviewUrl =
     shopBase && draftJson
       ? storefrontPreviewUrl(shopBase, "store", themeId, { designJson: draftJson })
       : null;
-  const draftTooLarge = Boolean(draftJson && draftJson.length > 8000);
 
   useEffect(() => {
     setPreviewLogoUrl(business?.branding?.logoUrl?.trim() || null);
@@ -1298,7 +1354,9 @@ export function StorefrontDesignEditor({
         brandHexOrDefault(next.branding?.accentColor, BRAND_ACCENT),
       );
       setFeedback(
-        "Saved — the shop front now uses your design. Open it live to take a look.",
+        isTryOn
+          ? `Saved your design. ${storeThemeMeta(themeId).name} is still a preview — save it on Themes to make it live.`
+          : "Saved — the shop front now uses your design. Open it live to take a look.",
       );
     } catch (e) {
       setError(
@@ -1479,8 +1537,41 @@ export function StorefrontDesignEditor({
       {feedback ? <DashboardFeedback kind="success" text={feedback} /> : null}
 
       {showMobilePreview ? (
-        <div className="flex justify-center rounded-2xl border border-border/70 bg-card p-5 shadow-sm lg:hidden">
-          <StorefrontMiniPreview data={previewData} editHandlers={previewEditHandlers} />
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-border/70 bg-card p-5 shadow-sm lg:hidden">
+          <PreviewPageSegment value={previewKind} onChange={setPreviewKind} />
+          {previewKind === "closed-sign" ? (
+            <ThemeTryOnPhone
+              item={landingMeta}
+              kind="landing"
+              storeName={storeName}
+              logoUrl={previewLogoUrl}
+              brandPrimary={brandPrimary}
+              landingContent={{
+                hours: closedSignContent?.hours ?? null,
+                address: closedSignContent?.address ?? null,
+              }}
+              size="sm"
+            />
+          ) : (
+            <StorefrontMiniPreview data={previewData} editHandlers={previewEditHandlers} />
+          )}
+          {previewKind === "shop" && isTryOn ? (
+            <p className="max-w-xs text-center text-xs leading-relaxed text-muted-foreground">
+              Previewing {storeThemeMeta(themeId).name}. Save a theme on{" "}
+              <Link href={APP_ROUTES.businessThemes} className="font-medium underline underline-offset-2">
+                Themes
+              </Link>{" "}
+              to make this live.
+            </p>
+          ) : previewKind === "closed-sign" && isLandingTryOn ? (
+            <p className="max-w-xs text-center text-xs leading-relaxed text-muted-foreground">
+              Previewing {landingMeta.name}. Save this look on{" "}
+              <Link href={APP_ROUTES.businessThemes} className="font-medium underline underline-offset-2">
+                Themes
+              </Link>{" "}
+              to make it live.
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -2368,44 +2459,115 @@ export function StorefrontDesignEditor({
 
         <aside className="hidden lg:block">
           <div className="sticky top-24 flex flex-col items-center gap-3">
-            <StorefrontMiniPreview data={previewData} editHandlers={previewEditHandlers} />
-            <div className="text-center">
-              <p className="text-xs font-semibold text-foreground">Live preview</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Logo, colour, and headlines update here.
-              </p>
-              {draftPreviewUrl ? (
-                <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5">
-                  <Link
-                    href={draftPreviewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={
-                      draftTooLarge
-                        ? "This design is too large to preview without saving."
-                        : "Open the real shop with your unsaved changes"
-                    }
-                    aria-disabled={draftTooLarge}
-                    onClick={(e) => {
-                      if (draftTooLarge) e.preventDefault();
-                    }}
-                  >
-                    <ExternalLink className="size-4" aria-hidden />
-                    Preview as customer
-                  </Link>
-                </Button>
-              ) : null}
-              {liveUrl ? (
-                <Link
-                  href={liveUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-block text-xs font-medium text-primary underline underline-offset-2"
-                >
-                  Open live shop
-                </Link>
-              ) : null}
-            </div>
+            <PreviewPageSegment value={previewKind} onChange={setPreviewKind} />
+            {previewKind === "closed-sign" ? (
+              <>
+                <ThemeTryOnPhone
+                  item={landingMeta}
+                  kind="landing"
+                  storeName={storeName}
+                  logoUrl={previewLogoUrl}
+                  brandPrimary={brandPrimary}
+                  landingContent={{
+                    hours: closedSignContent?.hours ?? null,
+                    address: closedSignContent?.address ?? null,
+                  }}
+                />
+                <div className="text-center">
+                  <p className="text-xs font-semibold text-foreground">
+                    {isLandingTryOn
+                      ? `Previewing ${landingMeta.name}`
+                      : "Closed-sign preview"}
+                  </p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    {isLandingTryOn ? (
+                      <>
+                        Save this look on{" "}
+                        <Link
+                          href={APP_ROUTES.businessThemes}
+                          className="font-medium underline underline-offset-2"
+                        >
+                          Themes
+                        </Link>{" "}
+                        to make it live. Hours and address here follow Business
+                        details.
+                      </>
+                    ) : (
+                      <>
+                        What visitors see while selling is off —{" "}
+                        {landingMeta.name} with your hours and address.
+                      </>
+                    )}
+                  </p>
+                  {landingPreviewUrl ? (
+                    <Link
+                      href={landingPreviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-block text-xs font-medium text-primary underline underline-offset-2"
+                    >
+                      Open live closed sign
+                    </Link>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <>
+                <StorefrontMiniPreview data={previewData} editHandlers={previewEditHandlers} />
+                <div className="text-center">
+                  <p className="text-xs font-semibold text-foreground">
+                    {isTryOn ? `Previewing ${storeThemeMeta(themeId).name}` : "Live preview"}
+                  </p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    {isTryOn ? (
+                      <>
+                        Save a theme on{" "}
+                        <Link
+                          href={APP_ROUTES.businessThemes}
+                          className="font-medium underline underline-offset-2"
+                        >
+                          Themes
+                        </Link>{" "}
+                        to make this live. Design save keeps your words and colours.
+                      </>
+                    ) : (
+                      "Logo, colour, and headlines update here."
+                    )}
+                  </p>
+                  {draftPreviewUrl ? (
+                    <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5">
+                      <Link
+                        href={draftPreviewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={
+                          draftTooLarge
+                            ? "This design is too large to preview without saving."
+                            : "Open the real shop with your unsaved changes"
+                        }
+                        aria-disabled={draftTooLarge}
+                        onClick={(e) => {
+                          if (draftTooLarge) e.preventDefault();
+                        }}
+                      >
+                        <ExternalLink className="size-4" aria-hidden />
+                        Preview as customer
+                      </Link>
+                    </Button>
+                  ) : null}
+                  {liveUrl ? (
+                    <Link
+                      href={liveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-block text-xs font-medium text-primary underline underline-offset-2"
+                    >
+                      Open live shop
+                    </Link>
+                  ) : null}
+                </div>
+              </>
+            )}
           </div>
         </aside>
       </div>
@@ -2916,4 +3078,43 @@ function SectionSettingsPanel({
       );
     }
   }
+}
+
+function PreviewPageSegment({
+  value,
+  onChange,
+}: {
+  value: "shop" | "closed-sign";
+  onChange: (next: "shop" | "closed-sign") => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Which page to preview"
+      className="grid w-full max-w-[240px] grid-cols-2 gap-1 rounded-full border border-border/70 bg-muted/40 p-1"
+    >
+      {(
+        [
+          { id: "shop", label: "Shop" },
+          { id: "closed-sign", label: "Closed sign" },
+        ] as const
+      ).map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          aria-pressed={value === option.id}
+          onClick={() => onChange(option.id)}
+          className={cn(
+            "rounded-full px-2 py-1.5 text-xs font-semibold transition-colors duration-150",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+            value === option.id
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
 }
