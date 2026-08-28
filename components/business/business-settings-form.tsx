@@ -343,20 +343,18 @@ export function BusinessSettingsForm({
               legend="Online storefront"
               hint="Public catalog and pickup flow. Prices follow the branch you choose."
             >
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/55 bg-background px-2.5 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
-                <input
-                  type="checkbox"
-                  className="size-4 rounded border-input text-primary focus:ring-ring"
-                  checked={storefront.enabled}
-                  onChange={(event) =>
-                    setStorefront((s) => ({
-                      ...s,
-                      enabled: event.target.checked,
-                    }))
-                  }
-                />
-                Enable storefront
-              </label>
+              <div className="rounded-lg border border-border/55 bg-muted/20 px-2.5 py-2 sm:col-span-2">
+                <p className="text-[13px] font-medium leading-snug">
+                  {storefront.enabled
+                    ? "Online store is on"
+                    : "Online store is off"}
+                </p>
+                <p className={hintClass()}>
+                  {storefront.enabled
+                    ? "Customers can browse and order from your website. Use the switch in the header to turn it off."
+                    : "Your link shows a landing page. Use the switch in the header to open the catalog."}
+                </p>
+              </div>
 
               <div className="space-y-2 sm:col-span-2">
                 <p className={labelClass()}>

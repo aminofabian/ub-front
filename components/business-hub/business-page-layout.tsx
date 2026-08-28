@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { BusinessHubNav } from "@/components/business-hub/business-hub-nav";
+import { OnlineStoreHeaderSwitch } from "@/components/business-hub/online-store-header-switch";
 import { cn } from "@/lib/utils";
 
 export const BUSINESS_HUB_VARS = {
@@ -66,9 +67,10 @@ export function BusinessPageLayout({
               {description}
             </p>
           </div>
-          {headerActions ? (
-            <div className="flex shrink-0 items-center gap-1.5">{headerActions}</div>
-          ) : null}
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+            <OnlineStoreHeaderSwitch />
+            {headerActions}
+          </div>
         </header>
 
         {children}

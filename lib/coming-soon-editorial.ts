@@ -234,6 +234,15 @@ function pickShelfItems(
   featured: readonly PublicCatalogItemCard[] | null | undefined,
   catalog: readonly PublicCatalogItemCard[] | null | undefined,
 ): PublicCatalogItemCard[] {
+  return pickComingSoonShelf(featured, catalog, HERO_CELL_CAP + TEASER_CAP);
+}
+
+/** Ranked unique products with names and photos preferred. Shared by coming-soon templates. */
+export function pickComingSoonShelf(
+  featured: readonly PublicCatalogItemCard[] | null | undefined,
+  catalog: readonly PublicCatalogItemCard[] | null | undefined,
+  limit: number,
+): PublicCatalogItemCard[] {
   const seen = new Set<string>();
   const out: PublicCatalogItemCard[] = [];
   const push = (item: PublicCatalogItemCard | undefined) => {
@@ -245,7 +254,7 @@ function pickShelfItems(
   const pool = [...(featured ?? []), ...(catalog ?? [])];
   const scored = [...pool].sort((a, b) => shelfScore(b) - shelfScore(a));
   for (const item of scored) {
-    if (out.length >= HERO_CELL_CAP + TEASER_CAP) break;
+    if (out.length >= limit) break;
     push(item);
   }
   return out;

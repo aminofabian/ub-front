@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { BrandPosterLanding } from "@/components/storefront/templates/landing/brand-poster";
 import { ButcheryCutLanding } from "@/components/storefront/templates/landing/butchery-cut";
 import { ComingSoonEditorialLanding } from "@/components/storefront/templates/landing/coming-soon-editorial";
+import { ComingSoonShopLanding } from "@/components/storefront/templates/landing/coming-soon-shop";
 import { FreshMarketLanding } from "@/components/storefront/templates/landing/fresh-market";
 import { FrontWindowLanding } from "@/components/storefront/templates/landing/front-window";
 import { MinimartHoursLanding } from "@/components/storefront/templates/landing/minimart-hours";
@@ -57,6 +58,7 @@ const LANDING_PAGES: Record<
   ComponentType<LandingTemplateProps>
 > = {
   "coming-soon-editorial": ComingSoonEditorialLanding,
+  "coming-soon-shop": ComingSoonShopLanding,
   "neighborhood-board": NeighborhoodBoardLanding,
   "fresh-market": FreshMarketLanding,
   "butchery-cut": ButcheryCutLanding,

@@ -60,6 +60,12 @@ describe("theme recommendation", () => {
       recommendLandingTemplateId({ name: "Kamau Butchery" }),
     ).toBe("butchery-cut");
   });
+
+  test("online shop names pick the locked-shelf coming soon", () => {
+    expect(
+      recommendLandingTemplateId({ name: "Sunrise Online Shop" }),
+    ).toBe("coming-soon-shop");
+  });
 });
 
 describe("theme shortlist", () => {

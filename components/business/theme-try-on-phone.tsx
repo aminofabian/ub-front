@@ -883,6 +883,68 @@ function LandingBody({
     );
   }
 
+  if (layout === "locked-shelf") {
+    const peek = products.slice(0, 4);
+    return (
+      <div className="flex min-h-0 flex-1 flex-col px-[0.85em] pb-[0.7em] pt-[0.35em]">
+        <div className="flex items-center justify-between gap-[0.4em]">
+          <p className="min-w-0 truncate text-[0.72em] font-bold">{storeName}</p>
+          <span
+            className="shrink-0 px-[0.45em] py-[0.18em] text-[0.48em] font-bold"
+            style={{ backgroundColor: skin.ink, color: skin.surface }}
+          >
+            Soon
+          </span>
+        </div>
+        {peek.length > 0 ? (
+          <div className="mt-[0.45em] grid min-h-0 flex-1 grid-cols-2 gap-[0.28em]">
+            {peek.map((product, i) => (
+              <div
+                key={`${product.name}-${i}`}
+                className={cn("relative min-h-0 overflow-hidden", card)}
+                style={{ backgroundColor: skin.card }}
+              >
+                <Face
+                  product={product}
+                  skin={skin}
+                  index={i}
+                  className="h-full min-h-[3.2em] w-full"
+                />
+                {product.price ? (
+                  <span
+                    className="absolute bottom-[0.28em] left-[0.28em] px-[0.28em] py-[0.08em] text-[0.48em] font-bold"
+                    style={{ backgroundColor: skin.surface, color: skin.ink }}
+                  >
+                    {product.price}
+                  </span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-[0.45em] grid flex-1 grid-cols-2 gap-[0.28em]">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className={cn("min-h-[3.2em]", card)}
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${skin.accent} 12%, ${skin.card})`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+        <div
+          className="mt-[0.45em] flex items-center justify-between gap-[0.4em] px-[0.2em] py-[0.35em]"
+          style={{ backgroundColor: skin.ink, color: skin.surface }}
+        >
+          <span className="text-[0.52em] font-bold">Bag locked</span>
+          <Cta skin={skin}>Notify</Cta>
+        </div>
+      </div>
+    );
+  }
+
   // coming-soon editorial
   const peek = products.slice(0, 4);
   return (
@@ -995,6 +1057,7 @@ function productCta(layout: ThemePhoneLayout): string {
   if (layout === "console") return "Dispense";
   if (layout === "poster") return "Enquire";
   if (layout === "pastry") return "Add to bag";
+  if (layout === "locked-shelf") return "Notify";
   return "Add";
 }
 
@@ -1006,6 +1069,7 @@ function cartCta(layout: ThemePhoneLayout): string {
   if (layout === "editorial" || layout === "scent") return "Request";
   if (layout === "poster") return "Enquire";
   if (layout === "pastry") return "Order";
+  if (layout === "locked-shelf") return "Notify";
   return "Pay";
 }
 

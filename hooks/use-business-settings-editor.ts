@@ -54,7 +54,8 @@ export type BusinessSettingsSaveScope = "profile" | "operations" | "all";
 
 export function useBusinessSettingsEditor() {
   const router = useRouter();
-  const { canManageBusinessSettings, refreshSession } = useDashboard();
+  const { canManageBusinessSettings, refreshSession, business } =
+    useDashboard();
   const bootstrapBusiness = useSessionBootstrapSnapshot().business;
   const [snapshot, setSnapshot] = useState<BusinessRecord | null>(null);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
@@ -179,6 +180,14 @@ export function useBusinessSettingsEditor() {
       return { ...prev, catalogBranchId };
     });
   }, [branches]);
+
+  const remoteStorefrontEnabled = Boolean(business?.storefront?.enabled);
+  useEffect(() => {
+    setStorefront((prev) => {
+      if (prev.enabled === remoteStorefrontEnabled) return prev;
+      return { ...prev, enabled: remoteStorefrontEnabled };
+    });
+  }, [remoteStorefrontEnabled]);
 
   const resetFormFromSnapshot = useCallback(() => {
     if (!effectiveSnapshot) {

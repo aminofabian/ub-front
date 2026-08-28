@@ -24,6 +24,7 @@ export type StoreThemeId =
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
+  | "coming-soon-shop"
   | "neighborhood-board"
   | "fresh-market"
   | "butchery-cut"
@@ -63,7 +64,8 @@ export type ThemePhoneLayout =
   | "cuts-list"
   | "hours-map"
   | "logo-poster"
-  | "shop-window";
+  | "shop-window"
+  | "locked-shelf";
 
 /**
  * Per-theme "try it on" skin: what a miniature of the theme looks like when
@@ -140,6 +142,7 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
   "coming-soon-editorial",
+  "coming-soon-shop",
   "neighborhood-board",
   "fresh-market",
   "butchery-cut",
@@ -740,6 +743,42 @@ export const LANDING_TEMPLATE_META: readonly StorefrontTemplateMeta[] = [
       onAccent: "#FFFFFF",
       radius: "soft",
       font: "serif",
+    },
+  },
+  {
+    id: "coming-soon-shop",
+    kind: "landing",
+    name: "Coming soon shop",
+    blurb: "A closed online shop you can still browse. Prices are up. The bag is locked.",
+    previewFrom: "#F3F3F0",
+    previewTo: "#171717",
+    accent: "#0F766E",
+    vibes: [],
+    matches: [
+      "ecommerce",
+      "e-commerce",
+      "online shop",
+      "online store",
+      "webshop",
+      "web shop",
+      "catalog",
+      "checkout",
+      "order online",
+    ],
+    points: [
+      "A closed online shop you can still browse. Prices are up. The bag is locked.",
+      "Shoppers pick a product to watch, then leave an email for opening day.",
+    ],
+    phone: {
+      layout: "locked-shelf",
+      surface: "#F3F3F0",
+      ink: "#141414",
+      muted: "#6B6B64",
+      card: "#FFFFFF",
+      accent: "#0F766E",
+      onAccent: "#FFFFFF",
+      radius: "sharp",
+      font: "sans",
     },
   },
   {

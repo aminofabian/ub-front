@@ -100,6 +100,10 @@ type DashboardContextValue = {
   business: BusinessRecord | null;
   loading: boolean;
   refreshSession: () => Promise<void>;
+  /** Optimistic local merge; pair with an API call and refreshSession. */
+  patchLocalBusiness: (
+    updater: (current: BusinessRecord) => BusinessRecord,
+  ) => void;
   branches: BranchRecord[];
   branchId: string;
   setBranchId: (id: string) => void;
@@ -194,6 +198,19 @@ export function DashboardProvider({
       persistTenantHostAfterAuth(biz.slug, biz.primaryDomain);
     }
   }, []);
+
+  const patchLocalBusiness = useCallback(
+    (updater: (current: BusinessRecord) => BusinessRecord) => {
+      setBusiness((prev) => {
+        const base = prev ?? bootstrap.business;
+        if (!base) return prev;
+        const next = updater(base);
+        writeSessionBootstrap(SESSION_BOOTSTRAP_KEYS.business, next);
+        return next;
+      });
+    },
+    [bootstrap.business],
+  );
 
   const effectiveMe = me ?? bootstrap.me;
   const effectiveBusiness = business ?? bootstrap.business;
@@ -499,6 +516,7 @@ export function DashboardProvider({
       business: effectiveBusiness,
       loading: effectiveLoading,
       refreshSession,
+      patchLocalBusiness,
       branches: effectiveBranches,
       branchId: effectiveBranchId,
       setBranchId,
@@ -666,6 +684,7 @@ export function DashboardProvider({
       effectiveBusiness,
       effectiveLoading,
       refreshSession,
+      patchLocalBusiness,
       effectiveBranches,
       effectiveBranchId,
       setBranchId,

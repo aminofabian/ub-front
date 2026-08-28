@@ -84,8 +84,8 @@ export function buildActionItems(input: BuildActionItemsInput): ActionItem[] {
   if (input.canManageBusinessSettings && input.storefrontEnabled === false) {
     items.push({
       id: "storefront-off",
-      label: "Online storefront is off",
-      detail: "Enable it to accept web orders",
+      label: "Online store is off",
+      detail: "Turn it on in the header to accept web orders",
       href: APP_ROUTES.businessSettings,
       tone: "info",
     });
